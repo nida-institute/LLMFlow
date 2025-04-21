@@ -1,0 +1,14 @@
+
+pipeline:
+  name: storyflow-minimal
+
+  variables:
+    passage: inputs/Psalm23.txt
+
+  rules:
+    - name: echo_passage
+      type: function
+      function: utils.io.read_file
+      inputs:
+        path: "${passage}"
+      outputs: [passage_text]
