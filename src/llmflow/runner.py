@@ -65,7 +65,13 @@ def run_pipeline(pipeline_path, variables=None, dry_run=False):
             func = getattr(module, func_name)
 
             resolved_inputs = {k: resolve(v, context) for k, v in rule["inputs"].items()}
-            result = func(**resolved_inputs)
+
+            # Filter out any inputs that aren't accepted by the function
+            import inspect
+            valid_params = inspect.signature(func).parameters.keys()
+            filtered_inputs = {k: v for k, v in resolved_inputs.items() if k in valid_params}
+
+            result = func(**filtered_inputs)
 
             if isinstance(result, dict):
                 for k in rule["outputs"]:

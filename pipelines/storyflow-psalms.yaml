@@ -7,6 +7,23 @@ pipeline:
     prompts_dir: prompts/storyflow
 
   rules:
+    - name: generate_exegetical_commentary
+      type: llm
+      prompt:
+        file: psalms-exegetical-pericope.gpt
+        inputs:
+          passage: "${passage}"
+      outputs: [exegetical_md]
+
+    - name: save_exegetical
+      type: function
+      function: llmflow.utils.io.write_exegetical_commentary
+      inputs:
+        passage: "${passage}"
+        content: "${exegetical_md}"
+        filename_format: "exegetical_pericope_{passage}.md"
+      outputs: [exegetical_path]
+
     - name: generate_intro
       type: llm
       prompt:

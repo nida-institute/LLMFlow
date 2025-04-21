@@ -32,6 +32,15 @@ def save_scene_list_json(passage, scenes):
     write_nfc(output_path, json.dumps(scenes, ensure_ascii=False, indent=2))
     return output_path
 
+def write_exegetical_commentary(passage, content):
+    output_dir = "outputs"
+    os.makedirs(output_dir, exist_ok=True)
+    safe_passage = sanitize_filename(passage)
+    output_path = os.path.join(output_dir, f"psalms-exegetical-pericope.md")
+
+    write_nfc(output_path, content)
+    return output_path
+
 def save_leaders_guide(passage, intro, scenes, step1, step2, step3, step4, summary):
     output_dir = "outputs"
     os.makedirs(output_dir, exist_ok=True)
