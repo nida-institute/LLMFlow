@@ -122,22 +122,35 @@ def run_pipeline(pipeline_path, variables=None, dry_run=False):
 
         elif rule["type"] == "llm":
             resolved_prompt = resolve_dict(rule["prompt"], context)
-            prompt_path = resolved_prompt["file"]
+            prompt_path = Path(resolved_prompt["file"])
             inputs = resolved_prompt.get("inputs", {})
-            # Make the prompt path relative to the prompts directory, not the pipeline location
-            prompt_path = Path(prompt_path)
-            prompts_dir = Path(context.get("prompts_dir", "prompts"))
 
-            if prompt_path.is_absolute():
-                full_prompt_path = prompt_path
-            else:
-                full_prompt_path = prompts_dir / prompt_path
+            # Resolve prompt location
+            prompts_dir = Path(context.get("prompts_dir", "prompts"))
+            full_prompt_path = prompt_path if prompt_path.is_absolute() else prompts_dir / prompt_path
 
             print(f"Loading prompt from: {full_prompt_path}")
             rendered_prompt = full_prompt_path.read_text()
             for key, val in inputs.items():
                 rendered_prompt = rendered_prompt.replace(f"{{{key}}}", str(val))
-            result = normalize_nfc(call_llm(rendered_prompt, from_file=False))
+
+            # Read model config
+            llm_config = pipeline["pipeline"].get("llm_config", {})
+            step_config = rule.get("llm_options", {})
+            merged_config = {
+                "model": step_config.get("model", llm_config.get("model", "gpt-4o")),
+                "max_tokens": step_config.get("max_tokens", llm_config.get("max_tokens", 1000)),
+                "temperature": step_config.get("temperature", llm_config.get("temperature", 0.7)),
+            }
+
+            result = normalize_nfc(call_llm(
+                rendered_prompt,
+                model=merged_config["model"],
+                max_tokens=merged_config["max_tokens"],
+                temperature=merged_config["temperature"],
+                from_file=False
+            ))
+
             for out in rule["outputs"]:
                 context[out] = result
 
