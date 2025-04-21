@@ -6,6 +6,8 @@ import io
 import mimetypes
 from magic import Magic
 
+import llm
+
 import subprocess
 import json
 import unicodedata
@@ -14,38 +16,51 @@ from magic import Magic
 
 def call_llm(prompt_path_or_text, model="gpt-4o", tags=None, from_file=True, max_tokens=None, temperature=None):
     """
-    Use the `llm` CLI to call a registered model with a prompt.
-    If `from_file` is True, `prompt_path_or_text` is a path to a .gpt file.
-    Otherwise it's a raw string prompt.
+        Use the `llm` library to call a registered model with a prompt.
+        If `from_file` is True, `prompt_path_or_text` is a path to a .gpt file.
+        Otherwise it's a raw string prompt.
 
-    Parameters:
-        prompt_path_or_text: Path to .gpt file or raw prompt text
-        model: Model to use for generation
-        tags: List of tags to add to the prompt
-        from_file: Whether prompt_path_or_text is a file path
-        max_tokens: (optional) Maximum output tokens
-        temperature: (optional) Creativity of response
+        Parameters:
+            prompt_path_or_text: Path to .gpt file or raw prompt text
+            model: Model to use for generation
+            tags: List of tags to add to the prompt
+            from_file: Whether prompt_path_or_text is a file path
+            max_tokens: (optional) Maximum output tokens
+            temperature: (optional) Creativity of response
 
-    Returns:
-        JSON, XML, or normalized string output
+        Returns:
+            JSON, XML, or normalized string output
     """
+    # Configure model options
+    model_instance = llm.get_model(model)
+    options = {}
+    model_kwargs = {}
 
-    command = ["llm", "prompt", "-m", model]
+    if temperature is not None:
+        model_kwargs["temperature"] = temperature
 
     if max_tokens is not None:
-        command.extend(["-n", str(max_tokens)])
-    if temperature is not None:
-        command.extend(["--temperature", str(temperature)])
+        model_kwargs["max_tokens"] = max_tokens
+
+    # Set up prompt
+    if from_file:
+        with open(prompt_path_or_text, 'r') as f:
+            prompt_text = f.read()
+    else:
+        prompt_text = prompt_path_or_text
+    # Execute prompt with model
+    response = model_instance.prompt(prompt_text, **model_kwargs)
     if tags:
         for tag in tags:
-            command.extend(["--tag", tag])
+            response.add_tag(tag)
 
-    if from_file:
-        command.extend(["-f", prompt_path_or_text])
-    else:
-        command.append(prompt_path_or_text)
-
-    result = subprocess.run(command, capture_output=True, text=True)
+    # Capture output as string
+    output = response.text().strip()
+    result = type('obj', (object,), {
+        'stdout': output,
+        'stderr': '',
+        'returncode': 0
+    })
 
     if result.returncode != 0:
         raise RuntimeError(f"LLM call failed: {result.stderr}")

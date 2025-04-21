@@ -6,6 +6,11 @@ pipeline:
     passage: Psalm 23
     prompts_dir: prompts/storyflow
 
+  llm_config:
+    model: gpt-4o
+    temperature: 0.7
+    max_tokens: 2500
+
   rules:
     - name: generate_exegetical_commentary
       type: llm
@@ -13,6 +18,9 @@ pipeline:
         file: psalms-exegetical-pericope.gpt
         inputs:
           passage: "${passage}"
+      llm_options:
+        temperature: 0.7
+        max_tokens: 2500
       outputs: [exegetical_md]
 
     - name: save_exegetical
