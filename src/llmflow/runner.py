@@ -13,6 +13,16 @@ def resolve(value, context):
     return value
 
 def resolve_dict(obj, context):
+    """
+    Recursively resolves variables in dictionaries, lists, and strings.
+
+    Args:
+        obj: The object to resolve variables in
+        context: The context dictionary containing variable values
+
+    Returns:
+        The object with all variables resolved
+    """
     if isinstance(obj, dict):
         return {k: resolve_dict(v, context) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -63,6 +73,46 @@ def run_pipeline(pipeline_path, variables=None, dry_run=False):
             else:
                 for k, v in zip(rule["outputs"], [result]):
                     context[k] = v
+        elif rule["type"] == "for-each":
+            loop_input = resolve(rule["input"], context)
+            item_var = rule["item_var"]
+            steps = rule["steps"]
+
+            if not isinstance(loop_input, list):
+                raise ValueError(f"For-each input {rule['input']} must resolve to a list.")
+
+            for item in loop_input:
+                context[item_var] = item  # temporarily bind scene, etc.
+
+                for substep in steps:
+                    if substep["type"] == "llm":
+                        resolved_prompt = resolve_dict(substep["prompt"], context)
+                        prompt_path = resolved_prompt["file"]
+                        inputs = resolved_prompt.get("inputs", {})
+
+                        prompt_path = Path(prompt_path)
+                        prompts_dir = Path(context.get("prompts_dir", "prompts"))
+
+                        if prompt_path.is_absolute():
+                            full_prompt_path = prompt_path
+                        else:
+                            full_prompt_path = prompts_dir / prompt_path
+
+                        print(f"Loading prompt from: {full_prompt_path}")
+                        rendered_prompt = full_prompt_path.read_text()
+                        for key, val in inputs.items():
+                            rendered_prompt = rendered_prompt.replace(f"{{{key}}}", str(val))
+
+                        result = normalize_nfc(call_llm(rendered_prompt, from_file=False))
+
+                        if "append_to" in substep:
+                            target_list_name = substep["append_to"]
+                            if target_list_name not in context:
+                                context[target_list_name] = []
+                            context[target_list_name].append(result)
+
+                    elif substep["type"] == "function":
+                        raise NotImplementedError("Functions inside for-each not implemented yet.")
 
         elif rule["type"] == "llm":
             resolved_prompt = resolve_dict(rule["prompt"], context)
