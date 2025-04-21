@@ -1,4 +1,6 @@
+
 import click
+from llmflow.runner import run_pipeline
 
 @click.group()
 def cli():
@@ -6,14 +8,13 @@ def cli():
     pass
 
 @cli.command()
-@click.argument('pipeline_file')
-@click.option('--var', multiple=True)
+@click.option('--pipeline', default="pipelines/storyflow_psalms.yaml", help='Path to pipeline YAML')
+@click.option('--var', multiple=True, help='key=value pipeline variables')
 @click.option('--dry_run', is_flag=True)
-def run(pipeline_file, var, dry_run):
+def run(pipeline, var, dry_run):
     '''Run a pipeline YAML file'''
     vars_dict = dict(v.split("=", 1) for v in var)
-    click.echo(f"[{'DRY' if dry_run else 'LIVE'} RUN] Would run: {pipeline_file}")
-    click.echo(f"Variables: {vars_dict}")
+    run_pipeline(pipeline, vars_dict, dry_run)
 
 @cli.command()
 def version():

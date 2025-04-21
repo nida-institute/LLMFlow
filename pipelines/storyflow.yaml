@@ -1,14 +1,91 @@
 
 pipeline:
-  name: storyflow-minimal
+  name: storyflow
 
   variables:
-    passage: inputs/Psalm23.txt
+    passage: Psalm 23
+    prompts_dir: prompts/storyflow
 
   rules:
-    - name: echo_passage
+    - name: generate_intro
+      type: llm
+      prompt:
+        file: leadersguide-intro.gpt
+        inputs:
+          passage: "${passage}"
+      outputs: [intro_response]
+
+    - name: generate_scene_list
+      type: llm
+      prompt:
+        file: leadersguide-scenes.gpt
+        inputs:
+          passage: "${passage}"
+      outputs: [scene_list]
+
+    - name: save_scene_list
       type: function
-      function: utils.io.read_file
+      function: llmflow.utils.io.save_scene_list_json
       inputs:
-        path: "${passage}"
-      outputs: [passage_text]
+        passage: "${passage}"
+        scenes: "${scene_list}"
+      outputs: [scene_json_path]
+
+    - name: process_each_scene
+      type: for-each
+      input: "${scene_list}"
+      item_var: scene
+      steps:
+        - type: llm
+          prompt:
+            file: leadersguide-step1.gpt
+            inputs:
+              passage: "${passage}"
+              scene: "${scene}"
+          append_to: step1_list
+
+        - type: llm
+          prompt:
+            file: leadersguide-step2.gpt
+            inputs:
+              passage: "${passage}"
+              scene: "${scene}"
+          append_to: step2_list
+
+        - type: llm
+          prompt:
+            file: leadersguide-step3.gpt
+            inputs:
+              passage: "${passage}"
+              scene: "${scene}"
+          append_to: step3_list
+
+        - type: llm
+          prompt:
+            file: leadersguide-steps4-5.gpt
+            inputs:
+              passage: "${passage}"
+              scene: "${scene}"
+          append_to: step4_list
+
+    - name: generate_summary
+      type: llm
+      prompt:
+        file: leadersguide-summary.gpt
+        inputs:
+          passage: "${passage}"
+      outputs: [summary_response]
+
+    - name: save_guide
+      type: function
+      function: llmflow.utils.io.save_leaders_guide
+      inputs:
+        passage: "${passage}"
+        intro: "${intro_response}"
+        scenes: "${scene_list}"
+        step1: "${step1_list}"
+        step2: "${step2_list}"
+        step3: "${step3_list}"
+        step4: "${step4_list}"
+        summary: "${summary_response}"
+      outputs: [guide_path]

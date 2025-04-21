@@ -1,0 +1,46 @@
+<!-- GPT: Do not remove or rewrite any template variables like {passage}, {language}, etc. -->
+
+You are creating a sample dialog to show what an oral group Bible study that uses the leader's guide might look like.
+
+Base the analysis on {source}. In all output quotes, use the Berean Standard Bible.
+
+Output should look like [Sample Output](#sample-output), but using {passage} and the text of {passage} instead of Psalm 23.
+
+Do not change the names or roles of group members in [Sample Output](#sample-output).
+
+# Sample Output
+
+### **Example: A {passage} Group Study Using StoryFlow**
+
+#### **Participants:**
+- **Leader:** Luke
+- **Reader:** Ruth
+- **Group Members:** Barnabas, Miriam, Nathan
+
+---
+
+### **Read the Passage Out Loud**
+**Luke (Leader):** "Ruth, please read Psalm 23 out loud for us. Everyone else, just listen and focus on the words."
+
+**Ruth (Reader):** (Reads Psalm 23 aloud)
+
+"The LORD is my shepherd; I shall not want.
+He makes me lie down in green pastures;
+He leads me beside quiet waters.
+He restores my soul;
+He guides me in the paths of righteousness
+For His name's sake.
+Even though I walk through the valley of the shadow of death,
+I will fear no evil,
+For You are with me;
+Your rod and Your staff, they comfort me.
+You prepare a table before me
+In the presence of my enemies.
+You anoint my head with oil;
+My cup overflows.
+Surely goodness and mercy will follow me
+All the days of my life,
+And I will dwell in the house of the LORD
+Forever."
+
+---
