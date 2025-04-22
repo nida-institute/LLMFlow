@@ -1,9 +1,8 @@
-
 pipeline:
-  name: storyflow
+  name: storyflow-gospels
 
   variables:
-    passage: Psalm 23
+    passage: Luke 15:11-32
     prompts_dir: prompts/storyflow
 
   llm_config:
@@ -15,7 +14,7 @@ pipeline:
     - name: generate_exegetical_commentary
       type: llm
       prompt:
-        file: psalms-exegetical-pericope.gpt
+        file: gospels-exegetical-pericope.gpt
         inputs:
           passage: "${passage}"
       llm_options:

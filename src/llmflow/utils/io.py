@@ -36,7 +36,7 @@ def write_exegetical_commentary(passage, content):
     output_dir = "outputs"
     os.makedirs(output_dir, exist_ok=True)
     safe_passage = sanitize_filename(passage)
-    output_path = os.path.join(output_dir, f"psalms-exegetical-pericope.md")
+    output_path = os.path.join(output_dir, f"exegetical_pericope_{safe_passage}.md")
 
     write_nfc(output_path, content)
     return output_path
