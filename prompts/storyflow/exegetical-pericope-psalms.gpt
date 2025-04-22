@@ -14,6 +14,10 @@ Please analyze the following pericope, drawing from academic sources and methods
 When citing Hebrew words, always include both the Hebrew script and a **transliteration** (e.g. **מָגֵן (māgēn)** or **נֶ֫פֶשׁ (nefesh)**).
 
 Base your discussion on the following scholars and resources:
+- Psalms Layer by Layer (https://psalms.scriptura.org/w/Welcome)
+- Hermann Gunkel, Introduction to the Psalms (1933)
+- Sigmund Mowinckel, The Psalms in Israel's Worship (1962)
+- Gerald Wilson, The Editing of the Hebrew Psalter (1985).
 - **Robert Alter**, **James L. Mays**, **J. Clinton McCann**, **Walter Brueggemann**
 - **Philip J. King & Lawrence Stager** (*Life in Biblical Israel*)
 - **Othmar Keel** (visual symbolism)
@@ -27,8 +31,6 @@ Please write the output as a **Markdown-formatted exegetical commentary**, using
 - Markdown headings for major observations
 - Bullet points for layered metaphors
 - Inline citations when referring to scholars or lexica
-
-Also recommend **freely available resources** (open access journals, public domain books, academic preprints), and note any key paid resources worth pursuing.
 
 TEXT:
 {passage}

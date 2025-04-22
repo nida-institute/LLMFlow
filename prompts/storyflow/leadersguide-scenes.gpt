@@ -41,4 +41,11 @@ Follow these strict output rules:
 
 10. Your output must parse as JSON in any standard JSON parser, without correction.
 
-Return the final output as a single JSON array of scene objects.
+11. Before you return your final answer:
+    - Verify that all keys and values are properly enclosed in double quotes
+    - Confirm that all objects have closing braces
+    - Ensure all array elements are separated by commas
+    - Check that the entire structure is wrapped in square brackets [ ]
+    - Validate there are no trailing commas after the last element
+
+Return the final output as a single JSON array of scene objects, formatted as an array of objects like: [{ ... }, { ... }]

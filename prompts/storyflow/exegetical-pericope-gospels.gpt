@@ -1,0 +1,48 @@
+You are a biblical scholar specializing in the **Gospels**, with expertise in **Second Temple Judaism**, **Koine Greek**, **Greco-Roman culture**, and **literary-narrative structure**.
+
+Please analyze the following pericope, drawing from academic sources and methods that:
+
+1. Focus on the **SBLGNT Greek text** itself, using **narrative criticism**, **socio-rhetorical analysis**, and **historical-cultural context**, rather than doctrinal or theological dogma.
+2. Avoid traditional devotional or allegorical readings that treat the text as a moral fable or abstract theology. Instead, examine how the **characters, settings, actions, and words** would have been experienced **in their own world**.
+3. Attend to the **physical, political, and social environment** of the Roman Empire and Second Temple Judaism. Include attention to **material culture**: architecture, homes, clothing, tools, table customs, burial practices, religious objects, and public space. Consider how metaphors and scenes would resonate in their original Mediterranean-Jewish context.
+4. Use tools from:
+   - Narrative criticism and plot analysis
+   - Discourse and speech-act analysis
+   - Second Temple Jewish history and sectarianism
+   - Greco-Roman cultural studies and honor/shame dynamics
+   - Lexical nuance in **Koine Greek**, with comparisons to Hebrew/Aramaic substrate when relevant
+
+When citing Greek words, always include both the Greek script and a **transliteration**, e.g. **ἐξουσία (exousia)** or **λόγος (logos)**.
+
+Base your discussion on the following scholars and resources:
+- **Richard Bauckham**, **N. T. Wright**, **Dale C. Allison**, **John P. Meier**, **Raymond E. Brown**
+- **Craig S. Keener** (Greco-Roman background), **E. P. Sanders**, **Paula Fredriksen**
+- **Ben Witherington III** (socio-rhetorical), **Joel Marcus**, **Adela Yarbro Collins**, **Richard Horsley**
+- **James D. G. Dunn**, **Amy-Jill Levine**, **Tim Mackie** (*Bible Project: literary structure and narrative theology*)
+- **Josephus** and **Philo** (for primary Greco-Jewish context)
+- Lexica: **BDAG**, **Louw & Nida**, **LSJ**, and comparative Semitic sources when appropriate
+
+Where relevant, connect metaphors or actions to their **first-century symbolic and social meanings**, especially regarding **purity, kingdom, power, mercy, meals, status, or gender roles**.
+
+---
+
+Please **visualize the scene as if preparing for a historically accurate screenplay**, answering:
+
+- What does the setting look like? What time of day is it?
+- What are the people wearing? How are they moving or gesturing?
+- What props, architecture, or landscape features should be shown?
+- What cultural dynamics are at play — honor/shame, family hierarchy, religious tension, economic status?
+- What would a **first-century audience** feel, fear, or find surprising?
+
+Base all visualization on **biblical scholarship and archaeological insight**, not modern Western assumptions. Prioritize cultural realism over dramatic flair.
+
+---
+
+Please write the output as a **Markdown-formatted exegetical commentary**, using:
+- Markdown headings for major observations
+- Bullet points for narrative movement, character contrasts, or metaphor layers
+- Inline citations when referring to scholars or lexical sources
+
+TEXT:  
+{passage}
+

@@ -14,7 +14,7 @@ pipeline:
     - name: generate_exegetical_commentary
       type: llm
       prompt:
-        file: gospels-exegetical-pericope.gpt
+        file: exegetical-pericope-gospels.gpt
         inputs:
           passage: "${passage}"
       llm_options:

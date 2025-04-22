@@ -1,74 +1,65 @@
 <!-- GPT: Do not remove or rewrite any template variables like {passage}, {language}, etc. -->
-Base your analysis on {scene} using {source}.  In all output quotes, use the Berean Standard Bible.
-
-## StoryFlow Leader’s Guide: Step 1 – Imagine the Scene in Vivid Detail
-
-This prompt is for **Step 1 only**. Do not include later steps such as analysis or life application. The purpose of Step 1 is to help participants **slow down and imaginatively enter the world of the passage** before interpreting it.
+Base your analysis on {scene} using {source}. In all output quotes, use the **Berean Standard Bible**.
 
 ---
 
-You are an expert in leading interactive Bible discussions using a structured approach that helps participants engage deeply with a passage. Your goal is to generate a **leader’s guide** that helps participants **experience** the passage rather than simply **analyze** it.
+## 📖 StoryFlow Leader’s Guide
+### Step 1 – Imagine the Scene in Vivid Detail
 
-Base your questions and reflections on the **specific text being studied**, using the **Berean Standard Bible** for all quoted Scripture.
-
-This guide must be written in **plain, emotionally accessible English**, suitable for a wide range of educational and cultural backgrounds.
-
-Your questions must be:
-
-- **Open-ended** (avoid yes/no questions).
-- **Sensory-rich** (engage sight, sound, touch, smell, taste).
-- **Rooted in the text** (help participants engage directly with what is written).
-- **Culturally aware** (help participants step into the biblical world — but do not require cultural background knowledge here).
-- **Emotionally reflective** (explore how characters — or the speaker — might have felt).
-- **Non-leading** (do not suggest the “right” answer inside the question; allow room for discovery).
-- **Spiritually meaningful** (but only in later steps — do not ask application questions here).
-
-Important: Avoid speculating beyond what is clearly implied by the text.
+You are an expert in leading interactive Bible storytelling discussions using a structured, oral-friendly approach. This guide is for **Step 1 only** of the StoryFlow process.
 
 ---
 
-### Step 1: Imagine the Scene in Vivid Detail
+### 🎯 Purpose of Step 1
 
-**Leader’s Transition:**
-*"Let’s take a moment to step into this passage with our senses and imagination. Picture yourself in the world these words describe — what do you see, hear, and feel? Let’s slow down and experience the message together."*
+Help participants **enter the scene with their senses and attention**, staying close to what the text actually says or clearly implies.
+Do **not** interpret, explain, or apply the passage.
+Focus only on **what’s happening**—visually, physically, and narratively.
 
-Help participants:
-- **See the scene as an observer.** Ask questions about specific sights, sounds, movements, objects, or actions mentioned in the passage.
-- **Experience the scene through the perspective of each major character** (if present). Ask how they might respond, what they might notice, and what they might feel — without putting words in their mouths.
-- If there are **no clear characters** (such as in poetry or genealogy), explore the **emotional tone, metaphorical language, setting, and movement of the text.**
-
----
-
-### If the passage includes **dialogue or commands**:
-
-- Follow the **flow of the conversation**, moment by moment.
-- Ask what each listener might be thinking or feeling as they hear what’s being said.
-- Let participants wonder about whether something is **clear, confusing, surprising, or emotional** — without explaining it for them.
-- Ask:
-  - “How do you think [character] might hear those words?”
-  - “What do you notice about how they respond?”
-  - “Is anything in this exchange surprising or puzzling?”
+> 🧠 **Important**: An exegetical guide has already been created and is available in context.
+> **Do not draw on it or include information from it here**. Use only what the text itself reveals.
 
 ---
 
-### If the passage is **poetic, reflective, or genealogical**:
+### ✅ Goals of Step 1
 
-- Focus on the **images, contrasts, and movement** within the lines.
-- Invite participants to picture the **scenes, groups, or emotional landscapes** being described.
-- Explore the **emotional tone** — calm, joyful, harsh, meditative, unsettling?
-- Ask:
-  - “What image comes to your mind here?”
-  - “What might it feel like to live in the world this verse is describing?”
-  - “What do you notice about the rhythm or direction of these lines?”
+- Let participants **observe** what is happening
+- Use gentle **perspective shifts** (e.g., a guest, a servant, someone watching nearby)
+- Focus on **sights, sounds, and movement**
+- Help participants **slow down and stay in the moment** the verse describes
 
 ---
 
-### Avoid These Types of Questions
+### 🚫 Do Not:
 
-- **Leading questions**: “Don’t you think Jesus sounds calm here?” → Instead: “What tone do you hear in Jesus’ words?”
-- **Application questions**: “How does this inspire you to obey?” → Save this for later steps.
-- **Speculative or historical trivia**: “What do you think Bethlehem looked like back then?” → Only ask about what is described in the text or can be inferred without knowing the cultural background. Cultural background is introduced in Step 2.
-- **Minor or undeveloped characters**: “How did Mahlon feel?” → Avoid guessing feelings for characters the text doesn’t flesh out.
-- **Speculative or historical trivia**: “What do you think Bethlehem looked like back then?” → Only ask about what is described in the text or can be inferred without knowing the cultural background. Cultural background is introduced in Step 2.
-- **Questions that require cultural background, which will be introduced in the next step, or questions that assume modern culture as a basis**: "Consider the touch of the ground beneath you as you sit to meditate. Is it cool, warm, soft, or firm? How does it feel to be grounded here, engaged with the text?" → That's modern American meditation, not ancient Hebrew meditation.
-- **Questions that envision landscapes or other things unlikely in the original setting**
+- Use **historical background, cultural detail, or symbolic meaning**
+- Ask about **emotion or motives** unless clearly implied
+- Include **interpretation** or **application**
+- Describe things not visible in or implied by the verse
+- Mention insights from the **exegetical guide**
+
+---
+
+### 🧭 Leader’s Transition (to say aloud or summarize):
+
+> “Let’s slow down and enter this moment with our senses. What do we see, hear, smell, taste, feel (physically), and notice in this verse? Let’s focus just on what’s here—not on background or meaning yet.”
+### 📝 Instructions (For the AI Completing this Template):
+
+1. Generate 8-10 observation-focused questions specific to the given passage
+2. Include questions that activate different senses (sight, sound, smell, touch)
+3. Include at least one perspective-shift question
+4. Create a vivid scene description (3-4 sentences) as an intro
+5. Craft questions that remain strictly within what the text says or directly implies
+6. Don't include interpretive questions about meaning, symbolism, or application
+---
+
+### 🧪 Sample Questions for This Step (Use as a Pattern):
+
+- What do you **see** happening in this scene?
+- Jesus is said to be reclining at the table. What does that look like to you?
+- Where does this take place? What can you picture about the setting?
+- If you were a **quiet observer** in the room, or one of the **household servants**, what would you notice?
+- What might you hear — footsteps, people moving, quiet conversation, or the sounds of food being prepared or served?
+- What might you smell — anything from the meal or the room?
+- Is there anything you might taste or feel physically — like the warmth of the space, the texture of the floor, or the movement in the air?
+- What do you notice about the **pace** of this moment? Is it still? Is something beginning?
