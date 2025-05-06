@@ -7,9 +7,19 @@ from llmflow.utils.llm_runner import call_llm
 from llmflow.utils.io import normalize_nfc
 
 def resolve(value, context):
-    if isinstance(value, str) and value.startswith("${") and value.endswith("}"):
-        key = value[2:-1]
-        return context.get(key, value)
+    if isinstance(value, str):
+        if value.startswith("${") and value.endswith("}"):
+            key = value[2:-1]
+            return context.get(key, value)
+        else:
+            # Handle embedded variables like "text with ${var} inside"
+            for k, v in context.items():
+                value = value.replace(f"${{{k}}}", str(v))
+            return value
+    elif isinstance(value, dict):
+        return resolve_dict(value, context)
+    elif isinstance(value, list):
+        return [resolve(item, context) for item in value]
     return value
 
 def resolve_dict(obj, context):
@@ -33,12 +43,46 @@ def resolve_dict(obj, context):
         return obj
     return obj
 
+def render_prompt(prompt_config, context):
+    """
+    Renders a prompt from a file with variable substitution.
+
+    Args:
+        prompt_config: Dictionary with 'file' and optional 'inputs' keys
+        context: Context dictionary with variables
+
+    Returns:
+        The rendered prompt text
+    """
+    resolved_prompt = resolve_dict(prompt_config, context)
+    prompt_path = Path(resolved_prompt["file"])
+    inputs = resolved_prompt.get("inputs", {})
+
+    # Resolve prompt location
+    prompts_dir = Path(context.get("prompts_dir", "prompts"))
+    full_prompt_path = prompt_path if prompt_path.is_absolute() else prompts_dir / prompt_path
+
+    print(f"Loading prompt from: {full_prompt_path}")
+    rendered_prompt = full_prompt_path.read_text()
+    for key, val in context.items():
+        rendered_prompt = rendered_prompt.replace(f"{{{key}}}", str(val))
+
+    return rendered_prompt
+
+
 def run_pipeline(pipeline_path, variables=None, dry_run=False):
 
     variables = variables or {}
     pipeline = yaml.safe_load(Path(pipeline_path).read_text())
-    rules = pipeline["pipeline"].get("rules", [])
-    context = dict(pipeline["pipeline"].get("variables", {}))
+
+    # Transitioning to "steps" instead of "rules" in YAML
+    pipeline_root = pipeline.get("pipeline", {})
+    if "steps" in pipeline_root and "rules" not in pipeline_root:
+        pipeline_root["rules"] = pipeline_root.pop("steps")
+
+    rules = pipeline_root.get("rules", [])
+
+    context = dict(pipeline_root.get("variables", {}))
     context.update(variables)
 
     print(f"{'[DRY RUN]' if dry_run else '[LIVE RUN]'} Running: {pipeline_path}")
@@ -91,48 +135,21 @@ def run_pipeline(pipeline_path, variables=None, dry_run=False):
                 context[item_var] = item  # temporarily bind scene, etc.
 
                 for substep in steps:
-                    if substep["type"] == "llm":
-                        resolved_prompt = resolve_dict(substep["prompt"], context)
-                        prompt_path = resolved_prompt["file"]
-                        inputs = resolved_prompt.get("inputs", {})
+                    rendered_prompt = render_prompt(substep["prompt"], context)
 
-                        prompt_path = Path(prompt_path)
-                        prompts_dir = Path(context.get("prompts_dir", "prompts"))
+                    result = normalize_nfc(call_llm(rendered_prompt, from_file=False))
 
-                        if prompt_path.is_absolute():
-                            full_prompt_path = prompt_path
-                        else:
-                            full_prompt_path = prompts_dir / prompt_path
-
-                        print(f"Loading prompt from: {full_prompt_path}")
-                        rendered_prompt = full_prompt_path.read_text()
-                        for key, val in inputs.items():
-                            rendered_prompt = rendered_prompt.replace(f"{{{key}}}", str(val))
-
-                        result = normalize_nfc(call_llm(rendered_prompt, from_file=False))
-
-                        if "append_to" in substep:
-                            target_list_name = substep["append_to"]
-                            if target_list_name not in context:
-                                context[target_list_name] = []
-                            context[target_list_name].append(result)
+                    if "append_to" in substep:
+                        target_list_name = substep["append_to"]
+                        if target_list_name not in context:
+                            context[target_list_name] = []
+                        context[target_list_name].append(result)
 
                     elif substep["type"] == "function":
                         raise NotImplementedError("Functions inside for-each not implemented yet.")
 
         elif rule["type"] == "llm":
-            resolved_prompt = resolve_dict(rule["prompt"], context)
-            prompt_path = Path(resolved_prompt["file"])
-            inputs = resolved_prompt.get("inputs", {})
-
-            # Resolve prompt location
-            prompts_dir = Path(context.get("prompts_dir", "prompts"))
-            full_prompt_path = prompt_path if prompt_path.is_absolute() else prompts_dir / prompt_path
-
-            print(f"Loading prompt from: {full_prompt_path}")
-            rendered_prompt = full_prompt_path.read_text()
-            for key, val in inputs.items():
-                rendered_prompt = rendered_prompt.replace(f"{{{key}}}", str(val))
+            rendered_prompt = render_prompt(rule["prompt"], context)
 
             # Read model config
             llm_config = pipeline["pipeline"].get("llm_config", {})
