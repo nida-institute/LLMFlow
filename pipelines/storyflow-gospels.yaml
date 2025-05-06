@@ -8,7 +8,7 @@ pipeline:
   llm_config:
     model: gpt-4o
     temperature: 0.7
-    max_tokens: 2500
+    max_tokens: 12000  # Default if not overridden
 
   rules:
     - name: generate_exegetical_commentary
@@ -19,7 +19,7 @@ pipeline:
           passage: "${passage}"
       llm_options:
         temperature: 0.7
-        max_tokens: 2500
+        max_tokens: 12000
       outputs: [exegetical_md]
 
     - name: save_exegetical
@@ -36,6 +36,8 @@ pipeline:
         file: leadersguide-intro.gpt
         inputs:
           passage: "${passage}"
+      llm_options:
+        max_tokens: 1000
       outputs: [intro_response]
 
     - name: generate_scene_list
@@ -44,6 +46,8 @@ pipeline:
         file: leadersguide-scenes.gpt
         inputs:
           passage: "${passage}"
+      llm_options:
+        max_tokens: 4000
       outputs: [scene_list]
 
     - name: save_scene_list
@@ -65,6 +69,8 @@ pipeline:
             inputs:
               passage: "${passage}"
               scene: "${scene}"
+          llm_options:
+            max_tokens: 2000
           append_to: step1_list
 
         - type: llm
@@ -73,6 +79,8 @@ pipeline:
             inputs:
               passage: "${passage}"
               scene: "${scene}"
+          llm_options:
+            max_tokens: 2000
           append_to: step2_list
 
         - type: llm
@@ -81,6 +89,8 @@ pipeline:
             inputs:
               passage: "${passage}"
               scene: "${scene}"
+          llm_options:
+            max_tokens: 2000
           append_to: step3_list
 
         - type: llm
@@ -89,6 +99,8 @@ pipeline:
             inputs:
               passage: "${passage}"
               scene: "${scene}"
+          llm_options:
+            max_tokens: 2000
           append_to: step4_list
 
     - name: generate_summary
@@ -97,6 +109,8 @@ pipeline:
         file: leadersguide-summary.gpt
         inputs:
           passage: "${passage}"
+      llm_options:
+        max_tokens: 1200
       outputs: [summary_response]
 
     - name: save_guide
