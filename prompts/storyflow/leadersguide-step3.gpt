@@ -1,52 +1,19 @@
-<!-- GPT: Do not remove or rewrite any template variables like {passage}, {language}, etc. -->
-Base your analysis on {scene} using {source}.  In all output quotes, use the Berean Standard Bible.
+<!-- GPT: Do not remove or rewrite any template variables like {passage}, {scene}, {exegetical_emotionalarc}. -->
 
-# StoryFlow Leader's Guide: Step 3
+# StoryFlow Leader's Guide: Step 3 (Spiritual and Emotional Journey) for {scene} in {passage}
 
-This prompt is for Step 3. Do only Step 3. Focus on the emotional and spiritual context of the story, guiding participants to explore the deeper meanings and implications of the characters' experiences.
+You are writing **Step 3 questions** for group leaders to help participants **enter the emotional journey** of the scene.
 
-IMPORTANT: This is not about our emotional and spiritual context today.  The leader will introduce this content with the following prompt, and all output should be aligned with this purpose:
+Use:
+- **Scene**: {scene}
+- **Emotional arc**: {exegetical_emotionalarc}
 
-> "Now let’s think about what this scene was like for the people in the story, and how God was at work in their lives. Try to put yourself in their place. Think about what emotions they might have felt and what those emotions might tell us about their journey. Pay special attention to moments where they felt vulnerable—those moments can help us understand what is really going on."
+Focus on:
+- Helping participants **feel the emotional movement** in the scene.
+- Exploring emotions such as **fear, trust, grief, hope, love**, using Nussbaum’s model of emotion.
+- How the characters' feelings reveal **their values, vulnerabilities, hopes, and fears**.
 
-You are a facilitator guiding participants into the emotional and spiritual content of a story.
+Do **NOT** speculate beyond what is suggested in the emotional arc.
+Avoid jumping to modern application yet.
 
-1. Begin with a clear statement of purpose and context for the discussion.
-2. Invite participants to observe specific details and ask open-ended questions.
-3. Encourage empathy by imagining the emotional backdrop and spiritual context.
-4. Use a Nussbaum model of emotion -- here are examples from the Book of Ruth, use them for guidance to create questions for {scene}.
-    - Vulnerability and Fulfillment: Human life is full of uncertainty, struggle, and longing for fulfillment. How does this passage illustrate that?
-        - How do Ruth's actions reflect her vulnerability and longing for fulfillment?
-        - In what ways does Boaz's response provide a sense of fulfillment or hope?
-    - Limits of Human Understanding: People in the story—and we ourselves—cannot fully predict or control events. How do they (or we) react when faced with uncertainty?
-        - How does Ruth's decision to glean in the fields show her response to uncertainty?
-        - What does Boaz's reaction to Ruth reveal about his understanding of the situation?
-    - The Role of Emotion and God’s Guidance: Emotions such as fear, joy, grief, hope, anger, love, despair, and gratitude are integral to our spiritual journey. Each emotion serves as a guide, leading us to deeper spiritual wisdom and fulfillment. How do the specific emotions in this scene point toward reliance on God? How does each specific emotion help us navigate our spiritual journey? Consider how these emotions are expressed in the Psalms and how they guide the psalmist's relationship with God.
-        - What emotions might Ruth be experiencing as she works in the fields, and how do these emotions guide her actions?
-        - How does Boaz's kindness reflect God's guidance and provision?
-    - How do the emotions in this passage help us understand our relationship with God and others? How do they reflect the qualities that we are called to develop in our spiritual lives?
-    - God’s Character and Plan: God’s goodness, holiness, justice, and mercy unfold even when they are not immediately visible. What does this passage show about His ultimate purpose?
-        - How does the interaction between Ruth and Boaz reveal aspects of God's character?
-        - What does this story suggest about God's plan for Ruth and Naomi?
-5. Guide reflections toward practical application and deeper engagement with the text.
----
-
-# Sample Output
-
-### Step 3: Imagine the Scene in Emotional and Spiritual Context
-
-Instructions:
-"Now let’s think about what this scene was like for the people in the story, and how God was at work in their lives. Try to put yourself in their place. Think about what emotions they might have felt and what those emotions might tell us about their journey. Pay special attention to moments where they felt vulnerable—those moments can help us understand what is really going on."
-
-Sample Output:
-- Ruth takes the initiative to provide for Naomi.
-    - How does Ruth's initiative to glean in the fields demonstrate her faith and determination despite her vulnerable situation?
-    - What can we learn from Ruth's actions about trusting God in difficult circumstances?
-
-- Boaz notices Ruth and blesses his workers.
-    - How does Boaz's kindness reflect God's guidance and provision?
-    - What does his response reveal about his understanding of the situation?
-
-- The harvesters recognize Ruth as “the Moabite who came with Naomi.”
-    - How does this statement reflect the limits of human understanding and perception?
-    - How might Ruth feel being identified this way, and what does this reveal about her emotional and spiritual journey?
+Write 5–7 vivid, emotionally accessible questions.

@@ -1,51 +1,75 @@
-<!-- GPT: Do not remove or rewrite any template variables like {passage}, {language}, etc. -->
+<!-- GPT: Do not remove or rewrite any template variables like {passage}, {exegetical_culture}, {exegetical_wordstudy}. -->
 
-You are an expert in leading immersive interactive group Bible stories.
+# StoryFlow Leader's Guide: Scene List for {passage}
 
-Your goal is to create a JSON structure that divides {passage} into scenes.
+## Purpose
+You are dividing {passage} into **natural story scenes** for group discussion.
 
-Follow these strict output rules:
+## Resources
 
-1. **Return only valid JSON.**
-   - Do not include any extra text, explanations, or formatting before or after the JSON.
-   - Do not wrap the output in ```json or any kind of markdown formatting.
+---
 
-2. **Use UTF-8 encoding** for all text.
+## Cultural Background
 
-3. **Normalize all Unicode text to NFC (Normalization Form C).**
+{exegetical_culture}
 
-4. **All JSON strings must be double-quoted**, and **any internal double quotes must be escaped** using a backslash (`\"`).
-   - Example: `"He said, \"This is My body.\""`
+---
 
-5. For **New Testament texts**, include both `Berean Standard Bible` and `SBLGNT` for each scene.
-   For **Old Testament texts**, include both `Berean Standard Bible` and `WLC`.
+## Word Study Insights
 
-6. Use this JSON format for each scene:
-{
-  "Scene number": "Scene 1",
-  "Citation": "Book Chapter:Verse(s)",
-  "Title": "Short descriptive title of the scene",
-  "Berean Standard Bible": "Text here",
-  "SBLGNT" or "WLC": "Text here"
-}
+{exegetical_wordstudy}
 
-7. Create a list of scenes. Each scene should reflect a shift in narrative, dialogue, location, theme, or emotional tone.
+---
 
-8. Use visual and emotional imagination. Think cinematically — when would a new shot or setting occur?
+## Very Important Instructions
 
-9. DO NOT:
-   - Include application or interpretation.
-   - Add theological summaries.
-   - Insert non-scripture commentary.
-   - Wrap output in markdown or code blocks.
+✅ You must output a **single valid JSON array**.
 
-10. Your output must parse as JSON in any standard JSON parser, without correction.
+✅ No commentary, headings, explanations, or extra text — only the array.
 
-11. Before you return your final answer:
-    - Verify that all keys and values are properly enclosed in double quotes
-    - Confirm that all objects have closing braces
-    - Ensure all array elements are separated by commas
-    - Check that the entire structure is wrapped in square brackets [ ]
-    - Validate there are no trailing commas after the last element
+✅ Inside the array, each scene must include exactly these fields:
+- `"Scene number"`: e.g., "Scene 1", "Scene 2"
+- `"Citation"`: e.g., "Psalm 23:1–3"
+- `"Title"`: a short, vivid summary (3–8 words)
+- `"Berean Standard Bible"`: the relevant verse text from the Berean Standard Bible
+- `"WLC"`: the corresponding Hebrew text from the Westminster Leningrad Codex (WLC)
 
-Return the final output as a single JSON array of scene objects, formatted as an array of objects like: [{ ... }, { ... }]
+✅ **Escape all internal quotation marks (`"`) inside the Bible verses or WLC text fields** by using a backslash: `\"`.
+
+✅ **You must NOT add any Markdown code fences** such as ```json or ```.
+
+✅ **You must NOT add any commentary, summaries, headings, or explanations** — only output the JSON array.
+
+✅ **If you detect that your output is invalid JSON, missing fields, has stray commas, missing quotation marks, or is improperly escaped, you must silently retry and regenerate a correct version without apology or commentary.**
+
+✅ Format must be exactly like:
+
+```json
+[
+  {
+    "Scene number": "Scene 1",
+    "Citation": "Psalm 23:1",
+    "Title": "The Shepherd’s Care",
+    "Berean Standard Bible": "The LORD is my shepherd; I shall not want.",
+    "WLC": "יְהוָה רֹעִי לֹא אֶחְסָר׃"
+  },
+  {
+    "Scene number": "Scene 2",
+    "Citation": "Psalm 23:2",
+    "Title": "Green Pastures and Still Waters",
+    "Berean Standard Bible": "He makes me lie down in green pastures; He leads me beside quiet waters.",
+    "WLC": "בִּנְאוֹת דֶּשֶׁא יַרְבִּיצֵנִי עַל מֵי מְנֻחוֹת יְנַהֲלֵנִי׃"
+  }
+]
+
+---
+
+# Output Format Reminder
+
+- Output must be a pure valid JSON array starting with `[` and ending with `]`.
+- Escape all inner quotation marks (`"`) inside text fields by using `\"`.
+- No stray commas after the last scene object.
+- No missing quotation marks inside fields.
+- You must NOT wrap your output in any Markdown code fences (such as ```json or ```).
+- Output only the raw JSON array without any extra formatting.
+- Regenerate silently if the output would not parse as JSON or has any formatting errors.

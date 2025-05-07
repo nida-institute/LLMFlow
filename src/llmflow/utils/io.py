@@ -1,8 +1,11 @@
-
 import json
 import re
 import os
 import unicodedata
+from pathlib import Path
+import markdown  # You forgot this earlier!
+
+# --- Basic utilities ---
 
 def normalize_nfc(text):
     if isinstance(text, str):
@@ -17,29 +20,69 @@ def write_nfc(path, content):
         f.write(normalize_nfc(content))
 
 def sanitize_filename(text):
+    if not isinstance(text, str):
+        return "unnamed"
     return re.sub(r"[^\w]+", "_", text.strip())
 
-def save_scene_list_json(passage, scenes):
-    output_dir = "outputs"
-    os.makedirs(output_dir, exist_ok=True)
+# --- Markdown rendering and saving ---
+
+def render_markdown_template(template_path, variables):
+    """
+    Load a Markdown template and substitute variables into it.
+    Returns the final rendered Markdown string.
+    """
+    template_text = Path(template_path).read_text(encoding="utf-8")
+
+    def substitute_var(match):
+        var_name = match.group(1)
+        return variables.get(var_name, f"{{MISSING:{var_name}}}")
+
+    rendered = re.sub(r"\$\{(\w+)\}", substitute_var, template_text)
+    return rendered
+
+def save_markdown_as(text, passage, format="md", output_dir="outputs"):
+    """
+    Save a Markdown string into the specified format (md, html, etc.).
+    """
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
     safe_passage = sanitize_filename(passage)
-    output_path = os.path.join(output_dir, f"scenes_{safe_passage}.json")
 
-    # Ensure scenes is already a Python object (list/dict), not a JSON string
-    if not isinstance(scenes, (list, dict)):
-        raise TypeError("scenes must be a Python list or dictionary, not a JSON string")
+    if format == "md":
+        path = Path(output_dir) / f"{safe_passage}.md"
+        write_nfc(path, text.strip())
+        return str(path)
 
-    write_nfc(output_path, json.dumps(scenes, ensure_ascii=False, indent=2))
-    return output_path
+    elif format == "html":
+        html_text = markdown.markdown(text, output_format="html5")
+        path = Path(output_dir) / f"{safe_passage}.html"
+        write_nfc(path, html_text)
+        return str(path)
 
-def write_exegetical_commentary(passage, content):
-    output_dir = "outputs"
-    os.makedirs(output_dir, exist_ok=True)
+    else:
+        raise ValueError(f"Unsupported format: {format}")
+
+# --- JSON saving ---
+
+def save_json(passage, content, output_dir="outputs/scenes"):
+    """
+    Save a JSON object or string to a file.
+    """
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
     safe_passage = sanitize_filename(passage)
-    output_path = os.path.join(output_dir, f"exegetical_pericope_{safe_passage}.md")
+    path = Path(output_dir) / f"{safe_passage}.json"
 
-    write_nfc(output_path, content)
-    return output_path
+    if isinstance(content, str):
+        # Try to parse JSON string
+        content = json.loads(content)
+
+    content = normalize_nfc(content)
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(content, f, ensure_ascii=False, indent=2)
+
+    return str(path)
+
+# --- Existing save_leaders_guide (good enough for now) ---
 
 def save_leaders_guide(passage, intro, scenes, step1, step2, step3, step4, summary):
     output_dir = "outputs"

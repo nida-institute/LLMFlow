@@ -1,36 +1,36 @@
-# StoryFlow Leader's Guide: Summarize Pericope
+<!-- GPT: Do not remove or rewrite any template variables like {passage}, {exegetical_culture}, {exegetical_wordstudy}. -->
 
-This prompt is for summarizing {passage} as a whole in light of the other steps. Do only that.
+# StoryFlow Leader's Guide: Scene List for {passage}
 
-### **Final Reflection on the Passage as a Whole**
+You are dividing {passage} into **natural story scenes** for group discussion.
 
-**Leader’s Transition:** "Now let’s take a step back and look at the whole passage. We’ve walked through each scene—now let’s put them together and see how they connect."
-
-If this passage has **multiple scenes**, guide participants to **relive the passage as a full story** using **questions tailored to this passage** that help them reflect and connect the moments together:
-
-- What are the scenes in the passage? Can we remember their names in order?
-- **Retell the passage** in your own words. What happens first? What happens next?
-- What are some words, actions, or ideas that keep coming up? What do they show us about what is important in this story?
-- How do the scenes fit together to tell **one big story**?
-- How do the emotions in the story change from beginning to end? Can you feel the shift as the story moves forward?
-- What does this whole passage show us about **who God is and how He works**?
-
-If this passage has **only one scene**, the reflection should focus on drawing deeper meaning from that moment:
-
-- What stands out most in this scene? Why?
-- How does this scene show us something about God’s character or His ways?
-- How do the emotions in this scene affect how we experience the story?
-- If you could sum up the message of this passage in one sentence, what would it be?
-- What can we take away from this scene for our own lives?
+Use these resources:
 
 ---
 
-### **Final Instructions for GPT**
+## Cultural Background
 
-- **Do not summarize or analyze**—your role is to generate **discussion questions** that guide participants in exploring the passage.
-- **Keep questions text-rooted, immersive, and open-ended.**
-- **Limit cultural explanations** to brief setups that guide discussion rather than full commentaries.
-- **After generating questions for each scene, generate a set of questions for the passage as a whole.**
+{exegetical_culture}
 
-Now, generate a **leader’s guide** for the following passage using this structure:\
-**{Insert Bible Passage Here}**
+---
+
+## Word Study Insights
+
+{exegetical_wordstudy}
+
+---
+
+Focus on:
+- Clear **transitions** of action, imagery, or emotional movement.
+- Natural **emotional beats** where participants can pause and engage.
+- Scenes that are **small enough** for detailed discussion (2–6 scenes total).
+
+For each scene:
+- Give a short **title** (3–6 words).
+- Provide a short **citation** (e.g., "Psalm 23:1–3").
+- Quote the related portion of the **Berean Standard Bible** text.
+
+Use vivid but simple phrasing.
+Focus on how the passage would naturally **unfold aloud** for listeners.
+
+Do **NOT** explain theology, application, or detailed interpretation — just scenes.

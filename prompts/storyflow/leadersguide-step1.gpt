@@ -1,65 +1,23 @@
-<!-- GPT: Do not remove or rewrite any template variables like {passage}, {language}, etc. -->
-Base your analysis on {scene} using {source}. In all output quotes, use the **Berean Standard Bible**.
+<!-- GPT: Do not remove or rewrite any template variables like {passage}, {scene}, {exegetical_culture}. -->
 
----
+# StoryFlow Leader's Guide: Step 1 (Senses) for {scene} in {passage}
 
-## 📖 StoryFlow Leader’s Guide
-### Step 1 – Imagine the Scene in Vivid Detail
+You are writing **Step 1 questions** for group leaders to help participants **enter the scene through their senses**.
 
-You are an expert in leading interactive Bible storytelling discussions using a structured, oral-friendly approach. This guide is for **Step 1 only** of the StoryFlow process.
+Use:
+- **Scene**: {scene}
+- **Cultural background**: {exegetical_culture}
 
----
+Focus on:
+- What participants might **see, hear, smell, feel, or taste**.
+- How the **cultural setting** shapes what is around them.
+- Shifting **perspectives**: ask questions both as **outside observers** and as **characters** inside the scene.
 
-### 🎯 Purpose of Step 1
+**Do NOT** speculate about hidden thoughts, theology, or symbolism.
+Focus only on the **physical and emotional experience**.
 
-Help participants **enter the scene with their senses and attention**, staying close to what the text actually says or clearly implies.
-Do **not** interpret, explain, or apply the passage.
-Focus only on **what’s happening**—visually, physically, and narratively.
+Generate 5–9 vivid, emotionally accessible questions, grouped under headings:
+- **As an Observer**
+- **As [Character Name]**
 
-> 🧠 **Important**: An exegetical guide has already been created and is available in context.
-> **Do not draw on it or include information from it here**. Use only what the text itself reveals.
-
----
-
-### ✅ Goals of Step 1
-
-- Let participants **observe** what is happening
-- Use gentle **perspective shifts** (e.g., a guest, a servant, someone watching nearby)
-- Focus on **sights, sounds, and movement**
-- Help participants **slow down and stay in the moment** the verse describes
-
----
-
-### 🚫 Do Not:
-
-- Use **historical background, cultural detail, or symbolic meaning**
-- Ask about **emotion or motives** unless clearly implied
-- Include **interpretation** or **application**
-- Describe things not visible in or implied by the verse
-- Mention insights from the **exegetical guide**
-
----
-
-### 🧭 Leader’s Transition (to say aloud or summarize):
-
-> “Let’s slow down and enter this moment with our senses. What do we see, hear, smell, taste, feel (physically), and notice in this verse? Let’s focus just on what’s here—not on background or meaning yet.”
-### 📝 Instructions (For the AI Completing this Template):
-
-1. Generate 8-10 observation-focused questions specific to the given passage
-2. Include questions that activate different senses (sight, sound, smell, touch)
-3. Include at least one perspective-shift question
-4. Create a vivid scene description (3-4 sentences) as an intro
-5. Craft questions that remain strictly within what the text says or directly implies
-6. Don't include interpretive questions about meaning, symbolism, or application
----
-
-### 🧪 Sample Questions for This Step (Use as a Pattern):
-
-- What do you **see** happening in this scene?
-- Jesus is said to be reclining at the table. What does that look like to you?
-- Where does this take place? What can you picture about the setting?
-- If you were a **quiet observer** in the room, or one of the **household servants**, what would you notice?
-- What might you hear — footsteps, people moving, quiet conversation, or the sounds of food being prepared or served?
-- What might you smell — anything from the meal or the room?
-- Is there anything you might taste or feel physically — like the warmth of the space, the texture of the floor, or the movement in the air?
-- What do you notice about the **pace** of this moment? Is it still? Is something beginning?
+Questions should be simple, natural, and easy to ask aloud.

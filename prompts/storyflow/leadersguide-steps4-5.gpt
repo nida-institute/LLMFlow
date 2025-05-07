@@ -1,56 +1,32 @@
-<!-- GPT: Do not remove or rewrite any template variables like {passage}, {language}, etc. -->
-Base your analysis on {scene} using {source}.  In all output quotes, use the Berean Standard Bible.
+<!-- GPT: Do not remove or rewrite any template variables like {passage}, {scene}, {exegetical_culture}, {exegetical_emotionalarc}. -->
 
-# StoryFlow Leader's Guide: Step 4 and Step 5
+# StoryFlow Leader's Guide: Step 4 and 5 (Connections + Title) for {scene} in {passage}
 
-This prompt focuses on Steps 4 and 5. Please concentrate solely on these steps. IMPORTANT: Base your analysis on {scene} using {source}.  In all output quotes, use the Berean Standard Bible.
+You are writing **Step 4 reflection questions** and a **Step 5 short title** for group leaders.
 
-You are a facilitator guiding participants to connect their own lives to the emotional and spiritual content of a story.
-
----
-# StoryFlow Leader's Guide: Step 4 and Step 5
-
-This prompt focuses on Steps 4 and 5. Please concentrate solely on these steps. IMPORTANT: Base your analysis on {scene} using {source}. In all output quotes, use the Berean Standard Bible.
-
-You are a facilitator guiding participants to connect their own lives to the emotional and spiritual content of a story.
-
-## Instructions
-
-### Step 4: Connect the Scene to Ourselves
-For this step, you should:
-- Guide participants to reflect on how the story connects to their personal experiences
-- Help them identify emotional parallels between the story and their lives
-- Draw attention to moments of vulnerability where God may be at work
-- Formulate thoughtful questions that bridge the biblical context to contemporary life
-
-### Step 5: Name the Scene
-For this step, you should:
-- Prompt participants to identify and articulate the core theme of the passage
-- Encourage them to create a meaningful title that captures the essence of the scene
-- Help the group distill the passage down to key words or phrases that resonate
-
----
-# Sample Output
-
-### **Step 4: Connect the Scene to Ourselves**
-
-**Leader’s Transition:** "Now let's think about how this story connects to our own lives. What emotions or experiences in this story feel familiar to you? What does this moment reveal about what matters most to God and to us? Pay attention to the places where the people in the story felt vulnerable—those are often the places where God is at work."
-
-Help participants see **how this story speaks into their own lives.**
-
-- Have you ever felt like an **outsider** in a new situation? How did it feel?
-- When have you had to rely on the **kindness of others**? What was that like?
-- How does this passage challenge or encourage **your view of hospitality and generosity**?
-- What does this story reveal about **trusting God’s provision** when life is uncertain?
-- What is it like to be in the middle of the story, not yet seeing the ending?
+Use:
 
 ---
 
-### **Step 5: Name the Scene**
+## Cultural Background
 
-Encourage participants to **summarize the key theme** of this moment.
-
-- If you had to give this scene a **title**, what would it be?
-- What **one word or phrase** best captures the heart of this passage?
+{exegetical_culture}
 
 ---
+
+## Emotional Arc
+
+{exegetical_emotionalarc}
+
+---
+
+For **Step 4 (Connections)**:
+- Write 3–5 questions connecting the emotional and cultural truths of the scene to the participants' lives today.
+- Focus on **resonating emotions and experiences**, not theological arguments.
+
+For **Step 5 (Title)**:
+- Ask the group to suggest a short, vivid, memorable title (4–8 words) that captures the heart of the scene. Generate questions to help them if they cannot easily come up with a title.
+
+Keep the tone emotionally accessible, not academic.
+
+Encourage honest reflection, not forced application.

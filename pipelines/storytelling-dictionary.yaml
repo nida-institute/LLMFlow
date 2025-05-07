@@ -1,0 +1,59 @@
+pipeline:
+  name: define_concepts
+
+  variables:
+    input_file: inputs/storytelling-dictionary/concepts.txt
+    output_dir: outputs/storytelling-dictionary
+    prompt_template: prompts/storytelling-dictionary/storytelling-dictionary.gpt
+    shorten_prompt_template: prompts/storytelling-dictionary/shorten-storytelling.gpt
+
+  rules:
+    - name: read_concepts
+      type: function
+      function: llmflow.utils.io.read_lines
+      inputs:
+        path: "${input_file}"
+      outputs: [concept_list]
+
+    - name: define_each_concept
+      type: for-each
+      input: "${concept_list}"
+      item_var: concept
+      steps:
+        - name: define_term
+          type: llm
+          prompt:
+            file: "${prompt_template}"
+            inputs:
+              term: "${concept}"
+          llm_options:
+            model: gpt-4o
+            temperature: 0.6
+            max_tokens: 2000
+          outputs: [definition]
+
+        - name: save_full_definition
+          type: function
+          function: llmflow.utils.io.write_markdown
+          inputs:
+            path: "${output_dir}/${concept}.md"
+            content: "${definition}"
+
+        - name: shorten_definition
+          type: llm
+          prompt:
+            file: "${shorten_prompt_template}"
+            inputs:
+              full_text: "${definition}"
+          llm_options:
+            model: gpt-4o
+            temperature: 0.6
+            max_tokens: 700  # fits 150–250 words nicely
+          outputs: [short_definition]
+
+        - name: save_short_definition
+          type: function
+          function: llmflow.utils.io.write_markdown
+          inputs:
+            path: "${output_dir}/${concept}_short.md"
+            content: "${short_definition}"
