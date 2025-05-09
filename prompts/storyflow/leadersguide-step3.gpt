@@ -1,9 +1,12 @@
 <!--
-@prompt
-requires: passage, scene, exegetical_emotionalarc
-optional: None
-description: Generates Step 3 (emotion) questions for a scene
-format: Markdown
+prompt:
+  requires:
+  - passage
+  - scene
+  - exegetical_emotionalarc
+  optional: []
+  format: Markdown
+  description: Generates Step 3 (emotion) questions for a scene
 -->
 <!-- GPT: Do not remove or rewrite any template variables like {passage}, {scene}, {exegetical_emotionalarc}. -->
 

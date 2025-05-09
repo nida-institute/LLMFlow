@@ -1,9 +1,13 @@
 <!--
-@prompt
-requires: passage, scene, exegetical_culture, exegetical_wordstudy
-optional: None
-description: Generates Step 2 (context) questions for a scene
-format: Markdown
+prompt:
+  requires:
+  - passage
+  - scene
+  - exegetical_culture
+  - exegetical_wordstudy
+  optional: []
+  format: Markdown
+  description: Generates Step 2 (context) questions for a scene
 -->
 <!-- GPT: Do not remove or rewrite any template variables like {passage}, {scene}, {exegetical_culture}, {exegetical_wordstudy}. -->
 

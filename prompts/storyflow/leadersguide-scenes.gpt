@@ -1,9 +1,12 @@
 <!--
-@prompt
-requires: passage, exegetical_culture, exegetical_wordstudy
-optional: None
-description: Divides {passage} into natural scenes for discussion
-format: Markdown
+prompt:
+  requires:
+  - passage
+  - exegetical_culture
+  - exegetical_wordstudy
+  optional: []
+  format: JSON
+  description: Divides {passage} into natural scenes for discussion
 -->
 <!-- GPT: Do not remove or rewrite any template variables like {passage}, {exegetical_culture}, {exegetical_wordstudy}. -->
 

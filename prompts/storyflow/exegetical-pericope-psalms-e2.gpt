@@ -1,3 +1,13 @@
+<!--
+prompt:
+  requires:
+  - passage
+  - source
+  optional: []
+  format: Markdown
+  description: Provides key Hebrew terms and textual notes for {passage} using {source}
+-->
+
 <!-- GPT: Do not remove or rewrite any template variables like {passage}. -->
 
 # Exegetical Word Study and Textual Notes for {passage}

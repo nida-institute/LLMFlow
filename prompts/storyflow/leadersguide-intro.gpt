@@ -1,9 +1,13 @@
 <!--
-@prompt
-requires: passage, exegetical_culture, exegetical_wordstudy, exegetical_emotionalarc
-optional: None
-description: Introduces the leader’s guide using insights from E1–E3 for {passage}
-format: Markdown
+prompt:
+  requires:
+  - passage
+  - exegetical_culture
+  - exegetical_wordstudy
+  - exegetical_emotionalarc
+  optional: []
+  format: Markdown
+  description: Introduces the leader’s guide using insights from E1–E3 for {passage}
 -->
 <!-- GPT: Do not remove or rewrite any template variables like {passage}, {exegetical_culture}, {exegetical_wordstudy}, {exegetical_emotionalarc}. -->
 

@@ -1,9 +1,11 @@
 <!--
-@prompt
-requires: passage, source
-optional: None
-description: Analyzes poetic and cultural imagery in {passage} using {source}
-format: Markdown
+prompt:
+  requires:
+  - passage
+  - source
+  optional: []
+  format: Markdown
+  description: Analyzes poetic and cultural imagery in {passage} using {source}
 -->
 <!-- GPT: Do not remove or rewrite any template variables like {passage}. -->
 

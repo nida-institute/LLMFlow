@@ -1,9 +1,13 @@
 <!--
-@prompt
-requires: passage, scene, exegetical_culture, exegetical_emotionalarc
-optional: None
-description: Generates Steps 4–5 (connection and summary title) for a scene
-format: Markdown
+prompt:
+  requires:
+  - passage
+  - scene
+  - exegetical_culture
+  - exegetical_emotionalarc
+  optional: []
+  format: Markdown
+  description: Generates Steps 4–5 (connection and summary title) for a scene
 -->
 <!-- GPT: Do not remove or rewrite any template variables like {passage}, {scene}, {exegetical_culture}, {exegetical_emotionalarc}. -->
 
