@@ -1,3 +1,10 @@
+<!--
+@prompt
+requires: passage, scene, exegetical_culture, exegetical_wordstudy
+optional: None
+description: Generates Step 2 (context) questions for a scene
+format: Markdown
+-->
 <!-- GPT: Do not remove or rewrite any template variables like {passage}, {scene}, {exegetical_culture}, {exegetical_wordstudy}. -->
 
 # StoryFlow Leader's Guide: Step 2 (Context) for {scene} in {passage}

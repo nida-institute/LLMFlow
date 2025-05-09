@@ -1,83 +1,68 @@
+<!--
+@prompt
+requires: passage, source
+optional: None
+description: Analyzes the emotional arc of {passage} using Nussbaum's framework
+format: Markdown
+-->
 <!-- GPT: Do not remove or rewrite any template variables like {passage}. -->
 
-# Exegetical Emotional Arc for {passage}
+# Exegetical Emotional and Spiritual Arc for {passage}
 
-You are writing an **emotional and spiritual journey analysis** to help Bible translators and group leaders feel the deep movement of the Psalm {passage}, following Martha Nussbaum’s model of emotions.
+You are writing an **emotional and spiritual journey analysis** of {passage}
+to help Bible translators and group leaders feel how the psalm moves and resonates with the soul.
 
-Use the understanding that:
-- **Emotions are intelligent**: they are perceptions or judgments about what matters.
-- **Emotions reveal values**: they show what the Psalmist believes is important, good, dangerous, or shameful.
-- **Emotions reveal vulnerability**: they show where the Psalmist feels at risk, dependent, or hopeful.
-- **Emotions connect self, God, world, and others**: they reveal how the Psalmist sees themselves and their place in God's world.
+You should analyze the text based on {source}.  In output, transliterate and translate any quotes from Hebrew or Greek.
 
----
+Use **Martha Nussbaum’s model of emotion**, which treats emotions as **judgments about what matters**, linked to vulnerability, value, and flourishing.
 
-## 1. Emotional Flow
-- Trace the **emotional journey** across the Psalm:
-  - Where do emotions shift (fear, trust, grief, hope, joy)?
-  - Where are moments of tension, release, or deepening?
-  - How does the emotional structure build or resolve?
+Your goal is to uncover:
+- What emotional values are exposed, threatened, or confirmed
+- How the Psalmist's emotions **shift across the poem**
+- How different participants might resonate with those emotions
 
 ---
 
-## 2. Values and Vulnerability
-- Identify what the Psalmist **values** most.
-- Show where the Psalmist expresses **vulnerability** — where something precious is threatened, lost, or restored.
-- Highlight moments of deep trust, fear, hope, or grief in relation to what matters to the Psalmist.
+## Structure
 
----
+Present your output under this heading:
 
-## 3. View of God, Self, and World
-- Describe how emotions reveal the Psalmist's:
-  - **View of God** (protector, absent, righteous, forgiving, etc.)
-  - **View of self** (dependent, abandoned, beloved, guilty, restored)
-  - **View of the world and others** (dangerous, corrupt, comforting, hostile, welcoming)
+## Emotional and Spiritual Flow
 
----
+For each major movement or metaphor in the psalm, repeat the structure:
 
-## 4. Recognizing Types of Emotion (based on Nussbaum)
-When possible, identify emotions using the following categories:
-- **Love** (connection, belonging)
-- **Grief and Mourning** (loss, longing)
-- **Fear** (threat to what matters)
-- **Anger** (perceived injustice)
-- **Hope** (forward-looking trust)
-- **Disgust** (rejection of what is corrupt or harmful)
-- **Shame and Guilt** (self-assessment of failure)
-- **Compassion** (solidarity with suffering)
-- **Envy and Jealousy** (aspiration or resentment)
-- **Gratitude** (recognition of blessing)
+### [Section Title: e.g., “Confidence in the Shepherd”]
 
-Explain briefly:
-- What the Psalmist feels
-- What value is being judged or perceived
-- How this emotion fits into the movement of the Psalm
+- **Dominant Emotions**:
+  - Identify the emotional tone(s): fear, hope, grief, joy, love, shame, etc.
+  - Use Nussbaum's categories when applicable and meaningful.
+  - Explain what **value** is at stake — what matters to the Psalmist.
 
----
+- **Emotional Movement**:
+  - Show how the emotion changes or deepens across the section.
+  - What is the **spiritual arc** — despair to trust? hope to triumph? longing to rest?
 
-## 5. Multiple Viewpoints Reflection
-Briefly reflect on how different participants might resonate differently with the emotional journey of the Psalm:
-- A person who has suffered recent loss
-- A person celebrating deliverance
-- A person struggling with guilt or shame
-- A person confident in God's protection
+- **Language and Imagery**:
+  - How do poetic choices (repetition, metaphor, parallelism) intensify or shape the emotion?
+  - Include any **emotionally charged Hebrew terms**.
 
-For each type of listener:
-- Identify which parts of the Psalm might resonate most strongly.
-- Explain how their **personal values and journey** would shape the emotions they perceive.
+- **Multiple Viewpoints**:
+  - Briefly describe how different participants might hear or feel this:
+    - A person in grief
+    - Someone under threat
+    - A confident worshiper
+    - A shame-burdened sinner
+  - Show how **different life experiences** bring different emotional resonance.
 
-Focus on **empathy and vivid imagination**, not rigid categories.
+Repeat this for each emotionally distinct section (typically 2–5 total).
 
 ---
 
 ## Writing Style
-- Use vivid, emotionally rich but clear English.
-- Write for smart adults who are not scholars.
-- Avoid theological jargon or philosophical language.
-- Do not apply the passage to modern readers generally — stay within the world of the Psalm.
-- Do not add headings — the system will format the output.
 
----
+- Use plain but emotionally rich English.
+- Integrate Hebrew terms and images when meaningful.
+- Avoid modern application or theological summary.
+- Do **not** add your own headers — the system will structure output.
 
-Start immediately by tracing the emotional journey of the Psalm,
-then naturally explore values, spiritual movement, types of emotions, and multiple viewpoints.
+Start directly with the emotional analysis.

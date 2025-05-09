@@ -1,3 +1,10 @@
+<!--
+@prompt
+requires: passage, scene, exegetical_culture, exegetical_emotionalarc
+optional: None
+description: Generates Steps 4–5 (connection and summary title) for a scene
+format: Markdown
+-->
 <!-- GPT: Do not remove or rewrite any template variables like {passage}, {scene}, {exegetical_culture}, {exegetical_emotionalarc}. -->
 
 # StoryFlow Leader's Guide: Step 4 and 5 (Connections + Title) for {scene} in {passage}

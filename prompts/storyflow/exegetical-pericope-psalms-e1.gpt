@@ -1,38 +1,55 @@
+<!--
+@prompt
+requires: passage, source
+optional: None
+description: Analyzes poetic and cultural imagery in {passage} using {source}
+format: Markdown
+-->
 <!-- GPT: Do not remove or rewrite any template variables like {passage}. -->
 
-# Exegetical Cultural Background for {passage}
+# Exegetical Cultural and Poetic Setting for {passage}
 
-You are writing an **exegetical cultural and poetic setting summary** to help Bible translators and group leaders visualize the world behind the passage {passage}.
+You are writing an **exegetical cultural and poetic background overview** to help Bible translators and group leaders visualize the world behind {passage}.
 
-Focus on two main areas:
+You should analyze the text based on {source}.  In output, transliterate and translate any quotes from Hebrew or Greek.
 
----
-
-## 1. Cultural and Historical Background
-- **Daily life**: food, clothing, shelter, farming, shepherding, city life.
-- **Social structures**: honor/shame dynamics, family life, rulers, religious practices.
-- **Religious expectations**: temple, sacrifices, worship, prayer customs.
-- **Environmental setting**: landscape, agriculture, climate references that shape the imagery.
-
-**Explain any cultural references** in the Psalm that would have been natural to the original hearers but are strange to modern audiences.
+Your output should describe:
+- The **vivid metaphorical imagery** in the passage
+- The **sensory, emotional, and cultural impact** each image or poetic movement would have on its original hearers
+- The **cognitive framework** those images would evoke
 
 ---
 
-## 2. Poetic Structure and Devices
-- **Poetic structures**: identify parallelism (synonymous, antithetic, synthetic), chiasm, inclusio if present.
-- **Poetic devices**: metaphor, imagery, repetition, symbolic numbers, personification.
-- **How these devices work** in the culture: Why were they important for memory, teaching, or emotional impact?
+## Structure
 
-**Explain** briefly but clearly what kinds of poetic patterns are being used and what they helped the audience feel or remember.
+Present your output under the following heading:
+
+## Vivid Imagery and Metaphorical Progression
+
+For each major image or poetic unit in {passage}, use this structure:
+
+### [Scene or Image Title]
+
+- **Poetic or Metaphorical Device**:
+  - Describe the **Hebrew expression**, including lemma (in Hebrew) and transliteration.
+  - Identify **metaphor**, **imagery**, **parallelism**, or **progression** (e.g., movement from walking → sitting).
+  - Name known scholars (e.g., Alter, Mays, King & Stager) only when directly helpful.
+
+- **Cultural Resonance**:
+  - What would the **original audience** recognize instantly from their **daily life** (e.g., paths, trees, water systems, harvests)?
+  - How does the **image connect to their environment** (e.g., arid climate, temple ritual, shepherding, farming)?
+  - How would **honor/shame**, **family roles**, or **covenantal worldview** shape their understanding?
+
+- **Sensory and Emotional Impact**:
+  - **Sensory**: What would they **see, hear, feel, taste, or smell**?
+  - **Emotional**: What feelings would this evoke (e.g., fear, trust, pride, disgust)?
+  - **Cognitive Framework**: How would this shape their **moral categories**, understanding of **blessing/cursing**, or view of **God and community**?
+
+Repeat this structure for each major image or movement in the passage. Use 2–4 total sections as appropriate.
 
 ---
 
 ## Writing Style
-- Use vivid, emotionally accessible language, but remain factually accurate.
-- Use simple English appropriate for high school to early university readers.
-- Avoid heavy academic jargon.
-- Do **NOT** explain theology, spiritual application, or modern relevance yet.
-- Do **NOT** add your own headings — the system will format your output.
 
-Start immediately with the content.
-Make the world of {passage} **vivid, textured, and memorable** for translators and group leaders.
+- Use vivid, emotionally accessible, **yet precise and factually grounded** language.
+- Use short quotes

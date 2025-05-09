@@ -2,44 +2,44 @@
 
 # Exegetical Word Study and Textual Notes for {passage}
 
-You are writing a **word study and textual background** summary to help Bible translators and group leaders better understand important terms, poetic words, and textual variants in {passage}.
+You are writing a **focused word study and textual overview** to help Bible translators and group leaders understand key terms, poetic effects, and textual variations in {passage}.
 
-Focus on two main areas:
+You should analyze the text based on {source}.  In output, transliterate and translate any quotes from Hebrew or Greek.
 
----
-
-## 1. Word Studies
-- Identify **key Hebrew words** in {passage} that are crucial for understanding.
-- For each key word:
-  - Give a **basic gloss** (plain English meaning).
-  - Mention **literal meanings** if different from metaphorical usage.
-  - Highlight any strong **metaphors, imagery, or poetic uses** of the word.
-  - Briefly note relevant **semantic domains** if known (e.g., SDBH or similar).
-- Focus on words that shape the emotional or visual landscape of the Psalm.
-- Explain briefly if a Hebrew word has **multiple possible nuances** (e.g., "blessed" = happy, fortunate, or approved by God).
+Your goal is to highlight:
+- **Key Hebrew terms** that shape meaning or metaphor
+- **Parallel uses** in other biblical texts
+- **Textual variants** (Masoretic Text vs. LXX, or Dead Sea Scrolls where relevant)
+- Terms that carry **rich conceptual or emotional freight**
 
 ---
 
-## 2. Textual Criticism Notes
-- Briefly summarize any **important textual variants**:
-  - Differences between **Masoretic Text (MT)** and **Septuagint (LXX)**.
-  - Quote the Hebrew MT form and Greek LXX form (with transliteration).
-  - Provide a simple translation of each.
-- Explain if the variant significantly **changes meaning or mood**.
-- Do **NOT** go deep into academic debate — just alert translators to possible differences.
-- If the differences are minor (like spelling or tense), you can simply note "no major impact."
+## Structure
+
+Present your output under the heading:
+
+## Key Hebrew Terms and Textual Notes
+
+For each important word, image, or poetic verb in {passage}, repeat this format:
+
+### [Word or Phrase in English]
+- **Hebrew**: Provide the word in Hebrew (Unicode), its transliteration, and gloss.
+- **Poetic/Contextual Role**: Describe the term's role in the passage — metaphor, imagery, structure.
+- **Semantic Range**: What nuances are implied here? How else is this used in the Hebrew Bible?
+- **Textual Notes**:
+  - Masoretic Text vs. Septuagint (quote both if they differ)
+  - Optional: Dead Sea Scroll or Targum variants if meaningful
+- **Translation Challenges**: What cultural or cognitive meanings must be preserved? What common translation errors or oversimplifications occur?
+
+Repeat this for **2–6 terms or phrases** that matter most for meaning.
 
 ---
 
 ## Writing Style
-- Use plain, emotionally accessible English.
-- Write for smart adults who are new to textual studies.
-- Avoid technical jargon unless absolutely necessary, and explain it if used.
-- Write vivid explanations that help readers imagine what the word or phrase conveys emotionally and visually.
 
-Do **NOT** add your own headings — the system will format the output later.
+- Use precise, vivid, and plain English.
+- Use **Hebrew and transliteration** wherever terms appear.
+- Avoid theological commentary or application — this is for **translation and poetic fidelity**.
+- Quote LXX in **Greek + transliteration + translation** if different from MT.
 
----
-
-Start immediately with your word studies.
-After covering key words, move naturally into any textual notes.
+Start directly with your first key term. Do **not** add new section headers — the system will format output later.

@@ -1,3 +1,10 @@
+<!--
+@prompt
+requires: passage, exegetical_culture, exegetical_emotionalarc
+optional: None
+description: Generates a wrap-up summary for the leader’s guide on {passage}
+format: Markdown
+-->
 <!-- GPT: Do not remove or rewrite any template variables like {passage}, {exegetical_culture}, {exegetical_wordstudy}. -->
 
 # StoryFlow Leader's Guide: Scene List for {passage}

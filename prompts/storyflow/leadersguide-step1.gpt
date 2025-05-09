@@ -1,3 +1,10 @@
+<!--
+@prompt
+requires: passage, scene, exegetical_culture
+optional: None
+description: Generates Step 1 (senses) questions for a scene
+format: Markdown
+-->
 <!-- GPT: Do not remove or rewrite any template variables like {passage}, {scene}, {exegetical_culture}. -->
 
 # StoryFlow Leader's Guide: Step 1 (Senses) for {scene} in {passage}

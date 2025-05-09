@@ -5,6 +5,7 @@ from pathlib import Path
 
 from llmflow.utils.llm_runner import call_llm
 from llmflow.utils.io import normalize_nfc
+from llmflow.utils.linter import lint_pipeline_contracts
 
 def resolve(value, context):
     if isinstance(value, str):
@@ -74,6 +75,13 @@ def run_pipeline(pipeline_path, variables=None, dry_run=False):
 
     variables = variables or {}
     pipeline = yaml.safe_load(Path(pipeline_path).read_text())
+
+    # Run contract linter before anything else
+    lint_errors = lint_pipeline_contracts(pipeline_path)
+    if lint_errors:
+        for err in lint_errors:
+            print(err)
+        raise ValueError("❌ Prompt validation failed. Fix errors before running pipeline.")
 
     # Transitioning to "steps" instead of "rules" in YAML
     pipeline_root = pipeline.get("pipeline", {})
