@@ -7,9 +7,6 @@ prompt:
   format: Markdown
   description: Provides key Hebrew terms and textual notes for {passage} using {source}
 -->
-
-<!-- GPT: Do not remove or rewrite any template variables like {passage}. -->
-
 # Exegetical Word Study and Textual Notes for {passage}
 
 You are writing a **focused word study and textual overview** to help Bible translators and group leaders understand key terms, poetic effects, and textual variations in {passage}.

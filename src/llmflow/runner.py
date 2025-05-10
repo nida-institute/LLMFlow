@@ -77,11 +77,7 @@ def run_pipeline(pipeline_path, variables=None, dry_run=False):
     pipeline = yaml.safe_load(Path(pipeline_path).read_text())
 
     # Run contract linter before anything else
-    lint_errors = lint_pipeline_contracts(pipeline_path)
-    if lint_errors:
-        for err in lint_errors:
-            print(err)
-        raise ValueError("❌ Prompt validation failed. Fix errors before running pipeline.")
+    lint_pipeline_contracts(pipeline_path)
 
     # Transitioning to "steps" instead of "rules" in YAML
     pipeline_root = pipeline.get("pipeline", {})

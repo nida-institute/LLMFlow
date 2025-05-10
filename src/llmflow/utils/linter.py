@@ -5,9 +5,6 @@ import re
 from difflib import unified_diff
 
 def parse_prompt_header(prompt_path):
-    """
-    Extract and parse YAML header block from a .gpt file.
-    """
     text = Path(prompt_path).read_text(encoding="utf-8")
     match = re.search(r"<!--(.*?)-->", text, re.DOTALL)
     if not match:
@@ -18,7 +15,6 @@ def parse_prompt_header(prompt_path):
         data = yaml.safe_load(block)
         return data.get("prompt", {})
     except Exception as e:
-        print(f"⚠️ YAML parsing failed in {prompt_path}: {e}")
         return None
 
 def format_diff_box(step, file, declared, passed):
@@ -69,33 +65,56 @@ def lint_pipeline_contracts(pipeline_path):
             errors.append(f"❌ Prompt file not found: {prompt_path}")
             continue
 
-        header = parse_prompt_header(prompt_path)
+        # Try to parse the prompt header
+        text = Path(prompt_path).read_text(encoding="utf-8")
+        match = re.search(r"<!--(.*?)-->", text, re.DOTALL)
+        header_yaml = match.group(1).strip() if match else None
+        header = None
+        if header_yaml:
+            try:
+                header = yaml.safe_load(header_yaml).get("prompt", {})
+            except Exception:
+                header = None
+
         if not header:
-            errors.append(f"❌ Missing or unreadable YAML @prompt header in {prompt_path}")
+            # Build a suggested header based on the pipeline
+            pipeline_inputs = step.get("prompt", {}).get("inputs", {})
+            required_inputs = sorted(pipeline_inputs.keys())
+            suggested_header = yaml.dump({
+                "prompt": {
+                    "requires": required_inputs,
+                    "optional": [],
+                    "format": "Markdown",
+                    "description": "TODO: Describe what this prompt does."
+                }
+            }, sort_keys=False)
+            inputs_yaml = yaml.dump(pipeline_inputs, sort_keys=False)
+            errors.append(
+                f"❌ Missing or unreadable YAML @prompt header in {prompt_path}\n\n"
+                f"🔢 Pipeline Step Inputs:\n{inputs_yaml}\n\n"
+                f"📄 Found header in prompt file:\n{header_yaml[:500] if header_yaml else '[No header found]'}\n\n"
+                f"✅ Suggested YAML header:\n{suggested_header}"
+            )
             continue
 
         passed_inputs = set(step.get("prompt", {}).get("inputs", {}).keys())
         visible_vars = variables.union(passed_inputs)
         declared = set(header.get("requires", []))
 
-        # Check for missing required variables
         for req in declared:
             if req not in visible_vars:
                 errors.append(f"❌ Step '{step_name}' is missing required input '{req}' for prompt '{file}'")
 
-        # Report diff
         diff_block = format_diff_box(step_name, file, declared, passed_inputs)
         if diff_block:
             warnings.append(diff_block)
 
-        # Format check
         fmt = header.get("format", "").lower()
         if fmt and fmt not in valid_formats:
             errors.append(
                 f"❌ Invalid format '{fmt}' in prompt '{file}'. Allowed: {', '.join(valid_formats)}"
             )
 
-    # Show results
     for msg in warnings:
         click.secho(msg, fg="yellow")
 

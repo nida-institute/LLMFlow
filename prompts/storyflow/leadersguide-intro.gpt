@@ -9,8 +9,6 @@ prompt:
   format: Markdown
   description: Introduces the leader’s guide using insights from E1–E3 for {passage}
 -->
-<!-- GPT: Do not remove or rewrite any template variables like {passage}, {exegetical_culture}, {exegetical_wordstudy}, {exegetical_emotionalarc}. -->
-
 # StoryFlow Leader's Guide: Introduction for {passage}
 
 You are writing an emotionally vivid, culturally grounded **introduction** to {passage} for group leaders.

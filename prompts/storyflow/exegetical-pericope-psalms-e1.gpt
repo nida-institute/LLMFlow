@@ -7,8 +7,6 @@ prompt:
   format: Markdown
   description: Analyzes poetic and cultural imagery in {passage} using {source}
 -->
-<!-- GPT: Do not remove or rewrite any template variables like {passage}. -->
-
 # Exegetical Cultural and Poetic Setting for {passage}
 
 You are writing an **exegetical cultural and poetic background overview** to help Bible translators and group leaders visualize the world behind {passage}.

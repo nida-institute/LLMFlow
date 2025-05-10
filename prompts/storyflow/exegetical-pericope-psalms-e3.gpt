@@ -7,8 +7,6 @@ prompt:
   format: Markdown
   description: Analyzes the emotional arc of {passage} using Nussbaum's framework
 -->
-<!-- GPT: Do not remove or rewrite any template variables like {passage}. -->
-
 # Exegetical Emotional and Spiritual Arc for {passage}
 
 You are writing an **emotional and spiritual journey analysis** of {passage}
