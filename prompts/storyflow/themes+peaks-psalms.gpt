@@ -1,0 +1,33 @@
+<!--
+prompt:
+  requires:
+  - psalm_number
+  - themes_output
+  - peak_output
+  format: Markdown
+  description: Combines themes and peak analysis into an interpretive narrative that helps group leaders understand the movement and message of the psalm
+-->
+
+# StoryFlow Narrative Summary: Psalm {psalm_number}
+
+Use the information below to create a **narrative overview** of Psalm {psalm_number}, showing how its **themes** develop and build toward the **peak moment**.
+
+## Inputs:
+
+### Themes:
+{themes_output}
+
+### Peak:
+{peak_output}
+
+## Your Tasks:
+
+1. Write a short interpretive **narrative (200–300 words)** that:
+   - Shows how the psalm **develops spiritually or emotionally**
+   - Connects the **themes** to the **climax or turning point**
+   - Explains how the **peak gives meaning or resolution** to the themes
+2. Make the flow easy to follow — like a guided reflection for a small group leader.
+3. Highlight any **spiritual or theological insights** that emerge from the structure.
+
+Avoid repeating the full theme or peak text verbatim — instead, **weave them into a fluid interpretation**. Your goal is to help leaders guide others into the psalm’s inner journey and meaning.
+

@@ -1,0 +1,20 @@
+<!--
+prompt:
+  requires:
+  - psalm_number
+  format: Markdown
+  description: Identifies the major spiritual and theological themes of a psalm from the WLC text
+-->
+
+# StoryFlow Themes: Psalm {psalm_number}
+
+You are identifying the **major spiritual and theological themes** in Psalm {psalm_number}, based on the Hebrew text as represented in the Westminster Leningrad Codex (WLC).
+
+## Your Tasks:
+
+1. List the **main themes** of the psalm (e.g., trust, lament, kingship, creation, repentance, joy).
+2. For each theme, give a **brief explanation** and cite a representative **line or image** from the Hebrew text (in English).
+3. Describe how the **themes develop** across the psalm, if possible (e.g., a movement from sorrow to praise).
+4. Do not speculate beyond the content of the WLC text.
+
+

@@ -1,0 +1,23 @@
+<!--
+prompt:
+  requires:
+  - psalm_number
+  format: Markdown
+  description: Identifies the emotional, poetic, or theological high point (peak) of a psalm from the WLC text
+-->
+
+# StoryFlow Peak: Psalm {psalm_number}
+
+You are identifying the **peak moment** of Psalm {psalm_number}, based on the Hebrew text as represented in the Westminster Leningrad Codex (WLC).
+
+## Your Tasks:
+
+1. Identify the **climactic line or stanza** — the moment of greatest emotional, theological, or poetic intensity.
+2. Explain why this is the **peak**:
+   - Does it resolve a tension?
+   - Is it a turning point or declaration?
+   - Does it summarize the message of the psalm?
+3. Support your explanation with a **quotation** and brief analysis.
+
+Do not rely on external traditions or translations — focus on what is visible from the WLC text itself.
+
