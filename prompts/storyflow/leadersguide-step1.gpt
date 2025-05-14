@@ -1,33 +1,91 @@
 <!--
 prompt:
   requires:
-  - passage
-  - scene
-  - exegetical_culture
+    - passage
+    - scene
+    - citation
+    - exegetical_culture
   optional: []
   format: Markdown
-  description: Generates Step 1 (senses) questions for a scene
+  description: Generates concrete sensory questions about {scene} from {passage}, avoiding speculation
 -->
-<!-- GPT: Do not remove or rewrite any template variables like {passage}, {scene}, {exegetical_culture}. -->
 
-# StoryFlow Leader's Guide: Step 1 (Senses) for {scene} in {passage}
+# StoryFlow Leader’s Guide: Step 1 – Imagine the Scene in Vivid Detail
 
-You are writing **Step 1 questions** for group leaders to help participants **enter the scene through their senses**.
+You are helping group leaders guide participants to **step into the scene** using their senses.
 
-Use:
-- **Scene**: {scene}
-- **Cultural background**: {exegetical_culture}
+Use the following excerpt from {passage}:
 
-Focus on:
-- What participants might **see, hear, smell, feel, or taste**.
-- How the **cultural setting** shapes what is around them.
-- Shifting **perspectives**: ask questions both as **outside observers** and as **characters** inside the scene.
+{scene}
 
-**Do NOT** speculate about hidden thoughts, theology, or symbolism.
-Focus only on the **physical and emotional experience**.
+Draw on this cultural background for sensory details (do not explain it directly):
 
-Generate 5–9 vivid, emotionally accessible questions, grouped under headings:
-- **As an Observer**
-- **As [Character Name]**
+{exegetical_culture}
 
-Questions should be simple, natural, and easy to ask aloud.
+---
+
+## 🎯 Focus On
+
+- **What can be seen, heard, touched, tasted, or felt physically**
+- What is **visible in body language, posture, sound, and movement**
+- Use questions that help participants **visualize the moment and its physical/emotional texture**
+
+---
+
+## 🚫 Do Not
+
+- Speculate about inner thoughts, motives, or emotions
+- Describe what people “might be thinking or feeling inside”
+- Use theological explanations or modern application
+
+---
+
+## 📣 Language Style
+
+- Use plain, emotionally accessible English
+- Avoid academic or abstract words
+- Make every question easy to read aloud in group discussion
+- Avoid rhetorical or speculative phrasing (e.g., no “might they be afraid?”)
+
+---
+
+Start directly with the headings and questions. Do not explain your process.
+---
+
+## ✅ Output Format
+
+Create just enough questions to explore the scene well — usually 3 to 6 total.
+Don't repeat or over-extend. Short scenes may need fewer questions.
+
+### Imagine the Scene in Vivid Detail
+
+#### As an Observer
+- [What does someone looking at the scene experience through their senses?]
+
+#### As [a named character, if available]
+- [What do they see, hear, feel? What happens in their body?]
+
+#### As Someone Nearby (optional)
+- [What might someone nearby observe or experience physically?]
+
+---
+
+Sample Output:
+
+## The Rebellion of the Nations ({citation})
+
+> Why do the nations rage and the peoples plot in vain? The kings of the earth take their stand and the rulers gather together, against the LORD and against His Anointed One: "Let us break Their chains and cast away Their cords." (Berean Standard Bible)
+
+> לָ֭מָּה רָגְשׁ֣וּ גוֹיִ֑ם וּ֝לְאֻמִּ֗ים יֶהְגּ֥וּ רִֽיק׃ יִֽתְיַצְּב֨וּ׀ מַלְכֵי־אֶ֗רֶץ וְרוֹזְנִ֣ים נוֹסְדוּ־יָ֑חַד עַל־יְ֝הוָ֗ה וְעַל־מְשִׁיחֽוֹ׃ נְנַתְּקָ֥ה אֶת־מוֹסְרוֹתֵ֑ימוֹ וְנַשְׁלִ֖יכָה מִמֶּ֣נּוּ עֲבֹתֵֽימוֹ׃" (WLC)
+
+###  Senses (What’s Happening in {citation}?)
+
+#### As an Observer
+
+- What sights unfold as the nations gather in defiance, and how does the scene reflect chaos and agitation?
+- What kinds of sounds fill the air as the rulers and kings take their stand together, and how does this contribute to the tension of the moment?
+- How does the ground feel beneath your feet as armies assemble and the earth seems to shake with their movements?
+
+#### As Someone Nearby
+- If you are close to the gathering of rulers, what physical sensations do you experience from the commotion and unrest?
+- As the declaration to break the chains and cast away the cords is made, what movements or gestures do you observe among the gathered leaders?

@@ -3,6 +3,7 @@ prompt:
   requires:
   - passage
   - scene
+  - citation
   - exegetical_culture
   - exegetical_emotionalarc
   optional: []
@@ -35,9 +36,35 @@ For **Step 4 (Connections)**:
 - Write 3–5 questions connecting the emotional and cultural truths of the scene to the participants' lives today.
 - Focus on **resonating emotions and experiences**, not theological arguments.
 
+Start with the heading:
+
+### Connections (What’s at the Heart for Us in {citation}?)
+
+Then give each numbered pair as:
+
+1. **[Short context label]**:
+    - [Question]
+    - [Question]
+
+---
+
 For **Step 5 (Title)**:
 - Ask the group to suggest a short, vivid, memorable title (4–8 words) that captures the heart of the scene. Generate questions to help them if they cannot easily come up with a title.
 
 Keep the tone emotionally accessible, not academic.
 
 Encourage honest reflection, not forced application.
+
+
+Start with the heading:
+
+### Summary (What Do We Call {citation}?)
+
+Then list some potential titles for the leader to consider proposing to the group if they have difficulty thinking of one.
+
+**Possible Titles**:
+
+**Leader**: These are provided for you to think about as they prepare.  Let the group propose their own titles. Do not suggest these unless you have a group that cannot do that.
+
+    - [Potential title]
+    - [Potential title]

@@ -10,6 +10,10 @@ pipeline:
     temperature: 0.7
     max_tokens: 6000
 
+  linter_config:
+    enabled: true
+    treat_warnings_as_errors: false
+
   steps:
 
     # --- Exegetical E1–E3 Generation ---
@@ -47,6 +51,7 @@ pipeline:
       inputs:
         template_path: "templates/exegeticalguide_template.md"
         variables:
+          passage: "${passage}"
           culture: "${exegetical_culture}"
           wordstudy: "${exegetical_wordstudy}"
           emotionalarc: "${exegetical_emotionalarc}"
@@ -118,6 +123,7 @@ pipeline:
             inputs:
               passage: "${passage}"
               scene: "${scene}"
+              citation: "${scene.Citation}"
               exegetical_culture: "${exegetical_culture}"
           append_to: step1_list
 
@@ -127,6 +133,7 @@ pipeline:
             inputs:
               passage: "${passage}"
               scene: "${scene}"
+              citation: "${scene.Citation}"
               exegetical_culture: "${exegetical_culture}"
               exegetical_wordstudy: "${exegetical_wordstudy}"
           append_to: step2_list
@@ -137,6 +144,7 @@ pipeline:
             inputs:
               passage: "${passage}"
               scene: "${scene}"
+              citation: "${scene.Citation}"
               exegetical_emotionalarc: "${exegetical_emotionalarc}"
           append_to: step3_list
 
@@ -146,6 +154,7 @@ pipeline:
             inputs:
               passage: "${passage}"
               scene: "${scene}"
+              citation: "${scene.Citation}"
               exegetical_culture: "${exegetical_culture}"
               exegetical_emotionalarc: "${exegetical_emotionalarc}"
           append_to: step4_list

@@ -1,43 +1,71 @@
 <!--
 prompt:
   requires:
-  - passage
-  - scene
-  - exegetical_culture
-  - exegetical_wordstudy
+    - passage
+    - scene
+    - citation
+    - exegetical_culture
+    - exegetical_wordstudy
   optional: []
   format: Markdown
-  description: Generates Step 2 (context) questions for a scene
+  description: Generates contextual background and follow-up questions for {scene} from {passage}
 -->
-<!-- GPT: Do not remove or rewrite any template variables like {passage}, {scene}, {exegetical_culture}, {exegetical_wordstudy}. -->
 
-# StoryFlow Leader's Guide: Step 2 (Context) for {scene} in {passage}
+# StoryFlow Leader’s Guide: Step 2 – Context (What’s the Background?)
 
-You are writing **Step 2 questions** for group leaders to help participants **explore the background** of the scene.
+You are helping group leaders guide participants to explore the historical, social, and poetic background of this part of the passage.
 
-Use:
+Use this scene from {passage}:
 
----
+{scene.Citation}
 
-## Cultural Background
-
-{exegetical_culture}
-
----
-
-## Word Study Insights
-
-{exegetical_wordstudy}
+Draw insights from the following sources:
+- {exegetical_culture}
+- {exegetical_wordstudy}
 
 ---
 
-Focus on:
-- Helping participants **understand the customs, setting, and daily life** behind the scene.
-- Bringing out how key **words, metaphors, or actions** would have been understood culturally.
-- Rooting participants in the **world of the original hearers**.
-- Helping participants see, hear, smell, taste, and feel things as though they were there in the scene.
+## ✅ Output Instructions
 
-Do **NOT** explain theology or modern application yet.
-Focus purely on **seeing the world through ancient eyes**.
+For **each cultural or poetic insight**, follow this pattern:
 
-Write 5–7 vivid, simple questions leaders can ask aloud.
+1. **Brief context statement**
+   – Give 1–2 sentences about what the original audience would understand or notice
+   – Use content from {exegetical_culture} and {exegetical_wordstudy} where helpful
+
+2. **Follow-up question**
+   – Help the group **visualize, sense, or connect** with the scene more deeply
+   – Focus on **what they might see, hear, feel, or imagine physically**
+   – Keep the question **emotionally accessible and oral-friendly**
+
+Create just enough questions to explore the scene well — usually 3 to 6 total.
+Don't repeat or over-extend. Short scenes may need fewer questions.
+
+---
+
+## 🧠 Tone and Language
+
+- Plain, vivid English suitable for adult group discussion
+- Avoid academic or theological words
+- Do not explain everything — let the group discover things through experience
+- Do not use speculative questions like “what were they thinking?”
+
+---
+
+## ❌ Avoid
+
+- Speculating about motives
+- Explaining spiritual application
+- Using abstract or metaphorical language without grounding in experience
+
+---
+
+Start with the heading:
+
+### Context (What’s the Background in {citation}?)
+
+Then give each numbered pair as:
+
+1. **[Short context label]**:
+    - [1–2 sentence background]
+    - [Follow-up question]

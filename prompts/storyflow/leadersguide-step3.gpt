@@ -3,14 +3,14 @@ prompt:
   requires:
   - passage
   - scene
+  - citation
   - exegetical_emotionalarc
   optional: []
   format: Markdown
   description: Generates Step 3 (emotion) questions for a scene
 -->
-<!-- GPT: Do not remove or rewrite any template variables like {passage}, {scene}, {exegetical_emotionalarc}. -->
 
-# StoryFlow Leader's Guide: Step 3 (Spiritual and Emotional Journey) for {scene} in {passage}
+# StoryFlow Leader's Guide: Step 3 (Spiritual and Emotional Journey) for {citation}
 
 You are writing **Step 3 questions** for group leaders to help participants **enter the emotional journey** of the scene.
 
@@ -20,10 +20,26 @@ Use:
 
 Focus on:
 - Helping participants **feel the emotional movement** in the scene.
-- Exploring emotions such as **fear, trust, grief, hope, love**, using Nussbaum’s model of emotion.
-- How the characters' feelings reveal **their values, vulnerabilities, hopes, and fears**.
+- Exploring emotions such as **fear, trust, grief, hope, and love**, drawing on **Nussbaum’s model**, where emotions reflect what we value and what is at stake.
+- Noticing how the characters’ emotions reveal their **deepest values, longings, vulnerabilities, and fears**.
+- Asking what these emotions show about their **relationships with God and with others in the scene**.
+- Reflecting on how emotion connects to the **spiritual journey of living with uncertainty**, where we often **don’t understand what is happening or how things will end**.
 
 Do **NOT** speculate beyond what is suggested in the emotional arc.
 Avoid jumping to modern application yet.
 
-Write 5–7 vivid, emotionally accessible questions.
+Write vivid, emotionally accessible questions. Create just enough questions to explore the scene well — usually 3 to 6 total.
+
+Don't repeat or over-extend. Short scenes may need fewer questions.
+
+---
+
+Start with the heading:
+
+### Spiritual and Emotional Journey (What’s at the Heart for Them in {citation}?)
+
+Then give each numbered pair as:
+
+1. **[Short context label]**:
+    - [Follow-up question]
+    - [Follow-up question]
