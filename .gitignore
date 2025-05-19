@@ -1,19 +1,38 @@
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.so
-# Virtual envs
+# Ignore output files
+outputs/
+*.out
+*.log
+
+# Ignore swap and temp files (Vim, etc.)
+*.swp
+*.swo
+*.swn
+*~
+
+# Ignore editor-specific files
+.DS_Store
+.vscode/
+.idea/
+
+# Ignore virtual environments
 .venv/
 env/
 venv/
 
-# Outputs
-outputs/
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+*.pyo
 
-# Hatch, Poetry, PyInstaller
+# Ignore Hatch's build artifacts
 dist/
 build/
+.eggs/
 *.egg-info/
 
+# Optional: ignore large or temporary input files
+# You can whitelist specific files to keep
+inputs/**/*.bak
+inputs/**/*.tmp
+inputs/**/*.xml~   # Backup-style XMLs
 

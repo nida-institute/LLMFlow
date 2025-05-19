@@ -1,11 +1,15 @@
-
 import yaml
 import importlib
+import inspect
 from pathlib import Path
 
 from llmflow.utils.llm_runner import call_llm
 from llmflow.utils.io import normalize_nfc
 from llmflow.utils.linter import lint_pipeline_contracts
+
+from llmflow.plugins import plugin_registry
+from llmflow.plugins.loader import load_plugins
+load_plugins()
 
 def resolve(value, context):
     if isinstance(value, str):
@@ -71,6 +75,101 @@ def render_prompt(prompt_config, context):
     return rendered_prompt
 
 
+def run_for_each_step(rule, context):
+    input_spec = rule["input"]
+    item_var = rule["item_var"]
+    steps = rule["steps"]
+
+    # 🔍 Support plugin-sourced iteration
+    if isinstance(input_spec, dict) and "type" in input_spec:
+        plugin_type = input_spec["type"]
+        if plugin_type not in plugin_registry:
+            raise ValueError(f"Plugin '{plugin_type}' not found.")
+        plugin_func = plugin_registry[plugin_type]
+        loop_input = list(plugin_func(input_spec))  # convert generator to list
+    else:
+        # Original behavior: resolve variable like "${scene_list}"
+        loop_input = resolve(input_spec, context)
+
+    if not isinstance(loop_input, list):
+        raise ValueError(f"For-each input {input_spec} must resolve to a list.")
+
+    for item in loop_input:
+        context[item_var] = item  # bind the variable like 'scene'
+
+        for substep in steps:
+            if substep["type"] == "function":
+                raise NotImplementedError("Functions inside for-each not implemented yet.")
+
+            elif substep["type"] == "llm":
+                rendered_prompt = render_prompt(substep["prompt"], context)
+                result = normalize_nfc(call_llm(rendered_prompt, from_file=False))
+
+                if "append_to" in substep:
+                    target_list_name = substep["append_to"]
+                    if target_list_name not in context:
+                        context[target_list_name] = []
+                    context[target_list_name].append(result)
+
+def run_llm_step(rule, context, pipeline_config):
+    rendered_prompt = render_prompt(rule["prompt"], context)
+
+    # Read model config
+    llm_config = pipeline_config.get("llm_config", {})
+    step_config = rule.get("llm_options", {})
+
+    merged_config = {
+        "model": step_config.get("model", llm_config.get("model", "gpt-4o")),
+        "max_tokens": step_config.get("max_tokens", llm_config.get("max_tokens", 1000)),
+        "temperature": step_config.get("temperature", llm_config.get("temperature", 0.7)),
+    }
+
+    result = normalize_nfc(call_llm(
+        rendered_prompt,
+        model=merged_config["model"],
+        max_tokens=merged_config["max_tokens"],
+        temperature=merged_config["temperature"],
+        from_file=False
+    ))
+
+    # Write result to output variables
+    for out in rule.get("outputs", []):
+        context[out] = result
+
+    return result
+
+def run_function_step(rule, context):
+    module_path, func_name = rule["function"].rsplit(".", 1)
+
+    try:
+        module = importlib.import_module(module_path)
+    except ModuleNotFoundError as e:
+        if module_path.startswith("utils."):
+            suggestion = "llmflow." + module_path
+            raise ModuleNotFoundError(f"✖️ Module '{module_path}' not found. Did you mean '{suggestion}'?") from e
+        else:
+            raise
+
+    func = getattr(module, func_name)
+
+    # Resolve inputs from context
+    resolved_inputs = {k: resolve(v, context) for k, v in rule["inputs"].items()}
+
+    # Filter to match function signature
+    valid_params = inspect.signature(func).parameters.keys()
+    filtered_inputs = {k: v for k, v in resolved_inputs.items() if k in valid_params}
+
+    result = func(**filtered_inputs)
+
+    # Assign result(s) to context
+    if isinstance(result, dict):
+        for k in rule["outputs"]:
+            context[k] = result.get(k)
+    else:
+        for k, v in zip(rule["outputs"], [result]):
+            context[k] = v
+
+
 def run_pipeline(pipeline_path, variables=None, dry_run=False):
 
     variables = variables or {}
@@ -99,80 +198,10 @@ def run_pipeline(pipeline_path, variables=None, dry_run=False):
             continue
 
         if rule["type"] == "function":
-            module_path, func_name = rule["function"].rsplit(".", 1)
-
-            try:
-                module = importlib.import_module(module_path)
-            except ModuleNotFoundError as e:
-                if module_path.startswith("utils."):
-                    suggestion = "llmflow." + module_path
-                    raise ModuleNotFoundError(f"✖️ Module '{module_path}' not found. Did you mean '{suggestion}'?") from e
-                else:
-                    raise
-
-            func = getattr(module, func_name)
-
-            resolved_inputs = {k: resolve(v, context) for k, v in rule["inputs"].items()}
-
-            # Filter out any inputs that aren't accepted by the function
-            import inspect
-            valid_params = inspect.signature(func).parameters.keys()
-            filtered_inputs = {k: v for k, v in resolved_inputs.items() if k in valid_params}
-
-            result = func(**filtered_inputs)
-
-            if isinstance(result, dict):
-                for k in rule["outputs"]:
-                    context[k] = result.get(k)
-            else:
-                for k, v in zip(rule["outputs"], [result]):
-                    context[k] = v
+            run_function_step(rule, context)
         elif rule["type"] == "for-each":
-            loop_input = resolve(rule["input"], context)
-            item_var = rule["item_var"]
-            steps = rule["steps"]
-
-            if not isinstance(loop_input, list):
-                raise ValueError(f"For-each input {rule['input']} must resolve to a list.")
-
-            for item in loop_input:
-                context[item_var] = item  # temporarily bind scene, etc.
-
-                for substep in steps:
-                    rendered_prompt = render_prompt(substep["prompt"], context)
-
-                    result = normalize_nfc(call_llm(rendered_prompt, from_file=False))
-
-                    if "append_to" in substep:
-                        target_list_name = substep["append_to"]
-                        if target_list_name not in context:
-                            context[target_list_name] = []
-                        context[target_list_name].append(result)
-
-                    elif substep["type"] == "function":
-                        raise NotImplementedError("Functions inside for-each not implemented yet.")
-
+            run_for_each_step(rule, context)
         elif rule["type"] == "llm":
-            rendered_prompt = render_prompt(rule["prompt"], context)
-
-            # Read model config
-            llm_config = pipeline["pipeline"].get("llm_config", {})
-            step_config = rule.get("llm_options", {})
-            merged_config = {
-                "model": step_config.get("model", llm_config.get("model", "gpt-4o")),
-                "max_tokens": step_config.get("max_tokens", llm_config.get("max_tokens", 1000)),
-                "temperature": step_config.get("temperature", llm_config.get("temperature", 0.7)),
-            }
-
-            result = normalize_nfc(call_llm(
-                rendered_prompt,
-                model=merged_config["model"],
-                max_tokens=merged_config["max_tokens"],
-                temperature=merged_config["temperature"],
-                from_file=False
-            ))
-
-            for out in rule["outputs"]:
-                context[out] = result
+            run_llm_step(rule, context, pipeline["pipeline"])
 
     print("Pipeline complete.")
