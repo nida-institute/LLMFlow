@@ -1,0 +1,34 @@
+pipeline:
+  name: Save TEI Entries
+  steps:
+    - name: iterate-over-entries
+      type: for-each
+      input:
+        type: xpath
+        path: inputs/Abbot-Smith/abbott-smith.tei.xml
+        xpath: //tei:entry
+        output_format: xml-string
+        namespaces:
+          tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
+      item_var: entry
+      steps:
+        - name: extract-entry-key
+          type: function
+          function: llmflow.utils.xml.xpath_get
+          inputs:
+            xml: "${entry}"
+            xpath: "@key"
+            namespaces:
+              tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
+          outputs:
+            - entry_key
+
+        - name: save-entry-to-file
+          type: function
+          function: llmflow.utils.io.save_xml_with_key
+          inputs:
+            xml_string: "${entry}"
+          outputs:
+            - saved_path
+
+

@@ -203,5 +203,8 @@ def run_pipeline(pipeline_path, variables=None, dry_run=False):
             run_for_each_step(rule, context)
         elif rule["type"] == "llm":
             run_llm_step(rule, context, pipeline["pipeline"])
+        else:
+            raise ValueError(f"Unknown step type: {rule['type']}")
+
 
     print("Pipeline complete.")

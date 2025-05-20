@@ -61,6 +61,20 @@ def save_markdown_as(text, passage, format="md", output_dir="outputs"):
     else:
         raise ValueError(f"Unsupported format: {format}")
 
+# --- XML saving ---
+
+def save_xml(content, entry_id, output_dir="outputs/xml"):
+    """
+    Save an XML string to a file, using a sanitized version of the entry_id.
+    """
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    safe_name = sanitize_filename(entry_id)
+    path = Path(output_dir) / f"{safe_name}.xml"
+
+    write_nfc(path, content.strip())
+    return str(path)
+
+
 # --- JSON saving ---
 
 def save_json(passage, content, output_dir="outputs/scenes"):
