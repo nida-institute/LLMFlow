@@ -1,4 +1,3 @@
-pipeline:
   name: storyflow-psalms
 
   variables:
@@ -184,3 +183,4 @@ pipeline:
         step4: "${step4_list}"
         summary: "${summary_response}"
       outputs: [leaders_guide_path]
+

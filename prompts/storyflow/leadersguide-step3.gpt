@@ -57,11 +57,25 @@ Then write a numbered list. Each number represents a **distinct moment or emotio
 
 Each numbered section should include:
 
-1. **[Short context label]**:  
-    - [Emotion-focused question]  
+1. **[Short context label]**:
+    - [Emotion-focused question]
     - [Follow-up question, if helpful for deepening or clarifying]
 
-Write just enough questions to explore the emotional arc of {scene} well.  
-Usually 3 to 6 is sufficient — fewer for shorter or simpler scenes.  
+Write just enough questions to explore the emotional arc of {scene} well.
+Usually 3 to 6 is sufficient — fewer for shorter or simpler scenes.
 Avoid repeating or stretching ideas.
 
+---
+Sample Output
+
+### Spiritual and Emotional Journey (What’s at the Heart for Them in Psalm 2:4-6?)
+
+1. **God Laughs**
+
+- What picture comes to mind when you hear that God laughs?
+- Why do you think God laughs at people who try to stand against Him?
+
+2. **God’s Anger**
+
+- How would you describe God’s anger in this scene?
+- What if these kings were threatening you or doing wrong against you? How would you feel about God's anger then?
