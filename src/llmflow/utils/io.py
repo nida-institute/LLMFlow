@@ -63,15 +63,15 @@ def save_markdown_as(text, passage, format="md", output_dir="outputs"):
 
 # --- XML saving ---
 
-def save_xml(content, entry_id, output_dir="outputs/xml"):
+def save_xml(xml_string, basename, output_dir="outputs/xml"):
     """
     Save an XML string to a file, using a sanitized version of the entry_id.
     """
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    safe_name = sanitize_filename(entry_id)
+    safe_name = sanitize_filename(basename)
     path = Path(output_dir) / f"{safe_name}.xml"
 
-    write_nfc(path, content.strip())
+    write_nfc(path, xml_string.strip())
     return str(path)
 
 
@@ -80,17 +80,51 @@ def save_xml(content, entry_id, output_dir="outputs/xml"):
 def save_json(passage, content, output_dir="outputs/scenes"):
     """
     Save a JSON object or string to a file.
+
+    Args:
+        passage (str): Identifier used for the filename
+        content (Union[str, dict, list]): Content to save - can be:
+            - JSON string
+            - Python dict or list
+            - String with embedded JSON
+        output_dir (str): Directory to save the file
+
+    Returns:
+        str: Path to the saved file
     """
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     safe_passage = sanitize_filename(passage)
     path = Path(output_dir) / f"{safe_passage}.json"
 
+    # Handle string input - attempt to parse as JSON
     if isinstance(content, str):
-        # Try to parse JSON string
-        content = json.loads(content)
+        try:
+            # Try direct JSON parsing
+            parsed_content = json.loads(content)
+            content = parsed_content
+        except json.JSONDecodeError:
+            # Look for JSON in code blocks or other formats
+            import re
 
+            # Try to find JSON in code blocks
+            json_code_block = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', content)
+            if json_code_block:
+                try:
+                    parsed_content = json.loads(json_code_block.group(1).strip())
+                    content = parsed_content
+                except json.JSONDecodeError:
+                    # If we can't parse it, keep it as a string
+                    print(f"Warning: Could not parse JSON from code block in: {content[:100]}...")
+            else:
+                # Keep the original string if no JSON found
+                print(f"Warning: Content could not be parsed as JSON, saving as string: {content[:100]}...")
+                # Wrap the string in a simple object to make it valid JSON
+                content = {"text": content}
+
+    # Normalize content recursively
     content = normalize_nfc(content)
 
+    # Write to file
     with open(path, "w", encoding="utf-8") as f:
         json.dump(content, f, ensure_ascii=False, indent=2)
 

@@ -36,6 +36,9 @@ pipeline:
         file: leadersguide-intro.gpt
         inputs:
           passage: "${passage}"
+          exegetical_culture: "${exegetical_culture}"
+          exegetical_wordstudy: "${exegetical_wordstudy}"
+          exegetical_emotionalarc: "${exegetical_emotionalarc}"
       llm_options:
         max_tokens: 1000
       outputs: [intro_response]

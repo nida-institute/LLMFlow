@@ -11,7 +11,7 @@
 
   linter_config:
     enabled: true
-    treat_warnings_as_errors: false
+    treat_warnings_as_errors: true
 
   steps:
 

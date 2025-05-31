@@ -1,0 +1,90 @@
+<!--
+prompt:
+  requires:
+    - entry
+  optional: []
+  format: Markdown
+  description: Expands an Abbott-Smith Greek lexeme definition, ordering senses from most concrete to most abstract, with examples from NT, LXX, and Hellenistic Greek, and detailed semantic analysis.
+-->
+
+### Expanded Definition Prompt
+
+Expand the following Abbott-Smith definition for a Greek lexeme, ensuring the root meaning is the **prototypical meaning**, from which all other senses semantically derive. Order the senses from the **most concrete and basic** to the **more abstract and specialized**.
+
+{entry}
+
+---
+
+### Instructions:
+
+#### General Guidelines:
+
+1. Write in **plain, emotionally accessible English**, avoiding overly technical or academic language unless needed for precision. Clearly explain specialized terms when used.
+
+2. Provide **illustrative examples** for every claim in the description:
+   - Include **2–3 examples from the New Testament**, **1–2 from the LXX**, and **1–2 from Hellenistic Greek, inscriptions, or papyri** if applicable
+   - When including **Hebrew phrases**, ensure the examples align directly with the LXX translation. Provide:
+     - The **Greek phrase** from the LXX with the defined word in context.
+     - The **corresponding Hebrew phrase** from the WLC, its **transliteration**, and **translation**.
+     - An explanation of how the LXX translates the Hebrew term and its relevance.
+
+3. Identify **usage contexts**:
+   - Indicate where each sense is found (e.g., NT, LXX, Hellenistic Greek, inscriptions, early Christian writings).
+   - **illustrative examples** should provide at least one example from Hellenistic Greek, inscriptions, or papyri if usage notes mention these contexts.
+---
+
+#### Instructions for Senses:
+
+4. **Define each sense** in a clear, accessible way. Begin with the most concrete and basic sense and progress to abstract or specialized meanings. Include discourse function descriptions if the sense primarily serves such a function.
+
+5. For each sense, include:
+   - **Definition**: A clear, plain-language description. Use technical terms only for clarity or precision.
+   - **Examples**:
+     - **Greek NT**: "Phrase in Greek" — "Translation" (Reference).
+     - **Greek LXX**: "Phrase in Greek" — "Translation" (Reference).
+       - **Hebrew**: Provide the **WLC phrase** corresponding to the LXX, along with **transliteration** and **translation**. Clearly explain the correspondence.
+     - **Other Sources**: Add examples from papyri, inscriptions, or Hellenistic Greek if usage notes reference these.
+   - **Where This Sense is Found**: Specify the contexts or literature where this sense occurs, e.g.:
+     - "Used in the New Testament to describe physical walking, as in journeys or daily activities."
+     - "Found in philosophical texts to denote ethical or spiritual conduct."
+   - **Related Words**:
+     - **Synonyms**: Provide semantically similar Greek terms.
+     - **Antonyms**: List terms that convey opposite meanings.
+
+---
+
+#### Example Format:
+
+### [Lexeme] ([Part of Speech], G###)
+### Placeholder: SemDom
+
+### Core Root Meaning
+
+- **Definition**: [Concise definition of the prototypical meaning.]
+- **Remarks**: [Notes on frequency, contexts, or notable uses.]
+- **Grammar**: [Morphological or grammatical features, including prefixes or root contributions.]
+- **Equivalents**: [Hebrew (WLC, with transliteration) or Latin equivalents, if relevant.]
+- **Derived Words**: [Morphologically related words, with definitions and explanations.]
+
+### Senses and Semantic Domains
+
+1. **[Sense Name/Description]**
+   - **Definition**: [Plain language description.]
+   - Placeholder: SemDom
+   - **Examples**:
+     - **Greek NT**: "Phrase in Greek" — "Translation" (Reference).
+     - **Greek LXX**: "Phrase in Greek" — "Translation" (Reference).
+       - **Hebrew**: "Phrase in WLC Hebrew (Transliteration)" — "Translation" (Reference). Explanation of correspondence.
+     - **Other Sources**: Examples from Hellenistic Greek, papyri, or inscriptions.
+   - **Where This Sense is Found**: Describe the contexts of usage and relevant sources.
+   - **Related Words**:
+     - **Synonyms**: [Semantically equivalent Greek terms.]
+     - **Antonyms**: [Greek terms conveying the opposite meaning.]
+
+[Repeat this structure for each sense.]
+
+---
+
+### Notes
+[Provide any additional scholarly references, observations, or nuances relevant to the lexeme.]
+

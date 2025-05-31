@@ -345,9 +345,16 @@ def run_function_step(rule, context):
             raise
 
     func = getattr(module, func_name)
-
     # Resolve inputs from context
+
+    # Debug: Show context["expanded_entry"] before resolving inputs
+    if "expanded_entry" in context:
+        print(f"[DEBUG] context['expanded_entry'] before resolve: {context['expanded_entry']}")
+
     resolved_inputs = {k: resolve(v, context) for k, v in rule["inputs"].items()}
+
+    if "expanded_entry" in context:
+        print(f"[DEBUG] context['expanded_entry'] after resolve: {context['expanded_entry']}")
 
     # Filter to match function signature
     valid_params = inspect.signature(func).parameters.keys()

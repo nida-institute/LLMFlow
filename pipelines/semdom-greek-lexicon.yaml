@@ -1,5 +1,13 @@
 pipeline:
-  name: Save TEI Entries
+  name: Expand and Save Abbott-Smith Entries
+  variables:
+    prompts_dir: prompts/semdom-greek
+
+  llm_config:
+    model: gpt-4o
+    temperature: 0.7
+    max_tokens: 6000
+
   steps:
     - name: iterate-over-entries
       type: for-each
@@ -23,12 +31,41 @@ pipeline:
           outputs:
             - entry_key
 
-        - name: save-entry-to-file
+        - name: save-entry-xml
           type: function
-          function: llmflow.utils.io.save_xml_with_key
+          function: llmflow.utils.io.save_xml
           inputs:
             xml_string: "${entry}"
+            basename: "${entry_key}"
           outputs:
-            - saved_path
+            - xml_path
 
+        - name: expand-entry-with-llm
+          type: llm
+          prompt:
+            file: expand-abbott-smith.gpt
+            inputs:
+              entry: "${entry}"
+          outputs:
+            - expanded_entry
 
+        - name: save-context
+          type: function
+          function: llmflow.utils.io.save_json
+          inputs:
+            passage: "${entry_key}"
+            content: "${context}"
+            output_dir: "outputs/context"
+          outputs:
+            - context_path
+
+        - name: save-expanded-entry
+          type: function
+          function: llmflow.utils.io.save_markdown_as
+          inputs:
+            text: "${expanded_entry}"
+            passage: "${entry_key}"
+            format: "md"
+            output_dir: "outputs/markdown"
+          outputs:
+            - markdown_path
