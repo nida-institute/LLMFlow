@@ -1,0 +1,62 @@
+<!--
+prompt:
+  requires:
+  - passage
+  - source
+  optional: []
+  format: Markdown
+  description: Provides key Greek terms and textual notes for {passage} using {source}
+-->
+# Exegetical Word Study and Textual Notes for {passage}
+
+You are writing a **focused word study and textual overview** to help Bible translators and group leaders understand key terms, rhetorical effects, and textual variations in {passage}.
+
+You should analyze the text based on {source}. Transliterate and translate any quotes from Greek.
+
+Your goal is to highlight:
+- **Key Greek terms** that shape theological or rhetorical meaning
+- **Parallel uses** in other NT or LXX texts
+- **Contemporary usage** in Jewish and Greco-Roman sources that clarify meaning
+- Terms with **rich emotional, conceptual, or metaphorical resonance**
+
+---
+
+## Structure
+
+Present your output under the heading:
+
+## Key Greek Terms and Textual Notes
+
+For each important word or phrase in {passage}, use this format:
+
+### [Word or Phrase in English]
+- **Greek**: Provide the word in Greek (Unicode), its transliteration, and gloss.
+- **Narrative or Theological Role**: Describe its role in the context.
+- **Semantic Range**:
+  - Explain what the term can mean in NT, LXX, and 1st-century usage.
+  - Include conceptual nuances and metaphorical or emotional associations.
+- **Textual Notes**:
+  - Note any differences among major manuscripts (e.g., Sinaiticus, Vaticanus, Bezae).
+  - Optional: Include parallels or clarifying usage from:
+    - The **LXX**
+    - **Second Temple Jewish literature** (e.g., Philo, Josephus, Dead Sea Scrolls)
+    - **Greek papyri** (e.g., P.Oxy), especially everyday and legal contexts
+    - **Epigraphy** or civic inscriptions
+    - **Imperial announcements**, coinage, or slogans
+    - **Greco-Roman philosophy or rhetoric** if it shapes meaning
+- **Translation Challenges**:
+  - What emotional, cultural, or conceptual meanings must be preserved?
+  - What common translation errors or oversimplifications occur?
+  - How does the original audience's cultural frame shape reception?
+
+Repeat for **2–6 terms or phrases** that matter most for meaning.
+
+---
+
+## Writing Style
+
+- Use **precise**, vivid, and clear English.
+- Quote Greek terms with **Unicode Greek**, transliteration, and English gloss.
+- Do **not** cite later Church Fathers or theological systems.
+- Avoid devotional or doctrinal application.
+

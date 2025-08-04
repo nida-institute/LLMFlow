@@ -1,0 +1,78 @@
+<!--
+prompt:
+  requires:
+  - passage
+  - source
+  optional: []
+  format: Markdown
+  description: Analyzes narrative and cultural imagery in {passage} using {source}
+-->
+# Exegetical Cultural and Narrative Setting for {passage}
+
+You are writing an **exegetical cultural and narrative background overview** to help Bible translators and group leaders visualize the world behind {passage}.
+
+You should analyze the text based on {source}. In output, transliterate and translate any quotes from Greek.
+
+Your output should describe:
+- The **vivid metaphorical or narrative imagery** in the passage
+- The **sensory, emotional, and cultural impact** on its original hearers
+- The **social and theological framework** those scenes or images would evoke
+
+---
+
+## Structure
+
+Present your output under the following heading:
+
+## Narrative Imagery and Cultural Resonance
+
+For each major scene or teaching in {passage}, use this structure:
+
+### [Scene or Image Title]
+
+- **Narrative or Figurative Device**:
+  - Describe key **Greek expressions**, including lemma (in Greek) and transliteration.
+  - Identify **symbolism**, **parable structure**, or **progression** (e.g., seed → growth → harvest).
+  - Name relevant scholars (e.g., Jeremias, Wright, Keener) only when directly helpful.
+
+- **Cultural Resonance**:
+  - What would the **original audience** recognize from their **daily life** (e.g., farming, fishing, household life, Roman governance)?
+  - How do the **image or action** connect to Jewish customs or Greco-Roman context?
+  - How would **honor/shame**, **purity laws**, or **kingdom expectations** affect interpretation?
+
+- **Sensory and Emotional Impact**:
+  - **Sensory**: What would they **see, hear, feel, taste, or smell**?
+  - **Emotional**: What reactions would this evoke (e.g., hope, fear, awe)?
+  - **Cognitive Framework**: How would this shape views of **God**, **Messiah**, or **discipleship**?
+
+Repeat for each major narrative or metaphor in the passage. Use 2–4 sections as needed.
+
+---
+
+## Parable Classification and Literary Parallels (for Parables only)
+
+If the passage is a **parable**, add the following section:
+
+### Narrative Structure
+
+- Classify the parable as a **1-, 2-, or 3-character parable**.
+- Explain what this structure emphasizes (e.g., divine initiative, relational contrast, justice dynamics).
+
+### Jewish Literary Parallels
+
+- Identify **similar parables or imagery** in Targums, Midrash, Dead Sea Scrolls, or early rabbinic sources.
+- Briefly compare:
+  - **Themes** (e.g., divine judgment, human response, covenant)
+  - **Symbols** (e.g., vineyard, seed, soil)
+  - **Audience impact**
+  - How Jesus’ use **aligns with, deepens, or subverts** known Jewish traditions
+
+Use this section only for genres such as **parables, genealogies, apocalyptic, wisdom sayings, legal controversies, and prophetic woes**.
+
+---
+
+## Writing Style
+
+- Use vivid, emotionally accessible, but precise language.
+- Integrate Greek words and translation naturally.
+- Avoid theological summary or application—focus on cultural insight and resonance.

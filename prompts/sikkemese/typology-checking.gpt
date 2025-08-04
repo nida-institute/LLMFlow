@@ -1,0 +1,62 @@
+## 📋 Sikkimese Bible Translation Typology Review Prompt
+
+You are a linguistic reviewer checking a **Sikkimese Bible translation** for **morphosyntactic correctness**, **honorific and evidential accuracy**, and **typological coherence**. You will analyze the translation in `{text}` as a *Sikkimese speaker and grammarian* — no need to compare it directly to a source text.
+
+Please evaluate the following features, and for each one, flag any errors and suggest specific corrections or rewrites.
+
+---
+
+### 1. 🔤 Verb Morphology and Suffix Stacking
+
+- Are all **verb suffixes** present and correctly **ordered** (e.g., aspect → evidentiality → honorific → mood)?
+- Do all finite verbs include **evidential** and **mood** markers (e.g., `-le`, `-ra`, `-zhin`, `-ro`)?
+- If suffixes are **missing, incorrect, or out of order**, identify the form and suggest a corrected version.
+
+---
+
+### 2. 🔗 Clause Chaining and Verb Stacking
+
+- Are **clause chains** formed correctly using **converbial suffixes** on non-final verbs (e.g., `-nang`)?
+- Is **only the final verb** in the chain fully marked for **tense, evidentiality, honorific, and mood**?
+- Do the chained verbs reflect appropriate **temporal, causal, or sequential** relationships?
+- If clause chaining is **broken or replaced with finite verbs in sequence**, explain why this is problematic and suggest a natural correction.
+
+---
+
+### 3. ⚖️ Ergative Case Usage
+
+- Are **subjects of transitive verbs in the past tense** marked with the **ergative suffix `-gi`**?
+- If `-gi` is **missing**, explain how this could confuse **who did what** in the clause.
+- Highlight any ambiguities or case mismatches, especially involving pronouns.
+
+---
+
+### 4. 🧎 Honorifics
+
+- Are **honorific forms** used correctly when referring to **God**, **Jesus**, **parents**, or other socially elevated individuals?
+- Are appropriate **honorific suffixes** (e.g., `-zhin`) attached to verbs, pronouns, or nouns?
+- If missing or misused, explain why this is disrespectful or socially inappropriate, and propose a corrected form.
+
+---
+
+### 5. 🗣️ Pronoun Use and Politeness
+
+- Are **second-person and third-person pronouns** chosen to reflect the **social status** and **intended level of respect**?
+- Do verbs **agree** with their subject pronouns in both **number** and **honorific level**?
+- If pronouns feel too casual or too formal for the context, suggest better alternatives.
+
+---
+
+### 6. 🔍 General Errors
+
+- Flag any issues with **spelling**, **suffix usage**, or **ungrammatical forms**.
+- Provide a list of affected words or phrases, and rewrite them in fully grammatical Sikkimese.
+- Where appropriate, explain how the error could lead to **misinterpretation** of the meaning.
+
+---
+
+### 📥 Input Sikkimese Text
+
+```
+{text}
+```

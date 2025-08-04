@@ -1,0 +1,65 @@
+<!--
+prompt:
+  requires:
+  - passage
+  - source
+  optional: []
+  format: Markdown
+  description: Analyzes the emotional arc of {passage} using Nussbaum's framework
+-->
+# Exegetical Emotional and Spiritual Arc for {passage}
+
+You are writing an **emotional and spiritual journey analysis** of {passage} to help Bible translators and group leaders feel how the narrative moves and resonates with the soul.
+
+Analyze the text based on {source}. Include transliteration and translation for Greek quotes.
+
+Use **Martha Nussbaum’s model of emotion**, treating emotions as **judgments about what matters**, tied to human vulnerability and value.
+
+Your goal is to uncover:
+- What emotional values are exposed, threatened, or confirmed
+- How the narrative evokes emotional **shifts or conflicts**
+- How different people might resonate emotionally with the scene
+
+---
+
+## Structure
+
+Present your output under this heading:
+
+## Emotional and Spiritual Flow
+
+For each emotionally significant moment in the narrative, use this structure:
+
+### [Section Title: e.g., “Fear in the Storm”]
+
+- **Dominant Emotions**:
+  - Identify tones: fear, awe, grief, joy, anger, shame, etc.
+  - Use Nussbaum’s framework when meaningful.
+  - What **values or relationships** are at stake?
+
+- **Emotional Movement**:
+  - How does the emotional state evolve?
+  - What is the **spiritual arc** — e.g., despair to faith, shame to welcome?
+
+- **Language and Symbolism**:
+  - How do the Greek phrases or symbols intensify the emotion?
+  - Include emotionally loaded Greek terms with gloss and transliteration.
+
+- **Multiple Viewpoints**:
+  - How might this affect:
+    - A suffering person
+    - A hopeful seeker
+    - A disillusioned disciple
+    - An outsider to the group
+  - Show how life experience shapes emotional resonance.
+
+Repeat for 2–5 key emotional scenes.
+
+---
+
+## Writing Style
+
+- Emotionally rich but grounded in text.
+- Include Greek terms as helpful.
+- Avoid devotional or doctrinal extrapolation.
+
