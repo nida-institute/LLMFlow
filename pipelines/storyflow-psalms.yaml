@@ -118,7 +118,7 @@
       steps:
         - type: llm
           prompt:
-            file: leadersguide-step1.gpt
+            file: leadersguide-bodies.gpt
             inputs:
               passage: "${passage}"
               scene: "${scene}"
@@ -128,7 +128,7 @@
 
         - type: llm
           prompt:
-            file: leadersguide-step2.gpt
+            file: leadersguide-hearts.gpt
             inputs:
               passage: "${passage}"
               scene: "${scene}"
@@ -139,7 +139,7 @@
 
         - type: llm
           prompt:
-            file: leadersguide-step3.gpt
+            file: leadersguide-connecting.gpt
             inputs:
               passage: "${passage}"
               scene: "${scene}"
@@ -149,7 +149,7 @@
 
         - type: llm
           prompt:
-            file: leadersguide-steps4-5.gpt
+            file: leadersguide-naming.gpt
             inputs:
               passage: "${passage}"
               scene: "${scene}"

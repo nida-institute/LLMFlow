@@ -25,13 +25,15 @@ Your goal is to highlight:
 
 Present your output under the heading:
 
-## Key Hebrew Terms and Textual Notes
+### Key Hebrew Terms and Textual Notes
 
 For each important word, image, or poetic verb in {passage}, repeat this format:
 
-### [Word or Phrase in English]
+#### [Word or Phrase in English]
 - **Hebrew**: Provide the word in Hebrew (Unicode), its transliteration, and gloss.
-- **Poetic/Contextual Role**: Describe the term's role in the passage — metaphor, imagery, structure.
+- **Poetic/Contextual Role**:
+  - Describe the term's role in the passage — metaphor, imagery, structure.
+  - Note if the term signals a particular emotional state or direction of the heart (e.g., longing, trust, resistance).
 - **Semantic Range**: What nuances are implied here? How else is this used in the Hebrew Bible?
 - **Textual Notes**:
   - Masoretic Text vs. Septuagint (quote both if they differ)

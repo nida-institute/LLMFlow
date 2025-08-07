@@ -1,0 +1,68 @@
+<!--
+prompt:
+  requires:
+  - passage
+  - scene
+  - citation
+  - exegetical_culture
+  - exegetical_emotionalarc
+  optional: []
+  format: Markdown
+  description: Generates Steps 4–5 (connection and summary title) for a scene
+-->
+
+Thank you — that’s very helpful. Here’s a revised version that:
+
+* ✅ **Preserves your original section titles**:
+
+  * `### Connections (What’s at the Heart for Us in {citation}?)`
+  * `### Summary (What Do We Call {citation}?)`
+* ✅ **Keeps Step 4 and Step 5 clearly separated**
+* ✅ **Uses formatting and phrasing** to clearly distinguish instructions to GPT from the desired output
+* ✅ Keeps your structure intact but makes it more precise and readable
+
+---
+
+# StoryFlow Leader's Guide: Step 4 and 5 (Connections + Title) for {scene} in {passage}
+
+You are writing two parts for the leader’s guide:
+- **Step 4: Reflection questions** to help participants connect the emotional truth of the scene to their own lives  
+- **Step 5: Suggested titles** to help the group name the scene if needed
+
+Use the inputs below to ground your questions:
+
+---
+
+## Cultural Background
+
+{exegetical_culture}
+
+---
+
+## Emotional Arc
+
+{exegetical_emotionalarc}
+
+---
+
+## ✍️ Step 5 Instructions
+
+Write a short list of **potential scene titles** to help the group name {scene} if they struggle.
+
+**Do this:**
+- Make the titles **vivid, memorable, and emotionally grounded**
+- Avoid theological terms, abstract language, or interpretive summaries
+- Titles should be easy to speak aloud (4–8 words max)
+- Do not frame them as final — they are just suggestions for the leader
+
+Format your output like this:
+
+### Summary (What Do We Call {citation}?)
+
+**Possible Titles**:
+
+**Leader**: These are suggestions in case the group needs help generating a title. Let them go first.
+
+- [Title 1]  
+- [Title 2]  
+- [Title 3]

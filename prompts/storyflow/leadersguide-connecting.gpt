@@ -1,0 +1,55 @@
+<!--
+prompt:
+  requires:
+  - passage
+  - scene
+  - citation
+  - exegetical_culture
+  - exegetical_emotionalarc
+  optional: []
+  format: Markdown
+  description: Generates Steps 4–5 (connection and summary title) for a scene
+-->
+
+
+# StoryFlow Leader's Guide: Step 3 (Connections + Title) for {scene} in {passage}
+
+- **Step 3: Reflection questions** to help participants connect the emotional truth of the scene to their own lives
+
+Use the inputs below to ground your questions:
+
+---
+
+## Cultural Background
+
+{exegetical_culture}
+
+---
+
+## Emotional Arc
+
+{exegetical_emotionalarc}
+
+---
+
+## ✍️ Step 4 Instructions
+
+Write **3–5 sets of reflection questions** that help participants connect the emotions and cultural realities of the scene to their own experiences today.
+
+**Do this:**
+- Focus on **shared human experiences and resonant emotions** — not theology or moral lessons
+- Use language that is plain, spoken, and emotionally accessible—be accurate and specific, but don’t use a big word when a simple one will do.
+- Help the group explore what it feels like to live through similar moments — not just what it means
+- Occasionally invite participants to notice what their own heart is set on, or what they are seeking, trusting, or resisting in similar situations.
+- Do not ask what participants should do; focus on what it feels like to be in a similar moment.
+
+Each question set should follow this format:
+
+### Let the Scene Speak to Us
+
+1. **[Short context label]**:
+    - [Reflection question]
+    - [Follow-up question, if helpful]
+
+Don’t over-extend. Use just enough to cover the emotional range of {scene}.
+Avoid repetition, abstraction, or application.

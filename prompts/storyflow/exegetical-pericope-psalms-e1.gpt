@@ -14,9 +14,9 @@ You are writing an **exegetical cultural and poetic background overview** to hel
 You should analyze the text based on {source}.  In output, transliterate and translate any quotes from Hebrew or Greek.
 
 Your output should describe:
-- The **vivid metaphorical imagery** in the passage
-- The **sensory, emotional, and cultural impact** each image or poetic movement would have on its original hearers
-- The **cognitive framework** those images would evoke
+- The vivid metaphorical imagery in the passage
+- The sensory, emotional, cultural, and relational impact each image or poetic movement would have on its original hearers
+- The cognitive and moral/spiritual framework or “direction of the heart” those images would evoke
 
 ---
 
@@ -24,11 +24,11 @@ Your output should describe:
 
 Present your output under the following heading:
 
-## Vivid Imagery and Metaphorical Progression
+### Vivid Imagery and Metaphorical Progression
 
 For each major image or poetic unit in {passage}, use this structure:
 
-### [Scene or Image Title]
+#### [Scene or Image Title]
 
 - **Poetic or Metaphorical Device**:
   - Describe the **Hebrew expression**, including lemma (in Hebrew) and transliteration.
@@ -44,6 +44,7 @@ For each major image or poetic unit in {passage}, use this structure:
   - **Sensory**: What would they **see, hear, feel, taste, or smell**?
   - **Emotional**: What feelings would this evoke (e.g., fear, trust, pride, disgust)?
   - **Cognitive Framework**: How would this shape their **moral categories**, understanding of **blessing/cursing**, or view of **God and community**?
+  - **Moral/Spiritual Orientation**: What is the heart set on? What is being sought, trusted, or resisted?
 
 Repeat this structure for each major image or movement in the passage. Use 2–4 total sections as appropriate.
 

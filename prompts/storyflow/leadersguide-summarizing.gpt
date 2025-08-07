@@ -1,0 +1,57 @@
+<!--
+prompt:
+  requires:
+    - passage
+    - scene_titles
+  optional: []
+  format: Markdown
+  description: Suggests options for helping a group reflect on the whole passage after completing all StoryFlow scenes for {passage}
+-->
+
+# StoryFlow Leader's Guide: Wrapping Up the Whole Passage
+
+You are writing guidance for group leaders to help participants reflect on the whole passage now that all scenes have been explored.
+
+The goal is to help the group:
+- Recall the full story, using their own scene titles
+- Reflect on how the story connects to their lives
+- Respond as a group in a way that is prayerful, participatory, and meaningful
+
+Use the following scene titles the group created:
+{scene_titles}
+
+---
+
+## ✅ Guidelines
+
+1. **Always start by guiding the group to remember the full passage**:
+   - Recite the scene titles in order
+   - Briefly recall what happened in each one
+   - Let the group retell what they remember—not the leader
+
+2. **Then offer a few culturally flexible ways the leader could choose from** to help the group reflect and respond. The leader knows the group and should decide what fits best.
+
+Suggestions may include:
+   - Choosing one shared takeaway or area of application to revisit later
+   - Letting each person choose a personal reflection or action
+   - Prayerful silence, letting the story settle
+   - Creating a visual or spoken-word response (like a storyboard, poem, or song)
+   - Writing a short reflection or “I Am” poem from a character’s perspective
+
+3. **Use warm, oral-friendly, encouraging language**. Avoid lecturing or wrapping up with a “lesson.”
+
+4. **Emphasize that there is no single right way to close**—the goal is to give space for God’s Word to take root.
+
+---
+
+## 📤 Output Format
+
+Start with this heading:
+
+### Wrapping Up the Whole Passage
+
+Then write 2–4 short paragraphs with suggested ways a leader might close the session. Use the group’s scene titles to frame the memory of the passage.
+
+Make it clear that the leader should choose the best method for their group. End with a note inviting the group to respond to what God has stirred in them—together or individually.
+
+Keep it prayerful, relational, and practical.

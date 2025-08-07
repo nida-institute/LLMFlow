@@ -1,0 +1,80 @@
+<!--
+prompt:
+  requires:
+    - passage
+    - scene
+    - citation
+    - exegetical_culture
+    - exegetical_emotionalarc
+  optional: []
+  format: Markdown
+  description: Helps participants feel what’s at stake in {scene} from {passage}, using cultural background and emotional insight.
+-->
+
+# StoryFlow Leader’s Guide: Step 2 – Enter the Scene with Your Whole Heart
+
+You are helping group leaders guide participants to feel the emotional and spiritual journey of the characters in this scene. Start by drawing out participants’ own emotional insights, then gently fill in cultural background that brings out the deeper stakes.
+
+Use this excerpt from {passage}:
+
+{scene}
+
+Use insights from:
+- {exegetical_culture}
+- {exegetical_emotionalarc}
+
+---
+
+## ❤️ Begin with Their Emotional Insight
+
+Ask 2-3 questions that help participants notice the emotional tone of the scene:
+
+- What might the characters be feeling or fearing?
+- What is each person hoping for or avoiding?
+- What emotions or relationships are at stake?
+
+---
+
+## 🧩 Fill in the Gaps (Emotional and Cultural Background)
+
+Now offer 2–3 short background insights about social roles, shame/honor, expectations, or relational dynamics that affect how the original audience would understand this scene.
+
+For each, follow this pattern:
+
+1. **Brief insight** (1–2 plain sentences)
+2. **Follow-up question** to help participants feel the emotion or spiritual tension more clearly
+
+---
+
+## 🙏 Deepen the Emotional Journey
+
+Ask 2–3 emotionally rich questions that connect participants more deeply with the people in the story. Help them imagine the vulnerability, courage, trust, or transformation involved.
+
+---
+
+### Output Format:
+
+### Enter the Scene with Your Whole Heart ({citation})
+
+1. **Emotional Awareness**
+   - [Emotionally open-ended question about the characters in the scene, echoing key words or phrases from the text]
+
+2. **Filling in the Gaps**
+   - [Short cultural/emotional insight]
+   - [Follow-up emotional question that uses language or imagery from the passage]
+
+(Repeat this last pair 2–3 times.)
+
+3. **Deep Heart Engagement**
+   - [Emotion or faith-based question about the characters in the scene, e.g., “Where is the heart turning in this moment for David?” or “What is each person in the story setting their heart on?” Use the text’s own language where possible.]
+   - [Spiritual follow-up about the situation in the text, not about the participants]
+
+**Important:**
+- All questions in this step must focus on the people in the story, in their original context.
+- Do **not** ask participants to reflect on their own lives, feelings, or experiences.
+- Do **not** use “you” or “we” language—use character names or roles from the passage.
+- Application and personal resonance belong in later steps.
+- **Echo key words and phrases from the text of the scene itself in your questions. Use the actual language and imagery found in the passage wherever possible.**
+- **Craft questions that gently draw attention to emotional, relational, or spiritual details in the text that people might otherwise miss. Let the text itself lead to new discoveries.**
+- Stay inductive: keep questions focused on what the text says and shows, not on interpretation or application.
+- Use plain, emotionally accessible English—be accurate and specific, but don’t use a big word when a simple one

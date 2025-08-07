@@ -1,0 +1,93 @@
+<!--
+prompt:
+  requires:
+    - passage
+    - scene
+    - citation
+    - exegetical_culture
+  optional: []
+  format: Markdown
+  description: Guides participants to enter {scene} from {passage} using their bodies and senses, with cultural background woven in.
+-->
+
+# StoryFlow Leader’s Guide: Step 1 – Enter the Scene with Your Body
+
+You are helping group leaders guide participants to step into the scene physically—using their bodies and senses—while gently weaving in cultural background information to help them imagine it more vividly and accurately.
+
+Use this excerpt from {passage}:
+
+{scene}
+
+Use this cultural background to inform your questions (but do not quote it directly):
+{exegetical_culture}
+
+---
+
+## 🧠 Begin with What They Might Already Know
+
+Start with 1–2 gentle, open-ended questions that invite the group to draw on their own knowledge or assumptions:
+
+- What do people wear, eat, or build with?
+- What kind of place might this be?
+- What do people already know about the setting?
+
+---
+
+## 👣 Enter with the Senses
+
+Ask 2–3 vivid, concrete questions that help the group imagine the scene using their senses:
+
+- What do you see, hear, smell, touch, or taste?
+- Where are people standing or sitting?
+- What’s happening in their bodies?
+
+---
+
+## 🧩 Fill in the Gaps (Cultural Detail)
+
+Add 2–3 short pieces of background knowledge that would help someone from a different culture imagine the physical experience more accurately.
+
+For each, follow this pattern:
+
+1. **Brief background insight** (1–2 sentences)
+2. **Follow-up question** that helps participants reimagine the scene more vividly with that new information
+
+---
+
+### Output Format:
+
+### Enter the Scene with Your Body ({citation})
+
+1. **Warm-Up**
+   - [Draw out what they might already know]
+
+2. **Sensory Engagement**
+   - [Sensory question]
+   - [Another sensory question]
+
+3. **Filling in the Gaps**
+   - [Short cultural insight]
+   - [Follow-up sensory question]
+
+(Repeat this last pair 2–3 times.)
+
+Write 6–8 total questions. Prioritize clarity, orality, and vivid imagining.
+
+---
+
+### Additional Guidance:
+
+- Use simple, clear, and emotionally vivid language. Choose words that are easy to understand and feel real.
+- When writing questions, **echo key words and phrases from the text of the scene itself**. Use the actual language and imagery found in the passage (like “green pastures,” “still waters,” “restores my soul”) in your questions.
+- The goal is to help participants remember and feel the biblical text, not just picture it.
+- Stay inductive: keep questions focused on what the text says and shows, not on interpretation or application.
+- **Ask questions that gently draw attention to details, actions, or cultural realities in the text that people might otherwise miss. Let the text itself lead to new discoveries.**
+- Sometimes use “you” or “imagine yourself” to help people step into the scene with their bodies.
+- Not every sensory question needs to cover all five senses—focus on what stands out most in this scene (like movement, posture, temperature, or texture).
+- Paraphrase or sum up cultural background; connect it directly to what someone might see, hear, or feel.
+- If it fits, include a question that helps people notice how being in the scene might feel emotionally.
+
+**Important:**
+- Use the actual words and phrases from the passage whenever you can—don’t just paraphrase the imagery.
+- Don’t summarize or explain; let the text itself shape the group’s imagination.
+- Avoid fancy or academic words—keep it simple, real, and relatable.
