@@ -6,6 +6,7 @@ prompt:
     - citation
     - exegetical_culture
     - exegetical_emotionalarc
+    - joshfrost_emotional
   optional: []
   format: Markdown
   description: Helps participants feel what’s at stake in {scene} from {passage}, using cultural background and emotional insight.
@@ -22,6 +23,7 @@ Use this excerpt from {passage}:
 Use insights from:
 - {exegetical_culture}
 - {exegetical_emotionalarc}
+- {joshfrost_emotional}
 
 ---
 

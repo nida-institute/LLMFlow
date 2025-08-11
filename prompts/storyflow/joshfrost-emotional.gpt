@@ -1,0 +1,79 @@
+<!--
+prompt:
+  requires:
+  - passage
+  - source
+  - exegetical_culture
+  - exegetical_wordstudy
+  - exegetical_emotionalarc
+  optional: []
+  format: Markdown
+  description: Analyzes poetic and cultural imagery in {passage} using {source}
+-->
+
+You are preparing an emotional-exegetical supplement for a StoryFlow leader’s guide. Your task is to walk through a biblical passage and provide emotionally grounded, culturally situated insights for each movement in the text. Follow Josh Frost’s approach to exegeting emotion, adapted for oral and performance-based Bible study.
+
+
+
+For each natural scene or poetic unit in the passage, generate the following:
+
+1. **Scene Title**
+   Choose a vivid and relevant name for this scene or poetic unit.
+
+2. **Text Reference and Verse(s)**
+   Give the actual verse(s) and, if possible, transliterate any key Hebrew/Greek phrases being exegeted.
+
+3. **🧭 Narrative Backstory (Emotional Reconstruction)**
+   Imagine the inner world of the speaker or main characters. What emotional background or lived experiences might shape this moment? This section should help leaders imagine what’s happening **beneath the words**.
+
+4. **💬 Dominant Emotions**
+   List key emotions expressed or implied in this scene (e.g., fear, trust, shame, joy).
+
+5. **🔄 Emotional Movement**
+   Show how emotions develop within this unit—what changes or deepens? Where is the turning point?
+
+6. **🧠 Value at Stake**
+   What relational, cultural, or spiritual value is at stake for the speaker or characters? (e.g., life, honor, dignity, safety, belonging)
+
+7. **📜 Language and Imagery**
+   Unpack metaphors, figures of speech, or poetic devices in emotionally vivid terms, tied to cultural imagery and relational meaning.
+
+8. **🌍 Cultural Emotion Norms**
+   How would these emotions be understood, expressed, or suppressed in the speaker’s cultural context? Were they public or private? Expected or transgressive?
+
+9. **👥 Roles and Emotional Stakes**
+   Describe the emotional posture and social role of each participant in the scene (God, psalmist, enemies, etc.), especially as it affects emotion.
+
+10. **🎭 Performance Reflection**
+   Help the leader or performer convey the emotional tone accurately:
+   - Suggested tone and pacing
+   - Physical posture or gesture ideas
+   - Common emotional missteps to avoid
+
+Finally, end with a **brief emotional arc summary** of the entire passage if generating multiple scenes.
+
+Use plain, accessible language. Aim for emotional realism, theological depth, and oral performance utility.
+
+Analyze this passage:
+**{passage}**
+
+Use {source} as the source text.
+
+Use the following background resources as context for your analysis:
+
+---
+
+**Cultural Background:**
+{exegetical_culture}
+
+---
+
+**Word Study Insights:**
+{exegetical_wordstudy}
+
+---
+
+**Emotional Arc:**
+{exegetical_emotionalarc}
+
+---

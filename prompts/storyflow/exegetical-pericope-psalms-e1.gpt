@@ -28,23 +28,29 @@ Present your output under the following heading:
 
 For each major image or poetic unit in {passage}, use this structure:
 
-#### [Scene or Image Title]
+#### 🖼️ Scene or Image Title
+- Provide the full text of the passage in the original language (WLC for Hebrew, SBLGNT for Greek), depending on the value of `{source}`. Provide a transliteration in parentheses.
+- Also provide a literal translation.
 
-- **Poetic or Metaphorical Device**:
-  - Describe the **Hebrew expression**, including lemma (in Hebrew) and transliteration.
-  - Identify **metaphor**, **imagery**, **parallelism**, or **progression** (e.g., movement from walking → sitting).
-  - Name known scholars (e.g., Alter, Mays, King & Stager) only when directly helpful.
+#### 1. ✍️ Poetic or Metaphorical Device
+- Describe the **Hebrew expression** (include lemma in Hebrew and transliteration).
+- Identify metaphor, imagery, parallelism, or progression (e.g., movement from walking → sitting).
+- Name known scholars (e.g., Alter, Mays, King & Stager) only when directly helpful.
+- **Use plain, emotionally accessible English—be accurate and specific, but don’t use a big word when a simple one will do.**
 
-- **Cultural Resonance**:
-  - What would the **original audience** recognize instantly from their **daily life** (e.g., paths, trees, water systems, harvests)?
-  - How does the **image connect to their environment** (e.g., arid climate, temple ritual, shepherding, farming)?
-  - How would **honor/shame**, **family roles**, or **covenantal worldview** shape their understanding?
+#### 2. 🌍 Cultural Resonance
+- What would the original audience recognize instantly from their daily life (e.g., paths, trees, water systems, harvests)?
+- How does the image connect to their environment (e.g., arid climate, temple ritual, shepherding, farming)?
+- How would honor/shame, family roles, or covenantal worldview shape their understanding?
+- **Include any specific practices, customs, or facts from the ancient world that would change or deepen the modern reader’s mental picture of the scene (e.g., how shepherds led sheep by voice, how water was accessed, how meals were shared, etc.).**
+- **Keep explanations short and concrete.**
 
-- **Sensory and Emotional Impact**:
-  - **Sensory**: What would they **see, hear, feel, taste, or smell**?
-  - **Emotional**: What feelings would this evoke (e.g., fear, trust, pride, disgust)?
-  - **Cognitive Framework**: How would this shape their **moral categories**, understanding of **blessing/cursing**, or view of **God and community**?
-  - **Moral/Spiritual Orientation**: What is the heart set on? What is being sought, trusted, or resisted?
+#### 3. 👁️ Sensory and Emotional Impact
+- **Sensory:** What would they see, hear, feel, taste, or smell?
+- **Emotional:** What feelings would this evoke (e.g., fear, trust, pride, disgust)?
+- **Cognitive Framework:** How would this shape their moral categories, understanding of blessing/cursing, or view of God and community?
+- **Moral/Spiritual Orientation:** What is the heart set on? What is being sought, trusted, or resisted?
+- **Use the text’s own language and imagery wherever possible.**
 
 Repeat this structure for each major image or movement in the passage. Use 2–4 total sections as appropriate.
 
@@ -52,5 +58,7 @@ Repeat this structure for each major image or movement in the passage. Use 2–4
 
 ## Writing Style
 
-- Use vivid, emotionally accessible, **yet precise and factually grounded** language.
-- Use short quotes
+- Use vivid, emotionally accessible, yet precise and factually grounded language.
+- Use short quotes or phrases from the passage itself to anchor your analysis.
+- Write in clear, short sections or bullet points for easy reading.
+- Avoid academic jargon—make your insights usable for both scholars

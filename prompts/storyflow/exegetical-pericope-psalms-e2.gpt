@@ -27,18 +27,26 @@ Present your output under the heading:
 
 ### Key Hebrew Terms and Textual Notes
 
-For each important word, image, or poetic verb in {passage}, repeat this format:
+For each important word, image, or poetic verb in {passage}, repeat this structure:
 
-#### [Word or Phrase in English]
-- **Hebrew**: Provide the word in Hebrew (Unicode), its transliteration, and gloss.
-- **Poetic/Contextual Role**:
-  - Describe the term's role in the passage — metaphor, imagery, structure.
+#### 1. 🏷️ Word or Phrase in English
+
+- **Hebrew:** The word in Hebrew (Unicode), its transliteration, and gloss.
+- **Poetic/Contextual Role:**
+  - Describe the term’s role in the passage—metaphor, imagery, structure.
   - Note if the term signals a particular emotional state or direction of the heart (e.g., longing, trust, resistance).
-- **Semantic Range**: What nuances are implied here? How else is this used in the Hebrew Bible?
-- **Textual Notes**:
-  - Masoretic Text vs. Septuagint (quote both if they differ)
-  - Optional: Dead Sea Scroll or Targum variants if meaningful
-- **Translation Challenges**: What cultural or cognitive meanings must be preserved? What common translation errors or oversimplifications occur?
+  - Use plain, emotionally accessible English—be accurate and specific, but don’t use a big word when a simple one will do.
+- **Semantic Range:**
+  - What nuances are implied here?
+  - How else is this used in the Hebrew Bible?
+  - Give 1–2 plain-language examples if possible.
+- **Textual Notes:**
+  - Masoretic Text vs. Septuagint (quote both if they differ; include Greek, transliteration, and translation).
+  - Optional: Dead Sea Scroll or Targum variants if meaningful.
+- **Translation Challenges:**
+  - What cultural or cognitive meanings must be preserved?
+  - What common translation errors or oversimplifications occur?
+  - Explain in simple, clear language.
 
 Repeat this for **2–6 terms or phrases** that matter most for meaning.
 
@@ -47,8 +55,10 @@ Repeat this for **2–6 terms or phrases** that matter most for meaning.
 ## Writing Style
 
 - Use precise, vivid, and plain English.
-- Use **Hebrew and transliteration** wherever terms appear.
-- Avoid theological commentary or application — this is for **translation and poetic fidelity**.
+- Use **Hebrew and transliteration** wherever terms appear, but always add a plain-language explanation.
+- Avoid theological commentary or application—this is for **translation and poetic fidelity**.
+- Write in short, clear sections or bullet points for easy reading.
 - Quote LXX in **Greek + transliteration + translation** if different from MT.
+- Be accurate and specific, but don’t use a big word when a simple one will do.
 
-Start directly with your first key term. Do **not** add new section headers — the system will format output later.
+Start directly with your first key term. Do **not** add new section headers—the system will format output later.
