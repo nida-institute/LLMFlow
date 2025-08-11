@@ -7,58 +7,65 @@ prompt:
   format: Markdown
   description: Provides key Hebrew terms and textual notes for {passage} using {source}
 -->
-# Exegetical Word Study and Textual Notes for {passage}
+<!--
+prompt:
+  requires:
+  - passage
+  - source
+  optional: []
+  format: Markdown
+  description: Provides key Hebrew terms and textual notes for {passage} using {source}
+-->
 
-You are writing a **focused word study and textual overview** to help Bible translators and group leaders understand key terms, poetic effects, and textual variations in {passage}.
+STYLE / METHOD GUARDRAILS (NON-NEGOTIABLE)
+- Inductive order only: description → implication for visualization; no modern application here.
+- Keep everything inside the ancient scene and world; do not guess beyond evidence.
+- Every lexical, poetic, or structural point MUST include “Implication for Scene Visualization”.
+- Use the exact heading levels and order specified below—no extra sections.
+- Forbidden: “What do you think…”, “How might…”, generic modern parallels, moral lessons.
+INTERNAL CHECK (before returning):
+- Headings match the required schema exactly (## / ### / #### as specified).
+- Each Term/Device includes an Implication line.
+- No modern-life language; all content is scene-usable by later prompts.
 
-You should analyze the text based on {source}.  In output, transliterate and translate any quotes from Hebrew or Greek.
+## Word Study & Poetics
 
-Your goal is to highlight:
-- **Key Hebrew terms** that shape meaning or metaphor
-- **Parallel uses** in other biblical texts
-- **Textual variants** (Masoretic Text vs. LXX, or Dead Sea Scrolls where relevant)
-- Terms that carry **rich conceptual or emotional freight**
+### Key Terms & Phrases
+#### <Hebrew/Greek term> — <transliteration>
+- Literal gloss:
+- Semantic range (concise; cite core nuance only):
+- Poetic/grammatical notes (if any):
+- Implication for Scene Visualization:
 
----
+#### <Next term> — <transliteration>
+- Literal gloss:
+- Semantic range:
+- Poetic/grammatical notes:
+- Implication for Scene Visualization:
 
-## Structure
+### Poetic Structure & Devices
+- Device/Pattern:
+  - What it does in this text:
+  - Implication for Scene Visualization:
 
-Present your output under the heading:
+### Attributed Author Context
 
-### Key Hebrew Terms and Textual Notes
+State whether the psalm is traditionally or textually attributed to a specific person.
+- If attributed, briefly identify the author and, if relevant, note how their life or role might affect the nuance or resonance of key terms in **this scene**.
+- If authorship is uncertain or unknown, state that, and briefly note any scholarly perspectives if they help situate the text.
 
-For each important word, image, or poetic verb in {passage}, repeat this structure:
+Include only author details that clarify specific words, images, or metaphors.
+Do not include generic references without a direct, text-based link.
 
-#### 1. 🏷️ Word or Phrase in English
+**Examples of possible author connections:**
+- **David** — His shepherding background deepens terms like “my shepherd” (רֹעִי) or “rod” and “staff.”
+- **Asaph** — Musical/liturgical role could inform worship vocabulary.
+- **Sons of Korah** — Temple-related terms like “gates,” “courts,” or “Zion.”
+- **Others** — As appropriate for the text.
 
-- **Hebrew:** The word in Hebrew (Unicode), its transliteration, and gloss.
-- **Poetic/Contextual Role:**
-  - Describe the term’s role in the passage—metaphor, imagery, structure.
-  - Note if the term signals a particular emotional state or direction of the heart (e.g., longing, trust, resistance).
-  - Use plain, emotionally accessible English—be accurate and specific, but don’t use a big word when a simple one will do.
-- **Semantic Range:**
-  - What nuances are implied here?
-  - How else is this used in the Hebrew Bible?
-  - Give 1–2 plain-language examples if possible.
-- **Textual Notes:**
-  - Masoretic Text vs. Septuagint (quote both if they differ; include Greek, transliteration, and translation).
-  - Optional: Dead Sea Scroll or Targum variants if meaningful.
-- **Translation Challenges:**
-  - What cultural or cognitive meanings must be preserved?
-  - What common translation errors or oversimplifications occur?
-  - Explain in simple, clear language.
+> Examples are illustrative; author notes should be concise, evidence-based, and specific to the current scene.
 
-Repeat this for **2–6 terms or phrases** that matter most for meaning.
 
----
-
-## Writing Style
-
-- Use precise, vivid, and plain English.
-- Use **Hebrew and transliteration** wherever terms appear, but always add a plain-language explanation.
-- Avoid theological commentary or application—this is for **translation and poetic fidelity**.
-- Write in short, clear sections or bullet points for easy reading.
-- Quote LXX in **Greek + transliteration + translation** if different from MT.
-- Be accurate and specific, but don’t use a big word when a simple one will do.
-
-Start directly with your first key term. Do **not** add new section headers—the system will format output later.
+### Syntactic/Structural Observations (if relevant)
+- Observation:
+  - Implication for Scene Visualization:

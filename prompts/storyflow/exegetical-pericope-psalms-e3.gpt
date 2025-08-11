@@ -7,66 +7,51 @@ prompt:
   format: Markdown
   description: Analyzes the emotional arc of {passage} using Nussbaum's framework
 -->
-# Exegetical Emotional and Spiritual Arc for {passage}
 
-You are writing an **emotional and spiritual journey analysis** of {passage}
-to help Bible translators and group leaders feel how the psalm moves and resonates with the soul.
+STYLE / METHOD GUARDRAILS (NON-NEGOTIABLE)
+- Inductive order only: description → implication for visualization; no modern application here.
+- Keep everything inside the ancient scene and world; do not guess beyond evidence.
+- Every emotional point MUST include “Implication for Scene Entry” to describe how these emotions would be visible, audible, or otherwise perceivable in-scene.
+- Use the exact heading levels and order specified below—no extra sections.
+- Forbidden: “What do you think…”, “How might…”, generic modern parallels, moral lessons, modern application.
+INTERNAL CHECK (before returning):
+- Headings match the required schema exactly (## / ### / #### as specified).
+- Each scene segment includes an Implication line.
+- No modern-life language; all content is scene-usable by later prompts.
 
-You should analyze the text based on {source}.  In output, transliterate and translate any quotes from Hebrew or Greek.
+## Emotional Arc
 
-Use **Martha Nussbaum’s model of emotion**, which treats emotions as **judgments about what matters**, linked to vulnerability, value, and flourishing.
+### Overview (2–4 sentences)
+- High-level emotional movement within {{passage}} (in-scene only).
 
-Your goal is to uncover:
-- What emotional values are exposed, threatened, or confirmed
-- How the Psalmist's emotions **shift across the poem**
-- How different participants might resonate with those emotions
+### Attributed Author Context
 
----
+State whether the psalm is traditionally or textually attributed to a specific person.
+- If attributed, briefly identify the author and, if relevant, explain how their life experiences might heighten the emotions in **this scene**.
+- If authorship is uncertain or unknown, say so, and note any scholarly perspectives that shed light on emotional dynamics.
 
-## Structure
+Include only author details that make the emotional movement more vivid or grounded in the ancient setting.
+Do not include generic statements about trust or faith without tying them to specific life events or roles.
 
-Present your output under this heading:
+**Examples of possible author connections:**
+- **David** — As shepherd and as one pursued, his lived vulnerability enriches images of guidance, protection, or danger.
+- **Asaph** — His worship leadership could heighten emotional responses tied to praise, lament, or communal prayer.
+- **Sons of Korah** — Their role in temple processions might intensify longing for God’s presence in psalms of ascent or exile.
 
-### Emotional and Spiritual Flow
+> These examples are illustrative; author notes should be concise, evidence-based, and scene-specific.
 
-For each major movement or metaphor in the psalm, repeat the structure:
 
-#### [Section Title: e.g., “Confidence in the Shepherd”]
+### Scene Segments
+#### Scene Segment: <concise image/action label>
+- Dominant emotions:
+- Emotional movement (from → to):
+- Values at stake:
+- Relational dynamics (if any):
+- Implication for Scene Entry (how emotions become visible/audible in-scene):
 
-1. **Dominant Emotions**
-   - Identify the emotional tone(s): fear, hope, grief, joy, love, shame, etc.
-   - Use Nussbaum's categories when applicable and meaningful.
-   - Explain what **value** is at stake — what matters to the Psalmist.
-   - Use plain, emotionally accessible English—be accurate and specific, but don’t use a big word when a simple one will do.
-
-2. **Emotional Movement**
-   - Show how the emotion changes or deepens across the section.
-   - What is the **spiritual arc** — despair to trust? hope to triumph? longing to rest? What is the direction of the heart in this movement?
-   - Keep sentences short and clear.
-
-3. **Language and Imagery**
-   - How do poetic choices (repetition, metaphor, parallelism) intensify or shape the emotion?
-   - Include any **emotionally charged Hebrew terms** (with transliteration and translation).
-   - Use short quotes or phrases from the passage itself to anchor your analysis.
-
-4. **Multiple Viewpoints**
-   - Briefly describe how each character or figure in this scene (as described in the text) might experience or express these emotions.
-   - Use only the actual people, roles, or entities present or clearly implied in the passage (e.g., the Psalmist, the shepherd, the sheep, enemies, etc.).
-   - When considering the Psalmist, take into account any relevant background or life experience (e.g., David’s history as a shepherd and as a king) that might shape his emotional perspective in the psalm.
-   - Show how their position, experience, or role in the scene shapes their emotional resonance. Do **not** speculate about modern readers or people not present in the text.
-   - Use plain, vivid language and keep each viewpoint to 1–2 sentences.
-
-Repeat this for each emotionally distinct section (typically 2–5 total).
-
----
-
-## Writing Style
-
-- Use plain, emotionally rich, and accessible English.
-- Integrate Hebrew terms and images when meaningful, but always add a simple explanation.
-- Avoid modern application or theological summary.
-- Write in short, clear sections or bullet points for easy reading.
-- Do **not** add your own headers — the system will structure output.
-- Be accurate and specific, but don’t use a big word when a simple one will do.
-
-Start directly with the emotional analysis.
+#### Scene Segment: <next label>
+- Dominant emotions:
+- Emotional movement:
+- Values at stake:
+- Relational dynamics:
+- Implication for Scene Entry:

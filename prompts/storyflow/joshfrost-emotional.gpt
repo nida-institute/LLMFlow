@@ -10,70 +10,67 @@ prompt:
   format: Markdown
   description: Analyzes poetic and cultural imagery in {passage} using {source}
 -->
+## Emotional-Exegetical Supplement for {{passage}}
 
-You are preparing an emotional-exegetical supplement for a StoryFlow leader’s guide. Your task is to walk through a biblical passage and provide emotionally grounded, culturally situated insights for each movement in the text. Follow Josh Frost’s approach to exegeting emotion, adapted for oral and performance-based Bible study.
+Follow Josh Frost’s method (2023): emotions are **moral judgments** about **values** under **conditions** of risk or fulfillment. Keep all analysis **in-scene**, grounded in the ancient world. Integrate “Attributed Author Context” from E1 **only** where it clarifies this scene’s imagery or emotions. Do not move to modern application.
 
+Analyze the *entire passage* **movement-by-movement**, where a movement is a cohesive unit of imagery, emotion, or rhetorical focus.
+- When {{exegetical_background}} provides **scene divisions**, treat each scene as a movement.
+- When scenes are not given, determine movements by shifts in imagery, emotional stance, or rhetorical purpose.
+- Do not default to verse-by-verse analysis unless each verse clearly forms its own movement.
 
+For **each movement**, produce the following sections in order:
 
-For each natural scene or poetic unit in the passage, generate the following:
+### Text Reference and Movement(s)
+- Quote the movement’s text in Hebrew and transliteration, with glosses for key emotionally charged terms.
+- Identify 1–3 key words or phrases that will be explored later.
 
-1. **Scene Title**
-   Choose a vivid and relevant name for this scene or poetic unit.
+### 🧭 Narrative Backstory (Emotional Reconstruction)
+- Set the movement in its ancient cultural, historical, and narrative context.
+- If {{exegetical_background}} contains **Attributed Author Context** relevant to this movement’s imagery or values, include it briefly and link it to what can be seen/heard/felt here.
+- Keep the observer perspective — describe what’s visible/audible in-scene.
 
-2. **Text Reference and Verse(s)**
-   Give the actual verse(s) and, if possible, transliterate any key Hebrew/Greek phrases being exegeted.
+### 💬 Dominant Emotions (per role)
+For each relevant role (Psalmist, God, adversaries, others):
+- **Emotion:**
+- **Judgment:** (Frost triplet: “This is the judgment that [VALUE] is [SECURED/THREATENED/LOST/RESTORED].”)
+- **Value:**
+- **Condition:** (Specific, text-grounded state of affairs prompting the judgment.)
+- Include **Countercurrents** where appropriate — secondary or tension emotions alongside the dominant.
 
-3. **🧭 Narrative Backstory (Emotional Reconstruction)**
-   Imagine the inner world of the speaker or main characters. What emotional background or lived experiences might shape this moment? This section should help leaders imagine what’s happening **beneath the words**.
+### 🔄 Emotional Movement
+Describe how the role’s emotional stance changes within this movement.
+If there is no change, note that stability is part of the effect.
 
-4. **💬 Dominant Emotions**
-   List key emotions expressed or implied in this scene (e.g., fear, trust, shame, joy).
+### 🧠 Values at Stake
+List the central goods at stake, explaining why they matter in the ancient cultural context.
+Link each value directly to the emotions above.
 
-5. **🔄 Emotional Movement**
-   Show how emotions develop within this unit—what changes or deepens? Where is the turning point?
+### 📜 Language and Imagery
+Analyze the movement’s key metaphors or word choices, explaining their cultural freight in the ANE.
+Show how these images are tied to the emotions and values.
 
-6. **🧠 Value at Stake**
-   What relational, cultural, or spiritual value is at stake for the speaker or characters? (e.g., life, honor, dignity, safety, belonging)
+### 🌍 Cultural Emotion Norms (Expression)
+- Describe how this movement’s emotions would be expressed physically, vocally, or socially in the ANE.
+- Give at least one **concrete, sensory example** from the movement.
 
-7. **📜 Language and Imagery**
-   Unpack metaphors, figures of speech, or poetic devices in emotionally vivid terms, tied to cultural imagery and relational meaning.
+### 👥 Roles and Emotional Stakes
+List each role with:
+- Emotion(s)
+- Judgment / Value / Condition
+- Countercurrents
+- Stakes in this movement
 
-8. **🌍 Cultural Emotion Norms**
-   How would these emotions be understood, expressed, or suppressed in the speaker’s cultural context? Were they public or private? Expected or transgressive?
-
-9. **👥 Roles and Emotional Stakes**
-   Describe the emotional posture and social role of each participant in the scene (God, psalmist, enemies, etc.), especially as it affects emotion.
-
-10. **🎭 Performance Reflection**
-   Help the leader or performer convey the emotional tone accurately:
-   - Suggested tone and pacing
-   - Physical posture or gesture ideas
-   - Common emotional missteps to avoid
-
-Finally, end with a **brief emotional arc summary** of the entire passage if generating multiple scenes.
-
-Use plain, accessible language. Aim for emotional realism, theological depth, and oral performance utility.
-
-Analyze this passage:
-**{passage}**
-
-Use {source} as the source text.
-
-Use the following background resources as context for your analysis:
-
----
-
-**Cultural Background:**
-{exegetical_culture}
-
----
-
-**Word Study Insights:**
-{exegetical_wordstudy}
+### 🎭 Performance Reflection
+- Tone & pacing to match the emotions.
+- Physical cues (posture, gesture, breath).
+- **Missteps to avoid**: highlight modern misreadings, emotional anachronisms, or flattening of ancient emotion norms.
 
 ---
 
-**Emotional Arc:**
-{exegetical_emotionalarc}
-
----
+## Emotional Arc Summary (whole passage)
+After all movements are analyzed:
+- Synthesize the emotional movement from start to finish in Frost’s terms.
+- Trace how values, judgments, and conditions shift across the passage.
+- Show how the text resolves tension or leaves it unresolved.
+- Base this on the movement analyses — no unsupported speculation.

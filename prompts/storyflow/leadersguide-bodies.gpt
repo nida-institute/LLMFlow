@@ -9,85 +9,91 @@ prompt:
   format: Markdown
   description: Guides participants to enter {scene} from {passage} using their bodies and senses, with cultural background woven in.
 -->
-
 # StoryFlow Leader’s Guide: Step 1 – Enter the Scene with Your Body
 
 You are helping group leaders guide participants to step into the scene physically—using their bodies and senses—while gently weaving in cultural background information to help them imagine it more vividly and accurately.
 
-Use this excerpt from {passage}:
+Use this excerpt from {{passage}}:
 
-{scene}
+{{scene}}
 
 Use this cultural background to inform your questions (but do not quote it directly):
-{exegetical_culture}
+{{exegetical_culture}}
 
 ---
 
-## 🧠 Begin with What They Might Already Know
+1. **Warm-Up**
+   - Provide 1–2 short, text-grounded background details from {{exegetical_background}} that accurately frame the scene in its ancient context.
+   - Immediately follow each detail with a **single-focus, concrete, in-scene sensory or movement question** that participants can answer from within the scene’s world, not from modern life or abstract speculation.
+   - Embed accurate historical/cultural details (e.g., shepherds in the ANE led from the front by voice) before the question so participants visualize correctly.
+   - Avoid “What do you think…”, “How might…”, “might/could” phrasing.
+   - Do not invite personal application; keep all prompts inside the text’s world for Step 1.
 
-Start with 1–2 gentle, open-ended questions that invite the group to draw on their own knowledge or assumptions:
+### Using Attributed Author Context in Step 1 (Body)
+If {{exegetical_background}} includes an “Attributed Author Context,” weave **1–2 brief, scene-bound prompts** that let participants *sense* how the author’s life clarifies the physical imagery—without giving a mini-lecture.
 
-- What do people wear, eat, or build with?
-- What kind of place might this be?
-- What do people already know about the setting?
+- Keep participants **inside the scene** (observer/sheep/etc.).
+- Mention the author **only** to frame a concrete sensory cue; immediately follow with a sensory/movement question.
+- Do **not** invite modern application here.
+
+**Pattern (examples—adapt to the passage):**
+- “This psalm is attributed to David, who led sheep by **voice** from the front.
+  **What do you hear** in the shepherd’s call? **How do the sheep move** when they recognize it?”
+- “If David knows how rare pasture is in this land, **what details** do you notice in this patch of green—**color, texture, slope**?”
+- “Picture a practiced shepherd scanning for danger. **What posture** do you see? **Where do the flock’s heads turn?**”
 
 ---
 
-## 👣 Enter with the Senses
-
-Ask 2–3 vivid, concrete questions that help the group imagine the scene using their senses:
-
-- What do you see, hear, smell, touch, or taste?
-- Where are people standing or sitting?
-- What’s happening in their bodies?
+2. **Sensory Engagement**
+   - Use {{scene_text}} and {{exegetical_background}} to write questions that immerse participants in sight, sound, smell, touch, and taste **within the scene**.
+   - Keep all prompts anchored to observable scene elements and historically accurate details.
+   - One sensory or movement element per question.
+   - Avoid speculation or modern comparison; if background is used, place it immediately before a concrete sensory question.
 
 ---
 
 ## 🧩 Fill in the Gaps (Cultural Detail)
-
 Add 2–3 short pieces of background knowledge that would help someone from a different culture imagine the physical experience more accurately.
 
 For each, follow this pattern:
-
-1. **Brief background insight** (1–2 sentences)
-2. **Follow-up question** that helps participants reimagine the scene more vividly with that new information
+1. **Brief background insight** (1–2 sentences, plain language)
+2. **Follow-up sensory question** that helps participants reimagine the scene more vividly with that new information.
 
 ---
 
 ### Output Format:
+### Enter the Scene with Your Body ({{citation}})
 
-### Enter the Scene with Your Body ({citation})
+**Scene Reread Instruction:**
+- Begin the section with:
+  - `Leader: Let’s read the scene again before we begin.`
+  - This should be the first line before Warm-Up.
 
 1. **Warm-Up**
-   - [Draw out what they might already know]
+   - [Short background detail + concrete question]
+   - [Short background detail + concrete question]
 
 2. **Sensory Engagement**
    - [Sensory question]
-   - [Another sensory question]
+   - [Sensory question]
+   - [Sensory question]
 
 3. **Filling in the Gaps**
-   - [Short cultural insight]
+   - [Background insight]
    - [Follow-up sensory question]
-
-(Repeat this last pair 2–3 times.)
+   - (Repeat 2–3 times)
 
 Write 6–8 total questions. Prioritize clarity, orality, and vivid imagining.
 
 ---
 
-### Additional Guidance:
+### Additional Rules & Guidance for This Step
 
-- Use simple, clear, and emotionally vivid language. Choose words that are easy to understand and feel real.
-- When writing questions, **echo key words and phrases from the text of the scene itself**. Use the actual language and imagery found in the passage (like “green pastures,” “still waters,” “restores my soul”) in your questions.
-- The goal is to help participants remember and feel the biblical text, not just picture it.
-- Stay inductive: keep questions focused on what the text says and shows, not on interpretation or application.
-- **Ask questions that gently draw attention to details, actions, or cultural realities in the text that people might otherwise miss. Let the text itself lead to new discoveries.**
-- Sometimes use “you” or “imagine yourself” to help people step into the scene with their bodies.
-- Not every sensory question needs to cover all five senses—focus on what stands out most in this scene (like movement, posture, temperature, or texture).
-- Paraphrase or sum up cultural background; connect it directly to what someone might see, hear, or feel.
-- If it fits, include a question that helps people notice how being in the scene might feel emotionally.
-
-**Important:**
-- Use the actual words and phrases from the passage whenever you can—don’t just paraphrase the imagery.
-- Don’t summarize or explain; let the text itself shape the group’s imagination.
-- Avoid fancy or academic words—keep it simple, real, and relatable.
+- **Stay Inside the Scene:** Only use imagery, actions, and details from the given `{{scene}}` text. Do not bring in material from other verses or scenes unless it is explicitly in the excerpt.
+- **Connect Background to Sensory Detail:** When using cultural or historical facts, link them directly to what participants could see, hear, smell, touch, or taste in the scene, and to the physical response it might produce.
+- **No Repetition:** Each “Filling in the Gaps” detail should cover a distinct facet of the scene’s culture, setting, or physical experience.
+- **Observation Over Interpretation:** Do not tell participants how a character feels unless the emotion is visible or audible in the scene. Keep focus on concrete details.
+- **Use Plain, Self-Contained Questions:** Short, clear, conversational sentences. Avoid compound prompts — one sensory or movement element per question.
+- **Echo the Text:** Use exact words and imagery from the passage (e.g., “green pastures,” “still waters”) so participants remember the biblical language.
+- **Clarify the Role:** Keep participants as *observers in the scene* unless a perspective shift is part of the text. If using “you,” specify the role (“you are watching the shepherd…”).
+- **Inductive, Not Application:** Let the text and imagery lead to discovery. No modern application in this step.

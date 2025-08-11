@@ -30,16 +30,13 @@ The name should come from the participants, but leaders may offer suggestions to
 
 ---
 
-## ✅ Guidelines
+## Instructions
 
-- Write 3–5 short title suggestions
-- Each should be a vivid phrase (2–6 words) drawn from the imagery, emotion, or movement of the scene
-- Use plain, evocative language that is easy to remember
-- Do not explain or interpret the meaning of the titles
-- Avoid theological or abstract language
-- Titles may capture a key choice, turning point, or what the heart is set on in the scene.
-- Avoid moral lesson or application language.
-- Aim for variety: let each title reflect a different aspect (imagery, emotion, movement, or heart-orientation).
+- Use {{scene_text}} and {{exegetical_background}} to frame connecting questions that link the scene’s imagery, emotion, and values to the participant’s own life.
+- Begin each connection with a brief restatement of a key scene detail or cultural insight, then ask the life-connection question.
+- Keep the connection tethered to the scene’s central image/emotion — avoid generic moralizing or theological abstractions.
+- Example: “In this psalm, the shepherd’s voice draws the flock into rest. Where in your life have you experienced rest because you trusted someone’s voice or guidance?”
+- Avoid yes/no questions; keep them open-ended and personal.
 
 ---
 
@@ -82,3 +79,24 @@ Incorrect Output (do NOT do this):
 Let the titles speak for themselves.
 
 **Do not add any other headings, numbers, or explanations. Only output the heading and the list.**
+
+---
+
+### Output Format:
+
+**Scene Reread Instruction:**
+- Begin the section with:
+  - `Leader: Let’s read the scene again before we begin.`
+  - This should be the first line before Naming the Scene.
+
+### Naming the Scene ({{citation}})
+
+1. [Short, vivid title from imagery, emotion, or movement in the scene]
+2. [Short, vivid title from imagery, emotion, or movement in the scene]
+3. [Short, vivid title from imagery, emotion, or movement in the scene]
+4. [Optional: 1–2 more titles]
+
+
+Write 3–5 short, vivid titles as instructed above.
+
+Keep all titles short (2–6 words), plain, and evocative. Use concrete imagery or emotional movement from the scene — echo exact words from the passage where possible. Avoid abstract, theological, or moralizing language. Each title should capture something an observer in the scene could notice or name — not an interpretation or application.

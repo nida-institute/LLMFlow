@@ -11,72 +11,83 @@ prompt:
   format: Markdown
   description: Helps participants feel what’s at stake in {scene} from {passage}, using cultural background and emotional insight.
 -->
-
 # StoryFlow Leader’s Guide: Step 2 – Enter the Scene with Your Whole Heart
 
-You are helping group leaders guide participants to feel the emotional and spiritual journey of the characters in this scene. Start by drawing out participants’ own emotional insights, then gently fill in cultural background that brings out the deeper stakes.
+You are helping group leaders guide participants to step into the scene emotionally — noticing the visible and audible signs of the characters’ inner life, and gently weaving in cultural background that reveals the emotional weight of the scene.
 
-Use this excerpt from {passage}:
+Use this excerpt from {{passage}}:
 
-{scene}
+{{scene}}
 
-Use insights from:
-- {exegetical_culture}
-- {exegetical_emotionalarc}
-- {joshfrost_emotional}
-
----
-
-## ❤️ Begin with Their Emotional Insight
-
-Ask 2-3 questions that help participants notice the emotional tone of the scene:
-
-- What might the characters be feeling or fearing?
-- What is each person hoping for or avoiding?
-- What emotions or relationships are at stake?
+Use these background sources to inform your questions (but do not quote them directly):
+- {{exegetical_background}}
+- {{joshfrost_emotional}}
 
 ---
 
-## 🧩 Fill in the Gaps (Emotional and Cultural Background)
+1. **Emotional Awareness**
+   - Write 2–3 questions that draw attention to **visible or audible emotional cues** in the scene — facial expressions, posture, pace, tone of voice, gestures — as observed by someone in the scene.
+   - Use **emotion words** only when supported by text or background.
+   - Keep participants inside the text’s world as observers unless a perspective shift is explicit in the scene.
 
-Now offer 2–3 short background insights about social roles, shame/honor, expectations, or relational dynamics that affect how the original audience would understand this scene.
+### Using Attributed Author Context in Step 2 (Heart)
+If {{exegetical_background}} includes an “Attributed Author Context,” weave **1–2 brief, scene-bound prompts** that help participants *sense* how the author’s life clarifies the emotional world of the scene — without giving a mini-lecture.
 
-For each, follow this pattern:
+- Mention the author only if it explains a concrete emotional stance or reaction in this scene.
+- Immediately follow with a text-grounded, emotion-oriented question.
 
-1. **Brief insight** (1–2 plain sentences)
-2. **Follow-up question** to help participants feel the emotion or spiritual tension more clearly
+**Pattern (examples—adapt to the passage):**
+- “This psalm is attributed to David, who both led sheep and faced danger himself. Watching the shepherd scan the horizon, what emotion do you see in his face?”
+- “If David has known rare pasture in a dry land, what feeling might you notice as he looks at this one?”
 
 ---
 
-## 🙏 Deepen the Emotional Journey
+2. **Filling in the Gaps (Emotional-Cultural Detail)**
+   - Add 2–3 short background insights that explain **why** someone in the scene might feel a certain way — drawn from {{exegetical_background}} and {{joshfrost_emotional}}.
+   - Follow each with a **scene-bound emotional question** that helps participants notice those feelings.
 
-Ask 2–3 emotionally rich questions that connect participants more deeply with the people in the story. Help them imagine the vulnerability, courage, trust, or transformation involved.
+---
+
+3. **Deep Heart Engagement**
+   - Write 2–3 questions that invite participants to identify **where the heart is turning** in this moment for the psalmist or other key figure.
+   - Stay inductive: focus on what the text shows about desires, trusts, fears, or resistances in this moment.
+   - Do not apply to participants’ lives yet — that’s Step 3.
 
 ---
 
 ### Output Format:
+### Enter the Scene with Your Whole Heart ({{citation}})
 
-### Enter the Scene with Your Whole Heart ({citation})
+**Scene Reread Instruction:**
+- Begin the section with:
+  - `Leader: Let’s read the scene again before we begin.`
+  - This should be the first line before Emotional Awareness.
 
 1. **Emotional Awareness**
-   - [Emotionally open-ended question about the characters in the scene, echoing key words or phrases from the text]
+   - [Concrete observation question]
+   - [Concrete observation question]
+   - [Concrete observation question]
 
 2. **Filling in the Gaps**
-   - [Short cultural/emotional insight]
-   - [Follow-up emotional question that uses language or imagery from the passage]
-
-(Repeat this last pair 2–3 times.)
+   - [Background insight]
+   - [Follow-up emotional question]
+   - (Repeat 2–3 times)
 
 3. **Deep Heart Engagement**
-   - [Emotion or faith-based question about the characters in the scene, e.g., “Where is the heart turning in this moment for David?” or “What is each person in the story setting their heart on?” Use the text’s own language where possible.]
-   - [Spiritual follow-up about the situation in the text, not about the participants]
+   - [Inductive heart-orientation question]
+   - [Inductive heart-orientation question]
+   - [Inductive heart-orientation question]
 
-**Important:**
-- All questions in this step must focus on the people in the story, in their original context.
-- Do **not** ask participants to reflect on their own lives, feelings, or experiences.
-- Do **not** use “you” or “we” language—use character names or roles from the passage.
-- Application and personal resonance belong in later steps.
-- **Echo key words and phrases from the text of the scene itself in your questions. Use the actual language and imagery found in the passage wherever possible.**
-- **Craft questions that gently draw attention to emotional, relational, or spiritual details in the text that people might otherwise miss. Let the text itself lead to new discoveries.**
-- Stay inductive: keep questions focused on what the text says and shows, not on interpretation or application.
-- Use plain, emotionally accessible English—be accurate and specific, but don’t use a big word when a simple one
+Write 6–8 total questions. Keep language plain, oral, and emotionally accessible.
+
+---
+
+### Additional Rules & Guidance for This Step
+- **Stay Inside the Scene:** Only use imagery, actions, and details from the given `{{scene}}` text.
+- **Link Background to Emotional Cue:** When using cultural or historical facts, connect them directly to a visible or audible sign of emotion in the scene.
+- **No Repetition:** Each “Filling in the Gaps” detail should cover a distinct emotional or cultural trigger in the scene.
+- **Observation Over Interpretation:** Do not label an emotion unless it can be observed or inferred from the scene’s actions or background.
+- **Plain, Self-Contained Questions:** Short, clear sentences; avoid multi-part emotional prompts.
+- **Echo the Text:** Use exact words and imagery from the passage to keep the emotional world anchored in the biblical language.
+- **Clarify the Role:** Keep participants as *observers* unless the text calls for perspective shift.
+- **Inductive, Not Application:** Let emotional discovery stay within the scene. No modern application in this step.

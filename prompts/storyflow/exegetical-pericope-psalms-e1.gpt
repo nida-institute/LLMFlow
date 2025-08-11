@@ -7,58 +7,69 @@ prompt:
   format: Markdown
   description: Analyzes poetic and cultural imagery in {passage} using {source}
 -->
-# Exegetical Cultural and Poetic Setting for {passage}
+<!--
+prompt:
+  requires:
+  - passage
+  - source
+  optional: []
+  format: Markdown
+  description: Analyzes poetic and cultural imagery in {passage} using {source}
+-->
 
-You are writing an **exegetical cultural and poetic background overview** to help Bible translators and group leaders visualize the world behind {passage}.
+STYLE / METHOD GUARDRAILS (NON-NEGOTIABLE)
+- Inductive order only: description → implication for visualization; no modern application here.
+- Keep everything inside the ancient scene and world; do not guess beyond evidence.
+- Every background or cultural point MUST include “Implication for Scene Visualization”.
+- Use the exact heading levels and order specified below—no extra sections.
+- Forbidden: “What do you think…”, “How might…”, generic modern parallels, moral lessons.
+INTERNAL CHECK (before returning):
+- Headings match the required schema exactly (## / ### / #### as specified).
+- Each Fact includes an Implication line.
+- No modern-life language; all content is scene-usable by later prompts.
 
-You should analyze the text based on {source}.  In output, transliterate and translate any quotes from Hebrew or Greek.
+## Cultural Background
 
-Your output should describe:
-- The vivid metaphorical imagery in the passage
-- The sensory, emotional, cultural, and relational impact each image or poetic movement would have on its original hearers
-- The cognitive and moral/spiritual framework or “direction of the heart” those images would evoke
+### Overview (2–4 sentences)
+- Brief, scholarly orientation to the historical/cultural world relevant to {{passage}}.
 
----
+### Attributed Author Context
 
-## Structure
+State whether the psalm is traditionally or textually attributed to a specific person.
+- If attributed, briefly identify the author and, if relevant, describe aspects of their life or role that clarify **this scene’s imagery or values**.
+- If authorship is uncertain or unknown, note that, and if appropriate, summarize scholarly discussion or possible contexts — but avoid speculation that is not grounded in evidence.
 
-Present your output under the following heading:
+Include only author details that help visualize or emotionally enter the scene.
+Do not include generic references to the author without linking them to something concrete in the scene.
 
-### Vivid Imagery and Metaphorical Progression
+**Examples of possible author connections:**
+- **David** — Dual experience as shepherd and as one in need of God’s shepherding (danger, pursuit, leadership burdens). Could clarify images like “voice-leading,” “rare pasture,” “protective rod.”
+- **Asaph** — Levitical musician in temple service; worship leadership, liturgical memory. Could illuminate worship/tone/assembly imagery.
+- **Sons of Korah** — Gatekeepers and singers, close to sanctuary life. Could enrich imagery of temple entry, processions, or Zion.
+- **Moses, Solomon, Heman, Ethan** — Distinctive roles or histories that may explain a scene’s imagery if clearly linked.
 
-For each major image or poetic unit in {passage}, use this structure:
+> These examples are illustrative, not exhaustive. Author context should be concise, evidence-based, and directly relevant to the current scene.
 
-#### 🖼️ Scene or Image Title
-- Provide the full text of the passage in the original language (WLC for Hebrew, SBLGNT for Greek), depending on the value of `{source}`. Provide a transliteration in parentheses.
-- Also provide a literal translation.
+### Geography & Environment
+- Fact:
+  - Implication for Scene Visualization:
 
-#### 1. ✍️ Poetic or Metaphorical Device
-- Describe the **Hebrew expression** (include lemma in Hebrew and transliteration).
-- Identify metaphor, imagery, parallelism, or progression (e.g., movement from walking → sitting).
-- Name known scholars (e.g., Alter, Mays, King & Stager) only when directly helpful.
-- **Use plain, emotionally accessible English—be accurate and specific, but don’t use a big word when a simple one will do.**
+### Social Roles & Structures
+- Fact:
+  - Implication for Scene Visualization:
 
-#### 2. 🌍 Cultural Resonance
-- What would the original audience recognize instantly from their daily life (e.g., paths, trees, water systems, harvests)?
-- How does the image connect to their environment (e.g., arid climate, temple ritual, shepherding, farming)?
-- How would honor/shame, family roles, or covenantal worldview shape their understanding?
-- **Include any specific practices, customs, or facts from the ancient world that would change or deepen the modern reader’s mental picture of the scene (e.g., how shepherds led sheep by voice, how water was accessed, how meals were shared, etc.).**
-- **Keep explanations short and concrete.**
+### Practices & Customs (ritual, hospitality, economy, warfare—only those relevant)
+- Fact:
+  - Implication for Scene Visualization:
 
-#### 3. 👁️ Sensory and Emotional Impact
-- **Sensory:** What would they see, hear, feel, taste, or smell?
-- **Emotional:** What feelings would this evoke (e.g., fear, trust, pride, disgust)?
-- **Cognitive Framework:** How would this shape their moral categories, understanding of blessing/cursing, or view of God and community?
-- **Moral/Spiritual Orientation:** What is the heart set on? What is being sought, trusted, or resisted?
-- **Use the text’s own language and imagery wherever possible.**
+### Material Culture (food, clothing, tools, architecture—only those relevant)
+- Fact:
+  - Implication for Scene Visualization:
 
-Repeat this structure for each major image or movement in the passage. Use 2–4 total sections as appropriate.
+### Ancient Worldview & Symbolic Meanings (only those that shape the imagery)
+- Fact:
+  - Implication for Scene Visualization:
 
----
+### Sources/Notes (brief; optional)
+- (If needed: textual/cultural notes that justify choices—no modern application.)
 
-## Writing Style
-
-- Use vivid, emotionally accessible, yet precise and factually grounded language.
-- Use short quotes or phrases from the passage itself to anchor your analysis.
-- Write in clear, short sections or bullet points for easy reading.
-- Avoid academic jargon—make your insights usable for both scholars

@@ -32,18 +32,13 @@ Use the inputs below to ground your questions:
 
 ---
 
-## ✍️ Step 4 Instructions
+## Instructions
 
-Write **3–5 sets of reflection questions** that help participants connect the emotions and cultural realities of the scene to their own experiences today.
-
-**Do this:**
-- Focus on **shared human experiences and resonant emotions** — not theology or moral lessons
-- Use language that is plain, spoken, and emotionally accessible—be accurate and specific, but don’t use a big word when a simple one will do.
-- Help the group explore what it feels like to live through similar moments — not just what it means
-- Occasionally invite participants to notice what their own heart is set on, or what they are seeking, trusting, or resisting in similar situations.
-- Do not ask what participants should do; focus on what it feels like to be in a similar moment.
-- Use ### Let the Scene Speak to Us (with three # symbols) as the heading for each question set.
-
+- Use {{scene_text}} and {{exegetical_background}} to frame connecting questions that link the scene’s imagery, emotion, and values to the participant’s own life.
+- Begin each connection with a brief restatement of a key scene detail or cultural insight, then ask the life-connection question.
+- Keep the connection tethered to the scene’s central image/emotion — avoid generic moralizing or theological abstractions.
+- Example: “In this psalm, the shepherd’s voice draws the flock into rest. Where in your life have you experienced rest because you trusted someone’s voice or guidance?”
+- Avoid yes/no questions; keep them open-ended and personal.
 
 Each question set should follow this format:
 
@@ -72,3 +67,28 @@ Example:
 ---
 Don’t over-extend. Use just enough to cover the emotional range of {scene}.
 Avoid repetition, abstraction, or application.
+
+---
+
+### Output Format:
+
+**Scene Reread Instruction:**
+- Begin the section with:
+  - `Leader: Let’s read the scene again before we begin.`
+  - This should be the first line before Let the Scene Speak to Us
+
+### Let the Scene Speak to Us ({{citation}})
+
+1. **[Short title from scene imagery or emotion]**:
+   - [Reflection question]
+   - [Follow-up question]
+
+2. **[Short title from scene imagery or emotion]**:
+   - [Reflection question]
+   - [Follow-up question]
+
+
+Write 3–5 sets of reflection questions as instructed above.
+Use {{exegetical_background}} and {{joshfrost_emotional}} only to shape your understanding of the scene’s emotional and cultural depth. Do not quote or reference these sources directly in the output.
+
+Keep all language short, plain, and conversational. Use concrete words from the scene’s imagery and emotional arc. Avoid stacked prompts — one focus per question. Keep participants as observers in the scene, then link what they see/hear/feel to a shared human experience.
