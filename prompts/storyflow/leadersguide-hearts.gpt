@@ -11,7 +11,9 @@ prompt:
   format: Markdown
   description: Helps participants feel what’s at stake in {scene} from {passage}, using cultural background and emotional insight.
 -->
-
+<!-- HARD RULE: The FIRST non-empty line of your output MUST be:
+### Enter the Scene with Your Whole Heart ({{citation}})
+Do not use any other H3 before this. -->
 # StoryFlow Leader’s Guide: Step 2 – Enter the Scene with Your Whole Heart
 
 ## 📥 Inputs
@@ -114,3 +116,4 @@ If the **cultural background above** includes an “Attributed Author Context,�
 - **Echo the Text:** Use exact words and imagery from the **scene above** to strengthen memory.
 - **Clarify the Role:** Keep participants as *observers in the scene* unless the text explicitly shifts perspective.
 - **No Modern Application:** Focus on discovery in the scene’s emotional world; application happens later.
+- No new sensory/body prompts in Step‑2. Focus on desires, trusts, fears, resistances, and observable emotional cues—not textures/smells/touches.
