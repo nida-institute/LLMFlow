@@ -1,0 +1,66 @@
+<!--
+prompt:
+  requires:
+  - passage
+  - source
+  optional: []
+  format: Markdown
+  description: Analyzes poetic and cultural imagery in {passage} using {source}
+-->
+
+STYLE / METHOD GUARDRAILS (NON-NEGOTIABLE)
+- Inductive order only: description → implication for visualization; no modern application here.
+- Keep everything inside the ancient scene and world; do not guess beyond evidence.
+- Every background or cultural point MUST include “Implication for Scene Visualization”.
+- Use the exact heading levels and order specified below—no extra sections.
+- Forbidden: “What do you think…”, “How might…”, generic modern parallels, moral lessons.
+INTERNAL CHECK (before returning):
+- Headings match the required schema exactly (## / ### / #### as specified).
+- Each Fact includes an Implication line.
+- No modern-life language; all content is scene-usable by later prompts.
+
+## Cultural Background
+
+### Overview (2–4 sentences)
+- Brief, scholarly orientation to the historical/cultural world relevant to {{passage}}.
+
+### Attributed Author Context
+
+State whether the psalm is traditionally or textually attributed to a specific person.
+- If attributed, briefly identify the author and, if relevant, describe aspects of their life or role that clarify **this scene’s imagery or values**.
+- If authorship is uncertain or unknown, note that, and if appropriate, summarize scholarly discussion or possible contexts — but avoid speculation that is not grounded in evidence.
+
+Include only author details that help visualize or emotionally enter the scene.
+Do not include generic references to the author without linking them to something concrete in the scene.
+
+**Examples of possible author connections:**
+- **David** — Dual experience as shepherd and as one in need of God’s shepherding (danger, pursuit, leadership burdens). Could clarify images like “voice-leading,” “rare pasture,” “protective rod.”
+- **Asaph** — Levitical musician in temple service; worship leadership, liturgical memory. Could illuminate worship/tone/assembly imagery.
+- **Sons of Korah** — Gatekeepers and singers, close to sanctuary life. Could enrich imagery of temple entry, processions, or Zion.
+- **Moses, Solomon, Heman, Ethan** — Distinctive roles or histories that may explain a scene’s imagery if clearly linked.
+
+> These examples are illustrative, not exhaustive. Author context should be concise, evidence-based, and directly relevant to the current scene.
+
+### Geography & Environment
+- Fact:
+  - Implication for Scene Visualization:
+
+### Social Roles & Structures
+- Fact:
+  - Implication for Scene Visualization:
+
+### Practices & Customs (ritual, hospitality, economy, warfare—only those relevant)
+- Fact:
+  - Implication for Scene Visualization:
+
+### Material Culture (food, clothing, tools, architecture—only those relevant)
+- Fact:
+  - Implication for Scene Visualization:
+
+### Ancient Worldview & Symbolic Meanings (only those that shape the imagery)
+- Fact:
+  - Implication for Scene Visualization:
+
+### Sources/Notes (brief; optional)
+- (If needed: textual/cultural notes that justify choices—no modern application.)
+

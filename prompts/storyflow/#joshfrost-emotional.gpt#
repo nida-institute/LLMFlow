@@ -1,0 +1,83 @@
+<!--
+prompt:
+  requires:
+  - passage
+  - source
+  - exegetical_culture
+  - exegetical_wordstudy
+  - exegetical_emotionalarc
+  optional: []
+  format: Markdown
+  description: Analyzes poetic and cultural imagery in {passage} using {source}
+-->
+## Emotional-Exegetical Supplement for {{passage}}
+
+Follow Josh Frost’s method (2023): emotions are **moral judgments** about **values** under **conditions** of risk or fulfillment. Keep all analysis **in-scene**, grounded in the ancient world. Integrate “Attributed Author Context” from E1 **only** where it clarifies this scene’s imagery or emotions. Do not move to modern application.
+
+Analyze the *entire passage* **movement-by-movement**, where a movement is a cohesive unit of imagery, emotion, or rhetorical focus.
+
+**Step 1 – Identify Movements Before Writing**
+- Before writing any analysis, identify **all movements** in this passage by reading through {{exegetical_background}} and/or detecting shifts in imagery, emotional stance, relational dynamics, or rhetorical purpose.
+- If {{exegetical_background}} provides **scene divisions**, use them as movements.
+- If scenes are not given, divide into **at least 2–4 movements** (never fewer than 2 unless the passage is only 1–2 verses and truly uniform).
+- Number movements sequentially: **Movement 1, Movement 2, Movement 3…**
+
+**Step 2 – Analyze Each Movement Fully**
+For **each movement in turn**, repeat the following sections **in the exact order** below.  
+Do not merge movements — each must stand alone.
+
+For **each movement**, produce the following sections in order:
+
+### Text Reference and Movement(s)
+- Quote the movement’s text in Hebrew and transliteration, with glosses for key emotionally charged terms.
+- Identify 1–3 key words or phrases that will be explored later.
+
+### 🧭 Narrative Backstory (Emotional Reconstruction)
+- Set the movement in its ancient cultural, historical, and narrative context.
+- If {{exegetical_background}} contains **Attributed Author Context** relevant to this movement’s imagery or values, include it briefly and link it to what can be seen/heard/felt here.
+- Keep the observer perspective — describe what’s visible/audible in-scene.
+
+### 💬 Dominant Emotions (per role)
+For each relevant role (Psalmist, God, adversaries, others):
+- **Emotion:**
+- **Judgment:** (Frost triplet: “This is the judgment that [VALUE] is [SECURED/THREATENED/LOST/RESTORED].”)
+- **Value:**
+- **Condition:** (Specific, text-grounded state of affairs prompting the judgment.)
+- Include **Countercurrents** where appropriate — secondary or tension emotions alongside the dominant.
+
+### 🔄 Emotional Movement
+Describe how the role’s emotional stance changes within this movement.
+If there is no change, note that stability is part of the effect.
+
+### 🧠 Values at Stake
+List the central goods at stake, explaining why they matter in the ancient cultural context.
+Link each value directly to the emotions above.
+
+### 📜 Language and Imagery
+Analyze the movement’s key metaphors or word choices, explaining their cultural freight in the ANE.
+Show how these images are tied to the emotions and values.
+
+### 🌍 Cultural Emotion Norms (Expression)
+- Describe how this movement’s emotions would be expressed physically, vocally, or socially in the ANE.
+- Give at least one **concrete, sensory example** from the movement.
+
+### 👥 Roles and Emotional Stakes
+List each role with:
+- Emotion(s)
+- Judgment / Value / Condition
+- Countercurrents
+- Stakes in this movement
+
+### 🎭 Performance Reflection
+- Tone & pacing to match the emotions.
+- Physical cues (posture, gesture, breath).
+- **Missteps to avoid**: highlight modern misreadings, emotional anachronisms, or flattening of ancient emotion norms.
+
+---
+
+## Emotional Arc Summary (whole passage)
+After all movements are analyzed:
+- Synthesize the emotional movement from start to finish in Frost’s terms.
+- Trace how values, judgments, and conditions shift across the passage.
+- Show how the text resolves tension or leaves it unresolved.
+- Base this on the movement analyses — no unsupported speculation.

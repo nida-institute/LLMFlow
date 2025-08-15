@@ -1,186 +1,203 @@
-  name: storyflow-psalms
+name: storyflow-psalms
 
-  variables:
-    prompts_dir: prompts/storyflow
-    source:  WLC
+variables:
+  prompts_dir: prompts/storyflow
+  source:  WLC
 
-  llm_config:
-    model: gpt-4o
-    temperature: 0.7
-    max_tokens: 6000
+llm_config:
+  model: gpt-4o
+  temperature: 0.4
+  max_tokens: 6000
 
-  linter_config:
-    enabled: true
-    treat_warnings_as_errors: true
+linter_config:
+  enabled: true
+  treat_warnings_as_errors: true
 
-  steps:
+steps:
 
-    # --- Exegetical E1–E3 Generation ---
-    - name: generate_exegetical_culture
-      type: llm
-      prompt:
-        file: exegetical-pericope-psalms-e1.gpt
-        inputs:
-          source: "${source}"
-          passage: "${passage}"
-      outputs: [exegetical_culture]
-
-    - name: generate_exegetical_wordstudy
-      type: llm
-      prompt:
-        file: exegetical-pericope-psalms-e2.gpt
-        inputs:
-          source: "${source}"
-          passage: "${passage}"
-      outputs: [exegetical_wordstudy]
-
-    - name: generate_exegetical_emotionalarc
-      type: llm
-      prompt:
-        file: exegetical-pericope-psalms-e3.gpt
-        inputs:
-          source: "${source}"
-          passage: "${passage}"
-      outputs: [exegetical_emotionalarc]
-
-    # --- Assemble Exegetical Guide (render only) ---
-    - name: render_exegetical_markdown
-      type: function
-      function: llmflow.utils.io.render_markdown_template
+  # --- Exegetical E1–E3 Generation ---
+  - name: generate_exegetical_culture
+    type: llm
+    prompt:
+      file: exegetical-pericope-psalms-e1.gpt
       inputs:
-        template_path: "templates/exegeticalguide_template.md"
-        variables:
-          passage: "${passage}"
-          culture: "${exegetical_culture}"
-          wordstudy: "${exegetical_wordstudy}"
-          emotionalarc: "${exegetical_emotionalarc}"
-      outputs: [exegetical_markdown_text]
-
-    # --- Save Exegetical Guide Markdown ---
-    - name: save_exegetical_md
-      type: function
-      function: llmflow.utils.io.save_markdown_as
-      inputs:
-        text: "${exegetical_markdown_text}"
+        source: "${source}"
         passage: "${passage}"
-        format: "md"
-        output_dir: "outputs/exegetical"
-      outputs: [exegetical_md_path]
+    outputs: [exegetical_culture]
 
-    # --- Save Exegetical Guide HTML ---
-    - name: save_exegetical_html
-      type: function
-      function: llmflow.utils.io.save_markdown_as
+  - name: generate_exegetical_wordstudy
+    type: llm
+    prompt:
+      file: exegetical-pericope-psalms-e2.gpt
       inputs:
-        text: "${exegetical_markdown_text}"
+        source: "${source}"
         passage: "${passage}"
-        format: "html"
-        output_dir: "outputs/exegetical"
-      outputs: [exegetical_html_path]
+    outputs: [exegetical_wordstudy]
 
-    # --- Generate Leader Guide Intro and Scene List ---
-    - name: generate_intro
-      type: llm
-      prompt:
-        file: leadersguide-intro.gpt
-        inputs:
-          passage: "${passage}"
-          exegetical_culture: "${exegetical_culture}"
-          exegetical_wordstudy: "${exegetical_wordstudy}"
-          exegetical_emotionalarc: "${exegetical_emotionalarc}"
-      outputs: [intro_response]
+  - name: generate_exegetical_emotionalarc
+    type: llm
+    prompt:
+      file: exegetical-pericope-psalms-e3.gpt
+      inputs:
+        source: "${source}"
+        passage: "${passage}"
+    outputs: [exegetical_emotionalarc]
 
-    - name: generate_scene_list
-      type: llm
-      prompt:
-        file: leadersguide-scenes.gpt
-        inputs:
-          passage: "${passage}"
-          exegetical_culture: "${exegetical_culture}"
-          exegetical_wordstudy: "${exegetical_wordstudy}"
-      outputs: [scene_list]
+  # --- Assemble Exegetical Guide (render only) ---
+  - name: render_exegetical_markdown
+    type: function
+    function: llmflow.utils.io.render_markdown_template
+    inputs:
+      template_path: "templates/exegeticalguide_template.md"
+      variables:
+        passage: "${passage}"
+        culture: "${exegetical_culture}"
+        wordstudy: "${exegetical_wordstudy}"
+        emotionalarc: "${exegetical_emotionalarc}"
+    outputs: [exegetical_markdown_text]
 
-    # --- Save Scene List JSON ---
-    - name: save_scene_list
-      type: function
-      function: llmflow.utils.io.save_json
+  # --- Save Exegetical Guide Markdown ---
+  - name: save_exegetical_md
+    type: function
+    function: llmflow.utils.io.save_markdown_as
+    inputs:
+      text: "${exegetical_markdown_text}"
+      passage: "${passage}"
+      format: "md"
+      output_dir: "outputs/exegetical"
+    outputs: [exegetical_md_path]
+
+  # --- Generate Josh Frost Emotional Exegesis ---
+  - name: generate_joshfrost_emotional
+    type: llm
+    prompt:
+      file: joshfrost-emotional.gpt
       inputs:
         passage: "${passage}"
-        content: "${scene_list}"
-        output_dir: "outputs/scenes"
-      outputs: [scene_json_path]
+        source: "${source}"
+        exegetical_culture: "${exegetical_culture}"
+        exegetical_wordstudy: "${exegetical_wordstudy}"
+        exegetical_emotionalarc: "${exegetical_emotionalarc}"
+    outputs: [joshfrost_emotional]
 
-    # --- For Each Scene (Steps 1–4) ---
-    - name: process_each_scene
-      type: for-each
-      input: "${scene_list}"
-      item_var: scene
-      steps:
-        - type: llm
-          prompt:
-            file: leadersguide-bodies.gpt
-            inputs:
-              passage: "${passage}"
-              scene: "${scene}"
-              citation: "${scene.Citation}"
-              exegetical_culture: "${exegetical_culture}"
-          append_to: step1_list
+  # --- Save Josh Frost Markdown ---
+  - name: save_joshfrost_md
+    type: function
+    function: llmflow.utils.io.save_markdown_as
+    inputs:
+      text: "${joshfrost_emotional}"
+      passage: "${passage}"
+      format: "md"
+      output_dir: "outputs/joshfrost"
+    outputs: [joshfrost_md_path]
 
-        - type: llm
-          prompt:
-            file: leadersguide-hearts.gpt
-            inputs:
-              passage: "${passage}"
-              scene: "${scene}"
-              citation: "${scene.Citation}"
-              exegetical_culture: "${exegetical_culture}"
-              exegetical_wordstudy: "${exegetical_wordstudy}"
-          append_to: step2_list
-
-        - type: llm
-          prompt:
-            file: leadersguide-connecting.gpt
-            inputs:
-              passage: "${passage}"
-              scene: "${scene}"
-              citation: "${scene.Citation}"
-              exegetical_emotionalarc: "${exegetical_emotionalarc}"
-          append_to: step3_list
-
-        - type: llm
-          prompt:
-            file: leadersguide-naming.gpt
-            inputs:
-              passage: "${passage}"
-              scene: "${scene}"
-              citation: "${scene.Citation}"
-              exegetical_culture: "${exegetical_culture}"
-              exegetical_emotionalarc: "${exegetical_emotionalarc}"
-          append_to: step4_list
-
-    # --- Generate Leader Guide Summary ---
-    - name: generate_summary
-      type: llm
-      prompt:
-        file: leadersguide-summary.gpt
-        inputs:
-          passage: "${passage}"
-          exegetical_culture: "${exegetical_culture}"
-          exegetical_emotionalarc: "${exegetical_emotionalarc}"
-      outputs: [summary_response]
-
-    # --- Assemble and Save Leader Guide ---
-    - name: save_leaders_guide
-      type: function
-      function: llmflow.utils.io.save_leaders_guide
+  # --- Generate Leader Guide Intro and Scene List ---
+  - name: generate_intro
+    type: llm
+    prompt:
+      file: leadersguide-intro.gpt
       inputs:
         passage: "${passage}"
-        intro: "${intro_response}"
-        scenes: "${scene_list}"
-        step1: "${step1_list}"
-        step2: "${step2_list}"
-        step3: "${step3_list}"
-        step4: "${step4_list}"
-        summary: "${summary_response}"
-      outputs: [leaders_guide_path]
+        exegetical_culture: "${exegetical_culture}"
+        exegetical_wordstudy: "${exegetical_wordstudy}"
+        exegetical_emotionalarc: "${exegetical_emotionalarc}"
+    outputs: [intro_response]
+
+  - name: generate_scene_list
+    type: llm
+    prompt:
+      file: leadersguide-scenes.gpt
+      inputs:
+        passage: "${passage}"
+        exegetical_culture: "${exegetical_culture}"
+        exegetical_wordstudy: "${exegetical_wordstudy}"
+    output_type: json
+    outputs: [scene_list]
+
+  # --- Save Scene List JSON ---
+  - name: save_scene_list
+    type: function
+    function: llmflow.utils.io.save_json
+    inputs:
+      passage: "${passage}"
+      content: "${scene_list}"
+      output_dir: "outputs/scenes"
+    outputs: [scene_json_path]
+
+  # --- For Each Scene (Steps 1–4) ---
+  - name: process_each_scene
+    type: for-each
+    input: "${scene_list}"
+    item_var: scene
+    steps:
+      - type: llm
+        prompt:
+          file: leadersguide-bodies.gpt
+          inputs:
+            passage: "${passage}"
+            scene: "${scene}"
+            citation: "${scene.Citation}"
+            exegetical_culture: "${exegetical_culture}"
+        append_to: step1_list
+
+      - type: llm
+        prompt:
+          file: leadersguide-hearts.gpt
+          inputs:
+            passage: "${passage}"
+            scene: "${scene}"
+            citation: "${scene.Citation}"
+            exegetical_culture: "${exegetical_culture}"
+            exegetical_wordstudy: "${exegetical_wordstudy}"
+            joshfrost_emotional: "${joshfrost_emotional}"
+        append_to: step2_list
+
+      - type: llm
+        prompt:
+          file: leadersguide-connecting.gpt
+          inputs:
+            passage: "${passage}"
+            scene: "${scene}"
+            citation: "${scene.Citation}"
+            exegetical_emotionalarc: "${exegetical_emotionalarc}"
+        append_to: step3_list
+
+      - type: llm
+        prompt:
+          file: leadersguide-naming.gpt
+          inputs:
+            passage: "${passage}"
+            scene: "${scene}"
+            citation: "${scene.Citation}"
+            exegetical_culture: "${exegetical_culture}"
+            exegetical_emotionalarc: "${exegetical_emotionalarc}"
+        append_to: step4_list
+
+  # --- Generate Leader Guide Summary ---
+  - name: generate_summary
+    type: llm
+    prompt:
+      file: leadersguide-summarizing.gpt
+      inputs:
+        passage: "${passage}"
+        exegetical_culture: "${exegetical_culture}"
+        exegetical_emotionalarc: "${exegetical_emotionalarc}"
+    outputs: [summary_response]
+
+  # --- Assemble and Save Leader Guide ---
+  - name: save_leaders_guide
+    type: function
+    function: llmflow.utils.io.save_leaders_guide
+    inputs:
+      passage: "${passage}"
+      intro: "${intro_response}"
+      scenes: "${scene_list}"
+      step1: "${step1_list}"
+      step2: "${step2_list}"
+      step3: "${step3_list}"
+      step4: "${step4_list}"
+      summary: "${summary_response}"
+    outputs: [leaders_guide_path]
+
+
 

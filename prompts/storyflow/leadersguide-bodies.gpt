@@ -9,28 +9,40 @@ prompt:
   format: Markdown
   description: Guides participants to enter {scene} from {passage} using their bodies and senses, with cultural background woven in.
 -->
+
 # StoryFlow Leader’s Guide: Step 1 – Enter the Scene with Your Body
 
-You are helping group leaders guide participants to step into the scene physically—using their bodies and senses—while gently weaving in cultural background information to help them imagine it more vividly and accurately.
+## 📥 Inputs
 
-Use this excerpt from {{passage}}:
+### passage
+{{passage}}
 
+### scene
 {{scene}}
 
-Use this cultural background to inform your questions (but do not quote it directly):
+### citation
+{{citation}}
+
+### exegetical_culture
 {{exegetical_culture}}
 
 ---
 
+You are helping group leaders guide participants to step into the scene physically—using their bodies and senses—while gently weaving in cultural background information to help them imagine it more vividly and accurately.
+
+---
+
+## 🛠 Step-by-Step Instructions
+
 1. **Warm-Up**
-   - Provide 1–2 short, text-grounded background details from {{exegetical_background}} that accurately frame the scene in its ancient context.
+   - Provide 1–2 short, text-grounded background details from the **cultural background above** that accurately frame the scene in its ancient context.
    - Immediately follow each detail with a **single-focus, concrete, in-scene sensory or movement question** that participants can answer from within the scene’s world, not from modern life or abstract speculation.
    - Embed accurate historical/cultural details (e.g., shepherds in the ANE led from the front by voice) before the question so participants visualize correctly.
    - Avoid “What do you think…”, “How might…”, “might/could” phrasing.
    - Do not invite personal application; keep all prompts inside the text’s world for Step 1.
 
 ### Using Attributed Author Context in Step 1 (Body)
-If {{exegetical_background}} includes an “Attributed Author Context,” weave **1–2 brief, scene-bound prompts** that let participants *sense* how the author’s life clarifies the physical imagery—without giving a mini-lecture.
+If the **cultural background above** includes an “Attributed Author Context,” weave **1–2 brief, scene-bound prompts** that let participants *sense* how the author’s life clarifies the physical imagery—without giving a mini-lecture.
 
 - Keep participants **inside the scene** (observer/sheep/etc.).
 - Mention the author **only** to frame a concrete sensory cue; immediately follow with a sensory/movement question.
@@ -45,55 +57,52 @@ If {{exegetical_background}} includes an “Attributed Author Context,” weave 
 ---
 
 2. **Sensory Engagement**
-   - Use {{scene_text}} and {{exegetical_background}} to write questions that immerse participants in sight, sound, smell, touch, and taste **within the scene**.
+   - Use the **scene above** and the **cultural background above** to write questions that immerse participants in sight, sound, smell, touch, and taste **within the scene**.
    - Keep all prompts anchored to observable scene elements and historically accurate details.
    - One sensory or movement element per question.
    - Avoid speculation or modern comparison; if background is used, place it immediately before a concrete sensory question.
 
 ---
 
-## 🧩 Fill in the Gaps (Cultural Detail)
-Add 2–3 short pieces of background knowledge that would help someone from a different culture imagine the physical experience more accurately.
-
-For each, follow this pattern:
-1. **Brief background insight** (1–2 sentences, plain language)
-2. **Follow-up sensory question** that helps participants reimagine the scene more vividly with that new information.
+3. **Filling in the Gaps (Cultural Detail)**
+   - Add 2–3 short pieces of background knowledge from the **cultural background above** that would help someone from a different culture imagine the physical experience more accurately.
+   - For each, follow this pattern:
+     1. **Brief background insight** (1–2 sentences, plain language)
+     2. **Follow-up sensory question** that helps participants reimagine the scene more vividly with that new information
 
 ---
 
-### Output Format:
+## 📝 Output Format
+
 ### Enter the Scene with Your Body ({{citation}})
 
-**Scene Reread Instruction:**
-- Begin the section with:
-  - `Leader: Let’s read the scene again before we begin.`
-  - This should be the first line before Warm-Up.
-
 1. **Warm-Up**
-   - [Short background detail + concrete question]
-   - [Short background detail + concrete question]
+   - [Short background detail from the cultural background above + concrete question]
+   - [Short background detail from the cultural background above + concrete question]
 
 2. **Sensory Engagement**
-   - [Sensory question]
-   - [Sensory question]
-   - [Sensory question]
+   - [Sensory question rooted in the scene above]
+   - [Sensory question rooted in the scene above]
+   - [Sensory question rooted in the scene above]
 
 3. **Filling in the Gaps**
-   - [Background insight]
-   - [Follow-up sensory question]
-   - (Repeat 2–3 times)
+   - [Background insight from the cultural background above]
+   - [Follow-up sensory question tied to that insight]
+   - (Repeat for 2–3 unique insights)
 
-Write 6–8 total questions. Prioritize clarity, orality, and vivid imagining.
+**Total Questions:** 6–8
 
 ---
 
-### Additional Rules & Guidance for This Step
+## ⚖️ Additional Rules & Guidance for This Step
 
-- **Stay Inside the Scene:** Only use imagery, actions, and details from the given `{{scene}}` text. Do not bring in material from other verses or scenes unless it is explicitly in the excerpt.
-- **Connect Background to Sensory Detail:** When using cultural or historical facts, link them directly to what participants could see, hear, smell, touch, or taste in the scene, and to the physical response it might produce.
-- **No Repetition:** Each “Filling in the Gaps” detail should cover a distinct facet of the scene’s culture, setting, or physical experience.
-- **Observation Over Interpretation:** Do not tell participants how a character feels unless the emotion is visible or audible in the scene. Keep focus on concrete details.
-- **Use Plain, Self-Contained Questions:** Short, clear, conversational sentences. Avoid compound prompts — one sensory or movement element per question.
-- **Echo the Text:** Use exact words and imagery from the passage (e.g., “green pastures,” “still waters”) so participants remember the biblical language.
-- **Clarify the Role:** Keep participants as *observers in the scene* unless a perspective shift is part of the text. If using “you,” specify the role (“you are watching the shepherd…”).
-- **Inductive, Not Application:** Let the text and imagery lead to discovery. No modern application in this step.
+- **Scene-Limited Imagery:** Only use imagery, actions, and details from the **scene above**.
+- **Background → Sensory Link:** Always connect cultural/historical facts from the **cultural background above** to something participants can *see, hear, smell, touch, or taste* in the scene.
+- **No Repetition:** Each “Fill in the Gaps” detail must cover a different facet of culture, setting, or physical experience.
+- **Observation Over Interpretation:** Do not state how someone feels unless the emotion is visible/audible in the scene.
+- **Plain, Self-Contained Questions:** Short, clear, conversational sentences. One sensory focus per question.
+- **Echo the Text:** Use exact words and imagery from the **scene above** (e.g., “green pastures,” “still waters”) to help retention.
+- **Clarify the Role:** Keep participants as *observers in the scene* unless the text requires another perspective.
+- **No Modern Application:** Discovery and experience only — application comes in later steps.
+
+
