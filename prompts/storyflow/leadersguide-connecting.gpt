@@ -1,97 +1,96 @@
 <!--
 prompt:
   requires:
-    - passage
-    - scene
-    - citation
-    - exegetical_culture
+  - passage
+  - scene
+  - citation
+  - exegetical_culture
+  - exegetical_emotionalarc
+  - scene_text
+  - exegetical_background
+  - joshfrost_emotional
   optional: []
   format: Markdown
-  description: Guides participants to enter {scene} from {passage} using their bodies and senses, with cultural background woven in.
+  description: Generates Steps 4–5 (connection and summary title) for a scene
 -->
 
-# StoryFlow Leader’s Guide: Step 1 – Enter the Scene with Your Body
+# StoryFlow Leader's Guide: Step 3 (Connections + Title) for {scene} in {passage}
 
-## 📥 Inputs
+- **Step 3: Reflection questions** to help participants connect the emotional truth of the scene to their own lives
 
-### passage
-{{passage}}
-
-### scene
-{{scene}}
-
-### citation
-{{citation}}
-
-### exegetical_culture
-{{exegetical_culture}}
+Use the inputs below to ground your questions:
 
 ---
 
-You are helping group leaders guide participants to **step into the scene physically** — using their bodies and senses — while weaving in cultural background to make the imagery vivid and accurate.
+## Cultural Background
+
+{exegetical_culture}
 
 ---
 
-## 🛠 Step-by-Step Instructions
+## Emotional Arc
 
-### 1. Warm-Up
-- Choose **1–2 short, text-grounded background details** from `{{exegetical_culture}}` that orient the scene in its ancient context.
-- Immediately follow each detail with a **single-focus, concrete, in-scene sensory or movement question** participants can answer from within the scene’s world.
-- Keep participants as *observers in the scene* unless the text calls for another perspective.
-
-**Example Pattern:**
-> In the ancient Near East, shepherds led from the front with their voice.
-> What do you hear in the shepherd’s call? How do the sheep move when they recognize it?
+{exegetical_emotionalarc}
 
 ---
 
-### 2. Sensory Engagement
-- Write 3 sensory or movement questions rooted directly in `{{scene}}`.
-- Focus on **one sensory input per question** — sight, sound, touch, smell, or taste.
-- Use exact language and imagery from the scene (“green pastures,” “still waters”) to help participants remember the text.
+## Instructions
+
+- Use {{scene_text}} and {{exegetical_background}} to frame connecting questions that link the scene’s imagery, emotion, and values to the participant’s own life.
+- Begin each connection with a brief restatement of a key scene detail or cultural insight, then ask the life-connection question.
+- Keep the connection tethered to the scene’s central image/emotion — avoid generic moralizing or theological abstractions.
+- Example: “In this psalm, the shepherd’s voice draws the flock into rest. Where in your life have you experienced rest because you trusted someone’s voice or guidance?”
+- Avoid yes/no questions; keep them open-ended and personal.
+
+Each question set should follow this format:
+
+---
+### Let the Scene Speak to Us
+
+1. **[Short context label]**:
+    - [Reflection question]
+    - [Follow-up question, if helpful]
+---
+Example:
+
+### Let the Scene Speak to Us (Psalm 23:1-3)
+
+1. **The Shepherd’s Care**:
+    - When do you feel vulnerable and in need of a shepherd?
+    - How do you feel when you imagine being cared for and guided by someone you deeply trust, like a shepherd with their sheep?
+    - Can you recall a time when you felt secure and at peace because someone was looking out for you? What was that like?
+
+2. **Green Pastures and Still Waters**:
+    - Think about a place or moment in your life that felt like "green pastures" or "still waters"—a time of peace and restoration. What emotions come up for you when you remember it?
+    - How do you seek out or create moments of calm and abundance in the midst of a busy or challenging life?
+
+3. **Restoration of the Soul**:
+    - Reflect on a time when you felt your "soul was restored." What events or actions led to that feeling, and how did it change your outlook?
+    - What do you find helps restore your energy and spirit when you feel depleted or overwhelmed?
+---
+Don’t over-extend. Use just enough to cover the emotional range of {scene}.
+Avoid repetition, abstraction, or application.
 
 ---
 
-### 3. Filling in the Gaps (Cultural Detail)
-- Add 2–3 short **background insights** that help participants from other cultures imagine the physical experience accurately.
-- Each insight must cover a **different facet** of the scene’s culture, setting, or physical reality.
-- After each insight, ask a **follow-up sensory question** that helps participants re-imagine the scene with that new detail.
+### Output Format:
 
-**Example Pattern:**
-> In Israel’s dry climate, finding still water was rare and valuable.
-> What do you notice about the water here — its movement, its sound, its look?
+**Scene Reread Instruction:**
+- Begin the section with:
+  - `Leader: Let’s read the scene again before we begin.`
+  - This should be the first line before Let the Scene Speak to Us
 
----
+### Let the Scene Speak to Us ({{citation}})
 
-## 📝 Output Format
+1. **[Short title from scene imagery or emotion]**:
+   - [Reflection question]
+   - [Follow-up question]
 
-### Enter the Scene with Your Body ({{citation}})
+2. **[Short title from scene imagery or emotion]**:
+   - [Reflection question]
+   - [Follow-up question]
 
-1. **Warm-Up**
-   - [Short background detail + concrete sensory question]
-   - [Short background detail + concrete sensory question]
+Write 3–5 sets of reflection questions as instructed above.
+Use {{exegetical_background}} and {{joshfrost_emotional}} only to shape your understanding of the scene’s emotional and cultural depth. Do not quote or reference these sources directly in the output.
 
-2. **Sensory Engagement**
-   - [Sensory question]
-   - [Sensory question]
-   - [Sensory question]
-
-3. **Filling in the Gaps**
-   - [Background insight]
-   - [Follow-up sensory question]
-   - (Repeat 2–3 times)
-
-**Total Questions:** 6–8
-
----
-
-## ⚖️ Additional Rules & Guidance for This Step
-
-- **Scene-Limited Imagery:** Only use imagery, actions, and details from `{{scene}}`.
-- **Link Background to Sensory Detail:** When using `{{exegetical_culture}}`, connect the fact directly to what participants could see, hear, smell, touch, or taste in the scene.
-- **No Repetition:** Each “Filling in the Gaps” detail must be unique.
-- **Observation Over Interpretation:** Do not state how someone feels unless it’s visible or audible in the scene.
-- **Plain, Self-Contained Questions:** Short, conversational sentences; one sensory focus per question.
-- **Echo the Text:** Use exact wording from `{{scene}}` where possible.
-- **Clarify the Role:** If using “you,” specify the role (e.g., “you are watching the shepherd…”).
-- **No Modern Application:** Focus on discovery and vivid imagining; application comes later.
+Keep all language short, plain, and conversational. Use concrete words from the scene’s imagery and emotional arc. Avoid stacked prompts — one focus per question. Keep participants as observers in the scene, then link what they see/hear/feel to a shared human experience.
