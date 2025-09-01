@@ -17,6 +17,7 @@ from llmflow.modules.gpt_api import call_gpt_with_retry, call_gpt_get_json
 def resolve(value, context):
     """
     Resolves variables within a value using the provided context.
+    Now supports dot notation for nested objects like ${object.property}
 
     This function recursively replaces placeholders in the given value with corresponding values from the context dictionary. Placeholders are denoted by the syntax `${key}`.
 
@@ -40,12 +41,44 @@ def resolve(value, context):
     if isinstance(value, str):
         if value.startswith("${") and value.endswith("}"):
             key = value[2:-1]
-            return context.get(key, value)
+
+            # Handle dot notation for nested properties
+            if '.' in key:
+                parts = key.split('.')
+                result = context
+                for part in parts:
+                    if isinstance(result, dict):
+                        result = result.get(part)
+                    else:
+                        return value  # Return original if can't resolve
+                    if result is None:
+                        return value  # Return original if not found
+                return result
+            else:
+                # Handle simple variables
+                return context.get(key, value)
         else:
             # Handle embedded variables like "text with ${var} inside"
-            for k, v in context.items():
-                value = value.replace(f"${{{k}}}", str(v))
-            return value
+            import re
+            def replace_var(match):
+                var_key = match.group(1)
+                if '.' in var_key:
+                    # Handle nested properties in embedded variables too
+                    parts = var_key.split('.')
+                    result = context
+                    for part in parts:
+                        if isinstance(result, dict):
+                            result = result.get(part)
+                        else:
+                            return match.group(0)  # Return original
+                        if result is None:
+                            return match.group(0)
+                    return str(result)
+                else:
+                    return str(context.get(var_key, match.group(0)))
+
+            pattern = r'\$\{([^}]+)\}'
+            return re.sub(pattern, replace_var, value)
     elif isinstance(value, dict):
         return resolve_dict(value, context)
     elif isinstance(value, list):

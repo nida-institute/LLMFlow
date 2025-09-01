@@ -24,40 +24,70 @@ def sanitize_filename(text):
         return "unnamed"
     return re.sub(r"[^\w]+", "_", text.strip())
 
+def read_text(path):
+    """
+    Read text content from a file and return it as a string.
+    Handles Unicode normalization for consistency.
+
+    Args:
+        path (str): Path to the text file to read
+
+    Returns:
+        str: The content of the file as a normalized string
+
+    Raises:
+        FileNotFoundError: If the file doesn't exist
+        UnicodeDecodeError: If the file can't be decoded as UTF-8
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return normalize_nfc(content)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File not found: {path}")
+    except UnicodeDecodeError as e:
+        raise UnicodeDecodeError(f"Could not decode file as UTF-8: {path}") from e
+
 # --- Markdown rendering and saving ---
 
 def render_markdown_template(template_path, variables):
     """
-    Load a Markdown template and substitute variables into it.
-    Returns the final rendered Markdown string.
+    Render a Markdown template by substituting variables.
+
+    Args:
+        template_path (str): Path to the template file
+        variables (dict): Dictionary of variables to substitute
+
+    Returns:
+        str: Rendered template content
     """
-    template_text = Path(template_path).read_text(encoding="utf-8")
+    template_content = read_text(template_path)
 
-    def substitute_var(match):
-        var_name = match.group(1)
-        return variables.get(var_name, f"{{MISSING:{var_name}}}")
+    # Simple variable substitution (you might want Jinja2 for more complex needs)
+    rendered = template_content
+    for key, value in variables.items():
+        placeholder = f"${{{key}}}"
+        rendered = rendered.replace(placeholder, str(value))
 
-    rendered = re.sub(r"\$\{(\w+)\}", substitute_var, template_text)
-    return rendered
+    return normalize_nfc(rendered)
 
 def save_markdown_as(text, passage, format="md", output_dir="outputs"):
     """
-    Save a Markdown string into the specified format (md, html, etc.).
+    Save text content as a file with custom naming and directory.
+    Supports both markdown and HTML output.
     """
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     safe_passage = sanitize_filename(passage)
 
     if format == "md":
         path = Path(output_dir) / f"{safe_passage}.md"
-        write_nfc(path, text.strip())
+        write_nfc(path, text)
         return str(path)
-
     elif format == "html":
-        html_text = markdown.markdown(text, output_format="html5")
+        html_text = markdown.markdown(text, output_format="xhtml")
         path = Path(output_dir) / f"{safe_passage}.html"
         write_nfc(path, html_text)
         return str(path)
-
     else:
         raise ValueError(f"Unsupported format: {format}")
 
