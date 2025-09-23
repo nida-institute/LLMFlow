@@ -1,17 +1,11 @@
-# Exegetical Background for ${passage}
+<!-- exegeticalguide_template.md -->
+# Exegetical Guide for {{ passage }}
 
-## Cultural Background
+## Cultural Context
+{{ culture }}
 
-${culture}
-
----
-
-## Word Study and Textual Criticism
-
-${wordstudy}
-
----
+## Word Study
+{{ wordstudy }}
 
 ## Emotional Arc
-
-${emotionalarc}
+{{ emotionalarc }}

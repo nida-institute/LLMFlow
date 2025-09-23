@@ -48,9 +48,11 @@ def call_gpt_with_retry(config, prompt, max_attempts=3):
                 if key != "model":
                     prompt_kwargs[key] = value
 
-            # Debug: Print what we're actually sending
-            print(f"DEBUG: Sending parameters: {prompt_kwargs}")
-            print(f"DEBUG: Model: {config['model']}")
+            # Log what we're actually sending
+            import logging
+            logger = logging.getLogger('llmflow.gpt')
+            logger.debug(f"Sending parameters: {prompt_kwargs}")
+            logger.debug(f"Model: {config['model']}")
 
             response = model_obj.prompt(prompt, **prompt_kwargs)
 

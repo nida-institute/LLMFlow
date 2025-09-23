@@ -2,6 +2,7 @@ name: storyflow-psalms
 
 variables:
   prompts_dir: prompts/storyflow
+  output_dir: outputs/storyflow
   source:  WLC
 
 llm_config:
@@ -15,6 +16,14 @@ linter_config:
 
 steps:
 
+  # --- Parse Passage Reference ---
+  - name: parse_passage_reference
+    type: function
+    function: llmflow.utils.data.parse_bible_reference
+    inputs:
+      passage: "${passage}"
+    outputs: passage_info
+
   # --- Exegetical E1–E3 Generation ---
   - name: generate_exegetical_culture
     type: llm
@@ -23,7 +32,7 @@ steps:
       inputs:
         source: "${source}"
         passage: "${passage}"
-    outputs: [exegetical_culture]
+      outputs: exegetical_culture
 
   - name: generate_exegetical_wordstudy
     type: llm
@@ -32,7 +41,7 @@ steps:
       inputs:
         source: "${source}"
         passage: "${passage}"
-    outputs: [exegetical_wordstudy]
+    outputs: exegetical_wordstudy
 
   - name: generate_exegetical_emotionalarc
     type: llm
@@ -41,10 +50,10 @@ steps:
       inputs:
         source: "${source}"
         passage: "${passage}"
-    outputs: [exegetical_emotionalarc]
+    outputs: exegetical_emotionalarc
 
-  # --- Assemble Exegetical Guide (render only) ---
-  - name: render_exegetical_markdown
+  # --- Render and Save Exegetical Guide ---
+  - name: render_and_save_exegetical_guide
     type: function
     function: llmflow.utils.io.render_markdown_template
     inputs:
@@ -54,42 +63,8 @@ steps:
         culture: "${exegetical_culture}"
         wordstudy: "${exegetical_wordstudy}"
         emotionalarc: "${exegetical_emotionalarc}"
-    outputs: [exegetical_markdown_text]
-
-  # --- Save Exegetical Guide Markdown ---
-  - name: save_exegetical_md
-    type: function
-    function: llmflow.utils.io.save_markdown_as
-    inputs:
-      text: "${exegetical_markdown_text}"
-      passage: "${passage}"
-      format: "md"
-      output_dir: "outputs/exegetical"
-    outputs: [exegetical_md_path]
-
-  # --- Generate Josh Frost Emotional Exegesis ---
-  - name: generate_joshfrost_emotional
-    type: llm
-    prompt:
-      file: joshfrost-emotional.gpt
-      inputs:
-        passage: "${passage}"
-        source: "${source}"
-        exegetical_culture: "${exegetical_culture}"
-        exegetical_wordstudy: "${exegetical_wordstudy}"
-        exegetical_emotionalarc: "${exegetical_emotionalarc}"
-    outputs: [joshfrost_emotional]
-
-  # --- Save Josh Frost Markdown ---
-  - name: save_joshfrost_md
-    type: function
-    function: llmflow.utils.io.save_markdown_as
-    inputs:
-      text: "${joshfrost_emotional}"
-      passage: "${passage}"
-      format: "md"
-      output_dir: "outputs/joshfrost"
-    outputs: [joshfrost_md_path]
+    outputs: exegetical_markdown_text
+    saveas: "outputs/exegetical/${passage}_exegetical_guide.md"
 
   # --- Generate Leader Guide Intro and Scene List ---
   - name: generate_intro
@@ -101,7 +76,7 @@ steps:
         exegetical_culture: "${exegetical_culture}"
         exegetical_wordstudy: "${exegetical_wordstudy}"
         exegetical_emotionalarc: "${exegetical_emotionalarc}"
-    outputs: [intro_response]
+    outputs: intro_response
 
   - name: generate_scene_list
     type: llm
@@ -113,6 +88,7 @@ steps:
         exegetical_wordstudy: "${exegetical_wordstudy}"
     output_type: json
     outputs: [scene_list]
+    log: debug  # This will help debug the string vs array issue
 
   # --- Save Scene List JSON ---
   - name: save_scene_list
@@ -124,13 +100,30 @@ steps:
       output_dir: "outputs/scenes"
     outputs: [scene_json_path]
 
+
   # --- For Each Scene (Steps 1–4) ---
   - name: process_each_scene
     type: for-each
     input: "${scene_list}"
     item_var: scene
     steps:
-      - type: llm
+
+      # --- Generate Josh Frost Emotional Exegesis ---
+      - name: joshfrost_list
+        type: llm
+        prompt:
+          file: joshfrost-emotional.gpt
+          inputs:
+            passage: "${passage}"
+            source: "${source}"
+            scene: "${scene}"
+            exegetical_culture: "${exegetical_culture}"
+            exegetical_wordstudy: "${exegetical_wordstudy}"
+            exegetical_emotionalarc: "${exegetical_emotionalarc}"
+        append_to: joshfrost_list
+
+      - name: bodies
+        type: llm
         prompt:
           file: leadersguide-bodies.gpt
           inputs:
@@ -138,9 +131,10 @@ steps:
             scene: "${scene}"
             citation: "${scene.Citation}"
             exegetical_culture: "${exegetical_culture}"
-        append_to: step1_list
+        append_to: bodies_list
 
-      - type: llm
+      - name: hearts
+        type: llm
         prompt:
           file: leadersguide-hearts.gpt
           inputs:
@@ -149,10 +143,11 @@ steps:
             citation: "${scene.Citation}"
             exegetical_culture: "${exegetical_culture}"
             exegetical_wordstudy: "${exegetical_wordstudy}"
-            joshfrost_emotional: "${joshfrost_emotional}"
-        append_to: step2_list
+            joshfrost_list: "${joshfrost_list}"
+        append_to: hearts_list
 
-      - type: llm
+      - name: connecting
+        type: llm
         prompt:
           file: leadersguide-connecting.gpt
           inputs:
@@ -160,9 +155,10 @@ steps:
             scene: "${scene}"
             citation: "${scene.Citation}"
             exegetical_emotionalarc: "${exegetical_emotionalarc}"
-        append_to: step3_list
+        append_to: connecting_list
 
-      - type: llm
+      - name: naming
+        type: llm
         prompt:
           file: leadersguide-naming.gpt
           inputs:
@@ -171,7 +167,7 @@ steps:
             citation: "${scene.Citation}"
             exegetical_culture: "${exegetical_culture}"
             exegetical_emotionalarc: "${exegetical_emotionalarc}"
-        append_to: step4_list
+        append_to: naming_list
 
   # --- Generate Leader Guide Summary ---
   - name: generate_summary
@@ -182,30 +178,73 @@ steps:
         passage: "${passage}"
         exegetical_culture: "${exegetical_culture}"
         exegetical_emotionalarc: "${exegetical_emotionalarc}"
-    outputs: [summary_response]
+    outputs: summary_response
+
+  # --- Create Scene Steps JSON Structure ---
+  - name: create_scene_steps_json
+    type: function
+    function: llmflow.utils.data.create_json_dictionary
+    inputs:
+      step1: "${bodies_list}"
+      step2: "${hearts_list}"
+      step3: "${connecting_list}"
+      step4: "${naming_list}"
+    outputs: scene_steps_json
+
+  # --- Assemble Scene Steps ---
+  - name: assemble_scene_steps
+    type: function
+    function: llmflow.utils.data.interleave
+    inputs:
+      json_structure: "${scene_steps_json}"
+    outputs: [scene_steps]
+
+
+  # --- Debugging Step ---
+  - name: debug_lists
+    type: function
+    function: llmflow.utils.data.create_json_dictionary
+    inputs:
+      bodies_count: "${len(bodies_list) if bodies_list else 0}"
+      hearts_count: "${len(hearts_list) if hearts_list else 0}"
+      connecting_count: "${len(connecting_list) if connecting_list else 0}"
+      naming_count: "${len(naming_list) if naming_list else 0}"
+      bodies_first: "${bodies_list[0][:100] if bodies_list and len(bodies_list) > 0 else 'EMPTY'}"
+      hearts_first: "${hearts_list[0][:100] if hearts_list and len(hearts_list) > 0 else 'EMPTY'}"
+      connecting_first: "${connecting_list[0][:100] if connecting_list and len(connecting_list) > 0 else 'EMPTY'}"
+      naming_first: "${naming_list[0][:100] if naming_list and len(naming_list) > 0 else 'EMPTY'}"
+    outputs: debug_info
+    log: info  # This will show the debug info on console
+
 
   # --- Assemble and Save Leader Guide ---
   - name: save_leaders_guide
     type: function
-    function: llmflow.utils.io.save_leaders_guide
+    function: llmflow.utils.io.render_markdown_template
     inputs:
-      passage: "${passage}"
-      intro: "${intro_response}"
-      scenes: "${scene_list}"
-      step1: "${step1_list}"
-      step2: "${step2_list}"
-      step3: "${step3_list}"
-      step4: "${step4_list}"
-      summary: "${summary_response}"
-    outputs: [leaders_guide_path]
+      template_path: "templates/leadersguide_template.md"
+      variables:
+        passage: "${passage}"
+        intro: "${intro_response}"
+        scenes: "${scene_list}"
+        scene_steps: "${scene_steps}"
+        summary: "${summary_response}"
+    outputs: leaders_guide_markdown
+    saveas: "outputs/leaders_guide/${passage_info.filename_prefix}_leaders_guide.md"
 
-  # --- Read the raw (unedited) Leader's Guide Markdown ---
-  - name: read_leaders_guide_md
+  # --- Save Josh Frost Markdown ---
+  - name: save_joshfrost_md
     type: function
-    function: llmflow.utils.io.read_text
+    function: llmflow.utils.io.render_markdown_template
     inputs:
-      path: "${leaders_guide_path}"
-    outputs: [leaders_guide_markdown]
+      template_path: "templates/joshfrost_template.md"
+      variables:
+        passage: "${passage}"
+        scenes: "${scene_list}"
+        joshfrost_content: "${joshfrost_list}"
+    outputs: joshfrost_markdown
+    saveas: "outputs/joshfrost/${passage_info.filename_prefix}_joshfrost.md"
+    log: info  # Important checkpoint
 
   # --- QA + Editor (light-touch, surgical edits; returns JSON) ---
   - name: qa_edit_leaders_guide
@@ -214,29 +253,13 @@ steps:
       file: leadersguide-qaedit.gpt
       inputs:
         passage_ref: "${passage}"
-        leaders_guide_markdown: "${leaders_guide_markdown}"   # pass the full text, not the path
+        leaders_guide_markdown: "${leaders_guide_markdown}"
     output_type: json
-    outputs: [qa_output]
-
-  # --- Save the EDITED Leader's Guide Markdown (publishable) ---
-  - name: save_leaders_guide_edited
-    type: function
-    function: llmflow.utils.io.save_markdown_as
-    inputs:
-      text: "${qa_output.fixed_markdown}"
-      passage: "${passage}"
-      format: "md"
-      output_dir: "outputs/leaders_guide_edited"
-    outputs: [leaders_guide_edited_path]
-
-  # --- Save the QA JSON report (traceability) ---
-  - name: save_qa_report
-    type: function
-    function: llmflow.utils.io.save_json
-    inputs:
-      passage: "${passage}"
-      content: "${qa_output}"
-      output_dir: "outputs/qa_reports"
-    outputs: [qa_report_path]
-
-
+    outputs: qa_output
+    saveas:
+      - path: "outputs/leaders_guide_edited/${passage}_leaders_guide_edited.md"
+        content: "${qa_output.fixed_markdown}"
+        format: markdown
+      - path: "outputs/qa_reports/${passage}_qa_report.json"
+        content: "${qa_output}"
+        format: json

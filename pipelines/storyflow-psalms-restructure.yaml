@@ -1,0 +1,50 @@
+name: test-init-guide-data
+
+variables:
+  prompts_dir: prompts/storyflow
+  output_dir: outputs/test
+  source: WLC
+
+llm_config:
+  model: gpt-4o
+  temperature: 0.4
+  max_tokens: 6000
+
+linter_config:
+  enabled: true
+  treat_warnings_as_errors: true
+
+steps:
+  # --- Initialize Guide Data Structure ---
+  - name: init_guide_data
+    type: function
+    function: llmflow.utils.io.init_json_structure
+    inputs:
+      structure:
+        passage: "${passage}"
+        source: "${source}"
+        biblical_structure:
+          book_code: null
+          chapter: null
+          verses: null  # verse range for the passage
+          title: null  # title of the passage
+          scenes: []  # verse ranges for each scene
+        exegetical:
+          culture: null
+          wordstudy: null
+          emotionalarc: null
+        joshfrost:
+          summary: null
+          scenes: [] # scene summaries
+        leaders_guide:
+          intro: null
+          summary: null
+          steps:
+            body: [] # enter each scene with our bodies
+            heart: [] # enter each scene with our hearts
+            speak: [] # connect the scene to our lives
+            name: [] # name the scene
+        outputs: {}
+    outputs: [guide_data]
+    print: [guide_data]  # Print the initialized structure to screen
+

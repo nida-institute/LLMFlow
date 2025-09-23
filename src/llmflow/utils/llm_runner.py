@@ -43,11 +43,13 @@ def call_llm(prompt_text, model="gpt-4o", tags=None,
                     return output  # fallback to plain text
 
         except Exception as e:
-            print(f"⚠️ LLM call failed on attempt {attempt}: {e}")
+            import logging
+            logger = logging.getLogger('llmflow.llm')
+            logger.warning(f"LLM call failed on attempt {attempt}: {e}")
             last_exception = e
             if attempt < max_retries:
                 wait_time = retry_backoff ** (attempt - 1)
-                print(f"🔁 Retrying in {wait_time} seconds...")
+                logger.info(f"Retrying in {wait_time} seconds...")
                 time.sleep(wait_time)
 
     raise RuntimeError(f"LLM call failed after {max_retries} attempts") from last_exception

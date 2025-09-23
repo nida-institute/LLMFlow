@@ -7,15 +7,6 @@ prompt:
   format: Markdown
   description: Analyzes poetic and cultural imagery in {passage} using {source}
 -->
-<!--
-prompt:
-  requires:
-  - passage
-  - source
-  optional: []
-  format: Markdown
-  description: Analyzes poetic and cultural imagery in {passage} using {source}
--->
 
 STYLE / METHOD GUARDRAILS (NON-NEGOTIABLE)
 - Inductive order only: description → implication for visualization; no modern application here.

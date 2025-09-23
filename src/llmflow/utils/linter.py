@@ -1,3 +1,4 @@
+from jinja2 import Environment, meta
 from pathlib import Path
 import yaml
 import click
@@ -49,7 +50,7 @@ def lint_pipeline_contracts(pipeline_path):
     errors = []
     warnings = []
 
-    valid_formats = {"json", "markdown", "html", "text"}
+    valid_formats = {"json", "markdown", "html", "text", "yaml", "xml"}  # Add more as needed
 
     for step in steps:
         if step.get("type") != "llm":
@@ -109,11 +110,17 @@ def lint_pipeline_contracts(pipeline_path):
         if diff_block:
             warnings.append(diff_block)
 
-        fmt = header.get("format", "").lower()
+        fmt = header.get("format", "") or header.get("output_type", "")
         if fmt and fmt not in valid_formats:
             errors.append(
                 f"❌ Invalid format '{fmt}' in prompt '{file}'. Allowed: {', '.join(valid_formats)}"
             )
+
+        pipeline_output_type = step.get("output_type", "").lower()
+        header_output_type = header.get("output_type", "").lower()
+
+        if pipeline_output_type and header_output_type and pipeline_output_type != header_output_type:
+            warnings.append(f"⚠️  Output type mismatch in '{step_name}': pipeline declares '{pipeline_output_type}', prompt declares '{header_output_type}'")
 
     for msg in warnings:
         click.secho(msg, fg="yellow")
@@ -122,3 +129,108 @@ def lint_pipeline_contracts(pipeline_path):
         for msg in errors:
             click.secho(msg, fg="red")
         raise SystemExit("❌ Prompt contract validation failed. See above for details.")
+
+def extract_template_variables(template_content):
+    """Extract all variables used in a Jinja2 template using AST parsing"""
+    env = Environment()
+    ast = env.parse(template_content)
+
+    # Get all undeclared variables (variables that need to be provided)
+    undeclared_variables = meta.find_undeclared_variables(ast)
+
+    return undeclared_variables
+
+def validate_template_step(step, errors, warnings):
+    """Validate a template rendering step (Jinja2 templates only)"""
+    if step.get("type") != "function" or "render_markdown_template" not in step.get("function", ""):
+        return
+
+    inputs = step.get("inputs", {})
+    template_path = inputs.get("template_path")
+
+    if not template_path:
+        errors.append(f"Step '{step['name']}': Missing template_path")
+        return
+
+    # Only validate .md files (Jinja2 templates), skip .gpt files
+    if not template_path.endswith('.md'):
+        return
+
+    # Check if template file exists
+    if not Path(template_path).exists():
+        errors.append(f"Step '{step['name']}': Template file not found: {template_path}")
+        return
+
+    try:
+        # Read template and extract variables
+        template_content = Path(template_path).read_text()
+        used_variables = extract_template_variables(template_content)
+
+        # Get expected variables from pipeline step
+        expected_variables = set(inputs.get("variables", {}).keys())
+
+        # Convert to sets for comparison
+        used_vars_set = set(used_variables)
+
+        # Find unused variables (provided but not used in template)
+        unused = expected_variables - used_vars_set
+
+        # Find undefined variables (used in template but not provided)
+        undefined = used_vars_set - expected_variables
+
+        if unused:
+            warnings.append(f"Template '{template_path}': Unused variables: {sorted(unused)}")
+
+        if undefined:
+            errors.append(f"Template '{template_path}': Undefined variables: {sorted(undefined)}")
+
+    except Exception as e:
+        errors.append(f"Step '{step['name']}': Error parsing Jinja2 template {template_path}: {e}")
+
+def validate_pipeline(pipeline_config):
+    """Main pipeline validation function"""
+    errors = []
+    warnings = []
+
+    steps = pipeline_config.get("steps", [])
+
+    for step in steps:
+        # Existing validations...
+
+        # Add template validation
+        validate_template_step(step, errors, warnings)
+
+    return {
+        "valid": len(errors) == 0,
+        "errors": errors,
+        "warnings": warnings
+    }
+
+def lint_pipeline_full(pipeline_path):
+    """Full pipeline linting including both .gpt contracts and Jinja2 templates"""
+
+    # First run the existing .gpt contract validation
+    lint_pipeline_contracts(pipeline_path)
+
+    # Then run template validation
+    pipeline = yaml.safe_load(Path(pipeline_path).read_text())
+    pipeline_config = pipeline.get("pipeline", pipeline)  # Handle both formats
+
+    errors = []
+    warnings = []
+
+    steps = pipeline_config.get("steps", [])
+    for step in steps:
+        validate_template_step(step, errors, warnings)
+
+    # Report template validation results
+    for warning in warnings:
+        click.secho(warning, fg="yellow")
+
+    if errors:
+        for error in errors:
+            click.secho(error, fg="red")
+        raise SystemExit("❌ Template validation failed. See above for details.")
+
+    if warnings or errors:
+        click.secho("✅ Template validation completed", fg="green")

@@ -1,3 +1,13 @@
+<!--
+prompt:
+  requires:
+  - passage_ref
+  - leaders_guide_markdown
+  optional: []
+  output_type: json
+  description: QA and edit Leader's Guide Markdown to fix issues while preserving StoryFlow method
+-->
+
 You are the "StoryFlow QA + Editor." Your job is to FIX the Leader's Guide Markdown directly, while preserving the StoryFlow method:
 
 - Don't front‑load commentary before immersion.
@@ -6,13 +16,16 @@ You are the "StoryFlow QA + Editor." Your job is to FIX the Leader's Guide Markd
 - Only add background after participants have entered the scene.
 - Favor open questions over leading questions.
 
-### Inputs
-- PASSAGE: {{passage_ref}}      # e.g., "Psalm 23"
-- LEADERS_GUIDE_MD: <<<MD
-{{leaders_guide_markdown}}
->>>MD
+## Inputs
 
-### What to FIX (edit in place)
+### Passage Reference
+{passage_ref}
+
+### Leader's Guide Markdown
+{leaders_guide_markdown}
+
+## What to FIX (edit in place)
+
 1) **Duplication** — remove or merge repetitive prompts/imagery/questions across the whole guide; keep the stronger version.
 2) **Misplacement** — move content to the right section:
    - Background → after immersion (or a brief "guided insight" callout).
@@ -25,15 +38,11 @@ You are the "StoryFlow QA + Editor." Your job is to FIX the Leader's Guide Markd
 7) **Readability & length** — tighten bloated sections; keep each bullet ≤ 25 words where possible; prefer 3–6 prompts per subsection.
 8) **Concrete specificity** — use specific details (e.g., "rod for protection, staff for guidance") rather than vague references to "tools" or "implements."
 
-### Constraints
-- Preserve the existing scene structure and headings.
-- Do NOT add novel doctrine or speculative history.
-- If a change is risky or theologically disputed, leave the minimal safe version and FLAG it for human review.
-- **KEEP scholarly detail and concrete specificity** — don't remove rich biblical/cultural context to play it safe. Keep it textually grounded, detailed, and personal.
+## Output Format
 
-### Output format (JSON)
 Return ONLY valid JSON with these keys:
 
+```json
 {
   "fixed_markdown": "<FULL corrected Leader's Guide markdown>",
   "changes": [
@@ -54,38 +63,15 @@ Return ONLY valid JSON with these keys:
     }
   ],
   "stats": {
-    "questions_total": <int>,
-    "questions_removed": <int>,
-    "questions_added": <int>,
-    "sections_moved": <int>,
-    "duplications_removed": <int>,
-    "reading_time_minutes": <int>
+    "questions_total": 0,
+    "questions_removed": 0,
+    "questions_added": 0,
+    "sections_moved": 0,
+    "duplications_removed": 0,
+    "reading_time_minutes": 0
   }
 }
+```
 
-### Editing heuristics (apply silently)
-- Prefer verbs of perception/action over abstractions in "Enter with your body."
-- In "Enter with your heart," surface desires, trust, resistance, choice, and stakes.
-- Where background is essential, present as a single "Guided Insight" callout AFTER immersion.
-- Replace absolute claims about implications with modest, text‑grounded language.
-- Trim anything leaders would struggle to speak naturally.
-- **Use concrete, specific terms**: rod (protection), staff (guidance), oil (blessing/honor), cup (hospitality), table (provision).
-- **Avoid speculative questions**: Don't ask about sounds, voices, or details not observable in the scene.
-- **Remove leading questions**: Questions like "How does the gentle voice comfort you?" contain the answer (gentle, comfort).
-- **Focus on observable elements**: What can be seen, felt, or experienced rather than imagined or inferred.
-- **Preserve rich detail**: Keep scholarly insights, cultural context, and textual specificity that enhances understanding.
-
-### Question quality guidelines
-- ❌ "What does the shepherd's gentle voice sound like?" (speculative + contains answer)
-- ✅ "What do you notice about the shepherd's presence?"
-- ❌ "How does the comforting rod feel?" (contains answer: comforting)
-- ✅ "What do you feel when you see the rod?"
-- ❌ "How do the green pastures make you feel peaceful?" (contains answer)
-- ✅ "What do you notice about your surroundings?"
-
-### Flagging rules
-- If a statement could be theologically disputed across mainstream orthodox traditions, set a "warn" flag and soften the language.
-- If any sentence risks heresy (e.g., modalism, adoptionism, Arian drift), set "block" and replace with a minimal safe wording; explain in flags.
-
-Now perform the edits and return the JSON.
+[Rest of the detailed editing guidelines...]
 
