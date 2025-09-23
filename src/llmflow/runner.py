@@ -3,6 +3,9 @@ import importlib
 import inspect
 import logging
 from pathlib import Path
+import re
+import mistune
+import json
 
 from llmflow.utils.llm_runner import call_llm
 from llmflow.utils.io import normalize_nfc
@@ -266,25 +269,19 @@ def run_for_each_step(rule, context, pipeline_config):
             # Try to parse the JSON directly
             try:
                 parsed_json = json.loads(potential_json)
-                logger.debug(f"Successfully parsed JSON with {len(parsed_json)} items")
                 loop_input = parsed_json
             except json.JSONDecodeError:
-                # Look for array pattern within the text
-                json_array_pattern = r'\[\s*{.*}\s*\]'
-                array_match = re.search(json_array_pattern, potential_json, re.DOTALL)
-
+                # Fallback: extract first valid JSON array using regex
+                import re
+                array_match = re.search(r'(\[[^\]]*\])', potential_json, re.DOTALL)
                 if array_match:
                     try:
-                        array_text = array_match.group(0)
-                        parsed_json = json.loads(array_text)
-                        logger.debug(f"Found and parsed JSON array with {len(parsed_json)} items")
+                        parsed_json = json.loads(array_match.group(1))
                         loop_input = parsed_json
                     except json.JSONDecodeError:
-                        logger.debug(f"Found JSON-like array but couldn't parse it, treating as single item")
-                        loop_input = [potential_json]  # Treat as single item
+                        loop_input = [potential_json]
                 else:
-                    logger.debug(f"No valid JSON found, treating as single item")
-                    loop_input = [potential_json]  # Treat as single item
+                    loop_input = [potential_json]
 
         # Ensure loop_input is a list (or at least iterable)
         if not isinstance(loop_input, list) and not hasattr(loop_input, '__iter__'):
@@ -505,6 +502,35 @@ def save_content_to_file(content, path, format_type="auto"):
 
     return str(file_path)
 
+
+def validate_pipeline_expressions(step_inputs, context):
+    """
+    Raise an error if any input value contains an unresolvable ${...} expression.
+    """
+    if isinstance(step_inputs, str):
+        resolved = resolve(step_inputs, context)
+        # If unresolved, it will still contain ${...}
+        if isinstance(resolved, str) and "${" in resolved:
+            # Instead of regex, just raise error for any remaining ${...}
+            unresolved_vars = []
+            idx = 0
+            while idx < len(resolved):
+                start = resolved.find("${", idx)
+                if start == -1:
+                    break
+                end = resolved.find("}", start)
+                if end == -1:
+                    break
+                unresolved_vars.append(resolved[start:end+1])
+                idx = end + 1
+            for expr in unresolved_vars:
+                raise ValueError(f"Unresolved pipeline expression: {expr} in value '{step_inputs}'")
+    elif isinstance(step_inputs, dict):
+        for v in step_inputs.values():
+            validate_pipeline_expressions(v, context)
+    elif isinstance(step_inputs, list):
+        for item in step_inputs:
+            validate_pipeline_expressions(item, context)
 
 def run_pipeline(pipeline_path, variables=None, dry_run=False):
     """Execute a YAML-defined pipeline with template validation"""
