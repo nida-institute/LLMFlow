@@ -2,10 +2,10 @@
 # Exegetical Guide for {{ passage }}
 
 ## Cultural Context
-{{ culture }}
+{{ exegetical_culture }}
 
 ## Word Study
-{{ wordstudy }}
+{{ exegetical_wordstudy }}
 
 ## Emotional Arc
-{{ emotionalarc }}
+{{ exegetical_emotionalarc }}

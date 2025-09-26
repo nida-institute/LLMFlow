@@ -5,67 +5,62 @@ prompt:
   - source
   optional: []
   format: Markdown
-  description: Provides key Hebrew terms and textual notes for {passage} using {source}
--->
-<!--
-prompt:
-  requires:
-  - passage
-  - source
-  optional: []
-  format: Markdown
-  description: Provides key Hebrew terms and textual notes for {passage} using {source}
+  description: Analyze the passage {{passage}} using the source {{source}}. Provide key Hebrew terms, textual notes, and implications for scene visualization.
 -->
 
 STYLE / METHOD GUARDRAILS (NON-NEGOTIABLE)
 - Inductive order only: description → implication for visualization; no modern application here.
-- Keep everything inside the ancient scene and world; do not guess beyond evidence.
+- Stay inside the ancient scene and world; do not guess beyond evidence.
+- Include **all** terms, phrases, and poetic/structural devices that carry interpretive weight in this Psalm; omit trivial items. **Do not target a fixed number**—stop when coverage is complete.
 - Every lexical, poetic, or structural point MUST include “Implication for Scene Visualization”.
 - Use the exact heading levels and order specified below—no extra sections.
 - Forbidden: “What do you think…”, “How might…”, generic modern parallels, moral lessons.
 INTERNAL CHECK (before returning):
 - Headings match the required schema exactly (## / ### / #### as specified).
 - Each Term/Device includes an Implication line.
+- Coverage is complete but not padded; items are concise, specific, and tied to concrete imagery.
 - No modern-life language; all content is scene-usable by later prompts.
 
-## Word Study & Poetics
+**Instructions:**
+Analyze the passage **{{passage}}** using the source **{{source}}**.
+Identify every item that materially shapes imagery, movement, or emotion; then stop—no padding.
+Group duplicates (e.g., repeated forms of the same lemma) into one entry and note recurrence.
+If the Psalm is highly abstract, prioritize imagery anchors and controlling metaphors.
+
+## Word Study & Poetics for {{passage}} (using {{source}})
 
 ### Key Terms & Phrases
+(List every word/phrase that is exegetically or poetically significant for understanding this Psalm. Include metaphors, repeated words, culturally loaded terms, unusual grammar, and meaningful wordplay. For each:)
+
 #### <Hebrew/Greek term> — <transliteration>
+- Lemma (if different from surface form):
 - Literal gloss:
-- Semantic range (concise; cite core nuance only):
-- Poetic/grammatical notes (if any):
+- Semantic range (concise; nuances relevant to this passage):
+- Poetic/grammatical notes (if any; note repetition, inclusio, parallelism):
+- Why significant in this Psalm (1–2 sentences, Psalm-specific):
 - Implication for Scene Visualization:
 
 #### <Next term> — <transliteration>
+- Lemma (if different):
 - Literal gloss:
 - Semantic range:
 - Poetic/grammatical notes:
+- Why significant in this Psalm:
 - Implication for Scene Visualization:
 
 ### Poetic Structure & Devices
+(List devices only where they shape meaning—e.g., parallelism types, inclusio, acrostic cues, stanza movement.)
 - Device/Pattern:
-  - What it does in this text:
-  - Implication for Scene Visualization:
+- What it does in this text:
+- Implication for Scene Visualization:
 
 ### Attributed Author Context
-
 State whether the psalm is traditionally or textually attributed to a specific person.
-- If attributed, briefly identify the author and, if relevant, note how their life or role might affect the nuance or resonance of key terms in **this scene**.
-- If authorship is uncertain or unknown, state that, and briefly note any scholarly perspectives if they help situate the text.
-
-Include only author details that clarify specific words, images, or metaphors.
-Do not include generic references without a direct, text-based link.
-
-**Examples of possible author connections:**
-- **David** — His shepherding background deepens terms like “my shepherd” (רֹעִי) or “rod” and “staff.”
-- **Asaph** — Musical/liturgical role could inform worship vocabulary.
-- **Sons of Korah** — Temple-related terms like “gates,” “courts,” or “Zion.”
-- **Others** — As appropriate for the text.
-
-> Examples are illustrative; author notes should be concise, evidence-based, and specific to the current scene.
-
+- If attributed, briefly note how the author’s background shapes *specific lexical choices* (e.g., shepherd vocabulary for David, temple vocabulary for Korahites).
+- If uncertain/unknown, state that fact, and mention any textual traditions or contexts that clarify key terms.
+- Keep this section tightly linked to words/images in the psalm — no generic biography.
 
 ### Syntactic/Structural Observations (if relevant)
+(Only if structure clearly affects meaning or imagery.)
 - Observation:
   - Implication for Scene Visualization:

@@ -49,30 +49,52 @@ def read_text(path):
     except UnicodeDecodeError as e:
         raise UnicodeDecodeError(f"Could not decode file as UTF-8: {path}") from e
 
-# --- Markdown rendering and saving ---
+# --- Template rendering ---
 
-def render_markdown_template(template_path, variables):
-    """
-    Render template using only Jinja2.
-    Supports interleave operations for complex data structures.
-    """
-    import jinja2
-    from pathlib import Path
+def render_template(template_content, variables):
+    """Simple template rendering using {{variable}} notation."""
+    rendered = template_content
 
-    template_content = read_text(template_path)
+    # Replace all {{variable}} patterns
+    for key, value in variables.items():
+        # Handle None values
+        if value is None:
+            value = ""
 
-    # Process special operations like interleave
-    processed_vars = process_interleave_operations(variables)
+        # Convert to string if needed
+        str_value = str(value) if not isinstance(value, str) else value
 
-    # Use Jinja2 for all templates
-    env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(Path(template_path).parent),
-        trim_blocks=True,
-        lstrip_blocks=True
-    )
+        # Replace {{key}} with value
+        pattern = "{{" + str(key) + "}}"
+        rendered = rendered.replace(pattern, str_value)
 
-    template = env.get_template(Path(template_path).name)
-    return normalize_nfc(template.render(**processed_vars))
+        # Also try with spaces: {{ key }}
+        pattern_with_spaces = "{{ " + str(key) + " }}"
+        rendered = rendered.replace(pattern_with_spaces, str_value)
+
+    return rendered
+
+def render_markdown_template(template_path, variables, context=None):
+    """Render a markdown template with variables."""
+    from llmflow.runner import resolve  # Import the resolve function
+
+    # Load template
+    template_content = Path(template_path).read_text()
+
+    # CRITICAL FIX: Use context for resolution if provided, otherwise use variables
+    resolution_context = context if context is not None else variables
+
+    # Resolve all variables BEFORE rendering
+    resolved_variables = {}
+    for key, value in variables.items():
+        if isinstance(value, str) and "${" in value:
+            # This is a variable reference that needs resolution against the full context
+            resolved_variables[key] = resolve(value, resolution_context)
+        else:
+            resolved_variables[key] = value
+
+    # Now render with resolved variables
+    return render_template(template_content, resolved_variables)
 
 def process_interleave_operations(variables):
     """Handle interleave operations - create arrays of objects for Jinja2."""
@@ -133,34 +155,21 @@ def save_xml(xml_string, basename, output_dir="outputs/xml"):
     return str(path)
 
 
-# --- JSON saving ---
+def save_text(content, output_path, format="md"):
+    """
+    Save text content to a file.
+    """
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    write_nfc(output_path, content)
+    return str(output_path)
 
-def save_json(passage, content, output_dir="outputs/scenes"):
-    """Save JSON content with debug logging"""
-    logger = logging.getLogger('llmflow.io')
-
-    logger.debug("=== DEBUG save_json ===")
-    logger.debug(f"passage: {passage}")
-    logger.debug(f"content type: {type(content)}")
-    logger.debug(f"content value: {content}")
-    logger.debug(f"output_dir: {output_dir}")
-
-    # Create the directory
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
-
-    # Generate filename
-    safe_passage = sanitize_filename(passage)
-    output_path = Path(output_dir) / f"{safe_passage}.json"
-
-    logger.debug(f"Writing to: {output_path}")
-
-    # Write the content
+def save_json(content, output_path):
+    """
+    Save JSON content to a file.
+    """
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(content, f, ensure_ascii=False, indent=2)
-
-    logger.debug("File written successfully")
-    logger.debug("=== END DEBUG save_json ===")
-
     return str(output_path)
 
 # --- Existing save_leaders_guide (good enough for now) ---
@@ -198,53 +207,15 @@ def save_leaders_guide(passage, intro, scenes, step1, step2, step3, step4, summa
     return result
 
 def extract_template_variables(template_path):
-    """Extract all variables used in a Jinja2 template"""
-    import jinja2
+    """Extract all variables used in a double-curly-brace template (no Jinja2)"""
     import re
 
     template_content = read_text(template_path)
 
-    # Find all Jinja2 variables: {{ variable }}, {{ object.property }}, {{ array[index] }}
-    jinja_vars = set()
+    # Find all {{ variable }} and {{ object.property }} patterns
+    curly_vars = set(re.findall(r'\{\{\s*([a-zA-Z_][a-zA-Z0-9_\.]*)\s*\}\}', template_content))
 
-    # Simple variables: {{ variable }}
-    simple_vars = re.findall(r'\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}', template_content)
-    jinja_vars.update(simple_vars)
-
-    # Object properties: {{ object.property }}
-    obj_props = re.findall(r'\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\.[a-zA-Z0-9_.]*\s*\}\}', template_content)
-    jinja_vars.update(obj_props)
-
-    # Array access: {{ array[0] }} or {{ array[loop.index0] }}
-    array_vars = re.findall(r'\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\[[^\]]*\]\s*\}\}', template_content)
-    jinja_vars.update(array_vars)
-
-    # For loops: {% for item in collection %}
-    for_loops = re.findall(r'\{\%\s*for\s+\w+\s+in\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\%\}', template_content)
-    jinja_vars.update(for_loops)
-
-    # ✅ Remove Jinja2 built-ins that are automatically available
-    jinja_builtins = {
-        'loop',        # Available in {% for %} loops
-        'scene_data',  # Loop variable from {% for scene_data in scene_steps %}
-        'scene',       # Loop variable from {% for scene in scenes %}
-        'item',        # Common loop variable
-        'forloop',     # Alternative loop object
-        'range',       # Jinja2 range function
-        'super',       # Template inheritance
-        'self',        # Template self-reference
-        'varargs',     # Function arguments
-        'kwargs'       # Keyword arguments
-    }
-
-    # Also remove any variables that are defined as loop variables in the template
-    # Look for {% for variable_name in ... %} patterns
-    loop_vars = re.findall(r'\{\%\s*for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+', template_content)
-    jinja_builtins.update(loop_vars)
-
-    jinja_vars = jinja_vars - jinja_builtins
-
-    return jinja_vars
+    return curly_vars
 
 def extract_pipeline_variables(pipeline):
     """Extract all variables that will be available in context"""

@@ -337,3 +337,23 @@ def simple_json_compare(expected, actual, test_name="comparison"):
             "error": str(e),
             "summary": f"JSON comparison failed: {str(e)}"
         }
+
+def flatten_json_to_markdown(data):
+    """
+    Recursively flatten any dict or list to Markdown by concatenating all values in document order.
+    No headings, bullets, or formatting are added.
+    """
+    result = []
+
+    def walk(val):
+        if isinstance(val, dict):
+            for v in val.values():
+                walk(v)
+        elif isinstance(val, list):
+            for item in val:
+                walk(item)
+        else:
+            result.append(str(val))
+
+    walk(data)
+    return "\n".join(result)

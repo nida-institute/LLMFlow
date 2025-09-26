@@ -1,0 +1,33 @@
+pipeline:
+  name: test_pipeline
+  variables:
+    prompts_dir: prompts
+    output_dir: outputs
+
+  llm_config:
+    model: gpt-4
+    temperature: 0.7
+    max_tokens: 1000
+
+  steps:
+    - name: parse_input
+      type: function
+      function: llmflow.utils.data.parse_bible_reference
+      inputs:
+        passage: ${passage}
+      outputs: passage_info
+
+    - name: generate_content
+      type: llm
+      prompt:
+        file: test_prompt.gpt
+        inputs:
+          passage: ${passage}
+      outputs: content
+
+    - name: save_output
+      type: function
+      function: llmflow.utils.io.save_text
+      inputs:
+        content: ${content}
+        output_path: ${output_dir}/${passage_info.filename_prefix}.txt

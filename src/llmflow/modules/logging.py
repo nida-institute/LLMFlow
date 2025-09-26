@@ -53,3 +53,40 @@ def log_info(message, debug=False):
     logging.info(message)
     if debug:
         typer.secho(message, fg=typer.colors.GREEN)
+
+class PipelineLogger:
+    _instance = None
+    _initialized = False
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        # Only initialize once
+        if not PipelineLogger._initialized:
+            self.logger = logging.getLogger('llmflow')
+            self.logger.setLevel(logging.DEBUG)
+
+            # CRITICAL: Prevent propagation to avoid duplicates
+            self.logger.propagate = False
+
+            # Clear any existing handlers
+            self.logger.handlers.clear()
+
+            # Console handler
+            console_handler = logging.StreamHandler()
+            console_handler.setLevel(logging.INFO)
+            console_formatter = logging.Formatter('%(message)s')
+            console_handler.setFormatter(console_formatter)
+            self.logger.addHandler(console_handler)
+
+            # File handler
+            file_handler = logging.FileHandler('llmflow.log')
+            file_handler.setLevel(logging.DEBUG)
+            file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            file_handler.setFormatter(file_formatter)
+            self.logger.addHandler(file_handler)
+
+            PipelineLogger._initialized = True

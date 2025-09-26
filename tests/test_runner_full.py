@@ -14,7 +14,7 @@ def test_run_function_step(monkeypatch):
 def test_run_llm_step(monkeypatch):
     monkeypatch.setattr("llmflow.runner.render_prompt", lambda prompt, ctx: f"Prompt with {ctx}")
     monkeypatch.setattr("llmflow.runner.normalize_nfc", lambda x: x)
-    monkeypatch.setattr("llmflow.runner.call_llm", lambda *args, **kwargs: "[LLM CALLED]")
+    monkeypatch.setattr("llmflow.runner.call_gpt_with_retry", lambda *args, **kwargs: "[LLM CALLED]")
 
     rule = {
         "type": "llm",

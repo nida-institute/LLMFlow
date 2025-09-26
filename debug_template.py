@@ -3,7 +3,6 @@
 import json
 import sys
 from pathlib import Path
-from jinja2 import Environment, FileSystemLoader, DebugUndefined
 
 def debug_template(template_path, variables_dict):
     """Debug a Jinja2 template with given variables"""

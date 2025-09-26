@@ -4,10 +4,9 @@ prompt:
     - passage
     - scene
     - citation
-    - benjaminsbirthday
-  optional: []
-  format: Markdown
-  description: Generates Step 4 (scene naming suggestions) for {scene} in {passage}
+    - exegetical_culture
+    - exegetical_emotionalarc
+  format: markdown
 -->
 
 # StoryFlow Leader's Guide: Step 4 – Name the Scene
@@ -32,7 +31,8 @@ The name should come from the participants, but leaders may offer suggestions to
 **passage**: {{passage}}
 **scene**: {{scene}}
 **citation**: {{citation}}
-**benjaminsbirthday**: {{benjaminsbirthday}}
+**exegetical_culture**: {{exegetical_culture}}
+**exegetical_emotionalarc**: {{exegetical_emotionalarc}}
 
 ---
 

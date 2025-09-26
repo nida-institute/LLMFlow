@@ -35,22 +35,27 @@ def get_gpt_model(model_name):
 
 def call_gpt_with_retry(config, prompt, max_attempts=3):
     import httpx
+    import logging
+    logger = logging.getLogger('llmflow.gpt')
 
     model_obj = get_gpt_model(config["model"])
 
     for attempt in range(max_attempts):
         try:
-            # Use the exact parameters from config without translation
             prompt_kwargs = {}
 
-            # Add all config parameters except 'model'
             for key, value in config.items():
-                if key != "model":
+                # Only send max_tokens for models that support it
+                if key == "max_tokens":
+                    if "gpt-5" in config["model"]:
+                        # Do NOT send max_completion_tokens unless you confirm it's supported
+                        continue  # Skip sending any token parameter for GPT-5
+                    else:
+                        prompt_kwargs["max_tokens"] = value
+                elif key != "model":
                     prompt_kwargs[key] = value
 
             # Log what we're actually sending
-            import logging
-            logger = logging.getLogger('llmflow.gpt')
             logger.debug(f"Sending parameters: {prompt_kwargs}")
             logger.debug(f"Model: {config['model']}")
 
@@ -62,13 +67,14 @@ def call_gpt_with_retry(config, prompt, max_attempts=3):
                 response_text = clean_llm_response_text(str(response))
             return response_text
         except httpx.RemoteProtocolError as e:
-            typer.secho(f"RemoteProtocolError (attempt {attempt + 1}): {e}", fg=typer.colors.YELLOW)
+            logger.warning(f"RemoteProtocolError (attempt {attempt + 1}): {e}")
         except httpx.RequestError as e:
-            typer.secho(f"HTTP request error (attempt {attempt + 1}): {e}", fg=typer.colors.YELLOW)
+            logger.warning(f"HTTP request error (attempt {attempt + 1}): {e}")
         except Exception as e:
-            typer.secho(f"GPT call failed due to an unexpected error (attempt {attempt + 1}): {e}", fg=typer.colors.YELLOW)
-    typer.secho("GPT call failed after maximum retries.", fg=typer.colors.RED)
-    raise typer.Exit(1)
+            logger.warning(f"GPT call failed due to an unexpected error (attempt {attempt + 1}): {e}")
+
+    logger.error("GPT call failed after maximum retries.")
+    raise Exception("GPT call failed after maximum retries")
 
 def call_gpt_get_json(config, prompt, retries):
     """

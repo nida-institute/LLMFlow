@@ -6,17 +6,17 @@ from pathlib import Path
 import re
 import mistune
 import json
+import click
 
 from llmflow.utils.llm_runner import call_llm
-from llmflow.utils.io import normalize_nfc
-from llmflow.utils.linter import lint_pipeline_contracts
+from llmflow.utils.io import normalize_nfc, validate_all_templates
+from llmflow.utils.linter import lint_pipeline_contracts, lint_pipeline_full
 from llmflow.modules.json_parser import parse_llm_json_response
+from llmflow.modules.gpt_api import call_gpt_with_retry, call_gpt_get_json
 
 from llmflow.plugins import plugin_registry
 from llmflow.plugins.loader import load_plugins
 load_plugins()
-
-from llmflow.modules.gpt_api import call_gpt_with_retry, call_gpt_get_json
 
 class PipelineLogger:
     def __init__(self):
@@ -69,10 +69,9 @@ class PipelineLogger:
 
         inputs = step_config.get('inputs', {})
         if inputs:
-            # Fix circular import - resolve is defined in this same file
             resolved_inputs = {}
             for key, value in inputs.items():
-                resolved_value = resolve(value, context)  # Remove the import line
+                resolved_value = resolve(value, context)
                 resolved_inputs[key] = self._summarize_value(resolved_value)
 
             self.logger.log(level, f"Step '{step_name}' inputs: {resolved_inputs}")
@@ -110,116 +109,111 @@ class PipelineLogger:
 # Initialize logger at module level
 pipeline_logger = PipelineLogger()
 
+# Clear the log file at the start of a new run
+open('llmflow.log', 'w').close()
+
+def log_and_screen(msg, level="info"):
+    """Helper to log to both screen and file"""
+    print(msg)
+    getattr(pipeline_logger.logger, level)(msg)
+
 def resolve(value, context):
     """
     Resolves variables within a value using the provided context.
-    Now supports dot notation for nested objects like ${object.property}
-
-    This function recursively replaces placeholders in the given value with corresponding values from the context dictionary. Placeholders are denoted by the syntax `${key}`.
-
-    Args:
-        value (Any): The value to resolve. Can be a string, dictionary, list, or any other type.
-        context (dict): A dictionary containing key-value pairs for variable substitution.
-
-    Returns:
-        Any: The resolved value with variables substituted from the context. If the value is a string, all occurrences of `${key}` are replaced with the corresponding value from the context. If the value is a dictionary or list, the function is applied recursively. Other types are returned unchanged.
-
-    Examples:
-        >>> resolve("${name}", {"name": "Alice"})
-        'Alice'
-        >>> resolve("Hello, ${name}!", {"name": "Bob"})
-        'Hello, Bob!'
-        >>> resolve({"greet": "Hi, ${user}"}, {"user": "Eve"})
-        {'greet': 'Hi, Eve'}
-        >>> resolve(["${a}", "${b}"], {"a": 1, "b": 2})
-        [1, 2]
+    Supports dot notation and list indexing like ${foo.bar[0].baz}.
+    Returns native Python objects for exact variable references.
     """
-    if isinstance(value, str):
-        if value.startswith("${") and value.endswith("}"):
-            key = value[2:-1]
+    import re
+    logger = logging.getLogger('llmflow.resolve')
 
-            # Handle dot notation for nested properties
-            if '.' in key:
-                parts = key.split('.')
-                result = context
-                for part in parts:
-                    if isinstance(result, dict):
-                        result = result.get(part)
-                    else:
-                        return value  # Return original if can't resolve
-                    if result is None:
-                        return value  # Return original if not found
-                return result
+    logger.debug(f"Resolving value: {value}")
+    logger.debug(f"Context keys: {list(context.keys())}")
+
+    def get_from_context(expr, ctx):
+        """Resolve dot notation and list indices from context."""
+        logger.debug(f"get_from_context called with: {expr}")
+        parts = re.split(r'\.(?![^\[]*\])', expr)  # split on dots not inside brackets
+        result = ctx
+        for part in parts:
+            # Handle list index: foo[0]
+            m = re.match(r'^([a-zA-Z0-9_]+)(\[(\-?\d+)\])?$', part)
+            if not m:
+                return None
+            key = m.group(1)
+            idx = m.group(3)
+            if isinstance(result, dict):
+                result = result.get(key)
             else:
-                # Handle simple variables
-                return context.get(key, value)
-        else:
-            # Handle embedded variables like "text with ${var} inside"
-            import re
-            def replace_var(match):
-                var_key = match.group(1)
-                if '.' in var_key:
-                    # Handle nested properties in embedded variables too
-                    parts = var_key.split('.')
-                    result = context
-                    for part in parts:
-                        if isinstance(result, dict):
-                            result = result.get(part)
-                        else:
-                            return match.group(0)  # Return original
-                        if result is None:
-                            return match.group(0)
-                    return str(result)
+                return None
+            if idx is not None:
+                if isinstance(result, list):
+                    try:
+                        result = result[int(idx)]
+                    except (IndexError, ValueError):
+                        return None
                 else:
-                    return str(context.get(var_key, match.group(0)))
+                    return None
+            if result is None:
+                return None
+        logger.debug(f"Resolved {expr} to: {result}")
+        return result
 
-            pattern = r'\$\{([^}]+)\}'
-            return re.sub(pattern, replace_var, value)
+    if isinstance(value, str):
+        # If the value is exactly a variable reference, return the object itself
+        pattern_exact = r'^\$\{([^\}]+)\}$'
+        match_exact = re.match(pattern_exact, value)
+        if match_exact:
+            expr = match_exact.group(1)
+            resolved = get_from_context(expr, context)
+            if resolved is not None:
+                return resolved
+            else:
+                return value  # fallback to original string if not found
+
+        # Otherwise, do the usual string substitution
+        pattern = r'\$\{([^\}]+)\}'
+        def replace_var(match):
+            expr = match.group(1)
+            resolved = get_from_context(expr, context)
+            return str(resolved) if resolved is not None else match.group(0)
+        return re.sub(pattern, replace_var, value)
     elif isinstance(value, dict):
-        return resolve_dict(value, context)
+        return {k: resolve(v, context) for k, v in value.items()}
     elif isinstance(value, list):
         return [resolve(item, context) for item in value]
     return value
-
-def resolve_dict(obj, context):
-    """
-    Recursively resolves variables in dictionaries, lists, and strings.
-
-    Args:
-        obj: The object to resolve variables in
-        context: The context dictionary containing variable values
-
-    Returns:
-        The object with all variables resolved
-    """
-    if isinstance(obj, dict):
-        return {k: resolve_dict(v, context) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [resolve_dict(v, context) for v in obj]
-    elif isinstance(obj, str):
-        for k, v in context.items():
-            obj = obj.replace(f"${{{k}}}", str(v))
-        return obj
-    return obj
 
 def render_prompt(prompt_config, context):
     """Renders a prompt from a file with variable substitution."""
     logger = logging.getLogger('llmflow.prompt')
 
-    resolved_prompt = resolve_dict(prompt_config, context)
+    resolved_prompt = resolve(prompt_config, context)
     prompt_path = Path(resolved_prompt["file"])
     inputs = resolved_prompt.get("inputs", {})
 
     prompts_dir = Path(context.get("prompts_dir", "prompts"))
     full_prompt_path = prompt_path if prompt_path.is_absolute() else prompts_dir / prompt_path
 
-    logger.debug(f"Loading prompt from: {full_prompt_path}")  # Changed from print
+    logger.debug(f"Loading prompt from: {full_prompt_path}")
     rendered_prompt = full_prompt_path.read_text()
+
+    # Simple template substitution
     for key, val in context.items():
         rendered_prompt = rendered_prompt.replace(f"{{{key}}}", str(val))
 
     return rendered_prompt
 
+def run_step(rule, context, pipeline_config):
+    """Step dispatcher"""
+    step_type = rule.get("type", "unknown")
+    if step_type == "function":
+        run_function_step(rule, context)
+    elif step_type == "for-each":
+        run_for_each_step(rule, context, pipeline_config)
+    elif step_type == "llm":
+        run_llm_step(rule, context, pipeline_config)
+    else:
+        raise ValueError(f"Unknown step type: {step_type}")
 
 def run_for_each_step(rule, context, pipeline_config):
     """Executes a sequence of steps for each item in a resolved input list"""
@@ -237,7 +231,7 @@ def run_for_each_step(rule, context, pipeline_config):
         item_var = rule["item_var"]
         steps = rule["steps"]
 
-        logger.debug(f"For-each processing: input={input_spec}, item_var={item_var}")  # Changed from print
+        logger.debug(f"For-each processing: input={input_spec}, item_var={item_var}")
 
         # 🔍 Support plugin-sourced iteration
         if isinstance(input_spec, dict) and "type" in input_spec:
@@ -252,7 +246,7 @@ def run_for_each_step(rule, context, pipeline_config):
 
         # Handle potential JSON string that needs to be parsed
         if isinstance(loop_input, str):
-            logger.debug(f"Input is a string, attempting to parse as JSON: {loop_input[:100]}...")  # Changed from print
+            logger.debug(f"Input is a string, attempting to parse as JSON: {loop_input[:100]}...")
             import json
             import re
 
@@ -260,7 +254,7 @@ def run_for_each_step(rule, context, pipeline_config):
             code_fence_pattern = r'```(?:json)?\s*([\s\S]*?)\s*```'
             fence_matches = re.findall(code_fence_pattern, loop_input)
             if fence_matches:
-                logger.debug("Found code fence in input, extracting content")  # Changed from print
+                logger.debug("Found code fence in input, extracting content")
                 # Take the last code fence block (most likely to be the JSON)
                 potential_json = fence_matches[-1].strip()
             else:
@@ -297,19 +291,23 @@ def run_for_each_step(rule, context, pipeline_config):
             item_context[item_var] = item  # bind the variable
 
             for substep in steps:
-                if substep["type"] == "function":
-                    run_function_step(substep, item_context)
-                elif substep["type"] == "llm":
-                    result = run_llm_step(
-                        substep,
-                        item_context,
-                        pipeline_config
-                    )
+                run_step(substep, item_context, pipeline_config)
 
-                    if "append_to" in substep:
-                        target_list_name = substep["append_to"]
-                        if target_list_name not in context:
-                            context[target_list_name] = []
+                if "append_to" in substep:
+                    target_list_name = substep["append_to"]
+                    if target_list_name not in context:
+                        context[target_list_name] = []
+
+                    # Get result from the substep
+                    result = None
+                    outputs = substep.get("outputs")
+                    if outputs:  # Handle ANY step type with outputs
+                        if isinstance(outputs, str):
+                            result = item_context.get(outputs)
+                        elif isinstance(outputs, list) and len(outputs) > 0:
+                            result = item_context.get(outputs[0])
+
+                    if result is not None:
                         context[target_list_name].append(result)
                         logger.debug(f"Appended result to {target_list_name}, list now has {len(context[target_list_name])} items")
 
@@ -345,6 +343,11 @@ def run_llm_step(rule, context, pipeline_config):
             result = call_gpt_get_json(merged_config, rendered_prompt, retries=3)
         else:
             result = call_gpt_with_retry(merged_config, rendered_prompt, max_attempts=3)
+
+        # Check for templates
+        if "template" in rule or "format_with" in rule:
+            template_path = rule.get("template") or rule.get("format_with")
+            result = apply_output_template(result, template_path, context)
 
         # Handle outputs (existing logic)
         outputs = rule.get("outputs")
@@ -396,10 +399,28 @@ def run_function_step(rule, context):
         # RECURSIVELY resolve all input variables
         resolved_inputs = {}
         for key, value in inputs.items():
-            resolved_inputs[key] = resolve_deep(value, context)  # ← Change this
+            logger = logging.getLogger('llmflow.resolve')
+            logger.info(f"Resolving input '{key}': {value}")
+            resolved_value = resolve(value, context)
+            logger.info(f"Resolved to: {resolved_value}")
 
-        # Call the function with resolved inputs
-        result = func(**resolved_inputs)
+            # Temporary debug print to console
+            if "list[-1]" in str(value):
+                print(f"DEBUG: Resolving {key}: {value} -> {resolved_value}")
+
+            resolved_inputs[key] = resolved_value
+
+        import inspect
+
+        # Get function signature
+        sig = inspect.signature(func)
+        params = list(sig.parameters.keys())
+
+        # Call function with context if it accepts it
+        if 'context' in params:
+            result = func(**resolved_inputs, context=context)
+        else:
+            result = func(**resolved_inputs)
 
         # Store outputs in context
         if isinstance(outputs, str):
@@ -411,23 +432,20 @@ def run_function_step(rule, context):
                 for i, output_name in enumerate(outputs):
                     context[output_name] = result[i] if isinstance(result, (tuple, list)) else result
 
+        # Handle append_to if specified
+        if "append_to" in rule and result is not None:
+            list_name = rule["append_to"]
+            if list_name not in context:
+                context[list_name] = []
+            context[list_name].append(result)
+            pipeline_logger.log_step_outputs(name, {list_name: f"Appended: {result}"})
+
         pipeline_logger.log_step_complete(name)
         handle_step_output(rule, context)
 
     except Exception as e:
         pipeline_logger.log_step_error(name, e)
         raise
-
-def resolve_deep(value, context):
-    """Recursively resolve variables in nested structures"""
-    if isinstance(value, str):
-        return resolve(value, context)
-    elif isinstance(value, dict):
-        return {k: resolve_deep(v, context) for k, v in value.items()}
-    elif isinstance(value, list):
-        return [resolve_deep(item, context) for item in value]
-    else:
-        return value
 
 def handle_step_output(rule, context):
     """Handle saveas output for pipeline steps."""
@@ -455,7 +473,7 @@ def handle_step_output(rule, context):
                     # Get content and RESOLVE dot notation
                     if "content" in save_item:
                         content_spec = save_item["content"]
-                        content = resolve(content_spec, context)  # ← This was missing!
+                        content = resolve(content_spec, context)
                     elif isinstance(outputs, list):
                         content_var = outputs[0]
                         content = context[content_var]
@@ -467,7 +485,6 @@ def handle_step_output(rule, context):
 
                     format_type = save_item.get("format", "auto")
                     save_content_to_file(content, path, format_type)
-
 
 def save_content_to_file(content, path, format_type="auto"):
     """Save content to file with format detection"""
@@ -502,7 +519,6 @@ def save_content_to_file(content, path, format_type="auto"):
 
     return str(file_path)
 
-
 def validate_pipeline_expressions(step_inputs, context):
     """
     Raise an error if any input value contains an unresolvable ${...} expression.
@@ -532,9 +548,43 @@ def validate_pipeline_expressions(step_inputs, context):
         for item in step_inputs:
             validate_pipeline_expressions(item, context)
 
-def run_pipeline(pipeline_path, variables=None, dry_run=False):
+def collect_all_templates(steps):
+    """
+    Recursively collect all template paths from pipeline steps, including:
+    - Direct template_path references in function steps
+    - Templates referenced in .gpt prompt files
+    - Nested steps in for-each loops
+    """
+    templates = []
+
+    for step in steps:
+        step_name = step.get("name", "unnamed")
+
+        # Check for direct template_path in inputs
+        inputs = step.get("inputs", {})
+        template_path = inputs.get("template_path")
+        if template_path:
+            templates.append((template_path, step_name))
+
+        # Check for prompt files that might contain templates
+        if step.get("type") == "llm":
+            prompt_config = step.get("prompt", {})
+            prompt_file = prompt_config.get("file")
+            if prompt_file:
+                # We need to scan the .gpt file for template references
+                # Add this to templates list for validation
+                templates.append((f"prompts/{prompt_file}", f"{step_name} (prompt file)"))
+
+        # Recursively check nested steps (for-each, etc.)
+        if step.get("type") == "for-each":
+            nested_steps = step.get("steps", [])
+            templates.extend(collect_all_templates(nested_steps))
+
+    return templates
+
+def run_pipeline(pipeline_path, vars=None, dry_run=False):
     """Execute a YAML-defined pipeline with template validation"""
-    variables = variables or {}
+    variables = vars or {}
 
     # Load pipeline FIRST before using any variables from it
     pipeline = yaml.safe_load(Path(pipeline_path).read_text())
@@ -544,54 +594,45 @@ def run_pipeline(pipeline_path, variables=None, dry_run=False):
     rules = pipeline_root.get("steps", pipeline_root.get("rules", []))
 
     # Now we can use pipeline_logger with rules defined
-    pipeline_logger.logger.info(f"{'[DRY RUN]' if dry_run else '[LIVE RUN]'} Running: {pipeline_path}")
-    pipeline_logger.logger.debug(f"Variables: {variables}")  # This goes to file only now
-    pipeline_logger.logger.info(f"Found {len(rules)} steps to execute")
-
-    # Add template validation
-    from llmflow.utils.io import validate_all_templates
-    print("🔍 Validating pipeline templates...")
-    validation_results = validate_all_templates(pipeline_root)
-
-    # Check if any templates failed validation
-    failed_templates = [
-        template for template, result in validation_results.items()
-        if not result.get("valid", False)
-    ]
-
-    if failed_templates:
-        print(f"❌ Template validation failed for: {failed_templates}")
-        if not dry_run:
-            response = input("Continue anyway? (y/N): ")
-            if response.lower() != 'y':
-                return
+    # Log and display the run mode
+    if dry_run:
+        pipeline_logger.logger.info("[DRY RUN] Simulating: %s", pipeline_path)
     else:
-        print("✅ All templates validated successfully")
+        pipeline_logger.logger.info("[LIVE RUN] Running: %s", pipeline_path)
 
-    # Initialize context
+    pipeline_logger.logger.debug(f"Variables: {variables}")  # This goes to file only now
+    total_steps = len(rules)
+    pipeline_logger.logger.info("Found %d steps to execute", total_steps)
+
+    # Initialize context first for template validation
     context = dict(pipeline_root.get("variables", {}))
     context.update(variables)
 
-    # Run contract linter
-    lint_pipeline_contracts(pipeline_path)
+    # Template validation - happens for BOTH dry run and live run
+    pipeline_logger.logger.info("🔍 Validating pipeline templates...")
 
+    # Use the existing validate_all_templates function - pass the pipeline dict, not the path
+    try:
+        validate_all_templates(pipeline_root)  # Changed from pipeline_path to pipeline_root
+        pipeline_logger.logger.info("✅ All templates validated successfully")
+    except Exception as e:
+        pipeline_logger.logger.error(f"Template validation failed: {e}")
+        raise
+
+    # Pipeline structure validation - also happens for BOTH dry run and live run
+    lint_pipeline_contracts(pipeline_path)
+    lint_pipeline_full(pipeline_path, pipeline_logger)
+
+    # For each step execution
     for rule in rules:
         name = rule.get("name", "unnamed")
-        step_type = rule.get("type", "unknown")
 
         if dry_run:
             pipeline_logger.logger.info(f"Would run: {name}")
             continue
 
         try:
-            if step_type == "function":
-                run_function_step(rule, context)
-            elif step_type == "for-each":
-                run_for_each_step(rule, context, pipeline_root)
-            elif step_type == "llm":
-                run_llm_step(rule, context, pipeline_root)
-            else:
-                raise ValueError(f"Unknown step type: {step_type}")
+            run_step(rule, context, pipeline_root)
         except Exception as e:
             pipeline_logger.logger.error(f"Step '{name}' failed: {e}")
             raise
@@ -599,3 +640,19 @@ def run_pipeline(pipeline_path, variables=None, dry_run=False):
         pipeline_logger.logger.debug(f"Context after step {name}: {list(context.keys())}")
 
     pipeline_logger.logger.info("Pipeline complete.")
+
+def apply_output_template(result, template_path, context):
+    """Apply a template to format step output"""
+    from llmflow.utils.io import render_markdown_template
+
+    # Create template variables with the result
+    template_vars = context.copy()
+    template_vars['result'] = result
+
+    # Render the template WITH CONTEXT
+    formatted = render_markdown_template(
+        template_path=template_path,
+        variables=template_vars,
+        context=context  # ADD THIS LINE - pass the full context for resolution
+    )
+    return formatted

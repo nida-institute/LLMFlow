@@ -1,11 +1,11 @@
 <!--
 prompt:
   requires:
-  - passage
-  - source
+    - passage
+    - source
   optional: []
   format: Markdown
-  description: Analyzes poetic and cultural imagery in {passage} using {source}
+  description: Analyzes poetic and cultural imagery in {{passage}} using {{source}}
 -->
 
 STYLE / METHOD GUARDRAILS (NON-NEGOTIABLE)
@@ -14,53 +14,54 @@ STYLE / METHOD GUARDRAILS (NON-NEGOTIABLE)
 - Every background or cultural point MUST include “Implication for Scene Visualization”.
 - Use the exact heading levels and order specified below—no extra sections.
 - Forbidden: “What do you think…”, “How might…”, generic modern parallels, moral lessons.
+
+COVERAGE RULES (JUST ENOUGH, NO PADDING)
+- The “diagnostic noticing” determines which categories below you expand.
+- Include only the smallest set of cultural features needed to enter this scene; stop when coverage is complete.
+- Do not target a fixed number of features. Do not pad sections.
+- If a category is not materially relevant, write: “Not significant for this passage.”
+
 INTERNAL CHECK (before returning):
 - Headings match the required schema exactly (## / ### / #### as specified).
-- Each Fact includes an Implication line.
-- No modern-life language; all content is scene-usable by later prompts.
+- Each Fact includes an Implication line tied to concrete scene imagery.
+- Coverage is complete-but-concise; no filler; no modern-life language.
 
-## Cultural Background
+## Cultural Background for {{passage}} (using {{source}})
 
 ### Overview (2–4 sentences)
-- Brief, scholarly orientation to the historical/cultural world relevant to {{passage}}.
+- Begin with a broad surface pass: briefly scan the historical, social, material, and symbolic elements present in {{passage}}. If the Psalm is highly abstract or lacks clear cultural features, state this.
+- End with a diagnostic noticing sentence: list only the cultural features that materially affect entering this scene (choose the minimal set that truly matters for this psalm). Examples of feature-types: shepherding or royal symbolism; hospitality customs; kinship and authority roles; sanctuary/temple setting; landscape and movement; warfare/security.
 
 ### Attributed Author Context
-
 State whether the psalm is traditionally or textually attributed to a specific person.
-- If attributed, briefly identify the author and, if relevant, describe aspects of their life or role that clarify **this scene’s imagery or values**.
-- If authorship is uncertain or unknown, note that, and if appropriate, summarize scholarly discussion or possible contexts — but avoid speculation that is not grounded in evidence.
-
-Include only author details that help visualize or emotionally enter the scene.
-Do not include generic references to the author without linking them to something concrete in the scene.
-
-**Examples of possible author connections:**
-- **David** — Dual experience as shepherd and as one in need of God’s shepherding (danger, pursuit, leadership burdens). Could clarify images like “voice-leading,” “rare pasture,” “protective rod.”
-- **Asaph** — Levitical musician in temple service; worship leadership, liturgical memory. Could illuminate worship/tone/assembly imagery.
-- **Sons of Korah** — Gatekeepers and singers, close to sanctuary life. Could enrich imagery of temple entry, processions, or Zion.
-- **Moses, Solomon, Heman, Ethan** — Distinctive roles or histories that may explain a scene’s imagery if clearly linked.
-
-> These examples are illustrative, not exhaustive. Author context should be concise, evidence-based, and directly relevant to the current scene.
+- If attributed, briefly identify the author and describe aspects of their role that clarify this scene’s imagery or values (only where it illuminates the noticing above).
+- If uncertain/unknown, state “Unknown” and do not speculate.
+(Keep connections tightly linked to the psalm’s imagery, e.g., shepherding for David, temple roles for Korahites.)
 
 ### Geography & Environment
-- Fact:
+- If relevant per diagnostic noticing: provide one or more concrete facts that shape the scene (terrain, travel, sanctuary layout, banquet setting).
   - Implication for Scene Visualization:
+- Otherwise: Not significant for this passage.
 
 ### Social Roles & Structures
-- Fact:
+- If relevant per diagnostic noticing: name the role/relationship (shepherd, king, host/guest, enemy, kin) and the expectations embedded in it.
   - Implication for Scene Visualization:
+- Otherwise: Not significant for this passage.
 
 ### Practices & Customs (ritual, hospitality, economy, warfare—only those relevant)
-- Fact:
+- If relevant per diagnostic noticing: describe the practice/custom and what it signals in-scene.
   - Implication for Scene Visualization:
+- Otherwise: Not significant for this passage.
 
 ### Material Culture (food, clothing, tools, architecture—only those relevant)
-- Fact:
+- If relevant per diagnostic noticing: identify concrete items that anchor imagery (e.g., rod, staff, oil, table, cup).
   - Implication for Scene Visualization:
+- Otherwise: Not significant for this passage.
 
 ### Ancient Worldview & Symbolic Meanings (only those that shape the imagery)
-- Fact:
+- If relevant per diagnostic noticing: explain the symbolic resonance that governs meaning (e.g., shepherd-king motif, hospitality-as-protection, divine banquet).
   - Implication for Scene Visualization:
+- Otherwise: Not significant for this passage.
 
 ### Sources/Notes (brief; optional)
-- (If needed: textual/cultural notes that justify choices—no modern application.)
-
+- Only include notes that justify choices or clarify terms directly used above.

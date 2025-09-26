@@ -5,7 +5,7 @@ prompt:
   - source
   optional: []
   format: Markdown
-  description: Analyzes the emotional arc of {passage} using Nussbaum's framework
+  description: Analyzes the emotional arc of {{passage}} using Nussbaum's framework
 -->
 
 STYLE / METHOD GUARDRAILS (NON-NEGOTIABLE)
@@ -19,7 +19,12 @@ INTERNAL CHECK (before returning):
 - Each scene segment includes an Implication line.
 - No modern-life language; all content is scene-usable by later prompts.
 
-## Emotional Arc
+**Instructions:**
+Analyze the emotional arc of **{{passage}}** using Nussbaum's framework.
+Describe the high-level emotional movement, author context, and break down the scene into segments with dominant emotions, values, and implications for how emotions are perceived in-scene.
+Follow the structure and headings below exactly.
+
+## Emotional Arc for {{passage}}
 
 ### Overview (2–4 sentences)
 - High-level emotional movement within {{passage}} (in-scene only).
@@ -39,7 +44,6 @@ Do not include generic statements about trust or faith without tying them to spe
 - **Sons of Korah** — Their role in temple processions might intensify longing for God’s presence in psalms of ascent or exile.
 
 > These examples are illustrative; author notes should be concise, evidence-based, and scene-specific.
-
 
 ### Scene Segments
 #### Scene Segment: <concise image/action label>
