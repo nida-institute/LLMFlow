@@ -5,7 +5,7 @@ class TestAppendToFunctionSteps:
     """Test that append_to works with function steps"""
 
     def test_append_to_not_implemented_for_function_steps(self):
-        """Document that append_to doesn't work for function steps"""
+        """Test that append_to NOW WORKS for function steps"""
         context = {}
 
         step = {
@@ -27,12 +27,9 @@ class TestAppendToFunctionSteps:
 
         print(f"\nContext after function step with append_to: {context}")
 
-        # This will fail - append_to doesn't work for function steps
-        assert "results_list" not in context, "append_to is not implemented for function steps"
-
-        # But the output is stored
-        assert "result" in context
-        assert context["result"] == "test_value"
+        # append_to now works for function steps!
+        assert "results_list" in context
+        assert context["results_list"] == ["test_value"]
 
     def test_workaround_for_function_append(self):
         """Test a workaround - manually append in a subsequent step"""

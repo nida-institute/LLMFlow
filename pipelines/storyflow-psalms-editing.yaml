@@ -147,7 +147,7 @@ steps:
             citation: "${scene.Citation}"
             exegetical_culture: "${exegetical_culture}"
             exegetical_emotionalarc: "${exegetical_emotionalarc}"  # ADD THIS
-            joshfrost_emotional: "${joshfrost_list[-1]}"  # RENAME from 'joshfrost'
+            joshfrost_emotional: "${joshfrost_content}"  # RENAME from 'joshfrost'
         outputs: hearts_content
         append_to: hearts_list
 
@@ -162,10 +162,11 @@ steps:
             exegetical_emotionalarc: "${exegetical_emotionalarc}"
             exegetical_culture: "${exegetical_culture}"  # ADD THIS
             exegetical_background: "${exegetical_culture}"  # ADD THIS (reuse culture if no separate background)
-            joshfrost_emotional: "${joshfrost_list[-1]}"  # ADD THIS
+            joshfrost_emotional: "${joshfrost_content}"  # ADD THIS
             scene_text: "${scene.Text}"  # ADD THIS (assuming scene has a Text field)
         outputs: connecting_content
         append_to: connecting_list
+        log: debug  # ADD THIS
 
       - name: naming
         type: llm
@@ -188,10 +189,10 @@ steps:
           template_path: "templates/leadersguide_scene_template.md"
           variables:
             scene: "${scene}"
-            step1: "${bodies_list[-1]}"
-            step2: "${hearts_list[-1]}"
-            step3: "${connecting_list[-1]}"
-            step4: "${naming_list[-1]}"
+            step1: "${bodies_content}"
+            step2: "${hearts_content}"
+            step3: "${connecting_content}"  # This should contain the content from connecting step
+            step4: "${naming_content}"
         outputs: leadersguide_scene_markdown  # ADD THIS
         append_to: leadersguide_scenes_markdown_list
         log: debug
@@ -204,7 +205,7 @@ steps:
           template_path: "templates/joshfrost_scene_template.md"
           variables:
             scene: "${scene}"
-            joshfrost_content: "${joshfrost_list[-1]}"
+            joshfrost_content: "${joshfrost_content}"
         outputs: joshfrost_scene_markdown  # ADD THIS
         append_to: joshfrost_scenes_markdown_list
         log: debug

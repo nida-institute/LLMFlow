@@ -51,28 +51,22 @@ def read_text(path):
 
 # --- Template rendering ---
 
+def eval_template_expr(expr, variables):
+    """Safely evaluate dot notation and subscript expressions using variables dict."""
+    try:
+        # Only allow access to variables, no builtins
+        return str(eval(expr, {"__builtins__": {}}, variables))
+    except Exception:
+        return f"{{{{{expr}}}}}"  # Leave as-is if evaluation fails
+
 def render_template(template_content, variables):
-    """Simple template rendering using {{variable}} notation."""
-    rendered = template_content
-
-    # Replace all {{variable}} patterns
-    for key, value in variables.items():
-        # Handle None values
-        if value is None:
-            value = ""
-
-        # Convert to string if needed
-        str_value = str(value) if not isinstance(value, str) else value
-
-        # Replace {{key}} with value
-        pattern = "{{" + str(key) + "}}"
-        rendered = rendered.replace(pattern, str_value)
-
-        # Also try with spaces: {{ key }}
-        pattern_with_spaces = "{{ " + str(key) + " }}"
-        rendered = rendered.replace(pattern_with_spaces, str_value)
-
-    return rendered
+    """Enhanced template rendering supporting dot notation and subscripts."""
+    variables = to_attrdict(variables)  # <--- Add this line
+    def replacer(match):
+        expr = match.group(1).strip()
+        return eval_template_expr(expr, variables)
+    # Replace all {{ ... }} patterns
+    return re.sub(r"\{\{\s*([^\}]+?)\s*\}\}", replacer, template_content)
 
 def render_markdown_template(template_path, variables, context=None):
     """Render a markdown template with variables."""
@@ -328,3 +322,21 @@ def validate_all_templates(pipeline):
                     validation_results[template_path] = {"valid": False, "error": str(e)}
 
     return validation_results
+
+class AttrDict(dict):
+    """A dict that supports attribute access (dot notation)."""
+    def __getattr__(self, item):
+        value = self.get(item)
+        if isinstance(value, dict):
+            return AttrDict(value)
+        return value
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+def to_attrdict(obj):
+    """Recursively convert dicts in obj to AttrDict."""
+    if isinstance(obj, dict):
+        return AttrDict({k: to_attrdict(v) for k, v in obj.items()})
+    elif isinstance(obj, list):
+        return [to_attrdict(i) for i in obj]
+    return obj

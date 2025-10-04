@@ -5,63 +5,102 @@ prompt:
     - source
   optional: []
   format: Markdown
-  description: Analyzes poetic and cultural imagery in {{passage}} using {{source}}
+  description: Analyzes poetic and cultural imagery in {{passage}} using {{source}} with clear verse ranges
 -->
 
 STYLE / METHOD GUARDRAILS (NON-NEGOTIABLE)
 - Inductive order only: description → implication for visualization; no modern application here.
 - Keep everything inside the ancient scene and world; do not guess beyond evidence.
-- Every background or cultural point MUST include “Implication for Scene Visualization”.
+- Every background or cultural point MUST include "Implication for Scene Visualization" AND "Verse Range".
 - Use the exact heading levels and order specified below—no extra sections.
-- Forbidden: “What do you think…”, “How might…”, generic modern parallels, moral lessons.
+- Forbidden: "What do you think…", "How might…", generic modern parallels, moral lessons.
+- CRITICAL: Clearly specify which verses each cultural element applies to.
 
 COVERAGE RULES (JUST ENOUGH, NO PADDING)
-- The “diagnostic noticing” determines which categories below you expand.
+- The "diagnostic noticing" determines which categories below you expand.
 - Include only the smallest set of cultural features needed to enter this scene; stop when coverage is complete.
 - Do not target a fixed number of features. Do not pad sections.
-- If a category is not materially relevant, write: “Not significant for this passage.”
+- If a category is not materially relevant, write: "Not significant for this passage."
+- ALWAYS specify verse ranges to prevent cross-contamination between scenes.
 
 INTERNAL CHECK (before returning):
 - Headings match the required schema exactly (## / ### / #### as specified).
 - Each Fact includes an Implication line tied to concrete scene imagery.
+- Each Fact includes a "Verse Range:" specification.
 - Coverage is complete-but-concise; no filler; no modern-life language.
+- Cultural elements are properly segmented by verse ranges.
 
 ## Cultural Background for {{passage}} (using {{source}})
 
 ### Overview (2–4 sentences)
 - Begin with a broad surface pass: briefly scan the historical, social, material, and symbolic elements present in {{passage}}. If the Psalm is highly abstract or lacks clear cultural features, state this.
-- End with a diagnostic noticing sentence: list only the cultural features that materially affect entering this scene (choose the minimal set that truly matters for this psalm). Examples of feature-types: shepherding or royal symbolism; hospitality customs; kinship and authority roles; sanctuary/temple setting; landscape and movement; warfare/security.
+- End with a diagnostic noticing sentence: list only the cultural features that materially affect entering this scene BY VERSE RANGE (choose the minimal set that truly matters for this psalm). Examples: "vv. 1-3: shepherding imagery; v. 4: valley/danger imagery; v. 5: hospitality customs; v. 6: dwelling/sanctuary imagery."
 
 ### Attributed Author Context
 State whether the psalm is traditionally or textually attributed to a specific person.
-- If attributed, briefly identify the author and describe aspects of their role that clarify this scene’s imagery or values (only where it illuminates the noticing above).
-- If uncertain/unknown, state “Unknown” and do not speculate.
-(Keep connections tightly linked to the psalm’s imagery, e.g., shepherding for David, temple roles for Korahites.)
+- If attributed, briefly identify the author and describe aspects of their role that clarify this scene's imagery or values (only where it illuminates the noticing above).
+- If uncertain/unknown, state "Unknown" and do not speculate.
+(Keep connections tightly linked to the psalm's imagery, e.g., shepherding for David, temple roles for Korahites.)
 
 ### Geography & Environment
 - If relevant per diagnostic noticing: provide one or more concrete facts that shape the scene (terrain, travel, sanctuary layout, banquet setting).
-  - Implication for Scene Visualization:
+  - **Verse Range:** [specify exact verses, e.g., "vv. 1-2" or "v. 4" or "v. 5"]
+  - **Implication for Scene Visualization:**
 - Otherwise: Not significant for this passage.
 
 ### Social Roles & Structures
 - If relevant per diagnostic noticing: name the role/relationship (shepherd, king, host/guest, enemy, kin) and the expectations embedded in it.
-  - Implication for Scene Visualization:
+  - **Verse Range:** [specify exact verses]
+  - **Implication for Scene Visualization:**
+- If multiple roles across different verses, create separate entries:
+  - Role 1: [description]
+    - **Verse Range:** [verses]
+    - **Implication for Scene Visualization:**
+  - Role 2: [description]
+    - **Verse Range:** [verses]
+    - **Implication for Scene Visualization:**
 - Otherwise: Not significant for this passage.
 
 ### Practices & Customs (ritual, hospitality, economy, warfare—only those relevant)
 - If relevant per diagnostic noticing: describe the practice/custom and what it signals in-scene.
-  - Implication for Scene Visualization:
+  - **Verse Range:** [specify exact verses]
+  - **Implication for Scene Visualization:**
+- If multiple practices across different verses, create separate entries for each verse range.
 - Otherwise: Not significant for this passage.
 
 ### Material Culture (food, clothing, tools, architecture—only those relevant)
 - If relevant per diagnostic noticing: identify concrete items that anchor imagery (e.g., rod, staff, oil, table, cup).
-  - Implication for Scene Visualization:
+  - **Verse Range:** [specify exact verses]
+  - **Implication for Scene Visualization:**
+- If items appear in different verses, create separate entries for each verse range.
 - Otherwise: Not significant for this passage.
 
 ### Ancient Worldview & Symbolic Meanings (only those that shape the imagery)
 - If relevant per diagnostic noticing: explain the symbolic resonance that governs meaning (e.g., shepherd-king motif, hospitality-as-protection, divine banquet).
-  - Implication for Scene Visualization:
+  - **Verse Range:** [specify exact verses]
+  - **Implication for Scene Visualization:**
+- If symbolic meanings shift across verses, create separate entries for each verse range.
 - Otherwise: Not significant for this passage.
 
 ### Sources/Notes (brief; optional)
 - Only include notes that justify choices or clarify terms directly used above.
+
+## EXAMPLE OUTPUT STRUCTURE:
+
+### Social Roles & Structures
+- **Shepherd Role**: The LORD as shepherd implies protective guidance and provision responsibilities.
+  - **Verse Range:** vv. 1-3
+  - **Implication for Scene Visualization:** Pastoral setting with flock movement, guidance gestures, protective positioning.
+
+- **Host Role**: The host provides protection and honor through hospitality to a guest under threat.
+  - **Verse Range:** v. 5
+  - **Implication for Scene Visualization:** Banquet setting with table, formal seating, anointing ceremony, abundant provision display.
+
+### Practices & Customs
+- **Shepherding Practices**: Moving flocks to fresh pasture and safe water sources; guiding through dangerous terrain.
+  - **Verse Range:** vv. 1-3
+  - **Implication for Scene Visualization:** Movement through landscape, water features, grazing areas, shepherd's guidance tools.
+
+- **Hospitality Protection**: Offering table fellowship and anointing to signal protection covenant, especially when enemies threaten.
+  - **Verse Range:** v. 5
+  - **Implication for Scene Visualization:** Indoor banquet scene, formal table setting, oil/anointing implements, defensive positioning against external threats.

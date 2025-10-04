@@ -18,6 +18,20 @@ def parse_prompt_header(prompt_path):
     except Exception as e:
         return None
 
+def extract_template_variables(template_content):
+    """Extract variables from templates that use {{ variable }} syntax"""
+    # Find all {{ variable }} patterns, allowing spaces
+    variable_pattern = r'\{\{\s*([^}]+?)\s*\}\}'
+    variables = set()
+
+    for match in re.finditer(variable_pattern, template_content):
+        var_name = match.group(1).strip()
+        # Skip template logic like {{#if}} or {{/endif}}
+        if not var_name.startswith('#') and not var_name.startswith('/') and not var_name.startswith('%'):
+            variables.add(var_name)
+
+    return variables
+
 def format_diff_box(step, file, declared, passed):
     declared_sorted = sorted(declared)
     passed_sorted = sorted(passed)
@@ -37,160 +51,66 @@ def format_diff_box(step, file, declared, passed):
 
 def collect_all_steps(items):
     """Recursively collect all steps, including nested for-each and substeps."""
-    import logging
-    logger = logging.getLogger('llmflow.linter')
-
     all_steps = []
 
     # Handle both list of steps and individual step
     if isinstance(items, list):
-        logger.debug(f"collect_all_steps: Processing list with {len(items)} items")
-        for i, step in enumerate(items):
-            logger.debug(f"  Item {i}: {step.get('name', 'unnamed')} (type: {step.get('type', 'unknown')})")
+        for step in items:
             all_steps.extend(collect_all_steps(step))
     elif isinstance(items, dict):
-        step_name = items.get('name', 'unnamed')
-        step_type = items.get('type', 'unknown')
-        logger.debug(f"collect_all_steps: Processing step '{step_name}' (type: {step_type})")
-
         all_steps.append(items)
 
         # Check for nested steps in for-each
         if items.get("type") == "for-each" and "steps" in items:
             nested_steps = items["steps"]
-            logger.debug(f"  Found for-each with {len(nested_steps)} nested steps")
             all_steps.extend(collect_all_steps(nested_steps))
-        else:
-            logger.debug(f"  No nested steps found")
 
-    logger.debug(f"collect_all_steps: Returning {len(all_steps)} total steps")
     return all_steps
 
 def lint_pipeline_contracts(pipeline_path):
+    """Validate that all pipeline steps match their prompt contracts"""
     pipeline = yaml.safe_load(Path(pipeline_path).read_text())
-    pipeline_config = pipeline.get("pipeline", pipeline)  # Handle both formats
-    steps = pipeline_config.get("steps", [])
-    variables = set(pipeline_config.get("variables", {}).keys())
-    prompts_dir = pipeline_config.get("variables", {}).get("prompts_dir", "prompts")
+    pipeline_root = pipeline.get("pipeline", pipeline)
 
-    linter_config = pipeline_config.get("linter_config", {})
-    if not linter_config.get("enabled", True):
-        return
-
-    # Configure logging
-    logger = configure_linter_logging(linter_config)
-    logger.info(f"Starting contract lint for: {pipeline_path}")
-
-    treat_warnings_as_errors = linter_config.get("treat_warnings_as_errors", False)
+    # Use the recursive collector to get ALL steps including for-each nested ones
+    all_steps = collect_all_steps(pipeline_root.get("steps", []))
 
     errors = []
-    warnings = []
+    validated_count = 0
 
-    valid_formats = {"json", "markdown", "html", "text", "yaml", "xml"}  # Add more as needed
-
-    # Use all steps, including nested
-    all_steps = collect_all_steps(steps)
-
+    # Now validate ALL steps (including nested ones)
     for step in all_steps:
-        step_name = step.get("name", "[unnamed step]")
+        step_name = step.get("name", "unnamed")
 
-        # Check for append_to without outputs
-        if 'append_to' in step:
-            outputs = step.get('outputs')
-            if not outputs or (isinstance(outputs, list) and len(outputs) == 0):
-                errors.append(
-                    f"❌ Step '{step_name}' uses 'append_to: {step['append_to']}' "
-                    f"but has no valid 'outputs' field - the result will not be captured!"
-                )
+        if step.get("type") == "llm":
+            prompt_config = step.get("prompt", {})
+            prompt_file = prompt_config.get("file")
 
-        # Continue with existing LLM validation...
-        if step.get("type") != "llm":
-            continue
+            if prompt_file:
+                # Show what we're validating
+                click.secho(f"🔍 Validating step '{step_name}' contract: {prompt_file}", fg="cyan")
 
-        file = step.get("prompt", {}).get("file")
-        if not file:
-            continue
+                # Validate this step's prompt contract
+                step_errors = validate_step_prompt_contract(step, prompt_file, step_name)
 
-        prompt_path = Path(prompts_dir) / file
-        if not prompt_path.exists():
-            errors.append(f"❌ Prompt file not found: {prompt_path}")
-            continue
+                if step_errors:
+                    errors.extend(step_errors)
+                    click.secho(f"❌ Step '{step_name}' contract validation failed", fg="red")
+                else:
+                    click.secho(f"✅ Step '{step_name}' contract valid", fg="green")
+                    validated_count += 1
 
-        # Try to parse the prompt header
-        text = Path(prompt_path).read_text(encoding="utf-8")
-        match = re.search(r"<!--(.*?)-->", text, re.DOTALL)
-        header_yaml = match.group(1).strip() if match else None
-        header = None
-        if header_yaml:
-            try:
-                header = yaml.safe_load(header_yaml).get("prompt", {})
-            except Exception:
-                header = None
-
-        if not header:
-            # Build a suggested header based on the pipeline
-            pipeline_inputs = step.get("prompt", {}).get("inputs", {})
-            required_inputs = sorted(pipeline_inputs.keys())
-            suggested_header = yaml.dump({
-                "prompt": {
-                    "requires": required_inputs,
-                    "optional": [],
-                    "format": "Markdown",
-                    "description": "TODO: Describe what this prompt does."
-                }
-            }, sort_keys=False)
-            inputs_yaml = yaml.dump(pipeline_inputs, sort_keys=False)
-            errors.append(
-                f"❌ Missing or unreadable YAML @prompt header in {prompt_path}\n\n"
-                f"🔢 Pipeline Step Inputs:\n{inputs_yaml}\n\n"
-                f"📄 Found header in prompt file:\n{header_yaml[:500] if header_yaml else '[No header found]'}\n\n"
-                f"✅ Suggested YAML header:\n{suggested_header}"
-            )
-            continue
-
-        passed_inputs = set(step.get("prompt", {}).get("inputs", {}).keys())
-        visible_vars = variables.union(passed_inputs)
-        declared = set(header.get("requires", []))
-
-        for req in declared:
-            if req not in visible_vars:
-                errors.append(f"❌ Step '{step_name}' is missing required input '{req}' for prompt '{file}'")
-
-        diff_block = format_diff_box(step_name, file, declared, passed_inputs)
-        if diff_block:
-            warnings.append(diff_block)
-
-        format = header.get("format", "markdown").lower()  # Add .lower() here
-        allowed_formats = ["json", "yaml", "markdown", "xml", "text", "html"]
-        if format not in allowed_formats:
-            errors.append(f"❌ Invalid format '{contract.get('format', 'markdown')}' in prompt '{prompt_file}'. Allowed: {', '.join(allowed_formats)}")
-
-        pipeline_output_type = step.get("output_type", "").lower()
-        header_output_type = header.get("output_type", "").lower()
-
-        if pipeline_output_type and header_output_type and pipeline_output_type != header_output_type:
-            warnings.append(f"⚠️  Output type mismatch in '{step_name}': pipeline declares '{pipeline_output_type}', prompt declares '{header_output_type}'")
-
-    for msg in warnings:
-        click.secho(msg, fg="yellow")
-
-    if errors or (treat_warnings_as_errors and warnings):
-        for msg in errors:
-            click.secho(msg, fg="red")
-        raise SystemExit("❌ Prompt contract validation failed. See above for details.")
-
-def extract_template_variables(template_content):
-    """Extract all variables used in a Jinja2 template using AST parsing"""
-    env = Environment()
-    ast = env.parse(template_content)
-
-    # Get all undeclared variables (variables that need to be provided)
-    undeclared_variables = meta.find_undeclared_variables(ast)
-
-    return undeclared_variables
+    # Report final results
+    if errors:
+        click.secho(f"\n❌ Contract validation failed with {len(errors)} errors:", fg="red")
+        for error in errors:
+            click.secho(f"  {error}", fg="red")
+        raise ValueError("Pipeline contract validation failed")
+    else:
+        click.secho(f"\n✅ All {validated_count} step contracts valid", fg="green")
 
 def validate_template_step(step, errors, warnings):
-    """Validate a template rendering step (only checks for file existence)"""
+    """Validate a template rendering step"""
     if step.get("type") != "function":
         return
 
@@ -199,14 +119,29 @@ def validate_template_step(step, errors, warnings):
 
     # Only validate if template_path is present
     if not template_path:
-        return  # <-- Do not add an error, just skip
+        return  # Skip if no template_path
 
     if not Path(template_path).exists():
         errors.append(f"Step '{step['name']}': Template file not found: {template_path}")
         return
 
     try:
-        Path(template_path).read_text()
+        # Read template and extract {variable} patterns
+        template_content = Path(template_path).read_text()
+        template_vars = extract_template_variables(template_content)
+
+        # Get variables provided to the template
+        provided_vars = set()
+        template_inputs = inputs.get("variables", {})
+        if isinstance(template_inputs, dict):
+            provided_vars = set(template_inputs.keys())
+
+        # Check for missing variables
+        missing_vars = template_vars - provided_vars
+        if missing_vars:
+            for var in missing_vars:
+                warnings.append(f"Template '{template_path}' uses variable '{var}' but step '{step['name']}' doesn't provide it")
+
     except Exception as e:
         errors.append(f"Step '{step['name']}': Error reading template {template_path}: {e}")
 
@@ -303,7 +238,7 @@ def validate_pipeline_structure(pipeline_config):
 
 def lint_pipeline_full(pipeline_path, pipeline_logger=None):
     pipeline = yaml.safe_load(Path(pipeline_path).read_text())
-    pipeline_config = pipeline.get("pipeline", pipeline)  # Handle both formats
+    pipeline_config = pipeline.get("pipeline", pipeline)
 
     # Configure linter logging
     linter_config = pipeline_config.get("linter_config", {})
@@ -315,33 +250,57 @@ def lint_pipeline_full(pipeline_path, pipeline_logger=None):
         if pipeline_logger:
             getattr(pipeline_logger.logger, level)(msg)
 
+    # 1. Structure validation
     log_and_screen("🔍 Validating pipeline structure...", color="cyan")
     structure_errors = validate_pipeline_structure(pipeline_config)
     if structure_errors:
         for error in structure_errors:
             log_and_screen(error, color="red", level="error")
-        raise SystemExit("❌ Pipeline structure validation failed. See above for details.")
+        raise SystemExit("❌ Pipeline structure validation failed.")
     log_and_screen("✅ Pipeline structure is valid", color="green")
 
-    # 2. Prompt contract validation
-    lint_pipeline_contracts(pipeline_path)
-
-    # 3. Template validation
+    # 2. Contract validation - CALL DIRECTLY, don't duplicate
     errors = []
-    warnings = []
-    steps = pipeline_config.get("steps", [])
-    all_steps = collect_all_steps(steps)
-    for step in all_steps:
-        validate_template_step(step, errors, warnings)
+    validated_count = 0
+    all_steps = collect_all_steps(pipeline_config.get("steps", []))
 
-    for warning in warnings:
-        log_and_screen(warning, color="yellow", level="warning")
+    for step in all_steps:
+        step_name = step.get("name", "unnamed")
+        if step.get("type") == "llm":
+            prompt_config = step.get("prompt", {})
+            prompt_file = prompt_config.get("file")
+            if prompt_file:
+                log_and_screen(f"🔍 Validating step '{step_name}' contract: {prompt_file}", color="cyan")
+                step_errors = validate_step_prompt_contract(step, prompt_file, step_name)
+                if step_errors:
+                    errors.extend(step_errors)
+                    log_and_screen(f"❌ Step '{step_name}' contract validation failed", color="red")
+                else:
+                    log_and_screen(f"✅ Step '{step_name}' contract valid", color="green")
+                    validated_count += 1
+
     if errors:
         for error in errors:
             log_and_screen(error, color="red", level="error")
-        raise SystemExit("❌ Template validation failed. See above for details.")
-    if warnings or errors:
-        click.secho("✅ Template validation completed", fg="green")
+        raise SystemExit("❌ Contract validation failed.")
+    else:
+        log_and_screen(f"✅ All {validated_count} step contracts valid", color="green")
+
+    # 3. Template validation
+    template_errors = []
+    template_warnings = []
+    for step in all_steps:
+        validate_template_step(step, template_errors, template_warnings)
+
+    for warning in template_warnings:
+        log_and_screen(warning, color="yellow", level="warning")
+    if template_errors:
+        for error in template_errors:
+            log_and_screen(error, color="red", level="error")
+        raise SystemExit("❌ Template validation failed.")
+
+    if template_warnings:
+        log_and_screen("✅ Template validation completed", color="green")
 
 def configure_linter_logging(linter_config):
     """Configure logging level for the linter based on pipeline config"""
@@ -382,3 +341,46 @@ def check_step_outputs(step):
         warnings.append(f"LLM step '{step.get('name', 'unnamed')}' generates content but doesn't store it")
 
     return warnings
+
+def validate_step_prompt_contract(step, prompt_file, step_name):
+    """Validate that a step's inputs match its prompt contract"""
+    errors = []
+
+    # Try to find the prompt file in common locations
+    prompt_path = None
+    for possible_path in [f"prompts/{prompt_file}", f"prompts/storyflow/{prompt_file}", prompt_file]:
+        if Path(possible_path).exists():
+            prompt_path = possible_path
+            break
+
+    if not prompt_path:
+        errors.append(f"❌ Step '{step_name}': Prompt file not found: {prompt_file}")
+        return errors
+
+    # Parse the prompt header
+    header = parse_prompt_header(prompt_path)
+    if not header:
+        errors.append(f"❌ Step '{step_name}': Missing or invalid YAML header in {prompt_path}")
+        return errors
+
+    # Get required inputs from prompt
+    required_inputs = set(header.get("requires", []))
+    optional_inputs = set(header.get("optional", []))
+
+    # Get inputs provided by the step
+    step_inputs = set(step.get("prompt", {}).get("inputs", {}).keys())
+
+    # Check for missing required inputs
+    missing_required = required_inputs - step_inputs
+    if missing_required:
+        for missing in missing_required:
+            errors.append(f"❌ Step '{step_name}': Missing required input '{missing}' for prompt '{prompt_file}'")
+
+    # Check for unexpected inputs (not required or optional)
+    all_valid_inputs = required_inputs | optional_inputs
+    unexpected_inputs = step_inputs - all_valid_inputs
+    if unexpected_inputs:
+        for unexpected in unexpected_inputs:
+            errors.append(f"⚠️  Step '{step_name}': Unexpected input '{unexpected}' for prompt '{prompt_file}' (not in requires or optional)")
+
+    return errors

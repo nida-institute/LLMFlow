@@ -10,7 +10,8 @@ class TestTemplateRenderingDebug:
         import tempfile
         from pathlib import Path
 
-        template_content = "Body: ${body_value}"
+        # Use template syntax {{}} not pipeline syntax ${}
+        template_content = "Body: {{body_value}}"
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
             f.write(template_content)

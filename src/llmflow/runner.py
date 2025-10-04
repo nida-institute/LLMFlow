@@ -7,6 +7,9 @@ import re
 import mistune
 import json
 import click
+from copy import deepcopy  # Add this import at the top with other imports
+import os
+import sys
 
 from llmflow.utils.llm_runner import call_llm
 from llmflow.utils.io import normalize_nfc, validate_all_templates
@@ -212,6 +215,8 @@ def run_step(rule, context, pipeline_config):
         run_for_each_step(rule, context, pipeline_config)
     elif step_type == "llm":
         run_llm_step(rule, context, pipeline_config)
+    elif step_type == "save":
+        run_save_step(rule, context)
     else:
         raise ValueError(f"Unknown step type: {step_type}")
 
@@ -233,83 +238,25 @@ def run_for_each_step(rule, context, pipeline_config):
 
         logger.debug(f"For-each processing: input={input_spec}, item_var={item_var}")
 
-        # 🔍 Support plugin-sourced iteration
-        if isinstance(input_spec, dict) and "type" in input_spec:
-            plugin_type = input_spec["type"]
-            if plugin_type not in plugin_registry:
-                raise ValueError(f"Plugin '{plugin_type}' not found.")
-            plugin_func = plugin_registry[plugin_type]
-            loop_input = list(plugin_func(input_spec)) # convert generator to list
-        else:
-            # Original behavior: resolve variable like "${scene_list}"
-            loop_input = resolve(input_spec, context)
+        # Get the list to iterate over
+        loop_input = _get_loop_input(input_spec, context, logger)
 
-        # Handle potential JSON string that needs to be parsed
-        if isinstance(loop_input, str):
-            logger.debug(f"Input is a string, attempting to parse as JSON: {loop_input[:100]}...")
-            import json
-            import re
+        logger.debug(f"Iterating over {len(loop_input)} items")
 
-            # First check if it's a JSON string with code fences
-            code_fence_pattern = r'```(?:json)?\s*([\s\S]*?)\s*```'
-            fence_matches = re.findall(code_fence_pattern, loop_input)
-            if fence_matches:
-                logger.debug("Found code fence in input, extracting content")
-                # Take the last code fence block (most likely to be the JSON)
-                potential_json = fence_matches[-1].strip()
-            else:
-                potential_json = loop_input.strip()
-
-            # Try to parse the JSON directly
-            try:
-                parsed_json = json.loads(potential_json)
-                loop_input = parsed_json
-            except json.JSONDecodeError:
-                # Fallback: extract first valid JSON array using regex
-                import re
-                array_match = re.search(r'(\[[^\]]*\])', potential_json, re.DOTALL)
-                if array_match:
-                    try:
-                        parsed_json = json.loads(array_match.group(1))
-                        loop_input = parsed_json
-                    except json.JSONDecodeError:
-                        loop_input = [potential_json]
-                else:
-                    loop_input = [potential_json]
-
-        # Ensure loop_input is a list (or at least iterable)
-        if not isinstance(loop_input, list) and not hasattr(loop_input, '__iter__'):
-            logger.debug(f"Input is not iterable, wrapping as single item")
-            loop_input = [loop_input]
-
-        logger.debug(f"Iterating over {len(list(loop_input)) if hasattr(loop_input, '__len__') else 'unknown number of'} items")
-
+        # Process each item in the list
         for i, item in enumerate(loop_input):
-            logger.debug(f"Processing item {i+1}")
-            # Create a nested context with the item
-            item_context = context.copy()
-            item_context[item_var] = item  # bind the variable
+            logger.debug(f"Processing item {i+1}/{len(loop_input)}")
 
+            # Create isolated context for this iteration using deepcopy
+            item_context = deepcopy(context)
+            item_context[item_var] = item
+
+            # Run all substeps with the isolated context
             for substep in steps:
                 run_step(substep, item_context, pipeline_config)
 
-                if "append_to" in substep:
-                    target_list_name = substep["append_to"]
-                    if target_list_name not in context:
-                        context[target_list_name] = []
-
-                    # Get result from the substep
-                    result = None
-                    outputs = substep.get("outputs")
-                    if outputs:  # Handle ANY step type with outputs
-                        if isinstance(outputs, str):
-                            result = item_context.get(outputs)
-                        elif isinstance(outputs, list) and len(outputs) > 0:
-                            result = item_context.get(outputs[0])
-
-                    if result is not None:
-                        context[target_list_name].append(result)
-                        logger.debug(f"Appended result to {target_list_name}, list now has {len(context[target_list_name])} items")
+            # Handle append_to operations after all substeps complete
+            _handle_append_operations(steps, item_context, context, logger)
 
         pipeline_logger.log_step_complete(step_name)
 
@@ -317,6 +264,93 @@ def run_for_each_step(rule, context, pipeline_config):
         pipeline_logger.log_step_error(step_name, e)
         raise
 
+
+def _get_loop_input(input_spec, context, logger):
+    """Extract and normalize the input list for iteration"""
+    # Support plugin-sourced iteration
+    if isinstance(input_spec, dict) and "type" in input_spec:
+        plugin_type = input_spec["type"]
+        if plugin_type not in plugin_registry:
+            raise ValueError(f"Plugin '{plugin_type}' not found.")
+        plugin_func = plugin_registry[plugin_type]
+        return list(plugin_func(input_spec))
+
+    # Resolve variable reference like "${scene_list}"
+    loop_input = resolve(input_spec, context)
+
+    # Handle JSON strings
+    if isinstance(loop_input, str):
+        loop_input = _parse_json_string(loop_input, logger)
+
+    # Ensure we have a list
+    if not isinstance(loop_input, list):
+        logger.debug(f"Input is not a list, wrapping as single item")
+        loop_input = [loop_input]
+
+    return loop_input
+
+
+def _parse_json_string(json_str, logger):
+    """Parse a JSON string, handling code fences and fallbacks"""
+    logger.debug(f"Parsing JSON string: {json_str[:100]}...")
+
+    # Extract from code fences if present
+    code_fence_pattern = r'```(?:json)?\s*([\s\S]*?)\s*```'
+    fence_matches = re.findall(code_fence_pattern, json_str)
+
+    if fence_matches:
+        logger.debug("Found code fence, extracting content")
+        json_str = fence_matches[-1].strip()
+
+    # Try direct JSON parse
+    try:
+        return json.loads(json_str)
+    except json.JSONDecodeError:
+        # Fallback: extract first JSON array
+        array_match = re.search(r'(\[[^\]]*\])', json_str, re.DOTALL)
+        if array_match:
+            try:
+                return json.loads(array_match.group(1))
+            except json.JSONDecodeError:
+                pass
+
+    # Last resort: wrap as single item
+    return [json_str]
+
+
+def _handle_append_operations(steps, item_context, main_context, logger):
+    """Handle append_to operations from substeps, avoiding duplicates"""
+    for substep in steps:
+        if "append_to" not in substep:
+            continue
+
+        target_list = substep["append_to"]
+        result = _get_substep_result(substep, item_context)
+
+        if result is None:
+            continue
+
+        # Initialize list in main context if needed
+        if target_list not in main_context:
+            main_context[target_list] = []
+
+        # Append only the new result from this iteration
+        main_context[target_list].append(result)
+        logger.debug(f"Appended to {target_list}: now has {len(main_context[target_list])} items")
+
+
+def _get_substep_result(substep, context):
+    """Extract the result value from a substep's outputs"""
+    outputs = substep.get("outputs")
+    if not outputs:
+        return None
+
+    if isinstance(outputs, str):
+        return context.get(outputs)
+    elif isinstance(outputs, list) and outputs:
+        return context.get(outputs[0])
+
+    return None
 def run_llm_step(rule, context, pipeline_config):
     """Executes a single LLM step with logging"""
     step_name = rule.get('name', 'unnamed_llm_step')
@@ -399,15 +433,7 @@ def run_function_step(rule, context):
         # RECURSIVELY resolve all input variables
         resolved_inputs = {}
         for key, value in inputs.items():
-            logger = logging.getLogger('llmflow.resolve')
-            logger.info(f"Resolving input '{key}': {value}")
             resolved_value = resolve(value, context)
-            logger.info(f"Resolved to: {resolved_value}")
-
-            # Temporary debug print to console
-            if "list[-1]" in str(value):
-                print(f"DEBUG: Resolving {key}: {value} -> {resolved_value}")
-
             resolved_inputs[key] = resolved_value
 
         import inspect
@@ -608,19 +634,19 @@ def run_pipeline(pipeline_path, vars=None, dry_run=False):
     context = dict(pipeline_root.get("variables", {}))
     context.update(variables)
 
-    # Template validation - happens for BOTH dry run and live run
+    # Template validation
     pipeline_logger.logger.info("🔍 Validating pipeline templates...")
-
-    # Use the existing validate_all_templates function - pass the pipeline dict, not the path
     try:
-        validate_all_templates(pipeline_root)  # Changed from pipeline_path to pipeline_root
+        validate_all_templates(pipeline_root)
         pipeline_logger.logger.info("✅ All templates validated successfully")
     except Exception as e:
         pipeline_logger.logger.error(f"Template validation failed: {e}")
         raise
 
-    # Pipeline structure validation - also happens for BOTH dry run and live run
-    lint_pipeline_contracts(pipeline_path)
+    # REMOVE this duplicate call - it's causing the double validation:
+    # lint_pipeline_contracts(pipeline_path)  # DELETE THIS LINE
+
+    # KEEP only this single call:
     lint_pipeline_full(pipeline_path, pipeline_logger)
 
     # For each step execution
@@ -656,3 +682,74 @@ def apply_output_template(result, template_path, context):
         context=context  # ADD THIS LINE - pass the full context for resolution
     )
     return formatted
+
+def run_save_step(rule, context):
+    """Save data from context to file
+
+    Args:
+        rule: Dict with keys:
+            - input: Variable expression to resolve (e.g., "${data}")
+            - filename: Output filename (relative or absolute path)
+            - format: Output format - "json", "yaml", or "text" (default)
+        context: Pipeline context dict
+    """
+    # REMOVE these from runner.py:
+    # print(f"🚀 Executing: {rule['name']} (save)")
+    # print(f"✅ Completed: {rule['name']}")
+
+    # REPLACE with proper logging:
+    logger = logging.getLogger('llmflow.save')
+    logger.info(f"Executing: {rule['name']} (save)")
+
+    # Resolve the input expression
+    input_expr = rule.get("input", "")
+    if not input_expr:
+        raise ValueError(f"Save step '{rule.get('name')}' missing 'input' field")
+
+    value = resolve(input_expr, context)
+    logger.info(f"Resolved input: {input_expr} to {type(value).__name__}")
+
+    # Get filename and format
+    filename = rule.get("filename", "")
+    if not filename:
+        raise ValueError(f"Save step '{rule.get('name')}' missing 'filename' field")
+
+    fmt = rule.get("format", "text").lower()
+
+    # Ensure output directory exists
+    output_dir = os.path.dirname(filename)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
+    # Save based on format
+    try:
+        if fmt == "json":
+            import json
+            with open(filename, "w", encoding="utf-8") as f:
+                json.dump(value, f, indent=2, ensure_ascii=False)
+
+        elif fmt == "yaml":
+            import yaml
+            with open(filename, "w", encoding="utf-8") as f:
+                yaml.dump(value, f, default_flow_style=False, allow_unicode=True)
+
+        else:  # text, markdown, or any other format
+            # Convert value to string if needed
+            if isinstance(value, str):
+                content = value
+            elif isinstance(value, (list, tuple)):
+                # For lists, join with newlines
+                content = "\n".join(str(item) for item in value)
+            else:
+                content = str(value)
+
+            with open(filename, "w", encoding="utf-8") as f:
+                f.write(content)
+
+        logger.info(f"💾 Saved to: {filename} ({fmt} format)")
+        logger.info(f"✅ Completed: {rule['name']}")
+
+    except Exception as e:
+        error_msg = f"Failed to save to {filename}: {str(e)}"
+        logger.error(f"❌ Error in save step '{rule.get('name')}': {error_msg}")
+        raise RuntimeError(error_msg) from e

@@ -54,7 +54,8 @@ class TestPipelineIntegration:
 
             # Run the function step
             pipeline_config = {"variables": {}}
-            result = run_function_step(rule, context, pipeline_config)
+            run_function_step(rule, context)
+            result = context.get("scene_markdown")
 
             # Check that the template was rendered with resolved values
             assert "final body content" in result
