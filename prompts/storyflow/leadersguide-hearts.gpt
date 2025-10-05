@@ -9,12 +9,12 @@ prompt:
     - joshfrost_emotional
   optional: []
   format: Markdown
-  description: Helps participants feel what’s at stake in {scene} from {passage}, using cultural background and emotional insight.
+  description: Helps participants discern what's happening at the heart (lev/kardia) level for all characters/participants in {scene} from {passage} — where thought, desire, emotion, will, and attention converge.
 -->
 <!-- HARD RULE: The FIRST non-empty line of your output MUST be:
 ### Enter the Scene with Your Whole Heart ({{citation}})
 Do not use any other H3 before this. -->
-# StoryFlow Leader’s Guide: Step 2 – Enter the Scene with Your Whole Heart
+# StoryFlow Leader's Guide: Step 2 – Enter the Scene with Your Whole Heart
 
 ## 📥 Inputs
 
@@ -38,82 +38,74 @@ Do not use any other H3 before this. -->
 
 ---
 
-You are helping group leaders guide participants to step into the scene emotionally — noticing visible and audible signs of the characters’ inner life, and gently weaving in cultural and emotional background to reveal the stakes of the scene.
+You are helping group leaders guide participants to discern what's happening at the heart level (lev/kardia) for the people in this scene — where thought, desire, emotion, will, and attention converge.
+
+Base your reasoning on the original-language source embedded in the scene (Hebrew or Greek), but do not mention Hebrew/Greek, transliterations, or grammar. Express insights in clear, plain English. Avoid highlighting English translator helper words that are not distinct words in the original (e.g., “makes” when it’s just a causative form); describe the meaning instead.
 
 ---
 
-## 🛠 Step-by-Step Instructions
+## ⚖️ Rules and Guidance (DO NOT OUTPUT)
 
-1. **Emotional Awareness**
-   - Write 2–3 questions that draw attention to **visible or audible emotional cues** in the scene — facial expressions, posture, pace, tone of voice, gestures — as observed by someone in the scene.
-   - Use **emotion words** only when supported by text or background.
-   - Avoid abstract theological or moral statements here.
-   - Keep participants inside the text’s world as observers unless a perspective shift is explicit in the scene.
+Original text grounding (silent)
+- Derive meaning from the original text in scene (Hebrew or Greek), but do not display or name original-language words, scripts, transliterations, Strong’s numbers, or grammatical terms.
+- If the original meaning differs from common English renderings, explain the meaning briefly in plain English without mentioning the original word (e.g., “this line shows gentle causing to rest,” not “the Hebrew hiphil…”).
+- Do not draw attention to English artifacts introduced by translators. Prefer meaning-based phrasing: “this line shows…,” “the scene depicts…,” “the verse emphasizes…”.
 
----
+Metaphor-first heart engagement
+- Start with what’s at stake inside the imagery itself (vulnerability, dependence, risk, provision).
+- Then connect to the speaker’s/character’s heart reality the imagery illuminates (desire, trust, fear, resistance).
+- Do not literalize metaphors (e.g., David is not a sheep). Use the metaphor as a window into the actual heart dynamics.
 
-### Using Attributed Author Context in Step 2 (Heart)
-If the **cultural background above** includes an “Attributed Author Context,” weave **1–2 brief, scene-bound prompts** that help participants *sense* how the author’s life clarifies the emotional world of the scene — without giving a mini-lecture.
+Accessibility and background
+- Begin with questions answerable from the text and common experience.
+- Weave cultural/historical context when it helps people imagine the scene more concretely; keep it brief and scene-bound; do not label it as “background” in the output.
+- Keep everyone inside the scene’s world; application to participants happens later (Step 3).
 
-- Keep participants **in the scene**.
-- Mention the author only if it explains a concrete emotional stance or reaction in this scene.
-- Immediately follow with a text-grounded, emotion-oriented question.
+Precision and tone
+- Match number (singular/plural), person, and perspective to the passage.
+- Use plain, self-contained, text-grounded questions. No mini-lectures, technical terms, or meta-instructions.
 
-**Pattern (examples—adapt to the passage):**
-- “This psalm is attributed to David, who both led sheep and faced danger himself.
-  Watching the shepherd scan the horizon, what emotion do you see in his face?”
-- “If David has known rare pasture in a dry land, what feeling might you notice as he looks at this one?”
+Hard bans for output
+- No Hebrew or Greek characters.
+- No transliterations or original-word callouts in parentheses.
+- No grammar terms (e.g., hiphil, aorist), no Strong’s numbers.
+- No section labels like “Hebrew Word Focus,” “Greek Syntax,” or “Background.”
 
----
-
-2. **Filling in the Gaps (Emotional-Cultural Detail)**
-   - Add 2–3 short background insights from the **cultural background above**, the **emotional arc above**, or the **Josh Frost emotional analysis above** that explain **why** someone in the scene might feel a certain way.
-   - Follow each with a **scene-bound emotional question** that helps participants notice those feelings.
-
-**Pattern:**
-1. **Brief emotional-cultural insight** (1–2 sentences, plain language, grounded in text)
-2. **Follow-up question** — “Given this, what emotion do you notice in…?”
-
----
-
-3. **Deep Heart Engagement**
-   - Write 2–3 questions that invite participants to identify **where the heart is turning** in this moment for the psalmist or other key figure.
-   - Stay inductive: focus on what the text shows about desires, trusts, fears, or resistances in this moment.
-   - Do not apply to participants’ lives yet — that’s Step 3.
+Red flags to rewrite before emitting
+- Any parentheses containing foreign words or scripts.
+- Any mention of “in Hebrew/Greek,” “the Hebrew word,” “the Greek term,” etc.
+- Questions that highlight English helper words instead of the underlying meaning.
 
 ---
 
-## 📝 Output Format
+## 📝 Output Format (DO NOT OUTPUT THIS SECTION)
 
-### Enter the Scene with Your Whole Heart ({{citation}})
+- The first non-empty line MUST be:
+  ### Enter the Scene with Your Whole Heart ({{citation}})
+- Then produce 2–3 numbered sections with descriptive headings.
+- Each section contains 2–3 questions (total 6–8 questions).
+- Questions should flow: text observation → (optionally) brief scene-bound context that clarifies → deeper heart engagement.
+- Do not include labels like “Background,” “Optional,” “Total Questions,” or any meta text.
 
-1. **Emotional Awareness**
-   - [Concrete observation question]
-   - [Concrete observation question]
-   - [Concrete observation question]
-
-2. **Filling in the Gaps**
-   - [Background insight]
-   - [Follow-up emotional question]
-   - (Repeat for 2–3 unique insights)
-
-3. **Deep Heart Engagement**
-   - [Inductive heart-orientation question]
-   - [Inductive heart-orientation question]
-   - [Inductive heart-orientation question]
-
-**Total Questions:** 6–8
+Example heading style (illustrative only; do not output these):
+1. The Nations’ Rebellion
+2. God’s Sovereign Response
 
 ---
 
-## ⚖️ Additional Rules & Guidance for This Step
+## ✅ Writing Patterns (DO NOT OUTPUT)
 
-- **Scene-Limited Imagery:** Only use imagery, actions, and details from the **scene above**.
-- **Strong Link:** When using cultural/emotional background, connect it directly to something participants could see or hear in the scene.
-- **Distinct Insights:** Each “Filling in the Gaps” detail must address a different emotional or cultural facet.
-- **Observation Over Interpretation:** Do not label internal feelings unless they are visible/audible in the scene.
-- **Plain, Self-Contained Questions:** Short, clear, conversational sentences.
-- **Echo the Text:** Use exact words and imagery from the **scene above** to strengthen memory.
-- **Clarify the Role:** Keep participants as *observers in the scene* unless the text explicitly shifts perspective.
-- **No Modern Application:** Focus on discovery in the scene’s emotional world; application happens later.
-- No new sensory/body prompts in Step‑2. Focus on desires, trusts, fears, resistances, and observable emotional cues—not textures/smells/touches.
+Safe patterns
+- “Notice the scene’s imagery of [X]. What do you observe about the vulnerability or dependence it reveals?”
+- “Given this, what do you notice about where the speaker’s heart is turning — toward trust, or away in fear or self-reliance?”
+- “What do their words/actions suggest they treasure or trust in this moment?”
+
+When original meaning clarifies (no language mention)
+- “This line conveys being caused to settle into rest. How does that deepen what you notice about reliance and safety here?”
+- “The phrase points to being brought back from straying. What does that suggest about the heart’s movement in this moment?”
+
+Metaphor-first examples (adaptable)
+- “Consider what’s at stake for the flock in this landscape — risks, needs, protection. What heart posture does reliable care invite?”
+- “Think about a tree planted beside steady water — stability, nourishment, endurance. What does this reveal about the heart’s focus and delight?”
+
+---

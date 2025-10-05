@@ -7,10 +7,10 @@ prompt:
     - exegetical_culture
   optional: []
   format: Markdown
-  description: Guides participants to enter {scene} from {passage} using their bodies and senses, with cultural background woven in.
+  description: Guides participants to enter {scene} from {passage} using their bodies and senses, with cultural background woven in. Focuses on detailed attention to what the text actually says and shows.
 -->
 
-# StoryFlow Leader’s Guide: Step 1 – Enter the Scene with Your Body
+# StoryFlow Leader's Guide: Step 1 – Enter the Scene with Your Body
 
 ## 📥 Inputs
 
@@ -28,85 +28,89 @@ prompt:
 
 ---
 
-You are helping group leaders guide participants to step into the scene physically—using their bodies and senses—while gently weaving in cultural background information to help them imagine it more vividly and accurately.
+You are helping group leaders guide participants to step into the scene physically using their bodies and senses, with detailed attention to what the text actually says and shows. Use cultural background to help participants notice and understand the specific physical details the biblical text provides.
+
+Base your reasoning on the original-language source embedded in the scene (Hebrew or Greek), but do not mention Hebrew/Greek, transliterations, or grammar in the output. Avoid highlighting English translator helper words that are not distinct words in the original; describe the meaning instead.
 
 ---
 
 ## 🛠 Step-by-Step Instructions
 
-1. **Warm-Up**
-   - Provide 1–2 short, text-grounded background details from the **cultural background above** that accurately frame the scene in its ancient context.
-   - Immediately follow each detail with a **single-focus, concrete, in-scene sensory or movement question** that participants can answer from within the scene’s world, not from modern life or abstract speculation.
-   - Embed accurate historical/cultural details (e.g., shepherds in the ANE led from the front by voice) before the question so participants visualize correctly.
-   - Avoid “What do you think…”, “How might…”, “might/could” phrasing.
-   - Do not invite personal application; keep all prompts inside the text’s world for Step 1.
-
-### Using Attributed Author Context in Step 1 (Body)
-If the **cultural background above** includes an “Attributed Author Context,” weave **1–2 brief, scene-bound prompts** that let participants *sense* how the author’s life clarifies the physical imagery—without giving a mini-lecture.
-
-- Keep participants **inside the scene** (observer/sheep/etc.).
-- Mention the author **only** to frame a concrete sensory cue; immediately follow with a sensory/movement question.
-- Do **not** invite modern application here.
-
-**Pattern (examples—adapt to the passage):**
-- “This psalm is attributed to David, who led sheep by **voice** from the front.
-  **What do you hear** in the shepherd’s call? **How do the sheep move** when they recognize it?”
-- “If David knows how rare pasture is in this land, **what details** do you notice in this patch of green—**color, texture, slope**?”
-- “Picture a practiced shepherd scanning for danger. **What posture** do you see? **Where do the flock’s heads turn?**”
-
----
-
-2. **Sensory Engagement**
-   - Use the **scene above** and the **cultural background above** to write questions that immerse participants in sight, sound, smell, touch, and taste **within the scene**.
-   - Keep all prompts anchored to observable scene elements and historically accurate details.
-   - One sensory or movement element per question.
-   - Avoid speculation or modern comparison; if background is used, place it immediately before a concrete sensory question.
-
----
-
-3. **Filling in the Gaps (Cultural Detail)**
-   - Add 2–3 short pieces of background knowledge from the **cultural background above** that would help someone from a different culture imagine the physical experience more accurately.
-   - For each, follow this pattern:
-     1. **Brief background insight** (1–2 sentences, plain language)
-     2. **Follow-up sensory question** that helps participants reimagine the scene more vividly with that new information
+1. **Text-Grounded Sensory Attention**
+   - Start with specific physical words, verbs, and imagery that the text actually uses.
+   - Begin with questions people can answer from common experience — what most people would understand about the physical details.
+   - Add cultural background when it genuinely illuminates what's happening and helps participants imagine more concretely.
+   - Focus on the exact details the text gives us about bodies, actions, settings, movements.
+   - Help participants slow down and notice physical language they might have skipped over.
 
 ---
 
 ## 📝 Output Format
 
+Generate ONLY the following content for leaders to use with participants:
+
 ### Enter the Scene with Your Body ({{citation}})
 
-1. **Warm-Up**
-   - [Short background detail from the cultural background above + concrete question]
-   - [Short background detail from the cultural background above + concrete question]
+**Format as numbered sections with descriptive headings:**
 
-2. **Sensory Engagement**
-   - [Sensory question rooted in the scene above]
-   - [Sensory question rooted in the scene above]
-   - [Sensory question rooted in the scene above]
+1. **[Descriptive heading for first group of questions]**:
+   - [Text-grounded embodied question accessible to most people]
+   - [Text-grounded embodied question + brief scene-bound context when illuminating]
 
-3. **Filling in the Gaps**
-   - [Background insight from the cultural background above]
-   - [Follow-up sensory question tied to that insight]
-   - (Repeat for 2–3 unique insights)
+2. **[Descriptive heading for second group of questions]**:
+   - [Text-grounded embodied question accessible to most people]
+   - [Text-grounded embodied question + brief scene-bound context when illuminating]
 
-**Total Questions:** 6–8
+3. **[Descriptive heading for third group of questions]** (if needed):
+   - [Text-grounded embodied question + brief scene-bound context when helpful]
+
+Total 6–8 questions across 2–3 numbered sections with descriptive headings.
+
+Requirements:
+- Start each section with accessible questions.
+- Weave in cultural insight when it helps concrete imagination; do not label it.
+- All questions are equal — no distinction between those with or without background.
+- Ancient focus: their physical experience in that time and place.
+- Text-grounded: only details the Scripture actually provides.
 
 ---
 
-## ⚖️ Additional Rules & Guidance for This Step
+## ⚖️ Guidelines for Content Generation (DO NOT OUTPUT)
 
-- **Scene-Limited Imagery:** Only use imagery, actions, and details from the **scene above**.
-   – Keep all questions anchored in the imagery, actions, and emotions of these verses. Do not import imagery from later verses.
-   - In later scenes, actively draw participants back to earlier images and invite them to notice how those images develop or transform in the new scene. Always ground these parallels in the psalm’s own progression.
-- **Background → Sensory Link:** Always connect cultural/historical facts from the **cultural background above** to something participants can *see, hear, smell, touch, or taste* in the scene.
-   – Use cultural or historical background only if it clarifies or deepens the imagery of this scene.
-   - **No Repetition:** Each “Fill in the Gaps” detail must cover a different facet of culture, setting, or physical experience.
-- **Observation Over Interpretation:** Do not state how someone feels unless the emotion is visible/audible in the scene.
-- **Plain, Self-Contained Questions:** Short, clear, conversational sentences. One sensory focus per question.
-- **Echo the Text:** Use exact words and imagery from the **scene above** (e.g., “green pastures,” “still waters”) to help retention.
-- **Clarify the Role:** Keep participants as *observers in the scene* unless the text requires another perspective.
-- **No Modern Application:** Discovery and experience only — application comes in later steps.
+Silent original-text grounding
+- Derive meaning from the original text in scene (Hebrew or Greek); do not display or name original words, scripts, transliterations, Strong’s numbers, or grammar.
+- If original meaning differs from common English renderings, explain it briefly in plain English without language terms (e.g., “this line shows being caused to settle into rest”).
+
+Ancient embodied focus
+- Keep the focus on their bodies then — the people/actors within the biblical world.
+- Let participants imagine being in their place, but avoid modern physical exercises; describe the ancient physical realities the text depicts.
+
+Cultural background usage
+- Use only when it helps participants imagine more concretely (terrain, tools, posture, travel, material culture).
+- Keep it brief and scene-bound; no mini-lectures; no labels like “Background.”
+
+Precision and tone
+- Match number (singular/plural), person, and perspective to the passage.
+- Use plain, self-contained, text-grounded questions. No meta-instructions.
+
+Avoid English-only artifacts
+- Do not call attention to English helper words (e.g., “makes”) if they reflect grammar rather than distinct words in the original.
+- Prefer meaning-based phrasing: “the scene shows…,” “this line depicts…,” “the verse emphasizes…”.
+
+Hard bans for output
+- No Hebrew or Greek characters; no transliterations.
+- No grammar terms (e.g., hiphil, aorist) or Strong’s numbers.
+- No labels like “Background,” “Optional,” or “Total Questions.”
+
+Red flags to rewrite before emitting
+- Any mention of “in Hebrew/Greek,” “the Hebrew word,” “the Greek term,” etc.
+- Parentheses containing foreign scripts or transliterations.
+- Questions centered on modern bodily actions detached from the scene’s ancient context.
+
+Safe patterns
+- “Notice the action words and physical setting. What movements or positions are present, and what do they suggest about safety, effort, or danger?”
+- “Given the landscape/tools named here, what would bodies be doing or feeling in this moment?”
+- “What does the guidance/protection described here look and feel like in that world?”
 
 
 

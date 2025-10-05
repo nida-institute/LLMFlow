@@ -5,57 +5,90 @@ prompt:
   - source
   optional: []
   format: Markdown
-  description: Analyzes the emotional arc of {{passage}} using Nussbaum's framework
+  description: Analyzes the heart journey and emotional landscape of {{passage}} using biblical anthropology - emotions as signals of heart orientation toward or away from God
 -->
 
 STYLE / METHOD GUARDRAILS (NON-NEGOTIABLE)
 - Inductive order only: description → implication for visualization; no modern application here.
 - Keep everything inside the ancient scene and world; do not guess beyond evidence.
-- Every emotional point MUST include “Implication for Scene Entry” to describe how these emotions would be visible, audible, or otherwise perceivable in-scene.
+- Focus on **biblical heart (lev/kardia)** - emotions as moral and relational signals revealing what people love, fear, trust, resist.
+- Every emotional point MUST include "Implication for Scene Entry" to describe how heart orientation and emotions would be visible, audible, or otherwise perceivable in-scene.
 - Use the exact heading levels and order specified below—no extra sections.
-- Forbidden: “What do you think…”, “How might…”, generic modern parallels, moral lessons, modern application.
+- Forbidden: "What do you think…", "How might…", generic modern parallels, moral lessons, modern application.
+
 INTERNAL CHECK (before returning):
 - Headings match the required schema exactly (## / ### / #### as specified).
-- Each scene segment includes an Implication line.
-- No modern-life language; all content is scene-usable by later prompts.
+- Each scene segment includes an Implication line focused on observable heart dynamics.
+- No modern psychological language; all content describes biblical heart orientation and relational dynamics.
+- Emotions are treated as **signals** of deeper heart loyalties, not as ends in themselves.
 
 **Instructions:**
-Analyze the emotional arc of **{{passage}}** using Nussbaum's framework.
-Describe the high-level emotional movement, author context, and break down the scene into segments with dominant emotions, values, and implications for how emotions are perceived in-scene.
+Analyze the **heart journey and emotional landscape** of **{{passage}}** using biblical anthropology.
+Describe how emotions reveal heart orientation (toward God or away from God), what people treasure and trust, and how this would be observable in the ancient scene.
 Follow the structure and headings below exactly.
 
-## Emotional Arc for {{passage}}
+## Heart Journey and Emotional Landscape for {{passage}}
 
 ### Overview (2–4 sentences)
-- High-level emotional movement within {{passage}} (in-scene only).
+- High-level **heart movement** within {{passage}} - where hearts are turning in relationship to God, what they're treasuring, trusting, or resisting.
+- Brief description of the **emotional signals** that reveal these heart orientations.
 
 ### Attributed Author Context
 
 State whether the psalm is traditionally or textually attributed to a specific person.
-- If attributed, briefly identify the author and, if relevant, explain how their life experiences might heighten the emotions in **this scene**.
-- If authorship is uncertain or unknown, say so, and note any scholarly perspectives that shed light on emotional dynamics.
+- If attributed, briefly identify the author and explain how their **life experiences with God** might illuminate the heart dynamics in **this scene**.
+- Focus on **relational history with God** - experiences of trust/betrayal, deliverance/abandonment, worship/rebellion that shape heart orientation.
+- If authorship is uncertain, note any scholarly perspectives that shed light on **heart and relational dynamics**.
 
-Include only author details that make the emotional movement more vivid or grounded in the ancient setting.
-Do not include generic statements about trust or faith without tying them to specific life events or roles.
+Include only author details that make the **heart journey** more vivid or grounded in lived relationship with God.
 
 **Examples of possible author connections:**
-- **David** — As shepherd and as one pursued, his lived vulnerability enriches images of guidance, protection, or danger.
-- **Asaph** — His worship leadership could heighten emotional responses tied to praise, lament, or communal prayer.
-- **Sons of Korah** — Their role in temple processions might intensify longing for God’s presence in psalms of ascent or exile.
+- **David** — His journey from shepherd to fugitive to king reveals heart dynamics of trust in God's protection, wrestling with abandonment, learning dependence.
+- **Asaph** — His role in worship leadership might intensify heart responses of awe, longing for God's presence, or grief over spiritual decline.
+- **Sons of Korah** — Their family history of rebellion and restoration could heighten heart dynamics around judgment, grace, and return to God.
 
-> These examples are illustrative; author notes should be concise, evidence-based, and scene-specific.
+> These examples are illustrative; author notes should be concise, evidence-based, and scene-specific to heart orientation.
 
 ### Scene Segments
+
 #### Scene Segment: <concise image/action label>
-- Dominant emotions:
-- Emotional movement (from → to):
-- Values at stake:
-- Relational dynamics (if any):
-- Implication for Scene Entry (how emotions become visible/audible in-scene):
+- **Heart orientation:** (toward God, away from God, torn between loyalties, etc.)
+- **Emotional signals:** (what emotions reveal about deeper heart loyalties)
+- **What they treasure:** (what the heart values, clings to, seeks)
+- **What they trust:** (where security and confidence are placed)
+- **What they resist:** (what the heart turns away from or refuses)
+- **Relational dynamics:** (with God, with others, internal heart conflicts)
+- **Implication for Scene Entry:** (how heart orientation and emotions become visible/audible in embodied responses - posture, voice, movement, facial expressions)
 
 #### Scene Segment: <next label>
-- Dominant emotions:
-- Emotional movement:
-- Values at stake:
-- Relational dynamics:
-- Implication for Scene Entry:
+- **Heart orientation:**
+- **Emotional signals:**
+- **What they treasure:**
+- **What they trust:**
+- **What they resist:**
+- **Relational dynamics:**
+- **Implication for Scene Entry:**
+
+---
+
+## Biblical Heart Framework
+
+**Remember: Emotions are moral and relational signals that reveal:**
+- **Attention:** What captures the heart's focus
+- **Allegiance:** Who or what the heart serves
+- **Treasure:** What the heart values most deeply
+- **Trust:** Where the heart seeks security
+- **Desire:** What the heart fundamentally longs for
+- **Fear/Awe:** What the heart reveres or dreads
+- **Resistance:** What the heart refuses or turns away from
+
+**Heart Orientation Patterns:**
+- **Toward God:** Trust, worship, delight, refuge-seeking, obedience, longing for presence
+- **Away from God:** Self-reliance, false trust, resistance, rebellion, turning to other securities
+- **Torn/Conflicted:** Wrestling between competing loyalties, desires, fears
+
+**Embodied Heart Signals:**
+- **Physical responses:** trembling, dancing, prostrating, lifting hands, bowing, running
+- **Vocal responses:** singing, crying out, whispers, silence, groaning
+- **Facial expressions:** joy, anguish, peace, fear, determination, wonder
+- **Postural changes:** standing tall, crumbling, reaching up, turning away, drawing near
