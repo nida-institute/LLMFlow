@@ -91,7 +91,7 @@ steps:
         exegetical_wordstudy: "${exegetical_wordstudy}"
     output_type: json
     outputs: scene_list
-    log: debug  
+    log: debug
 
   # --- Save Scene List JSON ---
   - name: save_scene_list
@@ -100,7 +100,7 @@ steps:
     inputs:
       content: "${scene_list}"
       output_path: "outputs/scenes/${passage_info.filename_prefix}.json"
-    outputs: scene_json_path  
+    outputs: scene_json_path
 
 
   # --- For Each Scene (Steps 1–4) ---
@@ -118,7 +118,7 @@ steps:
           inputs:
             passage: "${passage}"
             scene: "${scene}"
-            source: "${source}"  
+            source: "${source}"
             exegetical_culture: "${exegetical_culture}"
             exegetical_wordstudy: "${exegetical_wordstudy}"
             exegetical_emotionalarc: "${exegetical_emotionalarc}"
@@ -145,8 +145,9 @@ steps:
             passage: "${passage}"
             scene: "${scene.WLC}"
             citation: "${scene.Citation}"
+            bodies_content: "${bodies_content}"
             exegetical_culture: "${exegetical_culture}"
-            exegetical_emotionalarc: "${exegetical_emotionalarc}" 
+            exegetical_emotionalarc: "${exegetical_emotionalarc}"
             joshfrost_emotional: "${joshfrost_content}"
         outputs: hearts_content
         append_to: hearts_list
@@ -159,14 +160,16 @@ steps:
             passage: "${passage}"
             scene: "${scene}"
             citation: "${scene.Citation}"
+            exegetical_culture: "${exegetical_culture}"
             exegetical_emotionalarc: "${exegetical_emotionalarc}"
-            exegetical_culture: "${exegetical_culture}"  
-            exegetical_background: "${exegetical_culture}"  
-            joshfrost_emotional: "${joshfrost_content}"  
-            scene_text: "${scene.WLC}"  
+            scene_text: "${scene.WLC}"
+            exegetical_background: "${exegetical_culture}"
+            joshfrost_emotional: "${joshfrost_content}"
+            bodies_content: "${bodies_content}"
+            hearts_content: "${hearts_content}"
         outputs: connecting_content
         append_to: connecting_list
-        log: debug 
+        log: debug
 
       - name: naming
         type: llm
@@ -188,8 +191,8 @@ steps:
         inputs:
           template_path: "templates/leadersguide_scene_template.md"
           variables:
-            scene_title: "${scene.Title}"        
-            scene_citation: "${scene.Citation}"  
+            scene_title: "${scene.Title}"
+            scene_citation: "${scene.Citation}"
             step1: "${bodies_content}"
             step2: "${hearts_content}"
             step3: "${connecting_content}"
@@ -205,8 +208,8 @@ steps:
         inputs:
           template_path: "templates/joshfrost_scene_template.md"
           variables:
-            scene_title: "${scene.Title}"        
-            scene_citation: "${scene.Citation}"  
+            scene_title: "${scene.Title}"
+            scene_citation: "${scene.Citation}"
             joshfrost_content: "${joshfrost_content}"
         outputs: joshfrost_scene_markdown
         append_to: joshfrost_scenes_markdown_list
@@ -236,7 +239,7 @@ steps:
       file: leadersguide-summarizing.gpt
       inputs:
         passage: "${passage}"
-        scene_titles: "${scene_list[*].SceneTitle}"  
+        scene_titles: "${scene_list[*].SceneTitle}"
     outputs: summary_response
 
 
@@ -285,7 +288,7 @@ steps:
       content: "${qa_output.fixed_markdown}"
       output_path: "outputs/leaders_guide_edited/${passage_info.filename_prefix}_leaders_guide_edited.md"
       format: markdown
-    outputs: edited_guide_path  
+    outputs: edited_guide_path
 
   - name: save_qa_report
     type: function
@@ -296,4 +299,4 @@ steps:
         flags: "${qa_output.flags}"
         stats: "${qa_output.stats}"
       output_path: "outputs/qa_reports/${passage_info.filename_prefix}_qa_report.json"
-    outputs: qa_report_path  
+    outputs: qa_report_path

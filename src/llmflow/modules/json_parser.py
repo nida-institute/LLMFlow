@@ -122,8 +122,8 @@ def parse_llm_json_response(response_text, debug=False):
 
         # If all fixes failed, raise the original error with context
 
-        log_section("Could not parse JSON")
-        log_section(f"Original error: {e}")
-        log_section(f"Cleaned JSON text: '{cleaned}'", True)
+        log_section("Could not parse JSON", "")
+        log_section(f"Original error: {e}", "")
+        log_section(f"Cleaned JSON text: '{cleaned}'", "", True)
 
         raise json.JSONDecodeError(f"Could not parse LLM JSON response: {e}", cleaned, e.pos)

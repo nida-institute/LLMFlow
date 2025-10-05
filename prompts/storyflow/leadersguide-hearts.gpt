@@ -4,12 +4,13 @@ prompt:
     - passage
     - scene
     - citation
+    - bodies_content
     - exegetical_culture
     - exegetical_emotionalarc
     - joshfrost_emotional
   optional: []
   format: Markdown
-  description: Helps participants discern what's happening at the heart (lev/kardia) level for all characters/participants in {scene} from {passage} — where thought, desire, emotion, will, and attention converge.
+  description: Helps the group discern what's happening at the heart (lev/kardia) level for people in the scene from {passage} — where thought, desire, emotion, will, and attention converge.
 -->
 <!-- HARD RULE: The FIRST non-empty line of your output MUST be:
 ### Enter the Scene with Your Whole Heart ({{citation}})
@@ -27,6 +28,9 @@ Do not use any other H3 before this. -->
 ### citation
 {{citation}}
 
+### Enter the scene with your body
+{{bodies_content}}
+
 ### exegetical_culture
 {{exegetical_culture}}
 
@@ -38,7 +42,7 @@ Do not use any other H3 before this. -->
 
 ---
 
-You are helping group leaders guide participants to discern what's happening at the heart level (lev/kardia) for the people in this scene — where thought, desire, emotion, will, and attention converge.
+You are helping group leaders guide the group to discern what's happening at the heart level (lev/kardia) for the people in this scene — where thought, desire, emotion, will, and attention converge.
 
 Base your reasoning on the original-language source embedded in the scene (Hebrew or Greek), but do not mention Hebrew/Greek, transliterations, or grammar. Express insights in clear, plain English. Avoid highlighting English translator helper words that are not distinct words in the original (e.g., “makes” when it’s just a causative form); describe the meaning instead.
 
@@ -46,66 +50,124 @@ Base your reasoning on the original-language source embedded in the scene (Hebre
 
 ## ⚖️ Rules and Guidance (DO NOT OUTPUT)
 
++ Plain, accessible language
+- Avoid scholarly/technical terms: use "the speaker," "David," "the person praying" instead of "the psalmist"
+- Avoid formal religious language: use "pray," "talk to God" instead of "petition," "invoke"
+- Use everyday words for roles: "king," "leader," "prophet" not "monarch," "sovereign," "seer"
+- Keep vocabulary conversational and concrete
+- If you must use a less common word, immediately clarify it in plain language
+
+Terminology
+- "Participants" always refers to people in the scene (speakers, addressees, bystanders, opponents, messengers, etc.).
+- Use "the group" to refer to people discussing the text today.
+- Encourage perspective-taking: ask questions from different in‑scene participants' viewpoints (e.g., "From the bystander's vantage point…", "Standing where the addressee is…").
+
 Original text grounding (silent)
-- Derive meaning from the original text in scene (Hebrew or Greek), but do not display or name original-language words, scripts, transliterations, Strong’s numbers, or grammatical terms.
-- If the original meaning differs from common English renderings, explain the meaning briefly in plain English without mentioning the original word (e.g., “this line shows gentle causing to rest,” not “the Hebrew hiphil…”).
-- Do not draw attention to English artifacts introduced by translators. Prefer meaning-based phrasing: “this line shows…,” “the scene depicts…,” “the verse emphasizes…”.
+- Derive meaning from the original text in scene (Hebrew or Greek); do not display or name original-language words, scripts, transliterations, Strong's numbers, or grammar.
+- If the original meaning differs from common English renderings, explain the meaning briefly in plain English without naming the language (e.g., "this line conveys being brought back from straying").
+- Do not draw attention to English artifacts introduced by translators. Prefer meaning-based phrasing: "this line shows…," "the scene depicts…," "the verse emphasizes…".
+
+Avoid repeating Step 1 (Bodies)
+- Assume the group has just completed Step 1. Do not restate the same physical details, sensory descriptions, or cultural notes already surfaced there.
+- Use brief callbacks instead of repetition (e.g., "Given the care you noticed earlier…"), then move to heart dynamics (desires, trusts, fears, resistances).
+- Only reference physical details when necessary to anchor a heart question; keep any callback to a clause, not a re-description.
 
 Metaphor-first heart engagement
-- Start with what’s at stake inside the imagery itself (vulnerability, dependence, risk, provision).
-- Then connect to the speaker’s/character’s heart reality the imagery illuminates (desire, trust, fear, resistance).
-- Do not literalize metaphors (e.g., David is not a sheep). Use the metaphor as a window into the actual heart dynamics.
+- Start with what's at stake inside the imagery itself (vulnerability, dependence, risk, provision).
+- Then connect to the speaker's/character's heart reality the imagery illuminates (desire, trust, fear, resistance).
+- Do not literalize metaphors (e.g., David is not a sheep). Use the metaphor as a window into heart reality.
+- Use plain language: "the speaker describes..." or "David pictures..." not "the psalmist depicts..."
+- Match number/person to the text (singular vs. plural; "I" vs. "we").
 
 Accessibility and background
 - Begin with questions answerable from the text and common experience.
-- Weave cultural/historical context when it helps people imagine the scene more concretely; keep it brief and scene-bound; do not label it as “background” in the output.
-- Keep everyone inside the scene’s world; application to participants happens later (Step 3).
+- Weave cultural/historical/biographical context when it helps people visualize the scene more concretely; keep it brief, scene-bound, and unlabeled.
+- Do not hesitate to lead with a short context clause before a question (1–2 sentences that sharpen the picture).
+- **First-Mention Rule:** When an element appears for the first time (tools, settings, roles, practices), include essential context immediately so modern readers can grasp what's at stake emotionally.
+- **Essential context** = needed to understand the heart dynamics (e.g., what a rod/staff does, rarity of green pastures, honor dynamics at a gate).
+- **Format:** Use brief parenthetical explanations or short clauses integrated into the question.
+- Default posture: include at least one contextual nudge per numbered section when it clarifies stakes or heart posture.
+- Author background comes after exploring the imagery and only when it clarifies heart dynamics already visible.
+
+Hearts, not bodies (this step)
+- Focus on desires, trusts, fears, resistances, attention, and relational stance visible in the scene.
+- Do not prompt modern bodily actions or sensations here (that belongs to the "bodies" step).
+- Do not re-describe the physical scene; use it as an anchor to probe heart orientation.
+- Fresh context that was not covered in Step 1 is welcome if it sharpens what is at stake emotionally.
+
+Context integration (cultural / historical / biographical)
+- Introduce context when it clarifies stakes (landscape, customs, roles, tools, social dynamics).
+- Keep to 1–2 sentences and immediately follow with a text-bound heart question.
+- Do not create a separate "background" section; weave context naturally into questions.
+- If a single concrete fact can make the scene vivid (terrain, climate, kinship roles, temple practice, patronage), use it.
+- Biographical notes are welcome when they sharpen heart posture; keep them to a clause or one sentence and tie directly to the scene.
+- Don't assume modern readers know ancient emotional/relational realities - explain basics they need to understand what's at stake.
+
++ First-Mention Examples for Heart Dynamics (adapt to your passage)
+- **Rod & Staff:** "The shepherd's rod (a club for defense) and staff (for guidance) provide both protection and direction. What does this dual care reveal about where trust is placed?"
+- **Green Pastures (scarcity angle):** "Green grazing was rare in this dry land - flocks would exhaust an area and need to be led elsewhere. What does being brought to such provision reveal about the heart's dependence?"
+- **Restoration:** "This line conveys being brought back from straying or wandering off. What does that suggest about the heart's movement - toward independence or renewed trust?"
+- **Paths of Righteousness:** "Right paths that align with God's character and purposes. What does being guided this way reveal about where the heart's loyalty is directed?"
+- **Valley of Shadow:** "Deep ravines where danger lurked and light barely reached. Walking through such a place, what fears or trusts come to the surface?"
+- **Table in Presence of Enemies:** "A host providing a meal while opponents watch (a display of protection and honor). What does this say about where security is found?"
+
+Language to avoid
+- ❌ "the psalmist" → ✅ "the speaker," "David," "the person praying"
+- ❌ "petition," "invoke" → ✅ "ask," "call on," "pray to"
+- ❌ "the nations," "the gentiles" → ✅ "other nations," "foreign peoples"
+- ❌ "supplication" → ✅ "desperate prayer," "plea"
+- ❌ "lament" → ✅ "cry out," "grieve," "complain to God"
+- ❌ "vindication" → ✅ "being proven right," "justice"
+- ❌ "adversaries," "foes" → ✅ "enemies," "opponents"
+- ❌ "steadfast love" → ✅ "loyal love," "faithful love"
+- ❌ "righteousness" (alone) → ✅ "rightness," "what's right," "living rightly"
+- ❌ "they" (singular) → ✅ "he," "she," "the speaker," or use the person's name when clear from context
+- Match the grammar to the text: if the original is singular, use singular pronouns
+
+Genre adapters (works for any passage)
+- Narrative: who is present, what they do/say, what is at risk (honor, safety, livelihood); surface heart orientations through actions and dialogue.
+- Poetry/Psalms: explore the imagery's stakes first; then connect to the speaker's heart; keep biographical notes sparing and late.
+- Prophetic/Apocalyptic: briefly clarify symbolic actions/images to make the scene legible; return to heart posture (trust, resistance, hope).
+- Wisdom: highlight contrasts (ways/paths), embodied consequences, and what these reveal about what is treasured or trusted.
+- Gospels/Acts: locate setting and roles briefly (synagogue, road, sea; Pharisees, tax collectors) to clarify relational stakes; surface heart responses.
+- Letters: surface writer/recipient dynamics, pressures, and pastoral aims that reveal heart orientations.
 
 Precision and tone
-- Match number (singular/plural), person, and perspective to the passage.
 - Use plain, self-contained, text-grounded questions. No mini-lectures, technical terms, or meta-instructions.
+- Write at a conversational level - as if explaining to a friend, not writing an academic paper.
+- Use active voice and concrete language wherever possible.
+- When introducing essential context, keep explanations to 5–10 words in parentheses or a brief clause.
 
 Hard bans for output
-- No Hebrew or Greek characters.
-- No transliterations or original-word callouts in parentheses.
-- No grammar terms (e.g., hiphil, aorist), no Strong’s numbers.
-- No section labels like “Hebrew Word Focus,” “Greek Syntax,” or “Background.”
+- No Hebrew or Greek characters; no transliterations; no grammar terms; no Strong's numbers.
+- No labels like "Background," "Optional," or "Total Questions."
+- No body-sensory directives (e.g., "try lying down," "feel this in your body").
 
 Red flags to rewrite before emitting
-- Any parentheses containing foreign words or scripts.
-- Any mention of “in Hebrew/Greek,” “the Hebrew word,” “the Greek term,” etc.
-- Questions that highlight English helper words instead of the underlying meaning.
-
----
-
-## 📝 Output Format (DO NOT OUTPUT THIS SECTION)
-
-- The first non-empty line MUST be:
-  ### Enter the Scene with Your Whole Heart ({{citation}})
-- Then produce 2–3 numbered sections with descriptive headings.
-- Each section contains 2–3 questions (total 6–8 questions).
-- Questions should flow: text observation → (optionally) brief scene-bound context that clarifies → deeper heart engagement.
-- Do not include labels like “Background,” “Optional,” “Total Questions,” or any meta text.
-
-Example heading style (illustrative only; do not output these):
-1. The Nations’ Rebellion
-2. God’s Sovereign Response
+- Any mention of "in Hebrew/Greek," "the Hebrew word," "the Greek term," etc.
+- Questions that highlight English helper words instead of underlying meaning.
+- Questions that make the speaker become the metaphor (e.g., "the psalmist lies down like a sheep").
+- Scholarly or formal religious language that sounds academic rather than conversational.
 
 ---
 
 ## ✅ Writing Patterns (DO NOT OUTPUT)
 
 Safe patterns
-- “Notice the scene’s imagery of [X]. What do you observe about the vulnerability or dependence it reveals?”
-- “Given this, what do you notice about where the speaker’s heart is turning — toward trust, or away in fear or self-reliance?”
-- “What do their words/actions suggest they treasure or trust in this moment?”
+- "Notice the imagery of [X]. What does it reveal about vulnerability, dependence, or risk in this scene?"
+- "Given this, where is the speaker's heart turning — toward trust, or toward fear/self-reliance?"
+- "What do their words/actions suggest they treasure or trust right now?"
+- "From [participant in the scene]'s perspective, what captures attention or shifts their trust in this moment?"
+- "Without re-describing earlier details, what does this care/guidance reveal about the heart's posture here?"
 
 When original meaning clarifies (no language mention)
-- “This line conveys being caused to settle into rest. How does that deepen what you notice about reliance and safety here?”
-- “The phrase points to being brought back from straying. What does that suggest about the heart’s movement in this moment?”
+- "This line conveys being caused to settle into rest. How does that deepen what you notice about reliance and safety?"
+- "This phrase points to being brought back from straying. What does that suggest about the heart's movement here?"
 
-Metaphor-first examples (adaptable)
-- “Consider what’s at stake for the flock in this landscape — risks, needs, protection. What heart posture does reliable care invite?”
-- “Think about a tree planted beside steady water — stability, nourishment, endurance. What does this reveal about the heart’s focus and delight?”
-
----
+Context-weaving examples (adapt; do not output as-is)
+- Psalm 23: "Green grazing and calm water were rare in a dry land. What does being led into reliable provision reveal about the heart posture described here?"
+- Psalm 23: "Shepherds trained flocks to respond to their voice. What kind of trust or dependence comes into view in this picture?"
+- Psalm 23: "The shepherd's rod (for defense) and staff (for guidance) provide both protection and direction. What does this dual care reveal about where the speaker's trust is anchored?"
+- Psalm 23: "This line conveys being brought back from wandering off. What does that restoration reveal about the heart's need and God's pursuit?"
+- Narrative: "A village gate was the hub for judgment and trade. What honor or risk is at stake here, and how does that shape the heart response?"
+- Gospels: "Sabbath in the synagogue gathered the whole community. What loyalties or tensions surface in this moment, and where do hearts turn?"

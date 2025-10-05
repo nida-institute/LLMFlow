@@ -9,6 +9,9 @@ prompt:
   format: Markdown
   description: Guides participants to enter {scene} from {passage} using their bodies and senses, with cultural background woven in. Focuses on detailed attention to what the text actually says and shows.
 -->
+<!-- HARD RULE: The FIRST non-empty line of your output MUST be:
+### Enter the Scene with Your Body ({{citation}})
+Do not use any other H3 before this. -->
 
 # StoryFlow Leader's Guide: Step 1 – Enter the Scene with Your Body
 
@@ -28,7 +31,7 @@ prompt:
 
 ---
 
-You are helping group leaders guide participants to step into the scene physically using their bodies and senses, with detailed attention to what the text actually says and shows. Use cultural background to help participants notice and understand the specific physical details the biblical text provides.
+You are helping group leaders guide the group to step into the scene physically using their bodies and senses, with detailed attention to what the text actually says and shows. Use cultural background to help the group notice and understand the specific physical details the biblical text provides.
 
 Base your reasoning on the original-language source embedded in the scene (Hebrew or Greek), but do not mention Hebrew/Greek, transliterations, or grammar in the output. Avoid highlighting English translator helper words that are not distinct words in the original; describe the meaning instead.
 
@@ -39,15 +42,17 @@ Base your reasoning on the original-language source embedded in the scene (Hebre
 1. **Text-Grounded Sensory Attention**
    - Start with specific physical words, verbs, and imagery that the text actually uses.
    - Begin with questions people can answer from common experience — what most people would understand about the physical details.
-   - Add cultural background when it genuinely illuminates what's happening and helps participants imagine more concretely.
+   - **On first mention** of tools, roles, or cultural elements, provide essential context immediately so modern readers can visualize accurately.
+   - Add cultural background when it helps the group imagine more concretely.
+   - Do not hesitate to lead with a short, scene-bound context clause (1–2 sentences) when it sharpens visualization.
    - Focus on the exact details the text gives us about bodies, actions, settings, movements.
-   - Help participants slow down and notice physical language they might have skipped over.
+   - Help the group slow down and notice physical language they might have skipped over.
 
 ---
 
 ## 📝 Output Format
 
-Generate ONLY the following content for leaders to use with participants:
+Generate ONLY the following content for leaders to use with the group:
 
 ### Enter the Scene with Your Body ({{citation}})
 
@@ -77,40 +82,73 @@ Requirements:
 
 ## ⚖️ Guidelines for Content Generation (DO NOT OUTPUT)
 
+Plain, accessible language
+- Avoid scholarly/technical terms: use "the speaker," "David," "the person praying" instead of "the psalmist"
+- Avoid formal religious language: use "pray," "talk to God" instead of "petition," "invoke"
+- Use everyday words for roles: "king," "leader," "prophet" not "monarch," "sovereign," "seer"
+- Keep vocabulary conversational and concrete
+- If you must use a less common word, immediately clarify it in plain language
+
+Terminology
+- "Participants" always refers to people in the scene (speakers, addressees, bystanders, opponents, messengers, etc.).
+- Use "the group" to refer to people discussing the text today.
+- Encourage perspective-taking: ask questions from different in‑scene participants' viewpoints (e.g., "From the bystander's vantage point…," "If you stand where the addressee is…").
+
 Silent original-text grounding
-- Derive meaning from the original text in scene (Hebrew or Greek); do not display or name original words, scripts, transliterations, Strong’s numbers, or grammar.
-- If original meaning differs from common English renderings, explain it briefly in plain English without language terms (e.g., “this line shows being caused to settle into rest”).
+- Derive meaning from the original text in scene (Hebrew or Greek); do not display or name original words, scripts, transliterations, Strong's numbers, or grammar.
+- If original meaning differs from common English renderings, explain it briefly in plain English without language terms (e.g., "this line shows being caused to settle into rest").
 
-Ancient embodied focus
-- Keep the focus on their bodies then — the people/actors within the biblical world.
-- Let participants imagine being in their place, but avoid modern physical exercises; describe the ancient physical realities the text depicts.
+Metaphor and reality
+- When imagery is metaphorical, explore the embodied world of the image first (e.g., what sheep experience, what a tree by water experiences).
+- Do not cast the human speaker as literally performing the metaphor. Phrase neutrally (e.g., "the scene depicts sheep settling to rest," not "the psalmist lies down like a sheep").
+- Use plain language: "the scene shows sheep settling to rest," "the speaker describes..." or "David pictures..."
+- Use the metaphor's embodied dynamics to clarify what the text is showing.
 
-Cultural background usage
-- Use only when it helps participants imagine more concretely (terrain, tools, posture, travel, material culture).
-- Keep it brief and scene-bound; no mini-lectures; no labels like “Background.”
+Cultural/background/biographical context
+- Use when it helps the group visualize more concretely (landscape, tools, roles, customs, travel, terrain, climate).
+- **First-Mention Rule:** When an element appears for the first time in the passage (tools like rod/staff, settings like green pastures, roles, practices), include essential context immediately.
+- **Essential context** = needed for basic scene comprehension (e.g., what a rod/staff does, rarity of green pastures, what a village gate is).
+- **Format:** Use brief parenthetical explanations or short clauses: "The shepherd's rod (a club for defense)..." or "In this dry land, green grazing was rare..."
+- Don't assume modern readers know ancient physical realities - explain basics they need to picture the scene.
+- Keep it brief (1–2 sentences), scene-bound, and immediately followed by a question tied to the text.
+- Biographical notes (author, audience) are sparing and come after imagery/scene dynamics, only if they clarify the embodied picture already in view.
+- Never create a separate "background" section; weave context naturally into questions (no labels).
+- It's fine to lead a question with a concise context nudge (terrain, climate, kinship roles, temple practice) when it clarifies what bodies are doing/feeling.
+- Default posture: include at least one contextual nudge per numbered section when it meaningfully sharpens the physical picture or stakes.
+
+First-Mention Examples (adapt to your passage)
+- **Rod & Staff:** "The shepherd carries a rod (a club for defending against predators) and a staff (a curved stick for guiding on difficult paths). What do you notice about..."
+- **Green Pastures:** "In this arid landscape, green pastures were rare and quickly exhausted by grazing flocks. Picture finding such a place..."
+- **Still Waters:** "Sheep avoid fast-moving water and need calm pools to drink safely. Imagine being led to such water..."
+- **Valley of Shadow:** "Deep ravines with steep walls where predators lurked and rocks could fall. What would walking through such terrain..."
+- **Village Gate:** "The town gate (where elders gathered to settle disputes and conduct business). Standing at this place..."
+- **Anointing with Oil:** "Pouring olive oil on a guest's head (a sign of honor and welcome). What does this physical gesture..."
+
+Language to avoid
+- ❌ "the psalmist" → ✅ "the speaker," "David," "the person praying"
+- ❌ "petition," "invoke" → ✅ "ask," "call on," "pray to"
+- ❌ "the nations," "the gentiles" → ✅ "other nations," "foreign peoples"
+- ❌ "supplication" → ✅ "desperate prayer," "plea"
+- ❌ "lament" → ✅ "cry out," "grieve," "complain to God"
+- ❌ "vindication" → ✅ "being proven right," "justice"
+- ❌ "adversaries," "foes" → ✅ "enemies," "opponents"
+- ❌ "they" (singular) → ✅ "he," "she," "the speaker," or use the person's name when clear from context
+- Match the grammar to the text: if the original is singular, use singular pronouns
 
 Precision and tone
 - Match number (singular/plural), person, and perspective to the passage.
-- Use plain, self-contained, text-grounded questions. No meta-instructions.
-
-Avoid English-only artifacts
-- Do not call attention to English helper words (e.g., “makes”) if they reflect grammar rather than distinct words in the original.
-- Prefer meaning-based phrasing: “the scene shows…,” “this line depicts…,” “the verse emphasizes…”.
-
-Hard bans for output
-- No Hebrew or Greek characters; no transliterations.
-- No grammar terms (e.g., hiphil, aorist) or Strong’s numbers.
-- No labels like “Background,” “Optional,” or “Total Questions.”
-
-Red flags to rewrite before emitting
-- Any mention of “in Hebrew/Greek,” “the Hebrew word,” “the Greek term,” etc.
-- Parentheses containing foreign scripts or transliterations.
-- Questions centered on modern bodily actions detached from the scene’s ancient context.
+- Use plain, self-contained, text-grounded questions. No mini-lectures, technical terms, or meta-instructions.
+- When introducing essential context, keep explanations to 5–10 words in parentheses or a brief clause.
+- Write at a conversational level - as if explaining to a friend, not writing an academic paper.
+- Use active voice and concrete language wherever possible.
 
 Safe patterns
-- “Notice the action words and physical setting. What movements or positions are present, and what do they suggest about safety, effort, or danger?”
-- “Given the landscape/tools named here, what would bodies be doing or feeling in this moment?”
-- “What does the guidance/protection described here look and feel like in that world?”
+- "From the viewpoint of [participant in the scene], what movements or positions do you notice, and what do they suggest about safety, effort, or danger?"
+- "As an observer standing with [another participant], what would bodies be doing or feeling in this moment?"
+- "Considering the tools/terrain named here, what does guidance or protection look and feel like for those present?"
+- "The shepherd carries a rod (a club for defense) and a staff (a walking stick for guidance). What do these tools reveal about both protection and direction in this terrain?"
+- "In this dry land, green pastures were rare - flocks would strip an area and need to be led elsewhere. What effort and care does finding such a place suggest?"
+- "Deep valleys with steep walls created danger from predators and rockfalls. Picture walking through such terrain - what does the body experience?"
 
 
 
