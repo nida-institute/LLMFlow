@@ -664,8 +664,35 @@ def run_pipeline(pipeline_path, vars=None, dry_run=False, skip_lint=False):
     """Execute a YAML-defined pipeline with template validation"""
     variables = vars or {}
 
-    # Load pipeline FIRST before using any variables from it
-    pipeline = yaml.safe_load(Path(pipeline_path).read_text())
+    # Load pipeline FIRST before using any variables from it - with friendly error handling
+    try:
+        pipeline = yaml.safe_load(Path(pipeline_path).read_text())
+    except FileNotFoundError:
+        # Get both relative and absolute paths for helpful error message
+        pipeline_file = Path(pipeline_path)
+        current_dir = Path.cwd()
+        abs_path = pipeline_file.resolve()
+
+        pipeline_logger.logger.error(f"❌ Pipeline file not found:")
+        pipeline_logger.logger.error(f"   Looking for: {pipeline_path}")
+        pipeline_logger.logger.error(f"   Absolute path: {abs_path}")
+        pipeline_logger.logger.error(f"   Current directory: {current_dir}")
+        pipeline_logger.logger.error(f"   Are you running from the correct directory?")
+
+        # List available pipeline files if pipelines directory exists
+        pipelines_dir = current_dir / "pipelines"
+        if pipelines_dir.exists() and pipelines_dir.is_dir():
+            yaml_files = list(pipelines_dir.glob("*.yaml")) + list(pipelines_dir.glob("*.yml"))
+            if yaml_files:
+                pipeline_logger.logger.error(f"   Available pipelines in {pipelines_dir}:")
+                for yaml_file in sorted(yaml_files):
+                    pipeline_logger.logger.error(f"     - {yaml_file.name}")
+
+        raise SystemExit(1)
+    except Exception as e:
+        pipeline_logger.logger.error(f"❌ Error reading pipeline file '{pipeline_path}': {e}")
+        raise SystemExit(1)
+
     pipeline_root = pipeline.get("pipeline", pipeline)
 
     # Get steps EARLY so we can use rules
