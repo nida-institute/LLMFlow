@@ -188,12 +188,13 @@ steps:
         inputs:
           template_path: "templates/leadersguide_scene_template.md"
           variables:
-            scene: "${scene}"
+            scene_title: "${scene.Title}"        # FIXED: Extract Title property
+            scene_citation: "${scene.Citation}"  # FIXED: Extract Citation property
             step1: "${bodies_content}"
             step2: "${hearts_content}"
-            step3: "${connecting_content}"  # This should contain the content from connecting step
+            step3: "${connecting_content}"
             step4: "${naming_content}"
-        outputs: leadersguide_scene_markdown  # ADD THIS
+        outputs: leadersguide_scene_markdown
         append_to: leadersguide_scenes_markdown_list
         log: debug
 
@@ -204,9 +205,10 @@ steps:
         inputs:
           template_path: "templates/joshfrost_scene_template.md"
           variables:
-            scene: "${scene}"
+            scene_title: "${scene.Title}"        # FIXED: Extract Title property
+            scene_citation: "${scene.Citation}"  # FIXED: Extract Citation property
             joshfrost_content: "${joshfrost_content}"
-        outputs: joshfrost_scene_markdown  # ADD THIS
+        outputs: joshfrost_scene_markdown
         append_to: joshfrost_scenes_markdown_list
         log: debug
 
@@ -237,16 +239,6 @@ steps:
         scene_titles: "${scene_list[*].SceneTitle}"  # ADD THIS - extract titles from scene list
     outputs: summary_response
 
-  # --- Create Scene Steps JSON Structure ---
-  - name: create_scene_steps_json
-    type: function
-    function: llmflow.utils.data.create_json_dictionary
-    inputs:
-      step1: "${bodies_list}"
-      step2: "${hearts_list}"
-      step3: "${connecting_list}"
-      step4: "${naming_list}"
-    outputs: scene_steps_json
 
   # --- Assemble and Save Leader Guide ---
   - name: save_leaders_guide

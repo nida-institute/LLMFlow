@@ -6,6 +6,34 @@ import json
 from llmflow.runner import run_pipeline
 
 
+def create_test_verses():
+    """Create test verses for pipeline testing"""
+    return [
+        {"citation": "Psalm 23:1", "number": 1, "text": "The LORD is my shepherd"},
+        {"citation": "Psalm 23:2", "number": 2, "text": "He makes me lie down in green pastures"},
+        {"citation": "Psalm 23:3", "number": 3, "text": "He restores my soul"},
+        {"citation": "Psalm 23:4", "number": 4, "text": "Even though I walk through the valley"}
+    ]
+
+def mock_llm_response(verse, citation):
+    """Mock LLM response for testing"""
+    return {
+        "citation": citation,
+        "scene_title": f"Scene for {citation}",
+        "content": f"Generated content for {verse.get('text', 'unknown')}",
+        "scene_id": f"scene_{citation.lower().replace(' ', '_').replace(':', '_')}"
+    }
+
+def create_indexed_list():
+    """Create a list with indexed items for testing"""
+    return [
+        {"id": "item_1", "content": "item_1"},
+        {"id": "item_2", "content": "item_2"},
+        {"id": "item_3", "content": "item_3"},
+        {"id": "item_4", "content": "item_4"}  # Add the missing 4th item
+    ]
+
+
 def test_for_each_variable_isolation_minimal():
     """
     Minimal test to isolate the for-each variable binding bug.
@@ -185,7 +213,7 @@ def test_list_indexing_behavior():
             {
                 "name": "test_list_access_patterns",
                 "type": "function",
-                "function": "tests.test_regression_scene_duplication.test_list_access",
+                "function": "tests.test_regression_scene_duplication.list_access_helper",  # Updated function name
                 "inputs": {
                     "full_list": "${test_list}",
                     "first_item": "${test_list[0]}",
@@ -313,7 +341,7 @@ def test_append_list_indexing():
                     {
                         "name": "test_list_access",
                         "type": "function",
-                        "function": "tests.test_regression_scene_duplication.test_append_list_access",
+                        "function": "tests.test_regression_scene_duplication.append_list_access_helper",  # Updated function name
                         "inputs": {
                             "current_scene": "${scene}",
                             "joshfrost_list": "${joshfrost_list}",
@@ -378,15 +406,6 @@ def test_append_list_indexing():
             os.chdir(old_cwd)
 
 # Helper functions
-def create_test_verses():
-    """Create test verses that help detect variable binding issues"""
-    return [
-        {"number": 1, "text": "The LORD is my shepherd", "citation": "Psalm 23:1"},
-        {"number": 2, "text": "He makes me lie down in green pastures", "citation": "Psalm 23:2"},
-        {"number": 3, "text": "He restores my soul", "citation": "Psalm 23:3"},
-        {"number": 4, "text": "Even though I walk through the valley", "citation": "Psalm 23:4"}
-    ]
-
 def create_simple_items():
     """Create simple test items for context contamination test"""
     return [
@@ -396,22 +415,13 @@ def create_simple_items():
         {"id": "item_4", "name": "Item 4", "value": "D"}
     ]
 
-def create_indexed_list():
-    """Create a test list with clear IDs for tracking"""
-    return [
-        {"id": "item_1", "name": "Item 1", "content": "Content for item 1"},
-        {"id": "item_2", "name": "Item 2", "content": "Content for item 2"},
-        {"id": "item_3", "name": "Item 3", "content": "Content for item 3"},
-        {"id": "item_4", "name": "Item 4", "content": "Content for item 4"}
-    ]
-
-def test_list_access(full_list, first_item, last_item, second_item):
+def list_access_helper(full_list, first_item, last_item, second_item):  # Complete this line
     """Test basic list access patterns"""
     return {
         "list_length": len(full_list),
-        "first_item": first_item,
-        "last_item": last_item,
-        "second_item": second_item
+        "first_item": first_item["id"] if isinstance(first_item, dict) else first_item,
+        "last_item": last_item["id"] if isinstance(last_item, dict) else last_item,
+        "second_item": second_item["id"] if isinstance(second_item, dict) else second_item
     }
 
 def capture_list_indexing(current_item, item_id, full_list, first_from_list, last_from_list):
@@ -443,23 +453,23 @@ def capture_item_context(current_item, item_id, item_name):
         "current_item_value": current_item["value"]
     }
 
-def mock_joshfrost_generation(scene):
-    """Mock joshfrost content generation"""
-    return f"JoshFrost content for {scene['id']}"
-
-def mock_bodies_generation(scene):
-    """Mock bodies content generation"""
-    return f"Bodies content for {scene['id']}"
-
-def test_append_list_access(current_scene, joshfrost_list, bodies_list, last_joshfrost, last_bodies):
+def append_list_access_helper(current_scene, joshfrost_list, bodies_list, last_joshfrost, last_bodies):  # Renamed from test_append_list_access
     """Test append list indexing behavior"""
     return {
         "current_scene_id": current_scene["id"],
         "joshfrost_list_length": len(joshfrost_list) if joshfrost_list else 0,
         "bodies_list_length": len(bodies_list) if bodies_list else 0,
-        "last_joshfrost_scene_id": last_joshfrost.split()[-1] if "item_" in last_joshfrost else "PARSE_ERROR",
-        "last_bodies_scene_id": last_bodies.split()[-1] if "item_" in last_bodies else "PARSE_ERROR"
+        "last_joshfrost_scene_id": last_joshfrost.split()[-1] if "item_" in str(last_joshfrost) else "PARSE_ERROR",
+        "last_bodies_scene_id": last_bodies.split()[-1] if "item_" in str(last_bodies) else "PARSE_ERROR"
     }
+
+def mock_joshfrost_generation(scene):
+    """Mock joshfrost content generation"""
+    return f"joshfrost_content for {scene['id']}"
+
+def mock_bodies_generation(scene):
+    """Mock bodies content generation"""
+    return f"bodies_content for {scene['id']}"
 
 @pytest.mark.skip(reason="Pipeline missing required files - test the actual bug once files are available")
 def test_psalm_pipeline_scene_content_mismatch():

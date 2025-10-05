@@ -120,10 +120,10 @@ def log_and_screen(msg, level="info"):
     print(msg)
     getattr(pipeline_logger.logger, level)(msg)
 
-def resolve(value, context):
+def resolve(value, context, max_depth=5):
     """
     Resolves variables within a value using the provided context.
-    Supports dot notation and list indexing like ${foo.bar[0].baz}.
+    Supports both {curly} and ${dollar} notation with dot notation and list indexing.
     Returns native Python objects for exact variable references.
     """
     import re
@@ -162,28 +162,59 @@ def resolve(value, context):
         return result
 
     if isinstance(value, str):
-        # If the value is exactly a variable reference, return the object itself
-        pattern_exact = r'^\$\{([^\}]+)\}$'
-        match_exact = re.match(pattern_exact, value)
-        if match_exact:
-            expr = match_exact.group(1)
+        # Handle ${...} syntax (dollar syntax) - with recursive resolution
+        pattern_dollar_exact = r'^\$\{([^\}]+)\}$'
+        match_dollar_exact = re.match(pattern_dollar_exact, value)
+        if match_dollar_exact:
+            expr = match_dollar_exact.group(1)
             resolved = get_from_context(expr, context)
             if resolved is not None:
+                # RECURSIVE RESOLUTION: If result is still a template, resolve it
+                if isinstance(resolved, str) and (resolved.startswith("${") or resolved.startswith("{")):
+                    if max_depth > 0:
+                        return resolve(resolved, context, max_depth - 1)
                 return resolved
             else:
                 return value  # fallback to original string if not found
 
-        # Otherwise, do the usual string substitution
-        pattern = r'\$\{([^\}]+)\}'
-        def replace_var(match):
+        # Handle {curly} syntax (original syntax) - with recursive resolution
+        pattern_curly_exact = r'^\{([^\}]+)\}$'
+        match_curly_exact = re.match(pattern_curly_exact, value)
+        if match_curly_exact:
+            expr = match_curly_exact.group(1)
+            resolved = get_from_context(expr, context)
+            if resolved is not None:
+                # RECURSIVE RESOLUTION: If result is still a template, resolve it
+                if isinstance(resolved, str) and (resolved.startswith("${") or resolved.startswith("{")):
+                    if max_depth > 0:
+                        return resolve(resolved, context, max_depth - 1)
+                return resolved
+            else:
+                return value  # fallback to original string if not found
+
+        # Handle string substitution for both syntaxes
+        # First handle ${...} syntax
+        pattern_dollar = r'\$\{([^\}]+)\}'
+        def replace_dollar_var(match):
             expr = match.group(1)
             resolved = get_from_context(expr, context)
             return str(resolved) if resolved is not None else match.group(0)
-        return re.sub(pattern, replace_var, value)
+        value = re.sub(pattern_dollar, replace_dollar_var, value)
+
+        # Then handle {curly} syntax
+        pattern_curly = r'\{([^\}]+)\}'
+        def replace_curly_var(match):
+            expr = match.group(1)
+            resolved = get_from_context(expr, context)
+            return str(resolved) if resolved is not None else match.group(0)
+        value = re.sub(pattern_curly, replace_curly_var, value)
+
+        return value
+
     elif isinstance(value, dict):
-        return {k: resolve(v, context) for k, v in value.items()}
+        return {k: resolve(v, context, max_depth) for k, v in value.items()}
     elif isinstance(value, list):
-        return [resolve(item, context) for item in value]
+        return [resolve(item, context, max_depth) for item in value]
     return value
 
 def render_prompt(prompt_config, context):
@@ -351,69 +382,6 @@ def _get_substep_result(substep, context):
         return context.get(outputs[0])
 
     return None
-def run_llm_step(rule, context, pipeline_config):
-    """Executes a single LLM step with logging"""
-    step_name = rule.get('name', 'unnamed_llm_step')
-    log_level = rule.get('log', 'debug')
-
-    # Log step start
-    pipeline_logger.log_step_start(step_name, 'llm')
-    pipeline_logger.log_step_details(step_name, rule, context, log_level)
-
-    try:
-        rendered_prompt = render_prompt(rule["prompt"], context)
-        llm_config = pipeline_config.get("llm_config", {})
-        step_config = rule.get("llm_options", {})
-
-        merged_config = llm_config.copy()
-        merged_config.update(step_config)
-
-        if "model" not in merged_config:
-            merged_config["model"] = "gpt-4o"
-
-        output_type = rule.get("output_type")
-
-        if output_type == "json":
-            result = call_gpt_get_json(merged_config, rendered_prompt, retries=3)
-        else:
-            result = call_gpt_with_retry(merged_config, rendered_prompt, max_attempts=3)
-
-        # Check for templates
-        if "template" in rule or "format_with" in rule:
-            template_path = rule.get("template") or rule.get("format_with")
-            result = apply_output_template(result, template_path, context)
-
-        # Handle outputs (existing logic)
-        outputs = rule.get("outputs")
-        result_dict = {}
-
-        if outputs is None:
-            pass
-        elif isinstance(outputs, list):
-            if len(outputs) == 1:
-                context[outputs[0]] = result
-                result_dict[outputs[0]] = result
-            else:
-                for out in outputs:
-                    context[out] = result
-                    result_dict[out] = result
-        elif isinstance(outputs, str):
-            context[outputs] = result
-            result_dict[outputs] = result
-
-        # Log completion and outputs
-        pipeline_logger.log_step_complete(step_name)
-        pipeline_logger.log_step_outputs(step_name, result_dict, log_level)
-
-        # Handle print/log output
-        handle_step_output(rule, context)
-
-        return result
-
-    except Exception as e:
-        pipeline_logger.log_step_error(step_name, e)
-        raise
-
 def run_function_step(rule, context):
     """Execute a function step with proper variable resolution"""
     name = rule.get("name", "unnamed")
@@ -430,33 +398,30 @@ def run_function_step(rule, context):
         module = importlib.import_module(module_name)
         func = getattr(module, func_name)
 
-        # RECURSIVELY resolve all input variables
-        resolved_inputs = {}
-        for key, value in inputs.items():
-            resolved_value = resolve(value, context)
-            resolved_inputs[key] = resolved_value
-
-        import inspect
-
-        # Get function signature
-        sig = inspect.signature(func)
-        params = list(sig.parameters.keys())
+        # Resolve all input variables
+        resolved_inputs = {key: resolve(value, context) for key, value in inputs.items()}
 
         # Call function with context if it accepts it
-        if 'context' in params:
+        sig = inspect.signature(func)
+        if 'context' in sig.parameters:
             result = func(**resolved_inputs, context=context)
         else:
             result = func(**resolved_inputs)
 
-        # Store outputs in context
-        if isinstance(outputs, str):
-            context[outputs] = result
-        elif isinstance(outputs, list):
-            if len(outputs) == 1:
-                context[outputs[0]] = result
-            else:
-                for i, output_name in enumerate(outputs):
-                    context[output_name] = result[i] if isinstance(result, (tuple, list)) else result
+        # Handle outputs
+        if outputs is not None:
+            if isinstance(outputs, str):
+                context[outputs] = result
+            elif isinstance(outputs, list):
+                if len(outputs) == 1:
+                    context[outputs[0]] = result
+                else:
+                    # Multiple outputs - unpack result
+                    for i, output_name in enumerate(outputs):
+                        if isinstance(result, (tuple, list)) and i < len(result):
+                            context[output_name] = result[i]
+                        else:
+                            context[output_name] = result
 
         # Handle append_to if specified
         if "append_to" in rule and result is not None:
@@ -464,10 +429,115 @@ def run_function_step(rule, context):
             if list_name not in context:
                 context[list_name] = []
             context[list_name].append(result)
-            pipeline_logger.log_step_outputs(name, {list_name: f"Appended: {result}"})
 
         pipeline_logger.log_step_complete(name)
+
+        # Handle saveas output
         handle_step_output(rule, context)
+
+    except Exception as e:
+        pipeline_logger.log_step_error(name, e)
+        raise
+
+def run_llm_step(rule, context, pipeline_config):
+    """Executes a single LLM step with logging"""
+    name = rule.get('name', 'unnamed_llm_step')
+    log_level = rule.get('log', 'debug')
+
+    pipeline_logger.log_step_start(name, 'llm')
+    pipeline_logger.log_step_details(name, rule, context, log_level)
+
+    try:
+        rendered_prompt = render_prompt(rule["prompt"], context)
+        llm_config = pipeline_config.get("llm_config", {})
+        step_config = rule.get("llm_options", {})
+
+        merged_config = llm_config.copy()
+        merged_config.update(step_config)
+        if "model" not in merged_config:
+            merged_config["model"] = "gpt-4o"
+
+        output_type = rule.get("output_type")
+
+        if output_type == "json":
+            result = call_gpt_get_json(merged_config, rendered_prompt, retries=3)
+        else:
+            result = call_gpt_with_retry(merged_config, rendered_prompt, max_attempts=3)
+
+        # Check for templates
+        if "template" in rule or "format_with" in rule:
+            template_path = rule.get("template") or rule.get("format_with")
+            result = apply_output_template(result, template_path, context)
+
+        # Handle outputs
+        outputs = rule.get("outputs")
+        if outputs is not None:
+            if isinstance(outputs, str):
+                context[outputs] = result
+            elif isinstance(outputs, list):
+                if len(outputs) == 1:
+                    context[outputs[0]] = result
+                else:
+                    for i, output_name in enumerate(outputs):
+                        if isinstance(result, (tuple, list)) and i < len(result):
+                            context[output_name] = result[i]
+                        else:
+                            context[output_name] = result
+
+        # Handle append_to if specified
+        if "append_to" in rule and result is not None:
+            list_name = rule["append_to"]
+            if list_name not in context:
+                context[list_name] = []
+            context[list_name].append(result)
+
+        pipeline_logger.log_step_complete(name)
+
+        # Log outputs
+        if outputs:
+            result_dict = {}
+            if isinstance(outputs, str):
+                result_dict[outputs] = context[outputs]
+            elif isinstance(outputs, list):
+                for output_name in outputs:
+                    if output_name in context:
+                        result_dict[output_name] = context[output_name]
+            pipeline_logger.log_step_outputs(name, result_dict, log_level)
+
+        # Handle saveas output
+        handle_step_output(rule, context)
+
+    except Exception as e:
+        pipeline_logger.log_step_error(name, e)
+        raise
+
+def run_save_step(rule, context):
+    """Save data from context to file"""
+    name = rule.get('name', 'unnamed_save_step')
+    log_level = rule.get('log', 'debug')
+
+    pipeline_logger.log_step_start(name, 'save')
+    pipeline_logger.log_step_details(name, rule, context, log_level)
+
+    try:
+        # Resolve the input expression
+        input_expr = rule.get("input", "")
+        if not input_expr:
+            raise ValueError(f"Save step '{name}' missing 'input' field")
+
+        value = resolve(input_expr, context)
+
+        # Get filename and format
+        filename = rule.get("filename", "")
+        if not filename:
+            raise ValueError(f"Save step '{name}' missing 'filename' field")
+
+        fmt = rule.get("format", "text").lower()
+        _save_file_by_format(value, filename, fmt)
+
+        pipeline_logger.log_step_complete(name)
+
+        return f"Saved to {filename}"
 
     except Exception as e:
         pipeline_logger.log_step_error(name, e)
@@ -514,11 +584,7 @@ def handle_step_output(rule, context):
 
 def save_content_to_file(content, path, format_type="auto"):
     """Save content to file with format detection"""
-    from pathlib import Path
-    import json
-
     file_path = Path(path)
-    file_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Auto-detect format from extension
     if format_type == "auto":
@@ -528,21 +594,7 @@ def save_content_to_file(content, path, format_type="auto"):
         elif ext in [".md", ".txt"]:
             format_type = "text"
 
-    # Save based on format
-    if format_type == "json":
-        with open(file_path, "w", encoding="utf-8") as f:
-            if isinstance(content, str):
-                # If content is already JSON string, parse it first
-                try:
-                    content = json.loads(content)
-                except:
-                    pass
-            json.dump(content, f, indent=2, ensure_ascii=False)
-    else:
-        # Default to text/markdown
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(str(content))
-
+    _save_file_by_format(content, str(file_path), format_type)
     return str(file_path)
 
 def validate_pipeline_expressions(step_inputs, context):
@@ -608,7 +660,7 @@ def collect_all_templates(steps):
 
     return templates
 
-def run_pipeline(pipeline_path, vars=None, dry_run=False):
+def run_pipeline(pipeline_path, vars=None, dry_run=False, skip_lint=False):
     """Execute a YAML-defined pipeline with template validation"""
     variables = vars or {}
 
@@ -649,6 +701,10 @@ def run_pipeline(pipeline_path, vars=None, dry_run=False):
     # KEEP only this single call:
     lint_pipeline_full(pipeline_path, pipeline_logger)
 
+    # Only run full linting if not skipped (useful for tests)
+    if not skip_lint:
+        lint_pipeline_full(pipeline_path, pipeline_logger)
+
     # For each step execution
     for rule in rules:
         name = rule.get("name", "unnamed")
@@ -667,11 +723,13 @@ def run_pipeline(pipeline_path, vars=None, dry_run=False):
 
     pipeline_logger.logger.info("Pipeline complete.")
 
+    return context  # Return the final context instead of None
+
 def apply_output_template(result, template_path, context):
     """Apply a template to format step output"""
     from llmflow.utils.io import render_markdown_template
 
-    # Create template variables with the result
+    # Create template variables with the resultz
     template_vars = context.copy()
     template_vars['result'] = result
 
@@ -683,73 +741,32 @@ def apply_output_template(result, template_path, context):
     )
     return formatted
 
-def run_save_step(rule, context):
-    """Save data from context to file
-
-    Args:
-        rule: Dict with keys:
-            - input: Variable expression to resolve (e.g., "${data}")
-            - filename: Output filename (relative or absolute path)
-            - format: Output format - "json", "yaml", or "text" (default)
-        context: Pipeline context dict
-    """
-    # REMOVE these from runner.py:
-    # print(f"🚀 Executing: {rule['name']} (save)")
-    # print(f"✅ Completed: {rule['name']}")
-
-    # REPLACE with proper logging:
-    logger = logging.getLogger('llmflow.save')
-    logger.info(f"Executing: {rule['name']} (save)")
-
-    # Resolve the input expression
-    input_expr = rule.get("input", "")
-    if not input_expr:
-        raise ValueError(f"Save step '{rule.get('name')}' missing 'input' field")
-
-    value = resolve(input_expr, context)
-    logger.info(f"Resolved input: {input_expr} to {type(value).__name__}")
-
-    # Get filename and format
-    filename = rule.get("filename", "")
-    if not filename:
-        raise ValueError(f"Save step '{rule.get('name')}' missing 'filename' field")
-
-    fmt = rule.get("format", "text").lower()
+def _save_file_by_format(value, filename, fmt):
+    """Save value to file in specified format"""
+    import json
+    import yaml
 
     # Ensure output directory exists
     output_dir = os.path.dirname(filename)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
 
-    # Save based on format
-    try:
-        if fmt == "json":
-            import json
-            with open(filename, "w", encoding="utf-8") as f:
-                json.dump(value, f, indent=2, ensure_ascii=False)
+    if fmt == "json":
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(value, f, indent=2, ensure_ascii=False)
+    elif fmt == "yaml":
+        with open(filename, "w", encoding="utf-8") as f:
+            yaml.dump(value, f, default_flow_style=False, allow_unicode=True)
+    else:  # text, markdown, or any other format
+        content = _value_to_string(value)
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(content)
 
-        elif fmt == "yaml":
-            import yaml
-            with open(filename, "w", encoding="utf-8") as f:
-                yaml.dump(value, f, default_flow_style=False, allow_unicode=True)
-
-        else:  # text, markdown, or any other format
-            # Convert value to string if needed
-            if isinstance(value, str):
-                content = value
-            elif isinstance(value, (list, tuple)):
-                # For lists, join with newlines
-                content = "\n".join(str(item) for item in value)
-            else:
-                content = str(value)
-
-            with open(filename, "w", encoding="utf-8") as f:
-                f.write(content)
-
-        logger.info(f"💾 Saved to: {filename} ({fmt} format)")
-        logger.info(f"✅ Completed: {rule['name']}")
-
-    except Exception as e:
-        error_msg = f"Failed to save to {filename}: {str(e)}"
-        logger.error(f"❌ Error in save step '{rule.get('name')}': {error_msg}")
-        raise RuntimeError(error_msg) from e
+def _value_to_string(value):
+    """Convert any value to string representation"""
+    if isinstance(value, str):
+        return value
+    elif isinstance(value, (list, tuple)):
+        return "\n".join(str(item) for item in value)
+    else:
+        return str(value)

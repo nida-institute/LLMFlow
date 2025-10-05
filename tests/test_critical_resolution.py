@@ -16,16 +16,16 @@ class TestCriticalResolution:
         last_scene = resolve("${scenes[-1]}", context)
         assert last_scene == "Scene C"
 
-        # Step 3: resolve() doesn't do recursive resolution
+        # Step 3: resolve() DOES do recursive resolution
         context["current_scene"] = "${scenes[-1]}"
         resolved = resolve("${current_scene}", context)
-        # Actual behavior: resolve() does not recursively resolve
-        assert resolved == "${scenes[-1]}"  # This is the actual behavior
+        # Updated behavior: resolve() DOES recursively resolve
+        assert resolved == "Scene C"  # This is the correct behavior
 
         # To get recursive resolution, need to resolve twice
-        if isinstance(resolved, str) and resolved.startswith("${"):
-            resolved = resolve(resolved, context)
-        assert resolved == "Scene C"
+        # if isinstance(resolved, str) and resolved.startswith("${"):
+        #     resolved = resolve(resolved, context)
+        # assert resolved == "Scene C"  # Remove this - no longer needed
 
         # Step 4: Test in template context
         context["template_vars"] = {

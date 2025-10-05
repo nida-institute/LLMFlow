@@ -1,6 +1,6 @@
-# Scene: {{scene.Title}}
+# Scene: {{scene_title}}
 
-*Citation: {{scene.Citation}}*
+*Citation: {{scene_citation}}*
 
 ---
 

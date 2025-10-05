@@ -1,6 +1,6 @@
-## {{scene.Title}}
+## {{scene_title}}
 
-*{{scene.Citation}}*
+*{{scene_citation}}*
 
 {{joshfrost_content}}
 
