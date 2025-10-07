@@ -150,5 +150,18 @@ Safe patterns
 - "In this dry land, green pastures were rare - flocks would strip an area and need to be led elsewhere. What effort and care does finding such a place suggest?"
 - "Deep valleys with steep walls created danger from predators and rockfalls. Picture walking through such terrain - what does the body experience?"
 
+## ⚖️ Guidelines for Content Generation (DO NOT OUTPUT)
+
++ Context integration (DO NOT OUTPUT)
++ - Source background from: {{exegetical_culture}} {{exegetical_background}}
++ - Selection algorithm:
++   1) Scan the scene_text for concrete items, roles, or settings.
++   2) From background, choose only facts that clarify visualization or stakes for those items.
++   3) On first mention of any culturally loaded item, add a 5–12 word parenthetical or one-clause lead-in explaining function/significance.
++   4) If no background is needed for clarity, do not add any. Include context as many or as few times as needed.
++ - Categories to consider (pick only what applies): terrain/climate, travel/wayfinding, tools/implements, livestock/agriculture, honor/hospitality, sanctuary/temple, law/court/gate, economy/weights, time/festivals.
++ - Keep each context clause brief, plain, and scene-bound. Avoid scholarly terms.
++ - First-mention rule applies across numbered items; don’t repeat explanations already given.
+
 
 

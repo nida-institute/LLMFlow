@@ -50,12 +50,16 @@ Base your reasoning on the original-language source embedded in the scene (Hebre
 
 ## ⚖️ Rules and Guidance (DO NOT OUTPUT)
 
-+ Plain, accessible language
-- Avoid scholarly/technical terms: use "the speaker," "David," "the person praying" instead of "the psalmist"
-- Avoid formal religious language: use "pray," "talk to God" instead of "petition," "invoke"
-- Use everyday words for roles: "king," "leader," "prophet" not "monarch," "sovereign," "seer"
-- Keep vocabulary conversational and concrete
-- If you must use a less common word, immediately clarify it in plain language
++ Context integration (DO NOT OUTPUT)
++ - Draw only what helps from: {{exegetical_culture}} {{exegetical_background}}
++ - Use background when it clarifies what’s at stake emotionally (risk, honor, scarcity, danger, loyalty).
++ - Selection algorithm:
++   1) Identify imagery/roles driving heart dynamics in this scene.
++   2) Attach a single essential fact (5–12 words) on first mention of any culturally loaded item, only if clarity requires it.
++   3) Skip background when it adds nothing to heart discernment.
++ - Categories to consider (choose as needed): terrain/climate, tools/implements, roles/relationships, practices/rituals, sanctuary/temple, conflict/legal settings, economy/time.
++ - Frequency: as many or as few inserts as the scene requires (no quota).
++ - Plain, emotionally accessible English; match number/person (no singular “they” for a singular speaker).
 
 Terminology
 - "Participants" always refers to people in the scene (speakers, addressees, bystanders, opponents, messengers, etc.).

@@ -80,6 +80,19 @@ Use the inputs below to ground your questions in the biblical text and cultural 
 
 ---
 
+## Key Guidelines
+
+- Keep the group **in the biblical scene** while helping them recognize their own story
+- Use **specific imagery** from the text rather than abstract concepts
+- Let the **scene's dynamics** guide the heart questions
+- Avoid importing imagery not present in this passage; do not conflate with other texts.
+- Context integration (DO NOT OUTPUT):
+  - Pull background only from {{exegetical_culture}} / {{exegetical_background}} that clarifies the current question.
+  - Start a question set with one short context clause only when needed for clarity; skip when not needed.
+  - Selection algorithm: detect items/roles/settings in this scene, attach a 5–12 word function/setting note on first mention of culturally loaded elements.
+  - Categories to consider (selectively): terrain/climate, tools/implements, roles/relationships, practices/rituals, sanctuary/temple, legal/conflict settings, economy/time.
+  - No quotas: include background as many or as few times as the scene requires.
+
 ## Output Format
 
 ### Let the Scene Speak to Us ({{citation}})
@@ -87,7 +100,8 @@ Use the inputs below to ground your questions in the biblical text and cultural 
  **Leader: Let's read the scene again before we begin.**
 
  1. **[Scene-specific imagery or heart dynamic]**:
-    - [Question helping the group find themselves in the scene]
+-   - [Begin with one short context clause if needed (e.g., “In this dry land, green pastures were rare.”), then ask the question helping the group find themselves in the scene]
++   - [If needed, add one brief context clause drawn from background; then ask the question helping the group find themselves in the scene]
     - [Optional follow-up that deepens heart engagement]
 
  2. **[Scene-specific imagery or heart dynamic]**:
@@ -119,34 +133,3 @@ Use the inputs below to ground your questions in the biblical text and cultural 
 4. **Paths of Righteousness**:
    - As you consider being guided on right paths for the sake of God’s name, what loyalties or fears in your own heart come into view?
    - What shifts in attention or trust would align your steps with that guidance?
-
----
-
-## Key Guidelines
-
-**Heart Engagement (Lev/Kardia):**
-- Focus on **what captures attention** (use images from this passage only)
- - Ask about **what they treasure** and **where they place trust**
- - Explore **heart orientation** - toward God or away from God
- - Notice **competing loyalties** and **fundamental desires**
-
-**Scene Connection:**
-- Keep the group **in the biblical scene** while helping them recognize their own story
- - Use **specific imagery** from the text rather than abstract concepts
- - Let the **scene's dynamics** (rest/wandering, flourishing/withering, etc.) guide the heart questions
-- Avoid importing imagery not present in this passage; do not conflate with other texts.
-
- **Avoid:**
- - Modern therapeutic language ("emotional healing," "self-care")
- - Generic application questions ("How can you be more like...")
- - Questions that bypass the scene for immediate modern application
- - Leading questions that contain their own answers
-- Repeating Step 1 (bodies) or Step 2 (hearts) content verbatim
-
- **Language:**
- - **Plain, conversational** - accessible to all education levels
- - **Scene-specific** - rooted in the actual imagery and dynamics
- - **Heart-oriented** - engages the biblical concept of heart as life's center
- - **Open-ended** - allows for discovery rather than predetermined answers
-
-Write **3–4 question sets** that cover the heart dynamics visible in this specific scene. Draw briefly from bodies_content and hearts_content to make connections with the group’s lives today, using callbacks rather than repetition. Keep all language **short, concrete, and conversational**.
