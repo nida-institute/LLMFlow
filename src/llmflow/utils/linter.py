@@ -4,6 +4,23 @@ import click
 import re
 from difflib import unified_diff
 import jsonschema
+import logging
+
+# Add after imports
+pipeline_logger = logging.getLogger('llmflow.linter')
+
+def log_and_screen(msg, color="white", level="info"):
+    """Log to file and display once on screen with color"""
+    # Always log to file (this goes to llmflow.log)
+    if level == "error":
+        pipeline_logger.error(msg)
+    elif level == "warning":
+        pipeline_logger.warning(msg)
+    else:
+        pipeline_logger.info(msg)
+
+    # Display on screen once with color
+    click.secho(msg, fg=color)
 
 def parse_prompt_header(prompt_path):
     text = Path(prompt_path).read_text(encoding="utf-8")
@@ -288,19 +305,18 @@ def validate_pipeline_structure(pipeline_config):
     except jsonschema.ValidationError as e:
         return [f"❌ Pipeline structure error: {e.message} (at {list(e.path)})"]
 
-def lint_pipeline_full(pipeline_path, pipeline_logger=None):
+def lint_pipeline_full(pipeline_path):
+    # Load pipeline first
     pipeline = yaml.safe_load(Path(pipeline_path).read_text())
     pipeline_config = pipeline.get("pipeline", pipeline)
 
-    # Configure linter logging
-    linter_config = pipeline_config.get("linter_config", {})
-    logger = configure_linter_logging(linter_config)
-    logger.info(f"Starting full pipeline lint for: {pipeline_path}")
+    # Configure logging if needed
+    linter_config = pipeline_config.get('linter_config', {})
+    configure_linter_logging(linter_config)
 
-    def log_and_screen(msg, color="white", level="info"):
-        click.secho(msg, fg=color)
+    # Print this once
+    log_and_screen(f"Starting full pipeline lint for: {pipeline_path}", color="white")
 
-    # 1. Structure validation
     log_and_screen("🔍 Validating pipeline structure...", color="cyan")
     structure_errors = validate_pipeline_structure(pipeline_config)
     if structure_errors:
@@ -309,7 +325,6 @@ def lint_pipeline_full(pipeline_path, pipeline_logger=None):
         raise SystemExit("❌ Pipeline structure validation failed.")
     log_and_screen("✅ Pipeline structure is valid", color="green")
 
-    # 2. Contract validation - USE SHARED FUNCTION
     all_steps = collect_all_steps(pipeline_config.get("steps", []))
     errors, validated_count = validate_all_step_contracts(all_steps, log_and_screen)
 
@@ -364,17 +379,21 @@ def configure_linter_logging(linter_config):
     # Set the logger level
     logger.setLevel(numeric_level)
 
-    # Check if handler already exists to avoid duplicates
-    if not logger.handlers:
-        handler = logging.StreamHandler()
-        handler.setLevel(numeric_level)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-    else:
-        # Update existing handler's level
-        for handler in logger.handlers:
-            handler.setLevel(numeric_level)
+    # Remove ALL StreamHandlers (console output) from this logger
+    for handler in logger.handlers[:]:
+        if isinstance(handler, logging.StreamHandler):
+            logger.removeHandler(handler)
+
+    # Also remove console handlers from parent loggers if they exist
+    parent = logger.parent
+    while parent and parent.name != 'root':
+        for handler in parent.handlers[:]:
+            if isinstance(handler, logging.StreamHandler):
+                parent.removeHandler(handler)
+        parent = parent.parent
+
+    # The file handler for llmflow.log should already exist from main logger setup
+    # All linter messages will still go to the log file via the parent logger
 
     return logger
 

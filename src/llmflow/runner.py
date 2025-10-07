@@ -713,24 +713,19 @@ def run_pipeline(pipeline_path, vars=None, dry_run=False, skip_lint=False):
     context = dict(pipeline_root.get("variables", {}))
     context.update(variables)
 
-    # Template validation
-    pipeline_logger.logger.info("🔍 Validating pipeline templates...")
-    try:
-        validate_all_templates(pipeline_root)
-        pipeline_logger.logger.info("✅ All templates validated successfully")
-    except Exception as e:
-        pipeline_logger.logger.error(f"Template validation failed: {e}")
-        raise
-
-    # REMOVE this duplicate call - it's causing the double validation:
-    # lint_pipeline_contracts(pipeline_path)  # DELETE THIS LINE
-
-    # KEEP only this single call:
-    lint_pipeline_full(pipeline_path, pipeline_logger)
-
-    # Only run full linting if not skipped (useful for tests)
+    # Preflight validation
     if not skip_lint:
-        lint_pipeline_full(pipeline_path, pipeline_logger)
+        # Run full pipeline validation (includes template validation)
+        lint_pipeline_full(pipeline_path)
+    else:
+        # Just validate templates if linting is skipped
+        pipeline_logger.logger.info("🔍 Validating pipeline templates...")
+        try:
+            validate_all_templates(pipeline_root)
+            pipeline_logger.logger.info("✅ All templates validated successfully")
+        except Exception as e:
+            pipeline_logger.logger.error(f"Template validation failed: {e}")
+            raise
 
     # For each step execution
     for rule in rules:
