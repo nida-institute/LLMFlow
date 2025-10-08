@@ -4,16 +4,17 @@ prompt:
   - passage
   - exegetical_culture
   - exegetical_wordstudy
+  - source
   optional: []
   format: JSON
   description: Divides {passage} into natural scenes for discussion
 -->
-<!-- GPT: Do not remove or rewrite any template variables like {passage}, {exegetical_culture}, {exegetical_wordstudy}. -->
+<!-- GPT: Do not remove or rewrite any template variables like {passage}, {exegetical_culture}, {exegetical_wordstudy}, {source}. -->
 
 # StoryFlow Leader's Guide: Scene List for {passage}
 
 ## Purpose
-You are dividing {passage} into **natural story scenes** for group discussion. A scene may span multiple verses and should reflect **poetic movement, emotional flow, or thematic unity** — not merely verse-by-verse division.
+You are dividing {passage} into **natural scenes** for group discussion. A scene may span multiple verses and should reflect **narrative flow, poetic movement, emotional shifts, or thematic unity** — not merely verse-by-verse division.
 
 ## Resources
 
@@ -39,12 +40,12 @@ You are dividing {passage} into **natural story scenes** for group discussion. A
 
 ✅ Inside the array, each scene must include exactly these fields:
 - `"Scene number"`: e.g., "Scene 1", "Scene 2"
-- `"Citation"`: e.g., "Psalm 23:1–3"
+- `"Citation"`: e.g., "Luke 1:5-8" or "Psalm 23:1–3"
 - `"Title"`: a short, vivid summary (3–8 words)
 - `"Berean Standard Bible"`: the relevant verse text from the Berean Standard Bible
-- `"WLC"`: the corresponding Hebrew text from the Westminster Leningrad Codex (WLC)
+- `"SBLGNT"` (for NT) or `"WLC"` (for OT): the corresponding text in the original language
 
-✅ **Escape all internal quotation marks (`"`) inside the Bible verses or WLC text fields** by using a backslash: `\"`.
+✅ **Escape all internal quotation marks (`"`) inside the Bible verses or original language text fields** by using a backslash: `\"`.
 
 ✅ **You must NOT add any Markdown code fences** such as ```json or ```.
 
@@ -52,24 +53,41 @@ You are dividing {passage} into **natural story scenes** for group discussion. A
 
 ✅ **If you detect that your output is invalid JSON, missing fields, has stray commas, missing quotation marks, or is improperly escaped, you must silently retry and regenerate a correct version without apology or commentary.**
 
-✅ Do **not** default to one scene per verse. Group verses into scenes that share a **poetic, emotional, or imagistic unity**.
+✅ Do **not** default to one scene per verse. Group verses into scenes that share unity based on:
+- **Narrative shifts** (new characters, locations, actions)
+- **Poetic movements** (for Psalms: emotional or imagistic shifts)
+- **Thematic transitions** (topic or focus changes)
+- **Emotional flow** (mood or tone changes)
 
-✅ If the passage begins with a poetic superscription (e.g., “A Psalm of David” / מִזְמוֹר לְדָוִד), treat it as **the opening of Scene 1**. Do not separate it from the main poetic movement.  
+✅ For Psalms: If the passage begins with a superscription (e.g., "A Psalm of David"), include it as part of Scene 1, not as a separate scene.
 
-✅ Base scene breaks on **poetic, emotional, or imagistic shifts** — not just verse numbers or formatting conventions. A typical opening scene may include the superscription and verses 1–3 or more, depending on poetic unity.
-
+✅ For Narratives: Base scene breaks on **character changes, location shifts, dialogue exchanges, or action sequences**.
 
 ✅ Format must be exactly like:
 
+For New Testament passages (source: SBLGNT):
 [
   {
     "Scene number": "Scene 1",
-    "Citation": "Psalm 23:1–3",
-    "Title": "The Shepherd Provides and Guides",
-    "Berean Standard Bible": "A Psalm of David. The LORD is my shepherd; I shall not want. He makes me lie down in green pastures; He leads me beside quiet waters. He restores my soul; He guides me in paths of righteousness for His name’s sake.",
-    "WLC": "מִזְמוֹר לְדָוִד יְהוָה רֹעִי לֹא אֶחְסָר׃ בִּנְאוֹת דֶּשֶׁא יַרְבִּיצֵנִי עַל מֵי מְנֻחוֹת יְנַהֲלֵנִי׃ נַפְשִׁי יְשׁוֹבֵב יַנְחֵנִי בְמַעְגְּלֵי צֶדֶק לְמַעַן שְׁמוֹ׃"
+    "Citation": "Luke 1:5-8",
+    "Title": "Descriptive Scene Title",
+    "Berean Standard Bible": "English text from the Berean Standard Bible",
+    "SBLGNT": "Greek text from SBL Greek New Testament"
   }
 ]
+
+For Old Testament passages (source: WLC):
+[
+  {
+    "Scene number": "Scene 1",
+    "Citation": "Psalm 23:1-3",
+    "Title": "Descriptive Scene Title",
+    "Berean Standard Bible": "English text from the Berean Standard Bible",
+    "WLC": "Hebrew text from Westminster Leningrad Codex"
+  }
+]
+
+Use the field name that matches the source: **"SBLGNT"** for New Testament Greek, **"WLC"** for Old Testament Hebrew.
 
 ---
 
