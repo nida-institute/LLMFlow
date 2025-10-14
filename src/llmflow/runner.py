@@ -1,124 +1,28 @@
 import yaml
 import importlib
 import inspect
-import logging
+from llmflow.modules.logger import Logger
 from pathlib import Path
 import re
 import mistune
 import json
 import click
-from copy import deepcopy  # Add this import at the top with other imports
+from copy import deepcopy
 import os
 import sys
 
 from llmflow.utils.llm_runner import call_llm
+
 from llmflow.utils.io import normalize_nfc, validate_all_templates
 from llmflow.utils.linter import lint_pipeline_contracts, lint_pipeline_full
 from llmflow.modules.json_parser import parse_llm_json_response
-from llmflow.modules.gpt_api import call_gpt_with_retry, call_gpt_get_json
 
 from llmflow.plugins import plugin_registry
 from llmflow.plugins.loader import load_plugins
 load_plugins()
 
-class PipelineLogger:
-    def __init__(self):
-        # Set up logging with both file and console handlers
-        self.logger = logging.getLogger('llmflow')
-        self.logger.setLevel(logging.DEBUG)
-
-        # Clear existing handlers to avoid duplicates
-        for handler in self.logger.handlers[:]:
-            self.logger.removeHandler(handler)
-
-        # Prevent propagation to root logger to avoid duplicate console output
-        self.logger.propagate = False
-
-        # File handler for detailed logs
-        file_handler = logging.FileHandler('llmflow.log')
-        file_handler.setLevel(logging.DEBUG)
-        file_formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
-        file_handler.setFormatter(file_formatter)
-
-        # Console handler ONLY for step execution (INFO level and above)
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)
-        console_formatter = logging.Formatter('%(message)s')
-        console_handler.setFormatter(console_formatter)
-
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
-
-    def log_step_start(self, step_name, step_type):
-        """Show step execution on screen"""
-        self.logger.info(f"🚀 Executing: {step_name} ({step_type})")
-
-    def log_step_complete(self, step_name):
-        """Show step completion on screen"""
-        self.logger.info(f"✅ Completed: {step_name}")
-
-    def log_step_error(self, step_name, error):
-        """Show step error on screen"""
-        self.logger.error(f"❌ Failed: {step_name} - {str(error)}")
-
-    def log_step_details(self, step_name, step_config, context, log_level='debug'):
-        """Log detailed step information to file ONLY"""
-        level = self._get_log_level(log_level)
-
-        # These go to file only (DEBUG level)
-        self.logger.log(level, f"Step '{step_name}' configuration: {step_config}")
-
-        inputs = step_config.get('inputs', {})
-        if inputs:
-            resolved_inputs = {}
-            for key, value in inputs.items():
-                resolved_value = resolve(value, context)
-                resolved_inputs[key] = self._summarize_value(resolved_value)
-
-            self.logger.log(level, f"Step '{step_name}' inputs: {resolved_inputs}")
-
-    def log_step_outputs(self, step_name, outputs, log_level='debug'):
-        """Log step outputs to file"""
-        level = self._get_log_level(log_level)
-
-        summarized_outputs = {}
-        for key, value in outputs.items():
-            summarized_outputs[key] = self._summarize_value(value)
-
-        self.logger.log(level, f"Step '{step_name}' outputs: {summarized_outputs}")
-
-    def _get_log_level(self, log_level):
-        """Convert string log level to logging constant"""
-        return getattr(logging, log_level.upper(), logging.DEBUG)
-
-    def _summarize_value(self, value):
-        """Summarize values for logging"""
-        if isinstance(value, str):
-            if len(value) > 100:
-                return f"<string: {len(value)} chars>"
-            return f'"{value}"'
-        elif isinstance(value, list):
-            if len(value) == 0:
-                return "[]"
-            item_type = type(value[0]).__name__ if value else "unknown"
-            return f"<array: {len(value)} {item_type} items>"
-        elif isinstance(value, dict):
-            return f"<dict: {len(value)} keys>"
-        else:
-            return str(value)
-
-# Initialize logger at module level
-pipeline_logger = PipelineLogger()
-
-# Clear the log file at the start of a new run
-open('llmflow.log', 'w').close()
-
-def log_and_screen(msg, level="info"):
-    """Helper to log to both screen and file"""
-    print(msg)
-    getattr(pipeline_logger.logger, level)(msg)
+# Single unified logger instance
+logger = Logger()
 
 def resolve(value, context, max_depth=5):
     """
@@ -127,7 +31,6 @@ def resolve(value, context, max_depth=5):
     Returns native Python objects for exact variable references.
     """
     import re
-    logger = logging.getLogger('llmflow.resolve')
 
     logger.debug(f"Resolving value: {value}")
     logger.debug(f"Context keys: {list(context.keys())}")
@@ -219,8 +122,6 @@ def resolve(value, context, max_depth=5):
 
 def render_prompt(prompt_config, context):
     """Renders a prompt from a file with variable substitution."""
-    logger = logging.getLogger('llmflow.prompt')
-
     resolved_prompt = resolve(prompt_config, context)
     prompt_path = Path(resolved_prompt["file"])
     inputs = resolved_prompt.get("inputs", {})
@@ -253,14 +154,12 @@ def run_step(rule, context, pipeline_config):
 
 def run_for_each_step(rule, context, pipeline_config):
     """Executes a sequence of steps for each item in a resolved input list"""
-    logger = logging.getLogger('llmflow.foreach')
-
     step_name = rule.get('name', 'unnamed_for_each_step')
     log_level = rule.get('log', 'debug')
 
     # Log step start
-    pipeline_logger.log_step_start(step_name, 'for-each')
-    pipeline_logger.log_step_details(step_name, rule, context, log_level)
+    logger.info(f"🔄 Starting for-each step: {step_name}")
+    logger.debug(f"Step details: {rule}")
 
     try:
         input_spec = rule["input"]
@@ -289,12 +188,11 @@ def run_for_each_step(rule, context, pipeline_config):
             # Handle append_to operations after all substeps complete
             _handle_append_operations(steps, item_context, context, logger)
 
-        pipeline_logger.log_step_complete(step_name)
+        logger.info(f"✅ Completed for-each step: {step_name}")
 
     except Exception as e:
-        pipeline_logger.log_step_error(step_name, e)
+        logger.error(f"❌ Error in for-each step '{step_name}': {e}")
         raise
-
 
 def _get_loop_input(input_spec, context, logger):
     """Extract and normalize the input list for iteration"""
@@ -319,7 +217,6 @@ def _get_loop_input(input_spec, context, logger):
         loop_input = [loop_input]
 
     return loop_input
-
 
 def _parse_json_string(json_str, logger):
     """Parse a JSON string, handling code fences and fallbacks"""
@@ -348,7 +245,6 @@ def _parse_json_string(json_str, logger):
     # Last resort: wrap as single item
     return [json_str]
 
-
 def _handle_append_operations(steps, item_context, main_context, logger):
     """Handle append_to operations from substeps, avoiding duplicates"""
     for substep in steps:
@@ -369,7 +265,6 @@ def _handle_append_operations(steps, item_context, main_context, logger):
         main_context[target_list].append(result)
         logger.debug(f"Appended to {target_list}: now has {len(main_context[target_list])} items")
 
-
 def _get_substep_result(substep, context):
     """Extract the result value from a substep's outputs"""
     outputs = substep.get("outputs")
@@ -382,6 +277,7 @@ def _get_substep_result(substep, context):
         return context.get(outputs[0])
 
     return None
+
 def run_function_step(rule, context):
     """Execute a function step with proper variable resolution"""
     name = rule.get("name", "unnamed")
@@ -389,8 +285,8 @@ def run_function_step(rule, context):
     inputs = rule.get("inputs", {})
     outputs = rule.get("outputs")
 
-    pipeline_logger.log_step_start(name, "function")
-    pipeline_logger.log_step_details(name, rule, context, rule.get('log', 'debug'))
+    logger.info(f"🔧 Starting function step: {name}")
+    logger.debug(f"Function: {function_name}")
 
     try:
         # Import and get the function
@@ -430,39 +326,42 @@ def run_function_step(rule, context):
                 context[list_name] = []
             context[list_name].append(result)
 
-        pipeline_logger.log_step_complete(name)
+        logger.info(f"✅ Completed function step: {name}")
 
         # Handle saveas output
         handle_step_output(rule, context)
 
     except Exception as e:
-        pipeline_logger.log_step_error(name, e)
+        logger.error(f"❌ Error in function step '{name}': {e}")
         raise
 
 def run_llm_step(rule, context, pipeline_config):
     """Executes a single LLM step with logging"""
     name = rule.get('name', 'unnamed_llm_step')
-    log_level = rule.get('log', 'debug')
 
-    pipeline_logger.log_step_start(name, 'llm')
-    pipeline_logger.log_step_details(name, rule, context, log_level)
+    logger.info(f"🤖 Starting LLM step: {name}")
+    logger.debug(f"Step details: {rule}")
 
     try:
         rendered_prompt = render_prompt(rule["prompt"], context)
+
+        # Build merged config
         llm_config = pipeline_config.get("llm_config", {})
         step_config = rule.get("llm_options", {})
-
-        merged_config = llm_config.copy()
+        merged_config = {
+            "model": "gpt-4o",
+            "temperature": 0.7,
+            "max_tokens": 2500,
+            "timeout_seconds": 30
+        }
+        merged_config.update(llm_config)
         merged_config.update(step_config)
-        if "model" not in merged_config:
-            merged_config["model"] = "gpt-4o"
 
-        output_type = rule.get("output_type")
+        output_type = rule.get("output_type", "text")
+        logger.info(f"    ⏳ Calling {merged_config.get('model')} for step '{name}'...")
 
-        if output_type == "json":
-            result = call_gpt_get_json(merged_config, rendered_prompt, retries=3)
-        else:
-            result = call_gpt_with_retry(merged_config, rendered_prompt, max_attempts=3)
+        # Single unified call
+        result = call_llm(rendered_prompt, config=merged_config, output_type=output_type)
 
         # Check for templates
         if "template" in rule or "format_with" in rule:
@@ -491,7 +390,7 @@ def run_llm_step(rule, context, pipeline_config):
                 context[list_name] = []
             context[list_name].append(result)
 
-        pipeline_logger.log_step_complete(name)
+        logger.info(f"✅ Completed LLM step: {name}")
 
         # Log outputs
         if outputs:
@@ -502,13 +401,13 @@ def run_llm_step(rule, context, pipeline_config):
                 for output_name in outputs:
                     if output_name in context:
                         result_dict[output_name] = context[output_name]
-            pipeline_logger.log_step_outputs(name, result_dict, log_level)
+            logger.debug(f"Step outputs: {result_dict}")
 
         # Handle saveas output
         handle_step_output(rule, context)
 
     except Exception as e:
-        pipeline_logger.log_step_error(name, e)
+        logger.error(f"❌ Error in LLM step '{name}': {e}")
         raise
 
 def run_save_step(rule, context):
@@ -516,8 +415,8 @@ def run_save_step(rule, context):
     name = rule.get('name', 'unnamed_save_step')
     log_level = rule.get('log', 'debug')
 
-    pipeline_logger.log_step_start(name, 'save')
-    pipeline_logger.log_step_details(name, rule, context, log_level)
+    logger.info(f"💾 Starting save step: {name}")
+    logger.debug(f"Step details: {rule}")
 
     try:
         # Resolve the input expression
@@ -535,12 +434,12 @@ def run_save_step(rule, context):
         fmt = rule.get("format", "text").lower()
         _save_file_by_format(value, filename, fmt)
 
-        pipeline_logger.log_step_complete(name)
+        logger.info(f"✅ Completed save step: {name}")
 
         return f"Saved to {filename}"
 
     except Exception as e:
-        pipeline_logger.log_step_error(name, e)
+        logger.error(f"❌ Error in save step '{name}': {e}")
         raise
 
 def handle_step_output(rule, context):
@@ -660,37 +559,64 @@ def collect_all_templates(steps):
 
     return templates
 
-def run_pipeline(pipeline_path, vars=None, dry_run=False, skip_lint=False):
+def run_pipeline(pipeline_path, vars=None, dry_run=False, skip_lint=False, verbose=False):
     """Execute a YAML-defined pipeline with template validation"""
     variables = vars or {}
 
+    # Clear the log file at the start of a new run
+    open('llmflow.log', 'w').close()
+
     # Load pipeline FIRST before using any variables from it - with friendly error handling
+    # Strict YAML linting before validation
     try:
-        pipeline = yaml.safe_load(Path(pipeline_path).read_text())
+        from ruamel.yaml import YAML
+        yaml_linter = YAML(typ='safe')
+        with open(pipeline_path, encoding="utf-8") as f:
+            pipeline = yaml_linter.load(f)
+        # Minimal Pydantic validation
+        from pydantic import ValidationError
+        from llmflow.pipeline_schema import PipelineConfig, StepConfig
+        pipeline_root = pipeline.get("pipeline", pipeline)
+        # Validate top-level pipeline config
+        try:
+            PipelineConfig(**pipeline_root)
+        except ValidationError as e:
+            print("\n[ERROR] Pipeline config validation failed:")
+            print(e)
+            raise SystemExit(1)
+        # Validate each step strictly
+        for idx, step in enumerate(pipeline_root.get("steps", [])):
+            try:
+                StepConfig(**step)
+            except ValidationError as e:
+                print(f"\n[ERROR] Step {idx+1} ('{step.get('name','unnamed')}') validation failed:")
+                print(e)
+                raise SystemExit(1)
+
     except FileNotFoundError:
         # Get both relative and absolute paths for helpful error message
         pipeline_file = Path(pipeline_path)
         current_dir = Path.cwd()
         abs_path = pipeline_file.resolve()
 
-        pipeline_logger.logger.error(f"❌ Pipeline file not found:")
-        pipeline_logger.logger.error(f"   Looking for: {pipeline_path}")
-        pipeline_logger.logger.error(f"   Absolute path: {abs_path}")
-        pipeline_logger.logger.error(f"   Current directory: {current_dir}")
-        pipeline_logger.logger.error(f"   Are you running from the correct directory?")
+        logger.error(f"❌ Pipeline file not found:")
+        logger.error(f"   Looking for: {pipeline_path}")
+        logger.error(f"   Absolute path: {abs_path}")
+        logger.error(f"   Current directory: {current_dir}")
+        logger.error(f"   Are you running from the correct directory?")
 
         # List available pipeline files if pipelines directory exists
         pipelines_dir = current_dir / "pipelines"
         if pipelines_dir.exists() and pipelines_dir.is_dir():
             yaml_files = list(pipelines_dir.glob("*.yaml")) + list(pipelines_dir.glob("*.yml"))
             if yaml_files:
-                pipeline_logger.logger.error(f"   Available pipelines in {pipelines_dir}:")
+                logger.error(f"   Available pipelines in {pipelines_dir}:")
                 for yaml_file in sorted(yaml_files):
-                    pipeline_logger.logger.error(f"     - {yaml_file.name}")
+                    logger.error(f"     - {yaml_file.name}")
 
         raise SystemExit(1)
     except Exception as e:
-        pipeline_logger.logger.error(f"❌ Error reading pipeline file '{pipeline_path}': {e}")
+        logger.error(f"❌ Error reading pipeline file '{pipeline_path}': {e}")
         raise SystemExit(1)
 
     pipeline_root = pipeline.get("pipeline", pipeline)
@@ -698,16 +624,15 @@ def run_pipeline(pipeline_path, vars=None, dry_run=False, skip_lint=False):
     # Get steps EARLY so we can use rules
     rules = pipeline_root.get("steps", pipeline_root.get("rules", []))
 
-    # Now we can use pipeline_logger with rules defined
     # Log and display the run mode
     if dry_run:
-        pipeline_logger.logger.info("[DRY RUN] Simulating: %s", pipeline_path)
+        logger.info(f"[DRY RUN] Simulating: {pipeline_path}")
     else:
-        pipeline_logger.logger.info("[LIVE RUN] Running: %s", pipeline_path)
+        logger.info(f"[LIVE RUN] Running: {pipeline_path}")
 
-    pipeline_logger.logger.debug(f"Variables: {variables}")  # This goes to file only now
+    logger.debug(f"Variables: {variables}")
     total_steps = len(rules)
-    pipeline_logger.logger.info("Found %d steps to execute", total_steps)
+    logger.info(f"Found {total_steps} steps to execute")
 
     # Initialize context first for template validation
     context = dict(pipeline_root.get("variables", {}))
@@ -716,34 +641,52 @@ def run_pipeline(pipeline_path, vars=None, dry_run=False, skip_lint=False):
     # Preflight validation
     if not skip_lint:
         # Run full pipeline validation (includes template validation)
-        lint_pipeline_full(pipeline_path)
+        try:
+            lint_pipeline_full(pipeline_path)
+        except Exception as e:
+            logger.error(f"ERROR in lint_pipeline_full: {type(e).__name__}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            raise
     else:
         # Just validate templates if linting is skipped
-        pipeline_logger.logger.info("🔍 Validating pipeline templates...")
+        logger.info("🔍 Validating pipeline templates...")
         try:
             validate_all_templates(pipeline_root)
-            pipeline_logger.logger.info("✅ All templates validated successfully")
+            logger.info("✅ All templates validated successfully")
         except Exception as e:
-            pipeline_logger.logger.error(f"Template validation failed: {e}")
+            logger.error(f"Template validation failed: {e}")
             raise
+
+    # Show execution is starting
+    if not dry_run:
+        logger.info("\n🎯 Starting pipeline execution...")
+        import sys
+        sys.stdout.flush()
+        # Flush all logger handlers too
+        for handler in logger.logger.handlers:
+            handler.flush()
+    else:
+        logger.info("\n[DRY RUN] Skipping execution")
 
     # For each step execution
     for rule in rules:
         name = rule.get("name", "unnamed")
 
         if dry_run:
-            pipeline_logger.logger.info(f"Would run: {name}")
+            logger.info(f"Would run: {name}")
             continue
 
         try:
+            # Step logging is handled within each step function
             run_step(rule, context, pipeline_root)
         except Exception as e:
-            pipeline_logger.logger.error(f"Step '{name}' failed: {e}")
+            logger.error(f"Step '{name}' failed: {e}")
             raise
 
-        pipeline_logger.logger.debug(f"Context after step {name}: {list(context.keys())}")
+        logger.debug(f"Context after step {name}: {list(context.keys())}")
 
-    pipeline_logger.logger.info("Pipeline complete.")
+    logger.info("Pipeline complete.")
 
     return context  # Return the final context instead of None
 

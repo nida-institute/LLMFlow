@@ -10,6 +10,7 @@ llm_config:
   model: gpt-4o
   max_tokens: 4096
   temperature: 0.4
+  timeout_seconds: 60
 
 linter_config:
   enabled: true
@@ -36,6 +37,7 @@ steps:
         passage: "${passage}"
     outputs: exegetical_culture
     log: debug
+    # llm_options removed, now uses llm_config.timeout_seconds
 
   - name: generate_exegetical_wordstudy
     type: llm
@@ -45,6 +47,7 @@ steps:
         source: "${source}"
         passage: "${passage}"
     outputs: exegetical_wordstudy
+    # llm_options removed, now uses llm_config.timeout_seconds
 
   - name: generate_exegetical_emotionalarc
     type: llm
@@ -54,6 +57,7 @@ steps:
         source: "${source}"
         passage: "${passage}"
     outputs: exegetical_emotionalarc
+    # llm_options removed, now uses llm_config.timeout_seconds
 
   # --- Render and Save Exegetical Guide ---
   - name: render_and_save_exegetical_guide
@@ -87,6 +91,7 @@ steps:
       file: leadersguide-scenes.gpt
       inputs:
         passage: "${passage}"
+        source: "${source}"
         exegetical_culture: "${exegetical_culture}"
         exegetical_wordstudy: "${exegetical_wordstudy}"
     output_type: json
@@ -239,7 +244,7 @@ steps:
       file: leadersguide-summarizing.gpt
       inputs:
         passage: "${passage}"
-        scene_titles: "${scene_list[*].SceneTitle}"
+        scene_titles: "${scene_list[*].Title}"
     outputs: summary_response
 
 

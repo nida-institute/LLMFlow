@@ -2,13 +2,19 @@ import json
 import re
 import typer
 import llm
+import openai
+import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+
 from llmflow.modules.json_parser import parse_llm_json_response
-from llmflow.modules.logging import log_section
+from llmflow.modules.logger import Logger
 from llmflow.utils.io import normalize_nfc
 from llmflow.modules.llm_response_clean import clean_llm_response_text
 
 # --- Singleton Model Holder ---
 _model_singleton = {}
+
+logger = Logger()
 
 def get_gpt_model(model_name):
     """
@@ -33,75 +39,65 @@ def get_gpt_model(model_name):
         typer.secho(f"Error retrieving model '{model_name}': {e}", fg=typer.colors.RED)
         raise typer.Exit(1)
 
-def call_gpt_with_retry(config, prompt, max_attempts=3):
-    import httpx
-    import logging
-    logger = logging.getLogger('llmflow.gpt')
-
-    model_obj = get_gpt_model(config["model"])
-
-    for attempt in range(max_attempts):
-        try:
-            prompt_kwargs = {}
-
-            for key, value in config.items():
-                # Only send max_tokens for models that support it
-                if key == "max_tokens":
-                    if "gpt-5" in config["model"]:
-                        # Do NOT send max_completion_tokens unless you confirm it's supported
-                        continue  # Skip sending any token parameter for GPT-5
-                    else:
-                        prompt_kwargs["max_tokens"] = value
-                elif key != "model":
-                    prompt_kwargs[key] = value
-
-            # Log what we're actually sending
-            logger.debug(f"Sending parameters: {prompt_kwargs}")
-            logger.debug(f"Model: {config['model']}")
-
-            response = model_obj.prompt(prompt, **prompt_kwargs)
-
-            if hasattr(response, "text"):
-                response_text = clean_llm_response_text(response.text())
-            else:
-                response_text = clean_llm_response_text(str(response))
-            return response_text
-        except httpx.RemoteProtocolError as e:
-            logger.warning(f"RemoteProtocolError (attempt {attempt + 1}): {e}")
-        except httpx.RequestError as e:
-            logger.warning(f"HTTP request error (attempt {attempt + 1}): {e}")
-        except Exception as e:
-            logger.warning(f"GPT call failed due to an unexpected error (attempt {attempt + 1}): {e}")
-
-    logger.error("GPT call failed after maximum retries.")
-    raise Exception("GPT call failed after maximum retries")
-
-def call_gpt_get_json(config, prompt, retries):
+def validate_openai_config(config):
     """
-    Calls GPT model with the given prompt and parses the JSON response.
-    Handles retries and structure verification. If the input is empty, returns an empty list.
+    Validate OpenAI-specific configuration parameters.
     """
-    for attempt in range(retries):
-        try:
-            response = call_gpt_with_retry(config, prompt, max_attempts=1)
-            response_text = clean_llm_response_text(response if isinstance(response, str) else response.text())
+    logger.debug("🔍 Validating OpenAI configuration")
 
-            if not response_text:
-                typer.secho(f"🔄 Received empty or invalid response from GPT (attempt {attempt + 1}/{retries}). Retrying this chunk.", fg=typer.colors.YELLOW)
-                continue
+    errors = []
+    warnings = []
 
-            try:
-                parsed_response = parse_llm_json_response(response_text)
-                log_section("Parsed GPT Response", json.dumps(parsed_response, ensure_ascii=False, indent=2), False)
-                return parsed_response
+    # Check API key
+    api_key = config.get("api_key") or openai.api_key
+    if not api_key:
+        errors.append("OpenAI API key not found in config or environment")
 
-            except (json.JSONDecodeError, ValueError) as e:
-                typer.secho(f"🔄 JSON parsing failed (attempt {attempt + 1}/{retries}): {e}", fg=typer.colors.YELLOW)
-                continue
+    # Validate model
+    model = config.get("model", "")
+    openai_models = [
+        "gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-4o-mini",
+        "gpt-3.5-turbo", "gpt-3.5-turbo-16k"
+    ]
+    if model and model not in openai_models:
+        warnings.append(f"Unknown OpenAI model '{model}', supported: {openai_models}")
 
-        except Exception as e:
-            typer.secho(f"🔄 GPT call failed (attempt {attempt + 1}/{retries}): {e}", fg=typer.colors.YELLOW)
-            continue
+    # Validate parameters
+    temperature = config.get("temperature")
+    if temperature is not None:
+        if not 0 <= temperature <= 2:
+            errors.append("temperature must be between 0 and 2")
 
-    typer.secho(f"❌ Failed to generate valid response after {retries} attempts.", fg=typer.colors.RED)
-    return []
+    max_tokens = config.get("max_tokens")
+    if max_tokens is not None:
+        if not isinstance(max_tokens, int) or max_tokens <= 0:
+            errors.append("max_tokens must be a positive integer")
+
+    top_p = config.get("top_p")
+    if top_p is not None:
+        if not 0 <= top_p <= 1:
+            errors.append("top_p must be between 0 and 1")
+
+    frequency_penalty = config.get("frequency_penalty")
+    if frequency_penalty is not None:
+        if not -2 <= frequency_penalty <= 2:
+            errors.append("frequency_penalty must be between -2 and 2")
+
+    presence_penalty = config.get("presence_penalty")
+    if presence_penalty is not None:
+        if not -2 <= presence_penalty <= 2:
+            errors.append("presence_penalty must be between -2 and 2")
+
+    # Log results
+    if errors:
+        for error in errors:
+            logger.error(f"❌ Config error: {error}")
+
+    if warnings:
+        for warning in warnings:
+            logger.warning(f"⚠️  Config warning: {warning}")
+
+    if not errors and not warnings:
+        logger.debug("✅ OpenAI configuration is valid")
+
+    return len(errors) == 0, errors, warnings

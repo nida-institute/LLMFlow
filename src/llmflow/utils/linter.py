@@ -3,24 +3,25 @@ import yaml
 import click
 import re
 from difflib import unified_diff
+from llmflow.modules.logger import Logger
 import jsonschema
-import logging
 
-# Add after imports
-pipeline_logger = logging.getLogger('llmflow.linter')
+# Use unified logger
+logger = Logger()
 
 def log_and_screen(msg, color="white", level="info"):
     """Log to file and display once on screen with color"""
-    # Always log to file (this goes to llmflow.log)
+    # Log to unified logger (goes to both file and screen)
     if level == "error":
-        pipeline_logger.error(msg)
+        logger.error(msg)
     elif level == "warning":
-        pipeline_logger.warning(msg)
+        logger.warning(msg)
     else:
-        pipeline_logger.info(msg)
+        logger.info(msg)
 
-    # Display on screen once with color
-    click.secho(msg, fg=color)
+    # Additional colored screen output (optional, since logger already handles screen output)
+    if color != "white":  # Only add color if specifically requested
+        click.secho(msg, fg=color, err=True)
 
 def parse_prompt_header(prompt_path):
     text = Path(prompt_path).read_text(encoding="utf-8")
@@ -163,20 +164,20 @@ def lint_pipeline_contracts(pipeline_path):
 
     all_steps = collect_all_steps(pipeline_root.get("steps", []))
 
-    # Use the shared validation with click logging
-    def click_logger(msg, color="white", level="info"):
-        click.secho(msg, fg=color)
+    # Use the unified logger for output
+    def unified_logger(msg, color="white", level="info"):
+        log_and_screen(msg, color, level)
 
-    errors, validated_count = validate_all_step_contracts(all_steps, click_logger)
+    errors, validated_count = validate_all_step_contracts(all_steps, unified_logger)
 
     # Report final results
     if errors:
-        click.secho(f"\n❌ Contract validation failed with {len(errors)} errors:", fg="red")
+        logger.error(f"\n❌ Contract validation failed with {len(errors)} errors:")
         for error in errors:
-            click.secho(f"  {error}", fg="red")
-        raise SystemExit("Pipeline contract validation failed")  # Changed from ValueError to SystemExit
+            logger.error(f"  {error}")
+        raise SystemExit("Pipeline contract validation failed")
     else:
-        click.secho(f"\n✅ All {validated_count} step contracts valid", fg="green")
+        logger.info(f"\n✅ All {validated_count} step contracts valid")
 
 def validate_template_step(step, errors, warnings):
     """Validate a template rendering step"""
@@ -310,33 +311,29 @@ def lint_pipeline_full(pipeline_path):
     pipeline = yaml.safe_load(Path(pipeline_path).read_text())
     pipeline_config = pipeline.get("pipeline", pipeline)
 
-    # Configure logging if needed
-    linter_config = pipeline_config.get('linter_config', {})
-    configure_linter_logging(linter_config)
-
     # Print this once
-    log_and_screen(f"Starting full pipeline lint for: {pipeline_path}", color="white")
+    logger.info(f"Starting full pipeline lint for: {pipeline_path}")
 
-    log_and_screen("🔍 Validating pipeline structure...", color="cyan")
+    logger.info("🔍 Validating pipeline structure...")
     structure_errors = validate_pipeline_structure(pipeline_config)
     if structure_errors:
         for error in structure_errors:
-            log_and_screen(error, color="red", level="error")
+            logger.error(error)
         raise SystemExit("❌ Pipeline structure validation failed.")
-    log_and_screen("✅ Pipeline structure is valid", color="green")
+    logger.info("✅ Pipeline structure is valid")
 
     all_steps = collect_all_steps(pipeline_config.get("steps", []))
     errors, validated_count = validate_all_step_contracts(all_steps, log_and_screen)
 
     if errors:
         for error in errors:
-            log_and_screen(error, color="red", level="error")
+            logger.error(error)
         raise SystemExit("❌ Contract validation failed.")
     else:
-        log_and_screen(f"✅ All {validated_count} step contracts valid", color="green")
+        logger.info(f"✅ All {validated_count} step contracts valid")
 
     # 3. Template validation - FIXED: Proper error handling
-    log_and_screen("🔍 Validating pipeline templates...", color="cyan")
+    logger.info("🔍 Validating pipeline templates...")
     template_errors = []
     template_warnings = []
 
@@ -345,57 +342,27 @@ def lint_pipeline_full(pipeline_path):
 
     for step in template_steps:
         template_path = step.get("inputs", {}).get("template_path", "")
-        log_and_screen(f"🔍 Validating template: {template_path} (step: {step.get('name')})", color="cyan")
+        logger.info(f"🔍 Validating template: {template_path} (step: {step.get('name')})")
 
         validate_template_step(step, template_errors, template_warnings)
 
         if not template_errors:  # If no errors for this template
-            log_and_screen(f"✅ Template {template_path} is valid", color="green")
+            logger.info(f"✅ Template {template_path} is valid")
 
     # Report template validation results
     if template_errors:
-        log_and_screen(f"\n❌ Template validation failed with {len(template_errors)} errors:", color="red")
+        logger.error(f"\n❌ Template validation failed with {len(template_errors)} errors:")
         for error in template_errors:
-            log_and_screen(f"  {error}", color="red", level="error")
+            logger.error(f"  {error}")
         raise SystemExit("❌ Template validation failed.")
     else:
-        log_and_screen("✅ All templates validated successfully", color="green")
+        logger.info("✅ All templates validated successfully")
 
     # Show any warnings (but don't fail)
     for warning in template_warnings:
-        log_and_screen(f"⚠️  {warning}", color="yellow", level="warning")
+        logger.warning(f"⚠️  {warning}")
 
-    log_and_screen("✅ Pipeline validation completed successfully", color="green")
-
-def configure_linter_logging(linter_config):
-    """Configure logging level for the linter based on pipeline config"""
-    import logging
-    logger = logging.getLogger('llmflow.linter')
-
-    # Get log level from config, default to INFO
-    log_level = linter_config.get('log_level', 'info').upper()
-    numeric_level = getattr(logging, log_level, logging.INFO)
-
-    # Set the logger level
-    logger.setLevel(numeric_level)
-
-    # Remove ALL StreamHandlers (console output) from this logger
-    for handler in logger.handlers[:]:
-        if isinstance(handler, logging.StreamHandler):
-            logger.removeHandler(handler)
-
-    # Also remove console handlers from parent loggers if they exist
-    parent = logger.parent
-    while parent and parent.name != 'root':
-        for handler in parent.handlers[:]:
-            if isinstance(handler, logging.StreamHandler):
-                parent.removeHandler(handler)
-        parent = parent.parent
-
-    # The file handler for llmflow.log should already exist from main logger setup
-    # All linter messages will still go to the log file via the parent logger
-
-    return logger
+    logger.info("✅ Pipeline validation completed successfully")
 
 def check_step_outputs(step):
     """Warn if a step generates data but doesn't store it"""

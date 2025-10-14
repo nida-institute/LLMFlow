@@ -1,5 +1,5 @@
 import pytest
-import logging
+from src.llmflow.modules.logger import Logger
 from llmflow.utils.linter import configure_linter_logging
 
 class TestLoggingConfiguration:

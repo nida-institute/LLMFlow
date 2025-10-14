@@ -1,129 +1,89 @@
 import json
 import re
-import typer
-from llmflow.modules.logging import log_section
-from llmflow.modules.llm_response_clean import clean_llm_response_text
+from llmflow.modules.logger import Logger
 
-def parse_llm_json_response(response_text, debug=False):
+# Use unified logger
+logger = Logger()
+
+def parse_llm_json_response(response_text, fallback_on_error=True):
     """
-    Robust parser for JSON responses from LLMs.
-
-    Handles common issues:
-    - Markdown code blocks (```json ... ```)
-    - Leading/trailing text hedges
-    - Empty responses
-    - Malformed JSON
-    - Unicode issues
-
-    Args:
-        response_text (str): Raw response from LLM
-        debug (bool): Show debug output
-
-    Returns:
-        dict/list: Parsed JSON object
-
-    Raises:
-        json.JSONDecodeError: If JSON cannot be parsed after cleanup
-        ValueError: If response is empty or invalid
+    Parse JSON from LLM response with error handling and logging.
     """
+    logger.debug(f"🔍 Parsing JSON response ({len(response_text)} chars)")
 
-    if debug:
-        typer.secho(f"📝 Raw LLM response ({len(response_text)} chars):", fg=typer.colors.BLUE)
-        typer.secho(f"'{response_text[:200]}...'", fg=typer.colors.BLUE)
-
-    # Check for empty response
-    if not response_text or not response_text.strip():
-        raise ValueError("Empty response from LLM")
-
-    # Clean up the response and strip hedges, normalize NFC
-    cleaned = clean_llm_response_text(response_text)
-
-    # Find JSON content between code blocks
-    json_match = re.search(r'```(?:json)?\s*(\{.*?\}|\[.*?\])\s*```', cleaned, re.DOTALL)
-    if json_match:
-        cleaned = json_match.group(1)
-
-    # Look for JSON-like content (starts with { or [)
-    json_content_match = re.search(r'(\{.*\}|\[.*\])', cleaned, re.DOTALL)
-    if json_content_match:
-        cleaned = json_content_match.group(1)
-
-    if debug:
-        typer.secho(f"🧹 Cleaned response ({len(cleaned)} chars):", fg=typer.colors.GREEN)
-        typer.secho(f"'{cleaned[:200]}...'", fg=typer.colors.GREEN)
-
-    # Try to parse JSON
     try:
-        parsed = json.loads(cleaned)
-
-        if debug:
-            typer.secho(f"✅ JSON parsed successfully: {type(parsed)}", fg=typer.colors.GREEN, bold=True)
-            if isinstance(parsed, (dict, list)):
-                typer.secho(f"📊 Contains {len(parsed)} items", fg=typer.colors.GREEN)
-
-        return parsed
-
-    except json.JSONDecodeError as e:
-        # Try some common fixes
-
-        # Fix: Remove trailing commas
-        fixed = re.sub(r',(\s*[}\]])', r'\1', cleaned)
+        # First, try to parse the entire response as JSON
         try:
-            parsed = json.loads(fixed)
-            if debug:
-                typer.secho(f"✅ JSON parsed after removing trailing commas", fg=typer.colors.YELLOW)
-            return parsed
+            result = json.loads(response_text.strip())
+            logger.debug("✅ Successfully parsed entire response as JSON")
+            return result
         except json.JSONDecodeError:
             pass
 
-        # Fix: Handle unescaped quotes in strings
-        try:
-            # Simple attempt - replace unescaped quotes in likely string values
-            fixed = re.sub(r'(?<!\\)"(?=[^,}\]]*[,}\]])', '\\"', cleaned)
-            parsed = json.loads(fixed)
-            if debug:
-                typer.secho(f"✅ JSON parsed after fixing quotes", fg=typer.colors.YELLOW)
-            return parsed
-        except json.JSONDecodeError:
-            pass
+        # Look for JSON in code blocks
+        code_block_pattern = r'```(?:json)?\s*([\s\S]*?)\s*```'
+        code_blocks = re.findall(code_block_pattern, response_text, re.IGNORECASE)
 
-        # Fix: Try parsing line by line for array responses
-        if cleaned.strip().startswith('[') and cleaned.strip().endswith(']'):
+        for i, block in enumerate(code_blocks):
             try:
-                # Remove outer brackets and try to parse each object
-                inner = cleaned.strip()[1:-1].strip()
-                if inner:
-                    # Split by likely object boundaries
-                    objects = re.split(r'\},\s*\{', inner)
-                    if len(objects) > 1:
-                        # Reconstruct with proper brackets
-                        fixed_objects = []
-                        for i, obj in enumerate(objects):
-                            if i == 0 and not obj.strip().startswith('{'):
-                                obj = '{' + obj
-                            if i == len(objects) - 1 and not obj.strip().endswith('}'):
-                                obj = obj + '}'
-                            if not obj.strip().startswith('{'):
-                                obj = '{' + obj
-                            if not obj.strip().endswith('}'):
-                                obj = obj + '}'
-                            fixed_objects.append(obj.strip())
+                result = json.loads(block.strip())
+                logger.debug(f"✅ Successfully parsed JSON from code block {i+1}")
+                return result
+            except json.JSONDecodeError:
+                logger.debug(f"Failed to parse code block {i+1} as JSON")
+                continue
 
-                        # Try parsing each object
-                        parsed_objects = []
-                        for obj_str in fixed_objects:
-                            parsed_objects.append(json.loads(obj_str))
+        # Look for JSON-like structures without code blocks
+        json_pattern = r'(\{[\s\S]*?\}|\[[\s\S]*?\])'
+        potential_json = re.findall(json_pattern, response_text)
 
-                        if debug:
-                            typer.secho(f"✅ JSON parsed as array of {len(parsed_objects)} objects", fg=typer.colors.YELLOW)
-                        return parsed_objects
-            except:
-                pass
+        for i, candidate in enumerate(potential_json):
+            try:
+                result = json.loads(candidate.strip())
+                logger.debug(f"✅ Successfully parsed JSON from pattern match {i+1}")
+                return result
+            except json.JSONDecodeError:
+                logger.debug(f"Failed to parse pattern match {i+1} as JSON")
+                continue
 
-        # If all fixes failed, raise the original error with context
+        if fallback_on_error:
+            logger.warning("⚠️  No valid JSON found, returning raw text")
+            return response_text
+        else:
+            logger.error("❌ No valid JSON found in response")
+            raise ValueError("Could not parse JSON from LLM response")
 
-        log_section("Could not parse JSON", "")
-        log_section(f"Original error: {e}", "")
-        log_section(f"Cleaned JSON text: '{cleaned}'", "", True)
+    except Exception as e:
+        logger.error(f"❌ Error parsing JSON response: {e}")
+        if fallback_on_error:
+            return response_text
+        else:
+            raise
 
-        raise json.JSONDecodeError(f"Could not parse LLM JSON response: {e}", cleaned, e.pos)
+def validate_json_structure(data, required_fields=None):
+    """
+    Validate that parsed JSON has expected structure.
+    """
+    logger.debug("🔍 Validating JSON structure")
+
+    if not isinstance(data, (dict, list)):
+        logger.error("❌ JSON data is not a dict or list")
+        return False, ["Data must be a dictionary or list"]
+
+    errors = []
+
+    if required_fields and isinstance(data, dict):
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            errors.extend([f"Missing required field: {field}" for field in missing_fields])
+            for field in missing_fields:
+                logger.error(f"❌ Missing required field: {field}")
+
+    is_valid = len(errors) == 0
+
+    if is_valid:
+        logger.debug("✅ JSON structure validation passed")
+    else:
+        logger.error(f"❌ JSON structure validation failed with {len(errors)} errors")
+
+    return is_valid, errors

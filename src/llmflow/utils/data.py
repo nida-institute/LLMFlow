@@ -1,11 +1,18 @@
 """Data manipulation and transformation utilities"""
 
+import json
+import yaml
+from pathlib import Path
+from llmflow.modules.logger import Logger
+
+# Use unified logger
+logger = Logger()
+
 def create_json_dictionary(**kwargs):
     """
     Create a JSON dictionary from keyword arguments.
     Used to combine multiple pipeline variables into a single JSON structure.
     """
-    import logging
     logger = logging.getLogger('llmflow.data')
 
     logger.debug(f"create_json_dictionary called with {len(kwargs)} arguments")
@@ -357,3 +364,153 @@ def flatten_json_to_markdown(data):
 
     walk(data)
     return "\n".join(result)
+
+def load_json(file_path):
+    """Load JSON data from file with error handling and logging"""
+    logger.debug(f"📖 Loading JSON from: {file_path}")
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        logger.debug(f"✅ Successfully loaded JSON ({len(str(data))} chars)")
+        return data
+    except FileNotFoundError:
+        logger.error(f"❌ JSON file not found: {file_path}")
+        raise
+    except json.JSONDecodeError as e:
+        logger.error(f"❌ Invalid JSON in {file_path}: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error loading JSON from {file_path}: {e}")
+        raise
+
+def save_json(data, file_path, indent=2):
+    """Save data as JSON file with error handling and logging"""
+    logger.debug(f"💾 Saving JSON to: {file_path}")
+
+    try:
+        # Ensure directory exists
+        Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=indent, ensure_ascii=False)
+        logger.debug(f"✅ Successfully saved JSON")
+    except Exception as e:
+        logger.error(f"❌ Error saving JSON to {file_path}: {e}")
+        raise
+
+def load_yaml(file_path):
+    """Load YAML data from file with error handling and logging"""
+    logger.debug(f"📖 Loading YAML from: {file_path}")
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f)
+        logger.debug(f"✅ Successfully loaded YAML")
+        return data
+    except FileNotFoundError:
+        logger.error(f"❌ YAML file not found: {file_path}")
+        raise
+    except yaml.YAMLError as e:
+        logger.error(f"❌ Invalid YAML in {file_path}: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error loading YAML from {file_path}: {e}")
+        raise
+
+def save_yaml(data, file_path):
+    """Save data as YAML file with error handling and logging"""
+    logger.debug(f"💾 Saving YAML to: {file_path}")
+
+    try:
+        # Ensure directory exists
+        Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+
+        with open(file_path, 'w', encoding='utf-8') as f:
+            yaml.dump(data, f, default_flow_style=False, allow_unicode=True, indent=2)
+        logger.debug(f"✅ Successfully saved YAML")
+    except Exception as e:
+        logger.error(f"❌ Error saving YAML to {file_path}: {e}")
+        raise
+
+def merge_dicts(dict1, dict2, deep=True):
+    """Merge two dictionaries with optional deep merging"""
+    logger.debug(f"🔗 Merging dictionaries (deep={deep})")
+
+    if not deep:
+        result = dict1.copy()
+        result.update(dict2)
+        return result
+
+    # Deep merge
+    result = dict1.copy()
+
+    for key, value in dict2.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = merge_dicts(result[key], value, deep=True)
+        else:
+            result[key] = value
+
+    logger.debug(f"✅ Dictionaries merged successfully")
+    return result
+
+def flatten_dict(nested_dict, separator='.'):
+    """Flatten a nested dictionary using dot notation"""
+    logger.debug(f"📏 Flattening dictionary with separator '{separator}'")
+
+    def _flatten(obj, parent_key=''):
+        items = []
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                new_key = f"{parent_key}{separator}{key}" if parent_key else key
+                items.extend(_flatten(value, new_key).items())
+        else:
+            return {parent_key: obj}
+        return dict(items)
+
+    result = _flatten(nested_dict)
+    logger.debug(f"✅ Dictionary flattened to {len(result)} keys")
+    return result
+
+def validate_data_structure(data, required_keys, optional_keys=None):
+    """Validate that data contains required keys and log validation results"""
+    logger.debug(f"🔍 Validating data structure")
+    logger.debug(f"Required keys: {required_keys}")
+
+    if optional_keys:
+        logger.debug(f"Optional keys: {optional_keys}")
+
+    errors = []
+    warnings = []
+
+    if not isinstance(data, dict):
+        errors.append("Data must be a dictionary")
+        logger.error("❌ Data is not a dictionary")
+        return False, errors, warnings
+
+    # Check required keys
+    missing_required = [key for key in required_keys if key not in data]
+    if missing_required:
+        errors.extend([f"Missing required key: {key}" for key in missing_required])
+        for key in missing_required:
+            logger.error(f"❌ Missing required key: {key}")
+
+    # Check for unexpected keys
+    all_valid_keys = set(required_keys)
+    if optional_keys:
+        all_valid_keys.update(optional_keys)
+
+    unexpected_keys = [key for key in data.keys() if key not in all_valid_keys]
+    if unexpected_keys:
+        warnings.extend([f"Unexpected key: {key}" for key in unexpected_keys])
+        for key in unexpected_keys:
+            logger.warning(f"⚠️  Unexpected key: {key}")
+
+    is_valid = len(errors) == 0
+
+    if is_valid:
+        logger.debug(f"✅ Data structure validation passed")
+    else:
+        logger.error(f"❌ Data structure validation failed with {len(errors)} errors")
+
+    return is_valid, errors, warnings

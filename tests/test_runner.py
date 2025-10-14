@@ -65,12 +65,12 @@ class TestPipelineLogger:
     """Test logging functionality"""
 
     def test_logger_initialization(self):
-        logger = PipelineLogger()
+        logger = Logger()
         assert logger.logger.name == 'llmflow'
         assert len(logger.logger.handlers) == 2  # file and console
 
     def test_summarize_value(self):
-        logger = PipelineLogger()
+        logger = Logger()
         assert logger._summarize_value("short") == '"short"'
         assert logger._summarize_value("x" * 200) == "<string: 200 chars>"
         assert logger._summarize_value([1, 2, 3]) == "<array: 3 int items>"

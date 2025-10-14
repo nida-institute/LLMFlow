@@ -2,19 +2,18 @@ import json
 import re
 import os
 import unicodedata
-import logging  # ← Add this missing import
 from pathlib import Path
 import markdown  # You forgot this earlier!
+from llmflow.modules.logger import Logger
+
+# Use unified logger
+logger = Logger()
 
 # --- Basic utilities ---
 
 def normalize_nfc(text):
-    if isinstance(text, str):
-        return unicodedata.normalize("NFC", text)
-    elif isinstance(text, list):
-        return [normalize_nfc(item) for item in text]
-    else:
-        return text
+    """Normalize text to NFC (Canonical Decomposition, followed by Canonical Composition)"""
+    return unicodedata.normalize('NFC', text)
 
 def write_nfc(path, content):
     with open(path, "w", encoding="utf-8") as f:
@@ -69,51 +68,170 @@ def render_template(template_content, variables):
     return re.sub(r"\{\{\s*([^\}]+?)\s*\}\}", replacer, template_content)
 
 def render_markdown_template(template_path, variables, context=None):
-    """Render a markdown template with variables."""
-    from llmflow.runner import resolve  # Import the resolve function
+    """
+    Render a markdown template with variable substitution.
+    Supports both {{variable}} and ${variable} syntax.
+    """
+    logger.debug(f"📄 Rendering template: {template_path}")
+    logger.debug(f"Template variables: {list(variables.keys())}")
 
-    # Load template
-    template_content = Path(template_path).read_text()
+    try:
+        template_content = Path(template_path).read_text(encoding='utf-8')
 
-    # CRITICAL FIX: Use context for resolution if provided, otherwise use variables
-    resolution_context = context if context is not None else variables
+        # First pass: {{variable}} syntax
+        for key, value in variables.items():
+            placeholder = f"{{{{{key}}}}}"
+            if placeholder in template_content:
+                template_content = template_content.replace(placeholder, str(value))
+                logger.debug(f"Replaced {{{{ {key} }}}} with value")
 
-    # Resolve all variables BEFORE rendering
-    resolved_variables = {}
-    for key, value in variables.items():
-        if isinstance(value, str) and "${" in value:
-            # This is a variable reference that needs resolution against the full context
-            resolved_variables[key] = resolve(value, resolution_context)
-        else:
-            resolved_variables[key] = value
+        # Second pass: ${variable} syntax with context resolution if available
+        if context:
+            from llmflow.runner import resolve
+            # Find all ${...} patterns
+            dollar_pattern = r'\$\{([^}]+)\}'
+            matches = re.findall(dollar_pattern, template_content)
 
-    # Now render with resolved variables
-    return render_template(template_content, resolved_variables)
+            for match in matches:
+                try:
+                    resolved_value = resolve(f"${{{match}}}", context)
+                    if resolved_value != f"${{{match}}}":  # If it was actually resolved
+                        template_content = template_content.replace(f"${{{match}}}", str(resolved_value))
+                        logger.debug(f"Resolved ${{ {match} }} from context")
+                except Exception as e:
+                    logger.warning(f"Could not resolve ${{ {match} }}: {e}")
 
-def process_interleave_operations(variables):
-    """Handle interleave operations - create arrays of objects for Jinja2."""
-    processed_vars = {}
-    for key, value in variables.items():
-        if isinstance(value, dict) and "interleave" in value:
-            step_arrays = value["interleave"]
+        logger.debug(f"✅ Template rendered successfully")
+        return template_content
 
-            # Get all the arrays dynamically
-            array_names = list(step_arrays.keys())
-            arrays = [step_arrays[name] for name in array_names]
+    except FileNotFoundError:
+        logger.error(f"❌ Template file not found: {template_path}")
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error rendering template {template_path}: {e}")
+        raise
 
-            # Create array of objects with dynamic field names
-            scene_objects = []
-            for items in zip(*arrays):
-                scene_obj = {}
-                for i, field_name in enumerate(array_names):
-                    scene_obj[field_name] = items[i]
-                scene_objects.append(scene_obj)
+def extract_template_variables(template_content):
+    """Extract variables from templates that use {{variable}} or ${variable} syntax"""
+    variables = set()
 
-            processed_vars[key] = scene_objects
-        else:
-            processed_vars[key] = value
+    # Find {{variable}} patterns
+    curly_pattern = r'\{\{\s*([^}]+?)\s*\}\}'
+    for match in re.finditer(curly_pattern, template_content):
+        var_name = match.group(1).strip()
+        if not var_name.startswith('#') and not var_name.startswith('/'):
+            variables.add(var_name)
 
-    return processed_vars
+    # Find ${variable} patterns
+    dollar_pattern = r'\$\{\s*([^}]+?)\s*\}'
+    for match in re.finditer(dollar_pattern, template_content):
+        var_name = match.group(1).strip()
+        variables.add(var_name)
+
+    return variables
+
+def validate_template(template_path, required_variables=None):
+    """
+    Validate that a template file exists and contains expected variables.
+    Returns (is_valid, missing_vars, extra_vars)
+    """
+    logger.debug(f"🔍 Validating template: {template_path}")
+
+    try:
+        if not Path(template_path).exists():
+            logger.error(f"❌ Template file not found: {template_path}")
+            return False, [], []
+
+        template_content = Path(template_path).read_text(encoding='utf-8')
+        template_vars = extract_template_variables(template_content)
+
+        if required_variables is None:
+            logger.debug(f"✅ Template exists and contains {len(template_vars)} variables")
+            return True, [], []
+
+        required_set = set(required_variables)
+        missing_vars = required_set - template_vars
+        extra_vars = template_vars - required_set
+
+        if missing_vars:
+            logger.warning(f"⚠️  Template missing required variables: {missing_vars}")
+        if extra_vars:
+            logger.debug(f"Template has extra variables: {extra_vars}")
+
+        is_valid = len(missing_vars) == 0
+        logger.debug(f"✅ Template validation {'passed' if is_valid else 'failed'}")
+
+        return is_valid, list(missing_vars), list(extra_vars)
+
+    except Exception as e:
+        logger.error(f"❌ Error validating template {template_path}: {e}")
+        return False, [], []
+
+def validate_all_templates(pipeline_config):
+    """
+    Validate all templates referenced in a pipeline configuration.
+    Raises an exception if any templates are invalid.
+    """
+    logger.info("🔍 Validating all pipeline templates...")
+
+    errors = []
+    template_count = 0
+
+    def check_step_templates(steps):
+        nonlocal template_count, errors
+
+        for step in steps:
+            step_name = step.get("name", "unnamed")
+
+            # Check for template_path in function step inputs
+            if step.get("type") == "function":
+                inputs = step.get("inputs", {})
+                template_path = inputs.get("template_path")
+
+                if template_path:
+                    logger.debug(f"Checking template for step '{step_name}': {template_path}")
+                    template_count += 1
+
+                    is_valid, missing_vars, extra_vars = validate_template(template_path)
+                    if not is_valid:
+                        errors.append(f"Step '{step_name}': Invalid template {template_path}")
+
+                    # Check if step provides required variables
+                    template_vars = inputs.get("variables", {})
+                    if isinstance(template_vars, dict) and missing_vars:
+                        provided_vars = set(template_vars.keys())
+                        still_missing = set(missing_vars) - provided_vars
+                        if still_missing:
+                            errors.append(f"Step '{step_name}': Template {template_path} missing variables: {still_missing}")
+
+            # Check for templates in LLM step output formatting
+            if step.get("type") == "llm":
+                template_path = step.get("template") or step.get("format_with")
+                if template_path:
+                    logger.debug(f"Checking output template for step '{step_name}': {template_path}")
+                    template_count += 1
+
+                    is_valid, missing_vars, extra_vars = validate_template(template_path)
+                    if not is_valid:
+                        errors.append(f"Step '{step_name}': Invalid output template {template_path}")
+
+            # Recursively check nested steps (for-each, etc.)
+            if step.get("type") == "for-each":
+                nested_steps = step.get("steps", [])
+                check_step_templates(nested_steps)
+
+    # Start validation
+    steps = pipeline_config.get("steps", [])
+    check_step_templates(steps)
+
+    # Report results
+    if errors:
+        logger.error(f"❌ Template validation failed with {len(errors)} errors:")
+        for error in errors:
+            logger.error(f"  {error}")
+        raise ValueError(f"Template validation failed: {len(errors)} errors found")
+    else:
+        logger.info(f"✅ All {template_count} templates validated successfully")
 
 def save_markdown_as(text, passage, format="md", output_dir="outputs"):
     """
