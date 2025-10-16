@@ -1,11 +1,11 @@
 <!-- exegeticalguide_template.md -->
-# Exegetical Guide for {{ passage }}
+# Exegetical Guide for {{passage}}
 
 ## Cultural Context
-{{ exegetical_culture }}
+{{exegetical_culture}}
 
 ## Word Study
-{{ exegetical_wordstudy }}
+{{exegetical_wordstudy}}
 
 ## Emotional Arc
-{{ exegetical_emotionalarc }}
+{{exegetical_emotionalarc}}
