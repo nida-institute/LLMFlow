@@ -47,6 +47,7 @@ steps:
         source: "${source}"
         passage: "${passage}"
     outputs: exegetical_wordstudy
+    log: debug
     # llm_options removed, now uses llm_config.timeout_seconds
 
   - name: generate_exegetical_emotionalarc
@@ -57,7 +58,7 @@ steps:
         source: "${source}"
         passage: "${passage}"
     outputs: exegetical_emotionalarc
-    # llm_options removed, now uses llm_config.timeout_seconds
+    log: debug
 
   # --- Render and Save Exegetical Guide ---
   - name: render_and_save_exegetical_guide

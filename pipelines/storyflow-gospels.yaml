@@ -5,11 +5,18 @@ variables:
   output_dir: outputs/storyflow
   source: SBLGNT
   passage: "${passage}"
+  scholarship_level: balanced
 
 llm_config:
   model: gpt-4o
-  max_tokens: 4096
-  temperature: 0.4
+  llm_execution:
+    retries: 3
+    retry_backoff: 2
+    output_format: text
+    timeout: 45
+  llm_params:
+    temperature: 0.65
+    max_tokens: 2200
 
 linter_config:
   enabled: true
@@ -127,8 +134,11 @@ steps:
 
       - name: bodies
         type: llm
+        llm_params:
+          temperature: 0.6
+          max_tokens: 2600
         prompt:
-          file: leadersguide-bodies.gpt
+          file: prompts/storyflow/leadersguide-bodies.gpt
           inputs:
             passage: "${passage}"
             scene: "${scene.SBLGNT}"
@@ -139,8 +149,11 @@ steps:
 
       - name: hearts
         type: llm
+        llm_params:
+          temperature: 0.6
+          max_tokens: 2600
         prompt:
-          file: leadersguide-hearts.gpt
+          file: prompts/storyflow/leadersguide-hearts.gpt
           inputs:
             passage: "${passage}"
             scene: "${scene.SBLGNT}"

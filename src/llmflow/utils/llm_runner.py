@@ -3,6 +3,7 @@ import time
 import unicodedata
 from llmflow.modules.logger import Logger
 from llmflow.modules.json_parser import parse_llm_json_response
+from llmflow.modules.llm_response_clean import clean_llm_response_text
 
 # Use unified logger
 logger = Logger()
@@ -88,4 +89,9 @@ def _call_model(model, prompt, config):
     logger.debug(f"Filtered options for model: {options}")
 
     response = model.prompt(prompt, **options)
-    return response.text()
+    raw_response = response.text()
+
+    # Clean the response to remove outer markdown fences BEFORE any processing
+    cleaned_response = clean_llm_response_text(raw_response)
+
+    return cleaned_response
