@@ -2,9 +2,11 @@
 import re
 from llmflow.utils.io import normalize_nfc
 
-def clean_llm_response_text(text):
+def clean_llm_response_text(text: str) -> str:
     """
     Strips LLM hedges, code fences, and normalizes to NFC.
+
+    Remove outer markdown fences from LLM response text.
     """
     hedge_patterns = [
         r'^Here\'s the (JSON )?response:?\s*',

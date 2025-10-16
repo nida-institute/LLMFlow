@@ -1,81 +1,118 @@
 import json
 import time
 import unicodedata
+import llm
+from typing import Dict, Any, Optional
+
 from llmflow.modules.logger import Logger
 from llmflow.modules.json_parser import parse_llm_json_response
 from llmflow.modules.llm_response_clean import clean_llm_response_text
 
-# Use unified logger
 logger = Logger()
 
-def call_llm(prompt_text, config=None, output_type="text", from_file=False, max_retries=3, retry_backoff=2):
-    """
-    Calls any LLM using existing gpt_api functions with flexible configuration support.
-    """
-    # Default config
-    if config is None:
-        config = {"model": "gpt-4o", "temperature": 0.7, "max_tokens": 2500}
+# Model cache - simpler than singleton pattern
+_model_cache: Dict[str, Any] = {}
 
+def get_model(model_name: str):
+    """Get LLM model with caching."""
+    if model_name not in _model_cache:
+        _model_cache[model_name] = llm.get_model(model_name)
+    return _model_cache[model_name]
+
+# Generic parameter schema
+PARAMETER_SCHEMAS = {
+    "temperature": {"type": float, "min": 0, "max": 2},
+    "max_tokens": {"type": int, "min": 1},
+    "top_p": {"type": float, "min": 0, "max": 1},
+    "top_k": {"type": int, "min": 1},
+    "frequency_penalty": {"type": float, "min": -2, "max": 2},
+    "presence_penalty": {"type": float, "min": -2, "max": 2},
+    "timeout_seconds": {"type": int, "min": 1},
+    "seed": {"type": int},
+}
+
+def validate_parameter(name: str, value: Any) -> list[str]:
+    """Validate a single parameter generically."""
+    if name not in PARAMETER_SCHEMAS:
+        return []  # Unknown params are passed through
+
+    schema = PARAMETER_SCHEMAS[name]
+    errors = []
+
+    # Type validation
+    if not isinstance(value, schema["type"]):
+        errors.append(f"{name} must be of type {schema['type'].__name__}")
+        return errors
+
+    # Range validation
+    if "min" in schema and value < schema["min"]:
+        errors.append(f"{name} must be >= {schema['min']}")
+    if "max" in schema and value > schema["max"]:
+        errors.append(f"{name} must be <= {schema['max']}")
+
+    return errors
+
+def validate_llm_config(config: Dict[str, Any]) -> tuple[bool, list[str], list[str]]:
+    """Validate LLM configuration parameters."""
+    errors = []
+    warnings = []
+
+    # Temperature validation (universal)
+    temperature = config.get("temperature")
+    if temperature is not None and not (0 <= temperature <= 2):
+        errors.append("temperature must be between 0 and 2")
+
+    # Max tokens validation (universal)
+    max_tokens = config.get("max_tokens")
+    if max_tokens is not None and (not isinstance(max_tokens, int) or max_tokens <= 0):
+        errors.append("max_tokens must be a positive integer")
+
+    # Top-p validation (universal)
+    top_p = config.get("top_p")
+    if top_p is not None and not (0 <= top_p <= 1):
+        errors.append("top_p must be between 0 and 1")
+
+    # Frequency/presence penalty validation (common across providers)
+    for penalty in ["frequency_penalty", "presence_penalty"]:
+        value = config.get(penalty)
+        if value is not None and not (-2 <= value <= 2):
+            errors.append(f"{penalty} must be between -2 and 2")
+
+    # Model name validation (generic - just check it exists)
+    model = config.get("model")
+    if not model:
+        errors.append("model name is required")
+
+    # Timeout validation
+    timeout = config.get("timeout_seconds")
+    if timeout is not None and (not isinstance(timeout, int) or timeout <= 0):
+        errors.append("timeout_seconds must be a positive integer")
+
+    return len(errors) == 0, errors, warnings
+
+def call_llm(prompt: str, config: Dict[str, Any], output_type: str = "text"):
+    """Main LLM calling function with validation and caching."""
     logger.debug(f"🤖 Calling LLM with config: {config}, output_type: {output_type}")
 
-    if from_file:
-        with open(prompt_text, encoding="utf-8") as f:
-            prompt = f.read()
-    else:
-        prompt = prompt_text
+    # Validate config
+    is_valid, errors, warnings = validate_llm_config(config)
+    if not is_valid:
+        raise ValueError(f"Invalid LLM config: {errors}")
 
-    prompt = unicodedata.normalize("NFC", prompt)
-    logger.debug(f"Prompt length: {len(prompt)} characters")
-
-    # Get the model once
-    from llmflow.modules.gpt_api import get_gpt_model
+    # Get model
     model_name = config.get("model", "gpt-4o")
-    model = get_gpt_model(model_name)
+    model = get_model(model_name)
 
-    if output_type == "json":
-        # Handle JSON with retry logic
-        for attempt in range(1, max_retries + 1):
-            try:
-                logger.debug(f"JSON attempt {attempt}/{max_retries}")
+    # Call model
+    response = _call_model(model, prompt, config)
 
-                # Call LLM directly
-                response = _call_model(model, prompt, config)
+    # Handle response type
+    if output_type.lower() == "json":
+        return parse_llm_json_response(response)
+    return response
 
-                # Try to parse JSON
-                json_result = parse_llm_json_response(response, fallback_on_error=False)
-
-                if json_result is not None:
-                    logger.debug(f"✅ Valid JSON received on attempt {attempt}")
-                    return json_result
-
-                if attempt < max_retries:
-                    logger.warning(f"⚠️  Invalid JSON on attempt {attempt}, retrying...")
-                    time.sleep(retry_backoff)
-                else:
-                    logger.error(f"❌ No valid JSON found after {max_retries} attempts")
-                    raise ValueError(f"Could not extract valid JSON after {max_retries} attempts")
-
-            except Exception as e:
-                if attempt >= max_retries:
-                    raise
-                logger.warning(f"⚠️  Error on JSON attempt {attempt}: {e}")
-                time.sleep(retry_backoff)
-    else:
-        # Regular text with retry logic
-        for attempt in range(1, max_retries + 1):
-            try:
-                logger.debug(f"Attempt {attempt}/{max_retries}")
-                response = _call_model(model, prompt, config)
-                logger.debug(f"✅ LLM call successful")
-                return response
-            except Exception as e:
-                if attempt >= max_retries:
-                    raise
-                logger.warning(f"⚠️  Attempt {attempt} failed: {e}")
-                time.sleep(retry_backoff)
-
-def _call_model(model, prompt, config):
-    """Internal helper to call the model"""
+def _call_model(model, prompt: str, config: Dict[str, Any]) -> str:
+    """Internal helper to call the model."""
     # Only pass known valid LLM parameters
     valid_llm_params = {
         'temperature', 'max_tokens', 'top_p', 'top_k', 'stop',
