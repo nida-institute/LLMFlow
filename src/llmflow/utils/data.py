@@ -5,7 +5,7 @@ import yaml
 from pathlib import Path
 from llmflow.modules.logger import Logger
 
-# Use unified logger
+# Use unified logger - Logger() returns the logger instance directly
 logger = Logger()
 
 def create_json_dictionary(**kwargs):
@@ -13,8 +13,6 @@ def create_json_dictionary(**kwargs):
     Create a JSON dictionary from keyword arguments.
     Used to combine multiple pipeline variables into a single JSON structure.
     """
-    logger = logging.getLogger('llmflow.data')
-
     logger.debug(f"create_json_dictionary called with {len(kwargs)} arguments")
     for key, value in kwargs.items():
         logger.debug(f"  {key}: {type(value)} with {len(value) if hasattr(value, '__len__') else 'unknown'} items")
@@ -219,6 +217,10 @@ def parse_bible_reference(passage):
     # Normalize input
     original_passage = passage
     passage = passage.lower().strip()
+
+    # Validate input is not empty
+    if not passage:
+        raise ValueError("Bible reference cannot be empty")
 
     # Parse different formats
     patterns = [
