@@ -4,7 +4,8 @@ import yaml
 def test_linter_path_fix():
     """Test the correct path resolution logic"""
 
-    pipeline_path = "pipelines/storyflow-psalms-editing.yaml"
+    # Use correct pipeline path
+    pipeline_path = 'pipelines/storyflow-test.yaml'
 
     # Load pipeline
     with open(pipeline_path) as f:
@@ -16,8 +17,8 @@ def test_linter_path_fix():
     # Get first LLM step
     steps = pipeline_data.get("steps", [])
     llm_steps = [s for s in steps if s.get("type") == "llm"]
-    step = llm_steps[0]
-    prompt_file = step.get("prompt", {}).get("file", "")
+    step = llm_steps[0] if len(llm_steps) > 0 else None
+    prompt_file = step.get("prompt", {}).get("file", "") if step is not None else ""
 
     print("=== PATH RESOLUTION COMPARISON ===")
 

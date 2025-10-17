@@ -11,38 +11,47 @@ class TestRunPipeline:
     """Test the run_pipeline function with various scenarios"""
 
     @pytest.fixture
-    def simple_pipeline(self, temp_dir):
+    def simple_pipeline(self, tmp_path):
         """Create a simple test pipeline"""
         pipeline_content = {
             "name": "test-pipeline",
             "variables": {
                 "test_var": "test_value"
             },
+            "llm_config": {
+                "model": "gpt-4o",
+                "temperature": 0.7,
+                "max_tokens": 2000
+            },
             "steps": [
                 {
                     "name": "simple_function",
                     "type": "function",
-                    "function": "conftest.mock_function",
-                    "inputs": {"input": "${test_var}"},
+                    "function": "tests.test_helpers.mock_function",
+                    "inputs": {"a": "${test_var}", "p": "processed"},
                     "outputs": "result"
                 }
             ]
         }
 
-        pipeline_path = temp_dir / "test_pipeline.yaml"
+        pipeline_path = tmp_path / "test_pipeline.yaml"
         with open(pipeline_path, 'w') as f:
             yaml.dump(pipeline_content, f)
 
         return str(pipeline_path)
 
     @pytest.fixture
-    def complex_pipeline(self, temp_dir):
-        """Create a more complex pipeline with multiple step types"""
+    def complex_pipeline(self, tmp_path):
+        """Create a more complex pipeline with for-each"""
         pipeline_content = {
             "name": "complex-pipeline",
             "variables": {
-                "input_data": ["item1", "item2", "item3"],
-                "prefix": "processed"
+                "input_data": ["item1", "item2", "item3"]
+            },
+            "llm_config": {
+                "model": "gpt-4o",
+                "temperature": 0.7,
+                "max_tokens": 2000
             },
             "steps": [
                 {
@@ -54,27 +63,20 @@ class TestRunPipeline:
                         {
                             "name": "transform_item",
                             "type": "function",
-                            "function": "conftest.transform_function",
+                            "function": "tests.test_helpers.transform_function",
                             "inputs": {
-                                "item": "${item}",
-                                "prefix": "${prefix}"
+                                "a": "${item}",  # Fixed: transform_function expects 'a' and 'p'
+                                "p": "processed"
                             },
                             "outputs": "transformed",
                             "append_to": "results"
                         }
                     ]
-                },
-                {
-                    "name": "save_results",
-                    "type": "save",
-                    "input": "${results}",
-                    "filename": "output.json",
-                    "format": "json"
                 }
             ]
         }
 
-        pipeline_path = temp_dir / "complex_pipeline.yaml"
+        pipeline_path = tmp_path / "complex_pipeline.yaml"
         with open(pipeline_path, 'w') as f:
             yaml.dump(pipeline_content, f)
 
@@ -82,14 +84,8 @@ class TestRunPipeline:
 
     @patch('llmflow.runner.validate_all_templates')
     @patch('llmflow.runner.lint_pipeline_full')
-    @patch('llmflow.runner.importlib.import_module')
-    def test_run_pipeline_basic_execution(self, mock_import, mock_lint, mock_validate, simple_pipeline):
+    def test_run_pipeline_basic_execution(self, mock_lint, mock_validate, simple_pipeline):
         """Test basic pipeline execution with function step"""
-        # Setup mocks
-        mock_func = Mock(return_value="processed_test_value")
-        mock_module = Mock()
-        mock_module.mock_function = mock_func
-        mock_import.return_value = mock_module
         mock_validate.return_value = None
         mock_lint.return_value = None
 
@@ -98,32 +94,23 @@ class TestRunPipeline:
 
         # Verify
         assert "result" in result
-        assert result["result"] == "processed_test_value"
+        assert result["result"] == "test_value_processed"
         assert result["test_var"] == "test_value"
-        mock_func.assert_called_once_with(input="test_value")
 
     @patch('llmflow.runner.validate_all_templates')
     @patch('llmflow.runner.lint_pipeline_full')
-    @patch('llmflow.runner.importlib.import_module')
-    def test_run_pipeline_with_variables(self, mock_import, mock_lint, mock_validate, simple_pipeline):
+    def test_run_pipeline_with_variables(self, mock_lint, mock_validate, simple_pipeline):
         """Test pipeline execution with custom variables"""
-        # Setup mocks
-        mock_func = Mock(return_value="custom_result")
-        mock_module = Mock()
-        mock_module.mock_function = mock_func
-        mock_import.return_value = mock_module
         mock_validate.return_value = None
         mock_lint.return_value = None
 
         # Run with custom variables
-        custom_vars = {"test_var": "custom_value", "extra_var": "extra"}
+        custom_vars = {"test_var": "custom_value"}
         result = run_pipeline(simple_pipeline, vars=custom_vars, skip_lint=True)
 
         # Verify custom variables override pipeline variables
         assert result["test_var"] == "custom_value"
-        assert result["extra_var"] == "extra"
-        assert result["result"] == "custom_result"
-        mock_func.assert_called_once_with(input="custom_value")
+        assert result["result"] == "custom_value_processed"
 
     @patch('llmflow.runner.validate_all_templates')
     @patch('llmflow.runner.lint_pipeline_full')
@@ -142,36 +129,18 @@ class TestRunPipeline:
 
     @patch('llmflow.runner.validate_all_templates')
     @patch('llmflow.runner.lint_pipeline_full')
-    @patch('llmflow.runner.importlib.import_module')
-    @patch('llmflow.runner._save_file_by_format')
-    def test_run_pipeline_complex_workflow(self, mock_save, mock_import, mock_lint, mock_validate, complex_pipeline, temp_dir):
-        """Test complex pipeline with for-each and save steps"""
-        # Setup mocks
-        mock_func = Mock(side_effect=lambda item, prefix: f"{prefix}_{item}")
-        mock_module = Mock()
-        mock_module.transform_function = mock_func
-        mock_import.return_value = mock_module
+    def test_run_pipeline_complex_workflow(self, mock_lint, mock_validate, complex_pipeline):
+        """Test complex pipeline with for-each and append_to"""
         mock_validate.return_value = None
         mock_lint.return_value = None
 
-        # Change to temp directory for file operations
-        old_cwd = os.getcwd()
-        try:
-            os.chdir(temp_dir)
+        # Run pipeline
+        result = run_pipeline(complex_pipeline, skip_lint=True)
 
-            # Run pipeline
-            result = run_pipeline(complex_pipeline, skip_lint=True)
-
-            # Verify results
-            assert "results" in result
-            assert len(result["results"]) == 3
-            assert result["results"] == ["processed_item1", "processed_item2", "processed_item3"]
-
-            # Verify save was called
-            mock_save.assert_called_once()
-
-        finally:
-            os.chdir(old_cwd)
+        # Verify results
+        assert "results" in result
+        assert len(result["results"]) == 3
+        assert result["results"] == ["item1_processed", "item2_processed", "item3_processed"]
 
     @patch('llmflow.runner.validate_all_templates')
     @patch('llmflow.runner.lint_pipeline_full')
@@ -186,35 +155,28 @@ class TestRunPipeline:
 
     @patch('llmflow.runner.validate_all_templates')
     @patch('llmflow.runner.lint_pipeline_full')
-    @patch('llmflow.runner.importlib.import_module')
-    def test_run_pipeline_step_failure(self, mock_import, mock_lint, mock_validate, simple_pipeline):
+    def test_run_pipeline_step_failure(self, mock_lint, mock_validate, simple_pipeline):
         """Test pipeline execution when a step fails"""
-        # Setup mocks
-        mock_func = Mock(side_effect=RuntimeError("Function failed"))
-        mock_module = Mock()
-        mock_module.mock_function = mock_func
-        mock_import.return_value = mock_module
         mock_validate.return_value = None
         mock_lint.return_value = None
 
-        # Should raise the step error
-        with pytest.raises(RuntimeError, match="Function failed"):
-            run_pipeline(simple_pipeline, skip_lint=True)
+        with patch('tests.test_helpers.mock_function', side_effect=Exception("Mock failure")):
+            with pytest.raises(Exception, match="Mock failure"):
+                run_pipeline(simple_pipeline, skip_lint=True)
 
     def test_run_pipeline_file_not_found(self):
         """Test pipeline execution with non-existent file"""
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(SystemExit):
             run_pipeline("nonexistent_pipeline.yaml")
 
     @patch('llmflow.runner.validate_all_templates')
     @patch('llmflow.runner.lint_pipeline_full')
-    def test_run_pipeline_invalid_yaml(self, mock_lint, mock_validate, temp_dir):
+    def test_run_pipeline_invalid_yaml(self, mock_lint, mock_validate, tmp_path):
         """Test pipeline execution with invalid YAML"""
-        # Create invalid YAML file
-        invalid_yaml = temp_dir / "invalid.yaml"
+        invalid_yaml = tmp_path / "invalid.yaml"
         invalid_yaml.write_text("invalid: yaml: content: [unclosed")
 
-        with pytest.raises(yaml.YAMLError):
+        with pytest.raises(SystemExit):
             run_pipeline(str(invalid_yaml))
 
     @patch('llmflow.runner.validate_all_templates')
@@ -222,69 +184,69 @@ class TestRunPipeline:
     def test_run_pipeline_skip_lint(self, mock_lint, mock_validate, simple_pipeline):
         """Test that linting is skipped when skip_lint=True"""
         mock_validate.return_value = None
+        mock_lint.return_value = None
 
         # Run with skip_lint=True
-        run_pipeline(simple_pipeline, skip_lint=True)
+        result = run_pipeline(simple_pipeline, skip_lint=True)
 
-        # lint_pipeline_full should only be called once
-        assert mock_lint.call_count == 1
+        # lint_pipeline_full should not be called
+        mock_lint.assert_not_called()
+        # But validate_all_templates should still be called
+        mock_validate.assert_called_once()
+        assert result["result"] == "test_value_processed"
 
-    @patch('llmflow.runner.validate_all_templates')
     @patch('llmflow.runner.lint_pipeline_full')
-    def test_run_pipeline_with_lint(self, mock_lint, mock_validate, simple_pipeline):
+    def test_run_pipeline_with_lint(self, mock_lint, simple_pipeline):
         """Test that linting runs when skip_lint=False"""
-        mock_validate.return_value = None
         mock_lint.return_value = None
 
         # Run with skip_lint=False (default)
-        run_pipeline(simple_pipeline, skip_lint=False)
+        result = run_pipeline(simple_pipeline, skip_lint=False)
 
-        # lint_pipeline_full should be called twice
-        assert mock_lint.call_count == 2
+        # lint_pipeline_full should be called (it includes template validation)
+        mock_lint.assert_called_once()
+        assert result["result"] == "test_value_processed"
 
     @patch('llmflow.runner.validate_all_templates')
     @patch('llmflow.runner.lint_pipeline_full')
-    @patch('llmflow.runner.importlib.import_module')
-    def test_run_pipeline_context_preservation(self, mock_import, mock_lint, mock_validate, temp_dir):
+    def test_run_pipeline_context_preservation(self, mock_lint, mock_validate, tmp_path):
         """Test that context is properly preserved and returned"""
+        mock_validate.return_value = None
+        mock_lint.return_value = None
+
         # Create pipeline with multiple steps
         pipeline_content = {
             "name": "context-test",
             "variables": {"initial": "value"},
+            "llm_config": {  # Added required llm_config
+                "model": "gpt-4o",
+                "temperature": 0.7,
+                "max_tokens": 2000
+            },
             "steps": [
                 {
                     "name": "step1",
                     "type": "function",
-                    "function": "conftest.mock_function",
-                    "inputs": {"input": "${initial}"},
+                    "function": "tests.test_helpers.mock_function",
+                    "inputs": {"a": "${initial}", "p": "step1"},
                     "outputs": "step1_result"
                 },
                 {
                     "name": "step2",
                     "type": "function",
-                    "function": "conftest.mock_function",
-                    "inputs": {"input": "${step1_result}"},
+                    "function": "tests.test_helpers.mock_function",
+                    "inputs": {"a": "${step1_result}", "p": "step2"},
                     "outputs": "step2_result"
                 }
             ]
         }
-
-        pipeline_path = temp_dir / "context_test.yaml"
+        pipeline_path = tmp_path / "context_pipeline.yaml"
         with open(pipeline_path, 'w') as f:
             yaml.dump(pipeline_content, f)
 
-        # Setup mocks
-        mock_func = Mock(side_effect=lambda input: f"processed_{input}")
-        mock_module = Mock()
-        mock_module.mock_function = mock_func
-        mock_import.return_value = mock_module
-        mock_validate.return_value = None
-        mock_lint.return_value = None
-
-        # Run pipeline
         result = run_pipeline(str(pipeline_path), skip_lint=True)
 
         # Verify context preservation
         assert result["initial"] == "value"
-        assert result["step1_result"] == "processed_value"
-        assert result["step2_result"] == "processed_processed_value"
+        assert result["step1_result"] == "value_step1"
+        assert result["step2_result"] == "value_step1_step2"

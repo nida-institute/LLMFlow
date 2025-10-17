@@ -1,4 +1,5 @@
 import pytest
+from llmflow.utils.io import render_markdown_template
 from llmflow.runner import run_pipeline
 
 class TestPipelineIntegration:

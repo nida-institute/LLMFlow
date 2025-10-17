@@ -5,8 +5,11 @@ from pathlib import Path
 def test_prompt_file_resolution():
     """Test that the linter can resolve prompt file paths correctly"""
 
+    # Update to use existing pipeline file
+    pipeline_path = 'pipelines/storyflow-test.yaml'
+
     # Check if the actual pipeline file exists and has correct structure
-    pipeline_path = Path("pipelines/storyflow-psalms-editing.yaml")
+    pipeline_path = Path("pipelines/storyflow-test.yaml")
     assert pipeline_path.exists(), f"Pipeline file not found: {pipeline_path}"
 
     # Load the pipeline
@@ -121,7 +124,7 @@ def test_variable_resolution_in_context():
 def test_debug_linter_path_resolution():
     """Debug the exact linter path resolution logic"""
 
-    pipeline_path = "pipelines/storyflow-psalms-editing.yaml"
+    pipeline_path = "pipelines/storyflow-test.yaml"
 
     try:
         # First, let's see what's actually in the linter module
@@ -189,7 +192,7 @@ def test_simple_file_check():
     print(f"Current working directory: {os.getcwd()}")
 
     # Check basic file structure
-    pipeline_file = Path("pipelines/storyflow-psalms-editing.yaml")
+    pipeline_file = Path("pipelines/storyflow-test.yaml")
     prompts_dir = Path("prompts/storyflow")
 
     print(f"Pipeline file exists: {pipeline_file.exists()}")
