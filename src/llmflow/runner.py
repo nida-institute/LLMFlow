@@ -1,9 +1,10 @@
+from typing import Dict, List, Union, Any, Optional, Callable
+import inspect
 import yaml
 import importlib
-import inspect
+import re
 from llmflow.modules.logger import Logger
 from pathlib import Path
-import re
 import mistune
 import json
 import click
@@ -120,11 +121,23 @@ def resolve(value, context, max_depth=5):
         return [resolve(item, context, max_depth) for item in value]
     return value
 
-def render_prompt(prompt_config, context):
+def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, Any]) -> str:
     """Renders a prompt from a file with variable substitution."""
     resolved_prompt = resolve(prompt_config, context)
-    prompt_path = Path(resolved_prompt["file"])
-    inputs = resolved_prompt.get("inputs", {})
+
+    # Handle the case where prompt is a dict with 'file' key
+    if isinstance(resolved_prompt, dict):
+        prompt_file = resolved_prompt.get("file")
+        if not isinstance(prompt_file, str):
+            raise ValueError(f"Prompt 'file' must be a string, got {type(prompt_file)}")
+        prompt_path = Path(prompt_file)
+        inputs = resolved_prompt.get("inputs", {})
+    elif isinstance(resolved_prompt, str):
+        # Handle the case where prompt is just a string path
+        prompt_path = Path(resolved_prompt)
+        inputs = {}
+    else:
+        raise ValueError(f"Prompt config must be string or dict, got {type(resolved_prompt)}")
 
     prompts_dir = Path(context.get("prompts_dir", "prompts"))
     full_prompt_path = prompt_path if prompt_path.is_absolute() else prompts_dir / prompt_path
@@ -278,12 +291,13 @@ def _get_substep_result(substep, context):
 
     return None
 
-def run_function_step(rule, context):
+def run_function_step(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
     """Execute a function step with proper variable resolution"""
-    name = rule.get("name", "unnamed")
-    function_name = rule["function"]
-    inputs = rule.get("inputs", {})
-    outputs = rule.get("outputs")
+    name: str = rule.get("name", "unnamed")
+    function_name: str = rule["function"]
+    inputs: Union[Dict[str, Any], List[Any]] = rule.get("inputs", {})
+    outputs: Optional[Union[str, List[str]]] = rule.get("outputs")
+    append_to: Optional[str] = rule.get("append_to")
 
     logger.info(f"🔧 Starting function step: {name}")
     logger.debug(f"Function: {function_name}")
@@ -292,47 +306,80 @@ def run_function_step(rule, context):
         # Import and get the function
         module_name, func_name = function_name.rsplit(".", 1)
         module = importlib.import_module(module_name)
-        func = getattr(module, func_name)
+        func: Callable[..., Any] = getattr(module, func_name)
 
         # Resolve all input variables
-        resolved_inputs = {key: resolve(value, context) for key, value in inputs.items()}
-
-        # Call function with context if it accepts it
+        # Handle both dict and list formats for inputs
+        result: Any
         sig = inspect.signature(func)
-        if 'context' in sig.parameters:
-            result = func(**resolved_inputs, context=context)
+
+        if isinstance(inputs, dict):
+            resolved_inputs: Dict[str, Any] = {
+                key: resolve(value, context)
+                for key, value in inputs.items()
+            }
+
+            # Call function with context if it accepts it
+            if 'context' in sig.parameters:
+                result = func(**resolved_inputs, context=context)
+            else:
+                result = func(**resolved_inputs)
+
+        elif isinstance(inputs, list):
+            # For list inputs, pass as positional args
+            resolved_args: List[Any] = [
+                resolve(value, context)
+                for value in inputs
+            ]
+
+            if 'context' in sig.parameters:
+                result = func(*resolved_args, context=context)
+            else:
+                result = func(*resolved_args)
         else:
-            result = func(**resolved_inputs)
+            # Default to empty dict if inputs is neither dict nor list
+            resolved_inputs = {}
+            if 'context' in sig.parameters:
+                result = func(**resolved_inputs, context=context)
+            else:
+                result = func(**resolved_inputs)
 
         # Handle outputs
         if outputs is not None:
-            if isinstance(outputs, str):
+            if isinstance(outputs, list):
+                # Multiple outputs
+                if not isinstance(result, (list, tuple)):
+                    result = [result]
+                for i, output_name in enumerate(outputs):
+                    if i < len(result):
+                        context[output_name] = result[i]
+            else:
+                # Single output
                 context[outputs] = result
-            elif isinstance(outputs, list):
-                if len(outputs) == 1:
-                    context[outputs[0]] = result
-                else:
-                    # Multiple outputs - unpack result
-                    for i, output_name in enumerate(outputs):
-                        if isinstance(result, (tuple, list)) and i < len(result):
-                            context[output_name] = result[i]
-                        else:
-                            context[output_name] = result
 
-        # Handle append_to if specified
-        if "append_to" in rule and result is not None:
-            list_name = rule["append_to"]
-            if list_name not in context:
-                context[list_name] = []
-            context[list_name].append(result)
+        # Handle append_to - append the result to a list
+        if append_to:
+            if append_to not in context:
+                context[append_to] = []
+
+            # Append the output value (use outputs variable if set, otherwise use result)
+            if outputs:
+                if isinstance(outputs, str):
+                    value_to_append = context.get(outputs)
+                else:  # outputs is a list
+                    value_to_append = result  # Use the raw result for multiple outputs
+            else:
+                value_to_append = result
+
+            context[append_to].append(value_to_append)
+            logger.debug(f"Appended to {append_to}: now has {len(context[append_to])} items")
 
         logger.info(f"✅ Completed function step: {name}")
-
-        # Handle saveas output
-        handle_step_output(rule, context)
+        logger.debug(f"Context after step {name}: {list(context.keys())}")
+        return None
 
     except Exception as e:
-        logger.error(f"❌ Error in function step '{name}': {e}")
+        logger.error(f"❌ Error in function step '{name}': {str(e)}")
         raise
 
 def run_llm_step(rule, context, pipeline_config):
@@ -410,33 +457,49 @@ def run_llm_step(rule, context, pipeline_config):
         logger.error(f"❌ Error in LLM step '{name}': {e}")
         raise
 
-def run_save_step(rule, context):
-    """Save data from context to file"""
-    name = rule.get('name', 'unnamed_save_step')
-    log_level = rule.get('log', 'debug')
+def _value_to_string(value: Any) -> str:
+    """Convert a value to string for text output"""
+    if isinstance(value, str):
+        return value
+    elif isinstance(value, list):
+        return "\n".join(str(item) for item in value)
+    elif isinstance(value, dict):
+        return yaml.dump(value, default_flow_style=False, allow_unicode=True)
+    else:
+        return str(value)
+
+
+def run_save_step(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
+    """Execute a save step"""
+    name = rule.get("name", "unnamed")
+    input_value = rule.get("input")
+    filename = rule.get("filename", "output.txt")
+    fmt = rule.get("format", "text")
 
     logger.info(f"💾 Starting save step: {name}")
     logger.debug(f"Step details: {rule}")
 
     try:
-        # Resolve the input expression
-        input_expr = rule.get("input", "")
-        if not input_expr:
-            raise ValueError(f"Save step '{name}' missing 'input' field")
+        # Resolve input value
+        value = resolve(input_value, context)
 
-        value = resolve(input_expr, context)
+        # Create output directory if needed
+        output_dir = os.path.dirname(filename)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
 
-        # Get filename and format
-        filename = rule.get("filename", "")
-        if not filename:
-            raise ValueError(f"Save step '{name}' missing 'filename' field")
-
-        fmt = rule.get("format", "text").lower()
-        _save_file_by_format(value, filename, fmt)
+        if fmt == "json":
+            with open(filename, "w", encoding="utf-8") as f:
+                json.dump(value, f, indent=2, ensure_ascii=False)
+        elif fmt == "yaml":
+            with open(filename, "w", encoding="utf-8") as f:
+                yaml.dump(value, f, default_flow_style=False, allow_unicode=True)
+        else:  # text, markdown, or any other format
+            content = _value_to_string(value)
+            with open(filename, "w", encoding="utf-8") as f:
+                f.write(content)
 
         logger.info(f"✅ Completed save step: {name}")
-
-        return f"Saved to {filename}"
 
     except Exception as e:
         logger.error(f"❌ Error in save step '{name}': {e}")
@@ -727,11 +790,3 @@ def _save_file_by_format(value, filename, fmt):
         with open(filename, "w", encoding="utf-8") as f:
             f.write(content)
 
-def _value_to_string(value):
-    """Convert any value to string representation"""
-    if isinstance(value, str):
-        return value
-    elif isinstance(value, (list, tuple)):
-        return "\n".join(str(item) for item in value)
-    else:
-        return str(value)
