@@ -286,3 +286,7 @@ class TestStoryFlowPipeline:
         """Test that pipeline fails gracefully with bad input"""
         # This would test with invalid passage references, etc.
         pass
+
+def mock_identity(value):
+    """Simple identity function for testing"""
+    return value

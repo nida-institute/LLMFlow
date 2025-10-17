@@ -1,12 +1,20 @@
 # 📘 LLMFlow Pipeline Language Reference
 
+<<<<<<< Updated upstream
 LLMFlow is a framework for orchestrating AI workflows that seamlessly combines LLM calls, traditional functions, and iterative operations. This document defines the syntax and best practices for writing pipelines and prompts.
+=======
+This document defines the structure, rules, and best practices for writing pipelines and `.gpt` prompt files in the custom LLMFlow framework.
+>>>>>>> Stashed changes
 
 ---
 
 ## 🧩 Pipeline YAML Structure
 
+<<<<<<< Updated upstream
 LLMFlow pipelines are YAML files that define a sequence of operations:
+=======
+Each LLMFlow pipeline is written in YAML and contains these top-level keys:
+>>>>>>> Stashed changes
 
 ```yaml
 pipeline:
@@ -16,13 +24,20 @@ pipeline:
   steps:
     - name: step_name
       type: llm | function | for-each
+<<<<<<< Updated upstream
       # Type-specific configuration
       outputs: output_var | [output1, output2]
       saveas: path/to/file.ext  # Optional
+=======
+      prompt/function: ...
+      inputs: { key: value, ... }
+      outputs: [output1, output2]
+>>>>>>> Stashed changes
 ```
 
 ### ✅ Required Fields
 
+<<<<<<< Updated upstream
 * `name`: Unique identifier for the pipeline
 * `steps`: List of operations to execute
 * Each step must have `name` and `type`
@@ -58,10 +73,41 @@ Define defaults in `pipeline.variables` - available to all steps:
 variables:
   model: gpt-4
   temperature: 0.7
+=======
+* `name`: unique name for the pipeline or step
+* `steps`: list of pipeline operations
+* `type`: one of `llm`, `function`, or `for-each`
+
+---
+
+## 🪢 Context and Variable Substitution
+
+### 🔁 Context
+
+Each step may produce **outputs**, which are stored in the pipeline's context. These can be accessed by later steps using `${variable}` syntax.
+
+```yaml
+outputs: [source_text]
+...
+inputs:
+  source_text: "${source_text}"
+```
+
+This allows values to flow from one step to the next.
+
+### 📦 Global Variables
+
+Defined in `pipeline.variables:` and available to all steps unless overridden.
+
+```yaml
+variables:
+  source: WLC
+>>>>>>> Stashed changes
 ```
 
 ---
 
+<<<<<<< Updated upstream
 ## 🧠 Step Types
 
 ### LLM Steps
@@ -110,11 +156,19 @@ variables:
 ## 📄 Prompt Files (.gpt)
 
 Prompts use a YAML header for contract definition:
+=======
+## 🧾 .gpt Prompt File Format
+
+Each `.gpt` file must start with a **YAML header block** wrapped in an HTML comment, followed by the prompt body. This is required by the linter.
+
+### Example:
+>>>>>>> Stashed changes
 
 ```gpt
 <!--
 prompt:
   requires:
+<<<<<<< Updated upstream
     - passage      # Required variables
     - source_text
   optional:
@@ -155,10 +209,61 @@ saveas:
   - path: "outputs/metadata.json"
     content: "${metadata}"
     format: json
+=======
+    - passage
+    - source_text
+  optional: []
+  format: Markdown
+  description: Creates a table with word-level info from the passage.
+-->
+
+For the passage {passage}, analyze the following:
+
+{source_text}
+```
+
+### ❗ Rules for Prompt Files
+
+* Header must be present and valid YAML
+* `requires`: lists required variables
+* `optional`: lists optional ones
+* `format`: output type (e.g., Markdown, text, JSON)
+* `description`: short explanation of what the prompt does
+* Use **single curly braces** (`{variable}`) in the prompt body
+
+---
+
+## 🧠 Prompt–Pipeline Contract
+
+Every `requires:` field in a `.gpt` file must be satisfied in the `inputs:` block of the step that uses it. The linter will fail if:
+
+* A required variable is missing from the step
+* The prompt uses a variable not listed in `requires` or `optional`
+
+### ✅ Example
+
+```gpt
+# table-output.gpt
+<!--
+prompt:
+  requires: [passage, source_text]
+  optional: []
+  format: Markdown
+  description: Generate a table from biblical text.
+-->
+```
+
+```yaml
+# Pipeline step
+inputs:
+  passage: "${passage}"
+  source_text: "${source_text}"
+>>>>>>> Stashed changes
 ```
 
 ---
 
+<<<<<<< Updated upstream
 ## 🔍 Validation & Testing
 
 ### Linting
@@ -207,3 +312,25 @@ llmflow run pipelines/your_pipeline.yaml --var passage="John 3:16"
 ### Custom Plugins
 Register custom operations by creating plugins that integrate with the framework.
 
+=======
+## 🔍 Linter Behavior
+
+The linter validates:
+
+* That all `.gpt` files begin with a valid YAML header block
+* That required inputs are declared and provided
+* That there are no unused or undefined inputs/outputs
+* That variable names in the prompt match the contract
+
+---
+
+## 🧪 Testing and Debugging
+
+Use lint and dry-run commands to validate:
+
+```bash
+hatch run llmflow lint --pipeline yourfile.yaml
+hatch run llmflow run --pipeline yourfile.yaml --var passage="Genesis 1:1"
+```
+
+>>>>>>> Stashed changes

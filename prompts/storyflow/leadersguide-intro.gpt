@@ -59,9 +59,26 @@ Start your response with this:
 ```markdown
 # {passage}: A StoryFlow Leader's Guide
 
+<<<<<<< Updated upstream
 **Introduction for Group Leaders**
 
 **Note**: This introduction is for group leaders. Use it to prepare, not to read aloud. It will help you guide the group by listening well, asking good questions, and gently filling in background when needed.
 ```
 
 Write no more than 5–8 short paragraphs. Be concrete, warm, and practical.
+=======
+Start with a few vivid sentences pulling participants into the scene.
+Then briefly set expectations for the emotional and spiritual journey ahead.
+
+## Output
+
+The output should start with this title:
+
+```markdown
+# {passage}: A StoryFlow Leader's Guide
+
+**Introduction for Group Leaders**
+
+**Note**: This introduction is for group leaders.  Use it to prepare, do not read it to the group.
+```
+>>>>>>> Stashed changes

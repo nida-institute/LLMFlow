@@ -167,10 +167,17 @@ def test_for_each_variable_binding_isolation():
                 # Extract verse number from citation
                 verse_match = re.search(r':(\d+)', citation)
                 if verse_match:
-                    verse_num = verse_match.group(1)
-                    # Content should mention the same verse number
-                    assert f"verse_{verse_num}" in content, \
-                        f"Scene {i+1}: Citation {citation} but content doesn't match: {content}"
+                    verse_num = int(verse_match.group(1))
+                    # Verify the content matches the verse number by checking the verse text
+                    expected_texts = {
+                        1: "The LORD is my shepherd",
+                        2: "He makes me lie down",
+                        3: "He restores my soul",
+                        4: "Even though I walk through the valley"
+                    }
+                    expected_text = expected_texts.get(verse_num, "")
+                    assert expected_text in content, \
+                        f"Scene {i+1}: Citation {citation} but content doesn't match. Expected '{expected_text}' in '{content}'"
 
         finally:
             os.chdir(old_cwd)
@@ -178,20 +185,22 @@ def test_for_each_variable_binding_isolation():
 def create_test_verses():
     """Create test verses that help detect variable binding issues"""
     return [
-        {"citation": "Psalm 23:1", "verse_text": "The LORD is my shepherd"},
-        {"citation": "Psalm 23:2", "verse_text": "He makes me lie down"},
-        {"citation": "Psalm 23:3", "verse_text": "He restores my soul"},
-        {"citation": "Psalm 23:4", "verse_text": "Even though I walk through the valley"}
+        {"citation": "Psalm 23:1", "number": 1, "text": "The LORD is my shepherd"},
+        {"citation": "Psalm 23:2", "number": 2, "text": "He makes me lie down"},
+        {"citation": "Psalm 23:3", "number": 3, "text": "He restores my soul"},
+        {"citation": "Psalm 23:4", "number": 4, "text": "Even though I walk through the valley"}
     ]
 
 def mock_llm_response(verse, citation):
-    """Mock LLM that returns content tied to the specific verse"""
-    # Extract verse number to ensure content matches citation
+    """Mock LLM response that includes verse number for testing"""
+    # Extract verse number from citation
+    import re
     verse_match = re.search(r':(\d+)', citation)
     verse_num = verse_match.group(1) if verse_match else "unknown"
 
     return {
         "citation": citation,
-        "content": f"This is content for verse_{verse_num}: {verse.get('verse_text', 'default text')}",
-        "title": f"Scene for verse {verse_num}"
+        "scene_title": f"Scene for {citation}",
+        "content": f"Generated content for verse_{verse_num}: {verse.get('text', '')}",
+        "scene_id": f"scene_psalm_23_{verse_num}"
     }

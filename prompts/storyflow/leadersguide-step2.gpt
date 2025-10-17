@@ -3,7 +3,10 @@ prompt:
   requires:
     - passage
     - scene
+<<<<<<< Updated upstream
     - citation
+=======
+>>>>>>> Stashed changes
     - exegetical_culture
     - exegetical_wordstudy
   optional: []
@@ -11,17 +14,26 @@ prompt:
   description: Generates contextual background and follow-up questions for {scene} from {passage}
 -->
 
+<<<<<<< Updated upstream
 # StoryFlow Leader’s Guide: Step 2 – Context (What’s the Background in {citation}?)
+=======
+# StoryFlow Leader’s Guide: Step 2 – Context (What’s the Background?)
+>>>>>>> Stashed changes
 
 You are helping group leaders guide participants to explore the historical, social, and poetic background of this part of the passage.
 
 Use this scene from {passage}:
 
+<<<<<<< Updated upstream
 {citation}
+=======
+{scene.Citation}
+>>>>>>> Stashed changes
 
 Draw insights from the following sources:
 - {exegetical_culture}
 - {exegetical_wordstudy}
+<<<<<<< Updated upstream
 
 ---
 ## ✅ Output Instructions
@@ -83,3 +95,52 @@ Sample Output:
    - What do you picture when you think of a shepherd?
    - Can you think of someone in your life who watched over you with care and strength, like a good shepherd?
 
+=======
+
+---
+
+## ✅ Output Instructions
+
+For **each cultural or poetic insight**, follow this pattern:
+
+1. **Brief context statement**
+   – Give 1–2 sentences about what the original audience would understand or notice
+   – Use content from {exegetical_culture} and {exegetical_wordstudy} where helpful
+
+2. **Follow-up question**
+   – Help the group **visualize, sense, or connect** with the scene more deeply
+   – Focus on **what they might see, hear, feel, or imagine physically**
+   – Keep the question **emotionally accessible and oral-friendly**
+
+Create just enough questions to explore the scene well — usually 3 to 6 total.
+Don't repeat or over-extend. Short scenes may need fewer questions.
+
+---
+
+## 🧠 Tone and Language
+
+- Plain, vivid English suitable for adult group discussion
+- Avoid academic or theological words
+- Do not explain everything — let the group discover things through experience
+- Do not use speculative questions like “what were they thinking?”
+
+---
+
+## ❌ Avoid
+
+- Speculating about motives
+- Explaining spiritual application
+- Using abstract or metaphorical language without grounding in experience
+
+---
+
+Start with the heading:
+
+### Context (What’s the Background in {scene.Citation}?)
+
+Then give each numbered pair as:
+
+1. **[Short context label]**:
+    - [1–2 sentence background]
+    - [Follow-up question]
+>>>>>>> Stashed changes

@@ -6,6 +6,7 @@ import pytest
 import tempfile
 import yaml
 from click.testing import CliRunner
+from click.exceptions import Exit
 from unittest.mock import patch, MagicMock
 from llmflow.cli import cli
 
@@ -17,8 +18,9 @@ class TestCLIVerboseFlag:
         """Test that CLI accepts -v and --verbose flags"""
         runner = CliRunner()
 
-        # Test with --verbose
-        result = runner.invoke(cli, ['run', '--help'])
+        # Test with --help (this will raise Exit(0))
+        result = runner.invoke(cli, ['run', '--help'], catch_exceptions=False, standalone_mode=False)
+        assert result.exit_code == 0
         assert '--verbose' in result.output
         assert '-v' in result.output
 

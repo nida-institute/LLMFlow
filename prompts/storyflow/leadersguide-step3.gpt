@@ -10,7 +10,11 @@ prompt:
   description: Generates Step 3 (emotion) questions for a scene
 -->
 
+<<<<<<< Updated upstream
 # StoryFlow Leader's Guide: Step 3 (Spiritual and Emotional Journey) for {citation}
+=======
+# StoryFlow Leader's Guide: Step 3 (Spiritual and Emotional Journey) for {scene.Citation} in {passage}
+>>>>>>> Stashed changes
 
 You are writing **Step 3 questions** to help group leaders guide participants into the **emotional and spiritual journey** of {scene}.
 
@@ -18,10 +22,20 @@ Use:
 - **Scene**: {scene}
 - **Emotional arc**: {exegetical_emotionalarc}
 
+<<<<<<< Updated upstream
 ---
+=======
+Focus on:
+- Helping participants **feel the emotional movement** in the scene.
+- Exploring emotions such as **fear, trust, grief, hope, and love**, drawing on **Nussbaum’s model**, where emotions reflect what we value and what is at stake.
+- Noticing how the characters’ emotions reveal their **deepest values, longings, vulnerabilities, and fears**.
+- Asking what these emotions show about their **relationships with God and with others in the scene**.
+- Reflecting on how emotion connects to the **spiritual journey of living with uncertainty**, where we often **don’t understand what is happening or how things will end**.
+>>>>>>> Stashed changes
 
 ## 🎯 Focus On
 
+<<<<<<< Updated upstream
 - Helping participants **feel the emotional movement** of the scene as it unfolds
 - Exploring emotions such as **fear, grief, trust, hope, love, awe, or disillusionment**
 - Using **Nussbaum’s insight**: emotions reveal what someone deeply values or fears losing
@@ -79,3 +93,20 @@ Sample Output
 
 - How would you describe God’s anger in this scene?
 - What if these kings were threatening you or doing wrong against you? How would you feel about God's anger then?
+=======
+Write vivid, emotionally accessible questions. Create just enough questions to explore the scene well — usually 3 to 6 total.
+
+Don't repeat or over-extend. Short scenes may need fewer questions.
+
+---
+
+Start with the heading:
+
+### Spiritual and Emotional Journey (What’s at the Heart for Them in {scene.Citation}?)
+
+Then give each numbered pair as:
+
+1. **[Short context label]**:
+    - [Follow-up question]
+    - [Follow-up question]
+>>>>>>> Stashed changes

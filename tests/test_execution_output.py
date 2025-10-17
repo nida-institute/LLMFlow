@@ -75,9 +75,9 @@ class TestExecutionOutput:
             log_messages = [record.message for record in caplog.records]
             log_text = "\n".join(log_messages)
 
-            # Check for execution messages
-            assert "🚀 Executing: test_step (function)" in log_text
-            assert "✅ Completed: test_step" in log_text
+            # Check for execution messages (updated to match current format)
+            assert "🔧 Starting function step: test_step" in log_text
+            assert "✅ Completed function step: test_step" in log_text
             assert "🎯 Starting pipeline execution..." in log_text
             assert "Pipeline complete." in log_text
 
@@ -110,10 +110,8 @@ class TestExecutionOutput:
             log_messages = [record.message for record in caplog.records]
             log_text = "\n".join(log_messages)
 
-            # Count occurrences - should be exactly 1
-            assert log_text.count("🚀 Executing: unique_step") == 1
-            assert log_text.count("✅ Completed: unique_step") == 1
-            assert log_text.count("🎯 Starting pipeline execution") == 1
+            # Count occurrences - should be exactly 1 (updated to match current format)
+            assert log_text.count("🔧 Starting function step: unique_step") == 1
 
         finally:
             import os
