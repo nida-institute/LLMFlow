@@ -192,8 +192,9 @@ def parse_bible_reference(passage):
     chapter_verse_counts = {
         # This is a simplified mapping - you'd want a complete Bible verse count database
         "19": {  # Psalms
-            23: 176,  # Psalm 23 has 176 verses (it's the longest)
             1: 6, 2: 12, 3: 8, 4: 8, 5: 12,
+            23: 6,   # Psalm 23 has 6 verses
+            119: 176, # Psalm 119 is the longest
             # Add more as needed, or use an external Bible API
         },
         "42": {  # Luke
@@ -224,12 +225,12 @@ def parse_bible_reference(passage):
 
     # Parse different formats
     patterns = [
-        # "Luke 12:5-19", "John 3:16-20"
-        r"(\w+(?:\s+\w+)?)\s+(\d+):(\d+)-(\d+)",
-        # "Luke 12:5", "John 3:16"
-        r"(\w+(?:\s+\w+)?)\s+(\d+):(\d+)",
-        # "Psalm 23", "Luke 12" (whole chapter)
-        r"(\w+(?:\s+\w+)?)\s+(\d+)",
+        # "Luke 12:5-19", "John 3:16-20", "Song of Songs 1:1-5"
+        r"([\w\s]+?)\s+(\d+):(\d+)-(\d+)",
+        # "Luke 12:5", "John 3:16", "Song of Songs 1:1"
+        r"([\w\s]+?)\s+(\d+):(\d+)",
+        # "Psalm 23", "Luke 12", "Song of Songs 1" (whole chapter)
+        r"([\w\s]+?)\s+(\d+)$",
     ]
 
     for i, pattern in enumerate(patterns):

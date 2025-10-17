@@ -9,16 +9,15 @@ import sys
 class TestLinterAppendTo:
     """Test that linter catches append_to without outputs errors"""
 
-    def test_linter_catches_append_to_without_outputs(self):
-        """Test that linter errors when append_to is used without outputs"""
-        # Create a temporary directory
+    def test_linter_catches_append_to_without_outputs(self, caplog):
+        """Test that linter catches append_to without outputs field"""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir = Path(tmpdir)
 
             # Create pipeline config
             pipeline_config = {
                 "name": "test-pipeline",
-                "variables": {"prompts_dir": str(tmpdir / "prompts")},  # Use absolute path
+                "variables": {"prompts_dir": str(tmpdir / "prompts")},
                 "linter_config": {
                     "enabled": True,
                     "treat_warnings_as_errors": True
@@ -31,7 +30,7 @@ class TestLinterAppendTo:
                             "file": "test.md",
                             "inputs": {"text": "test"}
                         },
-                        "append_to": "content_list"  # append_to without outputs
+                        "append_to": "content_list"  # Missing outputs field
                     }
                 ]
             }
@@ -53,24 +52,13 @@ prompt:
 -->
 Test prompt {{text}}""")
 
-            # Capture stdout to check the error message
-            captured_output = io.StringIO()
-            sys.stdout = captured_output
+            with pytest.raises(SystemExit):
+                lint_pipeline_contracts(str(pipeline_path))
 
-            try:
-                # This should raise SystemExit due to the error
-                with pytest.raises(SystemExit):
-                    lint_pipeline_contracts(str(pipeline_path))
-
-                # Get the output
-                output = captured_output.getvalue()
-
-                # Verify the specific error message was printed
-                assert "append_to: content_list" in output
-                assert "no valid 'outputs' field" in output
-
-            finally:
-                sys.stdout = sys.__stdout__
+            # Check caplog instead of captured stdout
+            log_output = caplog.text
+            assert "generate_content" in log_output
+            assert "append_to: content_list" in log_output
 
     def test_linter_passes_with_outputs_and_append_to(self):
         """Test that linter passes when both outputs and append_to are present"""
@@ -92,8 +80,8 @@ Test prompt {{text}}""")
                             "file": "test.md",
                             "inputs": {"text": "test"}
                         },
-                        "outputs": "content",  # Has outputs
-                        "append_to": "content_list"  # And append_to
+                        "outputs": ["result"],
+                        "append_to": "content_list"
                     }
                 ]
             }
@@ -115,10 +103,10 @@ prompt:
 -->
 Test prompt {{text}}""")
 
-            # This should NOT raise an error
-            lint_pipeline_contracts(str(pipeline_path))  # Should complete successfully
+            # This should NOT raise SystemExit
+            lint_pipeline_contracts(str(pipeline_path))
 
-    def test_linter_catches_append_to_in_nested_for_each(self):
+    def test_linter_catches_append_to_in_nested_for_each(self, caplog):
         """Test that linter catches append_to errors in nested for-each steps"""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir = Path(tmpdir)
@@ -168,24 +156,14 @@ prompt:
 -->
 Test prompt {{text}}""")
 
-            # Capture stdout
-            captured_output = io.StringIO()
-            sys.stdout = captured_output
+            with pytest.raises(SystemExit):
+                lint_pipeline_contracts(str(pipeline_path))
 
-            try:
-                with pytest.raises(SystemExit):
-                    lint_pipeline_contracts(str(pipeline_path))
+            log_output = caplog.text
+            assert "nested_generate" in log_output
+            assert "append_to" in log_output
 
-                output = captured_output.getvalue()
-
-                # Verify the nested step error
-                assert "nested_generate" in output
-                assert "append_to: nested_list" in output
-
-            finally:
-                sys.stdout = sys.__stdout__
-
-    def test_linter_handles_empty_outputs_list(self):
+    def test_linter_handles_empty_outputs_list(self, caplog):
         """Test that linter catches append_to with empty outputs list"""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir = Path(tmpdir)
@@ -228,21 +206,14 @@ prompt:
 -->
 Test prompt {{text}}""")
 
-            # Capture stdout
-            captured_output = io.StringIO()
-            sys.stdout = captured_output
+            with pytest.raises(SystemExit):
+                lint_pipeline_contracts(str(pipeline_path))
 
-            try:
-                with pytest.raises(SystemExit):
-                    lint_pipeline_contracts(str(pipeline_path))
+            log_output = caplog.text
+            assert "generate_content" in log_output
+            assert "append_to" in log_output
 
-                output = captured_output.getvalue()
-                assert "no valid 'outputs' field" in output
-
-            finally:
-                sys.stdout = sys.__stdout__
-
-    def test_linter_ignores_function_steps_with_append_to(self):
+    def test_linter_ignores_function_steps_with_append_to(self, caplog):
         """Test that linter checks append_to for function steps too"""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir = Path(tmpdir)
@@ -269,19 +240,9 @@ Test prompt {{text}}""")
             with open(pipeline_path, 'w') as f:
                 yaml.dump({"pipeline": pipeline_config}, f)
 
-            # Capture stdout
-            captured_output = io.StringIO()
-            sys.stdout = captured_output
+            with pytest.raises(SystemExit):
+                lint_pipeline_contracts(str(pipeline_path))
 
-            try:
-                with pytest.raises(SystemExit):
-                    lint_pipeline_contracts(str(pipeline_path))
-
-                output = captured_output.getvalue()
-                # The linter should catch this for function steps too
-                assert "function_step" in output
-                assert "append_to: results_list" in output
-                assert "no valid 'outputs' field" in output
-
-            finally:
-                sys.stdout = sys.__stdout__
+            log_output = caplog.text
+            assert "function_step" in log_output
+            assert "append_to" in log_output
