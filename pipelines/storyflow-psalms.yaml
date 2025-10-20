@@ -12,18 +12,10 @@ llm_config:
   temperature: 0.4
   timeout_seconds: 60
 
-<<<<<<< Updated upstream
 linter_config:
   enabled: true
   treat_warnings_as_errors: true
   log_level: debug
-=======
-  linter_config:
-    enabled: true
-    treat_warnings_as_errors: false
-
-  steps:
->>>>>>> Stashed changes
 
 steps:
 
@@ -41,24 +33,7 @@ steps:
     prompt:
       file: exegetical-pericope-psalms-e1.gpt
       inputs:
-<<<<<<< Updated upstream
         source: "${source}"
-=======
-        template_path: "templates/exegeticalguide_template.md"
-        variables:
-          passage: "${passage}"
-          culture: "${exegetical_culture}"
-          wordstudy: "${exegetical_wordstudy}"
-          emotionalarc: "${exegetical_emotionalarc}"
-      outputs: [exegetical_markdown_text]
-
-    # --- Save Exegetical Guide Markdown ---
-    - name: save_exegetical_md
-      type: function
-      function: llmflow.utils.io.save_markdown_as
-      inputs:
-        text: "${exegetical_markdown_text}"
->>>>>>> Stashed changes
         passage: "${passage}"
     outputs: exegetical_culture
     log: debug
