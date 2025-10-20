@@ -664,6 +664,30 @@ Test prompt {{text}}""")
             assert "function_step" in log_output
             assert "append_to" in log_output
 
+    def test_multi_chapter_range(self):
+        """Test parsing multi-chapter ranges like Genesis 1:1-2:3"""
+        result = parse_bible_reference("Genesis 1:1-2:3")
+
+        assert result['book_name'] == "Genesis"
+        assert result['book_number'] == "01"
+        assert result['chapter'] == 1
+        assert result['end_chapter'] == 2
+        assert result['start_verse'] == 1
+        assert result['end_verse'] == 3
+        assert result['is_whole_chapter'] == False
+        assert result['filename_prefix'] == "01001001-01002003"
+        assert result['display_name'] == "Genesis-1-1-2-3"
+        assert result['canonical_reference'] == "Genesis 1:1-2:3"
+
+    def test_multi_chapter_range_abbreviated(self):
+        """Test parsing abbreviated multi-chapter ranges"""
+        result = parse_bible_reference("Gen 1:1-2:3")
+
+        assert result['book_name'] == "Genesis"
+        assert result['book_number'] == "01"
+        assert result['end_chapter'] == 2
+        assert result['filename_prefix'] == "01001001-01002003"
+
 
 # Test runner function for CLI usage
 def run_tests():
