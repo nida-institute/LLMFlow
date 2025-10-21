@@ -25,6 +25,18 @@ load_plugins()
 # Single unified logger instance
 logger = Logger()
 
+# Track files written during a run and emit to both llmflow.log and stdout
+WRITTEN_FILES = []
+
+def _record_written_file(path):
+    p = Path(path).resolve()
+    pstr = str(p)
+    if pstr not in WRITTEN_FILES:
+        WRITTEN_FILES.append(pstr)
+    logger.info(f"WROTE FILE: {p}")
+    # Also produce immediate screen output
+    print(f"WROTE FILE: {p}", flush=True)
+
 def resolve(value, context, max_depth=5):
     """
     Resolves variables within a value using the provided context.
