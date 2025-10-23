@@ -665,16 +665,16 @@ def run_pipeline(pipeline_path, vars=None, dry_run=False, skip_lint=False, verbo
         try:
             PipelineConfig(**pipeline_root)
         except ValidationError as e:
-            print("\n[ERROR] Pipeline config validation failed:")
-            print(e)
+            logger.info("\n[ERROR] Pipeline config validation failed:")
+            logger.info(e)
             raise SystemExit(1)
         # Validate each step strictly
         for idx, step in enumerate(pipeline_root.get("steps", [])):
             try:
                 StepConfig(**step)
             except ValidationError as e:
-                print(f"\n[ERROR] Step {idx+1} ('{step.get('name','unnamed')}') validation failed:")
-                print(e)
+                logger.info(f"\n[ERROR] Step {idx+1} ('{step.get('name','unnamed')}') validation failed:")
+                logger.info(e)
                 raise SystemExit(1)
 
     except FileNotFoundError:
