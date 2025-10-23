@@ -29,13 +29,13 @@ logger = Logger()
 WRITTEN_FILES = []
 
 def _record_written_file(path):
+    import traceback
     p = Path(path).resolve()
     pstr = str(p)
     if pstr not in WRITTEN_FILES:
         WRITTEN_FILES.append(pstr)
-    logger.info(f"WROTE FILE: {p}")
-    # Also produce immediate screen output
-    print(f"WROTE FILE: {p}", flush=True)
+    logger.info(f"Wrote file: {p}")
+    logger.debug("Called from:\n" + "".join(traceback.format_stack()[-4:-1]))  # ADD THIS LINE
 
 def resolve(value, context, max_depth=5):
     """
@@ -388,6 +388,10 @@ def run_function_step(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
 
         logger.info(f"✅ Completed function step: {name}")
         logger.debug(f"Context after step {name}: {list(context.keys())}")
+
+        # Handle saveas output
+        handle_step_output(rule, context)
+
         return None
 
     except Exception as e:
@@ -511,6 +515,9 @@ def run_save_step(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
             with open(filename, "w", encoding="utf-8") as f:
                 f.write(content)
 
+        # Record and report the written file
+        _record_written_file(filename)
+
         logger.info(f"✅ Completed save step: {name}")
 
     except Exception as e:
@@ -532,7 +539,8 @@ def handle_step_output(rule, context):
                 content = context[outputs]
             else:
                 raise ValueError("Cannot determine content to save - no outputs specified")
-            save_content_to_file(content, resolved_path)
+            saved_path = save_content_to_file(content, resolved_path)
+            _record_written_file(saved_path)
 
         elif isinstance(saveas_config, list):
             # Array syntax: multiple destinations
@@ -554,7 +562,8 @@ def handle_step_output(rule, context):
                         raise ValueError("Cannot determine content to save")
 
                     format_type = save_item.get("format", "auto")
-                    save_content_to_file(content, path, format_type)
+                    saved_path = save_content_to_file(content, path, format_type)
+                    _record_written_file(saved_path)
 
 def save_content_to_file(content, path, format_type="auto"):
     """Save content to file with format detection"""
