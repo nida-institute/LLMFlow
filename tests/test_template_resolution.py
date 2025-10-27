@@ -1,6 +1,5 @@
-import pytest
-from llmflow.utils.io import render_markdown_template
 from llmflow.runner import resolve
+
 
 class TestTemplateResolution:
     """Test the specific issue with [-1] resolution in templates"""
@@ -9,7 +8,7 @@ class TestTemplateResolution:
         """Test that the resolve function properly handles list[-1] syntax"""
         context = {
             "bodies_list": ["intro", "middle", "conclusion"],
-            "hearts_list": []  # Empty list case
+            "hearts_list": [],  # Empty list case
         }
 
         # Should resolve to last item
@@ -30,11 +29,8 @@ class TestTemplateResolution:
     def test_complex_variable_patterns(self):
         """Test various variable patterns we use"""
         context = {
-            "scene": {
-                "Citation": "Psalm 23:1-3",
-                "SceneTitle": "The Good Shepherd"
-            },
-            "list": ["a", "b", "c"]
+            "scene": {"Citation": "Psalm 23:1-3", "SceneTitle": "The Good Shepherd"},
+            "list": ["a", "b", "c"],
         }
 
         assert resolve("${scene.Citation}", context) == "Psalm 23:1-3"

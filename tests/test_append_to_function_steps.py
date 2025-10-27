@@ -1,5 +1,5 @@
-import pytest
 from llmflow.runner import run_function_step
+
 
 class TestAppendToFunctionSteps:
     """Test that append_to works with function steps"""
@@ -13,13 +13,14 @@ class TestAppendToFunctionSteps:
             "type": "function",
             "function": "tests.test_append_to_function_steps.return_value",
             "outputs": "result",
-            "append_to": "results_list"
+            "append_to": "results_list",
         }
 
         def return_value():
             return "test_value"
 
         import sys
+
         sys.modules[__name__].return_value = return_value
 
         # Run the step
@@ -40,13 +41,14 @@ class TestAppendToFunctionSteps:
             "name": "generate",
             "type": "function",
             "function": "tests.test_append_to_function_steps.generate_content",
-            "outputs": "new_item"
+            "outputs": "new_item",
         }
 
         def generate_content():
             return "generated content"
 
         import sys
+
         sys.modules[__name__].generate_content = generate_content
 
         # Run step 1

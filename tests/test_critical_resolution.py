@@ -1,6 +1,3 @@
-import pytest
-
-
 class TestCriticalResolution:
     def test_resolution_chain_through_pipeline(self):
         """Test that variables resolve correctly through pipeline steps"""

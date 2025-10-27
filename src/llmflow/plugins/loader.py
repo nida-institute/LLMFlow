@@ -1,7 +1,7 @@
-import os
-import sys
 import importlib.util
+import sys
 from pathlib import Path
+
 from llmflow.modules.logger import Logger
 
 # Use unified logger
@@ -9,6 +9,7 @@ logger = Logger()
 
 # Global plugin registry
 plugin_registry = {}
+
 
 def load_plugins():
     """Load all plugins from the plugins/contrib directory"""
@@ -30,8 +31,7 @@ def load_plugins():
         try:
             # Import the plugin module
             spec = importlib.util.spec_from_file_location(
-                f"llmflow.plugins.contrib.{plugin_file.stem}",
-                plugin_file
+                f"llmflow.plugins.contrib.{plugin_file.stem}", plugin_file
             )
             module = importlib.util.module_from_spec(spec)
             sys.modules[spec.name] = module
@@ -46,14 +46,17 @@ def load_plugins():
     logger.info(f"✅ Loaded {plugin_count} plugins")
     logger.debug(f"Available plugins: {list(plugin_registry.keys())}")
 
+
 def register_plugin(name, func):
     """Register a plugin function"""
     plugin_registry[name] = func
     logger.debug(f"Registered plugin: {name}")
 
+
 def get_plugin(name):
     """Get a plugin function by name"""
     return plugin_registry.get(name)
+
 
 def list_plugins():
     """List all registered plugins"""

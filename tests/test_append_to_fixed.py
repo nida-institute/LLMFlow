@@ -1,5 +1,5 @@
-import pytest
 from llmflow.runner import run_function_step
+
 
 class TestAppendToFixed:
     """Test that append_to now works after the fix"""
@@ -13,13 +13,14 @@ class TestAppendToFixed:
             "type": "function",
             "function": "tests.test_append_to_fixed.return_value",
             "outputs": "result",
-            "append_to": "results_list"
+            "append_to": "results_list",
         }
 
         def return_value():
             return "test_value"
 
         import sys
+
         sys.modules[__name__].return_value = return_value
 
         # Run step
@@ -44,13 +45,14 @@ class TestAppendToFixed:
                 "function": "tests.test_append_to_fixed.make_value",
                 "inputs": {"value": f"item_{i}"},
                 "outputs": f"result_{i}",
-                "append_to": "collected_items"
+                "append_to": "collected_items",
             }
 
             def make_value(value):
                 return value
 
             import sys
+
             sys.modules[__name__].make_value = make_value
 
             run_function_step(step, context)

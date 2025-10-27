@@ -1,7 +1,7 @@
-import pytest
 from pathlib import Path
+
 from llmflow.runner import run_function_step
-from llmflow.utils.io import render_markdown_template
+
 
 class TestPipelineIntegration:
     """Test the actual pipeline flow that's failing"""
@@ -13,11 +13,12 @@ class TestPipelineIntegration:
             "bodies_list": ["body1", "body2", "final body content"],
             "hearts_list": ["heart1", "heart2", "final heart content"],
             "connecting_list": ["conn1", "conn2", "final connecting content"],
-            "naming_list": ["name1", "name2", "final naming content"]
+            "naming_list": ["name1", "name2", "final naming content"],
         }
 
         # Create a test template
         import tempfile
+
         template_content = """### Step 1: Bodies
 {{step1}}
 
@@ -30,7 +31,7 @@ class TestPipelineIntegration:
 ### Step 4: Naming
 {{step4}}"""
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(template_content)
             template_path = f.name
 
@@ -46,14 +47,13 @@ class TestPipelineIntegration:
                         "step1": "${bodies_list[-1]}",
                         "step2": "${hearts_list[-1]}",
                         "step3": "${connecting_list[-1]}",
-                        "step4": "${naming_list[-1]}"
-                    }
+                        "step4": "${naming_list[-1]}",
+                    },
                 },
-                "outputs": "scene_markdown"
+                "outputs": "scene_markdown",
             }
 
             # Run the function step
-            pipeline_config = {"variables": {}}
             run_function_step(rule, context)
             result = context.get("scene_markdown")
 

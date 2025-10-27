@@ -1,10 +1,13 @@
-import pytest
 import importlib
+
+import pytest
+
 import llmflow.plugins
 from llmflow.plugins.loader import load_plugins
 
-@pytest.mark.xfail(reason="XPath plugin doesn't currently register itself")
+
 def test_xpath_extracts_entries():
+    """Test XPath extraction functionality"""
     importlib.import_module("llmflow.plugins.contrib.xpath")
     load_plugins()
-    xpath = llmflow.plugins.plugin_registry["xpath"]
+    llmflow.plugins.plugin_registry["xpath"]

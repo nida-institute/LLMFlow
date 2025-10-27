@@ -1,16 +1,36 @@
 import click
+
 from llmflow.runner import run_pipeline
+
 
 @click.group()
 def cli():
     """LLMFlow: Declarative LLM Pipelines"""
     pass
 
+
 @cli.command()
-@click.option('--pipeline', required=True, help="Path to pipeline YAML (e.g. pipelines/myflow.yaml)")
-@click.option('--var', multiple=True, help="Pipeline variables as key=value pairs (e.g. --var passage=Psalm_23)")
-@click.option('--dry-run', is_flag=True, help="Simulate execution without calling LLMs or writing output")
-@click.option('--verbose', '-v', is_flag=True, help="Show debug output on screen (in addition to log file)")
+@click.option(
+    "--pipeline",
+    required=True,
+    help="Path to pipeline YAML (e.g. pipelines/myflow.yaml)",
+)
+@click.option(
+    "--var",
+    multiple=True,
+    help="Pipeline variables as key=value pairs (e.g. --var passage=Psalm_23)",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Simulate execution without calling LLMs or writing output",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Show debug output on screen (in addition to log file)",
+)
 def run(pipeline, var, dry_run, verbose):
     """
     Run a pipeline YAML file.
@@ -28,9 +48,17 @@ def run(pipeline, var, dry_run, verbose):
     """
     # Prominent startup banner to confirm which codebase is running
     try:
-        import os, sys, inspect
+        import inspect
+        import os
+        import sys
+
         import llmflow.runner as runner_mod
-        runner_path = os.path.abspath(inspect.getsourcefile(runner_mod)) if hasattr(inspect, 'getsourcefile') else str(runner_mod)
+
+        runner_path = (
+            os.path.abspath(inspect.getsourcefile(runner_mod))
+            if hasattr(inspect, "getsourcefile")
+            else str(runner_mod)
+        )
         click.secho("\n=== LLMFlow (LOCAL) START ===", fg="cyan", bold=True, err=True)
         click.secho(f"Runner module: {runner_path}", fg="cyan", err=True)
         click.secho(f"CWD: {os.getcwd()}", fg="cyan", err=True)

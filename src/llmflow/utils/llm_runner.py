@@ -1,23 +1,23 @@
-import json
-import time
-import unicodedata
-import llm
-from typing import Dict, Any, Optional
+from typing import Any, Dict
 
-from llmflow.modules.logger import Logger
+import llm
+
 from llmflow.modules.json_parser import parse_llm_json_response
 from llmflow.modules.llm_response_clean import clean_llm_response_text
+from llmflow.modules.logger import Logger
 
 logger = Logger()
 
 # Model cache - simpler than singleton pattern
 _model_cache: Dict[str, Any] = {}
 
+
 def get_model(model_name: str):
     """Get LLM model with caching."""
     if model_name not in _model_cache:
         _model_cache[model_name] = llm.get_model(model_name)
     return _model_cache[model_name]
+
 
 # Generic parameter schema
 PARAMETER_SCHEMAS = {
@@ -30,6 +30,7 @@ PARAMETER_SCHEMAS = {
     "timeout_seconds": {"type": int, "min": 1},
     "seed": {"type": int},
 }
+
 
 def validate_parameter(name: str, value: Any) -> list[str]:
     """Validate a single parameter generically."""
@@ -51,6 +52,7 @@ def validate_parameter(name: str, value: Any) -> list[str]:
         errors.append(f"{name} must be <= {schema['max']}")
 
     return errors
+
 
 def validate_llm_config(config: Dict[str, Any]) -> tuple[bool, list[str], list[str]]:
     """Validate LLM configuration parameters."""
@@ -90,6 +92,7 @@ def validate_llm_config(config: Dict[str, Any]) -> tuple[bool, list[str], list[s
 
     return len(errors) == 0, errors, warnings
 
+
 def call_llm(prompt: str, config: Dict[str, Any], output_type: str = "text"):
     """Main LLM calling function with validation and caching."""
     logger.debug(f"🤖 Calling LLM with config: {config}, output_type: {output_type}")
@@ -111,17 +114,25 @@ def call_llm(prompt: str, config: Dict[str, Any], output_type: str = "text"):
         return parse_llm_json_response(response)
     return response
 
+
 def _call_model(model, prompt: str, config: Dict[str, Any]) -> str:
     """Internal helper to call the model."""
     # Only pass known valid LLM parameters
     valid_llm_params = {
-        'temperature', 'max_tokens', 'top_p', 'top_k', 'stop',
-        'frequency_penalty', 'presence_penalty', 'seed'
+        "temperature",
+        "max_tokens",
+        "top_p",
+        "top_k",
+        "stop",
+        "frequency_penalty",
+        "presence_penalty",
+        "seed",
     }
 
     # Filter config to only include valid parameters
-    options = {k: v for k, v in config.items()
-               if k != "model" and k in valid_llm_params}
+    options = {
+        k: v for k, v in config.items() if k != "model" and k in valid_llm_params
+    }
 
     logger.debug(f"Filtered options for model: {options}")
 

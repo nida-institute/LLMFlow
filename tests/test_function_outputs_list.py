@@ -1,5 +1,5 @@
-import pytest
 from llmflow.runner import run_function_step
+
 
 class TestFunctionOutputsList:
     """Test function steps with outputs defined as a list"""
@@ -13,13 +13,14 @@ class TestFunctionOutputsList:
             "name": "multi_output_function",
             "type": "function",
             "function": "tests.test_function_outputs_list.return_multiple",
-            "outputs": ["result1", "result2", "result3"]  # List of outputs
+            "outputs": ["result1", "result2", "result3"],  # List of outputs
         }
 
         def return_multiple():
             return ("value1", "value2", "value3")
 
         import sys
+
         sys.modules[__name__].return_multiple = return_multiple
 
         # This should work without error
@@ -41,13 +42,14 @@ class TestFunctionOutputsList:
             "name": "single_list_output",
             "type": "function",
             "function": "tests.test_function_outputs_list.return_single",
-            "outputs": ["single_result"]  # Single item list
+            "outputs": ["single_result"],  # Single item list
         }
 
         def return_single():
             return "single_value"
 
         import sys
+
         sys.modules[__name__].return_single = return_single
 
         # This should work without error

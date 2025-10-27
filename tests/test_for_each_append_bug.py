@@ -1,5 +1,7 @@
 import pytest
-from llmflow.runner import run_for_each_step, run_step
+
+from llmflow.runner import run_for_each_step
+
 
 class TestForEachAppendBug:
     """Specific tests to diagnose the for-each append duplication bug"""
@@ -14,6 +16,7 @@ class TestForEachAppendBug:
             return f"Processed {item}"
 
         import sys
+
         sys.modules[__name__].count_calls = count_calls
 
         rule = {
@@ -21,13 +24,15 @@ class TestForEachAppendBug:
             "type": "for-each",
             "input": "${items}",
             "item_var": "item",
-            "steps": [{
-                "name": "process",
-                "type": "function",
-                "function": "tests.test_for_each_append_bug.count_calls",
-                "inputs": {"item": "${item}"},
-                "outputs": "result"
-            }]
+            "steps": [
+                {
+                    "name": "process",
+                    "type": "function",
+                    "function": "tests.test_for_each_append_bug.count_calls",
+                    "inputs": {"item": "${item}"},
+                    "outputs": "result",
+                }
+            ],
         }
 
         run_for_each_step(rule, context, {"variables": {}})
@@ -50,6 +55,7 @@ class TestForEachAppendBug:
             return result
 
         import sys
+
         sys.modules[__name__].process_and_log = process_and_log
 
         rule = {
@@ -57,14 +63,16 @@ class TestForEachAppendBug:
             "type": "for-each",
             "input": "${items}",
             "item_var": "item",
-            "steps": [{
-                "name": "process",
-                "type": "function",
-                "function": "tests.test_for_each_append_bug.process_and_log",
-                "inputs": {"item": "${item}"},
-                "outputs": "result",
-                "append_to": "results"
-            }]
+            "steps": [
+                {
+                    "name": "process",
+                    "type": "function",
+                    "function": "tests.test_for_each_append_bug.process_and_log",
+                    "inputs": {"item": "${item}"},
+                    "outputs": "result",
+                    "append_to": "results",
+                }
+            ],
         }
 
         run_for_each_step(rule, context, {"variables": {}})
@@ -92,6 +100,7 @@ class TestForEachAppendBug:
             return f"Result {item}"
 
         import sys
+
         sys.modules[__name__].modify_context = modify_context
 
         rule = {
@@ -99,14 +108,16 @@ class TestForEachAppendBug:
             "type": "for-each",
             "input": "${items}",
             "item_var": "item",
-            "steps": [{
-                "name": "process",
-                "type": "function",
-                "function": "tests.test_for_each_append_bug.modify_context",
-                "inputs": {"item": "${item}"},
-                "outputs": "result",
-                "append_to": "results"
-            }]
+            "steps": [
+                {
+                    "name": "process",
+                    "type": "function",
+                    "function": "tests.test_for_each_append_bug.modify_context",
+                    "inputs": {"item": "${item}"},
+                    "outputs": "result",
+                    "append_to": "results",
+                }
+            ],
         }
 
         run_for_each_step(rule, context, {"variables": {}})
@@ -121,39 +132,41 @@ class TestForEachAppendBug:
     @pytest.mark.xfail(reason="Nested for-each with append_to not yet implemented")
     def test_nested_for_each_append(self):
         """Test append_to in nested for-each loops"""
-        context = {
-            "outer": ["X", "Y"],
-            "inner": ["1", "2"]
-        }
+        context = {"outer": ["X", "Y"], "inner": ["1", "2"]}
 
         rule = {
             "name": "outer_loop",
             "type": "for-each",
             "input": "${outer}",
             "item_var": "outer_item",
-            "steps": [{
-                "name": "inner_loop",
-                "type": "for-each",
-                "input": "${inner}",
-                "item_var": "inner_item",
-                "steps": [{
-                    "name": "combine",
-                    "type": "function",
-                    "function": "tests.test_for_each_append_bug.combine_items",
-                    "inputs": {
-                        "outer": "${outer_item}",
-                        "inner": "${inner_item}"
-                    },
-                    "outputs": "combined",
-                    "append_to": "combined_results"
-                }]
-            }]
+            "steps": [
+                {
+                    "name": "inner_loop",
+                    "type": "for-each",
+                    "input": "${inner}",
+                    "item_var": "inner_item",
+                    "steps": [
+                        {
+                            "name": "combine",
+                            "type": "function",
+                            "function": "tests.test_for_each_append_bug.combine_items",
+                            "inputs": {
+                                "outer": "${outer_item}",
+                                "inner": "${inner_item}",
+                            },
+                            "outputs": "combined",
+                            "append_to": "combined_results",
+                        }
+                    ],
+                }
+            ],
         }
 
         def combine_items(outer, inner):
             return f"{outer}-{inner}"
 
         import sys
+
         sys.modules[__name__].combine_items = combine_items
 
         run_for_each_step(rule, context, {"variables": {}})

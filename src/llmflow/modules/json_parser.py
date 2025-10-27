@@ -1,9 +1,11 @@
 import json
 import re
+
 from llmflow.modules.logger import Logger
 
 # Use unified logger
 logger = Logger()
+
 
 def parse_llm_json_response(response_text, fallback_on_error=True):
     """
@@ -21,7 +23,7 @@ def parse_llm_json_response(response_text, fallback_on_error=True):
             pass
 
         # Look for JSON in code blocks
-        code_block_pattern = r'```(?:json)?\s*([\s\S]*?)\s*```'
+        code_block_pattern = r"```(?:json)?\s*([\s\S]*?)\s*```"
         code_blocks = re.findall(code_block_pattern, response_text, re.IGNORECASE)
 
         for i, block in enumerate(code_blocks):
@@ -34,7 +36,7 @@ def parse_llm_json_response(response_text, fallback_on_error=True):
                 continue
 
         # Look for JSON-like structures without code blocks
-        json_pattern = r'(\{[\s\S]*?\}|\[[\s\S]*?\])'
+        json_pattern = r"(\{[\s\S]*?\}|\[[\s\S]*?\])"
         potential_json = re.findall(json_pattern, response_text)
 
         for i, candidate in enumerate(potential_json):
@@ -60,6 +62,7 @@ def parse_llm_json_response(response_text, fallback_on_error=True):
         else:
             raise
 
+
 def validate_json_structure(data, required_fields=None):
     """
     Validate that parsed JSON has expected structure.
@@ -75,7 +78,9 @@ def validate_json_structure(data, required_fields=None):
     if required_fields and isinstance(data, dict):
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
-            errors.extend([f"Missing required field: {field}" for field in missing_fields])
+            errors.extend(
+                [f"Missing required field: {field}" for field in missing_fields]
+            )
             for field in missing_fields:
                 logger.error(f"❌ Missing required field: {field}")
 

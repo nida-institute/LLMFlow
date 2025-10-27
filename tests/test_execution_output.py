@@ -4,14 +4,14 @@ Test suite for execution output messages.
 This tests that execution progress messages appear correctly.
 """
 
-import pytest
-from io import StringIO
-from unittest.mock import patch, MagicMock
-import tempfile
-import yaml
-from src.llmflow.modules.logger import Logger
-from llmflow.runner import run_pipeline
 import logging
+import tempfile
+from unittest.mock import patch
+
+import pytest
+import yaml
+
+from llmflow.runner import run_pipeline
 
 
 class TestExecutionOutput:
@@ -22,17 +22,27 @@ class TestExecutionOutput:
         test_pipeline = {
             "name": "test_dryrun",
             "steps": [
-                {"name": "step1", "type": "function", "function": "print", "inputs": {"args": ["test1"]}},
-                {"name": "step2", "type": "function", "function": "print", "inputs": {"args": ["test2"]}}
-            ]
+                {
+                    "name": "step1",
+                    "type": "function",
+                    "function": "print",
+                    "inputs": {"args": ["test1"]},
+                },
+                {
+                    "name": "step2",
+                    "type": "function",
+                    "function": "print",
+                    "inputs": {"args": ["test2"]},
+                },
+            ],
         }
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             yaml.dump(test_pipeline, f)
             pipeline_file = f.name
 
         try:
-            with caplog.at_level(logging.INFO, logger='llmflow'):
+            with caplog.at_level(logging.INFO, logger="llmflow"):
                 run_pipeline(pipeline_file, dry_run=True, skip_lint=True)
 
             # Check log messages
@@ -47,28 +57,33 @@ class TestExecutionOutput:
 
         finally:
             import os
+
             os.unlink(pipeline_file)
 
     def test_execution_shows_progress_messages(self, caplog):
         """Test that real execution shows progress messages"""
         test_pipeline = {
             "name": "test_progress",
-            "steps": [{
-                "name": "test_step",
-                "type": "function",
-                "function": "tests.test_execution_output.simple_function",
-                "outputs": ["result"]
-            }]
+            "steps": [
+                {
+                    "name": "test_step",
+                    "type": "function",
+                    "function": "tests.test_execution_output.simple_function",
+                    "outputs": ["result"],
+                }
+            ],
         }
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             yaml.dump(test_pipeline, f)
             pipeline_file = f.name
 
         try:
             # Mock our test function
-            with patch('tests.test_execution_output.simple_function', return_value="OK"):
-                with caplog.at_level(logging.INFO, logger='llmflow'):
+            with patch(
+                "tests.test_execution_output.simple_function", return_value="OK"
+            ):
+                with caplog.at_level(logging.INFO, logger="llmflow"):
                     run_pipeline(pipeline_file, skip_lint=True)
 
             # Check log messages
@@ -83,26 +98,31 @@ class TestExecutionOutput:
 
         finally:
             import os
+
             os.unlink(pipeline_file)
 
     def test_no_duplicate_messages(self, caplog):
         """Test that messages don't appear twice"""
         test_pipeline = {
             "name": "test_duplicates",
-            "steps": [{
-                "name": "unique_step",
-                "type": "function",
-                "function": "tests.test_execution_output.simple_function",
-                "outputs": ["result"]
-            }]
+            "steps": [
+                {
+                    "name": "unique_step",
+                    "type": "function",
+                    "function": "tests.test_execution_output.simple_function",
+                    "outputs": ["result"],
+                }
+            ],
         }
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             yaml.dump(test_pipeline, f)
             pipeline_file = f.name
 
         try:
-            with patch('tests.test_execution_output.simple_function', return_value="OK"):
+            with patch(
+                "tests.test_execution_output.simple_function", return_value="OK"
+            ):
                 with caplog.at_level(logging.INFO):
                     run_pipeline(pipeline_file, skip_lint=True)
 
@@ -115,6 +135,7 @@ class TestExecutionOutput:
 
         finally:
             import os
+
             os.unlink(pipeline_file)
 
     @pytest.mark.skip(reason="gpt_api functionality moved to different module")

@@ -1,5 +1,5 @@
-import pytest
 from llmflow.runner import resolve
+
 
 class TestResolveFunction:
     """Test the resolve function with various variable patterns"""
@@ -14,7 +14,7 @@ class TestResolveFunction:
         """Test list indexing with positive and negative indices"""
         context = {
             "items": ["first", "second", "third", "fourth"],
-            "numbers": [10, 20, 30, 40]
+            "numbers": [10, 20, 30, 40],
         }
 
         # Positive indices
@@ -29,12 +29,7 @@ class TestResolveFunction:
 
     def test_nested_resolution(self):
         """Test nested object resolution"""
-        context = {
-            "user": {
-                "name": "Alice",
-                "scores": [85, 90, 95]
-            }
-        }
+        context = {"user": {"name": "Alice", "scores": [85, 90, 95]}}
 
         assert resolve("${user.name}", context) == "Alice"
         assert resolve("${user.scores[0]}", context) == 85
@@ -45,7 +40,7 @@ class TestResolveFunction:
         context = {
             "bodies_list": ["body1", "body2", "body3"],
             "hearts_list": ["heart1", "heart2", "heart3"],
-            "scene": {"title": "Scene 1", "number": 1}
+            "scene": {"title": "Scene 1", "number": 1},
         }
 
         # These are the exact patterns failing in your templates

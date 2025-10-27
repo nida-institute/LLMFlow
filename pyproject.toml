@@ -1,4 +1,3 @@
-
 [project]
 name = "llmflow"
 version = "0.1.0"
@@ -23,3 +22,18 @@ build-backend = "hatchling.build"
 dependencies = [
   "pytest"
 ]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E402"]  # Allow imports not at top for special cases
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

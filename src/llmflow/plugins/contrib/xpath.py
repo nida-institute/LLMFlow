@@ -1,5 +1,7 @@
 from lxml import etree
+
 from llmflow.plugins import register_plugin  # ✅ must import this!
+
 
 def xpath_plugin(input_spec):
     path = input_spec["path"]
@@ -23,4 +25,3 @@ def xpath_plugin(input_spec):
 
 # ✅ This must be called at module level
 register_plugin("xpath", xpath_plugin)
-

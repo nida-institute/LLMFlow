@@ -1,11 +1,13 @@
 from pathlib import Path
+
 import yaml
+
 
 def test_linter_path_fix():
     """Test the correct path resolution logic"""
 
     # Use correct pipeline path
-    pipeline_path = 'pipelines/storyflow-test.yaml'
+    pipeline_path = "pipelines/storyflow-test.yaml"
 
     # Load pipeline
     with open(pipeline_path) as f:
@@ -40,11 +42,11 @@ def test_linter_path_fix():
     print(f"   Exists: {relative_path.exists()}")
 
     # Test the fix logic
-    print(f"\n=== TESTING FIX LOGIC ===")
+    print("\n=== TESTING FIX LOGIC ===")
     possible_paths = [
         f"prompts/{prompt_file}",
         f"prompts/storyflow/{prompt_file}",
-        prompt_file
+        prompt_file,
     ]
 
     found_path = None
@@ -59,6 +61,7 @@ def test_linter_path_fix():
     assert found_path is not None, "Fix should find the prompt file"
     assert Path(found_path).exists(), "Found path should exist"
 
+
 def test_simulate_fixed_linter():
     """Simulate how the linter should work after the fix"""
 
@@ -67,7 +70,7 @@ def test_simulate_fixed_linter():
         possible_paths = [
             f"prompts/{prompt_file}",
             f"prompts/storyflow/{prompt_file}",
-            prompt_file
+            prompt_file,
         ]
 
         for possible_path in possible_paths:

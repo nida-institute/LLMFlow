@@ -1,25 +1,21 @@
-from typing import Dict, List, Union, Any, Optional, Callable
-import inspect
-import yaml
 import importlib
-import re
-from llmflow.modules.logger import Logger
-from pathlib import Path
-import mistune
+import inspect
 import json
-import click
-from copy import deepcopy
 import os
-import sys
+import re
+from copy import deepcopy
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Union
 
-from llmflow.utils.llm_runner import call_llm
+import yaml
 
-from llmflow.utils.io import normalize_nfc, validate_all_templates
-from llmflow.utils.linter import lint_pipeline_contracts, lint_pipeline_full
-from llmflow.modules.json_parser import parse_llm_json_response
-
+from llmflow.modules.logger import Logger
 from llmflow.plugins import plugin_registry
 from llmflow.plugins.loader import load_plugins
+from llmflow.utils.io import validate_all_templates
+from llmflow.utils.linter import lint_pipeline_full
+from llmflow.utils.llm_runner import call_llm
+
 load_plugins()
 
 # Single unified logger instance
@@ -28,14 +24,19 @@ logger = Logger()
 # Track files written during a run and emit to both llmflow.log and stdout
 WRITTEN_FILES = []
 
+
 def _record_written_file(path):
     import traceback
+
     p = Path(path).resolve()
     pstr = str(p)
     if pstr not in WRITTEN_FILES:
         WRITTEN_FILES.append(pstr)
     logger.info(f"Wrote file: {p}")
-    logger.debug("Called from:\n" + "".join(traceback.format_stack()[-4:-1]))  # ADD THIS LINE
+    logger.debug(
+        "Called from:\n" + "".join(traceback.format_stack()[-4:-1])
+    )  # ADD THIS LINE
+
 
 def resolve(value, context, max_depth=5):
     """
@@ -51,11 +52,11 @@ def resolve(value, context, max_depth=5):
     def get_from_context(expr, ctx):
         """Resolve dot notation and list indices from context."""
         logger.debug(f"get_from_context called with: {expr}")
-        parts = re.split(r'\.(?![^\[]*\])', expr)  # split on dots not inside brackets
+        parts = re.split(r"\.(?![^\[]*\])", expr)  # split on dots not inside brackets
         result = ctx
         for part in parts:
             # Handle list index: foo[0]
-            m = re.match(r'^([a-zA-Z0-9_]+)(\[(\-?\d+)\])?$', part)
+            m = re.match(r"^([a-zA-Z0-9_]+)(\[(\-?\d+)\])?$", part)
             if not m:
                 return None
             key = m.group(1)
@@ -79,14 +80,16 @@ def resolve(value, context, max_depth=5):
 
     if isinstance(value, str):
         # Handle ${...} syntax (dollar syntax) - with recursive resolution
-        pattern_dollar_exact = r'^\$\{([^\}]+)\}$'
+        pattern_dollar_exact = r"^\$\{([^\}]+)\}$"
         match_dollar_exact = re.match(pattern_dollar_exact, value)
         if match_dollar_exact:
             expr = match_dollar_exact.group(1)
             resolved = get_from_context(expr, context)
             if resolved is not None:
                 # RECURSIVE RESOLUTION: If result is still a template, resolve it
-                if isinstance(resolved, str) and (resolved.startswith("${") or resolved.startswith("{")):
+                if isinstance(resolved, str) and (
+                    resolved.startswith("${") or resolved.startswith("{")
+                ):
                     if max_depth > 0:
                         return resolve(resolved, context, max_depth - 1)
                 return resolved
@@ -94,14 +97,16 @@ def resolve(value, context, max_depth=5):
                 return value  # fallback to original string if not found
 
         # Handle {curly} syntax (original syntax) - with recursive resolution
-        pattern_curly_exact = r'^\{([^\}]+)\}$'
+        pattern_curly_exact = r"^\{([^\}]+)\}$"
         match_curly_exact = re.match(pattern_curly_exact, value)
         if match_curly_exact:
             expr = match_curly_exact.group(1)
             resolved = get_from_context(expr, context)
             if resolved is not None:
                 # RECURSIVE RESOLUTION: If result is still a template, resolve it
-                if isinstance(resolved, str) and (resolved.startswith("${") or resolved.startswith("{")):
+                if isinstance(resolved, str) and (
+                    resolved.startswith("${") or resolved.startswith("{")
+                ):
                     if max_depth > 0:
                         return resolve(resolved, context, max_depth - 1)
                 return resolved
@@ -110,19 +115,23 @@ def resolve(value, context, max_depth=5):
 
         # Handle string substitution for both syntaxes
         # First handle ${...} syntax
-        pattern_dollar = r'\$\{([^\}]+)\}'
+        pattern_dollar = r"\$\{([^\}]+)\}"
+
         def replace_dollar_var(match):
             expr = match.group(1)
             resolved = get_from_context(expr, context)
             return str(resolved) if resolved is not None else match.group(0)
+
         value = re.sub(pattern_dollar, replace_dollar_var, value)
 
         # Then handle {curly} syntax
-        pattern_curly = r'\{([^\}]+)\}'
+        pattern_curly = r"\{([^\}]+)\}"
+
         def replace_curly_var(match):
             expr = match.group(1)
             resolved = get_from_context(expr, context)
             return str(resolved) if resolved is not None else match.group(0)
+
         value = re.sub(pattern_curly, replace_curly_var, value)
 
         return value
@@ -133,7 +142,10 @@ def resolve(value, context, max_depth=5):
         return [resolve(item, context, max_depth) for item in value]
     return value
 
-def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, Any]) -> str:
+
+def render_prompt(
+    prompt_config: Union[str, Dict[str, Any]], context: Dict[str, Any]
+) -> str:
     """Renders a prompt from a file with variable substitution."""
     resolved_prompt = resolve(prompt_config, context)
 
@@ -143,16 +155,19 @@ def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, 
         if not isinstance(prompt_file, str):
             raise ValueError(f"Prompt 'file' must be a string, got {type(prompt_file)}")
         prompt_path = Path(prompt_file)
-        inputs = resolved_prompt.get("inputs", {})
+        resolved_prompt.get("inputs", {})
     elif isinstance(resolved_prompt, str):
         # Handle the case where prompt is just a string path
         prompt_path = Path(resolved_prompt)
-        inputs = {}
     else:
-        raise ValueError(f"Prompt config must be string or dict, got {type(resolved_prompt)}")
+        raise ValueError(
+            f"Prompt config must be string or dict, got {type(resolved_prompt)}"
+        )
 
     prompts_dir = Path(context.get("prompts_dir", "prompts"))
-    full_prompt_path = prompt_path if prompt_path.is_absolute() else prompts_dir / prompt_path
+    full_prompt_path = (
+        prompt_path if prompt_path.is_absolute() else prompts_dir / prompt_path
+    )
 
     logger.debug(f"Loading prompt from: {full_prompt_path}")
     rendered_prompt = full_prompt_path.read_text()
@@ -162,6 +177,7 @@ def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, 
         rendered_prompt = rendered_prompt.replace(f"{{{key}}}", str(val))
 
     return rendered_prompt
+
 
 def run_step(rule, context, pipeline_config):
     """Step dispatcher"""
@@ -177,10 +193,11 @@ def run_step(rule, context, pipeline_config):
     else:
         raise ValueError(f"Unknown step type: {step_type}")
 
+
 def run_for_each_step(rule, context, pipeline_config):
     """Executes a sequence of steps for each item in a resolved input list"""
-    step_name = rule.get('name', 'unnamed_for_each_step')
-    log_level = rule.get('log', 'debug')
+    step_name = rule.get("name", "unnamed_for_each_step")
+    rule.get("log", "debug")
 
     # Log step start
     logger.info(f"🔄 Starting for-each step: {step_name}")
@@ -219,6 +236,7 @@ def run_for_each_step(rule, context, pipeline_config):
         logger.error(f"❌ Error in for-each step '{step_name}': {e}")
         raise
 
+
 def _get_loop_input(input_spec, context, logger):
     """Extract and normalize the input list for iteration"""
     # Support plugin-sourced iteration
@@ -238,17 +256,18 @@ def _get_loop_input(input_spec, context, logger):
 
     # Ensure we have a list
     if not isinstance(loop_input, list):
-        logger.debug(f"Input is not a list, wrapping as single item")
+        logger.debug("Input is not a list, wrapping as single item")
         loop_input = [loop_input]
 
     return loop_input
+
 
 def _parse_json_string(json_str, logger):
     """Parse a JSON string, handling code fences and fallbacks"""
     logger.debug(f"Parsing JSON string: {json_str[:100]}...")
 
     # Extract from code fences if present
-    code_fence_pattern = r'```(?:json)?\s*([\s\S]*?)\s*```'
+    code_fence_pattern = r"```(?:json)?\s*([\s\S]*?)\s*```"
     fence_matches = re.findall(code_fence_pattern, json_str)
 
     if fence_matches:
@@ -260,7 +279,7 @@ def _parse_json_string(json_str, logger):
         return json.loads(json_str)
     except json.JSONDecodeError:
         # Fallback: extract first JSON array
-        array_match = re.search(r'(\[[^\]]*\])', json_str, re.DOTALL)
+        array_match = re.search(r"(\[[^\]]*\])", json_str, re.DOTALL)
         if array_match:
             try:
                 return json.loads(array_match.group(1))
@@ -269,6 +288,7 @@ def _parse_json_string(json_str, logger):
 
     # Last resort: wrap as single item
     return [json_str]
+
 
 def _handle_append_operations(steps, item_context, main_context, logger):
     """Handle append_to operations from substeps, avoiding duplicates"""
@@ -288,7 +308,10 @@ def _handle_append_operations(steps, item_context, main_context, logger):
 
         # Append only the new result from this iteration
         main_context[target_list].append(result)
-        logger.debug(f"Appended to {target_list}: now has {len(main_context[target_list])} items")
+        logger.debug(
+            f"Appended to {target_list}: now has {len(main_context[target_list])} items"
+        )
+
 
 def _get_substep_result(substep, context):
     """Extract the result value from a substep's outputs"""
@@ -302,6 +325,7 @@ def _get_substep_result(substep, context):
         return context.get(outputs[0])
 
     return None
+
 
 def run_function_step(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
     """Execute a function step with proper variable resolution"""
@@ -327,31 +351,27 @@ def run_function_step(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
 
         if isinstance(inputs, dict):
             resolved_inputs: Dict[str, Any] = {
-                key: resolve(value, context)
-                for key, value in inputs.items()
+                key: resolve(value, context) for key, value in inputs.items()
             }
 
             # Call function with context if it accepts it
-            if 'context' in sig.parameters:
+            if "context" in sig.parameters:
                 result = func(**resolved_inputs, context=context)
             else:
                 result = func(**resolved_inputs)
 
         elif isinstance(inputs, list):
             # For list inputs, pass as positional args
-            resolved_args: List[Any] = [
-                resolve(value, context)
-                for value in inputs
-            ]
+            resolved_args: List[Any] = [resolve(value, context) for value in inputs]
 
-            if 'context' in sig.parameters:
+            if "context" in sig.parameters:
                 result = func(*resolved_args, context=context)
             else:
                 result = func(*resolved_args)
         else:
             # Default to empty dict if inputs is neither dict nor list
             resolved_inputs = {}
-            if 'context' in sig.parameters:
+            if "context" in sig.parameters:
                 result = func(**resolved_inputs, context=context)
             else:
                 result = func(**resolved_inputs)
@@ -384,7 +404,9 @@ def run_function_step(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
                 value_to_append = result
 
             context[append_to].append(value_to_append)
-            logger.debug(f"Appended to {append_to}: now has {len(context[append_to])} items")
+            logger.debug(
+                f"Appended to {append_to}: now has {len(context[append_to])} items"
+            )
 
         logger.info(f"✅ Completed function step: {name}")
         logger.debug(f"Context after step {name}: {list(context.keys())}")
@@ -398,9 +420,10 @@ def run_function_step(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
         logger.error(f"❌ Error in function step '{name}': {str(e)}")
         raise
 
+
 def run_llm_step(rule, context, pipeline_config):
     """Executes a single LLM step with logging"""
-    name = rule.get('name', 'unnamed_llm_step')
+    name = rule.get("name", "unnamed_llm_step")
 
     logger.info(f"🤖 Starting LLM step: {name}")
     logger.debug(f"Step details: {rule}")
@@ -415,7 +438,7 @@ def run_llm_step(rule, context, pipeline_config):
             "model": "gpt-4o",
             "temperature": 0.7,
             "max_tokens": 2500,
-            "timeout_seconds": 30
+            "timeout_seconds": 30,
         }
         merged_config.update(llm_config)
         merged_config.update(step_config)
@@ -424,7 +447,9 @@ def run_llm_step(rule, context, pipeline_config):
         logger.info(f"    ⏳ Calling {merged_config.get('model')} for step '{name}'...")
 
         # Single unified call
-        result = call_llm(rendered_prompt, config=merged_config, output_type=output_type)
+        result = call_llm(
+            rendered_prompt, config=merged_config, output_type=output_type
+        )
 
         # Check for templates
         if "template" in rule or "format_with" in rule:
@@ -472,6 +497,7 @@ def run_llm_step(rule, context, pipeline_config):
     except Exception as e:
         logger.error(f"❌ Error in LLM step '{name}': {e}")
         raise
+
 
 def _value_to_string(value: Any) -> str:
     """Convert a value to string for text output"""
@@ -524,6 +550,7 @@ def run_save_step(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
         logger.error(f"❌ Error in save step '{name}': {e}")
         raise
 
+
 def handle_step_output(rule, context):
     """Handle saveas output for pipeline steps."""
     if "saveas" in rule:
@@ -538,7 +565,9 @@ def handle_step_output(rule, context):
             elif isinstance(outputs, str):
                 content = context[outputs]
             else:
-                raise ValueError("Cannot determine content to save - no outputs specified")
+                raise ValueError(
+                    "Cannot determine content to save - no outputs specified"
+                )
             saved_path = save_content_to_file(content, resolved_path)
             _record_written_file(saved_path)
 
@@ -565,6 +594,7 @@ def handle_step_output(rule, context):
                     saved_path = save_content_to_file(content, path, format_type)
                     _record_written_file(saved_path)
 
+
 def save_content_to_file(content, path, format_type="auto"):
     """Save content to file with format detection"""
     file_path = Path(path)
@@ -579,6 +609,7 @@ def save_content_to_file(content, path, format_type="auto"):
 
     _save_file_by_format(content, str(file_path), format_type)
     return str(file_path)
+
 
 def validate_pipeline_expressions(step_inputs, context):
     """
@@ -598,16 +629,19 @@ def validate_pipeline_expressions(step_inputs, context):
                 end = resolved.find("}", start)
                 if end == -1:
                     break
-                unresolved_vars.append(resolved[start:end+1])
+                unresolved_vars.append(resolved[start : end + 1])
                 idx = end + 1
             for expr in unresolved_vars:
-                raise ValueError(f"Unresolved pipeline expression: {expr} in value '{step_inputs}'")
+                raise ValueError(
+                    f"Unresolved pipeline expression: {expr} in value '{step_inputs}'"
+                )
     elif isinstance(step_inputs, dict):
         for v in step_inputs.values():
             validate_pipeline_expressions(v, context)
     elif isinstance(step_inputs, list):
         for item in step_inputs:
             validate_pipeline_expressions(item, context)
+
 
 def collect_all_templates(steps):
     """
@@ -634,7 +668,9 @@ def collect_all_templates(steps):
             if prompt_file:
                 # We need to scan the .gpt file for template references
                 # Add this to templates list for validation
-                templates.append((f"prompts/{prompt_file}", f"{step_name} (prompt file)"))
+                templates.append(
+                    (f"prompts/{prompt_file}", f"{step_name} (prompt file)")
+                )
 
         # Recursively check nested steps (for-each, etc.)
         if step.get("type") == "for-each":
@@ -643,23 +679,29 @@ def collect_all_templates(steps):
 
     return templates
 
-def run_pipeline(pipeline_path, vars=None, dry_run=False, skip_lint=False, verbose=False):
+
+def run_pipeline(
+    pipeline_path, vars=None, dry_run=False, skip_lint=False, verbose=False
+):
     """Execute a YAML-defined pipeline with template validation"""
     variables = vars or {}
 
     # Clear the log file at the start of a new run
-    open('llmflow.log', 'w').close()
+    open("llmflow.log", "w").close()
 
     # Load pipeline FIRST before using any variables from it - with friendly error handling
     # Strict YAML linting before validation
     try:
         from ruamel.yaml import YAML
-        yaml_linter = YAML(typ='safe')
+
+        yaml_linter = YAML(typ="safe")
         with open(pipeline_path, encoding="utf-8") as f:
             pipeline = yaml_linter.load(f)
         # Minimal Pydantic validation
         from pydantic import ValidationError
+
         from llmflow.pipeline_schema import PipelineConfig, StepConfig
+
         pipeline_root = pipeline.get("pipeline", pipeline)
         # Validate top-level pipeline config
         try:
@@ -673,7 +715,9 @@ def run_pipeline(pipeline_path, vars=None, dry_run=False, skip_lint=False, verbo
             try:
                 StepConfig(**step)
             except ValidationError as e:
-                logger.info(f"\n[ERROR] Step {idx+1} ('{step.get('name','unnamed')}') validation failed:")
+                logger.info(
+                    f"\n[ERROR] Step {idx+1} ('{step.get('name','unnamed')}') validation failed:"
+                )
                 logger.info(e)
                 raise SystemExit(1)
 
@@ -683,16 +727,18 @@ def run_pipeline(pipeline_path, vars=None, dry_run=False, skip_lint=False, verbo
         current_dir = Path.cwd()
         abs_path = pipeline_file.resolve()
 
-        logger.error(f"❌ Pipeline file not found:")
+        logger.error("❌ Pipeline file not found:")
         logger.error(f"   Looking for: {pipeline_path}")
         logger.error(f"   Absolute path: {abs_path}")
         logger.error(f"   Current directory: {current_dir}")
-        logger.error(f"   Are you running from the correct directory?")
+        logger.error("   Are you running from the correct directory?")
 
         # List available pipeline files if pipelines directory exists
         pipelines_dir = current_dir / "pipelines"
         if pipelines_dir.exists() and pipelines_dir.is_dir():
-            yaml_files = list(pipelines_dir.glob("*.yaml")) + list(pipelines_dir.glob("*.yml"))
+            yaml_files = list(pipelines_dir.glob("*.yaml")) + list(
+                pipelines_dir.glob("*.yml")
+            )
             if yaml_files:
                 logger.error(f"   Available pipelines in {pipelines_dir}:")
                 for yaml_file in sorted(yaml_files):
@@ -730,6 +776,7 @@ def run_pipeline(pipeline_path, vars=None, dry_run=False, skip_lint=False, verbo
         except Exception as e:
             logger.error(f"ERROR in lint_pipeline_full: {type(e).__name__}: {e}")
             import traceback
+
             logger.error(traceback.format_exc())
             raise
     else:
@@ -746,6 +793,7 @@ def run_pipeline(pipeline_path, vars=None, dry_run=False, skip_lint=False, verbo
     if not dry_run:
         logger.info("\n🎯 Starting pipeline execution...")
         import sys
+
         sys.stdout.flush()
         # Flush all logger handlers too
         for handler in logger.logger.handlers:
@@ -774,25 +822,28 @@ def run_pipeline(pipeline_path, vars=None, dry_run=False, skip_lint=False, verbo
 
     return context  # Return the final context instead of None
 
+
 def apply_output_template(result, template_path, context):
     """Apply a template to format step output"""
     from llmflow.utils.io import render_markdown_template
 
     # Create template variables with the resultz
     template_vars = context.copy()
-    template_vars['result'] = result
+    template_vars["result"] = result
 
     # Render the template WITH CONTEXT
     formatted = render_markdown_template(
         template_path=template_path,
         variables=template_vars,
-        context=context  # ADD THIS LINE - pass the full context for resolution
+        context=context,  # ADD THIS LINE - pass the full context for resolution
     )
     return formatted
+
 
 def _save_file_by_format(value, filename, fmt):
     """Save value to file in specified format"""
     import json
+
     import yaml
 
     # Ensure output directory exists
@@ -810,4 +861,3 @@ def _save_file_by_format(value, filename, fmt):
         content = _value_to_string(value)
         with open(filename, "w", encoding="utf-8") as f:
             f.write(content)
-

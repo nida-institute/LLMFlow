@@ -1,8 +1,8 @@
-import pytest
 import tempfile
 from pathlib import Path
+
 from llmflow.runner import run_function_step
-from llmflow.utils.io import render_markdown_template
+
 
 class TestPipelineIntegrationFinal:
     """Test the complete pipeline flow with append_to and template rendering"""
@@ -17,13 +17,14 @@ class TestPipelineIntegrationFinal:
             "type": "function",
             "function": "tests.test_pipeline_integration_final.generate_body_content",
             "outputs": "body_content",
-            "append_to": "bodies_list"
+            "append_to": "bodies_list",
         }
 
         def generate_body_content():
             return "This is the body content for the scene"
 
         import sys
+
         sys.modules[__name__].generate_body_content = generate_body_content
 
         # Run step 1
@@ -39,7 +40,7 @@ class TestPipelineIntegrationFinal:
 Body Content: {{body_value}}
 """
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(template_content)
             template_path = f.name
 
@@ -52,9 +53,9 @@ Body Content: {{body_value}}
                     "template_path": template_path,
                     "variables": {
                         "body_value": "${bodies_list[-1]}"  # This should resolve!
-                    }
+                    },
                 },
-                "outputs": "rendered_scene"
+                "outputs": "rendered_scene",
             }
 
             # Run step 2

@@ -1,6 +1,6 @@
-import pytest
 from llmflow.runner import resolve
 from llmflow.utils.io import render_markdown_template
+
 
 class TestDebugResolution:
     """Debug the exact issue happening in production"""
@@ -8,14 +8,11 @@ class TestDebugResolution:
     def test_resolve_with_pipeline_context(self):
         """Test that resolve works when variables reference context"""
         # This simulates your actual pipeline state
-        variables = {
-            "step1": "${bodies_list[-1]}",
-            "step2": "${hearts_list[-1]}"
-        }
+        variables = {"step1": "${bodies_list[-1]}", "step2": "${hearts_list[-1]}"}
 
         context = {
             "bodies_list": ["intro", "middle", "conclusion"],
-            "hearts_list": ["start", "journey", "arrival"]
+            "hearts_list": ["start", "journey", "arrival"],
         }
 
         # Test that resolve works with context
@@ -43,7 +40,7 @@ class TestDebugResolution:
 
 {{connecting_value}}"""
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(template_content)
             template_path = f.name
 
@@ -51,19 +48,17 @@ class TestDebugResolution:
             # Your actual pipeline state
             variables = {
                 "hearts_value": "${hearts_list[-1]}",
-                "connecting_value": "${connecting_list[-1]}"
+                "connecting_value": "${connecting_list[-1]}",
             }
 
             context = {
                 "hearts_list": ["heart1", "heart2", "This is the hearts content"],
-                "connecting_list": ["conn1", "conn2", "This is the connecting content"]
+                "connecting_list": ["conn1", "conn2", "This is the connecting content"],
             }
 
             # This is what should happen
             result = render_markdown_template(
-                template_path=template_path,
-                variables=variables,
-                context=context
+                template_path=template_path, variables=variables, context=context
             )
 
             # Verify it worked

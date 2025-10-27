@@ -1,27 +1,36 @@
 import pytest
+
 import llmflow.plugins
-import importlib
-from llmflow.runner import run_for_each_step, run_llm_step
+from llmflow.runner import run_for_each_step
+
 
 def test_run_function_step(monkeypatch):
     from llmflow import runner
+
     monkeypatch.setattr(runner, "resolve", lambda v, c: c.get(v.strip("${}"), v))
     import importlib
+
     monkeypatch.setattr(runner, "importlib", importlib)
     import inspect
+
     monkeypatch.setattr(runner, "inspect", inspect)
+
 
 @pytest.mark.skip(reason="call_gpt_with_retry functionality moved to different module")
 def test_run_llm_step():
     # This test needs to be updated to use the correct module
     pass
 
+
 def test_run_for_each_step(monkeypatch):
     plugin_items = iter(["entry 1", "entry 2"])
-    monkeypatch.setitem(llmflow.plugins.plugin_registry, "xpath", lambda spec: plugin_items)
+    monkeypatch.setitem(
+        llmflow.plugins.plugin_registry, "xpath", lambda spec: plugin_items
+    )
     monkeypatch.setattr("llmflow.runner.render_prompt", lambda p, c: f"Prompt with {c}")
-    monkeypatch.setattr("llmflow.runner.normalize_nfc", lambda x: x)
-    monkeypatch.setattr("llmflow.runner.call_llm", lambda *args, **kwargs: "[LLM INSIDE FOR-EACH]")
+    monkeypatch.setattr(
+        "llmflow.runner.call_llm", lambda *args, **kwargs: "[LLM INSIDE FOR-EACH]"
+    )
 
     rule = {
         "type": "for-each",
@@ -30,22 +39,17 @@ def test_run_for_each_step(monkeypatch):
             "type": "xpath",
             "path": "fake.xml",
             "xpath": "//entry",
-            "output_format": "text"
+            "output_format": "text",
         },
         "item_var": "entry",
         "steps": [
             {
                 "type": "llm",
                 "name": "inside_loop",
-                "prompt": {
-                    "file": "example.gpt",
-                    "inputs": {
-                        "entry": "${entry}"
-                    }
-                },
-                "outputs": ["summary"]
+                "prompt": {"file": "example.gpt", "inputs": {"entry": "${entry}"}},
+                "outputs": ["summary"],
             }
-        ]
+        ],
     }
 
     context = {}

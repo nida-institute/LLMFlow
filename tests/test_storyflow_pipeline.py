@@ -1,8 +1,9 @@
-import pytest
 import re
 import subprocess
-import json
 from pathlib import Path
+
+import pytest
+
 
 class TestLeadersGuide:
     """Test the generated leaders guide content and structure"""
@@ -44,7 +45,7 @@ class TestLeadersGuide:
         # Check for unresolved template variables
         unresolved_patterns = [
             r"\$\{[^}]+\}",  # ${variable} format
-            r"\{[^}]+\}",    # {variable} format in summary
+            r"\{[^}]+\}",  # {variable} format in summary
         ]
 
         for pattern in unresolved_patterns:
@@ -53,7 +54,9 @@ class TestLeadersGuide:
             allowed_unresolved = ["{scene_titles}"]
             unexpected_matches = [m for m in matches if m not in allowed_unresolved]
 
-            assert len(unexpected_matches) == 0, f"Found unresolved template variables: {unexpected_matches}"
+            assert (
+                len(unexpected_matches) == 0
+            ), f"Found unresolved template variables: {unexpected_matches}"
 
     def test_content_consistency_across_scenes(self, leaders_guide_content):
         """Test that content is consistent across scenes"""
@@ -62,14 +65,18 @@ class TestLeadersGuide:
 
         # Test that each scene has substantial content
         for i, scene in enumerate(scene_sections):
-            scene_name = scene.split('\n')[0]
+            scene_name = scene.split("\n")[0]
 
             # Test minimum content length
-            assert len(scene) > 1000, f"Scene '{scene_name}' seems too short ({len(scene)} chars)"
+            assert (
+                len(scene) > 1000
+            ), f"Scene '{scene_name}' seems too short ({len(scene)} chars)"
 
             # Test that scenes have questions (indicated by question marks)
-            question_count = scene.count('?')
-            assert question_count >= 5, f"Scene '{scene_name}' has too few questions ({question_count})"
+            question_count = scene.count("?")
+            assert (
+                question_count >= 5
+            ), f"Scene '{scene_name}' has too few questions ({question_count})"
 
     def test_biblical_accuracy_markers(self, leaders_guide_content):
         """Test for markers of biblical accuracy and cultural context"""
@@ -79,7 +86,7 @@ class TestLeadersGuide:
             "agricultural",
             "threshing",
             "streams of water",
-            "chaff"
+            "chaff",
         ]
 
         found_markers = []
@@ -87,7 +94,9 @@ class TestLeadersGuide:
             if marker.lower() in leaders_guide_content.lower():
                 found_markers.append(marker)
 
-        assert len(found_markers) >= 3, f"Expected cultural context markers, found only: {found_markers}"
+        assert (
+            len(found_markers) >= 3
+        ), f"Expected cultural context markers, found only: {found_markers}"
 
     def test_instructional_elements(self, leaders_guide_content):
         """Test that proper instructional elements are present"""
@@ -96,7 +105,7 @@ class TestLeadersGuide:
             "**Note**:",
             "Leader:",
             "Use it to prepare",
-            "not to read aloud"
+            "not to read aloud",
         ]
 
         found_instructions = []
@@ -104,7 +113,9 @@ class TestLeadersGuide:
             if instruction in leaders_guide_content:
                 found_instructions.append(instruction)
 
-        assert len(found_instructions) >= 2, f"Expected leader instructions, found: {found_instructions}"
+        assert (
+            len(found_instructions) >= 2
+        ), f"Expected leader instructions, found: {found_instructions}"
 
     def test_file_encoding_and_format(self):
         """Test that file is properly encoded and formatted"""
@@ -112,25 +123,27 @@ class TestLeadersGuide:
 
         # Test UTF-8 encoding
         try:
-            content = file_path.read_text(encoding='utf-8')
+            content = file_path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             pytest.fail("File is not properly UTF-8 encoded")
 
         # Test for common markdown formatting issues
-        lines = content.split('\n')
+        lines = content.split("\n")
 
         # Test for excessive blank lines
         consecutive_empty = 0
         max_consecutive_empty = 0
 
         for line in lines:
-            if line.strip() == '':
+            if line.strip() == "":
                 consecutive_empty += 1
                 max_consecutive_empty = max(max_consecutive_empty, consecutive_empty)
             else:
                 consecutive_empty = 0
 
-        assert max_consecutive_empty <= 5, f"Too many consecutive empty lines: {max_consecutive_empty}"
+        assert (
+            max_consecutive_empty <= 5
+        ), f"Too many consecutive empty lines: {max_consecutive_empty}"
 
 
 class TestPipelineIntegration:
@@ -143,15 +156,30 @@ class TestPipelineIntegration:
         content = file_path.read_text()
 
         # Test Psalm 1:1-3 content alignment
-        psalm_1_1_3_section = re.search(r"Citation: Psalm 1:1–3.*?(?=# Scene:|$)", content, re.DOTALL)
+        psalm_1_1_3_section = re.search(
+            r"Citation: Psalm 1:1–3.*?(?=# Scene:|$)", content, re.DOTALL
+        )
         if psalm_1_1_3_section:
             section_text = psalm_1_1_3_section.group(0)
 
             # Should contain themes from Psalm 1:1-3
-            expected_themes = ["tree", "water", "righteous", "law", "meditation", "prosper"]
-            found_themes = [theme for theme in expected_themes if theme.lower() in section_text.lower()]
+            expected_themes = [
+                "tree",
+                "water",
+                "righteous",
+                "law",
+                "meditation",
+                "prosper",
+            ]
+            found_themes = [
+                theme
+                for theme in expected_themes
+                if theme.lower() in section_text.lower()
+            ]
 
-            assert len(found_themes) >= 4, f"Psalm 1:1-3 section missing key themes. Found: {found_themes}"
+            assert (
+                len(found_themes) >= 4
+            ), f"Psalm 1:1-3 section missing key themes. Found: {found_themes}"
 
     def test_scene_sequence_integrity(self):
         """Test that scenes appear in logical biblical sequence"""
@@ -167,9 +195,11 @@ class TestPipelineIntegration:
         for i, expected in enumerate(expected_sequence):
             if i < len(citations):
                 # Normalize dashes for comparison
-                citation_normalized = citations[i].replace('–', '-')
-                expected_normalized = expected.replace('–', '-')
-                assert expected_normalized in citation_normalized, f"Citation sequence error. Expected {expected}, found {citations[i]}"
+                citation_normalized = citations[i].replace("–", "-")
+                expected_normalized = expected.replace("–", "-")
+                assert (
+                    expected_normalized in citation_normalized
+                ), f"Citation sequence error. Expected {expected}, found {citations[i]}"
 
     def test_template_processing_completeness(self):
         """Test that template processing completed successfully"""
@@ -183,11 +213,13 @@ class TestPipelineIntegration:
             "TODO",
             "PLACEHOLDER",
             "{{",  # Unprocessed Jinja templates
-            "}}"
+            "}}",
         ]
 
         for indicator in incomplete_indicators:
-            assert indicator not in content, f"Found incomplete processing indicator: {indicator}"
+            assert (
+                indicator not in content
+            ), f"Found incomplete processing indicator: {indicator}"
 
     def test_output_file_metadata(self):
         """Test output file has correct metadata and naming"""
@@ -195,14 +227,20 @@ class TestPipelineIntegration:
 
         # Test filename format matches expected pattern
         filename_pattern = r"\d{8}-\d{8}_leaders_guide\.md"
-        assert re.match(filename_pattern, file_path.name), f"Filename format incorrect: {file_path.name}"
+        assert re.match(
+            filename_pattern, file_path.name
+        ), f"Filename format incorrect: {file_path.name}"
 
         # Test file is in correct directory
-        assert file_path.parent.name == "leaders_guide", f"File in wrong directory: {file_path.parent}"
+        assert (
+            file_path.parent.name == "leaders_guide"
+        ), f"File in wrong directory: {file_path.parent}"
 
         # Test file size is reasonable (not too small indicating failure)
         file_size = file_path.stat().st_size
-        assert file_size > 10000, f"File size too small ({file_size} bytes), indicates generation failure"
+        assert (
+            file_size > 10000
+        ), f"File size too small ({file_size} bytes), indicates generation failure"
 
 
 class TestConfigurationIntegrity:
@@ -212,12 +250,12 @@ class TestConfigurationIntegrity:
         """Test that all referenced prompt files exist"""
         prompts_dir = Path("prompts/storyflow")
         expected_prompts = [
-            "leadersguide-bodies.gpt",          # Fixed: was "leadersguide-body.gpt"
+            "leadersguide-bodies.gpt",  # Fixed: was "leadersguide-body.gpt"
             "leadersguide-hearts.gpt",
-            "leadersguide-connecting.gpt",       # Fixed: was "leadersguide-listening.gpt"
+            "leadersguide-connecting.gpt",  # Fixed: was "leadersguide-listening.gpt"
             "leadersguide-naming.gpt",
-            "leadersguide-qaedit.gpt",          # Added based on files we've seen
-            "exegetical-pericope-psalms-e3.gpt", # Added based on files we've seen
+            "leadersguide-qaedit.gpt",  # Added based on files we've seen
+            "exegetical-pericope-psalms-e3.gpt",  # Added based on files we've seen
             # Add others as needed
         ]
 
@@ -234,10 +272,14 @@ class TestStoryFlowPipeline:
         # Use the correct module path or skip if CLI not available
         try:
             result = subprocess.run(
-                ["python", "-c", "import sys; sys.path.append('src'); from llmflow.cli import main; main(['run', 'storyflow', '--dry-run'])"],
+                [
+                    "python",
+                    "-c",
+                    "import sys; sys.path.append('src'); from llmflow.cli import main; main(['run', 'storyflow', '--dry-run'])",
+                ],
                 cwd=Path.cwd(),
                 capture_output=True,
-                text=True
+                text=True,
             )
             assert result.returncode == 0, f"Pipeline failed: {result.stderr}"
         except Exception as e:
@@ -247,12 +289,18 @@ class TestStoryFlowPipeline:
         """Test that contract validation works correctly"""
         try:
             result = subprocess.run(
-                ["python", "-c", "import sys; sys.path.append('src'); from llmflow.cli import main; main(['lint', '--contracts'])"],
+                [
+                    "python",
+                    "-c",
+                    "import sys; sys.path.append('src'); from llmflow.cli import main; main(['lint', '--contracts'])",
+                ],
                 cwd=Path.cwd(),
                 capture_output=True,
-                text=True
+                text=True,
             )
-            assert result.returncode == 0, f"Contract validation failed: {result.stderr}"
+            assert (
+                result.returncode == 0
+            ), f"Contract validation failed: {result.stderr}"
         except Exception as e:
             pytest.skip(f"CLI not available: {e}")
 
@@ -260,12 +308,18 @@ class TestStoryFlowPipeline:
         """Test that template validation works correctly"""
         try:
             result = subprocess.run(
-                ["python", "-c", "import sys; sys.path.append('src'); from llmflow.cli import main; main(['lint', '--templates'])"],
+                [
+                    "python",
+                    "-c",
+                    "import sys; sys.path.append('src'); from llmflow.cli import main; main(['lint', '--templates'])",
+                ],
                 cwd=Path.cwd(),
                 capture_output=True,
-                text=True
+                text=True,
             )
-            assert result.returncode == 0, f"Template validation failed: {result.stderr}"
+            assert (
+                result.returncode == 0
+            ), f"Template validation failed: {result.stderr}"
         except Exception as e:
             pytest.skip(f"CLI not available: {e}")
 
@@ -273,10 +327,14 @@ class TestStoryFlowPipeline:
         """Test that pipeline actually creates output files"""
         try:
             result = subprocess.run(
-                ["python", "-c", "import sys; sys.path.append('src'); from llmflow.cli import main; main(['run', 'storyflow'])"],
+                [
+                    "python",
+                    "-c",
+                    "import sys; sys.path.append('src'); from llmflow.cli import main; main(['run', 'storyflow'])",
+                ],
                 cwd=Path.cwd(),
                 capture_output=True,
-                text=True
+                text=True,
             )
             assert result.returncode == 0, f"Pipeline execution failed: {result.stderr}"
         except Exception as e:
@@ -286,6 +344,7 @@ class TestStoryFlowPipeline:
         """Test that pipeline fails gracefully with bad input"""
         # This would test with invalid passage references, etc.
         pass
+
 
 def mock_identity(value):
     """Simple identity function for testing"""

@@ -1,10 +1,11 @@
-import pytest
-import tempfile
 import os
+import tempfile
+from typing import Any, Dict, List, Optional, Union
+
 import yaml
+from pydantic import BaseModel, ConfigDict, Field
+
 from llmflow.runner import run_pipeline
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, List, Dict, Any, Union
 
 
 def create_test_dict():
@@ -36,28 +37,28 @@ def test_data_flows_through_pipeline():
         "llm_config": {
             "provider": "anthropic",
             "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000
+            "max_tokens": 4000,
         },
         "steps": [
             {
                 "name": "create_data",
                 "type": "function",
                 "function": "tests.test_data_flow.create_test_dict",
-                "outputs": "data"
+                "outputs": "data",
             },
             {
                 "name": "extract_value",
                 "type": "function",
                 "function": "operator.getitem",
                 "inputs": ["${data}", "value"],
-                "outputs": "result"
-            }
-        ]
+                "outputs": "result",
+            },
+        ],
     }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         pipeline_file = os.path.join(tmpdir, "test_pipeline.yaml")
-        with open(pipeline_file, 'w') as f:
+        with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
         run_pipeline(pipeline_file, skip_lint=True)
@@ -72,28 +73,28 @@ def test_data_flow_with_nested_references():
         "llm_config": {
             "provider": "anthropic",
             "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000
+            "max_tokens": 4000,
         },
         "steps": [
             {
                 "name": "create_nested",
                 "type": "function",
                 "function": "tests.test_data_flow.create_nested_dict",
-                "outputs": "nested_data"
+                "outputs": "nested_data",
             },
             {
                 "name": "access_nested",
                 "type": "function",
                 "function": "operator.getitem",
                 "inputs": ["${nested_data}", "outer"],
-                "outputs": "outer_data"
-            }
-        ]
+                "outputs": "outer_data",
+            },
+        ],
     }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         pipeline_file = os.path.join(tmpdir, "test_pipeline.yaml")
-        with open(pipeline_file, 'w') as f:
+        with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
         run_pipeline(pipeline_file, skip_lint=True)
@@ -108,28 +109,28 @@ def test_data_flow_with_empty_lists():
         "llm_config": {
             "provider": "anthropic",
             "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000
+            "max_tokens": 4000,
         },
         "steps": [
             {
                 "name": "create_empty_list",
                 "type": "function",
                 "function": "tests.test_data_flow.create_empty_list",
-                "outputs": "empty_list"
+                "outputs": "empty_list",
             },
             {
                 "name": "check_empty",
                 "type": "function",
                 "function": "builtins.len",
                 "inputs": ["${empty_list}"],
-                "outputs": "list_length"
-            }
-        ]
+                "outputs": "list_length",
+            },
+        ],
     }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         pipeline_file = os.path.join(tmpdir, "test_pipeline.yaml")
-        with open(pipeline_file, 'w') as f:
+        with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
         run_pipeline(pipeline_file, skip_lint=True)
@@ -144,28 +145,28 @@ def test_data_flow_with_conditional_processing():
         "llm_config": {
             "provider": "anthropic",
             "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000
+            "max_tokens": 4000,
         },
         "steps": [
             {
                 "name": "create_value",
                 "type": "function",
                 "function": "tests.test_data_flow.create_test_dict",
-                "outputs": "data"
+                "outputs": "data",
             },
             {
                 "name": "process_value",
                 "type": "function",
                 "function": "operator.getitem",
                 "inputs": ["${data}", "value"],
-                "outputs": "result"
-            }
-        ]
+                "outputs": "result",
+            },
+        ],
     }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         pipeline_file = os.path.join(tmpdir, "test_pipeline.yaml")
-        with open(pipeline_file, 'w') as f:
+        with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
         run_pipeline(pipeline_file, skip_lint=True)
@@ -180,21 +181,21 @@ def test_data_flow_with_error_recovery():
         "llm_config": {
             "provider": "anthropic",
             "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000
+            "max_tokens": 4000,
         },
         "steps": [
             {
                 "name": "safe_operation",
                 "type": "function",
                 "function": "tests.test_data_flow.create_test_dict",
-                "outputs": "result"
+                "outputs": "result",
             }
-        ]
+        ],
     }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         pipeline_file = os.path.join(tmpdir, "test_pipeline.yaml")
-        with open(pipeline_file, 'w') as f:
+        with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
         run_pipeline(pipeline_file, skip_lint=True)
@@ -209,21 +210,21 @@ def test_data_flow_with_deeply_nested_structures():
         "llm_config": {
             "provider": "anthropic",
             "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000
+            "max_tokens": 4000,
         },
         "steps": [
             {
                 "name": "create_deep_structure",
                 "type": "function",
                 "function": "tests.test_data_flow.create_nested_dict",
-                "outputs": "deep_data"
+                "outputs": "deep_data",
             }
-        ]
+        ],
     }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         pipeline_file = os.path.join(tmpdir, "test_pipeline.yaml")
-        with open(pipeline_file, 'w') as f:
+        with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
         run_pipeline(pipeline_file, skip_lint=True)
@@ -238,28 +239,28 @@ def test_data_flow_with_large_datasets():
         "llm_config": {
             "provider": "anthropic",
             "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000
+            "max_tokens": 4000,
         },
         "steps": [
             {
                 "name": "create_large_list",
                 "type": "function",
                 "function": "tests.test_data_flow.create_large_list",
-                "outputs": "large_list"
+                "outputs": "large_list",
             },
             {
                 "name": "get_length",
                 "type": "function",
                 "function": "builtins.len",
                 "inputs": ["${large_list}"],
-                "outputs": "list_size"
-            }
-        ]
+                "outputs": "list_size",
+            },
+        ],
     }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         pipeline_file = os.path.join(tmpdir, "test_pipeline.yaml")
-        with open(pipeline_file, 'w') as f:
+        with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
         run_pipeline(pipeline_file, skip_lint=True)
@@ -270,13 +271,11 @@ def test_data_flow_with_variable_substitution_edge_cases():
 
     pipeline = {
         "name": "test-substitution-edge-cases",
-        "variables": {
-            "special_chars": "value_with_$pecial_chars"
-        },
+        "variables": {"special_chars": "value_with_$pecial_chars"},
         "llm_config": {
             "provider": "anthropic",
             "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000
+            "max_tokens": 4000,
         },
         "steps": [
             {
@@ -284,14 +283,14 @@ def test_data_flow_with_variable_substitution_edge_cases():
                 "type": "function",
                 "function": "builtins.len",
                 "inputs": ["${special_chars}"],
-                "outputs": "result"
+                "outputs": "result",
             }
-        ]
+        ],
     }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         pipeline_file = os.path.join(tmpdir, "test_pipeline.yaml")
-        with open(pipeline_file, 'w') as f:
+        with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
         run_pipeline(pipeline_file, skip_lint=True)
@@ -306,21 +305,21 @@ def test_data_flow_with_circular_references():
         "llm_config": {
             "provider": "anthropic",
             "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000
+            "max_tokens": 4000,
         },
         "steps": [
             {
                 "name": "create_data",
                 "type": "function",
                 "function": "tests.test_data_flow.create_test_dict",
-                "outputs": "data"
+                "outputs": "data",
             }
-        ]
+        ],
     }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         pipeline_file = os.path.join(tmpdir, "test_pipeline.yaml")
-        with open(pipeline_file, 'w') as f:
+        with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
         run_pipeline(pipeline_file, skip_lint=True)
@@ -328,7 +327,8 @@ def test_data_flow_with_circular_references():
 
 class LLMConfig(BaseModel):
     """LLM provider configuration"""
-    model_config = ConfigDict(extra='allow')
+
+    model_config = ConfigDict(extra="allow")
 
     provider: str
     model: str
@@ -338,7 +338,8 @@ class LLMConfig(BaseModel):
 
 class StepConfig(BaseModel):
     """Configuration for a pipeline step"""
-    model_config = ConfigDict(extra='allow')
+
+    model_config = ConfigDict(extra="allow")
 
     name: str
     type: str
@@ -348,14 +349,15 @@ class StepConfig(BaseModel):
     inputs: Optional[Union[Dict[str, Any], List[Any]]] = None
     outputs: Optional[Union[str, List[str]]] = None
     append_to: Optional[str] = None
-    steps: Optional[List['StepConfig']] = None
+    steps: Optional[List["StepConfig"]] = None
     item_var: Optional[str] = None
     condition: Optional[str] = None
 
 
 class PipelineConfig(BaseModel):
     """Root pipeline configuration"""
-    model_config = ConfigDict(extra='allow')
+
+    model_config = ConfigDict(extra="allow")
 
     name: str
     description: Optional[str] = None

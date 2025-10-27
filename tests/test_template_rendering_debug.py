@@ -1,6 +1,6 @@
-import pytest
-from llmflow.utils.io import render_markdown_template
 from llmflow.runner import resolve
+from llmflow.utils.io import render_markdown_template
+
 
 class TestTemplateRenderingDebug:
     """Debug the template rendering issue"""
@@ -13,7 +13,7 @@ class TestTemplateRenderingDebug:
         # Use template syntax {{}} not pipeline syntax ${}
         template_content = "Body: {{body_value}}"
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(template_content)
             template_path = f.name
 

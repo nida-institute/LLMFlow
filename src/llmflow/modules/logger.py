@@ -1,10 +1,10 @@
 import logging
 import sys
-from pathlib import Path
+
 
 class Logger:
     def __init__(self):
-        self.logger = logging.getLogger('llmflow')
+        self.logger = logging.getLogger("llmflow")
         if not self.logger.handlers:
             self._setup_logger()
 
@@ -14,13 +14,13 @@ class Logger:
         # Console handler
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
-        console_format = logging.Formatter('%(message)s')
+        console_format = logging.Formatter("%(message)s")
         console_handler.setFormatter(console_format)
 
         # File handler
-        file_handler = logging.FileHandler('llmflow.log', mode='a', encoding='utf-8')
+        file_handler = logging.FileHandler("llmflow.log", mode="a", encoding="utf-8")
         file_handler.setLevel(logging.DEBUG)
-        file_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_format = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         file_handler.setFormatter(file_format)
 
         self.logger.addHandler(console_handler)
@@ -77,6 +77,7 @@ class Logger:
             self.logger.error(header)
         else:  # default to info
             self.logger.info(header)
+
 
 # Usage in any module:
 # from llmflow.modules.logger import Logger

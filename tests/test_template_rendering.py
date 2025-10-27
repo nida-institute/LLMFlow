@@ -1,7 +1,8 @@
-import pytest
 import tempfile
 from pathlib import Path
+
 from llmflow.utils.io import render_markdown_template
+
 
 class TestTemplateRendering:
     """Test template rendering with various variable patterns"""
@@ -17,7 +18,7 @@ Heart: {{heart_value}}
 Scene: {{scene_title}}
 """
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(template_content)
             template_path = f.name
 
@@ -26,21 +27,19 @@ Scene: {{scene_title}}
             variables = {
                 "body_value": "${bodies_list[-1]}",
                 "heart_value": "${hearts_list[-1]}",
-                "scene_title": "${scene.title}"
+                "scene_title": "${scene.title}",
             }
 
             # Context with the actual data
             context = {
                 "bodies_list": ["body1", "body2", "final body"],
                 "hearts_list": ["heart1", "heart2", "final heart"],
-                "scene": {"title": "Test Scene"}
+                "scene": {"title": "Test Scene"},
             }
 
             # Render template with context
             result = render_markdown_template(
-                template_path=template_path,
-                variables=variables,
-                context=context
+                template_path=template_path, variables=variables, context=context
             )
 
             # Check results
@@ -55,15 +54,14 @@ Scene: {{scene_title}}
         """Test template rendering with empty lists"""
         template_content = "Result: ${items[-1]}"
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(template_content)
             template_path = f.name
 
         try:
             variables = {"items": []}
             result = render_markdown_template(
-                template_path=template_path,
-                variables=variables
+                template_path=template_path, variables=variables
             )
 
             # Should handle empty list gracefully

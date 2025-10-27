@@ -1,5 +1,5 @@
-import pytest
-from llmflow.utils.linter import collect_all_steps, lint_pipeline_contracts
+from llmflow.utils.linter import collect_all_steps
+
 
 class TestLinterForEach:
     """Test that the linter properly checks steps inside for-each loops"""
@@ -14,10 +14,10 @@ class TestLinterForEach:
                 "steps": [
                     {"name": "nested1", "type": "llm"},
                     {"name": "nested2", "type": "function"},
-                    {"name": "nested3", "type": "llm"}
-                ]
+                    {"name": "nested3", "type": "llm"},
+                ],
             },
-            {"name": "step3", "type": "function"}
+            {"name": "step3", "type": "function"},
         ]
 
         all_steps = collect_all_steps(pipeline_steps)

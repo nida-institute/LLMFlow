@@ -1,9 +1,10 @@
 import json
 import re
-import os
 import unicodedata
 from pathlib import Path
-import markdown  # You forgot this earlier!
+
+import markdown
+
 from llmflow.modules.logger import Logger
 
 # Use unified logger
@@ -11,18 +12,22 @@ logger = Logger()
 
 # --- Basic utilities ---
 
+
 def normalize_nfc(text):
     """Normalize text to NFC (Canonical Decomposition, followed by Canonical Composition)"""
-    return unicodedata.normalize('NFC', text)
+    return unicodedata.normalize("NFC", text)
+
 
 def write_nfc(path, content):
     with open(path, "w", encoding="utf-8") as f:
         f.write(normalize_nfc(content))
 
+
 def sanitize_filename(text):
     if not isinstance(text, str):
         return "unnamed"
     return re.sub(r"[^\w]+", "_", text.strip())
+
 
 def read_text(path):
     """
@@ -48,24 +53,29 @@ def read_text(path):
     except UnicodeDecodeError as e:
         raise UnicodeDecodeError(f"Could not decode file as UTF-8: {path}") from e
 
+
 # --- Template rendering ---
+
 
 def eval_template_expr(expr, variables):
     """Safely evaluate dot notation and subscript expressions using variables dict."""
     try:
-        # Only allow access to variables, no builtins
         return str(eval(expr, {"__builtins__": {}}, variables))
     except Exception:
         return f"{{{{{expr}}}}}"  # Leave as-is if evaluation fails
 
+
 def render_template(template_content, variables):
     """Enhanced template rendering supporting dot notation and subscripts."""
     variables = to_attrdict(variables)  # <--- Add this line
+
     def replacer(match):
         expr = match.group(1).strip()
         return eval_template_expr(expr, variables)
+
     # Replace all {{ ... }} patterns
     return re.sub(r"\{\{\s*([^\}]+?)\s*\}\}", replacer, template_content)
+
 
 def render_markdown_template(template_path, variables, context=None):
     """
@@ -76,7 +86,7 @@ def render_markdown_template(template_path, variables, context=None):
     logger.debug(f"Template variables: {list(variables.keys())}")
 
     try:
-        template_content = Path(template_path).read_text(encoding='utf-8')
+        template_content = Path(template_path).read_text(encoding="utf-8")
 
         # First pass: {{variable}} syntax
         for key, value in variables.items():
@@ -88,20 +98,23 @@ def render_markdown_template(template_path, variables, context=None):
         # Second pass: ${variable} syntax with context resolution if available
         if context:
             from llmflow.runner import resolve
+
             # Find all ${...} patterns
-            dollar_pattern = r'\$\{([^}]+)\}'
+            dollar_pattern = r"\$\{([^}]+)\}"
             matches = re.findall(dollar_pattern, template_content)
 
             for match in matches:
                 try:
                     resolved_value = resolve(f"${{{match}}}", context)
                     if resolved_value != f"${{{match}}}":  # If it was actually resolved
-                        template_content = template_content.replace(f"${{{match}}}", str(resolved_value))
+                        template_content = template_content.replace(
+                            f"${{{match}}}", str(resolved_value)
+                        )
                         logger.debug(f"Resolved ${{ {match} }} from context")
                 except Exception as e:
                     logger.warning(f"Could not resolve ${{ {match} }}: {e}")
 
-        logger.debug(f"✅ Template rendered successfully")
+        logger.debug("✅ Template rendered successfully")
         return template_content
 
     except FileNotFoundError:
@@ -111,24 +124,26 @@ def render_markdown_template(template_path, variables, context=None):
         logger.error(f"❌ Error rendering template {template_path}: {e}")
         raise
 
+
 def extract_template_variables(template_content):
     """Extract variables from templates that use {{variable}} or ${variable} syntax"""
     variables = set()
 
     # Find {{variable}} patterns
-    curly_pattern = r'\{\{\s*([^}]+?)\s*\}\}'
+    curly_pattern = r"\{\{\s*([^}]+?)\s*\}\}"
     for match in re.finditer(curly_pattern, template_content):
         var_name = match.group(1).strip()
-        if not var_name.startswith('#') and not var_name.startswith('/'):
+        if not var_name.startswith("#") and not var_name.startswith("/"):
             variables.add(var_name)
 
     # Find ${variable} patterns
-    dollar_pattern = r'\$\{\s*([^}]+?)\s*\}'
+    dollar_pattern = r"\$\{\s*([^}]+?)\s*\}"
     for match in re.finditer(dollar_pattern, template_content):
         var_name = match.group(1).strip()
         variables.add(var_name)
 
     return variables
+
 
 def validate_template(template_path, required_variables=None):
     """
@@ -142,7 +157,7 @@ def validate_template(template_path, required_variables=None):
             logger.error(f"❌ Template file not found: {template_path}")
             return False, [], []
 
-        template_content = Path(template_path).read_text(encoding='utf-8')
+        template_content = Path(template_path).read_text(encoding="utf-8")
         template_vars = extract_template_variables(template_content)
 
         if required_variables is None:
@@ -167,6 +182,7 @@ def validate_template(template_path, required_variables=None):
         logger.error(f"❌ Error validating template {template_path}: {e}")
         return False, [], []
 
+
 def validate_all_templates(pipeline_config):
     """
     Validate all templates referenced in a pipeline configuration.
@@ -186,15 +202,29 @@ def validate_all_templates(pipeline_config):
             # Check for template_path in function step inputs
             if step.get("type") == "function":
                 inputs = step.get("inputs", {})
-                template_path = inputs.get("template_path")
+
+                # Handle both dict and list inputs
+                if isinstance(inputs, dict):
+                    template_path = inputs.get("template_path")
+                elif isinstance(inputs, list):
+                    # For list inputs, skip template path checking
+                    template_path = None
+                else:
+                    template_path = None
 
                 if template_path:
-                    logger.debug(f"Checking template for step '{step_name}': {template_path}")
+                    logger.debug(
+                        f"Checking template for step '{step_name}': {template_path}"
+                    )
                     template_count += 1
 
-                    is_valid, missing_vars, extra_vars = validate_template(template_path)
+                    is_valid, missing_vars, extra_vars = validate_template(
+                        template_path
+                    )
                     if not is_valid:
-                        errors.append(f"Step '{step_name}': Invalid template {template_path}")
+                        errors.append(
+                            f"Step '{step_name}': Invalid template {template_path}"
+                        )
 
                     # Check if step provides required variables
                     template_vars = inputs.get("variables", {})
@@ -202,18 +232,27 @@ def validate_all_templates(pipeline_config):
                         provided_vars = set(template_vars.keys())
                         still_missing = set(missing_vars) - provided_vars
                         if still_missing:
-                            errors.append(f"Step '{step_name}': Template {template_path} missing variables: {still_missing}")
+                            errors.append(
+                                f"Step '{step_name}': Template {template_path} "
+                                f"missing variables: {still_missing}"
+                            )
 
             # Check for templates in LLM step output formatting
             if step.get("type") == "llm":
                 template_path = step.get("template") or step.get("format_with")
                 if template_path:
-                    logger.debug(f"Checking output template for step '{step_name}': {template_path}")
+                    logger.debug(
+                        f"Checking output template for step '{step_name}': {template_path}"
+                    )
                     template_count += 1
 
-                    is_valid, missing_vars, extra_vars = validate_template(template_path)
+                    is_valid, missing_vars, extra_vars = validate_template(
+                        template_path
+                    )
                     if not is_valid:
-                        errors.append(f"Step '{step_name}': Invalid output template {template_path}")
+                        errors.append(
+                            f"Step '{step_name}': Invalid output template {template_path}"
+                        )
 
             # Recursively check nested steps (for-each, etc.)
             if step.get("type") == "for-each":
@@ -232,6 +271,7 @@ def validate_all_templates(pipeline_config):
         raise ValueError(f"Template validation failed: {len(errors)} errors found")
     else:
         logger.info(f"✅ All {template_count} templates validated successfully")
+
 
 def save_markdown_as(text, passage, format="md", output_dir="outputs"):
     """
@@ -253,12 +293,9 @@ def save_markdown_as(text, passage, format="md", output_dir="outputs"):
     else:
         raise ValueError(f"Unsupported format: {format}")
 
-# --- XML saving ---
 
 def save_xml(xml_string, basename, output_dir="outputs/xml"):
-    """
-    Save an XML string to a file, using a sanitized version of the entry_id.
-    """
+    """Save an XML string to a file, using a sanitized version of the entry_id."""
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     safe_name = sanitize_filename(basename)
     path = Path(output_dir) / f"{safe_name}.xml"
@@ -268,66 +305,19 @@ def save_xml(xml_string, basename, output_dir="outputs/xml"):
 
 
 def save_text(content, output_path, format="md"):
-    """
-    Save text content to a file.
-    """
+    """Save text content to a file."""
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     write_nfc(output_path, content)
     return str(output_path)
 
+
 def save_json(content, output_path):
-    """
-    Save JSON content to a file.
-    """
+    """Save JSON content to a file."""
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(content, f, ensure_ascii=False, indent=2)
     return str(output_path)
 
-# --- Existing save_leaders_guide (good enough for now) ---
-
-def save_leaders_guide(passage, intro, scenes, step1, step2, step3, step4, summary):
-    output_dir = "outputs"
-    os.makedirs(output_dir, exist_ok=True)
-    safe_passage = sanitize_filename(passage)
-    output_path = os.path.join(output_dir, f"leaders_guide_{safe_passage}.md")
-
-    lines = [intro.strip(), ""]
-    for i, scene in enumerate(scenes):
-        title = scene.get("Title", f"Scene {i+1}")
-        citation = scene.get("Citation", "")
-        text = scene.get("Berean Standard Bible", "")
-        lines.append(f"## {title} ({citation})")
-        if text:
-            lines.append(f"*{text}*")
-        lines.append("")
-        lines.append(step1[i])
-        lines.append("")
-        lines.append(step2[i])
-        lines.append("")
-        lines.append(step3[i])
-        lines.append("")
-        lines.append(step4[i])
-        lines.append("")
-    lines.append(summary.strip())
-    lines.append("")
-
-    full_markdown = "\n".join(lines)
-    write_nfc(output_path, full_markdown)
-
-    result = copy.deepcopy(structure)
-    return result
-
-def extract_template_variables(template_path):
-    """Extract all variables used in a double-curly-brace template (no Jinja2)"""
-    import re
-
-    template_content = read_text(template_path)
-
-    # Find all {{ variable }} and {{ object.property }} patterns
-    curly_vars = set(re.findall(r'\{\{\s*([a-zA-Z_][a-zA-Z0-9_\.]*)\s*\}\}', template_content))
-
-    return curly_vars
 
 def extract_pipeline_variables(pipeline):
     """Extract all variables that will be available in context"""
@@ -347,6 +337,7 @@ def extract_pipeline_variables(pipeline):
 
     return available
 
+
 def extract_interleave_fields(pipeline):
     """Extract field names from interleave operations"""
     interleave_fields = {}
@@ -359,6 +350,7 @@ def extract_interleave_fields(pipeline):
                     interleave_fields[var_name] = list(var_config["interleave"].keys())
 
     return interleave_fields
+
 
 def extract_pipeline_variables_at_step(pipeline, target_step_name):
     """Extract variables available when a specific step runs"""
@@ -378,6 +370,7 @@ def extract_pipeline_variables_at_step(pipeline, target_step_name):
 
     return available
 
+
 def validate_template_structure(template_path, pipeline, step_name):
     """Check template against variables available when that step runs"""
     template_vars = extract_template_variables(template_path)
@@ -394,7 +387,7 @@ def validate_template_structure(template_path, pipeline, step_name):
                     "valid": len(missing) == 0,
                     "missing_vars": missing,
                     "unused_vars": step_vars - template_vars,
-                    "interleave_issues": []  # ✅ Add this
+                    "interleave_issues": [],  # ✅ Add this
                 }
 
     missing = template_vars - available_vars
@@ -402,54 +395,21 @@ def validate_template_structure(template_path, pipeline, step_name):
         "valid": len(missing) == 0,
         "missing_vars": missing,
         "unused_vars": available_vars - template_vars,
-        "interleave_issues": []  # ✅ Add this
+        "interleave_issues": [],  # ✅ Add this
     }
-
-def validate_all_templates(pipeline):
-    """Validate all templates used in the pipeline"""
-    validation_results = {}
-
-    for step in pipeline.get("steps", []):
-        if step.get("type") == "function" and step.get("function") == "llmflow.utils.io.render_markdown_template":
-            inputs = step.get("inputs", {})
-            if "template_path" in inputs:
-                template_path = inputs["template_path"]
-                step_name = step.get("name", "unnamed")
-
-                print(f"🔍 Validating template: {template_path} (step: {step_name})")
-
-                try:
-                    result = validate_template_structure(template_path, pipeline, step_name)
-                    validation_results[template_path] = result
-
-                    if result["valid"]:
-                        print(f"✅ Template {template_path} is valid")
-                    else:
-                        print(f"❌ Template {template_path} has issues:")
-                        if result["missing_vars"]:
-                            print(f"   Missing variables: {result['missing_vars']}")
-                        if result["interleave_issues"]:
-                            for issue in result["interleave_issues"]:
-                                print(f"   {issue}")
-
-                    if result["unused_vars"]:
-                        print(f"ℹ️  Unused variables: {result['unused_vars']}")
-
-                except Exception as e:
-                    print(f"⚠️  Error validating {template_path}: {e}")
-                    validation_results[template_path] = {"valid": False, "error": str(e)}
-
-    return validation_results
 
 class AttrDict(dict):
     """A dict that supports attribute access (dot notation)."""
+
     def __getattr__(self, item):
         value = self.get(item)
         if isinstance(value, dict):
             return AttrDict(value)
         return value
+
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
+
 
 def to_attrdict(obj):
     """Recursively convert dicts in obj to AttrDict."""

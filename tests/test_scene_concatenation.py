@@ -1,8 +1,9 @@
-import pytest
-from llmflow.runner import run_for_each_step, run_function_step
-from llmflow.utils.data import flatten_json_to_markdown
 import tempfile
 from pathlib import Path
+
+from llmflow.runner import run_for_each_step
+from llmflow.utils.data import flatten_json_to_markdown
+
 
 class TestSceneConcatenation:
     """Test that scene lists are properly built and concatenated"""
@@ -13,7 +14,7 @@ class TestSceneConcatenation:
             "scenes": [
                 {"title": "Scene 1", "content": "Content 1"},
                 {"title": "Scene 2", "content": "Content 2"},
-                {"title": "Scene 3", "content": "Content 3"}
+                {"title": "Scene 3", "content": "Content 3"},
             ]
         }
 
@@ -29,15 +30,16 @@ class TestSceneConcatenation:
                     "function": "tests.test_scene_concatenation.format_scene_content",
                     "inputs": {"scene": "${scene}"},
                     "outputs": "formatted_scene",
-                    "append_to": "scene_list"
+                    "append_to": "scene_list",
                 }
-            ]
+            ],
         }
 
         def format_scene_content(scene):
             return f"## {scene['title']}\n{scene['content']}\n"
 
         import sys
+
         sys.modules[__name__].format_scene_content = format_scene_content
 
         # Run the for-each
@@ -45,7 +47,9 @@ class TestSceneConcatenation:
 
         # Assert ALL scenes were appended
         assert "scene_list" in context
-        assert len(context["scene_list"]) == 3, f"Expected 3 scenes, got {len(context['scene_list'])}"
+        assert (
+            len(context["scene_list"]) == 3
+        ), f"Expected 3 scenes, got {len(context['scene_list'])}"
 
         # Check each scene is present
         assert "Scene 1" in context["scene_list"][0]
@@ -60,7 +64,7 @@ class TestSceneConcatenation:
         markdown_list = [
             "## Scene 1\nContent for scene 1\n",
             "## Scene 2\nContent for scene 2\n",
-            "## Scene 3\nContent for scene 3\n"
+            "## Scene 3\nContent for scene 3\n",
         ]
 
         result = flatten_json_to_markdown(markdown_list)
@@ -84,7 +88,7 @@ class TestSceneConcatenation:
 ---
 End of guide"""
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(template_content)
             template_path = f.name
 
@@ -96,6 +100,7 @@ End of guide"""
 
             # Render template
             from llmflow.utils.io import render_markdown_template
+
             result = render_markdown_template(template_path, context)
 
             # All scenes should appear in the output

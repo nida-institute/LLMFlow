@@ -1,27 +1,28 @@
-from llmflow.runner import run_for_each_step
 import pytest
+
+from llmflow.runner import run_for_each_step
+
 
 class TestCriticalForEachContext:
     def test_nested_context_isolation(self):
         """Ensure for-each iterations don't contaminate each other"""
-        context = {
-            "items": ["A", "B", "C"],
-            "global_value": "unchanged"
-        }
+        context = {"items": ["A", "B", "C"], "global_value": "unchanged"}
 
         rule = {
             "name": "test_isolation",
             "type": "for-each",
             "input": "${items}",
             "item_var": "item",
-            "steps": [{
-                "name": "mutate_context",
-                "type": "function",
-                "function": "tests.test_critical_foreach_context.mutate_context",
-                "inputs": {"item": "${item}"},
-                "outputs": "result",
-                "append_to": "results"
-            }]
+            "steps": [
+                {
+                    "name": "mutate_context",
+                    "type": "function",
+                    "function": "tests.test_critical_foreach_context.mutate_context",
+                    "inputs": {"item": "${item}"},
+                    "outputs": "result",
+                    "append_to": "results",
+                }
+            ],
         }
 
         run_for_each_step(rule, context, {"variables": {}})
@@ -40,6 +41,7 @@ class TestCriticalForEachContext:
         """Regression test for the shallow copy bug"""
         # This test needs access to the context object passed to functions
         pass
+
 
 def mutate_context(item):
     return f"{item}-processed"

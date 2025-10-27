@@ -1,12 +1,14 @@
 import os
-import yaml
 from pathlib import Path
+
+import yaml
+
 
 def test_prompt_file_resolution():
     """Test that the linter can resolve prompt file paths correctly"""
 
     # Update to use existing pipeline file
-    pipeline_path = 'pipelines/storyflow-test.yaml'
+    pipeline_path = "pipelines/storyflow-test.yaml"
 
     # Check if the actual pipeline file exists and has correct structure
     pipeline_path = Path("pipelines/storyflow-test.yaml")
@@ -36,7 +38,7 @@ def test_prompt_file_resolution():
     required_files = [
         "exegetical-pericope-psalms-e1.gpt",
         "leadersguide-intro.gpt",
-        "joshfrost-emotional.gpt"
+        "joshfrost-emotional.gpt",
     ]
 
     print("\nChecking required files:")
@@ -48,13 +50,14 @@ def test_prompt_file_resolution():
         if exists:
             # Check file is readable and not empty
             try:
-                with open(file_path, 'r') as f:
+                with open(file_path, "r") as f:
                     content = f.read().strip()
                     print(f"    File size: {len(content)} chars")
                     if len(content) == 0:
-                        print(f"    ⚠️  File is empty!")
+                        print("    ⚠️  File is empty!")
             except Exception as e:
                 print(f"    ❌ Error reading file: {e}")
+
 
 def test_variable_resolution_in_context():
     """Test if variable resolution works for prompt file paths"""
@@ -62,23 +65,20 @@ def test_variable_resolution_in_context():
     # Create a simple test case that mimics the failing scenario
     test_pipeline = {
         "name": "test-prompt-resolution",
-        "variables": {
-            "prompts_dir": "prompts/storyflow"
-        },
+        "variables": {"prompts_dir": "prompts/storyflow"},
         "steps": [
             {
                 "name": "test_step",
                 "type": "llm",
-                "prompt": {
-                    "file": "exegetical-pericope-psalms-e1.gpt"
-                }
+                "prompt": {"file": "exegetical-pericope-psalms-e1.gpt"},
             }
-        ]
+        ],
     }
 
     # Save to temp file
     import tempfile
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         yaml.dump(test_pipeline, f)
         temp_pipeline_path = f.name
 
@@ -101,7 +101,9 @@ def test_variable_resolution_in_context():
 
         # Check full file path resolution
         prompt_file = "exegetical-pericope-psalms-e1.gpt"
-        full_path = Path(lint_context.pipeline_root) / resolved_prompts_dir / prompt_file
+        full_path = (
+            Path(lint_context.pipeline_root) / resolved_prompts_dir / prompt_file
+        )
         print(f"Full resolved path: {full_path}")
         print(f"File exists at resolved path: {full_path.exists()}")
 
@@ -110,16 +112,21 @@ def test_variable_resolution_in_context():
         print("Available linter functions:")
         try:
             import llmflow.utils.linter as linter
-            print(f"  Available: {[name for name in dir(linter) if not name.startswith('_')]}")
-        except:
+
+            print(
+                f"  Available: {[name for name in dir(linter) if not name.startswith('_')]}"
+            )
+        except Exception:
             print("  Could not import linter module")
     except Exception as e:
         print(f"Error during resolution test: {e}")
         import traceback
+
         traceback.print_exc()
 
     # Clean up
     os.unlink(temp_pipeline_path)
+
 
 def test_debug_linter_path_resolution():
     """Debug the exact linter path resolution logic"""
@@ -129,7 +136,10 @@ def test_debug_linter_path_resolution():
     try:
         # First, let's see what's actually in the linter module
         import llmflow.utils.linter as linter_module
-        print(f"Linter module contents: {[name for name in dir(linter_module) if not name.startswith('_')]}")
+
+        print(
+            f"Linter module contents: {[name for name in dir(linter_module) if not name.startswith('_')]}"
+        )
 
         # Try to create a lint context
         from llmflow.utils.linter import LintContext
@@ -137,13 +147,13 @@ def test_debug_linter_path_resolution():
         # Create lint context same way the real linter does
         lint_context = LintContext(pipeline_path)
 
-        print(f"=== LINTER DEBUG ===")
+        print("=== LINTER DEBUG ===")
         print(f"Pipeline file: {pipeline_path}")
         print(f"Pipeline root: {lint_context.pipeline_root}")
         print(f"Current working dir: {os.getcwd()}")
 
         # Check variables resolution
-        print(f"\nVariables:")
+        print("\nVariables:")
         for key, value in lint_context.variables.items():
             print(f"  {key}: {value}")
 
@@ -155,8 +165,11 @@ def test_debug_linter_path_resolution():
             # Try different path resolution approaches
             approaches = [
                 ("Relative to cwd", Path(prompts_dir)),
-                ("Relative to pipeline", Path(lint_context.pipeline_root) / prompts_dir),
-                ("Absolute path", Path(prompts_dir).resolve())
+                (
+                    "Relative to pipeline",
+                    Path(lint_context.pipeline_root) / prompts_dir,
+                ),
+                ("Absolute path", Path(prompts_dir).resolve()),
             ]
 
             for name, path in approaches:
@@ -173,10 +186,11 @@ def test_debug_linter_path_resolution():
         # Let's try a different approach - check what the runner does
         try:
             from llmflow.runner import load_pipeline_config
+
             config = load_pipeline_config(pipeline_path)
-            print(f"Pipeline config loaded successfully")
+            print("Pipeline config loaded successfully")
             print(f"Config keys: {list(config.keys())}")
-            if 'variables' in config:
+            if "variables" in config:
                 print(f"Variables: {config['variables']}")
         except Exception as runner_e:
             print(f"Runner approach failed: {runner_e}")
@@ -184,7 +198,9 @@ def test_debug_linter_path_resolution():
     except Exception as e:
         print(f"Error in debug: {e}")
         import traceback
+
         traceback.print_exc()
+
 
 def test_simple_file_check():
     """Simple test to verify the files actually exist"""
@@ -206,7 +222,7 @@ def test_simple_file_check():
         failing_files = [
             "exegetical-pericope-psalms-e1.gpt",
             "leadersguide-intro.gpt",
-            "joshfrost-emotional.gpt"
+            "joshfrost-emotional.gpt",
         ]
 
         print("\nSpecific file check:")
@@ -218,8 +234,10 @@ def test_simple_file_check():
             if exists:
                 # Check if file is readable
                 try:
-                    with open(filepath, 'r') as f:
+                    with open(filepath, "r") as f:
                         content = f.read()
-                        print(f"    Size: {len(content)} chars, First 50: {repr(content[:50])}")
+                        print(
+                            f"    Size: {len(content)} chars, First 50: {repr(content[:50])}"
+                        )
                 except Exception as e:
                     print(f"    Error reading: {e}")

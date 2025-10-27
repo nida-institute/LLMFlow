@@ -1,10 +1,12 @@
+import inspect
 import os
 from pathlib import Path
+
 
 def test_linter_path_resolution_bug():
     """Test to isolate the linter path resolution issue"""
 
-    pipeline_path = 'pipelines/storyflow-test.yaml'
+    pipeline_path = "pipelines/storyflow-test.yaml"
 
     try:
         # Use the correct function name from the available list
@@ -23,10 +25,11 @@ def test_linter_path_resolution_bug():
 
             # Let's manually check what the linter is trying to do
             try:
-                from llmflow.utils.linter import validate_step_prompt_contract
-
                 # Test the specific function that's failing
                 import yaml
+
+                from llmflow.utils.linter import validate_step_prompt_contract
+
                 with open(pipeline_path) as f:
                     pipeline = yaml.safe_load(f)
 
@@ -40,7 +43,11 @@ def test_linter_path_resolution_bug():
 
                     # Try to validate this step's contract manually
                     try:
-                        validate_step_prompt_contract(step, pipeline.get("variables", {}), Path(pipeline_path).parent)
+                        validate_step_prompt_contract(
+                            step,
+                            pipeline.get("variables", {}),
+                            Path(pipeline_path).parent,
+                        )
                         print("Step validation succeeded!")
                     except Exception as step_error:
                         print(f"Step validation error: {step_error}")
@@ -60,33 +67,39 @@ def test_linter_path_resolution_bug():
                         test_bases = [
                             Path.cwd(),
                             Path(pipeline_path).parent,
-                            Path(pipeline_path).parent.parent
+                            Path(pipeline_path).parent.parent,
                         ]
 
                         for base in test_bases:
                             test_path = base / prompts_dir / prompt_file
-                            print(f"Testing: {test_path} - Exists: {test_path.exists()}")
+                            print(
+                                f"Testing: {test_path} - Exists: {test_path.exists()}"
+                            )
 
             except ImportError as validate_error:
-                print(f"Could not import validate_step_prompt_contract: {validate_error}")
+                print(
+                    f"Could not import validate_step_prompt_contract: {validate_error}"
+                )
 
     except ImportError as e:
         print(f"Could not import lint_pipeline_full: {e}")
+
 
 def test_manual_contract_validation():
     """Manually test what the contract validation is doing"""
 
     # Let's manually check how the linter validates contracts
-    pipeline_path = 'pipelines/storyflow-test.yaml'
+    pipeline_path = "pipelines/storyflow-test.yaml"
 
     import yaml
+
     with open(pipeline_path) as f:
         pipeline = yaml.safe_load(f)
 
     variables = pipeline.get("variables", {})
     prompts_dir = variables.get("prompts_dir", "")
 
-    print(f"Manual check:")
+    print("Manual check:")
     print(f"  prompts_dir from YAML: '{prompts_dir}'")
 
     # Get a failing step
@@ -113,19 +126,21 @@ def test_manual_contract_validation():
             print(f"  Alternative path: {alt_path}")
             print(f"  Alt path exists: {alt_path.exists()}")
 
+
 def test_direct_linter_call():
     """Test calling the linter functions directly to see exact error"""
 
     try:
         from llmflow.utils.linter import validate_all_step_contracts
 
-        pipeline_path = 'pipelines/storyflow-test.yaml'
+        pipeline_path = "pipelines/storyflow-test.yaml"
 
         import yaml
+
         with open(pipeline_path) as f:
             pipeline_data = yaml.safe_load(f)
 
-        print(f"Testing validate_all_step_contracts directly...")
+        print("Testing validate_all_step_contracts directly...")
         print(f"Pipeline data type: {type(pipeline_data)}")
         print(f"Pipeline data keys: {list(pipeline_data.keys())}")
 
@@ -147,14 +162,15 @@ def test_direct_linter_call():
             try:
                 # Approach 2: Maybe it needs variables too?
                 variables = pipeline_data.get("variables", {})
-                result = validate_all_step_contracts(steps, Path(pipeline_path).parent, variables)
+                result = validate_all_step_contracts(
+                    steps, Path(pipeline_path).parent, variables
+                )
                 print(f"Validation result (with variables): {result}")
 
             except Exception as e2:
                 print(f"Error with variables approach: {e2}")
 
                 # Let's look at the function signature
-                import inspect
                 sig = inspect.signature(validate_all_step_contracts)
                 print(f"Function signature: {sig}")
 
@@ -170,14 +186,19 @@ def test_direct_linter_call():
                         from llmflow.utils.linter import validate_step_prompt_contract
 
                         try:
-                            result = validate_step_prompt_contract(step, variables, Path(pipeline_path).parent)
-                            print(f"Single step validation succeeded!")
+                            result = validate_step_prompt_contract(
+                                step, variables, Path(pipeline_path).parent
+                            )
+                            print("Single step validation succeeded!")
                         except Exception as step_error:
                             print(f"Single step validation error: {step_error}")
                             print(f"Step error type: {type(step_error)}")
 
                             # This should be the actual path resolution error
-                            if "not found" in str(step_error).lower() or "no such file" in str(step_error).lower():
+                            if (
+                                "not found" in str(step_error).lower()
+                                or "no such file" in str(step_error).lower()
+                            ):
                                 print(f"🎯 FOUND THE PATH ISSUE: {step_error}")
 
                                 # Let's see what exact path it's looking for
@@ -185,7 +206,9 @@ def test_direct_linter_call():
                                 print(f"Full error message: {error_msg}")
 
                 except ImportError as import_err:
-                    print(f"Could not import validate_step_prompt_contract: {import_err}")
+                    print(
+                        f"Could not import validate_step_prompt_contract: {import_err}"
+                    )
 
     except ImportError as e:
         print(f"Could not import validate_all_step_contracts: {e}")
@@ -193,12 +216,18 @@ def test_direct_linter_call():
         # Let's just see what functions are actually available and try them
         try:
             import llmflow.utils.linter as linter_mod
-            available = [name for name in dir(linter_mod)
-                        if not name.startswith('_') and callable(getattr(linter_mod, name))]
+
+            available = [
+                name
+                for name in dir(linter_mod)
+                if not name.startswith("_") and callable(getattr(linter_mod, name))
+            ]
             print(f"Available callable functions: {available}")
 
             # Try each function that might be related to validation
-            validation_funcs = [name for name in available if 'validate' in name.lower()]
+            validation_funcs = [
+                name for name in available if "validate" in name.lower()
+            ]
             print(f"Validation functions: {validation_funcs}")
 
             for func_name in validation_funcs:
@@ -212,6 +241,7 @@ def test_direct_linter_call():
         except Exception as explore_error:
             print(f"Could not explore linter module: {explore_error}")
 
+
 def test_find_actual_validation_error():
     """Try to trigger the exact same error that the CLI is showing"""
 
@@ -219,9 +249,9 @@ def test_find_actual_validation_error():
         # Let's try to replicate the exact same call that the CLI makes
         from llmflow.utils.linter import lint_pipeline_contracts
 
-        pipeline_path = 'pipelines/storyflow-test.yaml'
+        pipeline_path = "pipelines/storyflow-test.yaml"
 
-        print(f"Testing lint_pipeline_contracts (the function CLI probably uses)...")
+        print("Testing lint_pipeline_contracts (the function CLI probably uses)...")
 
         try:
             result = lint_pipeline_contracts(pipeline_path)
@@ -252,12 +282,12 @@ def test_find_actual_validation_error():
             print(f"lint_pipeline_full error: {full_error}")
             print(f"This is probably the real issue: {full_error}")
 
+
 def test_debug_validate_step_prompt_contract():
     """Debug exactly what validate_step_prompt_contract is doing"""
 
     try:
         from llmflow.utils.linter import validate_step_prompt_contract
-        import inspect
 
         # Look at the source code of this function
         print("Function signature:")
@@ -268,16 +298,17 @@ def test_debug_validate_step_prompt_contract():
         try:
             source = inspect.getsource(validate_step_prompt_contract)
             print("Function source (first 20 lines):")
-            lines = source.split('\n')[:20]
+            lines = source.split("\n")[:20]
             for i, line in enumerate(lines, 1):
                 print(f"  {i:2d}: {line}")
-        except:
+        except Exception:
             print("Could not get source code")
 
         # Now let's test it manually with correct parameters
-        pipeline_path = 'pipelines/storyflow-test.yaml'
+        pipeline_path = "pipelines/storyflow-test.yaml"
 
         import yaml
+
         with open(pipeline_path) as f:
             pipeline_data = yaml.safe_load(f)
 
@@ -293,14 +324,33 @@ def test_debug_validate_step_prompt_contract():
             approaches = [
                 ("Just step", [step]),
                 ("Step + empty vars", [step, {}]),
-                ("Step + vars + pipeline_root", [step, pipeline_data.get("variables", {}), Path(pipeline_path).parent]),
-                ("Step + vars + pipeline_path", [step, pipeline_data.get("variables", {}), pipeline_path]),
-                ("Step + vars + str_path", [step, pipeline_data.get("variables", {}), str(Path(pipeline_path).parent)]),
+                (
+                    "Step + vars + pipeline_root",
+                    [
+                        step,
+                        pipeline_data.get("variables", {}),
+                        Path(pipeline_path).parent,
+                    ],
+                ),
+                (
+                    "Step + vars + pipeline_path",
+                    [step, pipeline_data.get("variables", {}), pipeline_path],
+                ),
+                (
+                    "Step + vars + str_path",
+                    [
+                        step,
+                        pipeline_data.get("variables", {}),
+                        str(Path(pipeline_path).parent),
+                    ],
+                ),
             ]
 
             for name, args in approaches:
                 try:
-                    print(f"\nTrying {name} with args: {[type(arg).__name__ for arg in args]}")
+                    print(
+                        f"\nTrying {name} with args: {[type(arg).__name__ for arg in args]}"
+                    )
                     result = validate_step_prompt_contract(*args)
                     print(f"  ✅ Success: {result}")
                     break  # If one works, we found the right signature
@@ -310,13 +360,15 @@ def test_debug_validate_step_prompt_contract():
     except ImportError as e:
         print(f"Could not import validate_step_prompt_contract: {e}")
 
+
 def test_trace_exact_path_resolution():
     """Trace exactly how the linter resolves prompt file paths"""
 
     # Let's manually walk through what the linter should be doing
-    pipeline_path = 'pipelines/storyflow-test.yaml'
+    pipeline_path = "pipelines/storyflow-test.yaml"
 
     import yaml
+
     with open(pipeline_path) as f:
         pipeline_data = yaml.safe_load(f)
 
@@ -362,11 +414,16 @@ def test_trace_exact_path_resolution():
                     Path(prompts_dir) / prompt_file,  # No pipeline_root
                 ]
 
-                print(f"\nPossible incorrect paths the linter might be checking:")
+                print("\nPossible incorrect paths the linter might be checking:")
                 for i, wrong_path in enumerate(wrong_paths, 1):
                     print(f"  {i}. {wrong_path} - Exists: {wrong_path.exists()}")
 
                 # The error message shows it's looking for just the filename
                 # This suggests the linter is NOT using prompts_dir at all
-                print(f"\n🎯 LIKELY ISSUE: Linter is looking for '{prompt_file}' instead of '{full_path}'")
-                print("This means the linter is not resolving the prompts_dir variable!")
+                print(
+                    f"\n🎯 LIKELY ISSUE: Linter is looking for '{prompt_file}' "
+                    f"instead of '{full_path}'"
+                )
+                print(
+                    "This means the linter is not resolving the prompts_dir variable!"
+                )
