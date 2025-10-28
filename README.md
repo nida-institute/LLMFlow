@@ -2,35 +2,264 @@
 
 **LLMFlow** is a declarative pipeline system for building workflows powered by large language models (LLMs). It allows you to structure and automate prompts, responses, and output generation across a series of steps — with optional scene-based iteration, variable injection, and file generation.
 
-## 🔧 Installation
+## Installation
 
-LLMFlow is a Python project that uses [Hatch](https://hatch.pypa.io/) for packaging and environment management.
+### Install LLMFlow as a Command-Line Tool
+
+LLMFlow is designed to work across multiple independent projects. Install it once, use it everywhere.
+
+#### Development Installation (Recommended)
 
 ```bash
+# Clone the LLMFlow repository
 git clone https://github.com/nida-institute/LLMFlow.git
 cd LLMFlow
-hatch env create
+
+# Install in editable mode
+pip install -e .
+
+# Verify installation
+llmflow --version
+llmflow --help
 ```
 
-## 🚀 Running a Pipeline
-
-To run a pipeline:
+#### Using Hatch (For Contributors)
 
 ```bash
-hatch run llmflow run --pipeline pipelines/storyflow.yaml --var passage="Psalm 23"
+# Install hatch if you haven't already
+pip install hatch
+
+# Enter the development environment
+hatch shell
+
+# LLMFlow is now available
+llmflow --version
 ```
 
-### Options
+### Working with Multiple Projects
 
-- `--pipeline`: Path to an LLMFlow YAML file (default: `pipelines/storyflow.yaml`)
-- `--var`: Inject variables (e.g. `--var passage="John 15"`). Repeatable.
-- `--dry_run`: Show the steps without executing them.
+Once installed, `llmflow` works seamlessly across different project repositories:
 
-## 🧠 What Is an LLMFlow?
+```bash
+# Lexicon project
+cd ~/github/biblical-lexicon
+llmflow run --pipeline pipelines/lexicon-generation.yaml
 
-An **LLMFlow** is a YAML file that defines:
-- The pipeline name
-- Input variables
-- A series of declarative steps (`rules`) including LLM calls, iteration, and output saving
+# Exegetical guides project
+cd ~/github/exegetical-guides
+llmflow run --pipeline pipelines/storyflow.yaml
 
-See [`llmflow-language.md`](llmflow-language.md) for full reference.
+# Translation notes project
+cd ~/github/translation-notes
+llmflow run --pipeline pipelines/note-generation.yaml
+```
+
+Each project repository maintains its own:
+- **Pipeline configurations** (`pipelines/*.yaml`)
+- **Templates** (`templates/*.md`)
+- **Prompts** (`prompts/*.md`)
+- **Outputs** (`outputs/*/`)
+- **Git history and version control**
+
+This keeps each project's artifacts separate and independently versioned.
+
+### Recommended Project Structure
+
+Each of your project repositories should follow this structure:
+
+```
+your-project-repo/
+├── .gitignore                 # Ignore outputs/, .env, etc.
+├── README.md                  # Project-specific documentation
+├── pipelines/
+│   └── your-pipeline.yaml    # Your pipeline definition
+├── templates/
+│   └── your-template.md      # Output templates
+├── prompts/
+│   └── step1.md              # LLM prompt files
+├── outputs/                   # Generated artifacts (git-ignored)
+│   └── leaders_guide/
+│       └── *.md
+└── .env                       # API keys (git-ignored, optional)
+```
+
+### Example: Setting Up a New Project
+
+```bash
+# Create a new project repository
+mkdir ~/github/my-new-llmflow-project
+cd ~/github/my-new-llmflow-project
+git init
+
+# Create the basic structure
+mkdir -p pipelines templates prompts outputs
+
+# Add .gitignore
+cat > .gitignore << 'EOF'
+# Outputs (generated artifacts)
+outputs/
+
+# Environment files
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Logs
+*.log
+llmflow.log
+EOF
+
+# Create your first pipeline
+cat > pipelines/example.yaml << 'EOF'
+name: example-pipeline
+vars:
+  output_dir: outputs
+
+steps:
+  - name: generate_content
+    type: llm
+    # ... your step configuration
+EOF
+
+# Run your pipeline
+llmflow run --pipeline pipelines/example.yaml
+```
+
+### Available Commands
+
+```bash
+# Run a pipeline
+llmflow run --pipeline pipelines/your-pipeline.yaml
+
+# Dry run (preview without execution)
+llmflow run --pipeline pipelines/your-pipeline.yaml --dry-run
+
+# Validate a pipeline
+llmflow lint pipelines/your-pipeline.yaml
+
+# Set variables from command line
+llmflow run --pipeline pipelines/your-pipeline.yaml --var key=value
+
+# Show version
+llmflow --version
+
+# Get help
+llmflow --help
+```
+
+### Example Projects
+
+Here are some example project types and their typical structures:
+
+#### Exegetical Guides Project
+
+```
+~/github/exegetical-guides/
+├── pipelines/
+│   └── storyflow.yaml
+├── templates/
+│   └── leadersguide_scene_template.md
+├── prompts/
+│   ├── step1_body.md
+│   ├── step2_heart.md
+│   └── step3_speak.md
+└── outputs/
+    └── leaders_guide/
+        └── 42001057-42001057_leaders_guide.md
+```
+
+#### Biblical Lexicon Project
+
+```
+~/github/biblical-lexicon/
+├── pipelines/
+│   └── lexicon-generation.yaml
+├── templates/
+│   └── lexicon_entry.md
+├── prompts/
+│   ├── define_word.md
+│   └── find_usage.md
+└── outputs/
+    └── lexicon/
+        └── greek_entries/
+```
+
+#### Translation Notes Project
+
+```
+~/github/translation-notes/
+├── pipelines/
+│   └── note-generation.yaml
+├── templates/
+│   └── translation_note.md
+├── prompts/
+│   └── create_note.md
+└── outputs/
+    └── notes/
+        └── matthew/
+```
+
+### Tips for Multi-Project Workflow
+
+1. **Keep LLMFlow Updated**: Periodically update your LLMFlow installation:
+   ```bash
+   cd ~/github/LLMFlow
+   git pull
+   pip install -e .
+   ```
+
+2. **Version Control**: Each project should have its own git repository:
+   ```bash
+   git add pipelines/ templates/ prompts/
+   git commit -m "Add pipeline configuration"
+   git push
+   ```
+
+3. **Ignore Outputs**: Add `outputs/` to `.gitignore` in each project to avoid committing generated files.
+
+4. **Share Configurations**: If multiple projects use similar pipelines, consider:
+   - Creating a shared template repository
+   - Symlinking common templates
+   - Using git submodules for shared resources
+
+5. **Environment Variables**: Use `.env` files in each project for project-specific API keys or settings.
+
+### Prompt File Format (`.gpt`)
+
+Variables use `{{variable}}` double curly brace syntax:
+
+```
+<!--
+prompt:
+  requires:
+    - passage
+    - scene
+  optional: []
+-->
+
+Analyze {{passage}} using {{scene}}.
+```
+
+Variable substitution is handled by the `llm` package.
+
+### Template File Format (`.md`)
+
+Variables use `{{variable}}` or `${variable}` syntax:
+
+```markdown
+# {{passage}} Guide
+
+Context: ${context.background}
+```
+
+Variable substitution is handled by `render_markdown_template()`.
+
+## License
+
+Copyright 2025 Biblica, Inc.
+
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.

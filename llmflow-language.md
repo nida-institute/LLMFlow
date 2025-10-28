@@ -477,7 +477,7 @@ linter_config:
 
 ### Prompt File Format
 
-Prompt files (`.gpt` extension) use **Mustache/Handlebars syntax** with double curly braces:
+Prompt files (`.gpt` extension) use **double curly brace syntax**:
 
 ```
 <!--
@@ -493,30 +493,22 @@ prompt:
 
 # Your Prompt Title
 
-## 📥 Inputs
-
-### passage
-{{passage}}
-
-### scene
-{{scene}}
-
-### citation
-{{citation}}
-
----
-
 Your prompt instructions here. Reference variables using {{variable_name}}.
+
+Supports:
+- Simple variables: {{passage}}
+- Dot notation: {{scene.WLC}}
+- Array access: {{items[0]}}
 ```
 
 **Key features:**
 - **Contract in HTML comments**: YAML frontmatter defines `requires:`, `optional:`, `format:`, `description:`
-- **Variable syntax**: `{{variable_name}}` for substitution (NOT `{variable}` or `${variable}`)
-- **Validation**: Linter checks that all `requires:` inputs are provided in the pipeline step
+- **Variable syntax**: `{{variable_name}}` for substitution
+- **Validation**: Linter checks that all `requires:` inputs are provided
 
 ### Template File Format
 
-Template files (`.md` extension) use the same **Mustache/Handlebars syntax**:
+Template files (`.md` extension) use the same **double curly brace syntax**:
 
 ```markdown
 # {{passage}} Leader's Guide
@@ -532,25 +524,26 @@ Template files (`.md` extension) use the same **Mustache/Handlebars syntax**:
 
 **Variable substitution**: `{{variable_name}}`
 
+**Also supports**: `${variable}` syntax with context resolution
+
 ### Pipeline Variable Reference Syntax
 
-In pipeline YAML files, variables are referenced differently:
+In pipeline YAML files:
 
 - **Simple reference**: `"${variable}"`
 - **Nested object**: `"${scene.WLC}"`, `"${scene.Citation}"`
 - **Array access**: `"${scene_list[0]}"`
 - **Array mapping**: `"${scene_list[*].Title}"` - extracts all Title fields
 
+### Template Engine Implementation
+
+LLMFlow uses a **custom template engine** with regex-based substitution:
+- First pass: `{{variable}}` replacement
+- Second pass: `${variable}` resolution from context
+- Supports dot notation and subscript access via Python's `eval()` in safe context
+- Does NOT use Jinja2 or Mustache libraries
+
 **Summary of syntax by context:**
 - **Pipeline YAML**: `${var}` with dollar sign
 - **Prompt files**: `{{var}}` double curly braces
-- **Template files**: `{{var}}` double curly braces
-
-### Other Notes
-
-- **File paths:** Relative to project root or absolute
-- **Unicode normalization:** All text output is normalized to Unicode NFC
-- **Directory creation:** `saveas` automatically creates parent directories
-- **Context isolation:** Each `for-each` iteration has isolated context
-- **LLM flexibility:** Any model supported by the `llm` package can be used
-- **Prompt directory:** Prompt files searched in `prompts/` subdirectory if not found at root
+- **Template files**: `{{var}}` or `${var}` both supported
