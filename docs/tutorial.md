@@ -1,218 +1,225 @@
-# 🧪 Writing and Running LLMFlow Pipelines: A Tutorial
+# 📘 LLMFlow Tutorial (Updated)
 
-This tutorial will walk you through how to **write, understand, and run an LLMFlow pipeline**, using a simple example with two steps:
-
-1. **Retrieve the source text** (from SBLGNT or WLC)
-2. **Generate a Markdown table** with one row per word, including:
-
-   * word
-   * transliteration
-   * gloss
-   * morphology
-   * notes
-
-This framework is useful for building GPT workflows for Bible study, language tools, or structured research outputs.
+This tutorial shows how to write and run a minimal LLMFlow pipeline that:
+1. Fetches a passage (LLM-assisted)
+2. Builds a Markdown word table
 
 ---
 
-## 📦 What is LLMFlow?
+## 🧩 What Is LLMFlow?
 
-LLMFlow is a **declarative framework** for composing and running GPT-based pipelines using YAML. Each pipeline consists of:
-
-* **LLM-powered steps** using `.gpt` prompt templates
-* **Function steps** (rendering, saving, etc.)
-* **Looping constructs** (e.g. `for-each`) for structured workflows
-* **Chained outputs and inputs**, where the output of one step feeds into the next
+LLMFlow is a declarative YAML workflow engine for LLM-assisted content generation:
+- Steps: type llm | function | for-each
+- Variable resolution: `${var}`, nested access, list indexing
+- Prompt contracts: `.gpt` files declare required inputs
+- Output persistence: `saveas:` on any step
+- Accumulation: `append_to:` inside loops
 
 ---
 
-## 🧱 Simple Project Layout
+## 📂 Suggested Example Layout
 
 ```
-project/
-├── prompts/
-│   ├── fetch-source.gpt
-│   └── table-output.gpt
-├── outputs/
-├── simple-table.yaml
-├── cli.py
-├── runner.py
-├── io.py
-└── llm_runner.py
+examples/
+  pipelines/
+    simple-table.yaml
+  prompts/
+    fetch-source.gpt
+    table-output.gpt
+  templates/
+    word-table.md
+  outputs/
 ```
 
 ---
 
-## 🔧 Writing a Minimal Pipeline (YAML)
+## 📝 Pipeline YAML (Correct Structure)
 
 ```yaml
-pipeline:
-  name: simple_table
+name: simple-table
 
-  variables:
-    source: WLC
+variables:
+  source: WLC
 
-  llm_config:
-    model: gpt-4o
-    temperature: 0.3
-    max_tokens: 4000
+llm_config:
+  model: gpt-4o
+  temperature: 0.3
+  max_tokens: 3500
 
-  steps:
-    - name: get_passage
-      type: llm
-      prompt:
-        file: fetch-source.gpt
-        inputs:
-          passage: "${passage}"
-          source: "${source}"
-      outputs: [source_text]
+steps:
+  - name: get_passage
+    type: llm
+    prompt:
+      file: fetch-source.gpt
+      inputs:
+        passage: "${passage}"
+        source: "${source}"
+    outputs: passage_text
 
-    - name: make_table
-      type: llm
-      prompt:
-        file: table-output.gpt
-        inputs:
-          passage: "${passage}"
-          source_text: "${source_text}"
-      outputs: [markdown_table]
+  - name: make_table
+    type: llm
+    prompt:
+      file: table-output.gpt
+      inputs:
+        passage: "${passage}"
+        passage_text: "${passage_text}"
+    outputs: markdown_table
+
+  - name: save_table
+    type: function
+    function: llmflow.utils.io.render_markdown_template
+    inputs:
+      template_path: "examples/templates/word-table.md"
+      variables:
+        passage: "${passage}"
+        markdown_table: "${markdown_table}"
+    outputs: final_markdown
+    saveas: "examples/outputs/${passage}_table.md"
 ```
-
-This pipeline:
-
-* Uses `fetch-source.gpt` to retrieve the passage
-* Uses `table-output.gpt` to format that text as a Markdown table
-
-You can extend this to save files with a `function` step.
 
 ---
 
-## 📝 Writing Prompt Files
+## 🧾 Prompt File Header & Body
 
-### 📋 Prompt File Header Structure
+Prompt files use double curly braces: `{{variable}}`.
 
-Each `.gpt` file must begin with a YAML-style header block inside an HTML comment. This is enforced by the linter and required for the prompt file to be considered valid.
-
-Variables in the prompt body must be written using single curly braces: `{variable}` not `{{ variable }}`.
-. This is enforced by the linter and is required for the prompt file to be considered valid.
-
-Example for `table-output.gpt`:
-
+`examples/prompts/fetch-source.gpt`:
 ```gpt
 <!--
 prompt:
   requires:
     - passage
-    - source_text
-  optional: []
-  format: Markdown
-  description: Creates a Markdown table for each word in the passage, showing gloss, transliteration, and morphology.
--->
-```
-
-The pipeline step must declare inputs that match these:
-
-```yaml
-inputs:
-  passage: "${passage}"
-  source_text: "${source_text}"
-```
-
-### `fetch-source.gpt`
-
-```gpt
-<!--
-prompt:
-  requires:
     - source
-    - passage
   optional: []
   format: text
-  description: Retrieves the raw source text for the given passage from the specified corpus.
+  description: Retrieve the raw passage text from the given source (approximate)
 -->
-
-Use the {source} corpus to retrieve the original text of {passage}.
-Return the raw word sequence.
+Retrieve the passage {{passage}} using corpus {{source}}.
+Return ONLY the plain text words separated by spaces.
 ```
 
-### `table-output.gpt`
-
+`examples/prompts/table-output.gpt`:
 ```gpt
 <!--
 prompt:
   requires:
     - passage
-    - source_text
+    - passage_text
   optional: []
   format: Markdown
-  description: Creates a Markdown table for each word in the passage, showing gloss, transliteration, and morphology.
+  description: Produce a markdown word table with transliteration, gloss, morphology, notes.
 -->
+Create a Markdown table for passage {{passage}} using this text:
 
-For the passage {passage}, format the following source text as a Markdown table.
+{{passage_text}}
 
-Text:
-{source_text}
-
-Create one row per word. Columns:
-- Word
-- Transliteration
-- Gloss
-- Morphology
-- Notes (leave blank unless needed)
+Columns:
+| Word | Transliteration | Gloss | Morphology | Notes |
+Return ONLY the table (no extra commentary).
 ```
 
 ---
 
-## 📃 Prompt and Pipeline Contract
+## 🧪 Template File
 
-Each `{{ variable }}` in the `.gpt` file must be matched by an entry in the `inputs:` of its pipeline step.
-
-For `table-output.gpt`, these are:
-
-```yaml
-inputs:
-  passage: "${passage}"
-  source_text: "${source_text}"
-```
-
----
-
-## ▶️ Running the Pipeline
-
-To run the simple pipeline:
-
-```bash
-python cli.py run simple-table.yaml --passage Genesis1:1
-```
-
-To check for issues:
-
-```bash
-python cli.py lint simple-table.yaml
-```
-
----
-
-## 📤 Sample Output
-
-Here’s an example of what the final Markdown table might look like for `Genesis 1:1` (WLC):
-
+`examples/templates/word-table.md`:
 ```markdown
-| Word     | Transliteration | Gloss       | Morphology     | Notes |
-|----------|------------------|-------------|----------------|-------|
-| בְּרֵאשִׁית | bereshit         | in the beginning | noun, feminine, singular construct |       |
-| בָּרָא    | bara             | he created  | verb, perfect, 3ms |       |
-| אֱלֹהִים  | elohim           | God         | noun, masculine, plural |       |
-| אֵת      | et               | [object marker] | particle |       |
-| הַשָּׁמַיִם | hashamayim       | the heavens | noun, masculine, dual |       |
-| וְאֵת    | ve'et            | and [object marker] | conjunction + particle |       |
-| הָאָרֶץ   | haaretz          | the earth   | noun, feminine, singular |       |
+# Word Table for {{passage}}
+
+{{markdown_table}}
 ```
 
 ---
 
-## ✅ Best Practices
+## 🔍 Prompt Contract Validation
 
-* Match prompt variables with `inputs:` entries
-* Validate pipelines before running
-* Start simple and add complexity gradually
+Linter checks:
+- All `prompt.requires` appear under the step’s `prompt.inputs`
+- Missing required inputs → error
+- Optional inputs (if listed) may be omitted
+
+---
+
+## ▶️ Running & Linting
+
+```bash
+# Run (pass variable at CLI)
+llmflow run --pipeline examples/pipelines/simple-table.yaml --var passage=Genesis1:1
+
+# Lint before running
+llmflow lint examples/pipelines/simple-table.yaml
+```
+
+Dry run:
+```bash
+llmflow run --pipeline examples/pipelines/simple-table.yaml --dry-run
+```
+
+---
+
+## 📤 Sample Output (Excerpt)
+
+```
+# Word Table for Genesis1:1
+
+| Word | Transliteration | Gloss | Morphology | Notes |
+| בְּרֵאשִׁית | bereshit | in the beginning | noun fs construct | |
+| בָּרָא | bara | he created | verb perf 3ms | |
+...
+```
+
+---
+
+## ✅ Key Points
+
+- Use `variables:` at root (not `pipeline:` wrapper).
+- Use `{{var}}` inside `.gpt` and template files.
+- Pipeline YAML uses `${var}` to reference context.
+- Function steps can render and save outputs.
+- `saveas:` path can include `${variables}`.
+- `append_to:` is only needed for accumulating list outputs in loops.
+
+---
+
+## 🔄 Extending
+
+Add a `for-each` loop around a word list:
+```yaml
+- name: process_words
+  type: for-each
+  input: "${words_list}"
+  item_var: word
+  steps:
+    - name: enrich_word
+      type: llm
+      prompt:
+        file: enrich-word.gpt
+        inputs:
+          word: "${word}"
+      outputs: enriched
+      append_to: enriched_words
+```
+
+---
+
+## 🛠 Troubleshooting
+
+- Empty output: check required inputs match prompt header
+- Variables not substituted: confirm `{{var}}` spelling and step inputs
+- File not saved: ensure `saveas:` path directory exists or let LLMFlow create it
+- JSON parsing: add `output_type: json` if expecting structured output
+
+---
+
+## 🧭 Next Steps
+
+- Introduce scene iteration for passages with internal divisions
+- Add lexicon enrichment function steps
+- Integrate MCP (planned) for selective regeneration & diff tooling
+
+---
+
+## 🏁 Summary
+
+This example demonstrates the minimal viable pipeline: LLM prompt → LLM transform → template render → persisted output. Expand using loops, functions, and contracts for larger scholarly or lexical workflows.
 

@@ -1,67 +1,94 @@
-## 🔧 What Is LLMFlow?
+# ❓ Why LLMFlow
 
-**LLMFlow** is a declarative, testable, pipeline-oriented system for building and debugging NLP workflows with a special focus on **Bible translation, exegesis, and multi-language tasks**. It favors:
+LLMFlow is a declarative, testable pipeline engine for LLM + rule/data hybrid workflows with a focus on Bible translation, exegesis, lexicons, and multi‑language / orality tasks. It separates:
+- Core orchestration (this repo)
+- Domain artifact repositories (leaders’ guides, lexicons, exegetical notes)
+- Human‑edited outputs (Git + Obsidian vaults)
 
-* **Declarative task descriptions**
-* **Human-in-the-loop development**
-* **Transparent debugging and traceability**
-* **Integration of structured data (e.g. USFM, XML, TSV)**
+## 🔑 Core Advantages
+- Declarative YAML pipelines (llm | function | for-each)
+- Prompt contracts (`requires` / `optional` in `.gpt` headers)
+- Deterministic variable resolution (`${var}`) + template substitution (`{{var}}`)
+- Full unit test coverage for data flow and resolution
+- Multi-repo content generation with persistent intermediate artifacts
+- Human-in-the-loop: outputs checked into resource repos, edited, diffed, regenerated
+- Planned MCP integration for selective regeneration, contract inspection, diff tooling
+- Obsidian vault alignment (links, indexes, status front-matter)
 
----
+## 🧩 Feature Comparison (Updated)
 
-## ⚖️ Comparison with Other Pipelines
+| Area | LLMFlow | LangChain / LlamaIndex | Haystack | Custom Scripts |
+|------|---------|------------------------|----------|----------------|
+| Pipeline Model | Declarative YAML | Imperative chains | YAML + code | Manual |
+| Domain Extension | Pluggable functions/plugins | Possible but ad hoc | Possible | Manual |
+| Prompt Contracts | First-class (`.gpt` headers) | No native | No native | Manual |
+| Intermediate Artifacts | Saved + testable | Hidden | Partial | Depends |
+| Multi-Repo Strategy | Built-in pattern | Not opinionated | Not opinionated | DIY |
+| Human Editorial Loop | Designed-in | Not primary | Limited | DIY |
+| Obsidian Vault Use | Supported pattern | Not addressed | Not addressed | DIY |
+| MCP (Planned) | Yes (context/tools) | No | No | N/A |
+| Biblical / Linguistic Tasks | Native focus | Generic NLP | Generic QA | Custom |
+| Testing Strategy | Extensive unit tests | Limited | Limited | Manual |
 
-| Feature / Tool                        | LLMFlow                                              | LangChain / LlamaIndex      | Haystack                         | FastChat / OpenChatKit       | Custom Python Scripts           |
-| ------------------------------------- | ---------------------------------------------------- | --------------------------- | -------------------------------- | ---------------------------- | ------------------------------- |
-| **Pipeline Orientation**              | Declarative + Modular                                | Partially                   | Yes                              | No (more model serving)      | Depends on user                 |
-| **Transparent Data Flow**             | ✅ Clear steps and intermediate data                  | ❌ Often abstracted          | ✅ Yes, but often via YAML config | ❌ Focused on model interface | ❌ Ad hoc, no enforced structure |
-| **Non-Chat LLM Tasks**                | ✅ Strong support (e.g. regex, XML)                   | ❌ Chat-focused              | ✅ Yes                            | ❌ Model API only             | ✅ With effort                   |
-| **Testing and Debugging**             | ✅ Easy unit testing of steps                         | ❌ Not first-class           | ⚠️ Some logging                  | ❌ No built-in support        | ❌ Hard to test in isolation     |
-| **Bible / Linguistics Customization** | ✅ Designed for semantic domains, alignment, lexicons | ❌ Not supported             | ❌ Not supported                  | ❌ Not supported              | ✅ If coded manually             |
-| **Multi-language / Orality Focus**    | ✅ Designed-in                                        | ❌ Often English/NLP-centric | ⚠️ Partial via plugin            | ❌ English interface          | ✅ With effort                   |
-| **External Review & Prototyping**     | ✅ Collaborative, transparent                         | ❌ Dev-centric               | ❌ Less review-friendly           | ❌ CLI/API-focused            | ✅ With manual docs              |
-| **Learning Curve**                    | Moderate (Jupyter + YAML/JSON)                       | High                        | Medium-High                      | Medium                       | Variable                        |
-| **Community / Maintenance**           | 🟡 You maintain it                                   | ✅ Maintained                | ✅ Maintained                     | ✅ Maintained                 | ❌ You maintain it               |
+## 🧠 Domain Fit
+- Handles structured scripture references, lexicon entries, scene segmentation.
+- Mixes LLM steps with deterministic parsing and enrichment.
+- Encourages review of each transformation (scholar + developer collaboration).
 
----
+## 🛠 Hybrid Workflow
+- Rule-based extraction (XML, regex, mapping tables).
+- LLM contextual synthesis (scene guides, emotional arcs, semantic domains).
+- Aggregation via `append_to` lists in iteration loops.
+- Markdown + JSON outputs for downstream tooling.
 
-## 🧠 Why LLMFlow Works for Biblical Scholarship
+## 🗂 Multi-Repository Output
+Resource-specific repositories:
+- pipelines/ (domain YAML)
+- prompts/ (contracted `.gpt`)
+- outputs/ (generated + human-edited)
+- Obsidian vault structure (link indices, status flags)
 
-### ✅ *Designed Around Your Needs*
+Core engine remains clean/public; domain repos stay private or semi-open.
 
-* Supports the **actual shape of Bible data**: USFM, XML trees, semantic domain tables, etc.
-* Handles tasks like **phrase alignment, semantic glossing, idiom mapping**, not just chatting.
-* Built to allow **non-developers to trace what's going on** and review output at each step.
+## 📄 Prompt & Template Model
+- `.gpt` prompt: HTML comment header with `requires`, `optional`, `description`.
+- Body uses `{{variable}}`; current runner single-brace substitution slated for refactor.
+- Templates (`.md`) support `{{var}}` and `${var}` for late context resolution.
 
-### ✅ *Respects the Mixed Nature of the Work*
+## 🧭 Obsidian Vault Integration
+- Generated files become notes.
+- Cross-links added by future link-resolution function step.
+- Status front-matter maintained manually (e.g. `status: review-needed`).
+- MCP (planned) to surface vault metadata as live context.
 
-* Some steps are **rule-based**, others are **LLM-invoked**, others are **data lookups**.
-* Unlike chat pipelines, LLMFlow allows you to use the right tool for each job, including ICU, regular expressions, and dictionaries alongside LLMs.
+## 🔌 Plugins & Extensions
+- XPath example plugin.
+- Add functions: reference via `function: your.module.fn`.
+- Future MCP adapter: tools (`rerun_step`, `validate_contract`, `diff_output`).
 
-### ✅ *Dev+Scholar Friendly*
+## 🚀 MCP Roadmap (Planned)
+1. Adapter layer exposing pipeline context as MCP resources.
+2. Tools for selective regeneration and contract introspection.
+3. Diffing edited vs generated content to flag stale prompts.
 
-* **Scholars and translators can review intermediate steps** in notebooks or UIs.
-* Changes to data formats or tools are easy to test and trace.
-* Compatible with **CI pipelines** and **regression testing**, key for scholarly integrity.
+## ✅ When To Use LLMFlow
+Use if you need:
+- Traceable scholarly or linguistic workflows.
+- Mixed deterministic + generative steps.
+- Multi-language or non-chat LLM tasks.
+- Human editorial cycles with versioned outputs.
+- Clear test assertions over transformation chains.
 
-### ✅ *Integrates With Human Review and Training Loops*
+## 🚫 When Not Ideal
+- Pure chat application scaffolding.
+- High-throughput concurrent inference (no parallel runner yet).
+- Turnkey RAG pipelines (no built-in vector store layer).
 
-* Encourages workflows where people improve LLM output and the model learns from them.
-* Works well with GitHub, Paratext, or other tools used in your ecosystem.
+## 🔄 Editing & Regeneration Loop
+1. Generate initial artifacts.
+2. Human edits in vault/repo.
+3. Flag divergence (future diff tool).
+4. Regenerate selectively with MCP tools (planned).
 
----
-
-## 🚫 Why Not Use an Existing Tool?
-
-* **LangChain** and **LlamaIndex** are largely designed for RAG-style Q\&A or chatbot use cases, not for structured linguistics or Bible translation pipelines.
-* **Haystack** is closer, but still assumes a Q\&A/data-retrieval frame.
-* **Custom Python** is always possible, but often leads to fragile, undocumented, non-reusable code unless you enforce good practices like LLMFlow does.
-* **FastChat/OpenChatKit** are mostly for model hosting and inference, not for pipeline logic.
-
----
-
-## 🧩 LLMFlow is your tool when ...
-
-* You need **modular, traceable, testable** workflows with LLMs and other tools.
-* Your domain involves **structured texts** and **non-English linguistic concerns**.
-* You want to empower **scholars and translators** to contribute meaningfully to the pipeline.
+## 🎯 Summary
+LLMFlow provides a disciplined, inspectable framework for complex Bible / linguistics workflows, balancing automation with human editorial control, and preparing for richer interactive tooling via MCP and vault-aware metadata.
