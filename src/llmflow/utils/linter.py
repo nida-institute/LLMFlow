@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from typing import List
 import re
 from difflib import unified_diff
 from pathlib import Path
@@ -343,7 +345,20 @@ def validate_pipeline_structure(pipeline_config):
         return [f"❌ Pipeline structure error: {e.message} (at {list(e.path)})"]
 
 
+@dataclass
+class LintResult:
+    """Result of pipeline linting"""
+
+    valid: bool
+    errors: List[str]
+    warnings: List[str]
+
+
 def lint_pipeline_full(pipeline_path):
+    """Lint pipeline and return result object instead of raising SystemExit"""
+    all_errors = []
+    all_warnings = []
+
     # Load pipeline first
     pipeline = yaml.safe_load(Path(pipeline_path).read_text())
     pipeline_config = pipeline.get("pipeline", pipeline)
@@ -351,30 +366,33 @@ def lint_pipeline_full(pipeline_path):
     # Print this once
     logger.info(f"Starting full pipeline lint for: {pipeline_path}")
 
+    # 1. Structure validation
     logger.info("🔍 Validating pipeline structure...")
     structure_errors = validate_pipeline_structure(pipeline_config)
     if structure_errors:
+        all_errors.extend(structure_errors)
         for error in structure_errors:
             logger.error(error)
-        raise SystemExit("❌ Pipeline structure validation failed.")
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     logger.info("✅ Pipeline structure is valid")
 
+    # 2. Contract validation
     all_steps = collect_all_steps(pipeline_config.get("steps", []))
     errors, validated_count = validate_all_step_contracts(all_steps, log_and_screen)
 
     if errors:
+        all_errors.extend(errors)
         for error in errors:
             logger.error(error)
-        raise SystemExit("❌ Contract validation failed.")
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     else:
         logger.info(f"✅ All {validated_count} step contracts valid")
 
-    # 3. Template validation - FIXED: Proper error handling
+    # 3. Template validation
     logger.info("🔍 Validating pipeline templates...")
     template_errors = []
     template_warnings = []
 
-    # Collect template validation steps
     template_steps = [
         step for step in all_steps if step.get("inputs", {}).get("template_path")
     ]
@@ -387,25 +405,29 @@ def lint_pipeline_full(pipeline_path):
 
         validate_template_step(step, template_errors, template_warnings)
 
-        if not template_errors:  # If no errors for this template
+        if not template_errors:
             logger.info(f"✅ Template {template_path} is valid")
 
-    # Report template validation results
     if template_errors:
+        all_errors.extend(template_errors)
         logger.error(
             f"\n❌ Template validation failed with {len(template_errors)} errors:"
         )
         for error in template_errors:
             logger.error(f"  {error}")
-        raise SystemExit("❌ Template validation failed.")
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     else:
         logger.info("✅ All templates validated successfully")
 
-    # Show any warnings (but don't fail)
-    for warning in template_warnings:
+    # Show any warnings
+    all_warnings.extend(template_warnings)
+    for warning in all_warnings:
         logger.warning(f"⚠️  {warning}")
 
     logger.info("✅ Pipeline validation completed successfully")
+
+    # Return success result
+    return LintResult(valid=True, errors=[], warnings=all_warnings)
 
 
 def check_step_outputs(step):

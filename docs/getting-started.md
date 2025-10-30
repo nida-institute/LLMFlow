@@ -117,15 +117,17 @@ Linter enforces required inputs via `prompt.inputs` in the pipeline step.
 ## 7. Running & Linting
 
 ```bash
-# Dry run (no LLM calls / saves)
-llmflow run --pipeline pipelines/sample.yaml --dry-run
-
-# Lint only
+# Lint only (new command)
 llmflow lint --pipeline pipelines/sample.yaml
 
-# Run with CLI variable override
+# Lint with JSON output
+llmflow lint --pipeline pipelines/sample.yaml --json
+
+# Run (auto-lints unless --skip-lint)
 llmflow run --pipeline pipelines/sample.yaml --var passage="Luke 1:1-4"
 ```
+
+Add --skip-lint to bypass validation.
 
 List pipelines (if implemented):
 

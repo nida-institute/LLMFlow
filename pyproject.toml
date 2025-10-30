@@ -12,7 +12,7 @@ requires-python = ">=3.8"
 packages = ["src/llmflow"]
 
 [project.scripts]
-llmflow = "llmflow.cli:cli"
+llmflow = "llmflow.cli:main"
 
 [build-system]
 requires = ["hatchling"]

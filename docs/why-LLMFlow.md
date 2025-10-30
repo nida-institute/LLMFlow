@@ -92,3 +92,6 @@ Use if you need:
 
 ## 🎯 Summary
 LLMFlow provides a disciplined, inspectable framework for complex Bible / linguistics workflows, balancing automation with human editorial control, and preparing for richer interactive tooling via MCP and vault-aware metadata.
+
+### Linting
+First-class validation via `llmflow lint` (schema, prompt contracts, path checks).

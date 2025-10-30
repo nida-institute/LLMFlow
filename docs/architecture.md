@@ -134,3 +134,8 @@ Implementation Plan (phased):
 
 ## 18. Summary
 LLMFlow isolates the orchestration layer from domain artifacts, enabling reproducible LLM-assisted content generation with human editorial control, multi-repo distribution, planned MCP integration, and vault-aware metadata workflows.
+
+## Linting Layer
+- Command: `llmflow lint --pipeline path.yaml`
+- Outputs: success/failure, errors, warnings (optionally JSON)
+- Used automatically before `run` unless `--skip-lint`
