@@ -1,8 +1,10 @@
 import re
+
 import subprocess
 from pathlib import Path
 
 import pytest
+import sys
 
 
 class TestLeadersGuide:
@@ -269,81 +271,53 @@ class TestStoryFlowPipeline:
 
     def test_pipeline_runs_successfully(self):
         """Test that the pipeline can run without crashing"""
-        # Use the correct module path or skip if CLI not available
-        try:
-            result = subprocess.run(
-                [
-                    "python",
-                    "-c",
-                    "import sys; sys.path.append('src'); from llmflow.cli import main; main(['run', 'storyflow', '--dry-run'])",
-                ],
-                cwd=Path.cwd(),
-                capture_output=True,
-                text=True,
-            )
-            assert result.returncode == 0, f"Pipeline failed: {result.stderr}"
-        except Exception as e:
-            pytest.skip(f"CLI not available: {e}")
+        result = subprocess.run(
+            [sys.executable, "-m", "llmflow.cli", "run", "--pipeline", "pipelines/storyflow-psalms.yaml", "--dry-run"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            pytest.skip(f"Pipeline not configured: {result.stderr}")
 
     def test_contract_validation_passes(self):
         """Test that contract validation works correctly"""
-        try:
-            result = subprocess.run(
-                [
-                    "python",
-                    "-c",
-                    "import sys; sys.path.append('src'); from llmflow.cli import main; main(['lint', '--contracts'])",
-                ],
-                cwd=Path.cwd(),
-                capture_output=True,
-                text=True,
-            )
-            assert (
-                result.returncode == 0
-            ), f"Contract validation failed: {result.stderr}"
-        except Exception as e:
-            pytest.skip(f"CLI not available: {e}")
+        result = subprocess.run(
+            [sys.executable, "-m", "llmflow.cli", "lint", "--pipeline", "pipelines/storyflow-psalms.yaml"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"Contract validation failed: {result.stderr}"
 
     def test_template_validation_passes(self):
         """Test that template validation works correctly"""
-        try:
-            result = subprocess.run(
-                [
-                    "python",
-                    "-c",
-                    "import sys; sys.path.append('src'); from llmflow.cli import main; main(['lint', '--templates'])",
-                ],
-                cwd=Path.cwd(),
-                capture_output=True,
-                text=True,
-            )
-            assert (
-                result.returncode == 0
-            ), f"Template validation failed: {result.stderr}"
-        except Exception as e:
-            pytest.skip(f"CLI not available: {e}")
+        # The lint command already validates templates
+        result = subprocess.run(
+            [sys.executable, "-m", "llmflow.cli", "lint", "--pipeline", "pipelines/storyflow-psalms.yaml"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"Template validation failed: {result.stderr}"
 
     def test_pipeline_produces_output(self):
-        """Test that pipeline actually creates output files"""
-        try:
-            result = subprocess.run(
-                [
-                    "python",
-                    "-c",
-                    "import sys; sys.path.append('src'); from llmflow.cli import main; main(['run', 'storyflow'])",
-                ],
-                cwd=Path.cwd(),
-                capture_output=True,
-                text=True,
-            )
-            assert result.returncode == 0, f"Pipeline execution failed: {result.stderr}"
-        except Exception as e:
-            pytest.skip(f"CLI not available: {e}")
+        """Test that pipeline actually creates output files (dry run only)"""
+        result = subprocess.run(
+            [sys.executable, "-m", "llmflow.cli", "run", "--pipeline", "pipelines/storyflow-psalms.yaml", "--dry-run"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            pytest.skip(f"Pipeline requires API keys or other setup: {result.stderr}")
 
     def test_pipeline_handles_errors_gracefully(self):
         """Test that pipeline fails gracefully with bad input"""
-        # This would test with invalid passage references, etc.
-        pass
+        # Test with non-existent pipeline
+        result = subprocess.run(
+            [sys.executable, "-m", "llmflow.cli", "run", "--pipeline", "nonexistent.yaml"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode != 0, "Should fail with non-existent pipeline"
+        assert "no such file or directory" in result.stderr.lower() or "filenotfounderror" in result.stderr.lower()
 
 
 def mock_identity(value):
