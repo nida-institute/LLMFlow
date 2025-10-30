@@ -182,6 +182,8 @@ def render_prompt(
 def run_step(rule, context, pipeline_config):
     """Step dispatcher"""
     step_type = rule.get("type", "unknown")
+
+    # Check built-in step types first
     if step_type == "function":
         run_function_step(rule, context)
     elif step_type == "for-each":
@@ -190,6 +192,35 @@ def run_step(rule, context, pipeline_config):
         run_llm_step(rule, context, pipeline_config)
     elif step_type == "save":
         run_save_step(rule, context)
+    elif step_type in plugin_registry:
+        # Handle plugin step types
+        logger.info(f"🔌 Starting plugin step: {rule.get('name', 'unnamed')}")
+        plugin_func = plugin_registry[step_type]
+
+        # Execute plugin - pass the entire rule dict as config
+        results = plugin_func(rule)
+
+        # Convert generators to lists to make them picklable
+        if hasattr(results, '__iter__') and not isinstance(results, (str, dict)):
+            try:
+                results = list(results)
+            except TypeError:
+                pass  # If it's not iterable, leave it as is
+
+        # Store outputs in context
+        outputs = rule.get("outputs")
+        if outputs:
+            if isinstance(outputs, str):
+                context[outputs] = results
+            elif isinstance(outputs, list):
+                if isinstance(results, (list, tuple)) and len(results) == len(outputs):
+                    for output_name, result_value in zip(outputs, results):
+                        context[output_name] = result_value
+                else:
+                    # Single result or mismatch, store in first output
+                    context[outputs[0]] = results
+
+        logger.info(f"✅ Completed plugin step: {rule.get('name', 'unnamed')}")
     else:
         raise ValueError(f"Unknown step type: {step_type}")
 
@@ -736,29 +767,17 @@ def run_pipeline(
         # List available pipeline files if pipelines directory exists
         pipelines_dir = current_dir / "pipelines"
         if pipelines_dir.exists() and pipelines_dir.is_dir():
-            yaml_files = list(pipelines_dir.glob("*.yaml")) + list(
-                pipelines_dir.glob("*.yml")
-            )
-            if yaml_files:
-                logger.error(f"   Available pipelines in {pipelines_dir}:")
-                for yaml_file in sorted(yaml_files):
-                    logger.error(f"     - {yaml_file.name}")
+            available = list(pipelines_dir.glob("*.yaml"))
+            if available:
+                logger.error("\n   Available pipelines:")
+                for p in available:
+                    logger.error(f"   - {p.name}")
 
         raise SystemExit(1)
-    except Exception as e:
-        logger.error(f"❌ Error reading pipeline file '{pipeline_path}': {e}")
-        raise SystemExit(1)
 
+    # Extract pipeline root and steps
     pipeline_root = pipeline.get("pipeline", pipeline)
-
-    # Get steps EARLY so we can use rules
-    rules = pipeline_root.get("steps", pipeline_root.get("rules", []))
-
-    # Log and display the run mode
-    if dry_run:
-        logger.info(f"[DRY RUN] Simulating: {pipeline_path}")
-    else:
-        logger.info(f"[LIVE RUN] Running: {pipeline_path}")
+    rules = pipeline_root.get("steps", [])
 
     logger.debug(f"Variables: {variables}")
     total_steps = len(rules)

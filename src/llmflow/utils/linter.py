@@ -108,7 +108,7 @@ def collect_all_steps(items):
     return all_steps
 
 
-def validate_all_step_contracts(all_steps, log_func):
+def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
     """Validate all LLM steps against their prompt contracts"""
     errors = []
     validated_count = 0
@@ -140,12 +140,18 @@ def validate_all_step_contracts(all_steps, log_func):
                 errors.append(f"❌ Step '{step_name}': No prompt file specified")
                 continue
 
-            # FIXED: Use the same multi-path resolution logic as validate_step_prompt_contract
+            # Get prompts_dir from pipeline variables
+            prompts_dir = "prompts"
+            if pipeline_root:
+                variables = pipeline_root.get("variables", {})
+                prompts_dir = variables.get("prompts_dir", "prompts")
+
+            # Try multiple paths
             prompt_path = None
             possible_paths = [
-                f"prompts/{prompt_file}",  # Standard prompts directory
-                f"prompts/storyflow/{prompt_file}",  # Storyflow specific directory
-                prompt_file,  # Raw filename (fallback)
+                f"{prompts_dir}/{prompt_file}",  # Use pipeline's prompts_dir
+                f"prompts/{prompt_file}",  # Fallback to standard
+                prompt_file,  # Raw filename (last resort)
             ]
 
             for possible_path in possible_paths:
@@ -378,7 +384,7 @@ def lint_pipeline_full(pipeline_path):
 
     # 2. Contract validation
     all_steps = collect_all_steps(pipeline_config.get("steps", []))
-    errors, validated_count = validate_all_step_contracts(all_steps, log_and_screen)
+    errors, validated_count = validate_all_step_contracts(all_steps, log_and_screen, pipeline_config)
 
     if errors:
         all_errors.extend(errors)
