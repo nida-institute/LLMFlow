@@ -1,36 +1,37 @@
 name: Expand and Save Abbott-Smith Entries
-variables:  # Change back to 'variables:'
+variables:
   prompts_dir: prompts/semdom-greek
 
 steps:
-  - name: extract-all-entries
-    type: xpath  # Use the plugin type directly, not function
-    path: inputs/Abbot-Smith/abbott-smith.tei.xml
-    xpath: //tei:entry
-    output_format: xml-string
-    namespaces:
-      tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
+  # Step 1: Read first 10 rows from status.tsv
+  - name: read-status
+    type: tsv
+    path: inputs/Abbot-Smith/status.tsv
+    limit: 10
     outputs:
-      - entries
+      - status_rows
 
-  - name: iterate-over-entries
+  # Step 2: For each row, find entry and process
+  - name: process-entries
     type: for-each
-    input: "${entries}"
-    item_var: entry
+    input: "${status_rows}"
+    item_var: row
     steps:
-
-      - name: extract-entry-key
-        type: function
-        function: llmflow.utils.xml.xpath_get
-        inputs:
-          xml: "${entry}"
-          xpath: "@key"
-          namespaces:
-            tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
+      # Find the entry in Abbott-Smith for this lemma
+      - name: find-entry
+        type: xpath
+        path: inputs/Abbot-Smith/abbott-smith.tei.xml
+        xpath: //tei:entry[@key='${row.lemma}']
+        output_format: xml-string
+        namespaces:
+          tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
         outputs:
-          - entry_key
+          - entries  # Changed from 'entry' to 'entries' since xpath returns a list
+        log: debug
+        saveas: "outputs/xml/${row.lemma}.xml"
 
-      - name: expand-entry-with-llm
+      # Expand with LLM - take first entry from the list
+      - name: expand-entry
         type: llm
         model: gpt-4o
         temperature: 0.7
@@ -38,8 +39,11 @@ steps:
         prompt:
           file: expand-abbott-smith.gpt
           inputs:
-            entry: "${entry}"
+            entry: "${entries[0]}"  # Take first item from list
+            lemma: "${row.lemma}"
+            status: "${row.status}"
         outputs:
           - expanded_entry
-        saveas: "outputs/markdown/${entry_key}.md"
+        saveas: "outputs/markdown/${row.lemma}.md"
+        log: debug
 

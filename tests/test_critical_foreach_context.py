@@ -36,12 +36,38 @@ class TestCriticalForEachContext:
         # Critical: no contamination between iterations
         assert context["results"] == ["A-processed", "B-processed", "C-processed"]
 
-    @pytest.mark.skip(reason="Need to test deepcopy implementation")
     def test_deepcopy_prevents_list_sharing(self):
-        """Regression test for the shallow copy bug"""
-        # This test needs access to the context object passed to functions
-        pass
+        """Regression test: deepcopy prevents the shallow copy bug where lists were shared"""
+        context = {"shared_list": ["initial"]}
+
+        rule = {
+            "name": "test_deepcopy",
+            "type": "for-each",
+            "input": ["item1", "item2", "item3"],
+            "item_var": "item",
+            "steps": [
+                {
+                    "name": "append_to_list",
+                    "type": "function",
+                    "function": "tests.test_critical_foreach_context.append_to_shared_list",
+                    "inputs": {"item": "${item}", "shared_list": "${shared_list}"},
+                    "outputs": "result",
+                }
+            ],
+        }
+
+        run_for_each_step(rule, context, {})
+
+        # Critical: The shared_list in parent context should NOT be modified by iterations
+        # Each iteration gets a deepcopy, so modifications stay isolated
+        assert context["shared_list"] == ["initial"], "Parent context list should not be mutated"
 
 
 def mutate_context(item):
     return f"{item}-processed"
+
+
+def append_to_shared_list(item, shared_list):
+    """This function modifies the list - testing if deepcopy isolates it"""
+    shared_list.append(item)
+    return f"appended {item}"

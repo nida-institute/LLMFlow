@@ -1,56 +1,52 @@
-import importlib.util
-import sys
+"""Plugin loading and registration."""
+
+import importlib
+import pkgutil
 from pathlib import Path
 
 from llmflow.modules.logger import Logger
 
-# Use unified logger
 logger = Logger()
 
 # Global plugin registry
 plugin_registry = {}
 
 
-def load_plugins():
-    """Load all plugins from the plugins/contrib directory"""
+def discover_plugins():
+    """
+    Discover and load all plugins from the plugins directory.
+
+    Returns:
+        dict: Plugin registry mapping plugin names to execute functions
+    """
     logger.info("🔌 Loading plugins...")
 
-    plugins_dir = Path(__file__).parent / "contrib"
-
-    if not plugins_dir.exists():
-        logger.warning(f"Plugins directory not found: {plugins_dir}")
-        return
-
+    plugins_dir = Path(__file__).parent
     plugin_count = 0
 
-    # Load all Python files in the contrib directory
-    for plugin_file in plugins_dir.glob("*.py"):
-        if plugin_file.name.startswith("__"):
+    for finder, name, ispkg in pkgutil.iter_modules([str(plugins_dir)]):
+        # Skip private modules and loader itself
+        if name.startswith("_") or name == "loader":
             continue
 
         try:
             # Import the plugin module
-            spec = importlib.util.spec_from_file_location(
-                f"llmflow.plugins.contrib.{plugin_file.stem}", plugin_file
-            )
-            module = importlib.util.module_from_spec(spec)
-            sys.modules[spec.name] = module
-            spec.loader.exec_module(module)
+            module = importlib.import_module(f"llmflow.plugins.{name}")
 
-            logger.debug(f"Loaded plugin: {plugin_file.name}")
-            plugin_count += 1
+            # If it has a register() function, call it
+            if hasattr(module, "register"):
+                registered = module.register()
+                plugin_registry.update(registered)
+                plugin_count += len(registered)
+                logger.debug(f"Loaded plugin: {name} ({list(registered.keys())})")
 
         except Exception as e:
-            logger.error(f"Failed to load plugin {plugin_file.name}: {e}")
+            logger.error(f"Failed to load plugin {name}: {e}")
 
-    logger.info(f"✅ Loaded {plugin_count} plugins")
+    logger.info(f"✅ Loaded {plugin_count} plugin(s)")
     logger.debug(f"Available plugins: {list(plugin_registry.keys())}")
 
-
-def register_plugin(name, func):
-    """Register a plugin function"""
-    plugin_registry[name] = func
-    logger.debug(f"Registered plugin: {name}")
+    return plugin_registry
 
 
 def get_plugin(name):
@@ -61,3 +57,7 @@ def get_plugin(name):
 def list_plugins():
     """List all registered plugins"""
     return list(plugin_registry.keys())
+
+
+# Load plugins on module import
+discover_plugins()

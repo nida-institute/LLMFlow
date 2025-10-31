@@ -11,12 +11,12 @@ import yaml
 
 from llmflow.modules.logger import Logger
 from llmflow.plugins import plugin_registry
-from llmflow.plugins.loader import load_plugins
+from llmflow.plugins.loader import discover_plugins
 from llmflow.utils.io import validate_all_templates
 from llmflow.utils.linter import lint_pipeline_full
 from llmflow.utils.llm_runner import call_llm
 
-load_plugins()
+discover_plugins()
 
 # Single unified logger instance
 logger = Logger()
@@ -35,7 +35,7 @@ def _record_written_file(path):
     logger.info(f"Wrote file: {p}")
     logger.debug(
         "Called from:\n" + "".join(traceback.format_stack()[-4:-1])
-    )  # ADD THIS LINE
+    )
 
 
 def resolve(value, context, max_depth=5):
@@ -43,6 +43,7 @@ def resolve(value, context, max_depth=5):
     Resolves variables within a value using the provided context.
     Supports both {curly} and ${dollar} notation with dot notation and list indexing.
     Returns native Python objects for exact variable references.
+    Handles Row objects from TSV plugin.
     """
     import re
 
@@ -61,10 +62,18 @@ def resolve(value, context, max_depth=5):
                 return None
             key = m.group(1)
             idx = m.group(3)
+
             if isinstance(result, dict):
                 result = result.get(key)
+            elif hasattr(result, key):  # FIX: Check hasattr instead of __getattr__
+                # Handle Row objects and similar objects with attributes
+                try:
+                    result = getattr(result, key)
+                except AttributeError:
+                    return None
             else:
                 return None
+
             if idx is not None:
                 if isinstance(result, list):
                     try:
@@ -179,355 +188,250 @@ def render_prompt(
     return rendered_prompt
 
 
-def run_step(rule, context, pipeline_config):
-    """Step dispatcher"""
-    step_type = rule.get("type", "unknown")
+def handle_step_outputs(rule: Dict[str, Any], result: Any, context: Dict[str, Any]) -> None:
+    """
+    Common handler for step outputs, append_to, and saveas.
+    Works for all step types: function, llm, plugin, etc.
 
-    # Check built-in step types first
-    if step_type == "function":
-        run_function_step(rule, context)
-    elif step_type == "for-each":
-        run_for_each_step(rule, context, pipeline_config)
-    elif step_type == "llm":
-        run_llm_step(rule, context, pipeline_config)
-    elif step_type == "save":
-        run_save_step(rule, context)
-    elif step_type in plugin_registry:
-        # Handle plugin step types
-        logger.info(f"🔌 Starting plugin step: {rule.get('name', 'unnamed')}")
-        plugin_func = plugin_registry[step_type]
+    Args:
+        rule: The step configuration dict
+        result: The result value(s) from the step execution
+        context: The execution context to update
+    """
+    step_name = rule.get("name", "unnamed")
 
-        # Execute plugin - pass the entire rule dict as config
-        results = plugin_func(rule)
+    # 1. Handle outputs - store results in context
+    outputs = rule.get("outputs")
+    if outputs is not None:
+        if isinstance(outputs, str):
+            context[outputs] = result
+            logger.debug(f"Stored result in context['{outputs}']")
+        elif isinstance(outputs, list):
+            if isinstance(result, (list, tuple)) and len(result) == len(outputs):
+                # Multiple results matching multiple output names
+                for output_name, result_value in zip(outputs, result):
+                    context[output_name] = result_value
+                    logger.debug(f"Stored result in context['{output_name}']")
+            else:
+                # Single result or mismatch - store in first output
+                context[outputs[0]] = result
+                logger.debug(f"Stored result in context['{outputs[0]}']")
 
-        # Convert generators to lists to make them picklable
-        if hasattr(results, '__iter__') and not isinstance(results, (str, dict)):
-            try:
-                results = list(results)
-            except TypeError:
-                pass  # If it's not iterable, leave it as is
+    # 2. Handle append_to - append result to a list
+    append_to = rule.get("append_to")
+    if append_to:
+        if append_to not in context:
+            context[append_to] = []
 
-        # Store outputs in context
-        outputs = rule.get("outputs")
+        # Get the value to append (use output variable if specified, otherwise raw result)
         if outputs:
             if isinstance(outputs, str):
-                context[outputs] = results
+                value_to_append = context.get(outputs)
             elif isinstance(outputs, list):
-                if isinstance(results, (list, tuple)) and len(results) == len(outputs):
-                    for output_name, result_value in zip(outputs, results):
-                        context[output_name] = result_value
+                value_to_append = context.get(outputs[0])
+            else:
+                value_to_append = result
+        else:
+            value_to_append = result
+
+        context[append_to].append(value_to_append)
+        logger.debug(f"Appended to {append_to}: now has {len(context[append_to])} items")
+
+    # 3. Handle saveas - save result to file(s)
+    if "saveas" in rule:
+        handle_step_saveas(rule, context)
+
+
+def handle_step_saveas(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
+    """Handle saveas output for pipeline steps."""
+    saveas_config = rule["saveas"]
+    outputs = rule.get("outputs")
+
+    if isinstance(saveas_config, str):
+        # Simple syntax: saveas: "path/to/file.txt"
+        resolved_path = resolve(saveas_config, context)
+
+        # Get content from outputs
+        if isinstance(outputs, list):
+            content = context[outputs[0]]
+        elif isinstance(outputs, str):
+            content = context[outputs]
+        else:
+            raise ValueError(
+                "Cannot determine content to save - no outputs specified"
+            )
+
+        saved_path = save_content_to_file(content, resolved_path)
+        _record_written_file(saved_path)
+
+    elif isinstance(saveas_config, list):
+        # Array syntax: multiple destinations
+        for save_item in saveas_config:
+            if isinstance(save_item, dict):
+                path = resolve(save_item["path"], context)
+
+                # Get content and RESOLVE dot notation
+                if "content" in save_item:
+                    content_spec = save_item["content"]
+                    content = resolve(content_spec, context)
+                elif isinstance(outputs, list):
+                    content = context[outputs[0]]
+                elif isinstance(outputs, str):
+                    content = context[outputs]
                 else:
-                    # Single result or mismatch, store in first output
-                    context[outputs[0]] = results
+                    raise ValueError("Cannot determine content to save")
 
-        logger.info(f"✅ Completed plugin step: {rule.get('name', 'unnamed')}")
-    else:
-        raise ValueError(f"Unknown step type: {step_type}")
+                format_type = save_item.get("format", "auto")
+                saved_path = save_content_to_file(content, path, format_type)
+                _record_written_file(saved_path)
 
 
-def run_for_each_step(rule, context, pipeline_config):
-    """Executes a sequence of steps for each item in a resolved input list"""
-    step_name = rule.get("name", "unnamed_for_each_step")
-    rule.get("log", "debug")
+def run_step(rule, context, pipeline_config):
+    """Step dispatcher with unified output handling"""
+    step_type = rule.get("type", "unknown")
+    step_name = rule.get("name", "unnamed")
 
-    # Log step start
-    logger.info(f"🔄 Starting for-each step: {step_name}")
-    logger.debug(f"Step details: {rule}")
+    result = None
 
     try:
-        input_spec = rule["input"]
-        item_var = rule["item_var"]
-        steps = rule["steps"]
-
-        logger.debug(f"For-each processing: input={input_spec}, item_var={item_var}")
-
-        # Get the list to iterate over
-        loop_input = _get_loop_input(input_spec, context, logger)
-
-        logger.debug(f"Iterating over {len(loop_input)} items")
-
-        # Process each item in the list
-        for i, item in enumerate(loop_input):
-            logger.debug(f"Processing item {i+1}/{len(loop_input)}")
-
-            # Create isolated context for this iteration using deepcopy
-            item_context = deepcopy(context)
-            item_context[item_var] = item
-
-            # Run all substeps with the isolated context
-            for substep in steps:
-                run_step(substep, item_context, pipeline_config)
-
-            # Handle append_to operations after all substeps complete
-            _handle_append_operations(steps, item_context, context, logger)
-
-        logger.info(f"✅ Completed for-each step: {step_name}")
+        # Execute the appropriate step type
+        if step_type == "function":
+            result = run_function_step(rule, context)
+            # FIX: Don't call handle_step_outputs here - run_function_step already does it
+        elif step_type == "for-each":
+            run_for_each_step(rule, context, pipeline_config)
+            return
+        elif step_type == "llm":
+            result = run_llm_step(rule, context, pipeline_config)
+            # Handle outputs for LLM steps
+            handle_step_outputs(rule, result, context)
+        elif step_type == "save":
+            run_save_step(rule, context)
+            return
+        elif step_type in plugin_registry:
+            result = run_plugin_step(rule, context)
+            # Handle outputs for plugin steps
+            handle_step_outputs(rule, result, context)
+        else:
+            raise ValueError(f"Unknown step type: {step_type}")
 
     except Exception as e:
-        logger.error(f"❌ Error in for-each step '{step_name}': {e}")
+        logger.error(f"❌ Error in {step_type} step '{step_name}': {e}")
         raise
 
 
-def _get_loop_input(input_spec, context, logger):
-    """Extract and normalize the input list for iteration"""
-    # Support plugin-sourced iteration
-    if isinstance(input_spec, dict) and "type" in input_spec:
-        plugin_type = input_spec["type"]
-        if plugin_type not in plugin_registry:
-            raise ValueError(f"Plugin '{plugin_type}' not found.")
-        plugin_func = plugin_registry[plugin_type]
-        return list(plugin_func(input_spec))
+def run_plugin_step(rule: Dict[str, Any], context: Dict[str, Any]) -> Any:
+    """Execute a plugin step and return its result"""
+    step_type = rule["type"]
+    step_name = rule.get("name", "unnamed")
 
-    # Resolve variable reference like "${scene_list}"
-    loop_input = resolve(input_spec, context)
+    logger.info(f"🔌 Starting plugin step: {step_name}")
+    plugin_func = plugin_registry[step_type]
 
-    # Handle JSON strings
-    if isinstance(loop_input, str):
-        loop_input = _parse_json_string(loop_input, logger)
+    # Resolve all variables in the rule before passing to plugin
+    resolved_rule = {}
+    for key, value in rule.items():
+        if key in ['name', 'type', 'outputs', 'append_to', 'saveas']:
+            resolved_rule[key] = value
+        else:
+            resolved_rule[key] = resolve(value, context)
 
-    # Ensure we have a list
-    if not isinstance(loop_input, list):
-        logger.debug("Input is not a list, wrapping as single item")
-        loop_input = [loop_input]
+    # Execute plugin
+    results = plugin_func(resolved_rule)
 
-    return loop_input
+    # Convert generators to lists
+    if hasattr(results, '__iter__') and not isinstance(results, (str, dict)):
+        try:
+            results = list(results)
+        except TypeError:
+            pass
 
-
-def _parse_json_string(json_str, logger):
-    """Parse a JSON string, handling code fences and fallbacks"""
-    logger.debug(f"Parsing JSON string: {json_str[:100]}...")
-
-    # Extract from code fences if present
-    code_fence_pattern = r"```(?:json)?\s*([\s\S]*?)\s*```"
-    fence_matches = re.findall(code_fence_pattern, json_str)
-
-    if fence_matches:
-        logger.debug("Found code fence, extracting content")
-        json_str = fence_matches[-1].strip()
-
-    # Try direct JSON parse
-    try:
-        return json.loads(json_str)
-    except json.JSONDecodeError:
-        # Fallback: extract first JSON array
-        array_match = re.search(r"(\[[^\]]*\])", json_str, re.DOTALL)
-        if array_match:
-            try:
-                return json.loads(array_match.group(1))
-            except json.JSONDecodeError:
-                pass
-
-    # Last resort: wrap as single item
-    return [json_str]
+    logger.info(f"✅ Completed plugin step: {step_name}")
+    return results
 
 
-def _handle_append_operations(steps, item_context, main_context, logger):
-    """Handle append_to operations from substeps, avoiding duplicates"""
-    for substep in steps:
-        if "append_to" not in substep:
-            continue
-
-        target_list = substep["append_to"]
-        result = _get_substep_result(substep, item_context)
-
-        if result is None:
-            continue
-
-        # Initialize list in main context if needed
-        if target_list not in main_context:
-            main_context[target_list] = []
-
-        # Append only the new result from this iteration
-        main_context[target_list].append(result)
-        logger.debug(
-            f"Appended to {target_list}: now has {len(main_context[target_list])} items"
-        )
-
-
-def _get_substep_result(substep, context):
-    """Extract the result value from a substep's outputs"""
-    outputs = substep.get("outputs")
-    if not outputs:
-        return None
-
-    if isinstance(outputs, str):
-        return context.get(outputs)
-    elif isinstance(outputs, list) and outputs:
-        return context.get(outputs[0])
-
-    return None
-
-
-def run_function_step(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
-    """Execute a function step with proper variable resolution"""
+def run_function_step(rule: Dict[str, Any], context: Dict[str, Any]) -> Any:
+    """Execute a function step and return its result"""
     name: str = rule.get("name", "unnamed")
     function_name: str = rule["function"]
     inputs: Union[Dict[str, Any], List[Any]] = rule.get("inputs", {})
-    outputs: Optional[Union[str, List[str]]] = rule.get("outputs")
-    append_to: Optional[str] = rule.get("append_to")
 
     logger.info(f"🔧 Starting function step: {name}")
     logger.debug(f"Function: {function_name}")
 
-    try:
-        # Import and get the function
-        module_name, func_name = function_name.rsplit(".", 1)
-        module = importlib.import_module(module_name)
-        func: Callable[..., Any] = getattr(module, func_name)
+    # Import and get the function
+    module_name, func_name = function_name.rsplit(".", 1)
+    module = importlib.import_module(module_name)
+    func: Callable[..., Any] = getattr(module, func_name)
 
-        # Resolve all input variables
-        # Handle both dict and list formats for inputs
-        result: Any
-        sig = inspect.signature(func)
+    # Resolve all input variables
+    sig = inspect.signature(func)
+    result: Any
 
-        if isinstance(inputs, dict):
-            resolved_inputs: Dict[str, Any] = {
-                key: resolve(value, context) for key, value in inputs.items()
-            }
-
-            # Call function with context if it accepts it
-            if "context" in sig.parameters:
-                result = func(**resolved_inputs, context=context)
-            else:
-                result = func(**resolved_inputs)
-
-        elif isinstance(inputs, list):
-            # For list inputs, pass as positional args
-            resolved_args: List[Any] = [resolve(value, context) for value in inputs]
-
-            if "context" in sig.parameters:
-                result = func(*resolved_args, context=context)
-            else:
-                result = func(*resolved_args)
+    if isinstance(inputs, dict):
+        resolved_inputs: Dict[str, Any] = {
+            key: resolve(value, context) for key, value in inputs.items()
+        }
+        if "context" in sig.parameters:
+            result = func(**resolved_inputs, context=context)
         else:
-            # Default to empty dict if inputs is neither dict nor list
-            resolved_inputs = {}
-            if "context" in sig.parameters:
-                result = func(**resolved_inputs, context=context)
-            else:
-                result = func(**resolved_inputs)
+            result = func(**resolved_inputs)
 
-        # Handle outputs
-        if outputs is not None:
-            if isinstance(outputs, list):
-                # Multiple outputs
-                if not isinstance(result, (list, tuple)):
-                    result = [result]
-                for i, output_name in enumerate(outputs):
-                    if i < len(result):
-                        context[output_name] = result[i]
-            else:
-                # Single output
-                context[outputs] = result
+    elif isinstance(inputs, list):
+        resolved_args: List[Any] = [resolve(value, context) for value in inputs]
+        if "context" in sig.parameters:
+            result = func(*resolved_args, context=context)
+        else:
+            result = func(*resolved_args)
+    else:
+        resolved_inputs = {}
+        if "context" in sig.parameters:
+            result = func(**resolved_inputs, context=context)
+        else:
+            result = func(**resolved_inputs)
 
-        # Handle append_to - append the result to a list
-        if append_to:
-            if append_to not in context:
-                context[append_to] = []
+    # Handle outputs - this will process outputs, append_to, and saveas
+    handle_step_outputs(rule, result, context)
 
-            # Append the output value (use outputs variable if set, otherwise use result)
-            if outputs:
-                if isinstance(outputs, str):
-                    value_to_append = context.get(outputs)
-                else:  # outputs is a list
-                    value_to_append = result  # Use the raw result for multiple outputs
-            else:
-                value_to_append = result
-
-            context[append_to].append(value_to_append)
-            logger.debug(
-                f"Appended to {append_to}: now has {len(context[append_to])} items"
-            )
-
-        logger.info(f"✅ Completed function step: {name}")
-        logger.debug(f"Context after step {name}: {list(context.keys())}")
-
-        # Handle saveas output
-        handle_step_output(rule, context)
-
-        return None
-
-    except Exception as e:
-        logger.error(f"❌ Error in function step '{name}': {str(e)}")
-        raise
+    logger.info(f"✅ Completed function step: {name}")
+    return result
 
 
-def run_llm_step(rule, context, pipeline_config):
-    """Executes a single LLM step with logging"""
+def run_llm_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> str:
+    """Execute an LLM step and return its result"""
     name = rule.get("name", "unnamed_llm_step")
 
     logger.info(f"🤖 Starting LLM step: {name}")
     logger.debug(f"Step details: {rule}")
 
-    try:
-        rendered_prompt = render_prompt(rule["prompt"], context)
+    rendered_prompt = render_prompt(rule["prompt"], context)
 
-        # Build merged config
-        llm_config = pipeline_config.get("llm_config", {})
-        step_config = rule.get("llm_options", {})
-        merged_config = {
-            "model": "gpt-4o",
-            "temperature": 0.7,
-            "max_tokens": 2500,
-            "timeout_seconds": 30,
-        }
-        merged_config.update(llm_config)
-        merged_config.update(step_config)
+    # Build merged config
+    llm_config = pipeline_config.get("llm_config", {})
+    step_config = rule.get("llm_options", {})
+    merged_config = {
+        "model": "gpt-4o",
+        "temperature": 0.7,
+        "max_tokens": 2500,
+        "timeout_seconds": 30,
+    }
+    merged_config.update(llm_config)
+    merged_config.update(step_config)
 
-        output_type = rule.get("output_type", "text")
-        logger.info(f"    ⏳ Calling {merged_config.get('model')} for step '{name}'...")
+    output_type = rule.get("output_type", "text")
+    logger.info(f"    ⏳ Calling {merged_config.get('model')} for step '{name}'...")
 
-        # Single unified call
-        result = call_llm(
-            rendered_prompt, config=merged_config, output_type=output_type
-        )
+    result = call_llm(
+        rendered_prompt, config=merged_config, output_type=output_type
+    )
 
-        # Check for templates
-        if "template" in rule or "format_with" in rule:
-            template_path = rule.get("template") or rule.get("format_with")
-            result = apply_output_template(result, template_path, context)
+    # Check for templates
+    if "template" in rule or "format_with" in rule:
+        template_path = rule.get("template") or rule.get("format_with")
+        result = apply_output_template(result, template_path, context)
 
-        # Handle outputs
-        outputs = rule.get("outputs")
-        if outputs is not None:
-            if isinstance(outputs, str):
-                context[outputs] = result
-            elif isinstance(outputs, list):
-                if len(outputs) == 1:
-                    context[outputs[0]] = result
-                else:
-                    for i, output_name in enumerate(outputs):
-                        if isinstance(result, (tuple, list)) and i < len(result):
-                            context[output_name] = result[i]
-                        else:
-                            context[output_name] = result
-
-        # Handle append_to if specified
-        if "append_to" in rule and result is not None:
-            list_name = rule["append_to"]
-            if list_name not in context:
-                context[list_name] = []
-            context[list_name].append(result)
-
-        logger.info(f"✅ Completed LLM step: {name}")
-
-        # Log outputs
-        if outputs:
-            result_dict = {}
-            if isinstance(outputs, str):
-                result_dict[outputs] = context[outputs]
-            elif isinstance(outputs, list):
-                for output_name in outputs:
-                    if output_name in context:
-                        result_dict[output_name] = context[output_name]
-            logger.debug(f"Step outputs: {result_dict}")
-
-        # Handle saveas output
-        handle_step_output(rule, context)
-
-    except Exception as e:
-        logger.error(f"❌ Error in LLM step '{name}': {e}")
-        raise
+    logger.info(f"✅ Completed LLM step: {name}")
+    return result
 
 
 def _value_to_string(value: Any) -> str:
@@ -543,87 +447,70 @@ def _value_to_string(value: Any) -> str:
 
 
 def run_save_step(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
-    """Execute a save step"""
+    """Execute a save step to write content to a file"""
     name = rule.get("name", "unnamed")
-    input_value = rule.get("input")
-    filename = rule.get("filename", "output.txt")
-    fmt = rule.get("format", "text")
-
     logger.info(f"💾 Starting save step: {name}")
     logger.debug(f"Step details: {rule}")
+    
+    # Get the raw path from rule
+    path = rule.get("path")
+    logger.debug(f"Raw path from rule: {path}")
+    logger.debug(f"Context keys: {list(context.keys())}")
 
-    try:
-        # Resolve input value
-        value = resolve(input_value, context)
+    if path:
+        # Resolve variables in path
+        resolved_path = resolve(path, context)
+        logger.debug(f"Resolved path: {resolved_path}")
+    else:
+        resolved_path = "output.txt"  # Default fallback
+        logger.debug(f"No path specified, using default: {resolved_path}")
 
-        # Create output directory if needed
-        output_dir = os.path.dirname(filename)
-        if output_dir:
-            os.makedirs(output_dir, exist_ok=True)
+    # Get content - it can be specified directly or referenced from context
+    content_value = rule.get("content")
+    logger.debug(f"Raw content from rule: {content_value}")
+    
+    if content_value:
+        # Resolve the content variable
+        content = resolve(content_value, context)
+        logger.debug(f"Resolved content: {content}")
+    else:
+        # Fallback: might be in context under a default key
+        content = context.get("content", "")
+        logger.debug(f"Using content from context['content']: {content}")
 
-        if fmt == "json":
-            with open(filename, "w", encoding="utf-8") as f:
-                json.dump(value, f, indent=2, ensure_ascii=False)
-        elif fmt == "yaml":
-            with open(filename, "w", encoding="utf-8") as f:
-                yaml.dump(value, f, default_flow_style=False, allow_unicode=True)
-        else:  # text, markdown, or any other format
-            content = _value_to_string(value)
-            with open(filename, "w", encoding="utf-8") as f:
-                f.write(content)
+    # Ensure parent directory exists
+    from pathlib import Path
+    output_path = Path(resolved_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Record and report the written file
-        _record_written_file(filename)
+    # Write the file
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(str(content))
 
-        logger.info(f"✅ Completed save step: {name}")
+    filename = str(output_path.absolute())
+    logger.info(f"Wrote file: {filename}")
 
-    except Exception as e:
-        logger.error(f"❌ Error in save step '{name}': {e}")
-        raise
+    # Track written files
+    _record_written_file(filename)
+
+    logger.info(f"✅ Completed save step: {name}")
 
 
-def handle_step_output(rule, context):
-    """Handle saveas output for pipeline steps."""
-    if "saveas" in rule:
-        saveas_config = rule["saveas"]
-        outputs = rule.get("outputs")
+def apply_output_template(result, template_path, context):
+    """Apply a template to format step output"""
+    from llmflow.utils.io import render_markdown_template
 
-        if isinstance(saveas_config, str):
-            # Simple syntax
-            resolved_path = resolve(saveas_config, context)
-            if isinstance(outputs, list):
-                content = context[outputs[0]]
-            elif isinstance(outputs, str):
-                content = context[outputs]
-            else:
-                raise ValueError(
-                    "Cannot determine content to save - no outputs specified"
-                )
-            saved_path = save_content_to_file(content, resolved_path)
-            _record_written_file(saved_path)
+    # Create template variables with the resultz
+    template_vars = context.copy()
+    template_vars["result"] = result
 
-        elif isinstance(saveas_config, list):
-            # Array syntax: multiple destinations
-            for save_item in saveas_config:
-                if isinstance(save_item, dict):
-                    path = resolve(save_item["path"], context)
-
-                    # Get content and RESOLVE dot notation
-                    if "content" in save_item:
-                        content_spec = save_item["content"]
-                        content = resolve(content_spec, context)
-                    elif isinstance(outputs, list):
-                        content_var = outputs[0]
-                        content = context[content_var]
-                    elif isinstance(outputs, str):
-                        content_var = outputs
-                        content = context[content_var]
-                    else:
-                        raise ValueError("Cannot determine content to save")
-
-                    format_type = save_item.get("format", "auto")
-                    saved_path = save_content_to_file(content, path, format_type)
-                    _record_written_file(saved_path)
+    # Render the template WITH CONTEXT
+    formatted = render_markdown_template(
+        template_path=template_path,
+        variables=template_vars,
+        context=context,  # ADD THIS LINE - pass the full context for resolution
+    )
+    return formatted
 
 
 def save_content_to_file(content, path, format_type="auto"):
@@ -842,21 +729,65 @@ def run_pipeline(
     return context  # Return the final context instead of None
 
 
-def apply_output_template(result, template_path, context):
-    """Apply a template to format step output"""
-    from llmflow.utils.io import render_markdown_template
+def run_for_each_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> None:
+    """Execute a for-each step"""
+    name = rule.get("name", "unnamed")
+    input_var = rule.get("input")
+    item_var = rule.get("item_var", "item")
+    steps = rule.get("steps", [])
 
-    # Create template variables with the resultz
-    template_vars = context.copy()
-    template_vars["result"] = result
+    logger.info(f"🔁 Starting for-each step: {name}")
+    logger.debug(f"Step details: {rule}")
 
-    # Render the template WITH CONTEXT
-    formatted = render_markdown_template(
-        template_path=template_path,
-        variables=template_vars,
-        context=context,  # ADD THIS LINE - pass the full context for resolution
-    )
-    return formatted
+    # Resolve the input to get the list
+    resolved_input = resolve(input_var, context)
+    if not isinstance(resolved_input, (list, tuple)):
+        raise ValueError(
+            f"for-each input must resolve to a list, got {type(resolved_input)}"
+        )
+
+    total_items = len(resolved_input)
+    logger.info(f"   Processing {total_items} items")
+
+    # Track which lists are append_to targets across all nested steps
+    append_to_lists = set()
+
+    def collect_append_to_targets(steps_list):
+        """Recursively collect all append_to target list names"""
+        for step in steps_list:
+            if "append_to" in step:
+                append_to_lists.add(step["append_to"])
+            if step.get("type") == "for-each" and "steps" in step:
+                collect_append_to_targets(step["steps"])
+
+    collect_append_to_targets(steps)
+
+    for idx, item in enumerate(resolved_input, start=1):
+        logger.debug(f"Processing item {idx}/{total_items}")
+
+        # Create isolated context for this iteration using deepcopy
+        item_context = deepcopy(context)
+        item_context[item_var] = item
+
+        # Run nested steps with the item context
+        for nested_step in steps:
+            run_step(nested_step, item_context, pipeline_config)
+
+        # After iteration, ONLY merge append_to lists back to parent context
+        # Do NOT merge other variables that were modified in the iteration
+        for list_name in append_to_lists:
+            if list_name in item_context:
+                # Ensure parent context has the list
+                if list_name not in context:
+                    context[list_name] = []
+                # Merge only if it's actually a list
+                if isinstance(item_context[list_name], list):
+                    # Extend parent list with new items from iteration
+                    for item_val in item_context[list_name]:
+                        if item_val not in context[list_name]:
+                            context[list_name].append(item_val)
+
+    logger.info(f"✅ Completed for-each step: {name}")
 
 
 def _save_file_by_format(value, filename, fmt):

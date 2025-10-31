@@ -1,9 +1,5 @@
-# plugins/__init__.py
+"""LLMFlow plugins."""
 
-plugin_registry = {}
+from llmflow.plugins.loader import plugin_registry, get_plugin, list_plugins
 
-
-def register_plugin(name, func):
-    if name in plugin_registry:
-        raise ValueError(f"Plugin '{name}' is already registered")
-    plugin_registry[name] = func
+__all__ = ['plugin_registry', 'get_plugin', 'list_plugins']
