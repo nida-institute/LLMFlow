@@ -65,7 +65,7 @@ def resolve(value, context, max_depth=5):
 
             if isinstance(result, dict):
                 result = result.get(key)
-            elif hasattr(result, key):  # FIX: Check hasattr instead of __getattr__
+            elif hasattr(result, key):
                 # Handle Row objects and similar objects with attributes
                 try:
                     result = getattr(result, key)
@@ -164,7 +164,17 @@ def render_prompt(
         if not isinstance(prompt_file, str):
             raise ValueError(f"Prompt 'file' must be a string, got {type(prompt_file)}")
         prompt_path = Path(prompt_file)
-        resolved_prompt.get("inputs", {})
+
+        # FIX: Extract and resolve inputs from prompt config
+        prompt_inputs = resolved_prompt.get("inputs", {})
+        if prompt_inputs:
+            # Create extended context with resolved inputs
+            extended_context = {**context}
+            for key, value in prompt_inputs.items():
+                extended_context[key] = resolve(value, context)
+            logger.debug(f"Extended context with prompt inputs: {list(extended_context.keys())}")
+            context = extended_context
+
     elif isinstance(resolved_prompt, str):
         # Handle the case where prompt is just a string path
         prompt_path = Path(resolved_prompt)
@@ -181,9 +191,15 @@ def render_prompt(
     logger.debug(f"Loading prompt from: {full_prompt_path}")
     rendered_prompt = full_prompt_path.read_text()
 
-    # Simple template substitution
+    # FIRST: Handle {{variable}} syntax (double braces) - your existing prompts
     for key, val in context.items():
-        rendered_prompt = rendered_prompt.replace(f"{{{key}}}", str(val))
+        rendered_prompt = rendered_prompt.replace(f"{{{{{key}}}}}", str(val))
+
+    # THEN: Use resolve() for ${var} and {var} syntax (handles dot notation)
+    rendered_prompt = resolve(rendered_prompt, context)
+
+    logger.debug(f"Rendered prompt length: {len(rendered_prompt)} chars")
+    logger.debug(f"Rendered prompt preview (after substitution): {rendered_prompt[:300]}...")
 
     return rendered_prompt
 
@@ -297,7 +313,7 @@ def run_step(rule, context, pipeline_config):
         # Execute the appropriate step type
         if step_type == "function":
             result = run_function_step(rule, context)
-            # FIX: Don't call handle_step_outputs here - run_function_step already does it
+            # Don't call handle_step_outputs here - run_function_step already does it
         elif step_type == "for-each":
             run_for_each_step(rule, context, pipeline_config)
             return
@@ -321,33 +337,33 @@ def run_step(rule, context, pipeline_config):
 
 
 def run_plugin_step(rule: Dict[str, Any], context: Dict[str, Any]) -> Any:
-    """Execute a plugin step and return its result"""
-    step_type = rule["type"]
-    step_name = rule.get("name", "unnamed")
+    """Execute a plugin step"""
+    name = rule.get("name", "unnamed")
+    step_type = rule.get("type")
 
-    logger.info(f"🔌 Starting plugin step: {step_name}")
-    plugin_func = plugin_registry[step_type]
+    logger.info(f"🔌 Starting plugin step: {name}")
 
-    # Resolve all variables in the rule before passing to plugin
-    resolved_rule = {}
-    for key, value in rule.items():
-        if key in ['name', 'type', 'outputs', 'append_to', 'saveas']:
-            resolved_rule[key] = value
-        else:
-            resolved_rule[key] = resolve(value, context)
+    try:
+        plugin_func = plugin_registry[step_type]
+        plugin_config = {k: resolve(v, context) for k, v in rule.items()}
+        logger.debug(f"Plugin config being passed: {plugin_config}")
 
-    # Execute plugin
-    results = plugin_func(resolved_rule)
+        # Execute plugin - returns generator
+        results = plugin_func(plugin_config)
 
-    # Convert generators to lists
-    if hasattr(results, '__iter__') and not isinstance(results, (str, dict)):
-        try:
-            results = list(results)
-        except TypeError:
-            pass
+        # FIX: Only convert generators to list, not strings/primitives
+        if hasattr(results, '__iter__') and not isinstance(results, (str, dict, bytes)):
+            # Check if it's actually a generator, not just iterable
+            import types
+            if isinstance(results, types.GeneratorType):
+                results = list(results)
 
-    logger.info(f"✅ Completed plugin step: {step_name}")
-    return results
+        logger.info(f"✅ Completed plugin step: {name}")
+        return results
+
+    except Exception as e:
+        logger.error(f"❌ Error in {step_type} step '{name}': {e}")
+        raise
 
 
 def run_function_step(rule: Dict[str, Any], context: Dict[str, Any]) -> Any:
@@ -403,6 +419,8 @@ def run_llm_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config:
 
     logger.info(f"🤖 Starting LLM step: {name}")
     logger.debug(f"Step details: {rule}")
+    logger.debug(f"Context keys available: {list(context.keys())}")
+    logger.debug(f"Context values preview: {[(k, str(v)[:100]) for k, v in context.items()]}")
 
     rendered_prompt = render_prompt(rule["prompt"], context)
 
@@ -434,16 +452,21 @@ def run_llm_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config:
     return result
 
 
-def _value_to_string(value: Any) -> str:
-    """Convert a value to string for text output"""
-    if isinstance(value, str):
-        return value
-    elif isinstance(value, list):
-        return "\n".join(str(item) for item in value)
-    elif isinstance(value, dict):
-        return yaml.dump(value, default_flow_style=False, allow_unicode=True)
-    else:
-        return str(value)
+def apply_output_template(llm_output: str, template_path: str, context: Dict[str, Any]) -> str:
+    """Apply a template to LLM output"""
+    from jinja2 import Template
+
+    template_file = Path(template_path)
+    if not template_file.is_absolute():
+        template_file = Path("templates") / template_file
+
+    template_content = template_file.read_text()
+    template = Template(template_content)
+
+    # Make both llm_output and all context variables available
+    template_context = {**context, "llm_output": llm_output, "output": llm_output}
+
+    return template.render(**template_context)
 
 
 def run_save_step(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
@@ -451,282 +474,66 @@ def run_save_step(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
     name = rule.get("name", "unnamed")
     logger.info(f"💾 Starting save step: {name}")
     logger.debug(f"Step details: {rule}")
-    
-    # Get the raw path from rule
-    path = rule.get("path")
-    logger.debug(f"Raw path from rule: {path}")
-    logger.debug(f"Context keys: {list(context.keys())}")
 
+    # Get and resolve the path
+    path = rule.get("path")
     if path:
-        # Resolve variables in path
         resolved_path = resolve(path, context)
         logger.debug(f"Resolved path: {resolved_path}")
     else:
-        resolved_path = "output.txt"  # Default fallback
+        resolved_path = "output.txt"
         logger.debug(f"No path specified, using default: {resolved_path}")
 
-    # Get content - it can be specified directly or referenced from context
+    # Get content
     content_value = rule.get("content")
-    logger.debug(f"Raw content from rule: {content_value}")
-    
     if content_value:
-        # Resolve the content variable
         content = resolve(content_value, context)
-        logger.debug(f"Resolved content: {content}")
     else:
-        # Fallback: might be in context under a default key
         content = context.get("content", "")
-        logger.debug(f"Using content from context['content']: {content}")
 
-    # Ensure parent directory exists
+    # Write file
     from pathlib import Path
     output_path = Path(resolved_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Write the file
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(str(content))
 
     filename = str(output_path.absolute())
-    logger.info(f"Wrote file: {filename}")
-
-    # Track written files
     _record_written_file(filename)
 
     logger.info(f"✅ Completed save step: {name}")
 
 
-def apply_output_template(result, template_path, context):
-    """Apply a template to format step output"""
-    from llmflow.utils.io import render_markdown_template
+def save_content_to_file(content: Any, path: str, format_type: str = "auto") -> str:
+    """Save content to a file with format detection"""
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Create template variables with the resultz
-    template_vars = context.copy()
-    template_vars["result"] = result
-
-    # Render the template WITH CONTEXT
-    formatted = render_markdown_template(
-        template_path=template_path,
-        variables=template_vars,
-        context=context,  # ADD THIS LINE - pass the full context for resolution
-    )
-    return formatted
-
-
-def save_content_to_file(content, path, format_type="auto"):
-    """Save content to file with format detection"""
-    file_path = Path(path)
-
-    # Auto-detect format from extension
     if format_type == "auto":
-        ext = file_path.suffix.lower()
-        if ext == ".json":
+        ext = output_path.suffix.lower()
+        if ext in [".json"]:
             format_type = "json"
-        elif ext in [".md", ".txt"]:
+        elif ext in [".yaml", ".yml"]:
+            format_type = "yaml"
+        else:
             format_type = "text"
 
-    _save_file_by_format(content, str(file_path), format_type)
-    return str(file_path)
+    _save_file_by_format(content, str(output_path), format_type)
+    return str(output_path.absolute())
 
 
-def validate_pipeline_expressions(step_inputs, context):
-    """
-    Raise an error if any input value contains an unresolvable ${...} expression.
-    """
-    if isinstance(step_inputs, str):
-        resolved = resolve(step_inputs, context)
-        # If unresolved, it will still contain ${...}
-        if isinstance(resolved, str) and "${" in resolved:
-            # Instead of regex, just raise error for any remaining ${...}
-            unresolved_vars = []
-            idx = 0
-            while idx < len(resolved):
-                start = resolved.find("${", idx)
-                if start == -1:
-                    break
-                end = resolved.find("}", start)
-                if end == -1:
-                    break
-                unresolved_vars.append(resolved[start : end + 1])
-                idx = end + 1
-            for expr in unresolved_vars:
-                raise ValueError(
-                    f"Unresolved pipeline expression: {expr} in value '{step_inputs}'"
-                )
-    elif isinstance(step_inputs, dict):
-        for v in step_inputs.values():
-            validate_pipeline_expressions(v, context)
-    elif isinstance(step_inputs, list):
-        for item in step_inputs:
-            validate_pipeline_expressions(item, context)
-
-
-def collect_all_templates(steps):
-    """
-    Recursively collect all template paths from pipeline steps, including:
-    - Direct template_path references in function steps
-    - Templates referenced in .gpt prompt files
-    - Nested steps in for-each loops
-    """
-    templates = []
-
-    for step in steps:
-        step_name = step.get("name", "unnamed")
-
-        # Check for direct template_path in inputs
-        inputs = step.get("inputs", {})
-        template_path = inputs.get("template_path")
-        if template_path:
-            templates.append((template_path, step_name))
-
-        # Check for prompt files that might contain templates
-        if step.get("type") == "llm":
-            prompt_config = step.get("prompt", {})
-            prompt_file = prompt_config.get("file")
-            if prompt_file:
-                # We need to scan the .gpt file for template references
-                # Add this to templates list for validation
-                templates.append(
-                    (f"prompts/{prompt_file}", f"{step_name} (prompt file)")
-                )
-
-        # Recursively check nested steps (for-each, etc.)
-        if step.get("type") == "for-each":
-            nested_steps = step.get("steps", [])
-            templates.extend(collect_all_templates(nested_steps))
-
-    return templates
-
-
-def run_pipeline(
-    pipeline_path, vars=None, dry_run=False, skip_lint=False, verbose=False
-):
-    """Execute a YAML-defined pipeline with template validation"""
-    variables = vars or {}
-
-    # Clear the log file at the start of a new run
-    open("llmflow.log", "w").close()
-
-    # Load pipeline FIRST before using any variables from it - with friendly error handling
-    # Strict YAML linting before validation
-    try:
-        from ruamel.yaml import YAML
-
-        yaml_linter = YAML(typ="safe")
-        with open(pipeline_path, encoding="utf-8") as f:
-            pipeline = yaml_linter.load(f)
-        # Minimal Pydantic validation
-        from pydantic import ValidationError
-
-        from llmflow.pipeline_schema import PipelineConfig, StepConfig
-
-        pipeline_root = pipeline.get("pipeline", pipeline)
-        # Validate top-level pipeline config
-        try:
-            PipelineConfig(**pipeline_root)
-        except ValidationError as e:
-            logger.info("\n[ERROR] Pipeline config validation failed:")
-            logger.info(e)
-            raise SystemExit(1)
-        # Validate each step strictly
-        for idx, step in enumerate(pipeline_root.get("steps", [])):
-            try:
-                StepConfig(**step)
-            except ValidationError as e:
-                logger.info(
-                    f"\n[ERROR] Step {idx+1} ('{step.get('name','unnamed')}') validation failed:"
-                )
-                logger.info(e)
-                raise SystemExit(1)
-
-    except FileNotFoundError:
-        # Get both relative and absolute paths for helpful error message
-        pipeline_file = Path(pipeline_path)
-        current_dir = Path.cwd()
-        abs_path = pipeline_file.resolve()
-
-        logger.error("❌ Pipeline file not found:")
-        logger.error(f"   Looking for: {pipeline_path}")
-        logger.error(f"   Absolute path: {abs_path}")
-        logger.error(f"   Current directory: {current_dir}")
-        logger.error("   Are you running from the correct directory?")
-
-        # List available pipeline files if pipelines directory exists
-        pipelines_dir = current_dir / "pipelines"
-        if pipelines_dir.exists() and pipelines_dir.is_dir():
-            available = list(pipelines_dir.glob("*.yaml"))
-            if available:
-                logger.error("\n   Available pipelines:")
-                for p in available:
-                    logger.error(f"   - {p.name}")
-
-        raise SystemExit(1)
-
-    # Extract pipeline root and steps
-    pipeline_root = pipeline.get("pipeline", pipeline)
-    rules = pipeline_root.get("steps", [])
-
-    logger.debug(f"Variables: {variables}")
-    total_steps = len(rules)
-    logger.info(f"Found {total_steps} steps to execute")
-
-    # Initialize context first for template validation
-    context = dict(pipeline_root.get("variables", {}))
-    context.update(variables)
-
-    # Preflight validation
-    if not skip_lint:
-        # Run full pipeline validation (includes template validation)
-        try:
-            lint_pipeline_full(pipeline_path)
-        except Exception as e:
-            logger.error(f"ERROR in lint_pipeline_full: {type(e).__name__}: {e}")
-            import traceback
-
-            logger.error(traceback.format_exc())
-            raise
+def _save_file_by_format(content: Any, path: str, format_type: str) -> None:
+    """Internal helper to save files by format"""
+    if format_type == "json":
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(content, f, indent=2, ensure_ascii=False)
+    elif format_type == "yaml":
+        with open(path, "w", encoding="utf-8") as f:
+            yaml.dump(content, f, default_flow_style=False, allow_unicode=True)
     else:
-        # Just validate templates if linting is skipped
-        logger.info("🔍 Validating pipeline templates...")
-        try:
-            validate_all_templates(pipeline_root)
-            logger.info("✅ All templates validated successfully")
-        except Exception as e:
-            logger.error(f"Template validation failed: {e}")
-            raise
-
-    # Show execution is starting
-    if not dry_run:
-        logger.info("\n🎯 Starting pipeline execution...")
-        import sys
-
-        sys.stdout.flush()
-        # Flush all logger handlers too
-        for handler in logger.logger.handlers:
-            handler.flush()
-    else:
-        logger.info("\n[DRY RUN] Skipping execution")
-
-    # For each step execution
-    for rule in rules:
-        name = rule.get("name", "unnamed")
-
-        if dry_run:
-            logger.info(f"Would run: {name}")
-            continue
-
-        try:
-            # Step logging is handled within each step function
-            run_step(rule, context, pipeline_root)
-        except Exception as e:
-            logger.error(f"Step '{name}' failed: {e}")
-            raise
-
-        logger.debug(f"Context after step {name}: {list(context.keys())}")
-
-    logger.info("Pipeline complete.")
-
-    return context  # Return the final context instead of None
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(str(content))
 
 
 def run_for_each_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> None:
@@ -749,11 +556,10 @@ def run_for_each_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_co
     total_items = len(resolved_input)
     logger.info(f"   Processing {total_items} items")
 
-    # Track which lists are append_to targets across all nested steps
+    # Track which lists are append_to targets
     append_to_lists = set()
 
     def collect_append_to_targets(steps_list):
-        """Recursively collect all append_to target list names"""
         for step in steps_list:
             if "append_to" in step:
                 append_to_lists.add(step["append_to"])
@@ -773,41 +579,126 @@ def run_for_each_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_co
         for nested_step in steps:
             run_step(nested_step, item_context, pipeline_config)
 
-        # After iteration, ONLY merge append_to lists back to parent context
-        # Do NOT merge other variables that were modified in the iteration
+        # ONLY merge append_to lists back to parent context
         for list_name in append_to_lists:
             if list_name in item_context:
-                # Ensure parent context has the list
                 if list_name not in context:
                     context[list_name] = []
-                # Merge only if it's actually a list
                 if isinstance(item_context[list_name], list):
-                    # Extend parent list with new items from iteration
                     for item_val in item_context[list_name]:
                         if item_val not in context[list_name]:
                             context[list_name].append(item_val)
 
+    logger.debug(f"Context after step {name}: {list(context.keys())}")
     logger.info(f"✅ Completed for-each step: {name}")
 
 
-def _save_file_by_format(value, filename, fmt):
-    """Save value to file in specified format"""
-    import json
+def run_pipeline(
+    pipeline_file, vars=None, dry_run=False, verbose=False, skip_lint=False
+):
+    """
+    Run a pipeline from a YAML file.
 
-    import yaml
+    Args:
+        pipeline_file: Path to the pipeline YAML file
+        vars: Optional dictionary of variables to override
+        dry_run: If True, only validate and show what would run
+        verbose: Enable verbose logging
+        skip_lint: Skip linting validation
+    """
+    from pathlib import Path
+    from pydantic import ValidationError
+    from llmflow.pipeline_schema import PipelineConfig  # FIX: Correct module name
 
-    # Ensure output directory exists
-    output_dir = os.path.dirname(filename)
-    if output_dir:
-        os.makedirs(output_dir, exist_ok=True)
+    # Set up logging
+    if verbose:
+        logger.set_level("DEBUG")
 
-    if fmt == "json":
-        with open(filename, "w", encoding="utf-8") as f:
-            json.dump(value, f, indent=2, ensure_ascii=False)
-    elif fmt == "yaml":
-        with open(filename, "w", encoding="utf-8") as f:
-            yaml.dump(value, f, default_flow_style=False, allow_unicode=True)
-    else:  # text, markdown, or any other format
-        content = _value_to_string(value)
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write(content)
+    pipeline_path = Path(pipeline_file)
+
+    # Check if file exists
+    if not pipeline_path.exists():
+        logger.error(f"❌ Pipeline file not found: {pipeline_file}")
+        raise SystemExit(1)  # Change from FileNotFoundError
+
+    # Load and parse YAML with error handling
+    try:
+        with open(pipeline_path, 'r') as f:
+            pipeline_config = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        logger.error(f"❌ YAML syntax error in {pipeline_file}:")
+        if hasattr(e, 'problem_mark'):
+            mark = e.problem_mark
+            logger.error(f"   Line {mark.line + 1}, Column {mark.column + 1}")
+            logger.error(f"   {e.problem}")
+            if hasattr(e, 'context'):
+                logger.error(f"   Context: {e.context}")
+        else:
+            logger.error(f"   {str(e)}")
+        raise SystemExit(1)
+    except Exception as e:
+        logger.error(f"❌ Error reading pipeline file {pipeline_file}: {e}")
+        raise SystemExit(1)
+
+    if not pipeline_config:
+        logger.error(f"❌ Pipeline file is empty or invalid: {pipeline_file}")
+        raise SystemExit(1)
+
+    # Validate pipeline structure with Pydantic
+    try:
+        PipelineConfig(**pipeline_config)
+    except ValidationError as e:
+        logger.error(f"❌ Pipeline validation error in {pipeline_file}:")
+        for error in e.errors():
+            field = " → ".join(str(loc) for loc in error['loc'])
+            logger.error(f"   {field}: {error['msg']}")
+            if 'input' in error:
+                logger.error(f"   Got: {error['input']}")
+        raise SystemExit(1)
+    except Exception as e:
+        logger.error(f"❌ Pipeline structure error: {e}")
+        raise SystemExit(1)
+
+    # Lint if requested
+    if not skip_lint:
+        logger.info("🔍 Validating pipeline...")
+        lint_result = lint_pipeline_full(str(pipeline_path))
+        # Handle None return (for mocked tests)
+        if lint_result and not lint_result.valid:
+            logger.error("❌ Pipeline validation failed:")
+            for error in lint_result.errors:
+                logger.error(f"  - {error}")
+            raise SystemExit(1)
+
+    # Get variables from pipeline
+    pipeline_root = pipeline_config.get("pipeline", pipeline_config)
+    pipeline_vars = pipeline_root.get("variables", {})
+
+    # Initialize context with merged variables (CLI vars override pipeline vars)
+    context = {**pipeline_vars, **(vars or {})}
+    logger.debug(f"Variables: {vars}")
+
+    # Get steps to execute
+    steps = pipeline_root.get("steps", [])
+    logger.info(f"Found {len(steps)} steps to execute")
+
+    # Validate templates - ONLY pass pipeline_root
+    logger.info("🔍 Validating pipeline templates...")
+    validate_all_templates(pipeline_root)
+    logger.info("✅ All templates validated successfully")
+
+    if dry_run:
+        logger.info("\n🎯 Dry run mode - showing steps that would execute:")
+        for step in pipeline_config.get("steps", []):
+            logger.info(f"Would run: {step['name']} (type: {step['type']})")
+        logger.info("Dry run complete. Exiting.")
+        return context  # Return context immediately, don't execute
+
+    logger.info("\n🎯 Starting pipeline execution...")
+
+    # Execute each step
+    for rule in steps:
+        run_step(rule, context, pipeline_root)
+
+    logger.info("Pipeline complete.")
+    return context

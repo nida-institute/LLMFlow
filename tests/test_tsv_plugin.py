@@ -32,7 +32,7 @@ class TestTsvReader:
     def test_row_dot_notation(self, sample_tsv):
         """Test Row object allows dot notation access."""
         plugin_func = llmflow.plugins.plugin_registry["tsv"]
-        rows = plugin_func({"path": str(sample_tsv)})
+        rows = list(plugin_func({"path": str(sample_tsv)}))  # Convert to list
 
         row = rows[0]
         assert row.lemma == 'α'
@@ -42,7 +42,7 @@ class TestTsvReader:
     def test_row_bracket_notation(self, sample_tsv):
         """Test Row object allows bracket notation access."""
         plugin_func = llmflow.plugins.plugin_registry["tsv"]
-        rows = plugin_func({"path": str(sample_tsv)})
+        rows = list(plugin_func({"path": str(sample_tsv)}))  # Convert to list
 
         row = rows[0]
         assert row['lemma'] == 'α'
@@ -51,7 +51,7 @@ class TestTsvReader:
     def test_row_to_dict(self, sample_tsv):
         """Test Row object can convert back to dict."""
         plugin_func = llmflow.plugins.plugin_registry["tsv"]
-        rows = plugin_func({"path": str(sample_tsv)})
+        rows = list(plugin_func({"path": str(sample_tsv)}))  # Convert to list
 
         row = rows[0]
         data = row.to_dict()
@@ -60,7 +60,7 @@ class TestTsvReader:
     def test_execute_reads_tsv(self, sample_tsv):
         """Test plugin reads TSV file correctly."""
         plugin_func = llmflow.plugins.plugin_registry["tsv"]
-        rows = plugin_func({"path": str(sample_tsv)})
+        rows = list(plugin_func({"path": str(sample_tsv)}))  # Convert to list
 
         assert len(rows) == 3
         assert rows[0].lemma == 'α'
@@ -72,10 +72,10 @@ class TestTsvReader:
     def test_execute_with_limit(self, sample_tsv):
         """Test plugin respects limit parameter."""
         plugin_func = llmflow.plugins.plugin_registry["tsv"]
-        rows = plugin_func({
+        rows = list(plugin_func({  # Convert to list
             "path": str(sample_tsv),
             "limit": 2
-        })
+        }))
 
         assert len(rows) == 2
         assert rows[0].lemma == 'α'
@@ -84,7 +84,7 @@ class TestTsvReader:
     def test_execute_with_from_keyword(self, sample_tsv):
         """Test plugin accepts 'from' as alternative to 'path'."""
         plugin_func = llmflow.plugins.plugin_registry["tsv"]
-        rows = plugin_func({"from": str(sample_tsv)})
+        rows = list(plugin_func({"from": str(sample_tsv)}))  # Convert to list
 
         assert len(rows) == 3
 
@@ -97,26 +97,32 @@ class TestTsvReader:
             writer.writerow(['alpha', '1'])
             writer.writerow(['beta', '2'])
 
-        plugin_func = llmflow.plugins.plugin_registry["csv"]
-        rows = plugin_func({"path": str(csv_file)})
+        # Use tsv plugin with delimiter parameter for CSV
+        plugin_func = llmflow.plugins.plugin_registry["tsv"]
+        rows = list(plugin_func({
+            "path": str(csv_file),
+            "delimiter": ","
+        }))
 
         assert len(rows) == 2
         assert rows[0].name == 'alpha'
         assert rows[0].value == '1'
+        assert rows[1].name == 'beta'
+        assert rows[1].value == '2'
 
     def test_execute_file_not_found(self):
         """Test plugin raises error for missing file."""
         plugin_func = llmflow.plugins.plugin_registry["tsv"]
 
         with pytest.raises(FileNotFoundError):
-            plugin_func({"path": "nonexistent.tsv"})
+            list(plugin_func({"path": "/nonexistent/file.tsv"}))  # Force evaluation
 
     def test_execute_missing_path(self):
         """Test plugin raises error when path is missing."""
         plugin_func = llmflow.plugins.plugin_registry["tsv"]
 
         with pytest.raises(ValueError, match="requires 'path' or 'from'"):
-            plugin_func({})
+            list(plugin_func({}))  # Force evaluation
 
 
 class TestRowResolution:

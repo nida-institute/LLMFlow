@@ -4,43 +4,45 @@ import sys
 
 class Logger:
     def __init__(self):
-        self.logger = logging.getLogger("llmflow")
+        self.level = logging.INFO
+        # Configure the llmflow logger specifically
+        self.logger = logging.getLogger('llmflow')
+        self.logger.setLevel(self.level)
+
+        # Add handler if not already present
         if not self.logger.handlers:
-            self._setup_logger()
+            handler = logging.StreamHandler(sys.stderr)
+            handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
+            self.logger.addHandler(handler)
 
-    def _setup_logger(self):
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.propagate = False
 
-        # Console handler
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(logging.INFO)
-        console_format = logging.Formatter("%(message)s")
-        console_handler.setFormatter(console_format)
+    def set_level(self, level: str):
+        """Set logging level"""
+        level_map = {
+            "DEBUG": logging.DEBUG,
+            "INFO": logging.INFO,
+            "WARNING": logging.WARNING,
+            "ERROR": logging.ERROR,
+        }
+        self.level = level_map.get(level.upper(), logging.INFO)
+        self.logger.setLevel(self.level)
 
-        # File handler
-        file_handler = logging.FileHandler("llmflow.log", mode="a", encoding="utf-8")
-        file_handler.setLevel(logging.DEBUG)
-        file_format = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-        file_handler.setFormatter(file_format)
+    def debug(self, msg):
+        self.logger.debug(msg)
 
-        self.logger.addHandler(console_handler)
-        self.logger.addHandler(file_handler)
+    def info(self, msg):
+        self.logger.info(msg)
 
-    def debug(self, message):
-        self.logger.debug(message)
+    def warning(self, msg):
+        self.logger.warning(msg)
 
-    def info(self, message):
-        self.logger.info(message)
-
-    def warning(self, message):
-        self.logger.warning(message)
-
-    def error(self, message):
-        self.logger.error(message)
+    def error(self, msg):
+        self.logger.error(msg)
 
     def log_section(self, title, level="info"):
         """
-        Log a section header with visual separation for better readability.
+        Log a section header with visual separation.
 
         Args:
             title: The section title
@@ -78,11 +80,3 @@ class Logger:
         else:  # default to info
             self.logger.info(header)
 
-
-# Usage in any module:
-# from llmflow.modules.logger import Logger
-# logger = Logger()
-# logger.info("Step started")
-# logger.debug("Debug details")
-# logger.error("Error message")
-# logger.warning("Warning message")

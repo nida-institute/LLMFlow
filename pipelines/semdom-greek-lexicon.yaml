@@ -6,8 +6,9 @@ steps:
   # Step 1: Read first 10 rows from status.tsv
   - name: read-status
     type: tsv
-    path: inputs/Abbot-Smith/status.tsv
-    limit: 10
+    inputs:
+      path: inputs/Abbot-Smith/status.tsv
+      limit: 10
     outputs:
       - status_rows
 
@@ -20,13 +21,14 @@ steps:
       # Find the entry in Abbott-Smith for this lemma
       - name: find-entry
         type: xpath
-        path: inputs/Abbot-Smith/abbott-smith.tei.xml
-        xpath: //tei:entry[@key='${row.lemma}']
-        output_format: xml-string
-        namespaces:
-          tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
+        inputs:
+          path: inputs/Abbot-Smith/abbott-smith.tei.xml
+          xpath: //tei:entry[@key='${row.lemma}']
+          output_format: xml-string
+          namespaces:
+            tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
         outputs:
-          - entries  # Changed from 'entry' to 'entries' since xpath returns a list
+          - entries
         log: debug
         saveas: "outputs/xml/${row.lemma}.xml"
 

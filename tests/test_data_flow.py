@@ -28,30 +28,42 @@ def create_large_list():
     return list(range(100))
 
 
+def get_item(obj, key):
+    """Helper to get item from dict"""
+    return obj[key]
+
+
+def get_length(obj):
+    """
+    Helper to get length of an object.
+
+    TODO: This wrapper exists because built-in functions like len()
+    don't accept keyword arguments, and the pipeline runner doesn't
+    currently support positional-only arguments via list-based inputs.
+    """
+    return len(obj)
+
+
 def test_data_flows_through_pipeline():
     """Test that data flows correctly through a multi-step pipeline"""
 
     pipeline = {
         "name": "test-data-flow",
         "variables": {},
-        "llm_config": {
-            "provider": "anthropic",
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000,
-        },
+        "linter_config": {"enabled": False},
         "steps": [
             {
                 "name": "create_data",
                 "type": "function",
                 "function": "tests.test_data_flow.create_test_dict",
-                "outputs": "data",
+                "outputs": ["data"],
             },
             {
                 "name": "extract_value",
                 "type": "function",
-                "function": "operator.getitem",
-                "inputs": ["${data}", "value"],
-                "outputs": "result",
+                "function": "tests.test_data_flow.get_item",
+                "inputs": {"obj": "${data}", "key": "value"},
+                "outputs": ["result"],
             },
         ],
     }
@@ -61,7 +73,9 @@ def test_data_flows_through_pipeline():
         with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
-        run_pipeline(pipeline_file, skip_lint=True)
+        context = run_pipeline(pipeline_file, skip_lint=True)
+        assert "result" in context
+        assert context["result"] == "test_value"
 
 
 def test_data_flow_with_nested_references():
@@ -70,24 +84,20 @@ def test_data_flow_with_nested_references():
     pipeline = {
         "name": "test-nested-data-flow",
         "variables": {},
-        "llm_config": {
-            "provider": "anthropic",
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000,
-        },
+        "linter_config": {"enabled": False},
         "steps": [
             {
                 "name": "create_nested",
                 "type": "function",
                 "function": "tests.test_data_flow.create_nested_dict",
-                "outputs": "nested_data",
+                "outputs": ["nested_data"],
             },
             {
                 "name": "access_nested",
                 "type": "function",
-                "function": "operator.getitem",
-                "inputs": ["${nested_data}", "outer"],
-                "outputs": "outer_data",
+                "function": "tests.test_data_flow.get_item",
+                "inputs": {"obj": "${nested_data}", "key": "outer"},
+                "outputs": ["outer_data"],
             },
         ],
     }
@@ -97,7 +107,9 @@ def test_data_flow_with_nested_references():
         with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
-        run_pipeline(pipeline_file, skip_lint=True)
+        context = run_pipeline(pipeline_file, skip_lint=True)
+        assert "outer_data" in context
+        assert context["outer_data"]["inner"] == "nested_value"
 
 
 def test_data_flow_with_empty_lists():
@@ -106,24 +118,20 @@ def test_data_flow_with_empty_lists():
     pipeline = {
         "name": "test-empty-lists",
         "variables": {},
-        "llm_config": {
-            "provider": "anthropic",
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000,
-        },
+        "linter_config": {"enabled": False},
         "steps": [
             {
                 "name": "create_empty_list",
                 "type": "function",
                 "function": "tests.test_data_flow.create_empty_list",
-                "outputs": "empty_list",
+                "outputs": ["empty_list"],
             },
             {
                 "name": "check_empty",
                 "type": "function",
-                "function": "builtins.len",
-                "inputs": ["${empty_list}"],
-                "outputs": "list_length",
+                "function": "tests.test_data_flow.get_length",
+                "inputs": {"obj": "${empty_list}"},
+                "outputs": ["list_length"],
             },
         ],
     }
@@ -133,7 +141,9 @@ def test_data_flow_with_empty_lists():
         with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
-        run_pipeline(pipeline_file, skip_lint=True)
+        context = run_pipeline(pipeline_file, skip_lint=True)
+        assert "list_length" in context
+        assert context["list_length"] == 0
 
 
 def test_data_flow_with_conditional_processing():
@@ -142,24 +152,20 @@ def test_data_flow_with_conditional_processing():
     pipeline = {
         "name": "test-conditional-flow",
         "variables": {},
-        "llm_config": {
-            "provider": "anthropic",
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000,
-        },
+        "linter_config": {"enabled": False},
         "steps": [
             {
                 "name": "create_value",
                 "type": "function",
                 "function": "tests.test_data_flow.create_test_dict",
-                "outputs": "data",
+                "outputs": ["data"],
             },
             {
                 "name": "process_value",
                 "type": "function",
-                "function": "operator.getitem",
-                "inputs": ["${data}", "value"],
-                "outputs": "result",
+                "function": "tests.test_data_flow.get_item",
+                "inputs": {"obj": "${data}", "key": "value"},
+                "outputs": ["result"],
             },
         ],
     }
@@ -169,7 +175,8 @@ def test_data_flow_with_conditional_processing():
         with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
-        run_pipeline(pipeline_file, skip_lint=True)
+        context = run_pipeline(pipeline_file, skip_lint=True)
+        assert "result" in context
 
 
 def test_data_flow_with_error_recovery():
@@ -178,17 +185,13 @@ def test_data_flow_with_error_recovery():
     pipeline = {
         "name": "test-error-recovery",
         "variables": {},
-        "llm_config": {
-            "provider": "anthropic",
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000,
-        },
+        "linter_config": {"enabled": False},
         "steps": [
             {
                 "name": "safe_operation",
                 "type": "function",
                 "function": "tests.test_data_flow.create_test_dict",
-                "outputs": "result",
+                "outputs": ["result"],
             }
         ],
     }
@@ -198,7 +201,8 @@ def test_data_flow_with_error_recovery():
         with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
-        run_pipeline(pipeline_file, skip_lint=True)
+        context = run_pipeline(pipeline_file, skip_lint=True)
+        assert "result" in context
 
 
 def test_data_flow_with_deeply_nested_structures():
@@ -207,17 +211,13 @@ def test_data_flow_with_deeply_nested_structures():
     pipeline = {
         "name": "test-deep-nesting",
         "variables": {},
-        "llm_config": {
-            "provider": "anthropic",
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000,
-        },
+        "linter_config": {"enabled": False},
         "steps": [
             {
                 "name": "create_deep_structure",
                 "type": "function",
                 "function": "tests.test_data_flow.create_nested_dict",
-                "outputs": "deep_data",
+                "outputs": ["deep_data"],
             }
         ],
     }
@@ -227,7 +227,8 @@ def test_data_flow_with_deeply_nested_structures():
         with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
-        run_pipeline(pipeline_file, skip_lint=True)
+        context = run_pipeline(pipeline_file, skip_lint=True)
+        assert "deep_data" in context
 
 
 def test_data_flow_with_large_datasets():
@@ -236,24 +237,20 @@ def test_data_flow_with_large_datasets():
     pipeline = {
         "name": "test-large-data",
         "variables": {},
-        "llm_config": {
-            "provider": "anthropic",
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000,
-        },
+        "linter_config": {"enabled": False},
         "steps": [
             {
                 "name": "create_large_list",
                 "type": "function",
                 "function": "tests.test_data_flow.create_large_list",
-                "outputs": "large_list",
+                "outputs": ["large_list"],
             },
             {
                 "name": "get_length",
                 "type": "function",
-                "function": "builtins.len",
-                "inputs": ["${large_list}"],
-                "outputs": "list_size",
+                "function": "tests.test_data_flow.get_length",
+                "inputs": {"obj": "${large_list}"},
+                "outputs": ["list_size"],
             },
         ],
     }
@@ -263,7 +260,9 @@ def test_data_flow_with_large_datasets():
         with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
-        run_pipeline(pipeline_file, skip_lint=True)
+        context = run_pipeline(pipeline_file, skip_lint=True)
+        assert "list_size" in context
+        assert context["list_size"] == 100
 
 
 def test_data_flow_with_variable_substitution_edge_cases():
@@ -272,18 +271,14 @@ def test_data_flow_with_variable_substitution_edge_cases():
     pipeline = {
         "name": "test-substitution-edge-cases",
         "variables": {"special_chars": "value_with_$pecial_chars"},
-        "llm_config": {
-            "provider": "anthropic",
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000,
-        },
+        "linter_config": {"enabled": False},
         "steps": [
             {
                 "name": "use_special_var",
                 "type": "function",
-                "function": "builtins.len",
-                "inputs": ["${special_chars}"],
-                "outputs": "result",
+                "function": "tests.test_data_flow.get_length",
+                "inputs": {"obj": "${special_chars}"},
+                "outputs": ["result"],
             }
         ],
     }
@@ -293,7 +288,8 @@ def test_data_flow_with_variable_substitution_edge_cases():
         with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
-        run_pipeline(pipeline_file, skip_lint=True)
+        context = run_pipeline(pipeline_file, skip_lint=True)
+        assert "result" in context
 
 
 def test_data_flow_with_circular_references():
@@ -302,17 +298,13 @@ def test_data_flow_with_circular_references():
     pipeline = {
         "name": "test-circular-refs",
         "variables": {},
-        "llm_config": {
-            "provider": "anthropic",
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 4000,
-        },
+        "linter_config": {"enabled": False},
         "steps": [
             {
                 "name": "create_data",
                 "type": "function",
                 "function": "tests.test_data_flow.create_test_dict",
-                "outputs": "data",
+                "outputs": ["data"],
             }
         ],
     }
@@ -322,7 +314,8 @@ def test_data_flow_with_circular_references():
         with open(pipeline_file, "w") as f:
             yaml.dump(pipeline, f)
 
-        run_pipeline(pipeline_file, skip_lint=True)
+        context = run_pipeline(pipeline_file, skip_lint=True)
+        assert "data" in context
 
 
 class LLMConfig(BaseModel):

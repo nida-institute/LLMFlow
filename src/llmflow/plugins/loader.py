@@ -5,11 +5,15 @@ import pkgutil
 from pathlib import Path
 
 from llmflow.modules.logger import Logger
+from llmflow.plugins.tsv_reader import execute as tsv_execute
 
 logger = Logger()
 
 # Global plugin registry
-plugin_registry = {}
+plugin_registry = {
+    "tsv": tsv_execute,
+    "csv": tsv_execute,  # CSV uses same reader
+}
 
 
 def discover_plugins():

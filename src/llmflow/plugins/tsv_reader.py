@@ -1,98 +1,76 @@
-"""TSV/CSV reader plugin for LLMFlow pipelines."""
+"""TSV/CSV reader plugin for loading tabular data."""
 
 import csv
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Iterator
+
+from llmflow.modules.logger import Logger
+
+logger = Logger()
 
 
 class Row:
-    """A row object that allows dot notation access to columns."""
+    """Row object that supports both dot notation and dict-like access"""
 
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict):
         self._data = data
+        for key, value in data.items():
+            setattr(self, key, value)
 
-    def __getattr__(self, name: str) -> Any:
-        if name.startswith('_'):
-            return object.__getattribute__(self, name)
-        return self._data.get(name)
-
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key):
+        """Support dict-like access: row['key']"""
         return self._data[key]
 
     def __repr__(self):
         return f"Row({self._data})"
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert row back to dictionary."""
+    def to_dict(self):
+        """Convert to plain dictionary"""
         return self._data.copy()
 
 
-def execute(step_config: Dict[str, Any]) -> List[Row]:
+def execute(step_config) -> Iterator[Row]:
     """
-    Read a TSV/CSV file and return rows as Row objects.
+    Read TSV/CSV file and yield Row objects.
 
-    The first row is used as column headers. All subsequent rows are returned
-    as Row objects where columns can be accessed via dot notation or brackets.
+    Args:
+        step_config: Dictionary containing:
+            - inputs: Dict with:
+                - path: Path to file (can use 'from' as alias)
+                - limit: Optional max rows to read
+                - delimiter: Optional delimiter (default: tab)
 
-    Step config keys:
-    - path or from: Path to the TSV/CSV file
-    - delimiter: Column delimiter (default: '\t' for TSV)
-    - limit: Maximum number of rows to read (optional)
-
-    Returns:
-        List of Row objects with dot-notation access to columns
-
-    Example usage:
-        - name: read-status
-          type: tsv
-          path: inputs/Abbot-Smith/status.tsv
-          limit: 10
-          outputs:
-            - rows
-
-    Then access in subsequent steps:
-        - type: for-each
-          input: ${rows}
-          item_var: row
-          steps:
-            - name: process
-              inputs:
-                lemma: ${row.lemma}
-                status: ${row.status}
+    Yields:
+        Row objects with dot notation and dict-like access
     """
-    # Get file path (support both 'path' and 'from')
-    file_path = step_config.get("from") or step_config.get("path")
-    if not file_path:
+    # Support both old (inputs nested) and new (flat) config structure
+    if "inputs" in step_config:
+        config = step_config["inputs"]
+    else:
+        config = step_config
+
+    path = config.get("path") or config.get("from")
+    if not path:
         raise ValueError("tsv_reader requires 'path' or 'from' key")
 
-    # Get delimiter (default to tab for TSV)
-    delimiter = step_config.get("delimiter", "\t")
-
-    # Get optional limit
-    limit = step_config.get("limit")
-    if limit:
-        limit = int(limit)
-
-    # Read the file
-    path = Path(file_path)
+    path = Path(path)
     if not path.exists():
-        raise FileNotFoundError(f"TSV file not found: {file_path}")
+        raise FileNotFoundError(f"TSV file not found: {path}")
 
-    rows = []
-    with open(path, 'r', encoding='utf-8') as f:
+    limit = config.get("limit")
+    delimiter = config.get("delimiter", "\t")
+
+    with open(path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter=delimiter)
 
-        for idx, row_dict in enumerate(reader):
-            if limit and idx >= limit:
+        for i, row_dict in enumerate(reader):
+            if limit and i >= limit:
                 break
-            rows.append(Row(row_dict))
-
-    return rows
+            yield Row(row_dict)
 
 
 def register():
-    """Register this plugin with LLMFlow."""
+    """Register the tsv plugin."""
     return {
-        "tsv": execute,
-        "csv": lambda config: execute({**config, "delimiter": ","}),
+        "tsv": execute
     }

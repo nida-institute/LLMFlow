@@ -12,7 +12,7 @@ def simple_test_func():
 
 
 def test_execution_shows_progress_messages():
-    """Test that execution shows progress messages in stdout"""
+    """Test that execution shows progress messages in stderr"""
     test_pipeline = {
         "name": "test_progress",
         "steps": [
@@ -41,7 +41,7 @@ def test_execution_shows_progress_messages():
         )
 
         assert result.returncode == 0
-        assert "Loading plugins" in result.stdout or "Loaded" in result.stdout
+        assert "Loading plugins" in result.stderr or "Loaded" in result.stderr
     finally:
         os.remove(pipeline_file)
 
@@ -122,7 +122,7 @@ def test_dry_run_flag_accepted():
 
 
 def test_plugin_loading_message():
-    """Test that plugin loading messages appear"""
+    """Test that plugin loading messages appear in stderr"""
     test_pipeline = {
         "name": "test_plugins",
         "steps": [
@@ -151,8 +151,8 @@ def test_plugin_loading_message():
         )
 
         assert result.returncode == 0
-        assert "Loading plugins" in result.stdout
-        assert "Loaded" in result.stdout
+        assert "Loading plugins" in result.stderr
+        assert "Loaded" in result.stderr
     finally:
         os.remove(pipeline_file)
 
@@ -344,7 +344,7 @@ def test_version_command():
 
     assert result.returncode == 0
     # Just verify plugins loaded successfully (help output isn't fully implemented yet)
-    assert "Loading plugins" in result.stdout or "Loaded" in result.stdout
+    assert "Loading plugins" in result.stderr or "Loaded" in result.stderr
 
 
 def test_invalid_pipeline_path():
