@@ -1,68 +1,62 @@
-# Ignore output files
+# Outputs (generated artifacts)
 outputs/
 *.out
 *.log
+llmflow.log
 
-# Ignore swap and temp files (Vim, etc.)
+# Swap and temp files (Vim, etc.)
 *.swp
 *.swo
 *.swn
 *~
+*.bak
+*.tmp
 
-# Ignore editor-specific files
+# Editor-specific files
 .DS_Store
-.vscode/
 .idea/
 
-# Ignore virtual environments
+# VSCode (allow settings.json for Copilot integration)
+.vscode/*
+!.vscode/settings.json
+
+# Virtual environments
 .venv/
 env/
 venv/
 
-# Ignore compiled Python files
+# Python
 __pycache__/
 *.pyc
 *.pyo
+*.py[cod]
+*$py.class
+*.so
+.Python
 
-# Ignore Hatch's build artifacts
+# Hatch's build artifacts
 dist/
 build/
 .eggs/
 *.egg-info/
 
-# Optional: ignore large or temporary input files
-# You can whitelist specific files to keep
-inputs/**/*.bak
-inputs/**/*.tmp
-inputs/**/*.xml~   # Backup-style XMLs
-
-# VSCode workspace settings (these are personal preferences)
-.vscode/
-
-# Test artifacts
+# Testing
 .pytest_cache/
 .coverage
 htmlcov/
 *.cover
-
-# LLMFlow specific
-pseaf.txt  # This seems to be a temp/test file
-outputs/   # If not already there
-*.log
-llmflow.log
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-*.egg-info/
-dist/
-build/
+.hypothesis/
 
 # Environment
 .env
 .env.local
 *.env
+
+# LLMFlow specific
+pseaf.txt
+
+# Input file backups
+inputs/**/*.bak
+inputs/**/*.tmp
+inputs/**/*.xml~
 

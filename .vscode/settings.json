@@ -1,0 +1,8 @@
+{
+  "github.copilot.chat.welcomeMessage": "I can help with LLMFlow pipelines! Check docs/GPT_CONTEXT.md for reference.",
+  "github.copilot.chat.localeOverride": "en",
+  "github.copilot.chat.context.files": [
+    "docs/GPT_CONTEXT.md",
+    "README.md"
+  ]
+}
