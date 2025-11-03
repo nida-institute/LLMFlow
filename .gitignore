@@ -36,3 +36,33 @@ inputs/**/*.bak
 inputs/**/*.tmp
 inputs/**/*.xml~   # Backup-style XMLs
 
+# VSCode workspace settings (these are personal preferences)
+.vscode/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# LLMFlow specific
+pseaf.txt  # This seems to be a temp/test file
+outputs/   # If not already there
+*.log
+llmflow.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+*.env
+
