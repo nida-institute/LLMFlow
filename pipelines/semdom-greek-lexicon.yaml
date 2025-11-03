@@ -27,8 +27,7 @@ steps:
           output_format: xml-string
           namespaces:
             tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
-        outputs:
-          - entries
+        outputs: [entries]
         log: debug
         saveas: "outputs/xml/${row.lemma}.xml"
 

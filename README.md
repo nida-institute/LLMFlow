@@ -228,6 +228,29 @@ Here are some example project types and their typical structures:
 
 5. **Environment Variables**: Use `.env` files in each project for project-specific API keys or settings.
 
+## 🤖 Working with AI Assistants (GitHub Copilot, Claude, ChatGPT)
+
+**Important:** When asking for help with LLMFlow pipelines, reference [`docs/GPT_CONTEXT.md`](docs/GPT_CONTEXT.md)
+
+This file contains comprehensive documentation about:
+- Pipeline structure and syntax
+- Variable substitution rules (`${var}` in YAML vs `{{var}}` in prompt templates)
+- Step types (llm, plugin, function, for_each)
+- Common patterns and examples
+- Troubleshooting guide
+
+**VSCode Users:** This project includes workspace settings that suggest referencing GPT_CONTEXT.md in Copilot Chat conversations.
+
+**Syntax Quick Reference:**
+```yaml
+# In pipeline YAML - use ${var}
+inputs:
+  text: "${source_text}"
+
+# In prompt templates - use {{var}}
+Process this: {{text}}
+```
+
 ### Prompt File Format (`.gpt`)
 
 Variables use `{{variable}}` double curly brace syntax:

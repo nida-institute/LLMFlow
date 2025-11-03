@@ -1,5 +1,19 @@
 name: storyflow-psalms
 
+description: |
+  Generate a StoryFlow Leader's Guide for a specific Psalm passage.
+
+  Examples:
+    llmflow run --pipeline pipelines/storyflow-psalms.yaml --var passage="Psalm 23"
+    llmflow run --pipeline pipelines/storyflow-psalms.yaml --var passage="Psalm 1:1-3"
+    llmflow run --pipeline pipelines/storyflow-psalms.yaml --var passage="Ps 119:1-8"
+
+  Outputs:
+    - Exegetical guide in outputs/exegetical/
+    - Leader's guide in outputs/leaders_guide/
+    - Josh Frost emotional analysis in outputs/joshfrost/
+    - Scene list JSON in outputs/scenes/
+
 variables:
   prompts_dir: prompts/storyflow
   output_dir: outputs/storyflow

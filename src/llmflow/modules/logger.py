@@ -3,17 +3,25 @@ import sys
 
 
 class Logger:
-    def __init__(self):
+    def __init__(self, log_file='llmflow.log'):
         self.level = logging.INFO
         # Configure the llmflow logger specifically
         self.logger = logging.getLogger('llmflow')
         self.logger.setLevel(self.level)
 
-        # Add handler if not already present
+        # Add handlers if not already present
         if not self.logger.handlers:
-            handler = logging.StreamHandler(sys.stderr)
-            handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
-            self.logger.addHandler(handler)
+            # Console handler (stderr)
+            console_handler = logging.StreamHandler(sys.stderr)
+            console_handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
+            self.logger.addHandler(console_handler)
+
+            # File handler
+            file_handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
+            file_handler.setFormatter(
+                logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+            )
+            self.logger.addHandler(file_handler)
 
         self.logger.propagate = False
 

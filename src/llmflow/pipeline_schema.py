@@ -63,3 +63,63 @@ class PipelineConfig(BaseModel):
 
 # Enable forward references
 StepConfig.model_rebuild()
+
+PIPELINE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string"},
+        "description": {"type": "string"},
+        "variables": {
+            "type": "object",
+            "additionalProperties": True,
+        },
+        "llm_config": {
+            "type": "object",
+            "properties": {
+                "provider": {"type": "string"},
+                "model": {"type": "string"},
+                "max_tokens": {"type": "integer"},
+                "temperature": {"type": "number"},
+            },
+            "required": ["provider", "model"],
+        },
+        "linter_config": {
+            "type": "object",
+            "additionalProperties": True,
+        },
+        "steps": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "type": {"type": "string"},
+                    "function": {"type": "string"},
+                    "prompt": {
+                        "oneOf": [
+                            {"type": "string"},
+                            {
+                                "type": "object",
+                                "additionalProperties": True,
+                            }
+                        ]
+                    },
+                    "input": {},
+                    "inputs": {"type": "object"},
+                    "outputs": {
+                        "oneOf": [
+                            {"type": "string"},
+                            {"type": "array", "items": {"type": "string"}}
+                        ]
+                    },
+                    "append_to": {"type": "string"},
+                    "steps": {"type": "array"},
+                    "item_var": {"type": "string"},
+                    "condition": {"type": "string"},
+                },
+                "required": ["name", "type"],
+            },
+        },
+    },
+    "required": ["name", "steps"],
+}

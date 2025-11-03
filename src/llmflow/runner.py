@@ -53,38 +53,92 @@ def resolve(value, context, max_depth=5):
     def get_from_context(expr, ctx):
         """Resolve dot notation and list indices from context."""
         logger.debug(f"get_from_context called with: {expr}")
+        logger.debug(f"Context type: {type(ctx)}")
+        logger.debug(f"Context keys: {list(ctx.keys()) if isinstance(ctx, dict) else 'not a dict'}")
+
         parts = re.split(r"\.(?![^\[]*\])", expr)  # split on dots not inside brackets
+        logger.debug(f"Split expression into parts: {parts}")
+
         result = ctx
-        for part in parts:
-            # Handle list index: foo[0]
-            m = re.match(r"^([a-zA-Z0-9_]+)(\[(\-?\d+)\])?$", part)
+        for i, part in enumerate(parts):
+            logger.debug(f"Processing part {i}: '{part}'")
+            logger.debug(f"Current result type: {type(result)}")
+
+            # Handle list index: foo[0] OR dict key: foo[key]
+            m = re.match(r"^([a-zA-Z0-9_]+)(\[([^\]]+)\])?$", part)
             if not m:
+                logger.debug(f"Part '{part}' didn't match regex pattern")
                 return None
+
             key = m.group(1)
-            idx = m.group(3)
+            bracket_content = m.group(3)
+            logger.debug(f"Extracted key: '{key}', bracket_content: '{bracket_content}'")
 
             if isinstance(result, dict):
+                logger.debug(f"Result is dict, getting key '{key}'")
                 result = result.get(key)
+                logger.debug(f"Got value: {type(result)} = {str(result)[:100] if result else None}")
             elif hasattr(result, key):
                 # Handle Row objects and similar objects with attributes
+                logger.debug(f"Result has attribute '{key}', getting it")
                 try:
                     result = getattr(result, key)
-                except AttributeError:
+                    logger.debug(f"Got attribute value: {type(result)} = {str(result)[:100] if result else None}")
+                except AttributeError as e:
+                    logger.debug(f"AttributeError getting '{key}': {e}")
                     return None
             else:
+                logger.debug(f"Result doesn't have key/attribute '{key}'")
+                logger.debug(f"Result dir: {dir(result)[:10]}...")  # Show first 10 attributes
                 return None
 
-            if idx is not None:
-                if isinstance(result, list):
-                    try:
-                        result = result[int(idx)]
-                    except (IndexError, ValueError):
+            if bracket_content is not None:
+                logger.debug(f"Processing bracket content: '{bracket_content}'")
+                # Try as integer index first
+                try:
+                    idx = int(bracket_content)
+                    logger.debug(f"Parsed as integer index: {idx}")
+                    if isinstance(result, list):
+                        logger.debug(f"Result is list with {len(result)} items")
+                        # FIX: Add bounds checking for list access
+                        if len(result) == 0:
+                            logger.debug(f"List is empty, cannot access index {idx}")
+                            return None
+                        try:
+                            result = result[idx]
+                            logger.debug(f"Got list item: {type(result)} = {str(result)[:100] if result else None}")
+                        except IndexError:
+                            logger.debug(f"Index {idx} out of range for list with {len(result)} items")
+                            return None
+                    else:
+                        logger.debug(f"Result is not a list, can't use integer index")
                         return None
-                else:
-                    return None
+                except ValueError:
+                    # Not an integer - treat as dictionary/object key
+                    logger.debug(f"Not an integer, treating as string key: '{bracket_content}'")
+                    if isinstance(result, dict):
+                        logger.debug(f"Result is dict, getting key '{bracket_content}'")
+                        result = result.get(bracket_content)
+                        logger.debug(f"Got dict value: {type(result)} = {str(result)[:100] if result else None}")
+                    elif hasattr(result, '__getitem__'):
+                        # Handle Row objects with __getitem__
+                        logger.debug(f"Result has __getitem__, accessing '{bracket_content}'")
+                        logger.debug(f"Result type: {type(result)}, class: {result.__class__.__name__}")
+                        try:
+                            result = result[bracket_content]
+                            logger.debug(f"Got __getitem__ value: {type(result)} = {str(result)[:100] if result else None}")
+                        except (KeyError, TypeError) as e:
+                            logger.debug(f"Error accessing '{bracket_content}': {e}")
+                            return None
+                    else:
+                        logger.debug(f"Result doesn't support bracket access")
+                        return None
+
             if result is None:
+                logger.debug(f"Result is None at part '{part}', returning None")
                 return None
-        logger.debug(f"Resolved {expr} to: {result}")
+
+        logger.debug(f"Final result for '{expr}': {type(result)} = {str(result)[:200] if result else None}")
         return result
 
     if isinstance(value, str):
@@ -204,17 +258,8 @@ def render_prompt(
     return rendered_prompt
 
 
-def handle_step_outputs(rule: Dict[str, Any], result: Any, context: Dict[str, Any]) -> None:
-    """
-    Common handler for step outputs, append_to, and saveas.
-    Works for all step types: function, llm, plugin, etc.
-
-    Args:
-        rule: The step configuration dict
-        result: The result value(s) from the step execution
-        context: The execution context to update
-    """
-    step_name = rule.get("name", "unnamed")
+def handle_step_outputs(rule: Dict[str, Any], result: Any, context: Dict[str, Any]):
+    """Store step results in context based on outputs configuration."""
 
     # 1. Handle outputs - store results in context
     outputs = rule.get("outputs")
@@ -223,15 +268,17 @@ def handle_step_outputs(rule: Dict[str, Any], result: Any, context: Dict[str, An
             context[outputs] = result
             logger.debug(f"Stored result in context['{outputs}']")
         elif isinstance(outputs, list):
-            if isinstance(result, (list, tuple)) and len(result) == len(outputs):
-                # Multiple results matching multiple output names
-                for output_name, result_value in zip(outputs, result):
-                    context[output_name] = result_value
-                    logger.debug(f"Stored result in context['{output_name}']")
-            else:
-                # Single result or mismatch - store in first output
-                context[outputs[0]] = result
+            # Store the entire result under the first output name
+            # This allows both ${entries} and ${entries[0]} to work
+            if len(outputs) == 1:
+                context[outputs[0]] = result  # Store the list, not result[0]
                 logger.debug(f"Stored result in context['{outputs[0]}']")
+            else:
+                # Multiple outputs - unpack the result
+                for i, output_name in enumerate(outputs):
+                    value = result[i] if isinstance(result, (list, tuple)) and i < len(result) else result
+                    context[output_name] = value
+                    logger.debug(f"Stored result in context['{output_name}']")
 
     # 2. Handle append_to - append result to a list
     append_to = rule.get("append_to")
@@ -314,7 +361,7 @@ def run_step(rule, context, pipeline_config):
         if step_type == "function":
             result = run_function_step(rule, context)
             # Don't call handle_step_outputs here - run_function_step already does it
-        elif step_type == "for-each":
+        elif step_type in ["for-each", "for_each"]:  # FIX: Accept both syntaxes
             run_for_each_step(rule, context, pipeline_config)
             return
         elif step_type == "llm":
@@ -323,6 +370,9 @@ def run_step(rule, context, pipeline_config):
             handle_step_outputs(rule, result, context)
         elif step_type == "save":
             run_save_step(rule, context)
+            return
+        elif step_type == "if":  # FIX: Add support for conditional steps
+            run_if_step(rule, context, pipeline_config)
             return
         elif step_type in plugin_registry:
             result = run_plugin_step(rule, context)
@@ -351,12 +401,17 @@ def run_plugin_step(rule: Dict[str, Any], context: Dict[str, Any]) -> Any:
         # Execute plugin - returns generator
         results = plugin_func(plugin_config)
 
-        # FIX: Only convert generators to list, not strings/primitives
-        if hasattr(results, '__iter__') and not isinstance(results, (str, dict, bytes)):
-            # Check if it's actually a generator, not just iterable
-            import types
-            if isinstance(results, types.GeneratorType):
-                results = list(results)
+        # Convert generators to list so they can be indexed/iterated multiple times
+        import types
+        if isinstance(results, types.GeneratorType):
+            results = list(results)
+            logger.debug(f"Converted generator to list with {len(results)} items")
+
+        logger.debug(f"Plugin returned: {type(results)}")
+        if isinstance(results, list):
+            logger.debug(f"  List with {len(results)} items")
+            if results:
+                logger.debug(f"  First item type: {type(results[0])}, length: {len(str(results[0])[:100])}")
 
         logger.info(f"✅ Completed plugin step: {name}")
         return results
@@ -539,7 +594,11 @@ def _save_file_by_format(content: Any, path: str, format_type: str) -> None:
 def run_for_each_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> None:
     """Execute a for-each step"""
     name = rule.get("name", "unnamed")
-    input_var = rule.get("input")
+    # FIX: Accept both "input" and "items" keys
+    input_var = rule.get("input") or rule.get("items")
+    if not input_var:
+        raise ValueError(f"for-each step '{name}' requires 'input' or 'items' key")
+
     item_var = rule.get("item_var", "item")
     steps = rule.get("steps", [])
 
@@ -591,6 +650,39 @@ def run_for_each_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_co
 
     logger.debug(f"Context after step {name}: {list(context.keys())}")
     logger.info(f"✅ Completed for-each step: {name}")
+
+
+def run_if_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> None:
+    """Execute a conditional if step"""
+    name = rule.get("name", "unnamed")
+    condition = rule.get("condition")
+    steps = rule.get("steps", [])
+
+    logger.info(f"❓ Starting if step: {name}")
+    logger.debug(f"Condition: {condition}")
+
+    # Resolve the condition
+    resolved_condition = resolve(condition, context)
+    logger.debug(f"Resolved condition: {resolved_condition}")
+
+    # Evaluate the condition
+    try:
+        # Simple evaluation - supports basic comparisons
+        condition_result = eval(str(resolved_condition))
+    except Exception as e:
+        logger.error(f"Error evaluating condition '{resolved_condition}': {e}")
+        condition_result = False
+
+    logger.debug(f"Condition result: {condition_result}")
+
+    if condition_result:
+        logger.info(f"   Condition is true, executing {len(steps)} steps")
+        for nested_step in steps:
+            run_step(nested_step, context, pipeline_config)
+    else:
+        logger.info(f"   Condition is false, skipping steps")
+
+    logger.info(f"✅ Completed if step: {name}")
 
 
 def run_pipeline(
