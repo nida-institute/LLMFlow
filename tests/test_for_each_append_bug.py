@@ -129,7 +129,6 @@ class TestForEachAppendBug:
         # Check if temporary context items leaked between iterations
         # This might reveal if context is being shared improperly
 
-    @pytest.mark.xfail(reason="Nested for-each with append_to not yet implemented")
     def test_nested_for_each_append(self):
         """Test append_to in nested for-each loops"""
         context = {"outer": ["X", "Y"], "inner": ["1", "2"]}

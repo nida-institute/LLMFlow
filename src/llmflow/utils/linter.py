@@ -207,13 +207,19 @@ def lint_pipeline_contracts(pipeline_path):
     pipeline = yaml.safe_load(Path(pipeline_path).read_text())
     pipeline_root = pipeline.get("pipeline", pipeline)
 
+    # ✅ CHECK IF LINTER IS DISABLED
+    linter_config = pipeline_root.get("linter_config", {})
+    if not linter_config.get("enabled", True):  # Default to enabled if not specified
+        logger.info("ℹ️  Linter disabled by configuration, skipping validation")
+        return
+
     all_steps = collect_all_steps(pipeline_root.get("steps", []))
 
     # Use the unified logger for output
     def unified_logger(msg, color="white", level="info"):
         log_and_screen(msg, color, level)
 
-    errors, validated_count = validate_all_step_contracts(all_steps, unified_logger)
+    errors, validated_count = validate_all_step_contracts(all_steps, unified_logger, pipeline_root)
 
     # Report final results
     if errors:
@@ -313,6 +319,12 @@ def lint_pipeline_full(pipeline_path):
     # Load pipeline first
     pipeline = yaml.safe_load(Path(pipeline_path).read_text())
     pipeline_config = pipeline.get("pipeline", pipeline)
+
+    # ✅ CHECK IF LINTER IS DISABLED
+    linter_config = pipeline_config.get("linter_config", {})
+    if not linter_config.get("enabled", True):  # Default to enabled if not specified
+        logger.info("ℹ️  Linter disabled by configuration, skipping validation")
+        return LintResult(valid=True, errors=[], warnings=[])
 
     # Print this once
     logger.info(f"Starting full pipeline lint for: {pipeline_path}")

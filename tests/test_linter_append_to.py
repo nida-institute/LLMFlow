@@ -21,7 +21,7 @@ def test_linter_passes_with_outputs_and_append_to():
                     "name": "generate_content",
                     "type": "llm",
                     "prompt": {
-                        "file": "test.md",
+                        "file": "test.md",  # ✅ This is already correct - relative to prompts_dir
                         "inputs": {"text": "test"},
                     },
                     "outputs": ["result"],
@@ -49,11 +49,9 @@ prompt:
 Test prompt {{text}}"""
         )
 
-        # This should NOT raise SystemExit
-        try:
-            lint_pipeline_contracts(str(pipeline_path))
-        except SystemExit:
-            pytest.skip("Pipeline validation failed - may need schema fixes")
+        # ✅ The issue is that linter runs EVEN when enabled: False
+        # Remove the try/except and just let it run:
+        lint_pipeline_contracts(str(pipeline_path))
 
 
 def test_linter_catches_append_to_without_outputs():

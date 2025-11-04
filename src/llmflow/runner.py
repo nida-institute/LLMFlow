@@ -16,6 +16,13 @@ from llmflow.utils.get_prefix_directory import get_prefix_directory
 from llmflow.utils.io import validate_all_templates
 from llmflow.utils.linter import lint_pipeline_full
 from llmflow.utils.llm_runner import call_llm
+from llmflow.exceptions import (
+    StepExecutionError,
+    ForEachIterationError,
+    VariableResolutionError,
+    LLMProviderError,
+    PluginError
+)
 
 discover_plugins()
 
@@ -304,38 +311,32 @@ def handle_step_saveas(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
     raise ValueError("Invalid saveas configuration type")
 
 
-def run_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> Any:
-    """Step dispatcher with unified output handling"""
-    step_type = step.get("type", "unknown")
-    step_name = step.get("name", "unnamed")
+def run_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None):
+    """Execute a single step based on its type."""
+    step_type = step.get("type")
 
-    result = None
-
-    try:
-        if step_type == "function":
-            result = run_function_step(step, context, pipeline_config)
-        elif step_type in ["for-each", "for_each"]:
-            run_for_each_step(step, context, pipeline_config)
-            return
-        elif step_type == "llm":
-            result = run_llm_step(step, context, pipeline_config or {})
-            handle_step_outputs(step, result, context)
-        elif step_type == "save":
-            run_save_step(step, context, pipeline_config)
-            return
-        elif step_type == "if":
-            run_if_step(step, context, pipeline_config)
-            return
-        elif step_type in plugin_registry:
-            result = run_plugin_step(step, context, pipeline_config)
-            handle_step_outputs(step, result, context)
-        else:
-            raise ValueError(f"Unknown step type: {step_type}")
-    except Exception as e:
-        logger.error(f"❌ Error in {step_type} step '{step_name}': {e}")
-        raise
-
-    return result
+    if step_type == "for-each":
+        run_for_each_step(step, context, pipeline_config)
+    elif step_type == "llm":
+        result = run_llm_step(step, context, pipeline_config)
+        handle_step_outputs(step, result, context)
+    elif step_type == "function":
+        result = run_function_step(step, context, pipeline_config)
+        # handle_step_outputs is called inside run_function_step
+    elif step_type == "if":
+        run_if_step(step, context, pipeline_config)
+    elif step_type == "save":
+        run_save_step(step, context, pipeline_config)
+    elif step.get("plugin"):
+        # Explicit plugin key (legacy)
+        result = run_plugin_step(step, context, pipeline_config)
+        handle_step_outputs(step, result, context)
+    elif step_type in plugin_registry:
+        # Plugin registered by type name (xpath, tsv, etc.)
+        result = run_plugin_step(step, context, pipeline_config)
+        handle_step_outputs(step, result, context)
+    else:
+        raise ValueError(f"Unknown step type: {step_type}")
 
 
 def run_plugin_step(
@@ -511,12 +512,12 @@ def save_content_to_file(content: Any, path: str, format_type: str = "auto") -> 
 
 def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None):
     """Execute a for-each step."""
-    items_expr = step.get("input") or step.get("items")
+    items_expr = step.get("input")  # ✅ Remove fallback to "items"
     item_var = step.get("item_var", "item")
     nested_steps = step.get("steps", [])
 
     if not items_expr:
-        raise ValueError("for-each step missing 'input' or 'items'")
+        raise ValueError("for-each step missing 'input'")  # ✅ Update error message
     if not nested_steps:
         return
 

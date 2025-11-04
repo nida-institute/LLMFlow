@@ -373,3 +373,45 @@ class TestIntegration:
         assert len(context["items"]) == 3
         assert context["items"][0] == "item_0"
         assert context["items"][2] == "item_2"
+
+    def test_nested_for_each_append(self):
+        """Test nested for-each loops with append_to - FIXED by context isolation!"""
+        context = {
+            "rows": [
+                {"id": 1, "tags": ["a", "b"]},
+                {"id": 2, "tags": ["b", "c"]},
+            ]
+        }
+
+        import sys
+        sys.modules["test_mod"] = MagicMock()
+        sys.modules["test_mod"].collect_tag = lambda tag: tag
+
+        rule = {
+            "name": "nested_loop",
+            "type": "for-each",
+            "input": "${rows}",
+            "item_var": "row",
+            "steps": [
+                {
+                    "name": "inner_loop",
+                    "type": "for-each",
+                    "input": "${row.tags}",
+                    "item_var": "tag",
+                    "steps": [
+                        {
+                            "name": "collect",
+                            "type": "function",
+                            "function": "test_mod.collect_tag",
+                            "inputs": {"tag": "${tag}"},
+                            "outputs": "tag_value",
+                            "append_to": "all_tags"
+                        }
+                    ]
+                }
+            ]
+        }
+
+        run_step(rule, context, {})
+
+        assert sorted(context["all_tags"]) == ["a", "b", "b", "c"]
