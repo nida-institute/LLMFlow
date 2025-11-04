@@ -4,5 +4,10 @@
   "github.copilot.chat.context.files": [
     "docs/GPT_CONTEXT.md",
     "README.md"
-  ]
+  ],
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
 }
