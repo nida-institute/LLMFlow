@@ -9,7 +9,7 @@ steps:
     type: tsv
     inputs:
       path: inputs/Abbot-Smith/status.tsv
-      limit: 10
+      limit: 50
     outputs:
       - status_rows
 
