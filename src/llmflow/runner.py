@@ -39,171 +39,114 @@ def _record_written_file(path):
     )
 
 
+def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
+    """
+    Resolve dot notation and list indices from context.
+    Supports: foo.bar, foo[0], foo.bar[key], Row objects with attributes/getitem.
+    """
+    import re
+
+    parts = re.split(r"\.(?![^\[]*\])", expr)  # split on dots not inside brackets
+    result = ctx
+
+    for part in parts:
+        # Handle list index: foo[0] OR dict key: foo[key]
+        m = re.match(r"^([a-zA-Z0-9_]+)(\[([^\]]+)\])?$", part)
+        if not m:
+            return None
+
+        key = m.group(1)
+        bracket_content = m.group(3)
+
+        # Get key from dict or object attribute
+        if isinstance(result, dict):
+            result = result.get(key)
+        elif hasattr(result, key):
+            try:
+                result = getattr(result, key)
+            except AttributeError:
+                return None
+        else:
+            return None
+
+        # Handle bracket access
+        if bracket_content is not None:
+            try:
+                idx = int(bracket_content)
+                if isinstance(result, list):
+                    if len(result) == 0 or idx >= len(result):
+                        return None
+                    result = result[idx]
+                else:
+                    return None
+            except ValueError:
+                # Not an integer - treat as string key
+                if isinstance(result, dict):
+                    result = result.get(bracket_content)
+                elif hasattr(result, '__getitem__'):
+                    try:
+                        result = result[bracket_content]
+                    except (KeyError, TypeError):
+                        return None
+                else:
+                    return None
+
+        if result is None:
+            return None
+
+    return result
+
+
 def resolve(value, context, max_depth=5):
     """
     Resolves variables within a value using the provided context.
     Supports both {curly} and ${dollar} notation with dot notation and list indexing.
     Returns native Python objects for exact variable references.
-    Handles Row objects from TSV plugin.
     """
     import re
 
-    logger.debug(f"Resolving value: {value}")
-    logger.debug(f"Context keys: {list(context.keys())}")
-
-    def get_from_context(expr, ctx):
-        """Resolve dot notation and list indices from context."""
-        logger.debug(f"get_from_context called with: {expr}")
-        logger.debug(f"Context type: {type(ctx)}")
-        logger.debug(f"Context keys: {list(ctx.keys()) if isinstance(ctx, dict) else 'not a dict'}")
-
-        parts = re.split(r"\.(?![^\[]*\])", expr)  # split on dots not inside brackets
-        logger.debug(f"Split expression into parts: {parts}")
-
-        result = ctx
-        for i, part in enumerate(parts):
-            logger.debug(f"Processing part {i}: '{part}'")
-            logger.debug(f"Current result type: {type(result)}")
-
-            # Handle list index: foo[0] OR dict key: foo[key]
-            m = re.match(r"^([a-zA-Z0-9_]+)(\[([^\]]+)\])?$", part)
-            if not m:
-                logger.debug(f"Part '{part}' didn't match regex pattern")
-                return None
-
-            key = m.group(1)
-            bracket_content = m.group(3)
-            logger.debug(f"Extracted key: '{key}', bracket_content: '{bracket_content}'")
-
-            if isinstance(result, dict):
-                logger.debug(f"Result is dict, getting key '{key}'")
-                result = result.get(key)
-                logger.debug(f"Got value: {type(result)} = {str(result)[:100] if result else None}")
-            elif hasattr(result, key):
-                # Handle Row objects and similar objects with attributes
-                logger.debug(f"Result has attribute '{key}', getting it")
-                try:
-                    result = getattr(result, key)
-                    logger.debug(f"Got attribute value: {type(result)} = {str(result)[:100] if result else None}")
-                except AttributeError as e:
-                    logger.debug(f"AttributeError getting '{key}': {e}")
-                    return None
-            else:
-                logger.debug(f"Result doesn't have key/attribute '{key}'")
-                logger.debug(f"Result dir: {dir(result)[:10]}...")  # Show first 10 attributes
-                return None
-
-            if bracket_content is not None:
-                logger.debug(f"Processing bracket content: '{bracket_content}'")
-                # Try as integer index first
-                try:
-                    idx = int(bracket_content)
-                    logger.debug(f"Parsed as integer index: {idx}")
-                    if isinstance(result, list):
-                        logger.debug(f"Result is list with {len(result)} items")
-                        # FIX: Add bounds checking for list access
-                        if len(result) == 0:
-                            logger.debug(f"List is empty, cannot access index {idx}")
-                            return None
-                        try:
-                            result = result[idx]
-                            logger.debug(f"Got list item: {type(result)} = {str(result)[:100] if result else None}")
-                        except IndexError:
-                            logger.debug(f"Index {idx} out of range for list with {len(result)} items")
-                            return None
-                    else:
-                        logger.debug(f"Result is not a list, can't use integer index")
-                        return None
-                except ValueError:
-                    # Not an integer - treat as dictionary/object key
-                    logger.debug(f"Not an integer, treating as string key: '{bracket_content}'")
-                    if isinstance(result, dict):
-                        logger.debug(f"Result is dict, getting key '{bracket_content}'")
-                        result = result.get(bracket_content)
-                        logger.debug(f"Got dict value: {type(result)} = {str(result)[:100] if result else None}")
-                    elif hasattr(result, '__getitem__'):
-                        # Handle Row objects with __getitem__
-                        logger.debug(f"Result has __getitem__, accessing '{bracket_content}'")
-                        logger.debug(f"Result type: {type(result)}, class: {result.__class__.__name__}")
-                        try:
-                            result = result[bracket_content]
-                            logger.debug(f"Got __getitem__ value: {type(result)} = {str(result)[:100] if result else None}")
-                        except (KeyError, TypeError) as e:
-                            logger.debug(f"Error accessing '{bracket_content}': {e}")
-                            return None
-                    else:
-                        logger.debug(f"Result doesn't support bracket access")
-                        return None
-
-            if result is None:
-                logger.debug(f"Result is None at part '{part}', returning None")
-                return None
-
-        logger.debug(f"Final result for '{expr}': {type(result)} = {str(result)[:200] if result else None}")
-        return result
-
     if isinstance(value, str):
-        # Handle ${...} syntax (dollar syntax) - with recursive resolution
-        pattern_dollar_exact = r"^\$\{([^\}]+)\}$"
-        match_dollar_exact = re.match(pattern_dollar_exact, value)
-        if match_dollar_exact:
-            expr = match_dollar_exact.group(1)
+        # Handle ${...} syntax (exact match returns native object)
+        match = re.match(r"^\$\{([^\}]+)\}$", value)
+        if match:
+            expr = match.group(1)
             resolved = get_from_context(expr, context)
             if resolved is not None:
-                # RECURSIVE RESOLUTION: If result is still a template, resolve it
-                if isinstance(resolved, str) and (
-                    resolved.startswith("${") or resolved.startswith("{")
-                ):
+                # Recursive resolution if still templated
+                if isinstance(resolved, str) and (resolved.startswith("${") or resolved.startswith("{")):
                     if max_depth > 0:
                         return resolve(resolved, context, max_depth - 1)
                 return resolved
-            else:
-                return value  # fallback to original string if not found
+            return value
 
-        # Handle {curly} syntax (original syntax) - with recursive resolution
-        pattern_curly_exact = r"^\{([^\}]+)\}$"
-        match_curly_exact = re.match(pattern_curly_exact, value)
-        if match_curly_exact:
-            expr = match_curly_exact.group(1)
+        # Handle {curly} syntax (exact match returns native object)
+        match = re.match(r"^\{([^\}]+)\}$", value)
+        if match:
+            expr = match.group(1)
             resolved = get_from_context(expr, context)
             if resolved is not None:
-                # RECURSIVE RESOLUTION: If result is still a template, resolve it
-                if isinstance(resolved, str) and (
-                    resolved.startswith("${") or resolved.startswith("{")
-                ):
+                # Recursive resolution if still templated
+                if isinstance(resolved, str) and (resolved.startswith("${") or resolved.startswith("{")):
                     if max_depth > 0:
                         return resolve(resolved, context, max_depth - 1)
                 return resolved
-            else:
-                return value  # fallback to original string if not found
+            return value
 
-        # Handle string substitution for both syntaxes
-        # First handle ${...} syntax
-        pattern_dollar = r"\$\{([^\}]+)\}"
-
-        def replace_dollar_var(match):
+        # String substitution for both syntaxes
+        def replace_var(match):
             expr = match.group(1)
             resolved = get_from_context(expr, context)
             return str(resolved) if resolved is not None else match.group(0)
 
-        value = re.sub(pattern_dollar, replace_dollar_var, value)
-
-        # Then handle {curly} syntax
-        pattern_curly = r"\{([^\}]+)\}"
-
-        def replace_curly_var(match):
-            expr = match.group(1)
-            resolved = get_from_context(expr, context)
-            return str(resolved) if resolved is not None else match.group(0)
-
-        value = re.sub(pattern_curly, replace_curly_var, value)
-
+        value = re.sub(r"\$\{([^\}]+)\}", replace_var, value)
+        value = re.sub(r"\{([^\}]+)\}", replace_var, value)
         return value
 
     elif isinstance(value, dict):
         return {k: resolve(v, context, max_depth) for k, v in value.items()}
     elif isinstance(value, list):
         return [resolve(item, context, max_depth) for item in value]
+
     return value
 
 
@@ -361,7 +304,7 @@ def handle_step_saveas(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
     raise ValueError("Invalid saveas configuration type")
 
 
-def run_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None, dry_run: bool = False) -> Any:
+def run_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> Any:
     """Step dispatcher with unified output handling"""
     step_type = step.get("type", "unknown")
     step_name = step.get("name", "unnamed")
@@ -370,22 +313,21 @@ def run_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dic
 
     try:
         if step_type == "function":
-            result = run_function_step(step, context)
+            result = run_function_step(step, context, pipeline_config)
         elif step_type in ["for-each", "for_each"]:
             run_for_each_step(step, context, pipeline_config)
             return
         elif step_type == "llm":
-            # FIX: pass pipeline_config
             result = run_llm_step(step, context, pipeline_config or {})
             handle_step_outputs(step, result, context)
         elif step_type == "save":
-            run_save_step(step, context)
+            run_save_step(step, context, pipeline_config)
             return
         elif step_type == "if":
-            run_if_step(step, context, pipeline_config or {})
+            run_if_step(step, context, pipeline_config)
             return
         elif step_type in plugin_registry:
-            result = run_plugin_step(step, context)
+            result = run_plugin_step(step, context, pipeline_config)
             handle_step_outputs(step, result, context)
         else:
             raise ValueError(f"Unknown step type: {step_type}")
@@ -396,32 +338,28 @@ def run_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dic
     return result
 
 
-def run_plugin_step(rule: Dict[str, Any], context: Dict[str, Any]) -> Any:
+def run_plugin_step(
+    step: Dict[str, Any],
+    context: Dict[str, Any],
+    pipeline_config: Dict[str, Any] | None = None
+) -> Any:
     """Execute a plugin step"""
-    name = rule.get("name", "unnamed")
-    step_type = rule.get("type")
+    name = step.get("name", "unnamed")
+    step_type = step.get("type")
 
     logger.info(f"🔌 Starting plugin step: {name}")
 
     try:
         plugin_func = plugin_registry[step_type]
-        plugin_config = {k: resolve(v, context) for k, v in rule.items()}
-        logger.debug(f"Plugin config being passed: {plugin_config}")
+        plugin_config = {k: resolve(v, context) for k, v in step.items()}
 
-        # Execute plugin - returns generator
+        # Execute plugin
         results = plugin_func(plugin_config)
 
-        # Convert generators to list so they can be indexed/iterated multiple times
+        # Convert generators to list
         import types
         if isinstance(results, types.GeneratorType):
             results = list(results)
-            logger.debug(f"Converted generator to list with {len(results)} items")
-
-        logger.debug(f"Plugin returned: {type(results)}")
-        if isinstance(results, list):
-            logger.debug(f"  List with {len(results)} items")
-            if results:
-                logger.debug(f"  First item type: {type(results[0])}, length: {len(str(results[0])[:100])}")
 
         logger.info(f"✅ Completed plugin step: {name}")
         return results
@@ -431,48 +369,37 @@ def run_plugin_step(rule: Dict[str, Any], context: Dict[str, Any]) -> Any:
         raise
 
 
-def run_function_step(rule: Dict[str, Any], context: Dict[str, Any]) -> Any:
+def run_function_step(
+    step: Dict[str, Any],
+    context: Dict[str, Any],
+    pipeline_config: Dict[str, Any] | None = None
+) -> Any:
     """Execute a function step and return its result"""
-    name: str = rule.get("name", "unnamed")
-    function_name: str = rule["function"]
-    inputs: Union[Dict[str, Any], List[Any]] = rule.get("inputs", {})
+    name = step.get("name", "unnamed")
+    function_name = step["function"]
+    inputs = step.get("inputs", {})
 
     logger.info(f"🔧 Starting function step: {name}")
-    logger.debug(f"Function: {function_name}")
 
     # Import and get the function
     module_name, func_name = function_name.rsplit(".", 1)
     module = importlib.import_module(module_name)
-    func: Callable[..., Any] = getattr(module, func_name)
+    func = getattr(module, func_name)
 
     # Resolve all input variables
     sig = inspect.signature(func)
-    result: Any
 
     if isinstance(inputs, dict):
-        resolved_inputs: Dict[str, Any] = {
-            key: resolve(value, context) for key, value in inputs.items()
-        }
-        if "context" in sig.parameters:
-            result = func(**resolved_inputs, context=context)
-        else:
-            result = func(**resolved_inputs)
-
+        resolved_inputs = {key: resolve(value, context) for key, value in inputs.items()}
+        result = func(**resolved_inputs, context=context) if "context" in sig.parameters else func(**resolved_inputs)
     elif isinstance(inputs, list):
-        resolved_args: List[Any] = [resolve(value, context) for value in inputs]
-        if "context" in sig.parameters:
-            result = func(*resolved_args, context=context)
-        else:
-            result = func(*resolved_args)
+        resolved_args = [resolve(value, context) for value in inputs]
+        result = func(*resolved_args, context=context) if "context" in sig.parameters else func(*resolved_args)
     else:
-        resolved_inputs = {}
-        if "context" in sig.parameters:
-            result = func(**resolved_inputs, context=context)
-        else:
-            result = func(**resolved_inputs)
+        result = func(context=context) if "context" in sig.parameters else func()
 
-    # Handle outputs - this will process outputs, append_to, and saveas
-    handle_step_outputs(rule, result, context)
+    # Handle outputs
+    handle_step_outputs(step, result, context)
 
     logger.info(f"✅ Completed function step: {name}")
     return result
@@ -534,38 +461,21 @@ def apply_output_template(llm_output: str, template_path: str, context: Dict[str
     return template.render(**template_context)
 
 
-def run_save_step(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
+def run_save_step(
+    step: Dict[str, Any],
+    context: Dict[str, Any],
+    pipeline_config: Dict[str, Any] | None = None
+) -> None:
     """Execute a save step to write content to a file"""
-    name = rule.get("name", "unnamed")
+    name = step.get("name", "unnamed")
     logger.info(f"💾 Starting save step: {name}")
-    logger.debug(f"Step details: {rule}")
 
-    # Get and resolve the path
-    path = rule.get("path")
-    if path:
-        resolved_path = resolve(path, context)
-        logger.debug(f"Resolved path: {resolved_path}")
-    else:
-        resolved_path = "output.txt"
-        logger.debug(f"No path specified, using default: {resolved_path}")
+    path = resolve(step.get("path", "output.txt"), context)
+    content_value = step.get("content")
+    content = resolve(content_value, context) if content_value else context.get("content", "")
 
-    # Get content
-    content_value = rule.get("content")
-    if content_value:
-        content = resolve(content_value, context)
-    else:
-        content = context.get("content", "")
-
-    # Write file
-    from pathlib import Path
-    output_path = Path(resolved_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(str(content))
-
-    filename = str(output_path.absolute())
-    _record_written_file(filename)
+    saved_path = save_content_to_file(content, path)
+    _record_written_file(saved_path)
 
     logger.info(f"✅ Completed save step: {name}")
 
@@ -575,6 +485,7 @@ def save_content_to_file(content: Any, path: str, format_type: str = "auto") -> 
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Auto-detect format from extension
     if format_type == "auto":
         ext = output_path.suffix.lower()
         if ext in [".json"]:
@@ -584,33 +495,29 @@ def save_content_to_file(content: Any, path: str, format_type: str = "auto") -> 
         else:
             format_type = "text"
 
-    _save_file_by_format(content, str(output_path), format_type)
+    # Write file by format (inline the logic)
+    if format_type == "json":
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(content, f, indent=2, ensure_ascii=False)
+    elif format_type == "yaml":
+        with open(output_path, "w", encoding="utf-8") as f:
+            yaml.dump(content, f, default_flow_style=False, allow_unicode=True)
+    else:
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(str(content))
+
     return str(output_path.absolute())
 
 
-def _save_file_by_format(content: Any, path: str, format_type: str) -> None:
-    """Internal helper to save files by format"""
-    if format_type == "json":
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(content, f, indent=2, ensure_ascii=False)
-    elif format_type == "yaml":
-        with open(path, "w", encoding="utf-8") as f:
-            yaml.dump(content, f, default_flow_style=False, allow_unicode=True)
-    else:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(str(content))
-
-
 def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None):
-    """
-    Execute a for-each step.
-    """
-    items_expr = step.get("input")
+    """Execute a for-each step."""
+    # FIX: Accept both 'input' and 'items' for backwards compatibility
+    items_expr = step.get("input") or step.get("items")
     item_var = step.get("item_var", "item")
     nested_steps = step.get("steps", [])
 
     if not items_expr:
-        raise ValueError("for-each step missing 'input'")
+        raise ValueError("for-each step missing 'input' or 'items'")
     if not nested_steps:
         return
 

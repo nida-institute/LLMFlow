@@ -3,14 +3,11 @@ from pydantic import BaseModel, ValidationError, ConfigDict, Field
 
 
 class LLMConfig(BaseModel):
-    """LLM provider configuration"""
-
-    model_config = ConfigDict(extra="allow")
-
-    provider: str
+    provider: Optional[str] = "openai"  # FIX: Make optional with default
     model: str
     max_tokens: Optional[int] = None
     temperature: Optional[float] = None
+    model_config = ConfigDict(extra="allow")
 
 
 class GroupByPrefixConfig(BaseModel):
