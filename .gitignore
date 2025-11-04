@@ -60,3 +60,4 @@ inputs/**/*.bak
 inputs/**/*.tmp
 inputs/**/*.xml~
 
+obsidian/
