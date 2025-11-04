@@ -525,11 +525,31 @@ def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_co
     if not isinstance(items, (list, tuple)):
         raise ValueError(f"for-each input must resolve to list/tuple, got: {type(items)}")
 
-    for idx, item in enumerate(items):
-        context[item_var] = item
-        context[f"{item_var}_index"] = idx
+    # Collect all append_to targets from direct nested steps only
+    append_targets = set()
+    for s in nested_steps:
+        if "append_to" in s:
+            target = s["append_to"]
+            append_targets.add(target)
+            # Initialize the list in parent context if it doesn't exist
+            if target not in context:
+                context[target] = []
+
+    for item in items:
+        # Deep copy the entire context to isolate iterations
+        import copy
+        iteration_context = copy.deepcopy(context)
+
+        # Restore shared references ONLY for append_to targets
+        # This allows append_to to accumulate results across iterations
+        # while keeping all other variables isolated
+        for target in append_targets:
+            iteration_context[target] = context[target]
+
+        iteration_context[item_var] = item
+
         for nested in nested_steps:
-            run_step(nested, context, pipeline_config)
+            run_step(nested, iteration_context, pipeline_config)
 
 
 def run_if_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> None:
