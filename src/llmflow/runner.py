@@ -511,7 +511,6 @@ def save_content_to_file(content: Any, path: str, format_type: str = "auto") -> 
 
 def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None):
     """Execute a for-each step."""
-    # FIX: Accept both 'input' and 'items' for backwards compatibility
     items_expr = step.get("input") or step.get("items")
     item_var = step.get("item_var", "item")
     nested_steps = step.get("steps", [])
@@ -525,11 +524,36 @@ def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_co
     if not isinstance(items, (list, tuple)):
         raise ValueError(f"for-each input must resolve to list/tuple, got: {type(items)}")
 
-    for idx, item in enumerate(items):
-        context[item_var] = item
-        context[f"{item_var}_index"] = idx
+    # Collect ALL append_to targets recursively
+    def collect_append_targets(steps):
+        targets = set()
+        for s in steps:
+            if "append_to" in s:
+                targets.add(s["append_to"])
+            # Recurse into nested for-each steps
+            if "steps" in s:
+                targets.update(collect_append_targets(s["steps"]))
+        return targets
+
+    append_targets = collect_append_targets(nested_steps)
+
+    # Initialize all append_to targets in parent context
+    for target in append_targets:
+        if target not in context:
+            context[target] = []
+
+    for item in items:
+        import copy
+        iteration_context = copy.deepcopy(context)
+
+        # Restore shared references for ALL append_to targets
+        for target in append_targets:
+            iteration_context[target] = context[target]
+
+        iteration_context[item_var] = item
+
         for nested in nested_steps:
-            run_step(nested, context, pipeline_config)
+            run_step(nested, iteration_context, pipeline_config)
 
 
 def run_if_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> None:

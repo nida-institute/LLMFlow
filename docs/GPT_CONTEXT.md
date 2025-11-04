@@ -1,4 +1,8 @@
-# LLMFlow System Context for GPT Assistants
+# LLMFlow System Context for AI Assistants
+
+**For AI assistants helping with LLMFlow development and pipelines.**
+This file provides comprehensive context about LLMFlow's architecture,
+conventions, and common patterns.
 
 ## What is LLMFlow?
 
@@ -850,3 +854,168 @@ A: Prompts use `{{variable}}` syntax similar to Jinja2, but it's a simpler syste
 
 **Last Updated:** November 2, 2025
 **LLMFlow Version:** Current development version
+
+---
+
+## Advanced Topics
+
+### Context Isolation in For-Each Loops
+
+**Key Principle:** For-each loops create **isolated iteration contexts** with **selective sharing** for `append_to` targets.
+
+#### How Context Sharing Works
+
+```yaml
+steps:
+  - name: process-items
+    type: for-each
+    input: "${items}"
+    item_var: item
+    steps:
+      - name: do-something
+        type: llm
+        inputs:
+          data: "${shared_data}"  # Deep copied (isolated per iteration)
+        outputs: [result]
+        append_to: all_results    # Shared reference (accumulates across iterations)
+```
+
+**Behavior:**
+
+1. **Regular variables** in iteration context are **deep copied** - changes don't leak between iterations
+2. **`append_to` targets** are **shared references** - accumulate results across all iterations
+3. **Nested for-each loops** also get isolated contexts, but their `append_to` targets are shared with parent loops
+
+#### Why This Design?
+
+**Problem:** Without isolation, one iteration's changes could affect the next:
+
+```yaml
+# Without deep copy (BAD):
+context = {"shared_list": ["initial"]}
+
+steps:
+  - name: loop
+    type: for-each
+    input: [1, 2, 3]
+    steps:
+      - name: modify-input
+        type: function
+        function: append_to_list
+        inputs:
+          my_list: "${shared_list}"  # Would see ["initial", 1] on iteration 2!
+          item: "${item}"
+
+# With deep copy (GOOD):
+# Each iteration gets its own copy: ["initial"]
+# Result: context["shared_list"] is still ["initial"] (unchanged)
+```
+
+**Solution:** Deep copy everything EXCEPT `append_to` targets.
+
+#### When to Use `append_to`
+
+✅ **Use `append_to` when:**
+- Collecting results across loop iterations
+- Building a list of processed items
+- Accumulating data from nested loops
+
+```yaml
+- name: collect-results
+  type: for-each
+  input: "${items}"
+  steps:
+    - name: process
+      type: llm
+      outputs: [result]
+      append_to: all_results  # ✅ Accumulates across all iterations
+```
+
+❌ **DON'T rely on `append_to` when:**
+- You want iteration isolation
+- Passing lists as function parameters (they'll be deep copied)
+- Modifying shared state (use function return values instead)
+
+```yaml
+# ❌ Wrong: Trying to modify parent context directly
+- name: loop
+  type: for-each
+  steps:
+    - name: modify-shared
+      type: function
+      inputs:
+        shared_list: "${shared_list}"  # Gets deep copy, changes lost
+
+# ✅ Correct: Use append_to to collect changes
+- name: loop
+  type: for-each
+  steps:
+    - name: process
+      type: function
+      outputs: [result]
+      append_to: collected_results  # Changes accumulate
+```
+
+#### Nested For-Each Loops
+
+**Important:** `append_to` targets are **recursively shared** across ALL nesting levels.
+
+```yaml
+- name: outer
+  type: for-each
+  input: ["a", "b"]
+  item_var: outer_item
+  steps:
+    - name: inner
+      type: for-each
+      input: [1, 2]
+      item_var: inner_item
+      steps:
+        - name: collect
+          type: function
+          function: mymodule.concat
+          inputs:
+            v1: "${outer_item}"
+            v2: "${inner_item}"
+          outputs: [result]
+          append_to: all_results  # Accumulates across ALL iterations
+```
+
+**Result:** `context["all_results"]` contains: `["a1", "a2", "b1", "b2"]`
+
+**How it works:**
+1. System recursively finds ALL `append_to` targets in nested steps
+2. All loops share the same list reference
+3. Deep copying isolates everything EXCEPT `append_to` targets
+
+### Troubleshooting For-Each Issues
+
+**Problem:** Results not accumulating across iterations.
+
+**Solution:** Use `append_to:` to share results:
+```yaml
+steps:
+  - name: collect
+    outputs: [result]
+    append_to: all_results  # Shared across iterations
+```
+
+**Problem:** Parent context getting modified by iteration.
+
+**Solution:** This should NOT happen - iterations are isolated. If you see this:
+1. Check if you're using `append_to` (which IS shared)
+2. File a bug - deep copy should prevent contamination
+
+**Problem:** Nested loop results not visible in outer loop.
+
+**Solution:** `append_to` targets are shared across ALL nesting levels:
+```yaml
+- name: outer
+  type: for-each
+  steps:
+    - name: inner
+      type: for-each
+      steps:
+        - name: collect
+          append_to: results  # Visible in outer loop context
+```
