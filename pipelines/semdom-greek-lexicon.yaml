@@ -1,6 +1,7 @@
 name: Expand and Save Abbott-Smith Entries
 variables:
   prompts_dir: prompts/semdom-greek
+  output_dir: ./obsidian/grc
 
 steps:
   # Step 1: Read first 10 rows from status.tsv
@@ -29,7 +30,9 @@ steps:
             tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
         outputs: [entries]
         log: debug
-        saveas: "outputs/xml/${row.lemma}.xml"
+        saveas:
+          path: "${output_dir}/xml/${row.lemma}.xml"
+          group_by_prefix: 2  # Organizes: ./obsidian/grc/xml/συ/σύ.xml
 
       # Expand with LLM - take first entry from the list
       - name: expand-entry
@@ -45,6 +48,9 @@ steps:
             status: "${row.status}"
         outputs:
           - expanded_entry
-        saveas: "outputs/markdown/${row.lemma}.md"
+        saveas:
+          path: "${output_dir}/markdown/${row.lemma}.md"
+          group_by_prefix:
+            prefix_length: 2  # Organizes: ./obsidian/grc/markdown/συ/σύ.md
         log: debug
 

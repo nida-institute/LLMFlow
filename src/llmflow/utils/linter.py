@@ -5,8 +5,9 @@ from difflib import unified_diff
 from pathlib import Path
 
 import click
-import jsonschema
 import yaml
+from pydantic import ValidationError
+from llmflow.pipeline_schema import PipelineConfig
 
 from llmflow.modules.logger import Logger
 
@@ -283,72 +284,16 @@ def validate_pipeline(pipeline_config):
     return {"valid": len(errors) == 0, "errors": errors, "warnings": warnings}
 
 
-pipeline_schema = {
-    "type": "object",
-    "properties": {
-        "name": {"type": "string"},
-        "variables": {"type": "object"},
-        "llm_config": {
-            "type": "object",
-            "properties": {
-                "model": {"type": "string"},
-                "max_tokens": {"type": "number"},
-                "temperature": {"type": "number"},
-            },
-            "required": ["model", "max_tokens", "temperature"],
-        },
-        "linter_config": {
-            "type": "object",
-            "properties": {
-                "enabled": {"type": "boolean"},
-                "treat_warnings_as_errors": {"type": "boolean"},
-            },
-        },
-        "steps": {"type": "array", "items": {"$ref": "#/definitions/step"}},
-    },
-    "required": ["name", "steps"],
-    "definitions": {
-        "step": {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "type": {"type": "string"},
-                "function": {"type": "string"},
-                "inputs": {"type": "object"},
-                "outputs": {
-                    "anyOf": [
-                        {"type": "string"},
-                        {"type": "array", "items": {"type": "string"}},
-                    ]
-                },
-                "output_type": {"type": "string"},
-                "saveas": {"type": "string"},
-                "append_to": {"type": "string"},
-                "log": {"type": "string"},
-                "prompt": {
-                    "type": "object",
-                    "properties": {
-                        "file": {"type": "string"},
-                        "inputs": {"type": "object"},
-                    },
-                    "required": ["file", "inputs"],
-                },
-                "input": {"type": "string"},
-                "item_var": {"type": "string"},
-                "steps": {"type": "array", "items": {"$ref": "#/definitions/step"}},
-            },
-            "required": ["name", "type"],
-        }
-    },
-}
-
-
 def validate_pipeline_structure(pipeline_config):
     try:
-        jsonschema.validate(instance=pipeline_config, schema=pipeline_schema)
+        PipelineConfig(**pipeline_config)
         return []
-    except jsonschema.ValidationError as e:
-        return [f"❌ Pipeline structure error: {e.message} (at {list(e.path)})"]
+    except ValidationError as e:
+        errors = []
+        for err in e.errors():
+            loc = " → ".join(str(p) for p in err["loc"])
+            errors.append(f"❌ Pipeline structure error: {err['msg']} (at [{loc}])")
+        return errors
 
 
 @dataclass

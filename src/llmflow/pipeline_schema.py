@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Literal, Optional, Union
-
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ValidationError, ConfigDict, Field
 
 
 class LLMConfig(BaseModel):
@@ -8,10 +7,33 @@ class LLMConfig(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    provider: Optional[str] = None
-    model: Optional[str] = None
-    max_tokens: Optional[int] = 4000
+    provider: str
+    model: str
+    max_tokens: Optional[int] = None
     temperature: Optional[float] = None
+
+
+class GroupByPrefixConfig(BaseModel):
+    prefix_length: Optional[int] = None
+    prefix_delimiter: Optional[str] = None
+
+    def model_post_init(self, __context):
+        if not (self.prefix_length or self.prefix_delimiter):
+            raise ValidationError(
+                [
+                    {
+                        "loc": ("group_by_prefix",),
+                        "msg": "Provide prefix_length or prefix_delimiter",
+                        "type": "value_error",
+                    }
+                ],
+                type(self),
+            )
+
+
+class SaveAsConfig(BaseModel):
+    path: str
+    group_by_prefix: Optional[Union[int, GroupByPrefixConfig]] = None
 
 
 class StepConfig(BaseModel):
@@ -26,24 +48,15 @@ class StepConfig(BaseModel):
     name: str
     type: str
     function: Optional[str] = None
-    prompt: Optional[Union[str, Dict[str, Any]]] = None
-    input: Optional[Any] = None  # For for-each steps
-    inputs: Optional[Dict[str, Any]] = None  # For plugin steps - params go here
+    inputs: Optional[dict] = None
+    input: Optional[str] = None  # For for-each steps
     outputs: Optional[Union[str, List[str]]] = None
-    append_to: Optional[str] = None
-    steps: Optional[List["StepConfig"]] = None
+    prompt: Optional[dict] = None
     item_var: Optional[str] = None
-    condition: Optional[str] = None
-
-
-class FunctionStepConfig(BaseModel):
-    name: str
-    type: Literal["function"]
-    function: str
-    inputs: Union[Dict[str, Any], List[Any], None] = None  # Allow list AND dict
-    outputs: Union[str, List[str], None] = None
+    steps: Optional[List["StepConfig"]] = None
     append_to: Optional[str] = None
-    saveas: Union[str, List[Dict[str, Any]], None] = None
+    log: Optional[str] = None
+    saveas: Optional[Union[str, SaveAsConfig]] = None
 
 
 class PipelineConfig(BaseModel):
@@ -116,6 +129,36 @@ PIPELINE_SCHEMA = {
                     "steps": {"type": "array"},
                     "item_var": {"type": "string"},
                     "condition": {"type": "string"},
+                    "saveas": {
+                        "oneOf": [
+                            {"type": "string"},
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "path": {"type": "string"},
+                                    "group_by_prefix": {
+                                        "oneOf": [
+                                            {"type": "integer"},   # e.g. group_by_prefix: 2
+                                            {
+                                                "type": "object",
+                                                "properties": {
+                                                    "prefix_length": {"type": "integer"},
+                                                    "prefix_delimiter": {"type": "string"}
+                                                },
+                                                "additionalProperties": False,
+                                                "anyOf": [
+                                                    {"required": ["prefix_length"]},
+                                                    {"required": ["prefix_delimiter"]}
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                },
+                                "required": ["path"],
+                                "additionalProperties": False
+                            }
+                        ]
+                    },
                 },
                 "required": ["name", "type"],
             },
