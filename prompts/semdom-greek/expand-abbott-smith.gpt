@@ -2,246 +2,233 @@
 prompt:
   requires:
     - entry
+    - lemma
   optional: []
   format: Markdown
-  description: Expands an Abbott-Smith Greek lexeme definition, ordering senses from most concrete to most abstract, with examples from NT, LXX, and Hellenistic Greek, and detailed semantic analysis.
+  description: |
+    PASS 1: Draft expansion of Abbott-Smith entry.
+    Focuses on semantic analysis and sense structure.
+    Citations will be verified in Pass 2.
 -->
 
-### Expanded Definition Prompt
+### Expanded Definition Prompt (Draft Pass)
 
 Expand the following Abbott-Smith definition for a Greek lexeme, ensuring the root meaning is the **prototypical meaning**, from which all other senses semantically derive. Order the senses from the **most concrete and basic** to the **more abstract and specialized**.
 
+**Lemma:** {{lemma}}
+
+**Abbott-Smith Entry:**
 {{entry}}
 
 ---
 
 ### Instructions:
 
+#### Your Task (Pass 1 - Semantic Analysis):
+
+This is the FIRST PASS of a two-pass process. Your job is to:
+1. ✅ Identify the prototypical meaning **in Hellenistic Greek**
+2. ✅ Order senses from concrete to abstract
+3. ✅ Describe functions clearly (what the word DOES)
+4. ✅ Use Abbott-Smith's own examples **only if they represent Hellenistic usage**
+5. ⏭️ **Citation verification will happen in Pass 2** - don't worry about verifying every detail
+
+**DO NOT invent citations.** If Abbott-Smith provides examples of **Hellenistic usage**, use them. If Abbott-Smith only cites Classical sources, skip that sense.
+
+---
+
 #### General Guidelines:
 
-1. Write in **plain, accessible English** that readers will actually understand.
+1. **Write in plain, accessible English**
    - Use familiar terms: "conjunction" not "complementizer", "article" not "determiner"
+   - **Use everyday words**: "comes before the noun" not "functions prepositively"
+   - **Avoid academic jargon that obscures meaning**:
+     - ❌ "functions prepositively" → ✅ "comes before the noun"
+     - ❌ "marks nominal referents" → ✅ "identifies specific nouns"
+     - ❌ "anaphoric function" → ✅ "refers back to something mentioned earlier"
+     - ❌ "deictic use" → ✅ "points to something present"
+     - ❌ "substantivizing function" → ✅ "turns adjectives/participles into nouns"
    - When describing function, be concrete: "signals a reason", "marks a topic shift", "introduces a result"
-   - Don't use vague labels like "discourse marker" - say what it DOES: "connects ideas", "shows contrast", "emphasizes"
-   - Explain technical terms when first used, but prefer everyday language
+   - Don't use vague labels - say what it DOES: "connects ideas", "shows contrast", "emphasizes"
+   - **If a technical term is necessary**, explain it: "anaphoric (referring back)" or "substantivizing (making it act as a noun)"
+   - **Test: Would you say this out loud to explain it to someone?** If not, simplify it.
 
-2. Provide **illustrative examples** for every claim in the description:
-   - Include **2–3 examples from the New Testament**, **1–2 from the LXX**, and **1–2 from Hellenistic Greek (Josephus, Philo, Plutarch, Polybius, Strabo, Epictetus), inscriptions, or papyri** if applicable
-   - When including **Hebrew phrases**, ensure the examples align directly with the LXX translation. Provide:
-     - The **Greek phrase** from the LXX with the defined word in context.
-     - The **corresponding Hebrew phrase** from the WLC, its **transliteration**, and **translation**.
-     - An explanation of how the LXX translates the Hebrew term and its relevance.
-
-3. Identify **usage contexts**:
-   - Indicate where each sense is found (e.g., NT, LXX, Hellenistic literature, inscriptions, documentary papyri).
-   - **Illustrative examples** should provide at least one example from Hellenistic sources if usage notes mention these contexts.
-
-4. **Strictly Synchronic Analysis - Hellenistic Greek Only**:
+2. **Strictly Synchronic Analysis - Hellenistic Greek Only**
    - **Analyze the word as it functions in the Hellenistic period** (c. 300 BCE - 300 CE)
-   - **DO NOT include senses that only existed in Classical Greek**
-   - **If Abbott-Smith mentions a Classical-only sense**: Note that it exists in earlier Greek but **do not create a separate sense for it** if it doesn't occur in Hellenistic sources
-   - **DO NOT create senses just because they're etymologically earlier**
-     - Example: ὁ as demonstrative pronoun ("he/she/it") is Classical - if it doesn't occur in NT/LXX/Hellenistic literature, don't list it as a sense
-   - **DO NOT trace historical development** from Classical to Hellenistic
-   - **DO NOT explain meanings as evolving** from earlier usage
-   - **DO NOT say** "originally meant X, later came to mean Y" - describe what it means in Hellenistic Greek
-   - **DO NOT reference Classical authors** (Homer, Plato, Aristotle, Herodotus, Thucydides, etc.) in your analysis
-   - **DO analyze and cite Hellenistic sources**: NT, LXX, Josephus, Philo, Plutarch, Polybius, Strabo, Epictetus, Diodorus Siculus, Appian, papyri, inscriptions
-   - **If Abbott-Smith mentions Classical usage**: Note it existed but focus your analysis on Hellenistic patterns
-   - **Treat the Hellenistic period as a synchronic system** - describe how the word works in this period, not how it got there
+   - **CRITICAL: DO NOT include senses that only existed in Classical Greek**
+   - **BEFORE creating each sense, ask yourself**:
+     1. Is this sense used in productive Hellenistic Greek (NT, LXX, Hellenistic literature)?
+     2. Can I cite examples from NT, LXX, Josephus, Philo, Plutarch, Polybius, Strabo, Epictetus, papyri, or inscriptions?
+     3. Or is this only found in Classical authors (Homer, Plato, Aristotle) or quoted Classical poetry?
+   - **If Abbott-Smith says "as in Homer" or "as freq. in Hom."**:
+     - Check if he also provides NT or LXX examples
+     - If NO Hellenistic examples → **SKIP this sense entirely**
+     - If only example is "quoted from poet X" → This is NOT productive Hellenistic usage, SKIP it
+   - **Quoted Classical material is NOT productive Hellenistic usage**:
+     - Example: Acts 17:28 quotes Aratus (Classical poet) - this is preserved archaic language, not how Hellenistic Greek works
+     - If the only example is a Classical quotation, DO NOT create a sense for it
+   - **If Abbott-Smith mentions a Classical-only sense without Hellenistic examples**:
+     - DO NOT create a sense for it
+     - Optionally note in the Notes section: "Abbott-Smith mentions that ὁ functioned as X in Classical Greek, but this usage is not productive in Hellenistic sources."
+   - **DO NOT trace historical development** - describe what it means in Hellenistic Greek, not how it got there
+   - **DO NOT reference Classical authors** (Homer, Plato, Aristotle, Herodotus, Thucydides) in your sense descriptions
+   - Focus on: NT, LXX, Josephus, Philo, Plutarch, Polybius, Strabo, Epictetus, Diodorus Siculus, Appian, papyri, inscriptions
+
+**SPECIFIC EXAMPLES OF WHAT TO SKIP:**
+
+**For ὁ (article):**
+- ❌ **SKIP**: "As demonstrative pronoun: he, she, it, his - as freq. in Hom." with only Acts 17:28 (quoted poetry)
+- ❌ This is Classical usage preserved in a quotation, not productive Hellenistic Greek
+- ✅ **INCLUDE**: "Distributive use: the one... the other" - this IS used in Hellenistic Greek (1 Cor 7:7, Acts 14:4, etc.)
+- ✅ **INCLUDE**: "Definite article" - this IS the primary Hellenistic function
+
+**For any word:**
+- ❌ SKIP senses where Abbott-Smith says "as in Homer" but provides no NT/LXX examples
+- ❌ SKIP senses where the only citation is "quoted from [Classical author]"
+- ❌ SKIP senses marked "Attic" or "poetic" without Hellenistic attestation
 
 ---
 
 #### Instructions for Senses:
 
-5. **Define each sense** in a clear, accessible way. Begin with the most concrete and basic sense and progress to abstract or specialized meanings.
+3. **BEFORE creating each sense, verify it's Hellenistic**:
+   - Does Abbott-Smith provide NT or LXX examples?
+   - Does he cite Hellenistic authors (Josephus, Philo, Plutarch, Polybius, etc.)?
+   - Does he cite papyri or inscriptions?
+   - **If NO to all three** → SKIP this sense
+   - **If only Classical or quoted Classical** → SKIP this sense
+
+4. **Define each sense** clearly. Begin with the most concrete and basic sense, progress to abstract or specialized meanings.
    - **For each sense, include the line**: `SemDom: Placeholder`
-   - This line will be filled in later with appropriate semantic domain codes
    - Do not attempt to assign semantic domains yourself
    - **Describe senses as they exist in Hellenistic Greek**, not as historical developments
    - Base your sense distinctions on **Hellenistic usage patterns**, not Classical precedents
 
-6. For each sense, include:
-   - **Definition**: A clear, plain-language description of how this sense functions **in Hellenistic Greek**. Use familiar grammatical terms.
+5. **For each sense, include:**
+   - **Definition**: Clear, plain-language description using familiar grammatical terms
    - **Examples**:
-     - **Greek NT**: "Phrase in Greek" — "Translation" (Reference).
-       - **ALWAYS quote from SBLGNT** - use exact Greek text from the SBLGNT edition
-       - For **function words**: Describe what they DO: "signals a reason", "introduces a contrast", "marks emphasis", "shows result"
-     - **Greek LXX**: "Phrase in Greek" — "Translation" (Reference).
-       - **Hebrew**: Provide the **WLC phrase** corresponding to the LXX, along with **transliteration** and **translation**.
-         - **ALWAYS quote from WLC** - use exact Hebrew text from the Westminster Leningrad Codex
-         - Explain the correspondence, including what the Hebrew construction does if relevant [Levinsohn].
-     - **Hellenistic Greek**: "Phrase in Greek" — "Translation" (Author, Work, Reference).
-       - Valid sources: Josephus, Philo, Plutarch, Polybius, Strabo, Epictetus, Diodorus Siculus, Appian
-       - Include ONLY if Abbott-Smith or LSJ cites specific examples, OR if the usage significantly differs from NT/LXX
-     - **Papyri/Inscriptions**: "Phrase in Greek" — "Translation" (Document reference).
-       - Include ONLY if Abbott-Smith, LSJ, or Moulton & Milligan cite specific examples
-       - Format: "P.Oxy. 744" or "IG II² 1126"
-   - **Where This Sense is Found**: Specify the **Hellenistic contexts** where this sense occurs:
-     - NT usage patterns (narrative, epistolary, apocalyptic)
-     - LXX translation patterns (which Hebrew constructions it renders)
-     - Hellenistic literary contexts (historical, philosophical, biographical)
-     - Documentary contexts (legal, administrative, personal correspondence)
-     - **Focus on distribution within the Hellenistic period**, not historical change
+     - **If Abbott-Smith provides Hellenistic examples with a reference**, quote them with `[Abbott-Smith]`
+     - **If Abbott-Smith lists a short, generic illustrative pattern WITHOUT a citation (e.g., ὁ θεός, ἡ σοφία, τὸ φῶς)**: keep the form exactly as given and DO NOT invent or attach a verse reference
+     - **Do NOT transform uncited patterns into cited examples**
+     - **Do NOT invent citations** – Pass 2 will supply fully verified examples; leave uncited illustrative patterns uncited
+     - **If no Hellenistic examples are given and no pattern is listed**, describe usage briefly (e.g., "Common in NT narrative") without adding a fake citation
+   - **Where This Sense is Found**: Specify Hellenistic contexts
    - **Related Words**:
-     - **Synonyms**: Provide semantically similar Greek terms **attested in Hellenistic sources**.
-     - **Antonyms**: List terms that convey opposite meanings **in Hellenistic usage**.
+     - **Synonyms**: [Hellenistic Greek terms]
+     - **Antonyms**: [Hellenistic Greek terms]
 
 ---
 
 #### Special Instructions for Function Words:
 
-7. **For function words** (prepositions, conjunctions, pronouns, articles):
+6. **For function words** (prepositions, conjunctions, pronouns, articles):
    - **Identify discourse and syntactic FUNCTIONS, not just syntactic environments**
      - ✅ GOOD: "Distributive Use - contrasts two groups: 'the one... the other'"
      - ✅ GOOD: "Narrative Use - introduces new subject or shifts focus: 'but he said'"
-     - ❌ BAD: "With Nouns", "With Adjectives", "With Abstract Nouns" - these are just syntactic contexts, not distinct senses
+     - ❌ BAD: "With Nouns", "With Adjectives" - these are syntactic contexts, not distinct senses
    - **Don't split one sense into multiple senses based on what word type follows it**
-     - If an article means "the" with nouns, adjectives, and participles, that's ONE sense with different syntactic environments
      - Only create separate senses if the FUNCTION changes, not just the syntax
-   - **For articles specifically, consider these functional categories**:
-     - Demonstrative use (pointing to specific referent)
+   - **For articles specifically, consider functional categories**:
      - Distributive use (contrasting groups: "the one... the other")
      - Narrative use (introducing new subject: "but he", "and he")
      - Anaphoric use (referring back to previously mentioned)
      - Generic use (representing a class: "the righteous")
      - Definite article use (standard "the")
-   - **Describe what they DO in Hellenistic Greek**, not just what they are
-     - Instead of "discourse marker" → "signals a shift in topic" or "emphasizes the following word"
-     - Instead of "focus marker" → "draws attention to important information"
-     - Instead of "topic marker" → "indicates what the sentence is about"
-     - Be specific: "introduces a reason", "shows contrast with previous statement", "connects parallel ideas"
-   - **Cite grammars** as primary authorities when discussing **Hellenistic patterns**:
+   - **DO NOT include**:
+     - ❌ Demonstrative pronoun use (this is Classical only - in Hellenistic Greek, use αὐτός instead)
+   - **Describe what they DO**, be specific:
+     - "introduces a reason", "shows contrast", "connects parallel ideas"
+   - **Cite grammars** for patterns:
      - NT: [Robertson], [BDF], [Runge], [Levinsohn]
-     - Classical reference (for comparison only, not as explanation): [Smyth], [Cambridge Grammar]
-     - LXX translation technique: [Levinsohn]
-   - **Include syntactic patterns in Hellenistic Greek**: What case does it govern? Where does it typically appear in clauses? What are typical collocations?
-   - **Provide Hebrew correspondences** for LXX translation patterns, noting when LXX follows Hebrew structure vs. Greek idiom
-   - **Examples should show functional variation**, not just lexical meaning
+     - LXX: [Levinsohn]
 
 ---
 
-#### Verification Requirements:
+#### What to Include/Exclude:
 
-8. **You MUST verify all Greek and Hebrew citations before including them**:
-   - **DO NOT create plausible-sounding examples** - every citation must be real
-   - **DO NOT back-translate** - if you quote Greek from the LXX, it must be the actual LXX text, not a Greek rendering of the Hebrew
-   - **DO NOT paraphrase** - quote the exact text from SBLGNT, LXX, or WLC
-   - **VERIFY THE LEMMA APPEARS IN THE CITATION**: Every example must actually contain the word being defined
-     - If defining ὁ (article), the quoted phrase MUST contain ὁ, ἡ, or τό
-     - If defining ἀκούω, the quoted phrase MUST contain ἀκούω or an inflected form
-     - Check your quote - does it actually have the word you're defining? If not, find a different example
-     - **Pay attention to WHICH word has the article**: Don't cite "ὁ λόγος" as an example of θεός with the article
-   - **Quote enough context to show the construction**:
-     - For articles: Include the noun/adjective/participle it modifies
-     - For prepositions: Include the noun it governs with its case
-     - For conjunctions: Include enough of both clauses to show the connection
-     - **Do NOT quote just the article by itself** - show it in its grammatical context
-   - **Use the MCP tools available to you** to look up and verify:
-     - NT citations: Verify against SBLGNT using the bible lookup tool
-     - LXX citations: Verify against LXX text using the bible lookup tool
-     - Hebrew citations: Verify against WLC using the bible lookup tool
-     - **After retrieving the text, confirm**:
-       1. The lemma appears in the retrieved text
-       2. It appears in the exact form you quoted
-       3. You're not confusing one word's article with another word's article
-   - **If you cannot verify a citation**, do not include it - better to have fewer examples than incorrect ones
+7. **DO Include:**
+   - Abbott-Smith's citations IF they are from NT, LXX, or Hellenistic sources (quote with `[Abbott-Smith]`)
+   - Uncited Abbott-Smith pattern forms (e.g., ὁ θεός) left exactly as-is and UNCITED
 
-#### CRITICAL VERIFICATION PROCESS:
+8. **DO NOT Include:**
+   - Invented verse references for uncited Abbott-Smith pattern forms
+   - Added source tags for examples that Abbott-Smith did not cite
 
-Before including ANY citation, you MUST follow this verification process:
+---
 
-**IF MCP TOOLS ARE AVAILABLE:**
+#### Example Format (Illustrative Patterns vs. Cited Examples)
 
-**Step 1: Look up the verse**
-- Use MCP tools to retrieve the actual Greek text from SBLGNT (NT) or LXX
-- Do NOT rely on memory or make assumptions
+- **Pattern (uncited, keep plain)**: ὁ θεός; ἡ σοφία; τὸ φῶς
+- **Cited Example**: Greek NT: "ὁ λόγος ἦν πρὸς τὸν θεόν" — "the Word was with God" (John 1:1). [Abbott-Smith]
 
-**Step 2: Find the lemma in the retrieved text**
-- Search the retrieved text for the exact lemma you are defining
-- If defining ὁ (article), search for ὁ, ἡ, τό, τοῦ, τῆς, τῷ, etc.
-- If you cannot find it, this verse is NOT a valid example
+---
 
-**Step 3: Quote the actual phrase**
-- Copy the Greek text directly from what you retrieved
-- Include enough context to show the grammatical construction
-- DO NOT paraphrase, summarize, or reconstruct
+### {{lemma}} ([Part of Speech], G###)
 
-**Step 4: Verify your quote contains the lemma**
-- Read your quote
-- Confirm the word you are defining actually appears in it
-- If it doesn't, STOP and find a different example
+### Core Root Meaning
 
-**IF MCP TOOLS ARE NOT AVAILABLE:**
+- **Definition**: [Concise definition of the prototypical meaning **in Hellenistic Greek**]
+- **Remarks**: [Frequency in NT/LXX, notable uses - ONLY if meaningful]
+- **Grammar**: [Case governance, typical clause position, what function it serves - **in plain English**]
+- **Equivalents**: [Hebrew (with transliteration) or Latin equivalents, if relevant]
+- **Derived Words**: [Related words attested in Hellenistic Greek]
 
-When MCP tools are not available, you MUST be extremely conservative:
+### Senses and Semantic Domains
 
-**Step 1: Only cite verses you are CERTAIN about**
-- Use ONLY verses that are famous, frequently cited, and unmistakable
-- If you have ANY doubt about whether the lemma appears in a verse, DO NOT cite it
-- It is better to provide fewer examples than to provide incorrect ones
+**REMEMBER: Only create senses that are attested in Hellenistic Greek (NT, LXX, Hellenistic literature, papyri, inscriptions)**
 
-**Step 2: Indicate uncertainty**
-- Add a note: [Citation not verified - MCP tools unavailable]
-- This alerts readers that verification is needed
+1. **[Sense Name/Description]**
+   - **Definition**: [Plain language description of how this sense functions in Hellenistic Greek]
+   - SemDom: Placeholder
+   - **Examples**:
+     - If Abbott-Smith provides Hellenistic examples: Quote with `[Abbott-Smith]`
+     - If grammar/lexicon provides: Quote with `[Robertson p. 756]` or `[LSJ]`
+     - If no examples available: "Common in NT epistles" or "Used in LXX for Hebrew X"
+     - Note: Additional verified examples will be added in Pass 2
+   - **Where This Sense is Found**: [Hellenistic contexts only]
+   - **Related Words**:
+     - **Synonyms**: [Hellenistic Greek terms]
+     - **Antonyms**: [Hellenistic Greek terms]
 
-**Step 3: Prefer examples from Abbott-Smith and other trusted authorities**
-- **If Abbott-Smith cites specific verses**, use those (they are more likely to be accurate)
-- **If other lexicons or grammars cite specific examples**, you may use those:
-  - Valid sources for cited examples: LSJ, BDAG, Moulton & Milligan, Robertson, BDF, Runge, Levinsohn, Smyth, Cambridge Grammar
-  - When using an example from a source, note the source: [Abbott-Smith], [LSJ], [Robertson p. 756], etc.
-  - Only use examples these sources actually cite - do not extrapolate or invent examples "in the style of" these sources
-- **Quote the authority's examples accurately**:
-  - If Robertson cites "ὁ λόγος ἦν πρὸς τὸν θεόν" (John 1:1) as an example of article use, you can quote this with [Robertson]
-  - If LSJ provides a specific phrase from Josephus, you can use it with [LSJ]
-  - Do NOT cite "similar" verses or "better" examples than what the source provides
-- **This gives you a reliable pool of verified examples** from scholarly authorities who did the verification work
+[Repeat for each sense - but ONLY for senses attested in Hellenistic Greek]
 
-**Step 4: NEVER back-translate**
-- DO NOT think "I need an example of X, so I'll find a verse in English that has X and translate it back to Greek"
-- This is how you get citations like:
-  - ❌ Claiming ὁ appears in "ἐν αὐτῷ" (Acts 17:28) - this has αὐτῷ (pronoun), not ὁ (article)
-  - ❌ Claiming "ὁ θεός" in John 1:1 - the article is on λόγος, not θεός
+---
 
-**Step 5: When in doubt, describe usage patterns from trusted sources**
-- Instead of citing specific verses you cannot verify, quote observations from lexicons and grammars
-- **ONLY cite what these sources actually say** - do not paraphrase or extend their observations
-- Examples of acceptable citations:
-  - "Abbott-Smith notes this usage in NT epistles" [if Abbott-Smith actually says this]
-  - "Robertson (p. 756) describes this as marking the subject in narrative contexts" [if Robertson says this on that page]
-  - "Levinsohn observes this pattern in LXX translation of Hebrew ה" [if Levinsohn makes this observation]
-- **DO NOT**:
-  - ❌ Invent observations and attribute them to sources
-  - ❌ Make general claims without source attribution
-  - ❌ Say "Common in NT epistles" unless a lexicon or grammar explicitly says this
-  - ❌ Extrapolate beyond what the source actually states
-- **When you cite a source, you are claiming it says this** - be accurate or don't cite it
+### Notes
+[Include ONLY notes that add genuine insight about synchronic Hellenistic usage.
 
-**EXAMPLES OF FAILURE TO AVOID:**
+If Abbott-Smith mentions Classical-only senses, you may note them here:
+"Abbott-Smith notes that ὁ functioned as a demonstrative pronoun (he/she/it) in Classical Greek (Homer, etc.), citing Acts 17:28 where Paul quotes the poet Aratus. However, this is preserved Classical usage in a quotation, not productive Hellenistic Greek. In Hellenistic prose, the pronoun function is handled by αὐτός."
 
-❌ **WRONG - Confusing words:**
-- Defining ὁ (article)
-- Citing Acts 17:28: "ἐν αὐτῷ ζῶμεν"
-- Claiming this shows ὁ
-- FAILURE: This has αὐτῷ (pronoun "him"), not ὁ (article)
+Reference specific pages in grammars when making technical claims.]
 
-❌ **WRONG - Back-translation:**
-- Defining ὁ (article)
-- Citing John 1:1: "ὁ θεός"
-- Claiming the article is on θεός
-- FAILURE: The actual text is "καὶ θεὸς ἦν ὁ λόγος" - article is on λόγος, not θεός
+### Phrase Integrity Rules (INSTRUCTIONS ONLY - DO NOT OUTPUT THIS SECTION)
+<!--
+INTERNAL GUIDANCE:
+These rules are for constructing examples. They must NOT appear in the generated lexicon entry.
+When producing the final entry:
+- Omit any heading or text of this section.
+- Do not copy the phrase integrity bullets.
+- Do not emit "### Phrase Integrity Rules" or similar wording.
+If draft accidentally includes them, remove before returning output.
+-->
+- For any form verify example is full minimal constituent.
+- Upgrade truncated phrases (ἡ ἀγάπη → ἡ τελεία ἀγάπη).
+- Exclude external clause material.
+- Keep internal modifiers.
+- Ellipsis only after phrase.
+<!-- END INTERNAL GUIDANCE -->
 
-❌ **WRONG - Inventing examples:**
-- Defining γάρ (conjunction)
-- Creating a plausible-sounding phrase with γάρ
-- FAILURE: The verse doesn't exist or doesn't have γάρ
+### Output Suppression Filter
+Before returning the final entry:
+1. Strip any lines matching /### Phrase Integrity Rules/i.
+2. Strip any bullet lines that begin with "- Ensure the cited phrase" / "- If the draft example" / "- Avoid expanding" / "- Do not truncate" / "- Ellipsis with".
+3. Do not include internal guidance comments.
 
-✅ **CORRECT - When uncertain without MCP:**
-- Defining ὁ (article)
-- Writing: "The article commonly marks the subject in narrative contexts [Robertson, p. 756]"
-- Or: "Used distributively in contrasting constructions [BDF §250]"
-- SUCCESS: Describes usage without making unverifiable claims
-
-**If you skip verification or back-translate, your examples will be incorrect and misleading.**
-**When MCP is unavailable, be conservative and cite secondary sources instead of inventing examples.**
+### Final Output Must Contain ONLY:
+- Lemma header
+- Core meaning block
+- Senses with definitions, examples, contexts
+- Notes (if any)
+(No internal instruction headings)
 

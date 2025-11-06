@@ -1,0 +1,138 @@
+<!--
+prompt:
+  requires:
+    - draft_entry
+    - lemma
+    - abbott_smith_xml
+  optional: []
+  format: Markdown
+  description: |
+    PASS 2: Citation verification and enhancement.
+    Uses MCP tools to verify all citations and add additional verified examples.
+  mcp:
+    required_tools:
+      - bible_lookup
+-->
+
+### Citation Verification and Enhancement (Pass 2)
+
+You are reviewing a draft lexicon entry. Your job is to:
+1. ✅ Verify every existing cited example using MCP bible lookup tools
+2. ✅ Remove incorrect cited examples and replace with verified ones
+3. ✅ Ensure each sense has 2–3 verified examples total
+4. ✅ Ensure the lemma actually appears in each cited example
+5. ✅ Preserve uncited generic pattern phrases (e.g., ὁ θεός, ἡ σοφία) WITHOUT forcing citations
+
+**Lemma:** {{lemma}}
+
+**Draft Entry to Verify:**
+{{draft_entry}}
+
+**Abbott-Smith Source (for reference):**
+{{abbott_smith_xml}}
+
+---
+
+### SOURCE INTEGRITY RULES
+
+DO NOT retrofit citations:
+- If the draft contains a short, generic pattern or illustration (e.g., ὁ θεός, τὸ φῶς, ἡ σοφία) presented without a reference, leave it uncited. These are illustrative forms, not examples to be traced.
+- Only retain, verify, or add citations where a verse reference or source tag already exists or where you intentionally add a new, fully verified example.
+- Never attach a guessed verse to an uncited phrase.
+- Never add a source tag (e.g., [Robertson], [Abbott-Smith]) unless that source actually cites that exact example.
+- Plain pattern lines may stay; do not delete them just because they lack a reference.
+
+---
+
+### Your Task
+
+#### Step 1: Verify Existing Cited Examples
+
+For EACH example that already has a scripture reference:
+
+1. Use MCP `bible_lookup`:
+   - NT: SBLGNT
+   - LXX: LXX text
+   - Hebrew: WLC
+2. Confirm the lemma ({{lemma}}) or its form is present.
+3. Confirm the quoted Greek matches the text (allowing for elision/orthographic normalization only if trivial).
+4. If incorrect: remove entirely; replace with a verified example (same sense).
+5. If correct: keep; optionally expand context for clarity (but stay concise).
+
+Do NOT attempt to verify uncited illustrative phrases; skip them.
+
+#### Step 2: Ensure 2–3 Verified Examples Per Sense
+
+For each sense:
+- Count only fully cited, verified examples.
+- If 0: add 2 verified examples.
+- If 1: add 1–2 more.
+- If 2–3: fine; do not add more.
+- If >3: reduce to best 3 (clarity, distinct function).
+- Added examples must:
+  - Contain the lemma (or inflected form).
+  - Include exact Greek phrase.
+  - Supply translation.
+  - Provide reference.
+  - Optionally a source tag if drawn from a lexicon/grammar that explicitly cites it.
+
+Do NOT transform uncited pattern phrases into cited examples; ADD separate new verified examples instead.
+
+#### Step 3: Adding New Examples
+
+Priority order:
+1. Abbott-Smith cited examples.
+2. Grammars / lexica: Robertson, BDF, Runge, Levinsohn, LSJ, BDAG, Moulton & Milligan (M&M).
+3. Fresh MCP-located examples (only if clear for this sense).
+
+Format for each new example:
+- Greek NT: "Greek phrase" — "Translation" (Book 1:1).
+  - Function: Brief description.
+
+#### Step 4: LXX–Hebrew Cross-Check (Only if sense involves LXX usage)
+
+If you add or retain an LXX example and its Hebrew counterpart matters:
+- Look up both.
+- Confirm alignment.
+- Keep concise; note if it renders Hebrew article, pronoun, or specific construction.
+
+#### Step 5: Final Verification Checklist
+
+Confirm:
+- All cited examples have been MCP-verified.
+- No incorrect examples remain.
+- Each sense has 2–3 verified cited examples.
+- No speculative citations were added to uncited pattern phrases.
+- All added examples show the lemma.
+- No back-translations or invented Greek.
+- Optional LXX–Hebrew checks done where relevant.
+
+---
+
+### Output Format
+
+Return the complete entry:
+- Preserve sense order, definitions, SemDom placeholders, grammar notes.
+- Keep uncited pattern phrases as-is (do not append references).
+- Provide 2–3 verified cited examples per sense (where corpus attests).
+- Do not include commentary about removals—only the cleaned result.
+
+---
+
+### Example Replacement
+
+Draft (faulty):
+- Greek NT: "ἐν αὐτῷ ζῶμεν" — "in him we live" (Acts 17:28). (Lemma absent)
+
+Corrected:
+- Greek NT: "ὁ μὲν … ὁ δέ" — "the one … the other" (1 Cor 7:7).
+  - Function: Contrasts two groups.
+- Greek NT: "οἱ μὲν … ἄλλοι δέ" — "some … others" (John 7:12).
+  - Function: Distinguishes opposing opinions.
+
+Uncited pattern examples (leave uncited):
+- ὁ θεός
+- ἡ σοφία
+- τὸ φῶς
+
+Proceed with verification and enhancement.
