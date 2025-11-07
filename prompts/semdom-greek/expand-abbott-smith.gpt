@@ -7,228 +7,149 @@ prompt:
   format: Markdown
   description: |
     PASS 1: Draft expansion of Abbott-Smith entry.
-    Focuses on semantic analysis and sense structure.
-    Citations will be verified in Pass 2.
+    Focus: Hellenistic (c. 300 BCE–300 CE) semantic analysis.
+    Citations verified in Pass 2.
 -->
 
-### Expanded Definition Prompt (Draft Pass)
+### Expanded Definition Prompt (Pass 1)
 
-Expand the following Abbott-Smith definition for a Greek lexeme, ensuring the root meaning is the **prototypical meaning**, from which all other senses semantically derive. Order the senses from the **most concrete and basic** to the **more abstract and specialized**.
+Expand the Abbott-Smith entry for the lemma below. Produce a Hellenistic-period semantic analysis. Output only the lexicon entry (no internal guidance). Generalized for ANY part of speech (content or function word).
 
-**Lemma:** {{lemma}}
+Lemma: {{lemma}}
 
-**Abbott-Smith Entry:**
+Abbott-Smith Entry:
 {{entry}}
 
 ---
 
-### Instructions:
+### Output Format (EXTERNAL – MUST OUTPUT)
 
-#### Your Task (Pass 1 - Semantic Analysis):
-
-This is the FIRST PASS of a two-pass process. Your job is to:
-1. ✅ Identify the prototypical meaning **in Hellenistic Greek**
-2. ✅ Order senses from concrete to abstract
-3. ✅ Describe functions clearly (what the word DOES)
-4. ✅ Use Abbott-Smith's own examples **only if they represent Hellenistic usage**
-5. ⏭️ **Citation verification will happen in Pass 2** - don't worry about verifying every detail
-
-**DO NOT invent citations.** If Abbott-Smith provides examples of **Hellenistic usage**, use them. If Abbott-Smith only cites Classical sources, skip that sense.
-
----
-
-#### General Guidelines:
-
-1. **Write in plain, accessible English**
-   - Use familiar terms: "conjunction" not "complementizer", "article" not "determiner"
-   - **Use everyday words**: "comes before the noun" not "functions prepositively"
-   - **Avoid academic jargon that obscures meaning**:
-     - ❌ "functions prepositively" → ✅ "comes before the noun"
-     - ❌ "marks nominal referents" → ✅ "identifies specific nouns"
-     - ❌ "anaphoric function" → ✅ "refers back to something mentioned earlier"
-     - ❌ "deictic use" → ✅ "points to something present"
-     - ❌ "substantivizing function" → ✅ "turns adjectives/participles into nouns"
-   - When describing function, be concrete: "signals a reason", "marks a topic shift", "introduces a result"
-   - Don't use vague labels - say what it DOES: "connects ideas", "shows contrast", "emphasizes"
-   - **If a technical term is necessary**, explain it: "anaphoric (referring back)" or "substantivizing (making it act as a noun)"
-   - **Test: Would you say this out loud to explain it to someone?** If not, simplify it.
-
-2. **Strictly Synchronic Analysis - Hellenistic Greek Only**
-   - **Analyze the word as it functions in the Hellenistic period** (c. 300 BCE - 300 CE)
-   - **CRITICAL: DO NOT include senses that only existed in Classical Greek**
-   - **BEFORE creating each sense, ask yourself**:
-     1. Is this sense used in productive Hellenistic Greek (NT, LXX, Hellenistic literature)?
-     2. Can I cite examples from NT, LXX, Josephus, Philo, Plutarch, Polybius, Strabo, Epictetus, papyri, or inscriptions?
-     3. Or is this only found in Classical authors (Homer, Plato, Aristotle) or quoted Classical poetry?
-   - **If Abbott-Smith says "as in Homer" or "as freq. in Hom."**:
-     - Check if he also provides NT or LXX examples
-     - If NO Hellenistic examples → **SKIP this sense entirely**
-     - If only example is "quoted from poet X" → This is NOT productive Hellenistic usage, SKIP it
-   - **Quoted Classical material is NOT productive Hellenistic usage**:
-     - Example: Acts 17:28 quotes Aratus (Classical poet) - this is preserved archaic language, not how Hellenistic Greek works
-     - If the only example is a Classical quotation, DO NOT create a sense for it
-   - **If Abbott-Smith mentions a Classical-only sense without Hellenistic examples**:
-     - DO NOT create a sense for it
-     - Optionally note in the Notes section: "Abbott-Smith mentions that ὁ functioned as X in Classical Greek, but this usage is not productive in Hellenistic sources."
-   - **DO NOT trace historical development** - describe what it means in Hellenistic Greek, not how it got there
-   - **DO NOT reference Classical authors** (Homer, Plato, Aristotle, Herodotus, Thucydides) in your sense descriptions
-   - Focus on: NT, LXX, Josephus, Philo, Plutarch, Polybius, Strabo, Epictetus, Diodorus Siculus, Appian, papyri, inscriptions
-
-**SPECIFIC EXAMPLES OF WHAT TO SKIP:**
-
-**For ὁ (article):**
-- ❌ **SKIP**: "As demonstrative pronoun: he, she, it, his - as freq. in Hom." with only Acts 17:28 (quoted poetry)
-- ❌ This is Classical usage preserved in a quotation, not productive Hellenistic Greek
-- ✅ **INCLUDE**: "Distributive use: the one... the other" - this IS used in Hellenistic Greek (1 Cor 7:7, Acts 14:4, etc.)
-- ✅ **INCLUDE**: "Definite article" - this IS the primary Hellenistic function
-
-**For any word:**
-- ❌ SKIP senses where Abbott-Smith says "as in Homer" but provides no NT/LXX examples
-- ❌ SKIP senses where the only citation is "quoted from [Classical author]"
-- ❌ SKIP senses marked "Attic" or "poetic" without Hellenistic attestation
-
----
-
-#### Instructions for Senses:
-
-3. **BEFORE creating each sense, verify it's Hellenistic**:
-   - Does Abbott-Smith provide NT or LXX examples?
-   - Does he cite Hellenistic authors (Josephus, Philo, Plutarch, Polybius, etc.)?
-   - Does he cite papyri or inscriptions?
-   - **If NO to all three** → SKIP this sense
-   - **If only Classical or quoted Classical** → SKIP this sense
-
-4. **Define each sense** clearly. Begin with the most concrete and basic sense, progress to abstract or specialized meanings.
-   - **For each sense, include the line**: `SemDom: Placeholder`
-   - Do not attempt to assign semantic domains yourself
-   - **Describe senses as they exist in Hellenistic Greek**, not as historical developments
-   - Base your sense distinctions on **Hellenistic usage patterns**, not Classical precedents
-
-5. **For each sense, include:**
-   - **Definition**: Clear, plain-language description using familiar grammatical terms
-   - **Examples**:
-     - **If Abbott-Smith provides Hellenistic examples with a reference**, quote them with `[Abbott-Smith]`
-     - **If Abbott-Smith lists a short, generic illustrative pattern WITHOUT a citation (e.g., ὁ θεός, ἡ σοφία, τὸ φῶς)**: keep the form exactly as given and DO NOT invent or attach a verse reference
-     - **Do NOT transform uncited patterns into cited examples**
-     - **Do NOT invent citations** – Pass 2 will supply fully verified examples; leave uncited illustrative patterns uncited
-     - **If no Hellenistic examples are given and no pattern is listed**, describe usage briefly (e.g., "Common in NT narrative") without adding a fake citation
-   - **Where This Sense is Found**: Specify Hellenistic contexts
-   - **Related Words**:
-     - **Synonyms**: [Hellenistic Greek terms]
-     - **Antonyms**: [Hellenistic Greek terms]
-
----
-
-#### Special Instructions for Function Words:
-
-6. **For function words** (prepositions, conjunctions, pronouns, articles):
-   - **Identify discourse and syntactic FUNCTIONS, not just syntactic environments**
-     - ✅ GOOD: "Distributive Use - contrasts two groups: 'the one... the other'"
-     - ✅ GOOD: "Narrative Use - introduces new subject or shifts focus: 'but he said'"
-     - ❌ BAD: "With Nouns", "With Adjectives" - these are syntactic contexts, not distinct senses
-   - **Don't split one sense into multiple senses based on what word type follows it**
-     - Only create separate senses if the FUNCTION changes, not just the syntax
-   - **For articles specifically, consider functional categories**:
-     - Distributive use (contrasting groups: "the one... the other")
-     - Narrative use (introducing new subject: "but he", "and he")
-     - Anaphoric use (referring back to previously mentioned)
-     - Generic use (representing a class: "the righteous")
-     - Definite article use (standard "the")
-   - **DO NOT include**:
-     - ❌ Demonstrative pronoun use (this is Classical only - in Hellenistic Greek, use αὐτός instead)
-   - **Describe what they DO**, be specific:
-     - "introduces a reason", "shows contrast", "connects parallel ideas"
-   - **Cite grammars** for patterns:
-     - NT: [Robertson], [BDF], [Runge], [Levinsohn]
-     - LXX: [Levinsohn]
-
----
-
-#### What to Include/Exclude:
-
-7. **DO Include:**
-   - Abbott-Smith's citations IF they are from NT, LXX, or Hellenistic sources (quote with `[Abbott-Smith]`)
-   - Uncited Abbott-Smith pattern forms (e.g., ὁ θεός) left exactly as-is and UNCITED
-
-8. **DO NOT Include:**
-   - Invented verse references for uncited Abbott-Smith pattern forms
-   - Added source tags for examples that Abbott-Smith did not cite
-
----
-
-#### Example Format (Illustrative Patterns vs. Cited Examples)
-
-- **Pattern (uncited, keep plain)**: ὁ θεός; ἡ σοφία; τὸ φῶς
-- **Cited Example**: Greek NT: "ὁ λόγος ἦν πρὸς τὸν θεόν" — "the Word was with God" (John 1:1). [Abbott-Smith]
-
----
-
+#### Header
 ### {{lemma}} ([Part of Speech], G###)
 
 ### Core Root Meaning
-
-- **Definition**: [Concise definition of the prototypical meaning **in Hellenistic Greek**]
-- **Remarks**: [Frequency in NT/LXX, notable uses - ONLY if meaningful]
-- **Grammar**: [Case governance, typical clause position, what function it serves - **in plain English**]
-- **Equivalents**: [Hebrew (with transliteration) or Latin equivalents, if relevant]
-- **Derived Words**: [Related words attested in Hellenistic Greek]
+- Definition: Prototypical Hellenistic meaning (plain English).
+- Remarks: Frequency / salient usage note (omit if trivial).
+- Grammar: Core syntactic behavior (position, agreement, government).
+- Equivalents: Relevant Heb / Lat (only if clarifying).
+- Derived Words: Hellenistic derivatives (if any).
 
 ### Senses and Semantic Domains
+Order senses: prototypical → regular extensions → specialized → discourse/pragmatic → nominalizing/framing → idiomatic → rare/special → (historical non‑productive moved to Notes). Each sense:
 
-**REMEMBER: Only create senses that are attested in Hellenistic Greek (NT, LXX, Hellenistic literature, papyri, inscriptions)**
-
-1. **[Sense Name/Description]**
-   - **Definition**: [Plain language description of how this sense functions in Hellenistic Greek]
+1. **Sense Name**
+   - Definition: Current Hellenistic function/meaning (not mere position).
    - SemDom: Placeholder
-   - **Examples**:
-     - If Abbott-Smith provides Hellenistic examples: Quote with `[Abbott-Smith]`
-     - If grammar/lexicon provides: Quote with `[Robertson p. 756]` or `[LSJ]`
-     - If no examples available: "Common in NT epistles" or "Used in LXX for Hebrew X"
-     - Note: Additional verified examples will be added in Pass 2
-   - **Where This Sense is Found**: [Hellenistic contexts only]
-   - **Related Words**:
-     - **Synonyms**: [Hellenistic Greek terms]
-     - **Antonyms**: [Hellenistic Greek terms]
+   - Examples (single-line format):
+     - Greek phrase — “English translation” (Book 1:1) [Abbott-Smith]. Optional brief explanation.
+     - Descriptor (if needed) Greek phrase — “English translation”. Explanation.
+   - Where This Sense is Found: Brief genre/source list.
+   - Related Words:
+     - Synonyms: Hellenistic only.
+     - Antonyms: Hellenistic only
 
-[Repeat for each sense - but ONLY for senses attested in Hellenistic Greek]
+Repeat as needed.
+
+### Notes
+- Structural / word-order patterns (attribute position, double article, alternative NP orders, particle clustering, preposition compounds, etc.) with examples and explanations.
+- Historical/non‑productive functions (e.g., archaic demonstrative use) demoted here with explicit “not productive in Koiné”.
+- Clarifications on idiomatic English vs Greek definiteness.
+- Keep concise.
 
 ---
 
-### Notes
-[Include ONLY notes that add genuine insight about synchronic Hellenistic usage.
+### Example Rules (APPLY – UPDATED NO INVENTED CITATIONS)
+- Do NOT invent citations. Only include a citation if Abbott-Smith explicitly supplies one for that exact phrase.
+- If Abbott-Smith lists a form without a citation (e.g., ὁ θεός; τὸ φῶς; ἡ σοφία), output it without any parenthetical reference.
+- Idiomatic English: ὁ θεός — “God”; ἡ σοφία — “wisdom”; τὸ φῶς — “light” (only add “the” if a cited context requires specificity).
+- Single-line format: Greek — “English”. Optional brief explanation after a period (≤ 12 words).
+  Example (patterns with NO citation):
+    - ὁ θεός — “God”. Refers to the uniquely known deity.
+    - τὸ φῶς — “light”. Refers to a specific conceptual light (if context cited).
+    - ἡ σοφία — “wisdom”. Treats an abstract quality as a defined concept.
+- No “Greek NT:” prefix; no “Pattern:” label.
+- Every Greek phrase has a translation.
+- Upgrade truncated phrases to include internal modifiers if present in the source citation; do not add modifiers absent from the source.
+- No ellipsis inside phrase; ellipsis only after the phrase to omit following clause material.
+- Substantivizing claim only when no separate head noun follows.
+- If English omits an article, optional explanation clarifies definiteness if non-obvious.
 
-If Abbott-Smith mentions Classical-only senses, you may note them here:
-"Abbott-Smith notes that ὁ functioned as a demonstrative pronoun (he/she/it) in Classical Greek (Homer, etc.), citing Acts 17:28 where Paul quotes the poet Aratus. However, this is preserved Classical usage in a quotation, not productive Hellenistic Greek. In Hellenistic prose, the pronoun function is handled by αὐτός."
+### Function Line (Illustrative; choose/adapt ONE or create new)
+Identifies a specific X.
+Refers to a whole class.
+Marks an abstract concept as a single idea.
+Introduces contrast.
+Forms distributive pair.
+Continues narrative focus.
+Shifts topic.
+Refers back (anaphoric).
+Points forward (cataphoric).
+Nominalizes non-noun.
+Frames a quotation.
+Signals purpose / result / reason / condition / concession.
+Marks possession / relationship / source / origin / goal.
+Specifies metaphorical referent.
+Emphasizes quality (structural position).
+Limits scope / exclusivity.
+Signals inference / conclusion / summary / specification / clarification.
+Signals manner / means / instrument / location / time.
+Signals comparison / association / accompaniment / exception.
+Marks vocative address.
+(Adapt or create concise plain-English if none fit.)
 
-Reference specific pages in grammars when making technical claims.]
+### Sense Ordering Rules (Internal – DO NOT OUTPUT)
+- First sense must be productive in Hellenistic usage (no purely historical demonstrative sense).
+- Historical/etymological functions appear only in Notes.
+- Demote any sense whose examples are solely quotations of earlier poetry.
 
-### Phrase Integrity Rules (INSTRUCTIONS ONLY - DO NOT OUTPUT THIS SECTION)
-<!--
-INTERNAL GUIDANCE:
-These rules are for constructing examples. They must NOT appear in the generated lexicon entry.
-When producing the final entry:
-- Omit any heading or text of this section.
-- Do not copy the phrase integrity bullets.
-- Do not emit "### Phrase Integrity Rules" or similar wording.
-If draft accidentally includes them, remove before returning output.
+### Structural Pattern Notes (Internal – DO NOT OUTPUT)
+Include in Notes (not as senses) when applicable:
+- Article + adjective + noun (e.g., ὁ ἀγαθὸς ἄνθρωπος — “the good man”) with explanation.
+- Noun + article + adjective (double article) (e.g., ὁ ποιμὴν ὁ καλός — “the good shepherd”) with explanation.
+- Alternative attributive patterns (brief).
+- Particle clusters (e.g., μέν … δέ) if they do not change semantic sense.
+- Preposition + article + phrase nominalization patterns.
+- These are syntactic/structural, not separate senses.
+
+### Checklist (Internal – Suppress in Output)
+[ ] Only list Hellenistic senses. For instance, do not list "Demonstrative Pronoun" as a sense for ὁ.
+[ ] No invented citations for uncited Abbott-Smith patterns
+[ ] Patterns appear without parentheses if uncited
+[ ] Single-line examples only
+[ ] Prototypical productive sense first
+[ ] Historical/non-productive uses in Notes
+[ ] All examples translated
+[ ] Structural patterns in Notes
+[ ] No internal guidance leaked
+
+---
+
+Produce only the final lexicon entry (header + senses + notes). Omit all internal sections.
+
+### Example Formatting Update (INTERNAL – DO NOT OUTPUT)
+
+Replace multi-line example + separate explanation block with single-line format:
+Greek — “English” (Citation). Explanation.
+Rules:
+- One bullet line per example.
+- After the closing parenthesis of citation, add a space then the explanation sentence (capital initial, ends with period).
+- If no citation: Greek — “English.” Explanation.
+- Keep explanation concise (≤ 12 words).
+- Role label ("Article:", etc.) dropped unless absolutely needed; write plain text.
+
+Example conversion pattern:
+
+  - Greek NT: "οἱ ἀλώπεκες" — "the foxes" (Matthew 8:20). Refers to a whole class.
+  - Greek NT: "ὁ ἐργάτης" — "the worker" (Luke 10:7). Refers to an individual representing a class.
+  - Greek NT: "ὁ ἄνθρωπος" — "the man" (John 9:1). Identifies a specific individual.
+
+Validation checklist (internal):
+[ ] Each example on one line
+[ ] Translation present
+[ ] Citation (if source) inside parentheses
+[ ] Explanation sentence appended
+[ ] No orphan role label lines
+
+Do not output this guidance section.
 -->
-- For any form verify example is full minimal constituent.
-- Upgrade truncated phrases (ἡ ἀγάπη → ἡ τελεία ἀγάπη).
-- Exclude external clause material.
-- Keep internal modifiers.
-- Ellipsis only after phrase.
-<!-- END INTERNAL GUIDANCE -->
-
-### Output Suppression Filter
-Before returning the final entry:
-1. Strip any lines matching /### Phrase Integrity Rules/i.
-2. Strip any bullet lines that begin with "- Ensure the cited phrase" / "- If the draft example" / "- Avoid expanding" / "- Do not truncate" / "- Ellipsis with".
-3. Do not include internal guidance comments.
-
-### Final Output Must Contain ONLY:
-- Lemma header
-- Core meaning block
-- Senses with definitions, examples, contexts
-- Notes (if any)
-(No internal instruction headings)
 

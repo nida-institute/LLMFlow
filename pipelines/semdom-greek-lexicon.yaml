@@ -1,41 +1,55 @@
-name: Expand and Save Abbott-Smith Entries
+name: Expand and Verify Abbott-Smith Entries
+
+description: |
+  Two-pass pipeline for creating verified semantic domain entries:
+
+  Pass 1: Draft Expansion (semantic analysis)
+  - Prototypical meaning identification
+  - Sense ordering (concrete to abstract)
+  - Function-based descriptions
+  - Uses Abbott-Smith's own examples
+
+  Pass 2: Verification & Enhancement (MCP-powered)
+  - Verifies all citations against primary texts
+  - Flags unverified claims
+  - Adds additional verified examples from grammars
+  - Cross-checks LXX-Hebrew alignment
+
 variables:
   prompts_dir: prompts/semdom-greek
   output_dir: ./obsidian/grc
+  limit: 50
 
 steps:
-  # Step 1: Read first 10 rows from status.tsv
   - name: read-status
     type: tsv
     inputs:
       path: inputs/Abbot-Smith/status.tsv
-      limit: 50
+      limit: "${limit}"
     outputs:
       - status_rows
 
-  # Step 2: For each row, find entry and process
   - name: process-entries
     type: for-each
     input: "${status_rows}"
     item_var: row
     steps:
-      # Find the entry in Abbott-Smith for this lemma
+      # Extract Abbott-Smith entry
       - name: find-entry
         type: xpath
         inputs:
           path: inputs/Abbot-Smith/abbott-smith.tei.xml
-          xpath: //tei:entry[@key='${row.lemma}']
+          xpath: //tei:entry[@key='${row[lemma]}']
           output_format: xml-string
           namespaces:
             tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
         outputs: [entries]
-        log: debug
         saveas:
-          path: "${output_dir}/xml/${row.lemma}.xml"
-          group_by_prefix: 2  # Organizes: ./obsidian/grc/xml/συ/σύ.xml
+          path: "${output_dir}/xml/${row[lemma]}.xml"
+          group_by_prefix: 2
 
-      # Expand with LLM - take first entry from the list
-      - name: expand-entry
+      # PASS 1: Draft semantic expansion
+      - name: draft-expansion
         type: llm
         model: gpt-4o
         temperature: 0.7
@@ -43,14 +57,35 @@ steps:
         prompt:
           file: expand-abbott-smith.gpt
           inputs:
-            entry: "${entries[0]}"  # Take first item from list
-            lemma: "${row.lemma}"
-            status: "${row.status}"
+            entry: "${entries[0]}"
+            lemma: "${row[lemma]}"
         outputs:
-          - expanded_entry
+          - draft_entry
         saveas:
-          path: "${output_dir}/markdown/${row.lemma}.md"
-          group_by_prefix:
-            prefix_length: 2  # Organizes: ./obsidian/grc/markdown/συ/σύ.md
+          path: "${output_dir}/drafts/${row[lemma]}.draft.md"
+          group_by_prefix: 2
+        log: debug
+
+      # PASS 2: Verify citations and enhance
+      - name: verify-citations
+        type: llm
+        model: gpt-4o
+        temperature: 0.3
+        max_tokens: 8000
+        mcp:
+          enabled: true
+          tools:
+            - bible_lookup
+        prompt:
+          file: verify-citations.gpt
+          inputs:
+            draft_entry: "${draft_entry}"
+            lemma: "${row[lemma]}"
+            abbott_smith_xml: "${entries[0]}"
+        outputs:
+          - verified_entry
+        saveas:
+          path: "${output_dir}/markdown/${row[lemma]}.md"
+          group_by_prefix: 2
         log: debug
 
