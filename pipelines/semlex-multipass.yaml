@@ -1,17 +1,11 @@
-name: Expand and Verify Abbott-Smith Entries (Multi-Pass Semantic & Citation Pipeline)
+name: SemLex Multi-Pass
 
-description: |
-  Multi-pass pipeline for creating verified, papyrologically-informed semantic domain entries.
-
-  OVERVIEW:
-  Pass A: Base Extraction (structure Abbott-Smith data; no sense decisions)
-  Pass B: External Lexicon Merge (public-domain lexicon + documentary usage harvest; Hellenistic only)
-  Pass C: Grammar Function Harvest (function/discourse uses—especially for function words)
-  Pass D: Usage Clustering (group usages into potential functional clusters)
-  Pass E: Sense Selection (promote clusters; demote structural-only)
-  Pass F: Citation Allocation (dynamic cap; scale with cluster count; enforce documentary inclusion)
-  Pass G: Draft Expansion (assemble full entry with senses & examples)
-  Pass H: Verification & Enhancement (citation/date validation; Hebrew alignment; flag drift)
+mcp_servers:
+  bible:
+    url: "https://bible-resource-server-preview.labs.biblica.com/mcp"  # Add /mcp
+    description: "Biblica Bible Resource Server (JSON-RPC based MCP)"
+    tools:
+      - bible_lookup
 
 variables:
   prompts_dir: prompts/semdom-greek-multipass
@@ -230,8 +224,11 @@ steps:
         max_tokens: 8000
         mcp:
           enabled: true
+          server: bible
           tools:
-            - bible_lookup
+            - get_passage_text        # ✅ CORRECT (was bible_lookup)
+            - get_word_info           # ✅ Good
+            - get_word_sense          # ✅ Good
         prompt:
           file: verify-citations.gpt
           inputs:
@@ -247,7 +244,7 @@ steps:
           group_by_prefix: 2
         log: debug
         # COMMENT:
-        # Verifies NT citations against SBLGNT via MCP bible_lookup.
+        # Verifies NT citations against SBLGNT via MCP get_passage_text.
         # Preserves all LXX citations from Abbott-Smith (public domain, pre-verified).
         # Balances overall corpus: NT ~67%, LXX ~20%, documentary ~10%, other ~3%.
         # Balances NT internally: Gospels 25-40%, Pauline 30-45%, Acts 5-15%, General 10-20%.

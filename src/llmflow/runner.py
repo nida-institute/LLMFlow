@@ -15,14 +15,15 @@ from llmflow.plugins.loader import discover_plugins
 from llmflow.utils.get_prefix_directory import get_prefix_directory
 from llmflow.utils.io import validate_all_templates
 from llmflow.utils.linter import lint_pipeline_full
-from llmflow.utils.llm_runner import call_llm
+from llmflow.utils.llm_runner import call_llm, run_llm_with_mcp_tools
 from llmflow.exceptions import (
     StepExecutionError,
     ForEachIterationError,
     VariableResolutionError,
-    LLMProviderError,
+    LLMProviderError,  # Add this
     PluginError
 )
+from llmflow.modules.mcp import init_mcp_client
 
 discover_plugins()
 
@@ -413,13 +414,20 @@ def run_llm_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config:
     logger.info(f"🤖 Starting LLM step: {name}")
     logger.debug(f"Step details: {rule}")
     logger.debug(f"Context keys available: {list(context.keys())}")
-    logger.debug(f"Context values preview: {[(k, str(v)[:100]) for k, v in context.items()]}")
 
     rendered_prompt = render_prompt(rule["prompt"], context)
 
     # Build merged config
     llm_config = pipeline_config.get("llm_config", {})
-    step_config = rule.get("llm_options", {})
+    step_config = {
+        "model": rule.get("model"),
+        "temperature": rule.get("temperature"),
+        "max_tokens": rule.get("max_tokens"),
+        "timeout_seconds": rule.get("timeout_seconds"),
+    }
+    # Remove None values
+    step_config = {k: v for k, v in step_config.items() if v is not None}
+
     merged_config = {
         "model": "gpt-4o",
         "temperature": 0.7,
@@ -430,36 +438,42 @@ def run_llm_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config:
     merged_config.update(step_config)
 
     output_type = rule.get("output_type", "text")
-    logger.info(f"    ⏳ Calling {merged_config.get('model')} for step '{name}'...")
 
-    result = call_llm(
-        rendered_prompt, config=merged_config, output_type=output_type
-    )
+    # Initialize MCP client if enabled
+    mcp_client = init_mcp_client(rule, pipeline_config)
 
-    # Check for templates
-    if "template" in rule or "format_with" in rule:
-        template_path = rule.get("template") or rule.get("format_with")
-        result = apply_output_template(result, template_path, context)
+    try:
+        if mcp_client:
+            # Use tool-calling flow with iterative calls
+            logger.info(f"    ⏳ Calling {merged_config.get('model')} with MCP tools for step '{name}'...")
+            response = run_llm_with_mcp_tools(
+                rendered_prompt,
+                merged_config,
+                mcp_client,
+                output_type
+            )
+        else:
+            # Use simple flow without tools
+            logger.info(f"    ⏳ Calling {merged_config.get('model')} for step '{name}'...")
+            response = call_llm(
+                rendered_prompt,
+                config=merged_config,
+                output_type=output_type
+            )
 
-    logger.info(f"✅ Completed LLM step: {name}")
-    return result
+        # Check for templates
+        if "template" in rule or "format_with" in rule:
+            template_path = rule.get("template") or rule.get("format_with")
+            response = apply_output_template(response, template_path, context)
 
+        logger.info(f"✅ Completed LLM step: {name}")
+        return response
 
-def apply_output_template(llm_output: str, template_path: str, context: Dict[str, Any]) -> str:
-    """Apply a template to LLM output"""
-    from jinja2 import Template
-
-    template_file = Path(template_path)
-    if not template_file.is_absolute():
-        template_file = Path("templates") / template_file
-
-    template_content = template_file.read_text()
-    template = Template(template_content)
-
-    # Make both llm_output and all context variables available
-    template_context = {**context, "llm_output": llm_output, "output": llm_output}
-
-    return template.render(**template_context)
+    finally:
+        # Always close MCP client if it was created
+        if mcp_client:
+            import asyncio
+            asyncio.run(mcp_client._async_close())
 
 
 def run_save_step(

@@ -9,11 +9,16 @@ prompt:
     - abbott_smith_xml
   format: Markdown
   description: |
-    Pass H: Citation Verification. Verify NT citations accuracy and balance corpus.
+    Pass H: Citation Verification. Verify NT citations accuracy using MCP bible_lookup.
     Preserve all LXX citations from Abbott-Smith (public domain, pre-verified).
 -->
 
 # Pass H: Citation Verification & Corpus Balance
+
+**YOU HAVE ACCESS TO MCP TOOLS. USE THEM.**
+
+Available tools:
+- `bible_lookup(reference: str, version: str)` - Fetch actual verse text from Biblica server
 
 Lemma: {{lemma}}
 Draft Entry:
@@ -150,3 +155,52 @@ Preserve:
 [ ] Gospel citations ≤ 50% of NT total (if originally >50%)
 [ ] At least 1 Pauline citation if available in pool
 [ ] Senses with >6 examples consolidated/grouped
+
+You have access to the following MCP tools to verify citations:
+
+1. **get_passage_text** - Retrieve Bible text in original languages
+   - Parameters:
+     - `usfm_references`: ["JHN 3:16"] (required, array of USFM references)
+     - `textual_editions`: ["SBLGNT"] (optional, defaults to ["BSB"])
+   - Available editions:
+     - **SBLGNT** - SBL Greek New Testament (use for NT)
+     - **WLC** - Westminster Leningrad Codex (use for OT)
+     - **BSB** - Berean Study Bible (English, default)
+     - Others: CUVMPS, LSG, IRVHin, NIV11
+
+2. **get_word_info** - Get linguistic details (lemma, morphology, etc.)
+
+3. **get_word_sense** - Get semantic/lexical information
+
+## Tool Usage Examples:
+
+**Verify a Greek NT citation:**
+```json
+{
+  "tool": "get_passage_text",
+  "parameters": {
+    "usfm_references": ["JHN 3:16"],
+    "textual_editions": ["SBLGNT"]
+  }
+}
+```
+
+**Verify a Hebrew OT citation:**
+```json
+{
+  "tool": "get_passage_text",
+  "parameters": {
+    "usfm_references": ["GEN 1:1"],
+    "textual_editions": ["WLC"]
+  }
+}
+```
+
+## Your Task:
+
+For each NT citation in the draft entry:
+1. ✅ Use `get_passage_text` with `textual_editions: ["SBLGNT"]` to retrieve the Greek text
+2. ✅ Verify the word form appears in the passage
+3. ✅ Check that the translation/gloss is accurate
+4. ✅ Keep LXX citations unchanged (they're from public domain Abbott-Smith)
+5. ✅ Remove or correct any inaccurate NT citations
