@@ -1,0 +1,89 @@
+<!--
+prompt:
+  requires:
+    - lemma
+    - clusters_json
+  optional: []
+  format: JSON
+  description: |
+    Pass E: Sense Selection. Promote functional clusters to provisional senses,
+    demote structural/historical clusters to Notes. Hard exclusion for demonstrative.
+-->
+
+
+# Pass E: Sense Selection Prompt
+# Input: clustering JSON. Promote functional clusters to provisional senses.
+# Exclude structural-only & historical/nonProductive clusters (move to Notes later).
+# Hard exclusion: no “Demonstrative Pronoun” sense for ὁ (G3588) or αὐτός.
+
+Lemma: {{lemma}}
+Clusters JSON:
+{{clusters_json}}
+
+## TASK
+From clusters_json.clusters decide which become senses.
+
+PROMOTION RULES
+- Promote cluster if senseCandidate == true AND structural == false AND nonProductive == false.
+- If no cluster meets criteria, promote the highest productivityScore nonProductive=false structural=false cluster anyway (ensure ≥1 sense).
+- Order senses:
+  1. Highest productivityScore core referential / lexical function (if present).
+  2. Other referential/generic/grouping.
+  3. Contrast / distributive / topic shift.
+  4. Nominalizing / framing.
+  5. Relational / equivalence / abstraction.
+  6. Discourse pragmatic (focus/emphasis).
+  7. Idiomatic / specialized.
+- Historical or structural clusters → notes array (retain functionLabel + rationale).
+
+HARD EXCLUSIONS
+- If functionLabel or rationale matches /demonstr/i AND lemma in ["ὁ","ἡ","τό","αὐτός"] → force to notes, never senses.
+
+EXAMPLE SELECTION
+- For each promoted sense, choose up to min(exampleRecommendationCount, 5) representative forms prioritizing:
+  a. Diversity of sourceType
+  b. Documentary (papyri/inscription) if available
+  c. Clear minimal phrase
+- Do not invent forms; only use representativeForms.
+
+OUTPUT SCHEMA
+{
+  "lemma": "string",
+  "senses": [
+    {
+      "senseId": "string",
+      "name": "string",                 // concise from functionLabel
+      "definitionHint": "string",       // paraphrase of rationale (≤ 180 chars)
+      "clusterRef": "string",           // original cluster id
+      "productivityScore": number,
+      "exampleForms": [ "string", ... ] // selected representative forms
+    }
+  ],
+  "demoted": [
+    {
+      "clusterRef": "string",
+      "reason": "structural|historical|nonProductive|demonstrativeExcluded",
+      "label": "string",
+      "rationale": "string"
+    }
+  ],
+  "notes": [
+    "string"                            // aggregated notes from demoted clusters
+  ],
+  "summary": {
+    "promotedCount": number,
+    "demotedCount": number,
+    "warnings": [ "string", ... ]
+  }
+}
+
+VALIDATION (INTERNAL – DO NOT OUTPUT)
+[ ] No sense name contains /demonstr/i for article or αὐτός
+[ ] promotedCount ≥ 1
+[ ] exampleForms ≤ 5 each
+[ ] definitionHint ≤ 180 chars
+[ ] All cluster ids accounted for (either senses or demoted)
+
+OUTPUT
+Return ONLY the JSON object. On failure:
+{ "lemma": "{{lemma}}", "senses": [], "demoted": [], "notes": ["Sense selection failed"], "summary": { "promotedCount": 0, "demotedCount": 0, "warnings": ["Empty clusters or rule conflict"] } }

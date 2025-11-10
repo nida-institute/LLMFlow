@@ -1,0 +1,279 @@
+name: Expand and Verify Abbott-Smith Entries (Multi-Pass Semantic & Citation Pipeline)
+
+description: |
+  Multi-pass pipeline for creating verified, papyrologically-informed semantic domain entries.
+
+  OVERVIEW:
+  Pass A: Base Extraction (structure Abbott-Smith data; no sense decisions)
+  Pass B: External Lexicon Merge (public-domain lexicon + documentary usage harvest; Hellenistic only)
+  Pass C: Grammar Function Harvest (function/discourse uses—especially for function words)
+  Pass D: Usage Clustering (group usages into potential functional clusters)
+  Pass E: Sense Selection (promote clusters; demote structural-only)
+  Pass F: Citation Allocation (dynamic cap; scale with cluster count; enforce documentary inclusion)
+  Pass G: Draft Expansion (assemble full entry with senses & examples)
+  Pass H: Verification & Enhancement (citation/date validation; Hebrew alignment; flag drift)
+
+variables:
+  prompts_dir: prompts/semdom-greek-multipass
+  output_dir: ./obsidian/grc
+  limit: 5
+
+steps:
+  - name: read-status
+    type: tsv
+    inputs:
+      path: inputs/Abbot-Smith/status.tsv
+      limit: "${limit}"
+    outputs:
+      - status_rows
+
+  - name: process-entries
+    type: for-each
+    input: "${status_rows}"
+    item_var: row
+    steps:
+      ########################################################################
+      # SOURCE EXTRACTION
+      ########################################################################
+      - name: find-entry
+        type: xpath
+        inputs:
+          path: inputs/Abbot-Smith/abbott-smith.tei.xml
+          xpath: //tei:entry[@key='${row[lemma]}']
+          output_format: xml-string
+          namespaces:
+            tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
+        outputs: [entries]
+        saveas:
+          path: "${output_dir}/xml/${row[lemma]}.xml"
+          group_by_prefix: 2
+        # COMMENT: Raw Abbott-Smith XML isolated for this lemma.
+
+      ########################################################################
+      # PASS A: BASE LEXICON EXTRACTION
+      ########################################################################
+      - name: base-extraction
+        type: llm
+        model: gpt-4o
+        temperature: 0.2
+        max_tokens: 4000  # CHANGED: Increased from 3000 to capture all citations
+        prompt:
+          file: abbott-smith-base.gpt
+          inputs:
+            lemma: "${row[lemma]}"
+            abbott_smith_xml: "${entries[0]}"
+        outputs:
+          - base_json
+        saveas:
+          path: "${output_dir}/intermediate/${row[lemma]}.base.json"
+          group_by_prefix: 2
+        # COMMENT:
+        # Extracts: raw forms, uncited patterns, any provided citations, internal notes
+        # WITHOUT inventing senses or adding new references.
+
+      ########################################################################
+      # PASS B: EXTERNAL LEXICON MERGE
+      ########################################################################
+      - name: external-lexicon-merge
+        type: llm
+        model: gpt-4o
+        temperature: 0.3
+        max_tokens: 4000
+        prompt:
+          file: external-lexicon-merge.gpt
+          inputs:
+            lemma: "${row[lemma]}"
+            base_json: "${base_json}"
+        outputs:
+          - external_json
+        saveas:
+          path: "${output_dir}/intermediate/${row[lemma]}.external.json"
+          group_by_prefix: 2
+        # COMMENT:
+        # Adds public-domain lexicon attestations (MM, LSJ, Robertson, BDF, MHT, Mayser, Gignac, Smyth).
+        # Paraphrases restricted sources (BDAG, Brill, Lampe). Hellenistic date filter applied.
+
+      ########################################################################
+      # PASS C: GRAMMAR FUNCTION HARVEST
+      ########################################################################
+      - name: grammar-function-harvest
+        type: llm
+        model: gpt-4o
+        temperature: 0.25
+        max_tokens: 3500
+        prompt:
+          file: grammar-function-harvest.gpt
+          inputs:
+            lemma: "${row[lemma]}"
+            partOfSpeech: "${base_json.partOfSpeech}"  # ADDED: Required by prompt header
+            base_json: "${base_json}"
+            external_json: "${external_json}"
+        outputs:
+          - grammar_functions_json
+        saveas:
+          path: "${output_dir}/intermediate/${row[lemma]}.grammar.json"
+          group_by_prefix: 2
+        # COMMENT:
+        # Extracts discourse / syntactic functions from grammars (BDF, MHT, Mayser, Gignac, Robertson, Runge, Levinsohn).
+        # Flags historical non-productive items (kept for Notes only).
+
+      ########################################################################
+      # PASS D: USAGE CLUSTERING
+      ########################################################################
+      - name: usage-clustering
+        type: llm
+        model: gpt-4o
+        temperature: 0.35
+        max_tokens: 5000
+        prompt:
+          file: usage-clustering.gpt
+          inputs:
+            lemma: "${row[lemma]}"
+            base_json: "${base_json}"
+            external_json: "${external_json}"
+            grammar_functions_json: "${grammar_functions_json}"
+        outputs:
+          - clusters_json
+        saveas:
+          path: "${output_dir}/intermediate/${row[lemma]}.clusters.json"
+          group_by_prefix: 2
+        # COMMENT:
+        # Groups usages into functional clusters.
+        # Marks structural vs semantic, assigns productivityScore, senseCandidate flag.
+
+      ########################################################################
+      # PASS E: SENSE SELECTION
+      ########################################################################
+      - name: sense-selection
+        type: llm
+        model: gpt-4o
+        temperature: 0.3
+        max_tokens: 4000
+        prompt:
+          file: sense-selection.gpt
+          inputs:
+            lemma: "${row[lemma]}"
+            clusters_json: "${clusters_json}"
+        outputs:
+          - senses_json
+        saveas:
+          path: "${output_dir}/intermediate/${row[lemma]}.senses.json"
+          group_by_prefix: 2
+        # COMMENT:
+        # Promotes clusters to senses (productivityScore threshold, semantic shift).
+        # Demotes historical/structural clusters to Notes.
+        # Hard-coded exclusion: no “Demonstrative Pronoun” sense for ὁ or αὐτός.
+
+      ########################################################################
+      # PASS F: CITATION ALLOCATION
+      ########################################################################
+      - name: citation-allocation
+        type: llm
+        model: gpt-4o
+        temperature: 0.25
+        max_tokens: 5000  # CHANGED: Increased from 3500 for larger citation pools
+        prompt:
+          file: citation-allocation.gpt
+          inputs:
+            lemma: "${row[lemma]}"
+            senses_json: "${senses_json}"
+            external_json: "${external_json}"
+            base_json: "${base_json}"
+        outputs:
+          - citations_json
+        saveas:
+          path: "${output_dir}/intermediate/${row[lemma]}.citations.json"
+          group_by_prefix: 2
+        # COMMENT:
+        # Applies dynamic cap: max = min(senseCount * 5, 60).
+        # Target: NT ~67% of total citations, LXX ~20%, documentary ~10%, other ~3%.
+        # Within NT: Gospels 25-40%, Pauline 30-45%, Acts 5-15%, General 10-20%.
+        # Ensures at least 2 documentary citations if available.
+        # Filters to Hellenistic range (300 BCE–300 CE).
+        # No invented references; maps each citation to one sense or Notes.
+
+      ########################################################################
+      # PASS G: DRAFT EXPANSION (ENTRY RENDERING)
+      ########################################################################
+      - name: draft-expansion
+        type: llm
+        model: gpt-4o
+        temperature: 0.7
+        max_tokens: 6000
+        prompt:
+          file: expand-abbott-smith.gpt
+          inputs:
+            entry: "${entries[0]}"
+            lemma: "${row[lemma]}"
+            senses_json: "${senses_json}"
+            citations_json: "${citations_json}"
+        outputs:
+          - draft_entry
+        saveas:
+          path: "${output_dir}/drafts/${row[lemma]}.draft.md"
+          group_by_prefix: 2
+        log: debug
+        # COMMENT:
+        # Produces full Markdown lexicon entry with:
+        # - Complete but concise Greek forms (not cryptic ellipsis)
+        # - Grouped similar patterns when >6 examples per sense
+        # - LXX Usage subsection under Notes if LXX citations present
+        # - Translation clarity with parentheses for ellipsis
+
+      ########################################################################
+      # PASS H: VERIFICATION & ENHANCEMENT
+      ########################################################################
+      - name: verify-citations
+        type: llm
+        model: gpt-4o
+        temperature: 0.2
+        max_tokens: 8000
+        mcp:
+          enabled: true
+          tools:
+            - bible_lookup
+        prompt:
+          file: verify-citations.gpt
+          inputs:
+            draft_entry: "${draft_entry}"
+            lemma: "${row[lemma]}"
+            base_json: "${base_json}"
+            citations_json: "${citations_json}"
+            abbott_smith_xml: "${entries[0]}"
+        outputs:
+          - verified_entry
+        saveas:
+          path: "${output_dir}/markdown/${row[lemma]}.md"
+          group_by_prefix: 2
+        log: debug
+        # COMMENT:
+        # Verifies NT citations against SBLGNT via MCP bible_lookup.
+        # Preserves all LXX citations from Abbott-Smith (public domain, pre-verified).
+        # Balances overall corpus: NT ~67%, LXX ~20%, documentary ~10%, other ~3%.
+        # Balances NT internally: Gospels 25-40%, Pauline 30-45%, Acts 5-15%, General 10-20%.
+        # Consolidates senses with >6 examples by grouping similar patterns.
+        # Deduplicates identical form+translation pairs (merge refs, keep one example).
+        # Corrects or removes inaccurate NT citations.
+
+      ########################################################################
+      # (Optional) CONSISTENCY REPORT (COMMENTED OUT)
+      ########################################################################
+      # - name: consistency-report
+      #   type: llm
+      #   model: gpt-4o
+      #   temperature: 0.2
+      #   max_tokens: 2500
+      #   prompt:
+      #     file: ${prompts_dir}/consistency-report.gpt
+      #     inputs:
+      #       lemma: "${row[lemma]}"
+      #       verified_entry: "${verified_entry}"
+      #       senses_json: "${senses_json}"
+      #       citations_json: "${citations_json}"
+      #   outputs:
+      #     - report
+      #   saveas:
+      #     path: "${output_dir}/reports/${row[lemma]}.report.md"
+      #     group_by_prefix: 2
+      #   # COMMENT: Consistency reporting disabled.
+

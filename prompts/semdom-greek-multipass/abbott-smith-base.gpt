@@ -1,0 +1,100 @@
+<!--
+prompt:
+  requires:
+    - lemma
+    - abbott_smith_xml
+  optional: []
+  format: JSON
+  description: |
+    Pass A: Base Extraction. Parse Abbott-Smith TEI/XML for raw forms, glosses,
+    citations, and notes without sense creation or external augmentation.
+-->
+
+# Pass A: Abbott-Smith Base Extraction Prompt
+# Purpose: Extract ONLY raw data from Abbott-Smith TEI/XML for a lemma.
+# No sense creation, no semantic interpretation, no added citations.
+# Output: Clean JSON ready for later merging and clustering.
+
+## INPUT
+Lemma: {{lemma}}
+Abbott-Smith XML:
+{{abbott_smith_xml}}
+
+## TASK
+Parse the supplied ABBOTT-SMITH XML for {{lemma}} and output structured JSON capturing:
+- Headword forms
+- Morphological variants (if listed)
+- Grammatical labels / part of speech
+- All Greek subforms explicitly given
+- Any glosses supplied verbatim (public domain)
+- Citations (NT, LXX, other) exactly as present (no invention)
+- Uncited example patterns
+- Internal abbreviation expansions only if unambiguous (e.g., Mt = Matthew)
+- Notes (authorial remarks, etymology, historical, cross-refs)
+
+Do NOT:
+- Infer new senses
+- Add external sources
+- Normalize spelling beyond stripping stray whitespace
+- Invent dates
+- Add demonstrative pronoun sense for ὁ (historical origin only later in Notes, not here)
+- Fabricate papyri / inscription references
+
+## OUTPUT FORMAT
+Return ONLY JSON. No prose commentary.
+
+Schema (must match exactly):
+{
+  "lemma": "string",
+  "partOfSpeech": "string|null",
+  "headForms": [ "string", ... ],
+  "variants": [ "string", ... ],
+  "morphology": {
+    "gender": "string|null",
+    "casePatterns": [ "string", ... ],
+    "principalParts": [ "string", ... ],
+    "paradigmNotes": "string|null"
+  },
+  "glosses": [ "string", ... ],
+  "uncitedPatterns": [
+    { "form": "string", "gloss": "string|null" }
+  ],
+  "citations": [
+    {
+      "ref": "string",          // e.g. "Matt 5:3"
+      "form": "string|null",
+      "contextSnippet": "string|null",
+      "note": "string|null"
+    }
+  ],
+  "etymology": "string|null",
+  "historicalNotes": [ "string", ... ],
+  "usageNotes": [ "string", ... ],
+  "rawXMLExcerpt": "string"      // minimal cleaned excerpt around lemma
+}
+
+## EXTRACTION RULES
+1. headForms: include main lemma and any alternate spellings shown.
+2. variants: dialectal, orthographic, enclitic, compound forms as listed.
+3. glosses: capture English gloss words/phrases directly stated (comma-split if needed).
+4. uncitedPatterns: Greek forms presented without an explicit citation; include supplied gloss if present; otherwise gloss = null.
+5. citations:
+   - Extract each explicit reference; keep formatting (Matt vs Matthew as in source).
+   - Attach the exact Greek form if given beside the reference.
+   - If a brief context phrase appears, include it as contextSnippet (do not extend).
+6. historicalNotes: statements about Classical/Homeric/original usage.
+7. usageNotes: pragmatic/semantic notes (e.g., "freq. in Paul").
+8. rawXMLExcerpt: trim to essential <entry> content; remove unrelated sibling entries.
+9. etymology: include only if clearly stated (e.g., "from …").
+10. Strip leading/trailing whitespace; preserve internal diacritics.
+
+## VALIDATION (INTERNAL—DO NOT OUTPUT)
+- No invented references.
+- No sense labels.
+- No added external lexicon material.
+- No demonstrative pronoun sense created for article ὁ (only record if mentioned historically under historicalNotes).
+- JSON keys present even if arrays empty.
+
+## OUTPUT
+Produce the JSON object only. If extraction impossible, output:
+{ "error": "Lemma not found", "lemma": "{{lemma}}" }

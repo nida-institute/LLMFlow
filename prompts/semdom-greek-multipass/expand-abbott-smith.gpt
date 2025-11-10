@@ -1,0 +1,117 @@
+<!--
+prompt:
+  requires:
+    - lemma
+    - entry
+    - senses_json
+    - citations_json
+  optional: []
+  format: Markdown
+  description: |
+    Pass G: Draft Expansion. Generate final lexicon entry in Markdown format
+    by parsing sense and citation JSON, applying formatting rules, and rendering
+    complete entry with Core Root Meaning, Senses, and Notes sections.
+-->
+
+# Pass G: Draft Expansion (Final Entry Rendering)
+# Inputs (raw values injected verbatim by pipeline):
+#   lemma: {{lemma}}
+#   entry (Abbott-Smith XML or text): {{entry}}
+#   senses_json (JSON string from Pass E): {{senses_json}}
+#   citations_json (JSON string from Pass F): {{citations_json}}
+#
+# IMPORTANT: Pipeline does NOT support Handlebars/Jinja. No template logic.
+# You must parse the JSON strings yourself, apply rules, and output pure Markdown.
+
+#######################################################################
+### TASK
+#######################################################################
+Generate the final lexicon entry in Markdown only.
+
+Steps you must perform internally (do not describe them in output):
+1. Parse senses_json and citations_json.
+2. If senses_json.senses is empty → create one fallback sense named "Core Referential Use" with definition:
+   Marks a noun or noun-like expression as identifiable (specific, unique, generic representative, or abstract concept).
+   Use any available citations_json.allocations examples.
+3. Otherwise use senses_json.senses in given order.
+4. For each sense:
+   - Definition = definitionHint.
+   - Examples = from citations_json.allocations where allocation.senseId matches senseId.
+5. Example formatting (single line):
+   form — "idiomatic English" (Ref). Optional explanation.
+   Rules:
+   - If ref is null, omit parentheses.
+   - Explanation ≤ 12 words, plain English. Omit if trivial.
+   - No prefixes like "Pattern:" or "Greek NT:".
+6. Deduplication within senses:
+   - If multiple examples have IDENTICAL form and translation, consolidate:
+     * Keep one example, list all refs together
+     * Example: ὁ θεός — "God" (Matt 5:9, Rom 1:1, 1 Cor 1:3)
+   - Keep separate if:
+     * Different translations (even same form)
+     * Different explanations/contexts
+     * Different morphological forms being illustrated
+   - Maximum clarity: reader should see semantic/syntactic range, not repetition
+7. Idiomatic English: drop "the" for proper names/abstracts if natural (God, wisdom); keep if required for specificity (the light metaphor).
+8. Notes section:
+   - Include senses_json.notes items as bullet lines (these are demoted cluster rationales).
+   - Include citations_json.notesCitations as bullet lines. Prefix reason mapping:
+     structural → Structural:
+     historical → Historical:
+     nonProductive → Non-productive:
+     duplicateFiltered → Filtered:
+   Format: Prefix label, space, form — "translation" (Ref) if available.
+9. Historical demonstrative origin for ὁ / ἡ / τό or αὐτός:
+   - Never create a "Demonstrative Pronoun" sense.
+   - Add one Notes bullet if not already present:
+     Historical: Earlier demonstrative use not productive in Koiné.
+10. Core Root Meaning section fields:
+   - Definition: If senses exist → first sense definitionHint; else fallback definition.
+   - Remarks: If citations_json.totalAllocated > 0 → Examples drawn from Hellenistic sources (N allocated). Else: Limited attestation in current extraction.
+   - Grammar: Concise syntactic/morphological behavior; for function words mention agreement / role; for content words mention inflectional highlight if obvious. Avoid speculation.
+   - Equivalents: If entry text visibly includes "Heb." then: Hebrew definite (ה). Latin often zero or demonstratives (ille, hic). Else: None.
+   - Derived Words: None (unless a clear derived form list is in the entry text).
+11. Do NOT invent citations, senses, or etymology. Only use provided data.
+12. No JSON, no internal comments, no template syntax. Output ends after Notes section.
+
+#######################################################################
+### OUTPUT FORMAT (REQUIRED)
+#######################################################################
+### lemma (Part of Speech, G####)  <-- If part of speech or number not in data, keep generic: (Lexeme)
+
+### Core Root Meaning
+- Definition: ...
+- Remarks: ...
+- Grammar: ...
+- Equivalents: ...
+- Derived Words: ...
+
+### Senses
+1. Sense Name
+   - Definition: ...
+   - Examples:
+     - form — "translation" (Ref). Explanation.
+   - Related: (only if clearly inferable; else omit)
+
+(repeat)
+
+### Notes
+- ...
+- ...
+
+#######################################################################
+### DATA (RAW – PARSE INTERNALLY, DO NOT OUTPUT)
+#######################################################################
+Lemma: {{lemma}}
+Abbott-Smith Entry Raw:
+{{entry}}
+
+Senses JSON:
+{{senses_json}}
+
+Citations JSON:
+{{citations_json}}
+
+#######################################################################
+### RENDER (OUTPUT ONLY THE MARKDOWN ENTRY)
+#######################################################################

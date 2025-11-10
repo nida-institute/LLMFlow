@@ -1,0 +1,108 @@
+<!--
+prompt:
+  requires:
+    - lemma
+    - partOfSpeech
+    - base_json
+    - external_json
+  optional: []
+  format: JSON
+  description: |
+    Pass C: Grammar Function Harvest. Extract discourse and syntactic functions
+    from grammars for function words only. Content words return empty shell JSON.
+-->
+
+# Pass C: Grammar Function Harvest Prompt
+# Use ONLY for function words (article, pronoun, particle, conjunction, preposition, etc.).
+# If lemma is a content word (noun, verb, adjective, numeral), return empty shell JSON.
+
+Lemma: {{lemma}}
+Part of Speech (from base/external): {{partOfSpeech}}
+Base JSON:
+{{base_json}}
+External JSON:
+{{external_json}}
+
+## FUNCTION WORD DETECTION
+Treat as function word if partOfSpeech (case-insensitive) matches any:
+article, pronoun, personal pronoun, reflexive pronoun, intensive pronoun, demonstrative, relative pronoun, interrogative, indefinite pronoun, particle, conjunction, preposition, adverb, determiner, enclitic.
+Else: output minimal JSON:
+{ "lemma": "{{lemma}}", "functions": [], "notes": ["Skipped (content word)"], "warnings": [] }
+
+## TASK (when function word)
+Harvest Hellenistic (300 BCE–300 CE) discourse / syntactic functions from grammars:
+Sources (public-domain quoting allowed in short clauses):
+- BDF (Blass-Debrunner-Funk)
+- MHT (Moulton-Howard-Turner)
+- Robertson
+- Mayser
+- Gignac
+- Smyth
+- Runge (paraphrase; modern copyright) -> paraphrase: true
+- Levinsohn (paraphrase: true)
+
+Do NOT:
+- Create senses.
+- Promote historical demonstrative for ὁ or αὐτός (mark nonProductive).
+- Invent examples; only use established, widely attested Hellenistic forms.
+- Quote restricted sources verbatim.
+
+## OUTPUT SCHEMA
+{
+  "lemma": "string",
+  "functions": [
+    {
+      "label": "string",            // e.g. "Emphatic self-reference"
+      "description": "string",      // concise (≤ 160 chars)
+      "example": "string|null",     // Greek minimal phrase
+      "translation": "string|null", // idiomatic English
+      "source": "string",           // BDF, MHT, Robertson, Mayser, Gignac, Smyth, Runge(paraphrase), Levinsohn(paraphrase)
+      "ref": "string|null",         // e.g. "Luke 5:37", "BDF §252"
+      "paraphrase": true|false,
+      "nonProductive": true|false   // historical / not productive
+    }
+  ],
+  "structuralPatterns": [
+    {
+      "pattern": "string",          // e.g. "article + adjective + noun"
+      "example": "string|null",
+      "translation": "string|null",
+      "note": "string|null",
+      "nonProductive": true|false
+    }
+  ],
+  "notes": [ "string" ],
+  "warnings": [ "string" ]
+}
+
+## FUNCTION TYPES TO SEEK (IF APPLICABLE)
+- Emphasis / Intensification (αὐτός)
+- Anaphoric / Cataphoric referencing
+- Contrast / Topic shift (e.g., article + δέ cycles; μέν … δέ)
+- Focus / Framing (particles)
+- Clause linkage (logical: inference, concession, condition)
+- Nominalization (article + participle / infinitive)
+- Distributive structures (ὁ μὲν … ὁ δέ)
+- Equative / sameness pattern (τὸ αὐτό)
+- Preposition semantic extensions (spatial → metaphorical)
+- Aspectual / scalar particle functions
+- Negative reinforcement (οὐ …, μή with particles)
+- Structural patterns (double article, repeated particle clusters)
+
+## RULES
+- Max functions: 18
+- Max structuralPatterns: 8
+- Keep descriptions plain English.
+- Example must be Hellenistic; if uncertain, omit.
+- For ὁ / αὐτός: add note "Historical demonstrative use not productive in Koiné."
+
+## VALIDATION (INTERNAL—DO NOT OUTPUT)
+[ ] No invented refs
+[ ] Dates implicitly Hellenistic
+[ ] nonProductive flagged where historical only
+[ ] paraphrase true for Runge / Levinsohn
+[ ] No "Demonstrative Pronoun" function for ὁ / αὐτός
+
+## OUTPUT
+Return ONLY the JSON object.
+If not function word → minimal JSON as specified above.

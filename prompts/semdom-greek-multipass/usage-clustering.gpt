@@ -1,0 +1,113 @@
+<!--
+prompt:
+  requires:
+    - lemma
+    - base_json
+    - external_json
+    - grammar_functions_json
+  optional: []
+  format: JSON
+  description: |
+    Pass D: Usage Clustering. Group usages into functional clusters, mark
+    structural vs semantic, assign productivity scores and sense candidacy.
+-->
+
+# Pass D: Usage Clustering Prompt
+# Input: Base extraction, external usages, grammar functions.
+# Goal: Form candidate functional clusters (potential senses) vs structural patterns (Notes only).
+# No final senses yet. Provide quantitative metadata for later selection.
+
+Lemma: {{lemma}}
+Base JSON:
+{{base_json}}
+External JSON:
+{{external_json}}
+Grammar Functions JSON:
+{{grammar_functions_json}}
+
+## TASK
+Integrate:
+- base_json.uncitedPatterns
+- base_json.citations
+- external_json.externalUsages
+- external_json.structuralPatterns
+- grammar_functions_json.functions
+- grammar_functions_json.structuralPatterns
+
+Create clusters grouping items that share a coherent Hellenistic semantic or pragmatic function (referential identification, generic class, abstract concept framing, contrast/distributive, emphasis, topic shift, nominalization, quotation framing, relational grouping, equivalence/sameness, purpose/result, etc.). Structural-only patterns (word order, double article, particle stacking without semantic change) must NOT be promoted; mark cluster.structural = true.
+
+## RULES
+1. Do NOT create any cluster named or labeled “Demonstrative Pronoun” for lemma ὁ (G3588) or αὐτός.
+2. Historical / nonProductive items remain clusters but mark nonProductive: true.
+3. Each source item (usage/pattern/function) must belong to EXACTLY one cluster (except structuralPatterns may merge).
+4. Provide productivityScore (0–1):
+   productivityScore = (distinctSourceTypesWeight + genreDiversityWeight + countWeight) / 3
+   - distinctSourceTypesWeight: (# distinct sourceType in cluster) / 5 (cap at 1)
+   - genreDiversityWeight: (# distinct register values non-null) / 6 (cap 1)
+   - countWeight: log10(itemCount + 1) / log10(15) (cap 1)
+5. PromoteCandidates: senseCandidate = true if:
+   - structural = false
+   - nonProductive = false
+   - productivityScore ≥ 0.25
+6. Provide functionLabel (short), rationale (≤ 180 chars).
+7. Provide representativeForms (up to 4 Greek forms).
+8. Provide exampleRecommendationCount = min(itemCount, 5) for later selection.
+9. Map indices referencing original arrays for traceability:
+   - basePatternsIndices: indices into base_json.uncitedPatterns
+   - baseCitationIndices: indices into base_json.citations
+   - externalUsageIndices: indices into external_json.externalUsages
+   - grammarFunctionIndices: indices into grammar_functions_json.functions
+   - structuralPatternIndices: indices into external_json.structuralPatterns and grammar_functions_json.structuralPatterns (combined)
+
+## OUTPUT SCHEMA
+{
+  "lemma": "string",
+  "clusters": [
+    {
+      "id": "string",                  // unique
+      "functionLabel": "string",
+      "rationale": "string",
+      "structural": true|false,
+      "nonProductive": true|false,
+      "senseCandidate": true|false,
+      "productivityScore": number,
+      "itemCount": number,
+      "representativeForms": [ "string", ... ],
+      "basePatternsIndices": [ number, ... ],
+      "baseCitationIndices": [ number, ... ],
+      "externalUsageIndices": [ number, ... ],
+      "grammarFunctionIndices": [ number, ... ],
+      "structuralPatternIndices": [ number, ... ],
+      "exampleRecommendationCount": number
+    }
+  ],
+  "summary": {
+    "totalClusters": number,
+    "candidateCount": number,
+    "structuralCount": number,
+    "nonProductiveCount": number,
+    "warnings": [ "string", ... ]
+  }
+}
+
+## VALIDATION (INTERNAL—DO NOT OUTPUT)
+[ ] No cluster with label containing /demonstr/i for ὁ or αὐτός
+[ ] All source items assigned once
+[ ] Scores within 0–1
+[ ] rationale length ≤ 180 chars
+[ ] representativeForms ≤ 4
+[ ] candidateCount ≥ 1
+
+## OUTPUT
+Return ONLY the JSON object. If no usable items:
+{
+  "lemma": "{{lemma}}",
+  "clusters": [],
+  "summary": {
+    "totalClusters": 0,
+    "candidateCount": 0,
+    "structuralCount": 0,
+    "nonProductiveCount": 0,
+    "warnings": ["No clusterable Hellenistic usages."]
+  }
+}

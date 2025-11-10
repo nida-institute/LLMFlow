@@ -1,0 +1,134 @@
+<!--
+prompt:
+  requires:
+    - lemma
+    - base_json
+  optional: []
+  format: JSON
+  description: |
+    Pass B: External Lexicon Merge. Augment Abbott-Smith base with Hellenistic
+    attestations (300 BCE–300 CE) from public-domain lexicons and grammars.
+    Paraphrase restricted sources. No sense creation.
+-->
+
+# Pass B: External Lexicon Merge Prompt
+# Purpose: Augment Abbott-Smith base data with additional Hellenistic (300 BCE–300 CE) attestations
+# from public-domain lexicons and grammars; paraphrase restricted sources. No sense creation yet.
+
+## INPUT
+Lemma: {{lemma}}
+Base JSON (from Pass A):
+{{base_json}}
+
+## TASK
+Produce JSON adding external attestations and usage evidence for {{lemma}} limited to Hellenistic period (300 BCE–300 CE). Do NOT invent references. Do NOT classify senses. Do NOT add "Demonstrative Pronoun" usage for ὁ or αὐτός. Focus on raw usage expansion.
+
+## ALLOWED PUBLIC-DOMAIN SOURCES (verbatim short snippets permitted if certain):
+- Abbott-Smith (already in base)
+- Moulton & Milligan (MM)
+- LSJ (core + Revised Supplement)
+- Robertson (Rob)
+- Blass-Debrunner-Funk (BDF) – brief clause, not page-long
+- Moulton-Howard-Turner (MHT) – brief clause
+- Mayser (Mayser)
+- Gignac (Gignac)
+- Smyth (Smyth)
+
+## RESTRICTED (PARAPHRASE ONLY, NO VERBATIM):
+- BDAG
+- Brill / Montanari
+- Lampe
+Mark paraphrased items paraphrase: true.
+
+## SOURCE TYPES
+Use one of:
+- "NT" (Canonical New Testament)
+- "LXX" (Greek OT books in Koine style)
+- "papyri" (documentary P.Oxy., P.Tebt., P.Flor., P.Mich., PSI, etc.)
+- "inscription" (IG, OGIS, SEG, SIG)
+- "literary" (Philo, Josephus, Polybius, Plutarch if within range)
+- "patristic" (ONLY 2nd–3rd c. CE early usage; exclude later)
+- "grammar-citation" (functions from grammars; supply minimal phrase if present)
+
+Exclude purely Classical (Homer, 5th c. BCE Attic) unless re-attested in Hellenistic prose or documentary sources.
+
+## DATE HANDLING
+Provide either numeric year range (e.g. -250, 50) or approximate:
+- dateFrom (int, negative for BCE)
+- dateTo (int)
+If unknown but safely within Hellenistic period use null; do not guess outside range.
+
+## QUOTATION RULES
+- Only quote verbatim if certain and from allowed source.
+- Never quote restricted sources; paraphrase instead.
+- If uncertain about verbatim accuracy, paraphrase and set paraphrase: true.
+
+## EMPHATIC / FUNCTION WORD NOTE
+For function words (articles, particles, pronouns, prepositions, conjunctions):
+- Capture usage illustrating discourse/pragmatic roles (emphasis, contrast, focus, topic shift, nominalization).
+- Do NOT create senses; just record as usage notes.
+- Historical demonstrative function for ὁ / αὐτός not productive: if encountered, record under nonProductive: true in notes array.
+
+## OUTPUT SCHEMA (STRICT)
+{
+  "lemma": "string",
+  "externalUsages": [
+    {
+      "source": "string",                // e.g. "MM", "LSJ", "P.Oxy.", "Luke"
+      "ref": "string|null",              // e.g. "Luke 5:37", "P.Oxy. 1234.5-7"
+      "form": "string|null",             // Greek form or minimal phrase
+      "snippet": "string|null",          // verbatim or paraphrase short snippet
+      "translation": "string|null",      // idiomatic English (if form given)
+      "sourceType": "NT|LXX|papyri|inscription|literary|patristic|grammar-citation",
+      "paraphrase": true|false,
+      "dateFrom": number|null,
+      "dateTo": number|null,
+      "register": "string|null",         // e.g. "contract", "petition", "narrative", "theological", "letter"
+      "functionHint": "string|null",     // e.g. "emphatic self-reference", "contrast marker", "nominalized participle"
+      "note": "string|null"              // extra clarifying note
+    }
+  ],
+  "structuralPatterns": [
+    {
+      "pattern": "string",               // e.g. "article + adjective + noun"
+      "example": "string|null",          // Greek pattern sample
+      "translation": "string|null",
+      "note": "string|null",
+      "nonProductive": true|false
+    }
+  ],
+  "historicalFlags": [
+    "string"                             // e.g. "Demonstrative origin not productive"
+  ],
+  "warnings": [
+    "string"
+  ]
+}
+
+## RULES
+1. Preserve lemma exactly.
+2. Max entries: up to 30 usages if available; prioritize diversity (NT, papyri, inscriptions, literary).
+3. Prefer documentary (papyri/inscriptions) where multiple choices exist for the same function.
+4. No invented refs (must be attested widely; if uncertain, omit).
+5. If base already contains a citation, you may include again ONLY if adding new metadata (register, functionHint).
+6. structuralPatterns: record positions (e.g. double article pattern) but mark nonProductive: false unless specifically historical only.
+7. For ὁ / αὐτός: add to historicalFlags: "No demonstrative pronoun sense (non-productive in Koiné)."
+8. Warnings list any dropped ambiguous or out-of-range items.
+
+## VALIDATION (INTERNAL—DO NOT OUTPUT)
+- All sourceType values valid.
+- No demonstrative sense promoted.
+- Dates within -300 to 300 or null.
+- paraphrase true for restricted sources.
+
+## OUTPUT
+Return ONLY the JSON object. No commentary, no Markdown.
+
+If no external usages found:
+{
+  "lemma": "{{lemma}}",
+  "externalUsages": [],
+  "structuralPatterns": [],
+  "historicalFlags": [],
+  "warnings": ["No additional Hellenistic usages located."]
+}
