@@ -1,100 +1,122 @@
 <!--
 prompt:
-  requires:
-    - lemma
-    - abbott_smith_xml
-  optional: []
+  requires: [lemma, abbott_smith_xml]
   format: JSON
-  description: |
-    Pass A: Base Extraction. Parse Abbott-Smith TEI/XML for raw forms, glosses,
-    citations, and notes without sense creation or external augmentation.
+  description: Pass A - Generic Abbott-Smith base extraction (zero information loss).
 -->
 
-# Pass A: Abbott-Smith Base Extraction Prompt
-# Purpose: Extract ONLY raw data from Abbott-Smith TEI/XML for a lemma.
-# No sense creation, no semantic interpretation, no added citations.
-# Output: Clean JSON ready for later merging and clustering.
-
-## INPUT
-Lemma: {{lemma}}
-Abbott-Smith XML:
+Source XML (lemma={{lemma}}):
 {{abbott_smith_xml}}
 
-## TASK
-Parse the supplied ABBOTT-SMITH XML for {{lemma}} and output structured JSON capturing:
-- Headword forms
-- Morphological variants (if listed)
-- Grammatical labels / part of speech
-- All Greek subforms explicitly given
-- Any glosses supplied verbatim (public domain)
-- Citations (NT, LXX, other) exactly as present (no invention)
-- Uncited example patterns
-- Internal abbreviation expansions only if unambiguous (e.g., Mt = Matthew)
-- Notes (authorial remarks, etymology, historical, cross-refs)
+Objective:
+Produce a JSON structure that preserves ALL source information with no lexeme-specific heuristics. Do not invent refs, glosses, patterns, or slot placeholders. Distinguish raw transcription from lightweight, generic annotations.
 
-Do NOT:
-- Infer new senses
-- Add external sources
-- Normalize spelling beyond stripping stray whitespace
-- Invent dates
-- Add demonstrative pronoun sense for ὁ (historical origin only later in Notes, not here)
-- Fabricate papyri / inscription references
+Extraction Rules (Generic):
+1. Capture the exact XML snippet for the lemma including all <sense> descendants.
+2. For each <sense n=""> build sensePath by concatenating ancestor n attributes (e.g. I.2.a).
+3. Tokenize sense content into segments in reading order:
+   - senseProse: plain text
+   - foreign: <foreign xml:lang="grc">...</foreign>
+   - gloss: immediate <gloss> after a foreign
+   - ref: <ref osisRef="...">
+   - punctuation: ALWAYS emit segments for ',', ';', '.'.
+   - continuationMarker: tokens like 'al.' (store text, index).
+   - parenNote: any parenthetical span, including bibliography.
+   (Semicolons/periods later serve as group terminators; content “between semicolons” is the sequence of segments from one boundary to the next.)
+4. Preserve each segment with its original text and index. DO NOT discard incomplete phrases (e.g. "ὁ τοῦ"). Mark status="incomplete" if no head noun/adjective/verb follows before a punctuation boundary.
+5. Normalization: For each Greek foreign string produce normalizedForm=NFC. If different, store originalForm and record transform {"type":"normalization","from":original,"to":normalized}.
+6. groupFormation:
+   - A "group" begins with a foreign segment and aggregates subsequent gloss, refs, variant foreign segments separated by commas until a semicolon or period.
+7. forms[]:
+   - Include groups where the leading foreign segment is not marked status="incomplete".
+   - For each form store: id, sensePath, rawForeignList (all foreign segments in group), normalizedPrimary (first foreign normalized), glosses (list), refs (list of osisRef), punctuationTrail (what ended the group), sourceIndices (segment indices), annotations (patternFlags).
+8. incompleteSegments[]:
+   - Any group where leading foreign is status="incomplete" (e.g. ends with genitive article and no head before boundary). Keep same fields minus refs/gloss logic.
+9. patternFlags (purely generic, optional present/absent):
+   - pairedContrast: group contains both tokens μέν and δέ in any foreign segments (case-sensitive).
+   - endsWithInfinitiveStem: primary foreign ends with "ειν" (heuristic only; real verification later).
+   - neuterPluralPlusGenitive: primary foreign starts with "τὰ " followed by "τοῦ" or "τῆς" in next foreign segment or same string.
+   - genitiveChain: primary foreign ends with "τοῦ", "τῆς", or "τῶν" and is marked incomplete.
+   * kinshipGenitive: primary starts 'ὁ τοῦ' and status=incomplete
+   * domainGenitive: 'τὰ τοῦ' + deity/agent noun
+   * abstractDomainGenitive: 'τὰ τῆς' + abstract noun
+10. demoOrigin: false always at this stage (historical classification deferred).
+11. Unreferenced forms: If refs list empty but foreign appears in source mark authoritySources:["Abbott-Smith"] and add reason:"unreferencedInSource" (no warning; this preserves authority explicitly).
+12. Do not correct semantics (e.g. do not change gloss "his hand"); just record a semanticConcern if gloss contains possessive pronoun and foreign lacks possessive morphology (heuristic: gloss starts with "his " or "her " and Greek lacks a possessive adjective before head).
 
-## OUTPUT FORMAT
-Return ONLY JSON. No prose commentary.
+Validation:
+- All foreign segments from XML appear either in rawEntry.segments or inside forms/rawForeignList.
+- No invented refs (all refs come directly from <ref osisRef>).
+- Each normalization change recorded in transforms.
+- No slot placeholders inserted.
 
-Schema (must match exactly):
+Output JSON (structure):
 {
-  "lemma": "string",
-  "partOfSpeech": "string|null",
-  "headForms": [ "string", ... ],
-  "variants": [ "string", ... ],
-  "morphology": {
-    "gender": "string|null",
-    "casePatterns": [ "string", ... ],
-    "principalParts": [ "string", ... ],
-    "paradigmNotes": "string|null"
+  "lemma": "{{lemma}}",
+  "schemaVersion": "base.v4",
+  "rawEntry": {
+    "xmlSnippet": "<TEI-subset...>",
+    "segments": [
+      { "index":0,"type":"foreign","text":"ὁ τοῦ","normalizedForm":"ὁ τοῦ","status":"incomplete" },
+      { "index":1,"type":"gloss","text":"the son of" },
+      { "index":2,"type":"foreign","text":"τὰ τοῦ θεοῦ","normalizedForm":"τὰ τοῦ θεοῦ" },
+      { "index":3,"type":"gloss","text":"the things that pertain to God" },
+      { "index":4,"type":"ref","osisRef":"Matt.16.23" },
+      ...
+    ],
+    "transforms":[
+      { "type":"normalization","from":"τὸ Ἐι δύνασαι","to":"τὸ εἰ δύνασαι" }
+    ]
   },
-  "glosses": [ "string", ... ],
-  "uncitedPatterns": [
-    { "form": "string", "gloss": "string|null" }
-  ],
-  "citations": [
+  "senses": [
     {
-      "ref": "string",          // e.g. "Matt 5:3"
-      "form": "string|null",
-      "contextSnippet": "string|null",
-      "note": "string|null"
+      "sensePath":"II.6",
+      "rawSenseText":"To nouns in the genitive, denoting kinship...",
+      "segmentIndices":[0,1,2,3,4,...]
     }
   ],
-  "etymology": "string|null",
-  "historicalNotes": [ "string", ... ],
-  "usageNotes": [ "string", ... ],
-  "rawXMLExcerpt": "string"      // minimal cleaned excerpt around lemma
+  "forms":[
+    {
+      "id":"form_1",
+      "sensePath":"II.6",
+      "rawForeignList":["τὰ τοῦ θεοῦ"],
+      "normalizedPrimary":"τὰ τοῦ θεοῦ",
+      "glosses":["the things that pertain to God"],
+      "refs":["Matt.16.23"],
+      "patternFlags":["neuterPluralPlusGenitive","domainGenitive"],
+      "authoritySources":[],
+      "semanticConcerns":[],
+      "sourceIndices":[2,3,4],
+      "annotations":{}
+    }
+  ],
+  "incompleteSegments":[
+    {
+      "id":"incomplete_1",
+      "sensePath":"II.6",
+      "rawForeign":"ὁ τοῦ",
+      "normalizedForeign":"ὁ τοῦ",
+      "glosses":["the son of"],
+      "refs":[],
+      "patternFlags":["genitiveChain"],
+      "authoritySources":["Abbott-Smith"],
+      "reason":"unreferencedInSource",
+      "sourceIndices":[0,1]
+    }
+  ],
+  "groups":[
+    {
+      "id":"g1",
+      "sensePath":"II.6",
+      "segmentRange":[0,6],
+      "terminator":";",
+      "foreignPrimary":"τὰ τοῦ θεοῦ"
+    }
+  ],
+  "warnings": [],
+  "notes":[]
 }
 
-## EXTRACTION RULES
-1. headForms: include main lemma and any alternate spellings shown.
-2. variants: dialectal, orthographic, enclitic, compound forms as listed.
-3. glosses: capture English gloss words/phrases directly stated (comma-split if needed).
-4. uncitedPatterns: Greek forms presented without an explicit citation; include supplied gloss if present; otherwise gloss = null.
-5. citations:
-   - Extract each explicit reference; keep formatting (Matt vs Matthew as in source).
-   - Attach the exact Greek form if given beside the reference.
-   - If a brief context phrase appears, include it as contextSnippet (do not extend).
-6. historicalNotes: statements about Classical/Homeric/original usage.
-7. usageNotes: pragmatic/semantic notes (e.g., "freq. in Paul").
-8. rawXMLExcerpt: trim to essential <entry> content; remove unrelated sibling entries.
-9. etymology: include only if clearly stated (e.g., "from …").
-10. Strip leading/trailing whitespace; preserve internal diacritics.
+Failure case: {"lemma":"{{lemma}}","error":"extraction failed"}
 
-## VALIDATION (INTERNAL—DO NOT OUTPUT)
-- No invented references.
-- No sense labels.
-- No added external lexicon material.
-- No demonstrative pronoun sense created for article ὁ (only record if mentioned historically under historicalNotes).
-- JSON keys present even if arrays empty.
-
-## OUTPUT
-Produce the JSON object only. If extraction impossible, output:
-{ "error": "Lemma not found", "lemma": "{{lemma}}" }
+Return only JSON.

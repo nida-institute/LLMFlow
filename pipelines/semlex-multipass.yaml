@@ -37,25 +37,34 @@ steps:
           output_format: xml-string
           namespaces:
             tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
-        outputs: [entries]
+        outputs:
+          - entries
         saveas:
-          path: "${output_dir}/xml/${row[lemma]}.xml"
+          path: "${output_dir}/xml/${row[lemma]}.raw.xml"
+          format: text
+          content: "${entries[0]}"
           group_by_prefix: 2
-        # COMMENT: Raw Abbott-Smith XML isolated for this lemma.
+        # COMMENT: Raw entry slice.
 
-      ########################################################################
-      # PASS A: BASE LEXICON EXTRACTION
-      ########################################################################
+      - name: annotate-entry
+        type: function
+        function: llmflow.plugins.xslt_transform.run
+        inputs:
+          stylesheet_path: xslt/annotate-abbott-smith.xslt
+          xml_string: "${entries[0]}"
+        outputs:
+          - annotated_xml
+        saveas:
+          path: "${output_dir}/xml/${row[lemma]}.annotated.xml"
+          format: text
+          group_by_prefix: 2
+        # COMMENT: XSLT adds sensePath attributes to all <sense> elements
+
       - name: base-extraction
-        type: llm
-        model: gpt-4o
-        temperature: 0.2
-        max_tokens: 4000  # CHANGED: Increased from 3000 to capture all citations
-        prompt:
-          file: abbott-smith-base.gpt
-          inputs:
-            lemma: "${row[lemma]}"
-            abbott_smith_xml: "${entries[0]}"
+        type: function
+        function: llmflow.plugins.xml_entry_to_base_json.run
+        inputs:
+          entry_xml: "${annotated_xml}"
         outputs:
           - base_json
         saveas:
@@ -192,19 +201,19 @@ steps:
       - name: draft-expansion
         type: llm
         model: gpt-4o
-        temperature: 0.7
-        max_tokens: 6000
+        temperature: 0.3
+        max_tokens: 4000
         prompt:
           file: expand-abbott-smith.gpt
           inputs:
-            entry: "${entries[0]}"
             lemma: "${row[lemma]}"
             senses_json: "${senses_json}"
             citations_json: "${citations_json}"
+            base_json: "${base_json}"          # ← THIS LINE MUST BE PRESENT
         outputs:
           - draft_entry
         saveas:
-          path: "${output_dir}/drafts/${row[lemma]}.draft.md"
+          path: "${output_dir}/intermediate/${row[lemma]}.draft.md"
           group_by_prefix: 2
         log: debug
         # COMMENT:
@@ -226,9 +235,9 @@ steps:
           enabled: true
           server: bible
           tools:
-            - get_passage_text        # ✅ CORRECT (was bible_lookup)
-            - get_word_info           # ✅ Good
-            - get_word_sense          # ✅ Good
+            - get_passage_text
+            - get_word_info
+            - get_word_sense
         prompt:
           file: verify-citations.gpt
           inputs:
@@ -273,4 +282,5 @@ steps:
       #     path: "${output_dir}/reports/${row[lemma]}.report.md"
       #     group_by_prefix: 2
       #   # COMMENT: Consistency reporting disabled.
+
 

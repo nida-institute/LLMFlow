@@ -1,64 +1,154 @@
 <!--
 prompt:
-  requires:
-    - lemma
-    - senses_json
-    - external_json
-    - base_json
-  optional: []
+  requires: [lemma, senses_json, external_json, base_json]
   format: JSON
   description: |
     Pass F: Citation Allocation. Assign harvested citations to promoted senses
-    with dynamic cap, ensuring documentary coverage and Hellenistic range filtering.
+    with dynamic cap and corpus balance.
 -->
 
-# Pass F: Citation Allocation Prompt
-# Purpose: Assign existing harvested citations to promoted senses with dynamic cap.
-# Inputs must be previously generated; NO new citations invented.
+# Pass F: Citation Allocation
 
-Lemma: {{lemma}}
-Senses JSON:
-{{senses_json}}
-External Usages JSON:
-{{external_json}}
-Base JSON:
-{{base_json}}
+**Lemma:** {{lemma}}
+
+**Senses JSON:** {{senses_json}}
+**External Usages JSON:** {{external_json}}
+**Base JSON:** {{base_json}}
+
+---
 
 ## TASK
-Allocate citations (from base_json.citations + external_json.externalUsages) to senses in senses_json.
-Apply dynamic cap:
-maxCitations = min( (promotedCount * 3), 40 )
-Guarantee:
-- If ≥2 documentary (papyri or inscription) usages exist, allocate at least 2 across senses.
-- Each citation used at most once (either in a sense or Notes).
-- Only Hellenistic range (dateFrom/dateTo between -300 and 300 or null but attested as Hellenistic).
-- Prefer diversity (NT, LXX, papyri, inscription, literary) for high-productivity senses.
 
-Do NOT:
-- Invent refs, forms, verses, papyri sigla.
-- Create "Demonstrative Pronoun" allocations for ὁ / αὐτός.
-- Reclassify structural patterns as sense citations (structural goes to notesCitations).
-- Add explanation text > 12 words.
+Allocate citations from base_json + external_json to senses, applying:
+1. Dynamic cap: `maxCitations = min((promotedCount × 5), 60)`
+2. Corpus balance: NT ~67%, LXX ~20%, Documentary ~10%, Other ~3%
+3. NT section balance: Gospels 25-40%, Pauline 30-45%, General 10-20%
+4. Deduplication: Merge identical form + translation pairs
 
-## CITATION POOL BUILD RULES
-- Source entries:
-  a) base_json.citations → origin: "base"
-  b) external_json.externalUsages → origin: "external"
-- Exclude duplicates (same ref + form); keep richer metadata version.
-- For uncitedPatterns without ref: allow ONLY if form adds unique morphological or semantic illustration; assign to sense WITHOUT fake reference (ref = null).
-- Structural patterns from external_json.structuralPatterns never enter sense allocations; they go to notesCitations.
+**DO NOT:**
+- Invent references
+- Create "Demonstrative" sense for ὁ/αὐτός
+- Use papyri/inscriptions (P.Oxy., BGU, IG, etc.)—cannot verify
+- Include incomplete Greek phrases (<3 words unless fixed expression)
 
-## EXPLANATION LINE
-Short (≤ 12 words), plain English. Examples:
-Refers to whole class.
-Nominalizes participle.
-Emphatic self-reference.
-Marks distributive pair.
-Frames quotation.
-Identifies known referent.
-Treats abstract as defined concept.
+---
+
+## CITATION SOURCES (PRIORITY ORDER)
+
+### Phase 1: Abbott-Smith Baseline
+Allocate first, prioritizing:
+1. **LXX citations** (Hebrew equivalence patterns)
+2. **NT citations** (distinctive usage, not repetitive)
+3. **Literary/patristic** (specialized senses only)
+
+### Phase 2: External Augmentation
+Add external citations ONLY to fill gaps:
+- Corpus sections not covered by Abbott-Smith
+- Specialized registers (if relevant)
+
+### Phase 3: Source Filtering
+**ACCEPT:**
+- ✅ NT (Matt, Mark, Luke, John, Acts, Paul, General Epistles, Rev)
+- ✅ LXX (Septuagint)
+- ✅ Classical literary (Plato *Rep.* 1.327a, Homer *Il.* 1.1)
+
+**REJECT:**
+- ❌ Papyri (P.Oxy., P.Tebt., BGU)—log to notesCitations with `reason: "unverifiable-papyrus"`
+- ❌ Inscriptions (IG, SEG)—log to notesCitations with `reason: "unverifiable-inscription"`
+- ❌ Undated/unattested sources
+
+---
+
+## CORPUS BALANCE TARGETS
+
+### Overall Distribution (all citations)
+```
+NT:           ~67% (2/3 of total)
+LXX:          ~20%
+Literary:     ~10%
+Documentary:  ~3% (classical only, NO papyri)
+```
+
+### NT Internal Balance (within NT citations)
+If ≥6 NT citations:
+```
+Gospels:          25-40%
+Pauline:          30-45%
+General Epistles: 10-20%
+Acts:             5-15%
+Revelation:       0-10%
+```
+
+**Example for 15 total citations:**
+- NT: 10 (67%)
+  - Gospels: 3, Pauline: 4, Acts: 1, General: 2
+- LXX: 3 (20%)
+- Literary: 2 (13%)
+
+---
+
+## PER-SENSE TARGETS
+
+```
+High-productivity (score ≥0.6):   5-8 examples
+Medium (0.3-0.6):                  3-5 examples
+Low (<0.3):                        1-3 examples
+Single-sense entry:                up to 10 examples
+```
+
+**Guarantees:**
+- All LXX citations from Abbott-Smith allocated (if >10, keep 8-10 most distinctive)
+- At least 1 citation per promoted sense (if fitting examples exist)
+- No citation used twice
+
+---
+
+## DEDUPLICATION RULES
+
+**Merge identical form + translation:**
+- ❌ Separate: `ὁ θεός — "God" (Matt 5:9)`, `ὁ θεός — "God" (Rom 1:1)`
+- ✅ Merged: `ὁ θεός — "God" (proper name pattern; Matt 5:9, Rom 1:1, 1 Cor 1:3)`
+
+**When to keep separate:**
+- Different translations: `ὁ λόγος — "the word"` vs `"the message"`
+- Different contexts: `ὁ μὲν οὕτως — "one this way"` (distributive) vs `"on the one hand"` (contrastive)
+- Different forms: `ὁ θεός` (nom) vs `τοῦ θεοῦ` (gen) vs `τῷ θεῷ` (dat)
+
+**Consolidation priority (keep most informative):**
+1. Has explanation/functionHint
+2. Literary > NT > LXX (for high-frequency words)
+3. First occurrence if tied
+
+---
+
+## GREEK PHRASE REQUIREMENTS
+
+**Minimum length:** 3 words (exceptions: `ὁ θεός`, `ὁ κύριος`, other fixed expressions)
+
+**Examples:**
+- ✅ `ὁ οἶνος ὁ νέος` — "the new wine" (Luke 5:37)
+- ✅ `ὁ μὲν ... ὁ δέ` — "one ... the other" (1 Cor 7:7)
+- ❌ `ὁ ἀνήρ` — "the man in the city" *(missing "in the city" in Greek)*
+
+**If form is incomplete:** Skip or log to notesCitations with `reason: "incomplete-phrase"`
+
+---
+
+## EXPLANATION LINES
+
+**Max 12 words**, plain English:
+- ✅ `Refers to whole class.`
+- ✅ `Nominalizes participle.`
+- ✅ `Emphatic self-reference.`
+- ✅ `Marks distributive pair.`
+- ✅ `Identifies known referent.`
+- ❌ `This construction is used in contexts where the speaker wishes to...` *(too long)*
+
+---
 
 ## OUTPUT SCHEMA
+
+```json
 {
   "lemma": "string",
   "maxCitations": number,
@@ -69,10 +159,10 @@ Treats abstract as defined concept.
       "examples": [
         {
           "ref": "string|null",
-          "form": "string",
+          "form": "string (min 3 words)",
           "translation": "string",
-          "explanation": "string|null",
-          "sourceType": "NT|LXX|papyri|inscription|literary|patristic|grammar-citation|uncited",
+          "explanation": "string|null (max 12 words)",
+          "sourceType": "NT|LXX|literary|grammar-citation|uncited",
           "origin": "base|external",
           "dateFrom": number|null,
           "dateTo": number|null
@@ -85,123 +175,43 @@ Treats abstract as defined concept.
       "ref": "string|null",
       "form": "string",
       "translation": "string|null",
-      "reason": "structural|historical|nonProductive|duplicateFiltered",
+      "reason": "structural|historical|unverifiable-papyrus|unverifiable-inscription|incomplete-phrase|duplicateFiltered",
       "sourceType": "string",
       "origin": "base|external"
     }
   ],
-  "documentaryAllocated": number,
   "totalAllocated": number,
-  "warnings": [ "string", ... ]
+  "warnings": ["string"]
 }
-
-## ALLOCATION PRIORITY
-
-**PHASE 1: ABBOTT-SMITH BASELINE**
-1. Allocate Abbott-Smith citations first, prioritizing:
-   a) LXX citations (Hebrew equivalence patterns)
-   b) Documentary citations (papyri/inscriptions showing real usage)
-   c) NT citations showing distinctive usage (not repetitive patterns)
-   d) Literary/patristic citations for specialized senses
-
-**PHASE 2: EXTERNAL AUGMENTATION**
-2. Add external citations ONLY to fill gaps:
-   - Corpus sections not covered by Abbott-Smith NT citations
-   - Additional documentary evidence for function words
-   - Specialized registers (legal, medical, technical) if relevant
-
-**PHASE 3: OVERALL CORPUS BALANCE**
-Target distribution across all allocated citations:
-- **NT: ~67% (2/3 of total citations)**
-- LXX: ~20%
-- Documentary (papyri/inscriptions): ~10%
-- Literary/patristic/other: ~3%
-
-**PHASE 4: NT INTERNAL BALANCE (within the NT 2/3)**
-If ≥6 NT citations allocated, balance NT sections:
-- Gospels: 25-40% of NT citations
-- Acts: 5-15% of NT citations
-- Pauline: 30-45% of NT citations
-- General Epistles: 10-20% of NT citations
-- Revelation: 0-10% of NT citations
-
-**Example for entry with 15 total citations:**
-- NT: 10 citations (67%)
-  - Gospels: 3 (30% of NT)
-  - Pauline: 4 (40% of NT)
-  - Acts: 1 (10% of NT)
-  - General Epistles: 2 (20% of NT)
-- LXX: 3 citations (20%)
-- Documentary: 2 citations (13%)
-
-**CITATION BUDGET:**
-```
-maxCitations = min(
-  (promotedSenseCount * 5),  // Generous per-sense allowance
-  60                          // Higher absolute cap
-)
 ```
 
-**PER-SENSE TARGETS:**
-- High-productivity sense (score ≥ 0.6): 5-8 examples
-- Medium-productivity sense (0.3-0.6): 3-5 examples
-- Lower-productivity sense (< 0.3): 1-3 examples
-- Single sense entry: up to 10 examples showing full range
+---
 
-**GUARANTEES:**
-- NT citations constitute ~67% of total allocations
-- All LXX citations from Abbott-Smith allocated (unless >10, then keep most distinctive 8-10)
-- At least 2 documentary citations if ≥2 exist in pool
-- At least 1 citation per promoted sense (unless truly no fitting examples)
-- No citation used twice (allocations are exclusive)
-```
-## VALIDATION (INTERNAL – DO NOT OUTPUT)
-[ ] totalAllocated ≤ maxCitations
-[ ] documentaryAllocated ≥ 2 if available pool ≥ 2
-[ ] No invented refs
-[ ] No "Demonstrative" explanation for ὁ / αὐτός
-[ ] explanation ≤ 12 words
-[ ] Each citation unique in allocations
-[ ] Structural patterns only in notesCitations
+## VALIDATION CHECKLIST (Internal)
+
+- [ ] totalAllocated ≤ maxCitations
+- [ ] No invented refs
+- [ ] No "Demonstrative" explanation for ὁ/αὐτός
+- [ ] explanation ≤ 12 words
+- [ ] Each citation unique in allocations
+- [ ] Greek phrases ≥3 words (or logged exception)
+- [ ] Papyri/inscriptions moved to notesCitations
+- [ ] NT ~67%, LXX ~20% achieved
+- [ ] NT sections balanced if ≥6 NT citations
+
+---
 
 ## OUTPUT
-Return ONLY JSON per schema.
-On failure return:
+
+Return JSON only. On error:
+```json
 {
   "lemma": "{{lemma}}",
   "maxCitations": 0,
   "promotedSenseCount": 0,
   "allocations": [],
   "notesCitations": [],
-  "documentaryAllocated": 0,
   "totalAllocated": 0,
   "warnings": ["Citation allocation failed"]
 }
-
-## DEDUPLICATION RULES
-
-**Form + Translation Deduplication:**
-- If multiple citations have identical form AND translation, keep only the most informative:
-  1. Prefer citation with explanation/functionHint
-  2. Prefer documentary (papyri/inscription) over literary
-  3. Prefer LXX (Hebrew equivalence) over NT
-  4. If still tied, keep first occurrence and list additional refs in parentheses
-
-**Example of consolidation:**
-Instead of:
-- ὁ θεός — "God" (Matt 5:9)
-- ὁ θεός — "God" (Rom 1:1)
-- ὁ θεός — "God" (1 Cor 1:3)
-
-Consolidate to:
-- ὁ θεός — "God" (proper name pattern; Matt 5:9, Rom 1:1, 1 Cor 1:3)
-
-**When to keep separate:**
-- Different translations: ὁ λόγος — "the word" vs ὁ λόγος — "the message"
-- Different contexts: ὁ μὲν οὕτως — "one this way" (distributive) vs ὁ μέν — "on the one hand" (contrastive)
-- Different forms: ὁ θεός vs τοῦ θεοῦ vs τῷ θεῷ (if showing different case usage)
-
-**Deduplication Output:**
-In the allocations array, each example should be unique in:
-- form + translation combination within a sense
-- If consolidating multiple refs, create single example with refs as comma-separated list
+```

@@ -1,62 +1,105 @@
 <!--
 prompt:
-  requires:
-    - lemma
-    - clusters_json
-  optional: []
+  requires: [lemma, clusters_json]
   format: JSON
   description: |
-    Pass E: Sense Selection. Promote functional clusters to provisional senses,
+    Pass F: Sense Selection. Promote functional clusters to provisional senses,
     demote structural/historical clusters to Notes. Hard exclusion for demonstrative.
 -->
 
+# Pass F: Sense Selection
 
-# Pass E: Sense Selection Prompt
-# Input: clustering JSON. Promote functional clusters to provisional senses.
-# Exclude structural-only & historical/nonProductive clusters (move to Notes later).
-# Hard exclusion: no “Demonstrative Pronoun” sense for ὁ (G3588) or αὐτός.
+**Lemma:** {{lemma}}
 
-Lemma: {{lemma}}
-Clusters JSON:
+**Clusters JSON:**
 {{clusters_json}}
 
+---
+
 ## TASK
-From clusters_json.clusters decide which become senses.
 
-PROMOTION RULES
-- Promote cluster if senseCandidate == true AND structural == false AND nonProductive == false.
-- If no cluster meets criteria, promote the highest productivityScore nonProductive=false structural=false cluster anyway (ensure ≥1 sense).
-- Order senses:
-  1. Highest productivityScore core referential / lexical function (if present).
-  2. Other referential/generic/grouping.
-  3. Contrast / distributive / topic shift.
-  4. Nominalizing / framing.
-  5. Relational / equivalence / abstraction.
-  6. Discourse pragmatic (focus/emphasis).
-  7. Idiomatic / specialized.
-- Historical or structural clusters → notes array (retain functionLabel + rationale).
+Promote clusters to senses based on productivity and functionality.
 
-HARD EXCLUSIONS
-- If functionLabel or rationale matches /demonstr/i AND lemma in ["ὁ","ἡ","τό","αὐτός"] → force to notes, never senses.
+**Exclude:**
+- Structural-only patterns (moved to Notes)
+- Historical/non-productive uses (moved to Notes)
+- Demonstrative sense for ὁ/ἡ/τό/αὐτός (hard exclusion)
 
-EXAMPLE SELECTION
-- For each promoted sense, choose up to min(exampleRecommendationCount, 5) representative forms prioritizing:
-  a. Diversity of sourceType
-  b. Documentary (papyri/inscription) if available
-  c. Clear minimal phrase
-- Do not invent forms; only use representativeForms.
+---
 
-OUTPUT SCHEMA
+## PROMOTION RULES
+
+**Promote cluster if:**
+- `senseCandidate == true`
+- `structural == false`
+- `nonProductive == false`
+
+**If no clusters meet criteria:**
+- Promote highest `productivityScore` cluster where:
+  - `nonProductive == false`
+  - `structural == false`
+- Ensures ≥1 sense per entry
+
+---
+
+## SENSE ORDERING
+
+Order promoted senses by semantic hierarchy:
+
+1. **Core referential/lexical** (highest productivityScore)
+2. **Generic/grouping** (class membership)
+3. **Contrast/distributive** (ὁ μὲν … ὁ δέ)
+4. **Nominalization/framing** (article + participle)
+5. **Relational/equivalence** (τὸ αὐτό)
+6. **Discourse pragmatic** (focus/emphasis)
+7. **Idiomatic/specialized** (fixed expressions)
+
+---
+
+## HARD EXCLUSIONS
+
+**If cluster matches `/demonstr/i` AND lemma in `["ὁ","ἡ","τό","αὐτός"]`:**
+- Force to `demoted` with `reason: "demonstrativeExcluded"`
+- Add to notes: "Historical demonstrative use not productive in Koiné"
+
+**Never create:**
+- "Demonstrative Pronoun" sense
+- "Demonstrative Article" sense
+- Any sense with "demonstrative" in name/definition
+
+---
+
+## EXAMPLE SELECTION
+
+For each promoted sense, select up to **min(exampleRecommendationCount, 5)** forms.
+
+**Prioritize:**
+1. Diversity of `sourceType` (NT, LXX, literary)
+2. Clear minimal phrases (3+ words)
+3. Distinctive contexts
+
+**Avoid:**
+- Papyri/inscriptions (will be filtered in Pass G)
+- Repetitive patterns (same form/gloss)
+- Incomplete phrases (<3 words unless fixed expression)
+
+**Use only `representativeForms` from clusters—do NOT invent.**
+
+---
+
+## OUTPUT SCHEMA
+
+```json
 {
   "lemma": "string",
   "senses": [
     {
-      "senseId": "string",
-      "name": "string",                 // concise from functionLabel
-      "definitionHint": "string",       // paraphrase of rationale (≤ 180 chars)
-      "clusterRef": "string",           // original cluster id
+      "senseId": "string",              // sense_1, sense_2, etc.
+      "name": "string",                 // From functionLabel
+      "definitionHint": "string",       // Paraphrase rationale (≤180 chars)
+      "clusterRef": "string",           // Original cluster id
       "productivityScore": number,
-      "exampleForms": [ "string", ... ] // selected representative forms
+      "exampleForms": ["string"]        // Max 5 representative forms
     }
   ],
   "demoted": [
@@ -67,23 +110,41 @@ OUTPUT SCHEMA
       "rationale": "string"
     }
   ],
-  "notes": [
-    "string"                            // aggregated notes from demoted clusters
-  ],
+  "notes": ["string"],                  // Aggregated from demoted clusters
   "summary": {
     "promotedCount": number,
     "demotedCount": number,
-    "warnings": [ "string", ... ]
+    "warnings": ["string"]
   }
 }
+```
 
-VALIDATION (INTERNAL – DO NOT OUTPUT)
-[ ] No sense name contains /demonstr/i for article or αὐτός
-[ ] promotedCount ≥ 1
-[ ] exampleForms ≤ 5 each
-[ ] definitionHint ≤ 180 chars
-[ ] All cluster ids accounted for (either senses or demoted)
+---
 
-OUTPUT
-Return ONLY the JSON object. On failure:
-{ "lemma": "{{lemma}}", "senses": [], "demoted": [], "notes": ["Sense selection failed"], "summary": { "promotedCount": 0, "demotedCount": 0, "warnings": ["Empty clusters or rule conflict"] } }
+## VALIDATION CHECKLIST (Internal)
+
+- [ ] No sense name contains `/demonstr/i` for ὁ/ἡ/τό/αὐτός
+- [ ] `promotedCount ≥ 1`
+- [ ] `exampleForms ≤ 5` per sense
+- [ ] `definitionHint ≤ 180` chars
+- [ ] All clusters accounted for (senses or demoted)
+- [ ] Demonstrative clusters demoted for ὁ/αὐτός
+
+---
+
+## OUTPUT
+
+Return JSON only. On error:
+```json
+{
+  "lemma": "{{lemma}}",
+  "senses": [],
+  "demoted": [],
+  "notes": ["Sense selection failed"],
+  "summary": {
+    "promotedCount": 0,
+    "demotedCount": 0,
+    "warnings": ["Empty clusters or rule conflict"]
+  }
+}
+```

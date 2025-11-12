@@ -1,70 +1,158 @@
 <!--
 prompt:
-  requires:
-    - lemma
-    - base_json
-    - external_json
-    - grammar_functions_json
-  optional: []
+  requires: [lemma, base_json, external_json, grammar_functions_json]
   format: JSON
   description: |
-    Pass D: Usage Clustering. Group usages into functional clusters, mark
+    Pass E: Usage Clustering. Group usages into functional clusters, mark
     structural vs semantic, assign productivity scores and sense candidacy.
 -->
 
-# Pass D: Usage Clustering Prompt
-# Input: Base extraction, external usages, grammar functions.
-# Goal: Form candidate functional clusters (potential senses) vs structural patterns (Notes only).
-# No final senses yet. Provide quantitative metadata for later selection.
+# Pass E: Usage Clustering
 
-Lemma: {{lemma}}
-Base JSON:
+**Lemma:** {{lemma}}
+
+**Base JSON:**
 {{base_json}}
-External JSON:
+
+**External JSON:**
 {{external_json}}
-Grammar Functions JSON:
+
+**Grammar Functions JSON:**
 {{grammar_functions_json}}
 
+---
+
 ## TASK
-Integrate:
-- base_json.uncitedPatterns
-- base_json.citations
-- external_json.externalUsages
-- external_json.structuralPatterns
-- grammar_functions_json.functions
-- grammar_functions_json.structuralPatterns
 
-Create clusters grouping items that share a coherent Hellenistic semantic or pragmatic function (referential identification, generic class, abstract concept framing, contrast/distributive, emphasis, topic shift, nominalization, quotation framing, relational grouping, equivalence/sameness, purpose/result, etc.). Structural-only patterns (word order, double article, particle stacking without semantic change) must NOT be promoted; mark cluster.structural = true.
+Cluster usages by coherent Hellenistic semantic/pragmatic function:
+- Referential identification, generic class, abstract framing
+- Contrast/distributive, emphasis, nominalization
+- Equivalence/sameness, purpose/result
 
-## RULES
-1. Do NOT create any cluster named or labeled “Demonstrative Pronoun” for lemma ὁ (G3588) or αὐτός.
-2. Historical / nonProductive items remain clusters but mark nonProductive: true.
-3. Each source item (usage/pattern/function) must belong to EXACTLY one cluster (except structuralPatterns may merge).
-4. Provide productivityScore (0–1):
-   productivityScore = (distinctSourceTypesWeight + genreDiversityWeight + countWeight) / 3
-   - distinctSourceTypesWeight: (# distinct sourceType in cluster) / 5 (cap at 1)
-   - genreDiversityWeight: (# distinct register values non-null) / 6 (cap 1)
-   - countWeight: log10(itemCount + 1) / log10(15) (cap 1)
-5. PromoteCandidates: senseCandidate = true if:
-   - structural = false
-   - nonProductive = false
-   - productivityScore ≥ 0.25
-6. Provide functionLabel (short), rationale (≤ 180 chars).
-7. Provide representativeForms (up to 4 Greek forms).
-8. Provide exampleRecommendationCount = min(itemCount, 5) for later selection.
-9. Map indices referencing original arrays for traceability:
-   - basePatternsIndices: indices into base_json.uncitedPatterns
-   - baseCitationIndices: indices into base_json.citations
-   - externalUsageIndices: indices into external_json.externalUsages
-   - grammarFunctionIndices: indices into grammar_functions_json.functions
-   - structuralPatternIndices: indices into external_json.structuralPatterns and grammar_functions_json.structuralPatterns (combined)
+**Mark separately:**
+- `structural: true` - Word order patterns, double article (no semantic change)
+- `nonProductive: true` - Historical/obsolete uses (Classical demonstrative)
+
+---
+
+## HARD EXCLUSIONS
+
+**Never create cluster with label matching `/demonstr/i` for:**
+- ὁ/ἡ/τό (G3588)
+- αὐτός (G846)
+
+If data suggests demonstrative, mark:
+```json
+{
+  "functionLabel": "Historical referencing (obsolete)",
+  "nonProductive": true,
+  "senseCandidate": false
+}
+```
+
+---
+
+## SOURCE INTEGRATION
+
+Merge data from:
+1. `base_json.uncitedPatterns`
+2. `base_json.citations`
+3. `external_json.externalUsages`
+4. `external_json.structuralPatterns`
+5. `grammar_functions_json.functions`
+6. `grammar_functions_json.structuralPatterns`
+
+**Each item assigned to EXACTLY ONE cluster** (no overlap).
+
+---
+
+## PAPYRI/INSCRIPTION HANDLING
+
+**Include but flag** items with `sourceType: "papyri"|"inscription"`:
+- Add to cluster normally
+- Later passes will filter them out
+- Don't inflate productivity scores (see below)
+
+---
+
+## PRODUCTIVITY SCORING
+
+```
+productivityScore = (sourceWeight + diversityWeight + countWeight) / 3
+
+sourceWeight = (distinct non-papyri sourceTypes) / 4  // NT, LXX, literary, patristic
+diversityWeight = (distinct register values) / 5      // narrative, theological, etc.
+countWeight = log10(itemCount + 1) / log10(15)        // cap at 15 items
+```
+
+**Cap at 1.0.** Exclude papyri/inscriptions from sourceWeight calculation (will be removed later).
+
+---
+
+## SENSE CANDIDACY
+
+**Promote to `senseCandidate: true` if:**
+- `structural == false`
+- `nonProductive == false`
+- `productivityScore >= 0.25`
+
+**Guarantee:** At least 1 cluster with `senseCandidate: true` (promote highest score if none qualify).
+
+---
+
+## CLUSTER STRUCTURE
+
+```json
+{
+  "id": "cluster_1",
+  "functionLabel": "string (≤60 chars)",
+  "rationale": "string (≤180 chars)",
+  "structural": false,
+  "nonProductive": false,
+  "senseCandidate": true,
+  "productivityScore": 0.65,
+  "itemCount": 8,
+  "representativeForms": [
+    "ὁ οἶνος ὁ νέος",
+    "ὁ ἀνὴρ ἐν τῇ πόλει"
+  ],
+  "exampleRecommendationCount": 5,
+  "basePatternsIndices": [0, 2],
+  "baseCitationIndices": [1, 3, 5],
+  "externalUsageIndices": [0, 1],
+  "grammarFunctionIndices": [2],
+  "structuralPatternIndices": []
+}
+```
+
+**Fields:**
+- `functionLabel`: Short name (e.g., "Definite article", "Nominalization")
+- `rationale`: Why grouped (≤180 chars)
+- `representativeForms`: Up to 4 Greek phrases (prefer 3+ words)
+- `exampleRecommendationCount`: `min(itemCount, 5)`
+- `*Indices`: Traceability to source arrays
+
+---
+
+## GREEK PHRASE PREFERENCES
+
+**When selecting `representativeForms`:**
+- ✅ Prefer complete phrases (3+ words): `ὁ οἶνος ὁ νέος`
+- ⚠️ Accept fixed expressions (2 words): `ὁ θεός`, `τὸ αὐτό`
+- ⚠️ Include lemma-only if that's all available: `ὁ ἀνήρ`
+
+**Note:** Incomplete phrases will be filtered in Pass G (citation-allocation). At this clustering stage, include all available forms to preserve data for traceability.
+
+---
 
 ## OUTPUT SCHEMA
+
+```json
 {
   "lemma": "string",
   "clusters": [
     {
-      "id": "string",                  // unique
+      "id": "string",
       "functionLabel": "string",
       "rationale": "string",
       "structural": true|false,
@@ -72,13 +160,13 @@ Create clusters grouping items that share a coherent Hellenistic semantic or pra
       "senseCandidate": true|false,
       "productivityScore": number,
       "itemCount": number,
-      "representativeForms": [ "string", ... ],
-      "basePatternsIndices": [ number, ... ],
-      "baseCitationIndices": [ number, ... ],
-      "externalUsageIndices": [ number, ... ],
-      "grammarFunctionIndices": [ number, ... ],
-      "structuralPatternIndices": [ number, ... ],
-      "exampleRecommendationCount": number
+      "representativeForms": ["string"],
+      "exampleRecommendationCount": number,
+      "basePatternsIndices": [number],
+      "baseCitationIndices": [number],
+      "externalUsageIndices": [number],
+      "grammarFunctionIndices": [number],
+      "structuralPatternIndices": [number]
     }
   ],
   "summary": {
@@ -86,20 +174,30 @@ Create clusters grouping items that share a coherent Hellenistic semantic or pra
     "candidateCount": number,
     "structuralCount": number,
     "nonProductiveCount": number,
-    "warnings": [ "string", ... ]
+    "warnings": ["string"]
   }
 }
+```
 
-## VALIDATION (INTERNAL—DO NOT OUTPUT)
-[ ] No cluster with label containing /demonstr/i for ὁ or αὐτός
-[ ] All source items assigned once
-[ ] Scores within 0–1
-[ ] rationale length ≤ 180 chars
-[ ] representativeForms ≤ 4
-[ ] candidateCount ≥ 1
+---
+
+## VALIDATION CHECKLIST (Internal)
+
+- [ ] No `/demonstr/i` label for ὁ/αὐτός
+- [ ] All source items assigned once
+- [ ] `productivityScore` ∈ [0,1]
+- [ ] `rationale` ≤180 chars
+- [ ] `functionLabel` ≤60 chars
+- [ ] `representativeForms` ≤4
+- [ ] `candidateCount ≥ 1`
+- [ ] Papyri excluded from sourceWeight calculation
+
+---
 
 ## OUTPUT
-Return ONLY the JSON object. If no usable items:
+
+Return JSON only. If no clusters:
+```json
 {
   "lemma": "{{lemma}}",
   "clusters": [],
@@ -108,6 +206,7 @@ Return ONLY the JSON object. If no usable items:
     "candidateCount": 0,
     "structuralCount": 0,
     "nonProductiveCount": 0,
-    "warnings": ["No clusterable Hellenistic usages."]
+    "warnings": ["No clusterable Hellenistic usages"]
   }
 }
+```

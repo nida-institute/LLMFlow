@@ -9,198 +9,125 @@ prompt:
     - abbott_smith_xml
   format: Markdown
   description: |
-    Pass H: Citation Verification. Verify NT citations accuracy using MCP bible_lookup.
+    Pass H: Citation Verification. Verify NT citations accuracy using MCP get_passage_text.
     Preserve all LXX citations from Abbott-Smith (public domain, pre-verified).
 -->
 
 # Pass H: Citation Verification & Corpus Balance
 
-**YOU HAVE ACCESS TO MCP TOOLS. USE THEM.**
+**Lemma:** {{lemma}}
 
-Available tools:
-- `bible_lookup(reference: str, version: str)` - Fetch actual verse text from Biblica server
-
-Lemma: {{lemma}}
-Draft Entry:
+**Draft Entry:**
 {{draft_entry}}
 
-Citations JSON:
-{{citations_json}}
+**Citations JSON:** {{citations_json}}
+**Base JSON:** {{base_json}}
 
-Base JSON (for LXX preservation):
-{{base_json}}
+---
 
-## TASK
-1. **PRESERVE all LXX citations from base_json** (Abbott-Smith sourced; public domain).
-2. Verify NT citations exist and are accurately quoted.
-3. Balance NT corpus distribution if imbalanced.
-4. Output corrected Markdown entry.
+## 1. MCP TOOLS AVAILABLE
 
-## LXX PRESERVATION RULE
-- Any citation in base_json.citations with sourceType="LXX" must be preserved.
-- Do NOT remove or modify LXX citations from Abbott-Smith.
-- These show Hebrew equivalence and are scholarly vetted.
-
-## NT VERIFICATION RULES
-For each NT citation (sourceType="NT") in the draft:
-- Use MCP bible_lookup tool to fetch the actual verse text.
-- Compare the Greek form in the citation against the verse.
-- If form is absent or misquoted:
-  a) Correct the form to match the verse, OR
-  b) Remove the citation entirely if the lemma doesn't actually appear.
-
-## CORPUS BALANCE RULES
-
-**OVERALL DISTRIBUTION CHECK:**
-Count all citations by type:
-- NT citations
-- LXX citations
-- Documentary (papyri/inscriptions)
-- Literary/patristic/other
-
-**Target: NT should be ~67% (2/3) of total citations**
-
-If NT citations are <60% or >75% of total:
-1. Rebalance by adjusting NT vs non-NT ratio
-2. Prefer adding/keeping LXX citations from Abbott-Smith (public domain, Hebrew equivalence)
-3. Prefer adding documentary citations if available in pool
-4. Do NOT remove LXX citations to increase NT percentage
-5. Use citations_json pool; do NOT invent new references
-
-**NT INTERNAL BALANCE (within NT citations only):**
-Count NT citations by section:
-- Gospels (Matthew, Mark, Luke, John)
-- Acts
-- Pauline (Romans through Philemon)
-- General Epistles (Hebrews through Jude)
-- Revelation
-
-Target distribution within NT citations:
-- Gospels: 25-40%
-- Acts: 5-15%
-- Pauline: 30-45%
-- General Epistles: 10-20%
-- Revelation: 0-10%
-
-If Gospels exceed 50% of NT citations:
-1. Keep most semantically distinctive Gospel examples (2-3)
-2. Replace overrepresented Gospel citations with verified examples from underrepresented NT sections
-3. Use citations_json pool; do NOT invent new references
-
-**Example balanced entry (15 total citations):**
-- NT: 10 (67%)
-  - Gospels: 3 (30% of NT)
-  - Pauline: 4 (40% of NT)
-  - Acts: 1 (10% of NT)
-  - General Epistles: 2 (20% of NT)
-- LXX: 3 (20%)
-- Documentary: 2 (13%)
-
-## MCP TOOL USAGE
-Call bible_lookup for NT references only:
-```
-bible_lookup(reference="Matthew 5:3", version="SBLGNT")
-```
-Returns Greek text. Verify lemma form appears (accounting for inflection).
-
-**Do NOT call bible_lookup for LXX references** (different text version; preserve as-is).
-
-## FOCUS MAINTENANCE
-After verification and corpus balancing:
-- If a sense ends up with >6 examples, consolidate:
-  * Keep most distinctive 4-5 examples
-  * Group repetitive patterns with multiple refs
-  * Move minor variants to Notes with "See also: [refs]"
-
-## FINAL DEDUPLICATION CHECK
-
-Before output:
-1. Within each sense, scan for duplicate form + translation pairs
-2. Consolidate duplicates:
-   - Merge refs: (Matt 5:9, Rom 1:1, 1 Cor 1:3)
-   - Keep single explanation if present
-   - Preserve corpus balance in merged refs (don't merge 5 Gospel refs, drop Pauline)
-3. If consolidation would create a citation list >4 refs, select most distinctive 3-4
-
-Example before consolidation:
-- ὁ θεός — "God" (Matt 5:9). Proper name.
-- ὁ θεός — "God" (Rom 1:1). Proper name.
-- ὁ θεός — "God" (1 Cor 1:3). Proper name.
-
-After consolidation:
-- ὁ θεός — "God" (proper name pattern; Matt 5:9, Rom 1:1, 1 Cor 1:3)
-
-Example where separate is correct:
-- ὁ θεός — "God" (Matt 5:9). Definite proper name.
-- τοῦ θεοῦ — "of God" (Rom 1:1). Genitive relationship.
-- τῷ θεῷ — "to God" (1 Cor 1:3). Dative indirect object.
-
-Keep these separate—different forms showing different grammatical functions.
-
-## OUTPUT
-Return the complete corrected Markdown entry.
-If an NT citation cannot be verified, add warning comment:
-<!-- WARNING: NT citation removed - lemma not found in [ref] -->
-
-Preserve:
-- All LXX citations
-- All non-citation content (definitions, notes, structure)
-- LXX Usage subsection if present
-
-## VALIDATION CHECKLIST (INTERNAL)
-[ ] All LXX citations from base_json preserved
-[ ] All NT citations verified against SBLGNT or removed
-[ ] No invented forms
-[ ] NT corpus distribution improved (if imbalanced)
-[ ] Gospel citations ≤ 50% of NT total (if originally >50%)
-[ ] At least 1 Pauline citation if available in pool
-[ ] Senses with >6 examples consolidated/grouped
-
-You have access to the following MCP tools to verify citations:
-
-1. **get_passage_text** - Retrieve Bible text in original languages
-   - Parameters:
-     - `usfm_references`: ["JHN 3:16"] (required, array of USFM references)
-     - `textual_editions`: ["SBLGNT"] (optional, defaults to ["BSB"])
-   - Available editions:
-     - **SBLGNT** - SBL Greek New Testament (use for NT)
-     - **WLC** - Westminster Leningrad Codex (use for OT)
-     - **BSB** - Berean Study Bible (English, default)
-     - Others: CUVMPS, LSG, IRVHin, NIV11
-
-2. **get_word_info** - Get linguistic details (lemma, morphology, etc.)
-
-3. **get_word_sense** - Get semantic/lexical information
-
-## Tool Usage Examples:
-
-**Verify a Greek NT citation:**
+**get_passage_text** - Retrieve Bible text in original languages
 ```json
 {
   "tool": "get_passage_text",
   "parameters": {
     "usfm_references": ["JHN 3:16"],
-    "textual_editions": ["SBLGNT"]
+    "textual_editions": ["SBLGNT"]  // NT = SBLGNT, OT = WLC
   }
 }
 ```
 
-**Verify a Hebrew OT citation:**
-```json
-{
-  "tool": "get_passage_text",
-  "parameters": {
-    "usfm_references": ["GEN 1:1"],
-    "textual_editions": ["WLC"]
-  }
-}
-```
+---
 
-## Your Task:
+## 2. VERIFICATION RULES
 
-For each NT citation in the draft entry:
-1. ✅ Use `get_passage_text` with `textual_editions: ["SBLGNT"]` to retrieve the Greek text
-2. ✅ Verify the word form appears in the passage
-3. ✅ Check that the translation/gloss is accurate
-4. ✅ Keep LXX citations unchanged (they're from public domain Abbott-Smith)
-5. ✅ Remove or correct any inaccurate NT citations
+### NT Citations (sourceType="NT")
+For each NT citation in the draft:
+
+1. **Fetch verse:** Use `get_passage_text` with `textual_editions: ["SBLGNT"]`
+2. **Normalize:** Apply NFC normalization to both retrieved verse and example
+3. **Verify substring match:** The complete Greek phrase (3–8 words) must appear in the verse
+4. **Check gloss:** Ensure English translation matches the Greek phrase
+5. **Action:** If mismatch → correct or remove
+
+**Example format requirements:**
+- ✅ `ὁ οἶνος ὁ νέος` — "the new wine" (Luke 5:37)
+- ❌ `ὁ ἀνήρ` — "the man in the city" *(missing "in the city" in Greek)*
+
+**Exception for fixed expressions:**
+- ✅ `ὁ θεός` — "God" (proper name, 2 words OK)
+- ✅ `ὁ κύριος` — "the Lord" (2 words OK)
+
+### LXX Citations (sourceType="LXX")
+- **PRESERVE ALL** from Abbott-Smith (public domain, pre-verified)
+- Do NOT verify or modify
+- Show Hebrew equivalence if mentioned
+
+### Classical/Papyri Citations
+- **Literary (e.g., Plato *Rep.* 1.327a):** Keep if proper citation format
+- **Papyri (P.Oxy., P.Tebt., BGU):** DELETE (cannot verify)
+  - Log: `<!-- PAPYRUS REMOVED: P.Oxy. 1234.5-7 - verification unavailable -->`
+- **Inscriptions (IG, SEG, OGIS):** DELETE (cannot verify)
+  - Log: `<!-- INSCRIPTION REMOVED: IG II² 1234 - verification unavailable -->`
+
+---
+
+## 3. CORPUS BALANCE
+
+### Overall Distribution (Target: NT ~67%)
+- NT: ~67% (2/3 of total)
+- LXX: ~20%
+- Literary: ~10%
+- Other: ~3%
+
+If NT <60% or >75%:
+- Adjust by adding/removing NT citations from `citations_json.allocations`
+- **Do NOT remove LXX citations** to increase NT %
+
+### NT Internal Balance (within NT citations)
+Target distribution:
+- Gospels: 25–40%
+- Pauline: 30–45%
+- General Epistles: 10–20%
+- Acts: 5–15%
+- Revelation: 0–10%
+
+If Gospels >50% of NT:
+- Keep 2–3 most distinctive Gospel examples
+- Replace with Pauline/General Epistles from `citations_json.allocations`
+
+---
+
+## 4. DEDUPLICATION
+
+Within each sense:
+1. Find duplicate form + translation pairs
+2. Consolidate with merged refs: `(Matt 5:9, Rom 1:1, 1 Cor 1:3)`
+3. If >6 examples in one sense → keep 4–5 most distinctive
+
+**Keep separate if:**
+- Different forms: `ὁ θεός` (nom) vs. `τοῦ θεοῦ` (gen) vs. `τῷ θεῷ` (dat)
+- Different translations: `ὁ λόγος` — "the word" vs. "the message"
+- Different contexts: `ὁ μὲν οὕτως` (distributive) vs. (contrastive)
+
+---
+
+## 5. OUTPUT
+
+Return the complete corrected Markdown entry with:
+- ✅ All LXX citations preserved
+- ✅ NT citations verified against SBLGNT (complete Greek phrases)
+- ✅ Papyri/inscriptions removed with HTML comments
+- ✅ Improved corpus balance (if needed)
+- ✅ Deduplicated examples
+
+**Validation checklist (internal):**
+- [ ] All LXX citations from base_json preserved
+- [ ] All NT citations verified or removed
+- [ ] Papyri/inscriptions deleted with log comments
+- [ ] NT corpus distribution: 60–75%
+- [ ] Gospels ≤50% of NT total
+- [ ] Senses with >6 examples consolidated to 4–5
+- [ ] Greek phrases ≥3 words (except fixed expressions)
+- [ ] All examples have English glosses

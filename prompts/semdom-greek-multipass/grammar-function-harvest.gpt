@@ -1,108 +1,193 @@
 <!--
 prompt:
-  requires:
-    - lemma
-    - partOfSpeech
-    - base_json
-    - external_json
-  optional: []
+  requires: [lemma, base_json, external_json]
   format: JSON
   description: |
-    Pass C: Grammar Function Harvest. Extract discourse and syntactic functions
-    from grammars for function words only. Content words return empty shell JSON.
+    Pass E: Grammar Function Harvest. Extract discourse/syntactic functions
+    from grammars for function words. Content words return empty JSON.
 -->
 
-# Pass C: Grammar Function Harvest Prompt
-# Use ONLY for function words (article, pronoun, particle, conjunction, preposition, etc.).
-# If lemma is a content word (noun, verb, adjective, numeral), return empty shell JSON.
+# Pass E: Grammar Function Harvest
 
-Lemma: {{lemma}}
-Part of Speech (from base/external): {{partOfSpeech}}
-Base JSON:
+**Lemma:** {{lemma}}
+
+**Base JSON:**
 {{base_json}}
-External JSON:
+
+**External JSON:**
 {{external_json}}
 
-## FUNCTION WORD DETECTION
-Treat as function word if partOfSpeech (case-insensitive) matches any:
-article, pronoun, personal pronoun, reflexive pronoun, intensive pronoun, demonstrative, relative pronoun, interrogative, indefinite pronoun, particle, conjunction, preposition, adverb, determiner, enclitic.
-Else: output minimal JSON:
-{ "lemma": "{{lemma}}", "functions": [], "notes": ["Skipped (content word)"], "warnings": [] }
+---
 
-## TASK (when function word)
-Harvest Hellenistic (300 BCE–300 CE) discourse / syntactic functions from grammars:
-Sources (public-domain quoting allowed in short clauses):
+## FUNCTION WORD DETECTION
+
+Treat as **function word** if `partOfSpeech` matches (case-insensitive):
+- article, pronoun, personal pronoun, reflexive pronoun, intensive pronoun
+- demonstrative, relative pronoun, interrogative, indefinite pronoun
+- particle, conjunction, preposition, adverb, determiner, enclitic
+
+**If content word (noun, verb, adjective, numeral):**
+```json
+{
+  "lemma": "{{lemma}}",
+  "functions": [],
+  "structuralPatterns": [],
+  "notes": ["Skipped (content word)"],
+  "warnings": []
+}
+```
+
+---
+
+## TASK (Function Words Only)
+
+Extract Hellenistic (300 BCE–300 CE) discourse/syntactic functions from grammars.
+
+**DO NOT:**
+- Create senses (that's Pass F)
+- Promote historical demonstrative for ὁ/αὐτός (mark `nonProductive: true`)
+- Invent examples
+- Quote restricted sources verbatim
+
+---
+
+## ALLOWED SOURCES
+
+### Public Domain (verbatim OK for short clauses):
 - BDF (Blass-Debrunner-Funk)
 - MHT (Moulton-Howard-Turner)
 - Robertson
 - Mayser
 - Gignac
 - Smyth
-- Runge (paraphrase; modern copyright) -> paraphrase: true
-- Levinsohn (paraphrase: true)
 
-Do NOT:
-- Create senses.
-- Promote historical demonstrative for ὁ or αὐτός (mark nonProductive).
-- Invent examples; only use established, widely attested Hellenistic forms.
-- Quote restricted sources verbatim.
+### Restricted (paraphrase only):
+- Runge → `paraphrase: true`
+- Levinsohn → `paraphrase: true`
+
+---
+
+## FUNCTION TYPES TO SEEK
+
+- **Emphasis/Intensification** (αὐτός)
+- **Anaphoric/Cataphoric** referencing
+- **Contrast/Topic shift** (article + δέ, μέν … δέ)
+- **Focus/Framing** (particles)
+- **Clause linkage** (inference, concession, condition)
+- **Nominalization** (article + participle/infinitive)
+- **Distributive structures** (ὁ μὲν … ὁ δέ)
+- **Equative/sameness** (τὸ αὐτό)
+- **Preposition extensions** (spatial → metaphorical)
+- **Aspectual/scalar particles**
+- **Negative reinforcement** (οὐ, μή)
+- **Structural patterns** (double article, particle clusters)
+
+---
+
+## GREEK PHRASE REQUIREMENTS
+
+**Minimum 3 words** for examples (exceptions: ὁ θεός, τὸ αὐτό):
+- ✅ `ὁ μὲν … ὁ δέ` — "the one ... the other"
+- ✅ `τὸ θέλειν παρακειται` — "the willing is present"
+- ❌ `ὁ ἀνήρ` *(incomplete unless it's the full phrase from source)*
+
+If grammar provides lemma only:
+```json
+"example": "ὁ ἀνήρ",
+"note": "Grammar provides lemma only; full phrase unavailable"
+```
+
+---
 
 ## OUTPUT SCHEMA
+
+```json
 {
   "lemma": "string",
   "functions": [
     {
-      "label": "string",            // e.g. "Emphatic self-reference"
-      "description": "string",      // concise (≤ 160 chars)
-      "example": "string|null",     // Greek minimal phrase
-      "translation": "string|null", // idiomatic English
-      "source": "string",           // BDF, MHT, Robertson, Mayser, Gignac, Smyth, Runge(paraphrase), Levinsohn(paraphrase)
-      "ref": "string|null",         // e.g. "Luke 5:37", "BDF §252"
-      "paraphrase": true|false,
-      "nonProductive": true|false   // historical / not productive
+      "label": "string",            // e.g., "Emphatic self-reference"
+      "description": "string",      // ≤160 chars, plain English
+      "example": "string|null",     // Greek phrase (3+ words)
+      "translation": "string|null", // Idiomatic English
+      "source": "string",           // BDF, MHT, Robertson, etc.
+      "ref": "string|null",         // Luke 5:37, BDF §252
+      "paraphrase": true|false,     // true for Runge/Levinsohn
+      "nonProductive": true|false   // true if historical only
     }
   ],
   "structuralPatterns": [
     {
-      "pattern": "string",          // e.g. "article + adjective + noun"
-      "example": "string|null",
+      "pattern": "string",          // "article + adjective + noun"
+      "example": "string|null",     // Greek sample
       "translation": "string|null",
       "note": "string|null",
       "nonProductive": true|false
     }
   ],
-  "notes": [ "string" ],
-  "warnings": [ "string" ]
+  "notes": ["string"],
+  "warnings": ["string"]
 }
+```
 
-## FUNCTION TYPES TO SEEK (IF APPLICABLE)
-- Emphasis / Intensification (αὐτός)
-- Anaphoric / Cataphoric referencing
-- Contrast / Topic shift (e.g., article + δέ cycles; μέν … δέ)
-- Focus / Framing (particles)
-- Clause linkage (logical: inference, concession, condition)
-- Nominalization (article + participle / infinitive)
-- Distributive structures (ὁ μὲν … ὁ δέ)
-- Equative / sameness pattern (τὸ αὐτό)
-- Preposition semantic extensions (spatial → metaphorical)
-- Aspectual / scalar particle functions
-- Negative reinforcement (οὐ …, μή with particles)
-- Structural patterns (double article, repeated particle clusters)
+---
 
-## RULES
-- Max functions: 18
-- Max structuralPatterns: 8
-- Keep descriptions plain English.
-- Example must be Hellenistic; if uncertain, omit.
-- For ὁ / αὐτός: add note "Historical demonstrative use not productive in Koiné."
+## SPECIAL CASES
 
-## VALIDATION (INTERNAL—DO NOT OUTPUT)
-[ ] No invented refs
-[ ] Dates implicitly Hellenistic
-[ ] nonProductive flagged where historical only
-[ ] paraphrase true for Runge / Levinsohn
-[ ] No "Demonstrative Pronoun" function for ὁ / αὐτός
+### Article ὁ/ἡ/τό
+Add to notes:
+```json
+"notes": ["Historical demonstrative use not productive in Koiné"]
+```
+
+**Never create "Demonstrative Pronoun" function.**
+
+### Intensive αὐτός
+If grammar mentions demonstrative origin:
+```json
+{
+  "label": "Historical Demonstrative",
+  "description": "Earlier demonstrative use; not productive in Koiné",
+  "nonProductive": true,
+  "note": "Homeric/Classical usage"
+}
+```
+
+---
+
+## LIMITS
+
+- **Max 18 functions**
+- **Max 8 structuralPatterns**
+- If more available, prioritize:
+  1. Most distinctive discourse roles
+  2. NT-attested patterns
+  3. Varied structural types
+
+---
+
+## VALIDATION CHECKLIST (Internal)
+
+- [ ] No invented refs
+- [ ] Examples Hellenistic (300 BCE–300 CE)
+- [ ] nonProductive flagged for historical uses
+- [ ] paraphrase: true for Runge/Levinsohn
+- [ ] No "Demonstrative" function for ὁ/αὐτός
+- [ ] Greek phrases ≥3 words (or noted)
+
+---
 
 ## OUTPUT
-Return ONLY the JSON object.
-If not function word → minimal JSON as specified above.
+
+Return JSON only. No commentary.
+
+If content word:
+```json
+{
+  "lemma": "{{lemma}}",
+  "functions": [],
+  "structuralPatterns": [],
+  "notes": ["Skipped (content word)"],
+  "warnings": []
+}
+```

@@ -1,117 +1,250 @@
 <!--
 prompt:
-  requires:
-    - lemma
-    - entry
-    - senses_json
-    - citations_json
-  optional: []
+  requires: [lemma, senses_json, citations_json, base_json]
   format: Markdown
   description: |
-    Pass G: Draft Expansion. Generate final lexicon entry in Markdown format
-    by parsing sense and citation JSON, applying formatting rules, and rendering
-    complete entry with Core Root Meaning, Senses, and Notes sections.
+    Pass H: Draft Expansion. Generate final Markdown lexicon entry from
+    allocated citations, applying deduplication and formatting rules.
 -->
 
-# Pass G: Draft Expansion (Final Entry Rendering)
-# Inputs (raw values injected verbatim by pipeline):
-#   lemma: {{lemma}}
-#   entry (Abbott-Smith XML or text): {{entry}}
-#   senses_json (JSON string from Pass E): {{senses_json}}
-#   citations_json (JSON string from Pass F): {{citations_json}}
-#
-# IMPORTANT: Pipeline does NOT support Handlebars/Jinja. No template logic.
-# You must parse the JSON strings yourself, apply rules, and output pure Markdown.
+# Pass H: Draft Expansion
 
-#######################################################################
-### TASK
-#######################################################################
-Generate the final lexicon entry in Markdown only.
+**Lemma:** {{lemma}}
 
-Steps you must perform internally (do not describe them in output):
-1. Parse senses_json and citations_json.
-2. If senses_json.senses is empty → create one fallback sense named "Core Referential Use" with definition:
-   Marks a noun or noun-like expression as identifiable (specific, unique, generic representative, or abstract concept).
-   Use any available citations_json.allocations examples.
-3. Otherwise use senses_json.senses in given order.
-4. For each sense:
-   - Definition = definitionHint.
-   - Examples = from citations_json.allocations where allocation.senseId matches senseId.
-5. Example formatting (single line):
-   form — "idiomatic English" (Ref). Optional explanation.
-   Rules:
-   - If ref is null, omit parentheses.
-   - Explanation ≤ 12 words, plain English. Omit if trivial.
-   - No prefixes like "Pattern:" or "Greek NT:".
-6. Deduplication within senses:
-   - If multiple examples have IDENTICAL form and translation, consolidate:
-     * Keep one example, list all refs together
-     * Example: ὁ θεός — "God" (Matt 5:9, Rom 1:1, 1 Cor 1:3)
-   - Keep separate if:
-     * Different translations (even same form)
-     * Different explanations/contexts
-     * Different morphological forms being illustrated
-   - Maximum clarity: reader should see semantic/syntactic range, not repetition
-7. Idiomatic English: drop "the" for proper names/abstracts if natural (God, wisdom); keep if required for specificity (the light metaphor).
-8. Notes section:
-   - Include senses_json.notes items as bullet lines (these are demoted cluster rationales).
-   - Include citations_json.notesCitations as bullet lines. Prefix reason mapping:
-     structural → Structural:
-     historical → Historical:
-     nonProductive → Non-productive:
-     duplicateFiltered → Filtered:
-   Format: Prefix label, space, form — "translation" (Ref) if available.
-9. Historical demonstrative origin for ὁ / ἡ / τό or αὐτός:
-   - Never create a "Demonstrative Pronoun" sense.
-   - Add one Notes bullet if not already present:
-     Historical: Earlier demonstrative use not productive in Koiné.
-10. Core Root Meaning section fields:
-   - Definition: If senses exist → first sense definitionHint; else fallback definition.
-   - Remarks: If citations_json.totalAllocated > 0 → Examples drawn from Hellenistic sources (N allocated). Else: Limited attestation in current extraction.
-   - Grammar: Concise syntactic/morphological behavior; for function words mention agreement / role; for content words mention inflectional highlight if obvious. Avoid speculation.
-   - Equivalents: If entry text visibly includes "Heb." then: Hebrew definite (ה). Latin often zero or demonstratives (ille, hic). Else: None.
-   - Derived Words: None (unless a clear derived form list is in the entry text).
-11. Do NOT invent citations, senses, or etymology. Only use provided data.
-12. No JSON, no internal comments, no template syntax. Output ends after Notes section.
-
-#######################################################################
-### OUTPUT FORMAT (REQUIRED)
-#######################################################################
-### lemma (Part of Speech, G####)  <-- If part of speech or number not in data, keep generic: (Lexeme)
-
-### Core Root Meaning
-- Definition: ...
-- Remarks: ...
-- Grammar: ...
-- Equivalents: ...
-- Derived Words: ...
-
-### Senses
-1. Sense Name
-   - Definition: ...
-   - Examples:
-     - form — "translation" (Ref). Explanation.
-   - Related: (only if clearly inferable; else omit)
-
-(repeat)
-
-### Notes
-- ...
-- ...
-
-#######################################################################
-### DATA (RAW – PARSE INTERNALLY, DO NOT OUTPUT)
-#######################################################################
-Lemma: {{lemma}}
-Abbott-Smith Entry Raw:
-{{entry}}
-
-Senses JSON:
+**Senses JSON:**
 {{senses_json}}
 
-Citations JSON:
+**Citations JSON:**
 {{citations_json}}
 
-#######################################################################
-### RENDER (OUTPUT ONLY THE MARKDOWN ENTRY)
-#######################################################################
+**Base JSON:**
+{{base_json}}
+
+---
+
+## TASK
+
+Generate final Markdown lexicon entry by:
+1. Expanding each sense with allocated citations
+2. Deduplicating examples within senses
+3. Formatting according to lexicon style
+
+**DO NOT:**
+- Add new senses or cross-references
+- Modify definitions from senses_json
+- Invent citations
+
+---
+
+## OUTPUT FORMAT
+
+```markdown
+# {{lemma}} (*part of speech*)
+
+## Core Root Meaning
+- **Definition:** [First sense definition or fallback]
+- **Remarks:** Examples drawn from Hellenistic sources (N allocated)
+- **Grammar:** [Concise syntactic/morphological behavior]
+- **Equivalents:** [Hebrew/Latin if mentioned in base_json]
+- **Derived Words:** None
+
+## Senses
+
+### 1. [Sense Name]
+**Definition:** [From senses_json.definitionHint]
+
+**Examples:**
+- form — "translation" (Ref). Optional explanation.
+- form — "translation" (Ref).
+
+**Related:** [Only if clearly inferable; else omit]
+
+### 2. [Next Sense]
+...
+
+## Notes
+- [Demoted cluster rationales from senses_json.notes]
+- [Citation removal reasons from citations_json.notesCitations]
+- Historical: Earlier demonstrative use not productive in Koiné. [If ὁ/αὐτός]
+```
+
+---
+
+## SENSE EXPANSION RULES
+
+**For each sense in senses_json.senses:**
+
+1. **Find matching citations:**
+   - From citations_json.allocations where `allocation.senseId == sense.senseId`
+   - Maximum 5 examples per sense
+
+2. **Format each example:**
+   ```
+   form — "translation" (Ref). Explanation.
+   ```
+   - If `ref == null`, omit parentheses
+   - If `explanation == null` or trivial, omit explanation
+   - Keep explanation ≤12 words
+
+3. **Ensure complete Greek phrases:**
+   - Must be 3+ words (exceptions: ὁ θεός, ὁ κύριος, τὸ αὐτό)
+   - If <3 words, skip or note: "Pattern: form — 'translation'"
+
+---
+
+## DEDUPLICATION WITHIN SENSES
+
+**Consolidate identical form + translation:**
+
+Before:
+- ὁ θεός — "God" (Matt 5:9)
+- ὁ θεός — "God" (Rom 1:1)
+- ὁ θεός — "God" (1 Cor 1:3)
+
+After:
+- ὁ θεός — "God" (Matt 5:9, Rom 1:1, 1 Cor 1:3)
+
+**Keep separate if:**
+- Different forms: `ὁ θεός` vs `τοῦ θεοῦ` vs `τῷ θεῷ`
+- Different translations: `ὁ λόγος — "the word"` vs `"the message"`
+- Different explanations/contexts
+
+**If >5 examples after consolidation:**
+- Keep 4-5 most distinctive
+- Note others: "See also: [additional refs]"
+
+---
+
+## IDIOMATIC ENGLISH
+
+- Drop "the" for proper names/abstracts if natural: "God", "wisdom"
+- Keep "the" if required for specificity: "the light" (metaphor)
+- Match base_json glosses where available
+
+---
+
+## CORE ROOT MEANING SECTION
+
+**Definition:**
+- If senses exist → use first sense definitionHint
+- Else fallback: "Marks a noun or noun-like expression as identifiable (specific, unique, generic representative, or abstract concept)."
+
+**Remarks:**
+- If citations_json.totalAllocated > 0:
+  - "Examples drawn from Hellenistic sources (N allocated)."
+- Else:
+  - "Limited attestation in current extraction."
+
+**Grammar:**
+- Function words: mention agreement/discourse role
+  - Article: "Agrees with noun in gender, number, case. Marks definiteness, generic classes, nominalizations."
+  - Particle: "Postpositive. Marks narrative continuation, mild contrast."
+- Content words: mention inflectional pattern if obvious
+  - Verb: "Contract verb (-άω). Present and aorist tenses common."
+
+**Equivalents:**
+- If base_json mentions "Heb.": "Hebrew definite (ה). Latin often zero or demonstratives (ille, hic)."
+- Else: "None"
+
+**Derived Words:**
+- "None" (unless base_json explicitly lists derived forms)
+
+---
+
+## NOTES SECTION
+
+**Aggregate from:**
+1. **senses_json.notes** — Demoted cluster rationales
+   - Format: "• [note text]"
+
+2. **citations_json.notesCitations** — Filtered citations
+   - Format with reason prefix:
+     - `structural` → "Structural: form — 'translation' (Ref)"
+     - `historical` → "Historical: form — 'translation' (Ref)"
+     - `nonProductive` → "Non-productive: form — 'translation' (Ref)"
+     - `unverifiable-papyrus` → "Papyrus (unverifiable): form — 'translation' (Ref)"
+     - `unverifiable-inscription` → "Inscription (unverifiable): form — 'translation' (Ref)"
+     - `incomplete-phrase` → "Incomplete phrase: form — 'translation'"
+     - `duplicateFiltered` → "Filtered: form — 'translation' (Ref)"
+
+3. **Historical demonstrative (if ὁ/ἡ/τό or αὐτός):**
+   - Add if not already present: "• Historical: Earlier demonstrative use not productive in Koiné."
+
+---
+
+## FALLBACK HANDLING
+
+**If senses_json.senses is empty:**
+- Create one sense:
+  ```markdown
+  ### 1. Core Referential Use
+  **Definition:** Marks a noun or noun-like expression as identifiable (specific, unique, generic representative, or abstract concept).
+
+  **Examples:**
+  [Use any citations_json.allocations examples, up to 5]
+  ```
+
+**If citations_json.allocations is empty:**
+- Omit Examples subsection
+- Add to Remarks: "No verified Hellenistic citations allocated."
+
+---
+
+## VALIDATION CHECKLIST (Internal)
+
+- [ ] All senses from senses_json included
+- [ ] Citations matched by senseId
+- [ ] Examples deduplicated within senses
+- [ ] Greek phrases ≥3 words (or noted exception)
+- [ ] Explanations ≤12 words
+- [ ] Core Root Meaning section complete
+- [ ] Notes section aggregated
+- [ ] No invented content
+
+---
+
+## OUTPUT
+
+Return Markdown only. No JSON, no commentary.
+
+**Example output structure:**
+
+```markdown
+# ὁ (*definite article*)
+
+## Core Root Meaning
+- **Definition:** Marks a noun or noun-like expression as identifiable (specific, unique, generic representative, or abstract concept).
+- **Remarks:** Examples drawn from Hellenistic sources (12 allocated).
+- **Grammar:** Agrees with noun in gender, number, case. Marks definiteness, generic classes, nominalizations.
+- **Equivalents:** Hebrew definite (ה). Latin often zero or demonstratives (ille, hic).
+- **Derived Words:** None
+
+## Senses
+
+### 1. Definite Article
+**Definition:** Identifies a specific, previously mentioned, or contextually unique referent.
+
+**Examples:**
+- ὁ οἶνος ὁ νέος — "the new wine" (Luke 5:37). Specific wine mentioned.
+- τὸν υἱὸν αὐτῆς — "her son" (Luke 2:7). Definite possessive.
+- ὁ ἄγγελος Κυρίου — "the angel of the Lord" (Luke 2:9). Known figure.
+
+### 2. Generic Article
+**Definition:** Refers to an entire class or type rather than specific instances.
+
+**Examples:**
+- ὁ ποιμὴν δίδωσιν — "the shepherd gives" (John 10:11). Represents all shepherds.
+- ὁ μισθωτὸς φεύγει — "the hired hand flees" (John 10:12). Generic class.
+
+### 3. Nominalizing Article
+**Definition:** Converts participles, adjectives, or infinitives into noun-like expressions.
+
+**Examples:**
+- τὸ θέλειν παράκειται — "the willing is present" (Rom 7:18). Infinitive nominalized.
+- οἱ ἀκούσαντες ἐθαύμασαν — "those who heard were amazed" (Luke 2:18). Participle nominalized.
+
+## Notes
+- Structural: Double article pattern (ὁ ... ὁ) for emphasis
+- Historical: Earlier demonstrative use not productive in Koiné
+- Papyrus (unverifiable): P.Oxy. 744.8
+```
