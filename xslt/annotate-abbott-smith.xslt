@@ -9,7 +9,7 @@
 
   <!-- Default: copy everything as-is -->
   <xsl:template match="@* | node()">
-    <xsl:copy>
+    <xsl:copy copy-namespaces="no">
       <xsl:apply-templates select="@* | node()"/>
     </xsl:copy>
   </xsl:template>
@@ -21,124 +21,144 @@
     <xsl:value-of select="string-join($parts, '.')"/>
   </xsl:function>
 
-  <!-- Process each sense: add sensePath and create normalized node sequence -->
+  <!-- Strip trailing dot from a string -->
+  <xsl:function name="local:strip-dot">
+    <xsl:param name="text"/>
+    <xsl:value-of select="
+      if (ends-with($text, '.'))
+      then substring($text, 1, string-length($text) - 1)
+      else $text"/>
+  </xsl:function>
+
+  <!-- Process each sense: add sensePath and handle grouping inline -->
   <xsl:template match="tei:sense">
-    <xsl:variable name="path" select="local:sense-path(.)"/>
-
-    <!-- First pass: normalize text nodes by splitting on semicolons/colons -->
-    <xsl:variable name="normalized-nodes">
-      <xsl:apply-templates select="node()" mode="normalize-text"/>
+    <xsl:param name="parent-sensePath" select="''"/>
+    
+    <!-- Calculate path: if we have a parent path param, use it; otherwise use ancestors -->
+    <xsl:variable name="path">
+      <xsl:choose>
+        <xsl:when test="$parent-sensePath != ''">
+          <!-- We're a nested sense from a fragment, build path from parent + our @n -->
+          <xsl:value-of select="concat(
+            local:strip-dot($parent-sensePath),
+            '.',
+            local:strip-dot(@n))"/>
+        </xsl:when>
+        <xsl:otherwise>
+          <!-- We're a top-level sense in original doc, use ancestor axis -->
+          <xsl:value-of select="local:sense-path(.)"/>
+        </xsl:otherwise>
+      </xsl:choose>
     </xsl:variable>
-
-    <xsl:copy>
-      <!-- Copy all attributes including @n -->
+    
+    <xsl:copy copy-namespaces="no">
       <xsl:apply-templates select="@*"/>
-      <!-- Add sensePath attribute -->
       <xsl:attribute name="sensePath" select="$path"/>
-
-      <!-- Second pass: group the normalized nodes -->
-      <xsl:call-template name="group-by-punctuation">
-        <xsl:with-param name="nodes" select="$normalized-nodes/node()"/>
+      
+      <!-- Process children, grouping by punctuation -->
+      <xsl:call-template name="process-sense-content">
+        <xsl:with-param name="nodes" select="node()"/>
         <xsl:with-param name="sensePath" select="$path"/>
       </xsl:call-template>
     </xsl:copy>
   </xsl:template>
 
-  <!-- Mode: normalize text nodes ONLY (don't touch element content) -->
-  <xsl:template match="text()" mode="normalize-text">
-    <!-- Only split if we're in direct sense content, not inside foreign/ref/etc -->
-    <xsl:choose>
-      <xsl:when test="parent::tei:sense">
-        <!-- Split on semicolons and colons (but NOT periods) -->
-        <xsl:analyze-string select="." regex="([^;:]+)([;:])">
-          <xsl:matching-substring>
-            <!-- Text before punctuation -->
-            <xsl:value-of select="regex-group(1)"/>
-            <!-- Punctuation as separate marker -->
-            <punct><xsl:value-of select="regex-group(2)"/></punct>
-          </xsl:matching-substring>
-          <xsl:non-matching-substring>
-            <xsl:value-of select="."/>
-          </xsl:non-matching-substring>
-        </xsl:analyze-string>
-      </xsl:when>
-      <xsl:otherwise>
-        <!-- Keep text inside elements unchanged -->
-        <xsl:value-of select="."/>
-      </xsl:otherwise>
-    </xsl:choose>
-  </xsl:template>
-
-  <!-- Copy elements through in normalize mode, preserving all attributes -->
-  <xsl:template match="*" mode="normalize-text">
-    <xsl:copy>
-      <xsl:apply-templates select="@* | node()" mode="normalize-text"/>
-    </xsl:copy>
-  </xsl:template>
-
-  <!-- Copy attributes in normalize mode -->
-  <xsl:template match="@*" mode="normalize-text">
-    <xsl:copy/>
-  </xsl:template>
-
-  <!-- Group nodes by <punct> markers -->
-  <xsl:template name="group-by-punctuation">
+  <!-- Process sense content: group text by semicolons/colons, wrap usage examples -->
+  <xsl:template name="process-sense-content">
     <xsl:param name="nodes"/>
     <xsl:param name="sensePath"/>
-
-    <xsl:for-each-group select="$nodes"
-      group-ending-with="punct">
-
-      <!-- Check if group contains foreign or ref (= usage example) -->
+    
+    <!-- Split text nodes and group the result -->
+    <xsl:variable name="split-nodes">
+      <xsl:for-each select="$nodes">
+        <xsl:choose>
+          <!-- Text directly in sense: split on : and ; -->
+          <xsl:when test="self::text() and parent::tei:sense">
+            <xsl:analyze-string select="." regex="([^;:]+)([;:])">
+              <xsl:matching-substring>
+                <xsl:value-of select="regex-group(1)"/>
+                <marker type="punct"><xsl:value-of select="regex-group(2)"/></marker>
+              </xsl:matching-substring>
+              <xsl:non-matching-substring>
+                <xsl:value-of select="."/>
+              </xsl:non-matching-substring>
+            </xsl:analyze-string>
+          </xsl:when>
+          <!-- Everything else pass through as-is -->
+          <xsl:otherwise>
+            <xsl:sequence select="."/>
+          </xsl:otherwise>
+        </xsl:choose>
+      </xsl:for-each>
+    </xsl:variable>
+    
+    <!-- Group by marker elements -->
+    <xsl:for-each-group select="$split-nodes/node()" 
+      group-ending-with="marker[@type='punct']">
+      
       <xsl:variable name="has-usage" select="
-        current-group()[self::tei:foreign] or
+        current-group()[self::tei:foreign] or 
         current-group()[self::tei:ref]"/>
-
+      
       <xsl:choose>
-        <!-- Wrap usage examples in usageGroup -->
+        <!-- Wrap usage examples -->
         <xsl:when test="$has-usage">
           <usageGroup sensePath="{$sensePath}">
-            <!-- Output all nodes, converting punct to text -->
             <xsl:for-each select="current-group()">
               <xsl:choose>
-                <!-- Convert punct elements to plain text -->
-                <xsl:when test="self::punct">
+                <!-- Convert markers to text -->
+                <xsl:when test="self::marker[@type='punct']">
                   <xsl:value-of select="."/>
                 </xsl:when>
-                <!-- Nested sense elements need special handling -->
+                <!-- Nested senses - pass parent path -->
                 <xsl:when test="self::tei:sense">
-                  <xsl:apply-templates select="." mode="#default"/>
+                  <xsl:apply-templates select=".">
+                    <xsl:with-param name="parent-sensePath" select="$sensePath"/>
+                  </xsl:apply-templates>
                 </xsl:when>
-                <!-- Everything else copy as-is -->
+                <!-- Everything else -->
                 <xsl:otherwise>
-                  <xsl:copy-of select="."/>
+                  <xsl:apply-templates select="." mode="copy-clean"/>
                 </xsl:otherwise>
               </xsl:choose>
             </xsl:for-each>
           </usageGroup>
         </xsl:when>
-
-        <!-- Pass through prose/notes as-is -->
+        
+        <!-- Pass through prose -->
         <xsl:otherwise>
           <xsl:for-each select="current-group()">
             <xsl:choose>
-              <!-- Convert punct elements to plain text -->
-              <xsl:when test="self::punct">
+              <!-- Convert markers to text -->
+              <xsl:when test="self::marker[@type='punct']">
                 <xsl:value-of select="."/>
               </xsl:when>
-              <!-- Nested sense elements need special handling -->
+              <!-- Nested senses - pass parent path -->
               <xsl:when test="self::tei:sense">
-                <xsl:apply-templates select="." mode="#default"/>
+                <xsl:apply-templates select=".">
+                  <xsl:with-param name="parent-sensePath" select="$sensePath"/>
+                </xsl:apply-templates>
               </xsl:when>
-              <!-- Everything else copy as-is -->
+              <!-- Everything else -->
               <xsl:otherwise>
-                <xsl:copy-of select="."/>
+                <xsl:apply-templates select="." mode="copy-clean"/>
               </xsl:otherwise>
             </xsl:choose>
           </xsl:for-each>
         </xsl:otherwise>
       </xsl:choose>
     </xsl:for-each-group>
+  </xsl:template>
+
+  <!-- Mode: copy without namespaces -->
+  <xsl:template match="*" mode="copy-clean">
+    <xsl:copy copy-namespaces="no">
+      <xsl:apply-templates select="@* | node()" mode="copy-clean"/>
+    </xsl:copy>
+  </xsl:template>
+
+  <xsl:template match="@* | text()" mode="copy-clean">
+    <xsl:copy/>
   </xsl:template>
 
 </xsl:stylesheet>
