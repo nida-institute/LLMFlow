@@ -710,6 +710,13 @@ def run_pipeline(
     # Execute each step
     for rule in steps:
         run_step(rule, context, pipeline_config)
+        after_action = rule.get("after")
+        if after_action:
+            if after_action == "continue":
+                continue  # Default behavior, so this is optional
+            elif after_action == "exit":
+                logger.info(f"🛑 'after: exit' - exiting pipeline early after step '{rule.get('name')}'.")
+                break
 
     logger.info("Pipeline complete.")
     return context

@@ -464,3 +464,23 @@ def validate_step_prompt_contract(step, prompt_file, step_name):
             )
 
     return errors
+
+
+# Add to your linter (e.g. llmflow/utils/linter.py)
+
+ALLOWED_STEP_KEYS = {
+    "name", "type", "inputs", "outputs", "saveas", "append_to", "plugin",
+    "prompt", "model", "temperature", "max_tokens", "timeout_seconds",
+    "output_type", "mcp", "steps", "item_var", "input", "condition", "function",
+    "after"
+}
+
+def lint_pipeline_steps(steps):
+    errors = []
+    for step in steps:
+        for key in step.keys():
+            if key not in ALLOWED_STEP_KEYS:
+                errors.append(
+                    f"Step '{step.get('name', '<unnamed>')}' has unknown keyword '{key}'. Allowed: {sorted(ALLOWED_STEP_KEYS)}"
+                )
+    return errors
