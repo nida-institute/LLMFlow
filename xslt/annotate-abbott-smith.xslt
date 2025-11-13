@@ -24,18 +24,18 @@
   <!-- Process each sense: add sensePath and create normalized node sequence -->
   <xsl:template match="tei:sense">
     <xsl:variable name="path" select="local:sense-path(.)"/>
-    
-    <!-- First pass: normalize text nodes by splitting on semicolons/periods/colons -->
+
+    <!-- First pass: normalize text nodes by splitting on semicolons/colons -->
     <xsl:variable name="normalized-nodes">
       <xsl:apply-templates select="node()" mode="normalize-text"/>
     </xsl:variable>
-    
+
     <xsl:copy>
       <!-- Copy all attributes including @n -->
       <xsl:apply-templates select="@*"/>
       <!-- Add sensePath attribute -->
       <xsl:attribute name="sensePath" select="$path"/>
-      
+
       <!-- Second pass: group the normalized nodes -->
       <xsl:call-template name="group-by-punctuation">
         <xsl:with-param name="nodes" select="$normalized-nodes/node()"/>
@@ -49,20 +49,16 @@
     <!-- Only split if we're in direct sense content, not inside foreign/ref/etc -->
     <xsl:choose>
       <xsl:when test="parent::tei:sense">
-        <!-- Split on semicolons, periods, colons -->
-        <xsl:analyze-string select="." regex="([^;.:]+)([;.:])">
+        <!-- Split on semicolons and colons (but NOT periods) -->
+        <xsl:analyze-string select="." regex="([^;:]+)([;:])">
           <xsl:matching-substring>
             <!-- Text before punctuation -->
-            <xsl:if test="normalize-space(regex-group(1))">
-              <xsl:value-of select="regex-group(1)"/>
-            </xsl:if>
+            <xsl:value-of select="regex-group(1)"/>
             <!-- Punctuation as separate marker -->
             <punct><xsl:value-of select="regex-group(2)"/></punct>
           </xsl:matching-substring>
           <xsl:non-matching-substring>
-            <xsl:if test="normalize-space(.)">
-              <xsl:value-of select="."/>
-            </xsl:if>
+            <xsl:value-of select="."/>
           </xsl:non-matching-substring>
         </xsl:analyze-string>
       </xsl:when>
@@ -89,26 +85,31 @@
   <xsl:template name="group-by-punctuation">
     <xsl:param name="nodes"/>
     <xsl:param name="sensePath"/>
-    
-    <xsl:for-each-group select="$nodes" 
+
+    <xsl:for-each-group select="$nodes"
       group-ending-with="punct">
-      
+
       <!-- Check if group contains foreign or ref (= usage example) -->
       <xsl:variable name="has-usage" select="
-        current-group()[self::tei:foreign] or 
+        current-group()[self::tei:foreign] or
         current-group()[self::tei:ref]"/>
-      
+
       <xsl:choose>
         <!-- Wrap usage examples in usageGroup -->
         <xsl:when test="$has-usage">
           <usageGroup sensePath="{$sensePath}">
-            <!-- Output all nodes except punct markers -->
+            <!-- Output all nodes, converting punct to text -->
             <xsl:for-each select="current-group()">
               <xsl:choose>
+                <!-- Convert punct elements to plain text -->
                 <xsl:when test="self::punct">
-                  <!-- Convert punct back to text -->
                   <xsl:value-of select="."/>
                 </xsl:when>
+                <!-- Nested sense elements need special handling -->
+                <xsl:when test="self::tei:sense">
+                  <xsl:apply-templates select="." mode="#default"/>
+                </xsl:when>
+                <!-- Everything else copy as-is -->
                 <xsl:otherwise>
                   <xsl:copy-of select="."/>
                 </xsl:otherwise>
@@ -116,15 +117,20 @@
             </xsl:for-each>
           </usageGroup>
         </xsl:when>
-        
+
         <!-- Pass through prose/notes as-is -->
         <xsl:otherwise>
           <xsl:for-each select="current-group()">
             <xsl:choose>
+              <!-- Convert punct elements to plain text -->
               <xsl:when test="self::punct">
-                <!-- Convert punct back to text -->
                 <xsl:value-of select="."/>
               </xsl:when>
+              <!-- Nested sense elements need special handling -->
+              <xsl:when test="self::tei:sense">
+                <xsl:apply-templates select="." mode="#default"/>
+              </xsl:when>
+              <!-- Everything else copy as-is -->
               <xsl:otherwise>
                 <xsl:copy-of select="."/>
               </xsl:otherwise>
