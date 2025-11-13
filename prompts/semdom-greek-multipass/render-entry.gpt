@@ -1,0 +1,10 @@
+<!--
+prompt:
+  requires:
+    - lemma
+    - senses_json
+    - verified_json
+  produces:
+    - final_markdown
+  format: markdown
+-->

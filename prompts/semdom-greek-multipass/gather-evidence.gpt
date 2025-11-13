@@ -1,0 +1,10 @@
+<!--
+prompt:
+  requires:
+    - lemma
+    - pos
+    - base_json
+  produces:
+    - evidence_json
+  format: markdown
+-->

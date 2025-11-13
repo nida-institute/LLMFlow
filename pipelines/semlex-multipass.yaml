@@ -6,6 +6,16 @@ variables:
   xslt_dir: xslt
   limit: 5
 
+mcp_servers:
+  bible:
+    url: "https://bible-resource-server-preview.labs.biblica.com/mcp"
+    description: "Biblica Bible Resource Server"
+    tools:
+      - get_passage_text
+      - get_word_info
+      - get_passages_for_word_sense
+      - get_usfm_references_by_greek_lemma_co_occurrence
+
 steps:
   - name: read-status
     type: tsv
@@ -21,13 +31,28 @@ steps:
     item_var: row
     steps:
       ########################################################################
+      # PHASE 0.0: FIND ENTRY
+      ########################################################################
+      - name: find-entry
+        type: xpath
+        inputs:
+          path: inputs/Abbot-Smith/abbott-smith.tei.xml
+          xpath: //tei:entry[@key='${row[lemma]}']
+          output_format: xml-string
+          namespaces:
+            tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
+        outputs:
+          - entries
+
+      ########################################################################
       # PHASE 0.1: ENHANCE XML STRUCTURE
       ########################################################################
       - name: enhance-xml
-        type: xslt
+        type: function
+        function: llmflow.plugins.xslt_transform.run
         inputs:
-          xml: "${row[source_xml]}"
-          stylesheet: "${xslt_dir}/enhance-abbott-smith.xsl"
+          stylesheet_path: xslt/annotate-abbott-smith.xslt
+          xml_string: "${entries[0]}"
         outputs:
           - enhanced_xml
         saveas:
@@ -41,10 +66,11 @@ steps:
       # PHASE 0.2: TRANSFORM XML TO JSON
       ########################################################################
       - name: xml-to-json
-        type: xslt
+        type: function
+        function: llmflow.plugins.xslt_transform.run
         inputs:
-          xml: "${enhanced_xml}"
-          stylesheet: "${xslt_dir}/xml-to-json.xsl"
+          stylesheet_path: xslt/extract-base-json.xslt
+          xml_string: "${enhanced_xml}"
         outputs:
           - base_json
         saveas:
@@ -53,6 +79,7 @@ steps:
           phase: "json_transformation"
           lemma: "${row[lemma]}"
           description: "Transform enhanced XML to LLM-friendly JSON structure"
+        after: continue
 
       ########################################################################
       # PHASE 1: EVIDENCE GATHERING
@@ -63,7 +90,7 @@ steps:
         temperature: 0.3
         max_tokens: 16000
         prompt:
-          file: ${prompts_dir}/gather-evidence.gpt
+          file: gather-evidence.gpt
           inputs:
             lemma: "${row[lemma]}"
             pos: "${row[pos]}"
@@ -104,7 +131,7 @@ steps:
             - get_passages_for_word_sense
             - get_usfm_references_by_greek_lemma_co_occurrence
         prompt:
-          file: ${prompts_dir}/verify-citations.gpt
+          file: verify-citations.gpt
           inputs:
             lemma: "${row[lemma]}"
             evidence_json: "${evidence_json}"
@@ -126,7 +153,7 @@ steps:
         temperature: 0.3
         max_tokens: 10000
         prompt:
-          file: ${prompts_dir}/analyze-senses.gpt
+          file: analyze-senses.gpt
           inputs:
             lemma: "${row[lemma]}"
             verified_json: "${verified_json}"
@@ -147,7 +174,7 @@ steps:
         temperature: 0.25
         max_tokens: 12000
         prompt:
-          file: ${prompts_dir}/render-entry.gpt
+          file: render-entry.gpt
           inputs:
             lemma: "${row[lemma]}"
             senses_json: "${senses_json}"

@@ -1,0 +1,9 @@
+<!--
+prompt:
+  requires:
+    - lemma
+    - verified_json
+  produces:
+    - senses_json
+  format: markdown
+-->

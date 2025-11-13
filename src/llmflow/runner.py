@@ -312,12 +312,18 @@ def handle_step_saveas(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
     raise ValueError("Invalid saveas configuration type")
 
 
-def run_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None):
-    """Execute a single step based on its type."""
+def run_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> str | None:
+    """
+    Execute a single step based on its type.
+    Returns 'exit' if step has 'after: exit', 'continue' if 'after: continue', else None.
+    """
     step_type = step.get("type")
 
     if step_type == "for-each":
-        run_for_each_step(step, context, pipeline_config)
+        after_action = run_for_each_step(step, context, pipeline_config)
+        # Check if nested step returned exit
+        if after_action == "exit":
+            return "exit"
     elif step_type == "llm":
         result = run_llm_step(step, context, pipeline_config)
         handle_step_outputs(step, result, context)
@@ -325,19 +331,23 @@ def run_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dic
         result = run_function_step(step, context, pipeline_config)
         # handle_step_outputs is called inside run_function_step
     elif step_type == "if":
-        run_if_step(step, context, pipeline_config)
+        after_action = run_if_step(step, context, pipeline_config)
+        # Check if nested step returned exit
+        if after_action == "exit":
+            return "exit"
     elif step_type == "save":
         run_save_step(step, context, pipeline_config)
     elif step.get("plugin"):
-        # Explicit plugin key (legacy)
         result = run_plugin_step(step, context, pipeline_config)
         handle_step_outputs(step, result, context)
     elif step_type in plugin_registry:
-        # Plugin registered by type name (xpath, tsv, etc.)
         result = run_plugin_step(step, context, pipeline_config)
         handle_step_outputs(step, result, context)
     else:
         raise ValueError(f"Unknown step type: {step_type}")
+
+    # Return the after action to propagate it up
+    return step.get("after")
 
 
 def run_plugin_step(
@@ -417,17 +427,21 @@ def run_llm_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config:
 
     rendered_prompt = render_prompt(rule["prompt"], context)
 
-    # Build merged config
+    # Build merged config - FIX: Use llm_options if present
     llm_config = pipeline_config.get("llm_config", {})
+
+    # FIX: Check for llm_options in step
+    step_options = rule.get("llm_options", {})
     step_config = {
         "model": rule.get("model"),
-        "temperature": rule.get("temperature"),
-        "max_tokens": rule.get("max_tokens"),
-        "timeout_seconds": rule.get("timeout_seconds"),
+        "temperature": rule.get("temperature") or step_options.get("temperature"),
+        "max_tokens": rule.get("max_tokens") or step_options.get("max_tokens"),
+        "timeout_seconds": rule.get("timeout_seconds") or step_options.get("timeout_seconds"),
     }
     # Remove None values
     step_config = {k: v for k, v in step_config.items() if v is not None}
 
+    # Merge configs: defaults < pipeline < step-level
     merged_config = {
         "model": "gpt-4o",
         "temperature": 0.7,
@@ -435,7 +449,8 @@ def run_llm_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config:
         "timeout_seconds": 30,
     }
     merged_config.update(llm_config)
-    merged_config.update(step_config)
+    merged_config.update(step_options)  # FIX: Merge llm_options
+    merged_config.update(step_config)    # Then override with direct step attrs
 
     output_type = rule.get("output_type", "text")
 
@@ -524,84 +539,136 @@ def save_content_to_file(content: Any, path: str, format_type: str = "auto") -> 
     return str(output_path.absolute())
 
 
-def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None):
-    """Execute a for-each step."""
-    items_expr = step.get("input")  # ✅ Remove fallback to "items"
-    item_var = step.get("item_var", "item")
-    nested_steps = step.get("steps", [])
-
-    if not items_expr:
-        raise ValueError("for-each step missing 'input'")  # ✅ Update error message
-    if not nested_steps:
-        return
-
-    items = resolve(items_expr, context)
-    if not isinstance(items, (list, tuple)):
-        raise ValueError(f"for-each input must resolve to list/tuple, got: {type(items)}")
-
-    # Collect ALL append_to targets recursively
-    def collect_append_targets(steps):
-        targets = set()
-        for s in steps:
-            if "append_to" in s:
-                targets.add(s["append_to"])
-            # Recurse into nested for-each steps
-            if "steps" in s:
-                targets.update(collect_append_targets(s["steps"]))
-        return targets
-
-    append_targets = collect_append_targets(nested_steps)
-
-    # Initialize all append_to targets in parent context
-    for target in append_targets:
-        if target not in context:
-            context[target] = []
-
-    for item in items:
-        import copy
-        iteration_context = copy.deepcopy(context)
-
-        # Restore shared references for ALL append_to targets
-        for target in append_targets:
-            iteration_context[target] = context[target]
-
-        iteration_context[item_var] = item
-
-        for nested in nested_steps:
-            run_step(nested, iteration_context, pipeline_config)
+def resolve_template(template: str, context: Dict[str, Any]) -> str:
+    """
+    Resolve template variables in a string using context.
+    Used for conditions in if statements.
+    Returns a string suitable for eval().
+    """
+    resolved = resolve(template, context)
+    # If resolved value is already a bool, int, etc., convert to string for eval
+    if not isinstance(resolved, str):
+        return str(resolved)
+    return resolved
 
 
-def run_if_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> None:
-    """Execute a conditional if step"""
-    name = rule.get("name", "unnamed")
-    condition = rule.get("condition")
+def run_for_each_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> str | None:
+    """Execute a for-each loop step"""
+    input_data = resolve(rule.get("input", []), context)
+    item_var = rule.get("item_var", "item")
     steps = rule.get("steps", [])
 
+    # Collect all append_to targets AND regular outputs
+    def collect_outputs(steps_list):
+        append_targets = set()
+        output_vars = set()
+        for step in steps_list:
+            if "append_to" in step:
+                append_targets.add(step["append_to"])
+            if "outputs" in step:
+                outputs = step["outputs"]
+                if isinstance(outputs, str):
+                    output_vars.add(outputs)
+                elif isinstance(outputs, list):
+                    output_vars.update(outputs)
+            if "steps" in step:
+                nested_append, nested_output = collect_outputs(step["steps"])
+                append_targets.update(nested_append)
+                output_vars.update(nested_output)
+        return append_targets, output_vars
+
+    append_to_targets, output_vars = collect_outputs(steps)
+
+    for item in input_data:
+        iteration_context = deepcopy(context)
+        iteration_context[item_var] = item
+
+        for step in steps:
+            after_action = run_step(step, iteration_context, pipeline_config)
+
+            if after_action == "exit":
+                logger.info("🛑 'after: exit' in for-each iteration - exiting entire pipeline")
+
+                # Propagate BOTH append_to AND regular outputs before exiting
+                for target in append_to_targets:
+                    if target in iteration_context and isinstance(iteration_context[target], list):
+                        if target not in context:
+                            context[target] = iteration_context[target][:]
+                        else:
+                            original_length = len(context[target])
+                            new_items = iteration_context[target][original_length:]
+                            context[target].extend(new_items)
+
+                # FIX: Also propagate regular outputs before exiting
+                for output_var in output_vars:
+                    if output_var in iteration_context:
+                        context[output_var] = iteration_context[output_var]
+                        logger.debug(f"Propagated output '{output_var}' before exit")
+
+                return "exit"  # Propagate exit to parent
+
+            elif after_action == "continue":
+                logger.info("⏭️  'after: continue' in for-each iteration - skipping to next iteration")
+                break  # Break out of steps loop, continue with next item
+
+        # Normal propagation (no exit)
+        for target in append_to_targets:
+            if target in iteration_context and isinstance(iteration_context[target], list):
+                if target not in context:
+                    context[target] = iteration_context[target][:]
+                else:
+                    original_length = len(context[target])
+                    new_items = iteration_context[target][original_length:]
+                    context[target].extend(new_items)
+
+    return None  # No exit, normal completion
+
+
+def run_if_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> str | None:
+    """Execute an if step conditionally. Returns 'exit' if any nested step has 'after: exit'."""
+    condition_expr = step.get("condition")
+    nested_steps = step.get("steps", [])
+
+    if not condition_expr:
+        raise ValueError("if step missing 'condition'")
+    if not nested_steps:
+        return None
+
+    name = step.get("name", "unnamed")
     logger.info(f"❓ Starting if step: {name}")
-    logger.debug(f"Condition: {condition}")
 
-    # Resolve the condition
-    resolved_condition = resolve(condition, context)
-    logger.debug(f"Resolved condition: {resolved_condition}")
-
-    # Evaluate the condition
     try:
-        # Simple evaluation - supports basic comparisons
-        condition_result = eval(str(resolved_condition))
+        resolved = resolve(condition_expr, context)
+        # If resolve returns a boolean/int directly, use it as-is
+        # Otherwise evaluate it as a Python expression
+        if isinstance(resolved, bool):
+            condition_result = resolved
+        elif isinstance(resolved, (int, float)):
+            condition_result = bool(resolved)
+        else:
+            # It's a string expression, evaluate it
+            condition_result = bool(eval(resolved))
+
+        if condition_result:
+            logger.info(f"   Condition is true, executing {len(nested_steps)} steps")
+            for nested in nested_steps:
+                after_action = run_step(nested, context, pipeline_config)
+                if after_action == "exit":
+                    logger.info("🛑 'after: exit' in nested step - propagating exit signal")
+                    return "exit"
+                elif after_action == "continue":
+                    logger.info("⏭️  'after: continue' in nested step - breaking out of if block")
+                    # CHANGE: For now, only break from if block
+                    # In the future, this should propagate to enclosing for-each loop
+                    return None  # Don't propagate continue from if to for-each
+        else:
+            logger.info("   Condition is false, skipping steps")
+
     except Exception as e:
-        logger.error(f"Error evaluating condition '{resolved_condition}': {e}")
-        condition_result = False
+        logger.error(f"Error evaluating condition '{condition_expr}': {e}")
 
-    logger.debug(f"Condition result: {condition_result}")
-
-    if condition_result:
-        logger.info(f"   Condition is true, executing {len(steps)} steps")
-        for nested_step in steps:
-            run_step(nested_step, context, pipeline_config)
-    else:
-        logger.info(f"   Condition is false, skipping steps")
-
-    logger.info(f"✅ Completed if step: {name}")
+    logger.info(f"✅ Completed if step: {step.get('name', 'unnamed')}")
+    return None
 
 
 def run_pipeline(
@@ -709,14 +776,12 @@ def run_pipeline(
 
     # Execute each step
     for rule in steps:
-        run_step(rule, context, pipeline_config)
-        after_action = rule.get("after")
-        if after_action:
-            if after_action == "continue":
-                continue  # Default behavior, so this is optional
-            elif after_action == "exit":
-                logger.info(f"🛑 'after: exit' - exiting pipeline early after step '{rule.get('name')}'.")
-                break
+        after_action = run_step(rule, context, pipeline_config)
+        if after_action == "exit":
+            logger.info(f"🛑 'after: exit' - exiting pipeline early after step '{rule.get('name')}'.")
+            break
+        elif after_action == "continue":
+            continue  # Default behavior
 
     logger.info("Pipeline complete.")
     return context

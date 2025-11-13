@@ -2,15 +2,10 @@
 prompt:
   requires:
     - lemma
-    - draft_entry
-    - citations_json
-    - base_json
-  optional:
-    - abbott_smith_xml
-  format: Markdown
-  description: |
-    Pass H: Citation Verification. Verify NT citations accuracy using MCP get_passage_text.
-    Preserve all LXX citations from Abbott-Smith (public domain, pre-verified).
+    - evidence_json
+  produces:
+    - verified_json
+  format: markdown
 -->
 
 # Pass H: Citation Verification & Corpus Balance
