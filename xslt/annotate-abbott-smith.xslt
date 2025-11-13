@@ -92,9 +92,9 @@
       </xsl:for-each>
     </xsl:variable>
     
-    <!-- Group by marker elements -->
+    <!-- Group by marker elements (match regardless of namespace) -->
     <xsl:for-each-group select="$split-nodes/node()" 
-      group-ending-with="marker[@type='punct']">
+      group-ending-with="*[local-name()='marker' and @type='punct']">
       
       <xsl:variable name="has-usage" select="
         current-group()[self::tei:foreign] or 
@@ -107,7 +107,7 @@
             <xsl:for-each select="current-group()">
               <xsl:choose>
                 <!-- Convert markers to text -->
-                <xsl:when test="self::marker[@type='punct']">
+                <xsl:when test="local-name()='marker' and @type='punct'">
                   <xsl:value-of select="."/>
                 </xsl:when>
                 <!-- Nested senses - pass parent path -->
@@ -130,7 +130,7 @@
           <xsl:for-each select="current-group()">
             <xsl:choose>
               <!-- Convert markers to text -->
-              <xsl:when test="self::marker[@type='punct']">
+              <xsl:when test="local-name()='marker' and @type='punct'">
                 <xsl:value-of select="."/>
               </xsl:when>
               <!-- Nested senses - pass parent path -->
