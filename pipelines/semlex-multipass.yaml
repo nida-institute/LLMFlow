@@ -1,10 +1,10 @@
-name: SemLex Multi-Pass
+name: SemLex Multi-Pass (Emergency Mode)
 
 variables:
   prompts_dir: prompts/semdom-greek-multipass
   output_dir: ./obsidian/grc
   xslt_dir: xslt
-  limit: 5
+  limit: 1
 
 mcp_servers:
   bible:
@@ -12,13 +12,11 @@ mcp_servers:
     description: "Biblica Bible Resource Server"
     tools:
       - get_passage_text
-      - get_word_info
-      - get_passages_for_word_sense
-      - get_usfm_references_by_greek_lemma_co_occurrence
 
 steps:
   - name: read-status
     type: tsv
+    description: "Load lemma status rows from the TSV tracker"
     inputs:
       path: inputs/Abbot-Smith/status.tsv
       limit: "${limit}"
@@ -27,6 +25,7 @@ steps:
 
   - name: process-entries
     type: for-each
+    description: "Iterate over each status row and execute the processing passes"
     input: "${status_rows}"
     item_var: row
     steps:
@@ -35,6 +34,7 @@ steps:
       ########################################################################
       - name: find-entry
         type: xpath
+        description: "Select the TEI entry for the current lemma"
         inputs:
           path: inputs/Abbot-Smith/abbott-smith.tei.xml
           xpath: //tei:entry[@key='${row[lemma]}']
@@ -43,148 +43,184 @@ steps:
             tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
         outputs:
           - entries
+        saveas:
+          path: "${output_dir}/intermediate/${row.lemma}.raw.xml"
+          group_by_prefix: 2
 
       ########################################################################
       # PHASE 0.1: ENHANCE XML STRUCTURE
       ########################################################################
       - name: enhance-xml
-        type: function
-        function: llmflow.plugins.xslt_transform.run
+        type: xslt
+        description: "Normalize the XML structure and mark citations"
         inputs:
           stylesheet_path: xslt/annotate-abbott-smith.xslt
           xml_string: "${entries[0]}"
         outputs:
           - enhanced_xml
         saveas:
-          path: "${output_dir}/intermediate/${row[lemma]}.enhanced.xml"
-        metadata:
-          phase: "xml_enhancement"
-          lemma: "${row[lemma]}"
-          description: "Make sense hierarchy explicit, mark up citations consistently"
+          path: "${output_dir}/intermediate/${row.lemma}.enhanced.xml"
+          group_by_prefix: 2
+
+      ########################################################################
+      # PHASE 0.15: EXPAND ABBREVIATIONS
+      ########################################################################
+      - name: expand-abbreviations
+        type: xslt
+        description: "Expand abbreviations in the enhanced XML"
+        inputs:
+          stylesheet_path: xslt/expand-abbott-smith-abbreviations.xslt
+          xml_string: "${enhanced_xml}"
+        outputs:
+          - expanded_xml
+        saveas:
+          path: "${output_dir}/intermediate/${row.lemma}.expanded.xml"
+          group_by_prefix: 2
 
       ########################################################################
       # PHASE 0.2: TRANSFORM XML TO JSON
       ########################################################################
       - name: xml-to-json
-        type: function
-        function: llmflow.plugins.xslt_transform.run
+        type: xslt
+        description: "Convert the expanded XML into the base JSON payload"
         inputs:
           stylesheet_path: xslt/extract-base-json.xslt
-          xml_string: "${enhanced_xml}"
+          xml_string: "${expanded_xml}"
         outputs:
           - base_json
         saveas:
-          path: "${output_dir}/intermediate/${row[lemma]}.base.json"
-        metadata:
-          phase: "json_transformation"
-          lemma: "${row[lemma]}"
-          description: "Transform enhanced XML to LLM-friendly JSON structure"
-        after: continue
+          path: "${output_dir}/intermediate/${row.lemma}.base.json"
+          group_by_prefix: 2
 
       ########################################################################
-      # PHASE 1: EVIDENCE GATHERING
+      # 🚨 EMERGENCY MODE: FETCH GREEK PHRASES VIA MCP
+      # This step fills in missing Greek phrases from sparse Abbott-Smith citations
+      # Uses MCP to look up actual verse text when XML only has references
       ########################################################################
-      - name: gather-evidence
+      - name: fetch-greek-phrases
         type: llm
+        description: "Fetch actual Greek phrases for citations that lack them"
         model: gpt-4o
-        temperature: 0.3
-        max_tokens: 16000
-        prompt:
-          file: gather-evidence.gpt
-          inputs:
-            lemma: "${row[lemma]}"
-            pos: "${row[pos]}"
-            base_json: "${base_json}"
-        outputs:
-          - evidence_json
-        saveas:
-          path: "${output_dir}/intermediate/${row[lemma]}.evidence.json"
-        metadata:
-          phase: "evidence_gathering"
-          lemma: "${row[lemma]}"
-          sources_consulted:
-            - Abbott-Smith
-            - BDAG
-            - LSJ
-            - Thayer
-            - Smyth
-            - BDF
-            - Wallace
-            - Runge
-            - Levinsohn
-            - Dik
-
-      ########################################################################
-      # PHASE 2: VERIFICATION
-      ########################################################################
-      - name: verify-citations
-        type: llm
-        model: gpt-4o
-        temperature: 0.2
-        max_tokens: 12000
+        temperature: 0.1
+        max_tokens: 8000
         mcp:
           enabled: true
           server: bible
           tools:
             - get_passage_text
-            - get_word_info
-            - get_passages_for_word_sense
-            - get_usfm_references_by_greek_lemma_co_occurrence
         prompt:
-          file: verify-citations.gpt
+          file: fetch-greek-phrases.gpt
           inputs:
             lemma: "${row[lemma]}"
-            evidence_json: "${evidence_json}"
+            base_json: "${base_json}"
         outputs:
-          - verified_json
+          - enriched_json
         saveas:
-          path: "${output_dir}/intermediate/${row[lemma]}.verified.json"
-        metadata:
-          phase: "verification"
-          lemma: "${row[lemma]}"
-          mcp_tools_used: true
+          path: "${output_dir}/intermediate/${row.lemma}.enriched.json"
+          group_by_prefix: 2
 
       ########################################################################
-      # PHASE 3: SENSE ANALYSIS
+      # 🚨 EMERGENCY MODE: DIRECT RENDERING
+      # Skips evidence gathering, verification, and sense analysis
+      # Goes straight from enriched citations to final markdown
       ########################################################################
-      - name: analyze-senses
+      - name: generate-entry
         type: llm
+        description: "Generate lexicon entry directly from enriched citations"
         model: gpt-4o
         temperature: 0.3
-        max_tokens: 10000
+        max_tokens: 16000
         prompt:
-          file: analyze-senses.gpt
+          file: generate-entry.gpt
           inputs:
-            lemma: "${row[lemma]}"
-            verified_json: "${verified_json}"
+            base_json: "${base_json}"
+            senses_json: "${enriched_json}"
         outputs:
-          - senses_json
+          - entry_md
         saveas:
-          path: "${output_dir}/intermediate/${row[lemma]}.senses.json"
-        metadata:
-          phase: "sense_analysis"
-          lemma: "${row[lemma]}"
+          path: "${output_dir}/markdown/${row.lemma}.entry.md"
+          group_by_prefix: 2
 
       ########################################################################
-      # PHASE 4: FINAL RENDERING
+      # ❌ DISABLED: MULTI-PASS PIPELINE (will re-enable post-Saturday)
       ########################################################################
-      - name: render-entry
-        type: llm
-        model: gpt-4o
-        temperature: 0.25
-        max_tokens: 12000
-        prompt:
-          file: render-entry.gpt
-          inputs:
-            lemma: "${row[lemma]}"
-            senses_json: "${senses_json}"
-            verified_json: "${verified_json}"
-        outputs:
-          - final_markdown
-        saveas:
-          path: "${output_dir}/markdown/${row[lemma]}.md"
-        metadata:
-          phase: "rendering"
-          lemma: "${row[lemma]}"
+      # These steps are disabled to get working output quickly
+      # Problem: They were not properly extracting Greek phrases from sparse XML
+      # Solution: Emergency mode uses MCP directly to fetch missing phrases
+
+      # # PHASE 1: EVIDENCE GATHERING
+      # - name: gather-evidence
+      #   type: llm
+      #   description: "Draft evidence summaries and references for each lemma"
+      #   model: gpt-4o
+      #   temperature: 0.3
+      #   max_tokens: 16000
+      #   prompt:
+      #     file: gather-evidence.gpt
+      #     inputs:
+      #       lemma: "${row[lemma]}"
+      #       pos: "${row[pos]}"
+      #       base_json: "${base_json}"
+      #   outputs:
+      #     - evidence_json
+      #   saveas:
+      #     path: "${output_dir}/intermediate/${row.lemma}.evidence.json"
+      #     group_by_prefix: 2
+
+      # # PHASE 2: VERIFICATION
+      # - name: verify-citations
+      #   type: llm
+      #   description: "Validate citations and references against MCP tools"
+      #   model: gpt-4o
+      #   temperature: 0.2
+      #   max_tokens: 12000
+      #   mcp:
+      #     enabled: true
+      #     server: bible
+      #     tools:
+      #       - get_passage_text
+      #   prompt:
+      #     file: verify-citations.gpt
+      #     inputs:
+      #       lemma: "${row[lemma]}"
+      #       evidence_json: "${evidence_json}"
+      #   outputs:
+      #     - verified_json
+      #   saveas:
+      #     path: "${output_dir}/intermediate/${row.lemma}.verified.json"
+      #     group_by_prefix: 2
+
+      # # PHASE 3: SENSE ANALYSIS
+      # - name: analyze-senses
+      #   type: llm
+      #   description: "Refine the sense structure based on verified evidence"
+      #   model: gpt-4o
+      #   temperature: 0.3
+      #   max_tokens: 10000
+      #   prompt:
+      #     file: analyze-senses.gpt
+      #     inputs:
+      #       lemma: "${row[lemma]}"
+      #       base_json: "${base_json}"
+      #       verified_json: "${verified_json}"
+      #   outputs:
+      #     - senses_json
+      #   saveas:
+      #     path: "${output_dir}/intermediate/${row.lemma}.senses.json"
+      #     group_by_prefix: 2
+
+      # # PHASE 3.5: SEMANTIC DOMAIN ASSIGNMENT (IMPLEMENT MONDAY)
+      # - name: assign-domains
+      #   type: plugin
+      #   plugin: domain_classifier
+      #   inputs:
+      #     senses_json: "${senses_json}"
+      #     catalog_json: "inputs/semdom.org/catalog.json"
+      #   model: gpt-4o
+      #   outputs:
+      #     - domains_json
+      #   saveas:
+      #     path: "${output_dir}/intermediate/${row.lemma}.domains.json"
+      #     group_by_prefix: 2
 
 

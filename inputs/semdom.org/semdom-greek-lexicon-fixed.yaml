@@ -1,0 +1,60 @@
+pipeline:
+  name: Expand and Save Abbott-Smith Entries
+  variables:
+    prompts_dir: prompts/semdom-greek
+  llm_config:
+    model: gpt-4o
+    max_tokens: 1200
+    temperature: 0.4
+
+  steps:
+    - name: iterate-over-entries
+      type: for-each
+      input:
+        type: xpath
+        path: inputs/Abbot-Smith/abbott-smith.tei.xml
+        xpath: //tei:entry
+        output_format: xml-string
+        namespaces:
+          tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
+      item_var: entry
+      steps:
+        - name: extract-entry-key
+          type: function
+          function: llmflow.utils.xml.xpath_get
+          inputs:
+            xml: "${entry}"
+            xpath: "@key"
+            namespaces:
+              tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
+          outputs:
+            - entry_key
+
+        - name: save-entry-xml
+          type: function
+          function: llmflow.utils.io.save_xml
+          inputs:
+            xml_string: "${entry}"
+            basename: "${entry_key}"
+          outputs:
+            - saved_path
+
+        - name: expand-entry-with-llm
+          type: llm
+          prompt:
+            file: ${prompts_dir}/expand-abbott-smith.gpt
+            inputs:
+              definition: "${entry}"
+          outputs:
+            - expanded_entry
+
+        - name: save-expanded-entry
+          type: function
+          function: llmflow.utils.io.save_markdown_as
+          inputs:
+            text: "${expanded_entry}"
+            passage: "${entry_key}"
+            format: "md"
+            output_dir: "outputs/markdown"
+          outputs:
+            - markdown_path

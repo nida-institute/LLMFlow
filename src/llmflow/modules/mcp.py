@@ -7,6 +7,7 @@ from mcp.client.stdio import stdio_client
 from llmflow.modules.logger import Logger
 import httpx
 import json
+import time
 
 logger = Logger()
 
@@ -163,12 +164,20 @@ class MCPClient:
             await self._async_init_session()
 
         try:
+            logger.debug(f"🔧 About to call MCP tool: {tool_name}")
+            logger.debug(f"   Arguments: {json.dumps(arguments, indent=2)}")
+            start_time = time.time()
+
             logger.debug(f"🔧 Calling MCP tool: {tool_name} with args: {arguments}")
 
             result = await self._send_jsonrpc("tools/call", {
                 "name": tool_name,
                 "arguments": arguments
             })
+
+            elapsed = time.time() - start_time
+            logger.info(f"⏱️  MCP call took {elapsed:.2f}s")
+            logger.info(f"   Response size: {len(str(result))} chars")
 
             # Extract text from result
             content = result.get("content", [])

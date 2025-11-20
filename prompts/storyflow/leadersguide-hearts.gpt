@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
     - passage
@@ -11,7 +11,7 @@ prompt:
   optional: []
   format: Markdown
   description: Helps the group discern what's happening at the heart (lev/kardia) level for people in the scene from {passage} — where thought, desire, emotion, will, and attention converge.
--->
+---
 <!-- HARD RULE: The FIRST non-empty line of your output MUST be:
 ### Enter the Scene with Your Whole Heart ({{citation}})
 Do not use any other H3 before this. -->

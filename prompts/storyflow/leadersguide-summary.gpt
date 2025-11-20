@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
   - passage
@@ -7,7 +7,7 @@ prompt:
   optional: []
   format: Markdown
   description: Generates a wrap-up summary for the leader’s guide on {passage}
--->
+---
 <!-- GPT: Do not remove or rewrite any template variables like {passage}, {exegetical_culture}, {exegetical_wordstudy}. -->
 
 # StoryFlow Leader's Guide: Scene List for {passage}

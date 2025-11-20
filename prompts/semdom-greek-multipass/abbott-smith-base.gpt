@@ -1,9 +1,9 @@
-<!--
+---
 prompt:
   requires: [lemma, abbott_smith_xml]
   format: JSON
   description: Pass A - Generic Abbott-Smith base extraction (zero information loss).
--->
+---
 
 Source XML (lemma={{lemma}}):
 {{abbott_smith_xml}}

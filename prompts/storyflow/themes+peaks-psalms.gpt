@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
   - psalm_number
@@ -6,7 +6,7 @@ prompt:
   - peak_output
   format: Markdown
   description: Combines themes and peak analysis into an interpretive narrative that helps group leaders understand the movement and message of the psalm
--->
+---
 
 # StoryFlow Narrative Summary: Psalm {psalm_number}
 

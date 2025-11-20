@@ -1,5 +1,5 @@
-from typing import Any, Dict, List, Literal, Optional, Union
-from pydantic import BaseModel, ValidationError, ConfigDict, Field
+from typing import Any, Dict, List, Optional, Union
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class LLMConfig(BaseModel):
@@ -43,7 +43,7 @@ class StepConfig(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     name: str
-    type: str
+    type: Optional[str] = None
     function: Optional[str] = None
     inputs: Optional[dict] = None
     input: Optional[str] = None  # For for-each steps
@@ -53,7 +53,7 @@ class StepConfig(BaseModel):
     steps: Optional[List["StepConfig"]] = None
     append_to: Optional[str] = None
     log: Optional[str] = None
-    saveas: Optional[Union[str, SaveAsConfig]] = None
+    saveas: Optional[Union[str, SaveAsConfig, List[Dict[str, Any]]]] = None
 
 
 class PipelineConfig(BaseModel):

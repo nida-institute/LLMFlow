@@ -1,11 +1,11 @@
-<!--
+---
 prompt:
   requires: [lemma, base_json, external_json, grammar_functions_json]
   format: JSON
   description: |
     Pass E: Usage Clustering. Group usages into functional clusters, mark
     structural vs semantic, assign productivity scores and sense candidacy.
--->
+---
 
 # Pass E: Usage Clustering
 

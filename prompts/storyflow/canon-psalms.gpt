@@ -1,10 +1,10 @@
-<!--
+---
 prompt:
   requires:
   - psalm_number
   format: Markdown
   description: Guides leaders in exploring how the Psalm’s placement in the Psalter affects interpretation, including variable-length sequences
--->
+---
 
 # StoryFlow Leader’s Guide: Canonical Context of Psalm {psalm_number}
 

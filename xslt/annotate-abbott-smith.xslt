@@ -33,7 +33,7 @@
   <!-- Process each sense: add sensePath and handle grouping inline -->
   <xsl:template match="tei:sense">
     <xsl:param name="parent-sensePath" select="''"/>
-    
+
     <!-- Calculate path: if we have a parent path param, use it; otherwise use ancestors -->
     <xsl:variable name="path">
       <xsl:choose>
@@ -50,11 +50,11 @@
         </xsl:otherwise>
       </xsl:choose>
     </xsl:variable>
-    
+
     <xsl:copy copy-namespaces="no">
       <xsl:apply-templates select="@*"/>
       <xsl:attribute name="sensePath" select="$path"/>
-      
+
       <!-- Process children, grouping by punctuation -->
       <xsl:call-template name="process-sense-content">
         <xsl:with-param name="nodes" select="node()"/>
@@ -67,7 +67,7 @@
   <xsl:template name="process-sense-content">
     <xsl:param name="nodes"/>
     <xsl:param name="sensePath"/>
-    
+
     <!-- Split text nodes and group the result -->
     <xsl:variable name="split-nodes">
       <xsl:for-each select="$nodes">
@@ -91,15 +91,15 @@
         </xsl:choose>
       </xsl:for-each>
     </xsl:variable>
-    
+
     <!-- Group by marker elements (match regardless of namespace) -->
-    <xsl:for-each-group select="$split-nodes/node()" 
+    <xsl:for-each-group select="$split-nodes/node()"
       group-ending-with="*[local-name()='marker' and @type='punct']">
-      
+
       <xsl:variable name="has-usage" select="
-        current-group()[self::tei:foreign] or 
+        current-group()[self::tei:foreign] or
         current-group()[self::tei:ref]"/>
-      
+
       <xsl:choose>
         <!-- Wrap usage examples -->
         <xsl:when test="$has-usage">
@@ -124,7 +124,7 @@
             </xsl:for-each>
           </usageGroup>
         </xsl:when>
-        
+
         <!-- Pass through prose -->
         <xsl:otherwise>
           <xsl:for-each select="current-group()">
@@ -157,8 +157,12 @@
     </xsl:copy>
   </xsl:template>
 
-  <xsl:template match="@* | text()" mode="copy-clean">
-    <xsl:copy/>
-  </xsl:template>
+<xsl:template match="@*" mode="copy-clean">
+  <xsl:copy/>
+</xsl:template>
+
+<xsl:template match="text()" mode="copy-clean">
+  <xsl:value-of select="replace(., '\.\s*\.\s*\.', '...')"/>
+</xsl:template>
 
 </xsl:stylesheet>

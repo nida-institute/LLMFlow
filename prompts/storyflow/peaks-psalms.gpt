@@ -1,10 +1,10 @@
-<!--
+---
 prompt:
   requires:
   - psalm_number
   format: Markdown
   description: Identifies the emotional, poetic, or theological high point (peak) of a psalm from the WLC text
--->
+---
 
 # StoryFlow Peak: Psalm {psalm_number}
 

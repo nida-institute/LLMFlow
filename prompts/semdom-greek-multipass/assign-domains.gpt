@@ -1,0 +1,37 @@
+---
+inputs:
+  sense_text: "Formatted subsense (label + pattern + examples)"
+  current_path: "Ancestor path so far (e.g., '9 Grammar > 9.6.3 Discourse devices')"
+  candidates: "List of sibling domains at current level"
+outputs:
+  choice: "JSON with chosen_id, confidence, reason, eliminated"
+---
+
+You are choosing ONE semantic domain at this classification level.
+
+SENSE:
+{{sense_text}}
+
+PATH SO FAR: {{current_path}}
+
+CANDIDATES (choose the best match):
+{{candidates}}
+
+TASK:
+1. Evaluate each candidate's "Use for" description and diagnostic questions
+2. Choose the ONE domain that best fits this sense
+3. Assign confidence (0.0-1.0)
+4. Explain your choice
+5. Explain why you rejected the others
+
+OUTPUT (JSON only):
+{
+  "chosen_id": "9.6.3.11",
+  "confidence": 0.85,
+  "reason": "Sense distributes reference over group members using ὁ μὲν ... ὁ δέ pattern",
+  "eliminated": {
+    "9.6.3.8": "Not marking definiteness",
+    "9.6.3.10": "Not a numeral",
+    "9.6.3.12": "Not marking possession"
+  }
+}

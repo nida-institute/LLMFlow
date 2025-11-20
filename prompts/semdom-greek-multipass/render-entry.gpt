@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
     - lemma
@@ -7,4 +7,4 @@ prompt:
   produces:
     - final_markdown
   format: markdown
--->
+---

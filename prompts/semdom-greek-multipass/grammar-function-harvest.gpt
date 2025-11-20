@@ -1,11 +1,11 @@
-<!--
+---
 prompt:
   requires: [lemma, base_json, external_json]
   format: JSON
   description: |
     Pass E: Grammar Function Harvest. Extract discourse/syntactic functions
     from grammars for function words. Content words return empty JSON.
--->
+---
 
 # Pass E: Grammar Function Harvest
 

@@ -1,0 +1,82 @@
+---
+inputs:
+  lemma: "Target lemma"
+  enhanced_xml: "Enhanced Abbott-Smith XML with sense structure"
+  reference_analysis: "JSON with all analyzed references"
+outputs:
+  sense_structure: "JSON mapping of sense hierarchy"
+---
+
+You are creating a sense structure for a lexical entry based on Abbott-Smith's organization.
+
+INPUT LEMMA: {{lemma}}
+
+ENHANCED XML:
+{{enhanced_xml}}
+
+REFERENCE ANALYSIS:
+{{reference_analysis}}
+
+---
+
+## YOUR TASK
+
+Analyze the Abbott-Smith XML to extract the sense hierarchy. For each sense:
+1. Extract the sense path (I, I.1, I.2, II, II.1, etc.)
+2. Extract the sense label/heading
+3. Note how many references belong to this sense (from reference_analysis)
+4. Extract any definitional prose
+5. Note grammatical patterns or usage notes
+
+## OUTPUT FORMAT
+
+**Your response must be PURE JSON starting with `{` and ending with `}`.**
+**NO explanations. NO markdown code fences. NO text before or after.**
+
+```json
+{
+  "lemma": "{{lemma}}",
+  "total_senses": <NUMBER>,
+  "senses": [
+    {
+      "path": "I",
+      "label": "As Demonstrative Pronoun (Homeric)",
+      "definition": "In Homeric and early poetic usage, functions as demonstrative pronoun",
+      "reference_count": 3,
+      "reference_ids": [1, 2, 3],
+      "subsenses": []
+    },
+    {
+      "path": "II",
+      "label": "As Article",
+      "definition": "The definite article, marking known or identifiable referents",
+      "reference_count": 34,
+      "reference_ids": [4, 5, 6, 7, 8, 9, 10, 11, 12, ...],
+      "subsenses": [
+        {
+          "path": "II.1",
+          "label": "Simple Usage",
+          "definition": "Basic articular usage with nouns",
+          "reference_count": 8,
+          "reference_ids": [4, 5, 6, 7, 8, 9, 10, 11]
+        },
+        {
+          "path": "II.2",
+          "label": "Distributive (ὁ μὲν ... ὁ δέ)",
+          "definition": "Correlative construction 'the one ... the other'",
+          "reference_count": 6,
+          "reference_ids": [12, 13, 14, 15, 16, 17]
+        }
+      ]
+    }
+  ]
+}
+```
+
+**CRITICAL RULES:**
+1. **Preserve Abbott-Smith's sense structure exactly** - don't reorganize
+2. **Include all reference IDs** - every reference must appear in exactly one sense
+3. **Extract actual definitions** from the XML prose, don't invent
+4. **Output ONLY JSON** - first character `{`, last character `}`
+
+**Begin processing now.**

@@ -1,0 +1,58 @@
+---
+inputs:
+  lemma: "Target lemma"
+  enhanced_xml: "Enhanced Abbott-Smith XML"
+outputs:
+  reference_analysis: "JSON with all reference data"
+---
+
+You are analyzing an Abbott-Smith entry to extract and fetch ALL biblical references.
+
+INPUT (Enhanced XML):
+{{enhanced_xml}}
+
+TASK:
+1. Extract all <ref type="scripture"> elements
+2. Convert Abbott-Smith abbreviations to USFM (Mt → MAT, Ro → ROM, etc.)
+3. Make ONE SINGLE call to get_passage_text with ALL references
+4. Match returned verses to senses
+5. Return final JSON
+
+CRITICAL: After receiving the batch response, DO NOT call get_passage_text again.
+You will receive ALL verses in one response. Use that data to complete your analysis.
+
+STEPS:
+1. Parse XML for all <ref> elements
+2. Build USFM array: ["MAT 8:20", "ROM 5:12", ...]
+3. Call get_passage_text ONCE with entire array
+4. Match each returned verse to its sense using the reference text
+5. Output final JSON (do not make additional tool calls)
+
+OUTPUT FORMAT:
+```json
+{
+  "lemma": "{{lemma}}",
+  "total_references": <count>,
+  "references": [
+    {
+      "id": 1,
+      "original_ref": "Mt 8:20",
+      "usfm_reference": "MAT 8:20",
+      "greek_text": "... from MCP response ...",
+      "sense_id": "...",
+      "sense_n": "..."
+    }
+  ],
+  "fetch_summary": {
+    "requested": <count>,
+    "received": <count>,
+    "tool_calls_made": 1
+  }
+}
+```
+
+IMPORTANT:
+- Make exactly ONE tool call
+- After receiving the batch response, proceed directly to analysis
+- Do NOT verify individual verses
+- Do NOT make follow-up calls

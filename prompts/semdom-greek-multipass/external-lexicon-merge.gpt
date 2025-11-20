@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires: [lemma, base_json]
   format: JSON
@@ -6,7 +6,7 @@ prompt:
     Pass D: External Lexicon Merge. Augment Abbott-Smith with Hellenistic
     attestations (300 BCE–300 CE) from public-domain sources. Paraphrase
     restricted sources (Greek text + translation OK under fair use).
--->
+---
 
 # Pass D: External Lexicon Merge
 

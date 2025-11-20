@@ -1,0 +1,26 @@
+---
+inputs:
+  usfm_refs: "Reference data with USFM codes"
+outputs:
+  greek_texts: "Batch MCP response"
+---
+
+Fetch ALL these biblical references in ONE batch call.
+
+References to fetch: {{usfm_refs.usfm_batch}}
+
+Make EXACTLY ONE call to `get_passage_text`:
+```json
+{
+  "usfm_references": {{usfm_refs.usfm_batch}},
+  "textual_editions": ["SBLGNT"]
+}
+```
+
+Return the MCP response as JSON:
+```json
+{
+  "batch_response": <MCP response>,
+  "num_fetched": <number>
+}
+```

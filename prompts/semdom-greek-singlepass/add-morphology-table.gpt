@@ -1,0 +1,344 @@
+---
+inputs:
+  lemma: "Greek lemma"
+  pos: "Part of speech"
+  entry_md: "Existing entry markdown"
+outputs:
+  entry_with_morphology: "Entry with morphology table appended"
+---
+
+You are adding morphology content to a Greek lexicon entry.
+
+INPUT:
+- Lemma: {{lemma}}
+- Part of Speech: {{pos}}
+- Current entry:
+{{entry_md}}
+
+TASK: Generate comprehensive morphology content showing ALL **Hellenistic Greek** forms and VARIANTS.
+
+---
+
+## CRITICAL OUTPUT RULES
+
+1. **NO COMMENTARY**: Output ONLY the modified markdown. Do not add:
+   - Introductory text ("Here is...", "I've added...", etc.)
+   - Closing remarks ("Let me know if...", "Hope this helps...", etc.)
+   - Explanations outside the markdown structure
+
+2. **PRESERVE ON UNCERTAINTY**: If you cannot determine the correct morphology or are uncertain about the part of speech:
+   - Output the input markdown EXACTLY as provided
+   - Do NOT attempt to modify it
+   - Do NOT add placeholder tables
+   - Do NOT add explanatory notes
+
+3. **START OUTPUT IMMEDIATELY**: Your response must begin directly with the markdown (e.g., `# ὁ`)
+
+4. **INDECLINABLE WORDS**: If the word is indeclinable (particles, interjections, some adverbs):
+   - Add a note AFTER "Core Root Meaning" section, BEFORE "Senses" section
+   - Format: `> **Note:** This word is indeclinable and does not change form.`
+   - Do NOT add any tables
+
+5. **PHONOLOGICAL VARIANTS**: If the word has different forms due to phonological context:
+   - Add a note AFTER "Core Root Meaning" section, BEFORE "Senses" section
+   - Format: `> **Note:** This word has phonological variants: [list forms with context]`
+   - Example: `> **Note:** This word has phonological variants: ἀλλά (before consonants), ἀλλ' (before vowels by elision).`
+
+---
+
+## TWO INSERTION POINTS FOR VERBS
+
+For verbs, you will insert morphology content in TWO locations:
+
+### 1. PRINCIPAL PARTS TABLE (Before Senses section)
+
+Insert AFTER "Core Root Meaning" section (and after any Note about phonology), BEFORE "Senses and Semantic Domains" section.
+
+**Format:**
+
+```markdown
+---
+
+### **Principal Parts**
+
+| | Present Active | Future Active | Aorist Active | Perfect Active | Perfect M/P | Aorist Passive |
+|---|---|---|---|---|---|---|
+| **Traditional** | λύω | λύσω | ἔλυσα | λέλυκα | λέλυμαι | ἐλύθην |
+| **Infinitival** | λύειν | λύσειν | λῦσαι | λελυκέναι | λελύσθαι | λυθῆναι |
+
+---
+```
+
+**For irregular verbs, add note below table:**
+
+```markdown
+*Note: Suppletive stems - Future from ἐρῶ, Aorist from εἶπον, Passive from ῥέω.*
+```
+
+### 2. FULL CONJUGATION TABLES (In Notes section)
+
+Insert in **Notes** section, AFTER existing notes content, BEFORE the triple separator `---\n---\n---`.
+
+Full paradigm tables with all tenses, moods, voices, infinitives, and participles.
+
+---
+
+## Variant Form Guidelines
+
+**FOCUS: Hellenistic/Koine Greek only** (NT/LXX period, ~300 BCE - 300 CE)
+
+1. **Include attested variants** from:
+   - Different critical editions (WH, NA28, SBLGNT, Rahlfs)
+   - Manuscript traditions (some normalize differently)
+   - Contract forms vs. uncontracted (where both occur in Koine)
+   - **Phonological variants** (e.g., movable ν, elision, crasis)
+
+2. **Show variants in same cell** separated by " / ":
+   ```
+   | 3sg | λύει / λύειν (before vowel) |
+   | 3pl | λύουσι / λύουσιν (before vowel) |
+   ```
+
+3. **DO NOT include**:
+   - Classical Attic forms not used in Koine
+   - Homeric/Epic forms
+   - Ionic/Doric dialect forms unless they survived into Koine
+
+4. **Mark rare/unattested forms** with † if reconstructed but not actually attested in NT/LXX corpus
+
+---
+
+## VERB MORPHOLOGY CONTENT
+
+### **PRINCIPAL PARTS TABLE** (Insert before Senses section)
+
+**Table format with header row:**
+
+| | Present Active | Future Active | Aorist Active | Perfect Active | Perfect M/P | Aorist Passive |
+|---|---|---|---|---|---|---|
+| **Traditional** | λύω | λύσω | ἔλυσα | λέλυκα | λέλυμαι | ἐλύθην |
+| **Infinitival** | λύειν | λύσειν | λῦσαι | λελυκέναι | λελύσθαι | λυθῆναι |
+
+**For irregular verbs (example: λέγω):**
+
+| | Present Active | Future Active | Aorist Active | Perfect Active | Perfect M/P | Aorist Passive |
+|---|---|---|---|---|---|---|
+| **Traditional** | λέγω | ἐρῶ | εἶπον/εἶπα | εἴρηκα | εἴρημαι | ἐρρέθην/ἐρρήθην |
+| **Infinitival** | λέγειν | ἐρεῖν | εἰπεῖν | εἰρηκέναι | εἰρῆσθαι | ῥηθῆναι |
+
+*Note: Suppletive stems from ἐρῶ (future), εἶπον (aorist), ῥέω (passive).*
+
+---
+
+### **FULL CONJUGATION TABLES** (Insert in Notes section)
+
+For each verb, include ALL of the following in the Notes section:
+
+**IMPORTANT**: For each tense/voice section header, include BOTH the 1sg indicative form AND the infinitive in parentheses:
+
+Example: `##### **Present Active (λύω, λύειν)**`
+
+#### **Present System**
+- **Present Active Indicative, Subjunctive, Optative, Imperative**
+- **Present Middle/Passive Indicative, Subjunctive, Optative, Imperative**
+- **Imperfect Active Indicative**
+- **Imperfect Middle/Passive Indicative**
+
+#### **Future System**
+- **Future Active Indicative, Optative**
+- **Future Middle Indicative, Optative**
+- **Future Passive Indicative, Optative** (if distinct)
+
+#### **Aorist System**
+- **Aorist Active Indicative, Subjunctive, Optative, Imperative**
+- **Aorist Middle Indicative, Subjunctive, Optative, Imperative**
+- **Aorist Passive Indicative, Subjunctive, Optative, Imperative**
+
+#### **Perfect System**
+- **Perfect Active Indicative, Subjunctive, Optative, Imperative**
+- **Perfect Middle/Passive Indicative, Subjunctive, Optative, Imperative**
+- **Pluperfect Active Indicative**
+- **Pluperfect Middle/Passive Indicative**
+
+#### **INFINITIVES**
+- Present Active, Present Middle/Passive
+- Future Active, Future Middle, Future Passive
+- Aorist Active, Aorist Middle, Aorist Passive
+- Perfect Active, Perfect Middle/Passive
+
+#### **PARTICIPLES**
+- Present Active (M/F/N, all cases, singular & plural)
+- Present Middle/Passive (M/F/N, all cases, singular & plural)
+- Future Active, Future Middle, Future Passive (full declension)
+- Aorist Active, Aorist Middle, Aorist Passive (full declension)
+- Perfect Active, Perfect Middle/Passive (full declension)
+
+#### **VERBAL ADJECTIVES**
+- If applicable and attested in Hellenistic Greek (e.g., λυτέος)
+
+---
+
+## NOUN/ADJECTIVE/ARTICLE MORPHOLOGY
+
+For non-verbs, insert declension tables ONLY in Notes section (no principal parts table needed).
+
+### **NOUN PARADIGMS**
+
+For nouns, include:
+- **All cases**: Nominative, Genitive, Dative, Accusative, Vocative (if distinct)
+- **Singular and Plural**
+- Note declension class (1st, 2nd, 3rd, etc.)
+- Include Hellenistic variants (e.g., simplified case endings)
+- Show phonological variants where applicable
+
+### **ADJECTIVE PARADIGMS**
+
+For adjectives, include:
+- **All genders**: Masculine, Feminine, Neuter
+- **All cases**: Nominative, Genitive, Dative, Accusative, Vocative (if distinct)
+- **Singular and Plural**
+- **Comparative and Superlative** forms if attested in Hellenistic Greek
+
+### **ARTICLE/PRONOUN PARADIGMS**
+
+For articles and pronouns:
+- **All genders**: Masculine, Feminine, Neuter
+- **All cases**: Nominative, Genitive, Dative, Accusative
+- **Singular and Plural**
+
+---
+
+## TABLE FORMAT EXAMPLES
+
+### Example: Principal Parts Table (Insert before Senses)
+
+```markdown
+---
+
+### **Principal Parts**
+
+| | Present Active | Future Active | Aorist Active | Perfect Active | Perfect M/P | Aorist Passive |
+|---|---|---|---|---|---|---|
+| **Traditional** | λύω | λύσω | ἔλυσα | λέλυκα | λέλυμαι | ἐλύθην |
+| **Infinitival** | λύειν | λύσειν | λῦσαι | λελυκέναι | λελύσθαι | λυθῆναι |
+
+---
+```
+
+### Example: Indeclinable Word Note (Insert before Senses)
+
+```markdown
+> **Note:** This word is indeclinable and does not change form.
+
+---
+```
+
+### Example: Phonological Variant Note (Insert before Senses)
+
+```markdown
+> **Note:** This word has phonological variants: ἀλλά (before consonants), ἀλλ' (before vowels by elision).
+
+---
+```
+
+### Example: Full Conjugation Tables (Insert in Notes)
+
+```markdown
+#### **Morphology**
+
+##### **Present Active (λύω, λύειν)**
+
+**Indicative**
+
+| Person | Singular | Plural |
+|--------|----------|--------|
+| 1 | λύω | λύομεν |
+| 2 | λύεις | λύετε |
+| 3 | λύει | λύουσι(ν) |
+
+**Subjunctive**
+
+| Person | Singular | Plural |
+|--------|----------|--------|
+| 1 | λύω | λύωμεν |
+| 2 | λύῃς | λύητε |
+| 3 | λύῃ | λύωσι(ν) |
+
+**Optative**
+
+| Person | Singular | Plural |
+|--------|----------|--------|
+| 1 | λύοιμι | λύοιμεν |
+| 2 | λύοις | λύοιτε |
+| 3 | λύοι | λύοιεν |
+
+**Imperative**
+
+| Person | Singular | Plural |
+|--------|----------|--------|
+| 2 | λῦε | λύετε |
+| 3 | λυέτω | λυέτωσαν / λυόντων |
+
+##### **Present Middle/Passive (λύομαι, λύεσθαι)**
+
+**Indicative**
+
+| Person | Singular | Plural |
+|--------|----------|--------|
+| 1 | λύομαι | λυόμεθα |
+| 2 | λύῃ / λύει | λύεσθε |
+| 3 | λύεται | λύονται |
+
+[Continue with all moods...]
+
+##### **Imperfect Active (ἔλυον)**
+
+**Indicative**
+
+| Person | Singular | Plural |
+|--------|----------|--------|
+| 1 | ἔλυον | ἐλύομεν |
+| 2 | ἔλυες | ἐλύετε |
+| 3 | ἔλυε(ν) | ἔλυον |
+
+[Continue with all tenses/voices...]
+
+##### **Infinitives**
+
+| Voice/Tense | Form |
+|-------------|------|
+| Present Active | λύειν |
+| Present Middle/Passive | λύεσθαι |
+| Future Active | λύσειν |
+| Future Middle | λύσεσθαι |
+| Aorist Active | λῦσαι |
+| Aorist Middle | λύσασθαι |
+| Aorist Passive | λυθῆναι |
+| Perfect Active | λελυκέναι |
+| Perfect Middle/Passive | λελύσθαι |
+
+##### **Participles**
+
+**Present Active (λύων, λύουσα, λῦον)**
+
+| Case | Masculine Sg | Feminine Sg | Neuter Sg | Masculine Pl | Feminine Pl | Neuter Pl |
+|------|--------------|-------------|-----------|--------------|-------------|-----------|
+| Nom | λύων | λύουσα | λῦον | λύοντες | λύουσαι | λύοντα |
+| Gen | λύοντος | λυούσης | λύοντος | λυόντων | λυουσῶν | λυόντων |
+| Dat | λύοντι | λυούσῃ | λύοντι | λύουσι(ν) | λυούσαις | λύουσι(ν) |
+| Acc | λύοντα | λύουσαν | λῦον | λύοντας | λυούσας | λύοντα |
+
+[Continue with all participle forms...]
+```
+
+---
+
+## FINAL OUTPUT REMINDER
+
+1. **NO PREAMBLE OR POSTSCRIPT** - Start with `#` (the markdown header)
+2. **PRESERVE INPUT IF UNCERTAIN** - When in doubt, return the input unchanged
+3. **INDECLINABLE/PHONOLOGICAL NOTES** - Add appropriate note before Senses section if applicable
+4. **FOR VERBS**: Insert principal parts before Senses (after any notes), full tables in Notes
+5. **FOR NON-VERBS**: Insert declension tables in Notes only (unless indeclinable)
+6. **INCLUDE VARIANTS** where attested in Hellenistic Greek
+7. Output the COMPLETE entry with morphology inserted correctly.

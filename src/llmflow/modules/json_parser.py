@@ -36,13 +36,18 @@ def parse_llm_json_response(response_text, fallback_on_error=True):
                 continue
 
         # Look for JSON-like structures without code blocks
-        json_pattern = r"(\{[\s\S]*?\}|\[[\s\S]*?\])"
+        # FIX: Use GREEDY matching to capture the full JSON structure
+        # Try to find the largest valid JSON object or array
+        json_pattern = r"(\{[\s\S]*\}|\[[\s\S]*\])"  # ← Changed from *? to * (greedy)
         potential_json = re.findall(json_pattern, response_text)
+
+        # Sort by length descending - try longest matches first
+        potential_json = sorted(potential_json, key=len, reverse=True)
 
         for i, candidate in enumerate(potential_json):
             try:
                 result = json.loads(candidate.strip())
-                logger.debug(f"✅ Successfully parsed JSON from pattern match {i+1}")
+                logger.debug(f"✅ Successfully parsed JSON from pattern match {i+1} (length: {len(candidate)})")
                 return result
             except json.JSONDecodeError:
                 logger.debug(f"Failed to parse pattern match {i+1} as JSON")

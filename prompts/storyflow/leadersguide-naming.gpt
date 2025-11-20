@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
     - passage
@@ -7,7 +7,7 @@ prompt:
     - exegetical_culture
     - exegetical_emotionalarc
   format: markdown
--->
+---
 
 # StoryFlow Leader's Guide: Step 4 – Name the Scene
 

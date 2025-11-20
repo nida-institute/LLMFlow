@@ -1,0 +1,235 @@
+name: SemLex Single-Pass
+
+variables:
+  prompts_dir: prompts/semdom-greek-singlepass
+  output_dir: ./obsidian/grc2
+  xslt_dir: xslt
+  limit: 50
+
+mcp_servers:
+  bible:
+    url: "https://bible-resource-server-preview.labs.biblica.com/mcp"
+    description: "Biblica Bible Resource Server"
+    tools:
+      - get_passage_text
+
+steps:
+  - name: read-status
+    type: tsv
+    description: "Load lemma status rows from the TSV tracker"
+    inputs:
+      path: inputs/Abbot-Smith/status.tsv
+      limit: "${limit}"
+    outputs:
+      - status_rows
+
+  - name: process-entries
+    type: for-each
+    description: "Iterate over each status row (single-pass enrichment)"
+    input: "${status_rows}"
+    item_var: row
+    steps:
+      ########################################################################
+      # STEP 1: FIND ENTRY
+      ########################################################################
+      - name: find-entry
+        type: xpath
+        description: "Select the TEI entry for the current lemma"
+        inputs:
+          path: inputs/Abbot-Smith/abbott-smith.tei.xml
+          xpath: //tei:entry[@n='${row[lemma]}']
+          output_format: xml-string
+          namespaces:
+            tei: "http://www.crosswire.org/2013/TEIOSIS/namespace"
+        outputs:
+          - entries
+        saveas:
+          path: "${output_dir}/intermediate/${row.lemma}.raw.xml"
+          group_by_prefix: 2
+
+      ########################################################################
+      # STEP 2: SKIP IF NOT FOUND
+      ########################################################################
+      - name: skip-if-not-found-in-lexicon
+        type: if
+        condition: "len(entries) == 0"
+        after: skip
+
+      ########################################################################
+      # STEP 2.1: ENHANCE XML STRUCTURE
+      ########################################################################
+      - name: enhance-xml
+        type: xslt
+        description: "Normalize XML (add sensePath, usageGroup, citation markers)"
+        inputs:
+          stylesheet_path: xslt/annotate-abbott-smith.xslt
+          xml_string: "${entries[0]}"
+        outputs:
+          - enhanced_xml
+        saveas:
+          path: "${output_dir}/intermediate/${row.lemma}.enhanced.xml"
+          group_by_prefix: 2
+
+      ########################################################################
+      # STEP 2: ANALYZE REFERENCES (analyze-references.gpt)
+      ########################################################################
+      - name: analyze-references
+        type: llm
+        description: "Extract and analyze all biblical references"
+        model: gpt-4o
+        temperature: 0.2
+        max_tokens: 16000
+        response_format:
+          type: json_object  # ✅ Already has it
+        mcp:
+          enabled: true
+          server: bible
+          tools:
+            - get_passage_text
+        prompt:
+          file: analyze-references.gpt
+          inputs:
+            lemma: "${row[lemma]}"
+            enhanced_xml: "${enhanced_xml}"
+        outputs:
+          - reference_analysis
+        saveas:
+          path: "${output_dir}/intermediate/${row.lemma}.references.json"
+          group_by_prefix: 2
+
+      ########################################################################
+      # STEP 3: STRUCTURE ENTRY (structure-entry.gpt)
+      ########################################################################
+      - name: structure-entry
+        type: llm
+        description: "Map references to Abbott-Smith sense structure"
+        model: gpt-4o
+        temperature: 0.1
+        max_tokens: 8000
+        response_format:
+          type: json_object  # ✅ ADD THIS
+        prompt:
+          file: structure-entry.gpt
+          inputs:
+            lemma: "${row[lemma]}"
+            enhanced_xml: "${enhanced_xml}"
+            reference_analysis: "${reference_analysis}"
+        outputs:
+          - sense_structure
+        saveas:
+          path: "${output_dir}/intermediate/${row.lemma}.structure.json"
+          group_by_prefix: 2
+
+      ########################################################################
+      # STEP 4A-prime: REORGANIZE SEMANTICALLY
+      ########################################################################
+      - name: reorganize-semantic
+        type: llm
+        description: "Reorganize from diachronic to synchronic, core→peripheral"
+        model: gpt-4o
+        temperature: 0.5
+        max_tokens: 12000
+        response_format:
+          type: json_object  # ✅ ADD THIS
+        prompt:
+          file: reorganize-semantic.gpt
+          inputs:
+            lemma: "${row[lemma]}"
+            sense_structure: "${sense_structure}"
+            reference_analysis: "${reference_analysis}"
+        outputs:
+          - semantic_structure
+        saveas:
+          path: "${output_dir}/intermediate/${row.lemma}.semantic.json"
+          group_by_prefix: 2
+
+      ########################################################################
+      # STEP 4B: EXPAND ENTRY (expand-entry.gpt)
+      ########################################################################
+      - name: expand-entry
+        type: llm
+        description: "Expand entry with definitions and usage notes"
+        model: gpt-4o
+        temperature: 0.7
+        max_tokens: 16000
+        prompt:
+          file: expand-entry.gpt
+          inputs:
+            lemma: "${row[lemma]}"
+            enhanced_xml: "${enhanced_xml}"
+            entry_with_examples: "${entry_with_examples}"
+            reference_analysis: "${reference_analysis}"
+        outputs:
+          - entry_md
+        saveas:
+          path: "${output_dir}/intermediate/${row.lemma}.expanded.md"
+          group_by_prefix: 2
+
+      ########################################################################
+      # STEP 4C: VERIFY QUOTES (verify-quotes.gpt)
+      ########################################################################
+      - name: verify-quotes
+        type: llm
+        description: "Verify all Greek quotes match SBLGNT via MCP"
+        model: gpt-4o
+        temperature: 0.0
+        max_tokens: 8000
+        # NO response_format - produces Markdown, not JSON
+        mcp:
+          enabled: true
+          server: bible
+          tools:
+            - get_passage_text
+        prompt:
+          file: verify-quotes.gpt
+          inputs:
+            lemma: "${row[lemma]}"
+            entry_with_examples: "${entry_with_examples}"
+            reference_analysis: "${reference_analysis}"
+        outputs:
+          - verified_entry
+        saveas:
+          path: "${output_dir}/intermediate/${row.lemma}.verified.md"
+          group_by_prefix: 2
+
+      ########################################################################
+      # STEP 5: ADD MORPHOLOGY (add-morphology-table.gpt)
+      ########################################################################
+      - name: add-morphology
+        type: llm
+        description: "Add morphology tables to the entry"
+        model: gpt-4o
+        temperature: 0.1  # Changed: Very deterministic (grammar rules)
+        max_tokens: 8000  # Changed: Just adding tables to existing entry
+        prompt:
+          file: add-morphology-table.gpt
+          inputs:
+            lemma: "${row[lemma]}"
+            pos: "${row[pos]}"
+            entry_md: "${entry_md}"
+        outputs:
+          - entry_with_morphology
+        saveas:
+          path: "${output_dir}/markdown/${row.lemma}.entry.md"
+          group_by_prefix: 2
+
+      ########################################################################
+      # STEP 6: AUDIT REFERENCES (audit-entry-references.gpt)
+      ########################################################################
+      - name: audit-references
+        type: llm
+        description: "Verify all references from analysis appear in final entry"
+        model: gpt-4o
+        temperature: 0.0  # Changed: Pure verification (deterministic)
+        max_tokens: 4000  # Changed: Just producing audit report
+        prompt:
+          file: audit-entry-references.gpt
+          inputs:
+            lemma: "${row[lemma]}"
+            reference_analysis: "${reference_analysis}"
+            entry_md: "${entry_with_morphology}"
+        outputs:
+          - audit_report
+        saveas:
+          path: "${output_dir}/intermediate/${row.lemma}.audit.md"
+          group_by_prefix: 2

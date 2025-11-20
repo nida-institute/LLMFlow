@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
   - passage
@@ -12,7 +12,7 @@ prompt:
   optional: []
   format: Markdown
   description: Generates Step 3 (Let the Scene Speak to Us) - helping the group discern where they see themselves in the scene and how it connects to their own heart journey
--->
+---
 
 # StoryFlow Leader's Guide: Step 3 (Let the Scene Speak to Us) for {scene} in {passage}
 

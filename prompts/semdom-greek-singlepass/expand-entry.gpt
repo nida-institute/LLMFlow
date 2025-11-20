@@ -1,0 +1,234 @@
+---
+inputs:
+  lemma: "Target lemma"
+  enhanced_xml: "Enhanced Abbott-Smith XML"
+  entry_with_examples: "Markdown entry with all references"
+  reference_analysis: "JSON with all reference data"
+outputs:
+  entry_md: "Expanded entry with definitions and notes"
+---
+
+You are expanding a lexical entry for Hellenistic Greek (Koine).
+
+INPUT LEMMA: {{lemma}}
+
+ENHANCED XML (Abbott-Smith source):
+{{enhanced_xml}}
+
+CURRENT ENTRY (with reorganized senses and references):
+{{entry_with_examples}}
+
+REFERENCE ANALYSIS:
+{{reference_analysis}}
+
+---
+
+## YOUR TASK
+
+Create a comprehensive lexical entry following these principles:
+
+### 1. PROTOTYPICAL (ROOT) MEANING
+
+Start with the **core, most concrete meaning** in Koine Greek:
+- What is the basic semantic function?
+- What is the most frequent use in NT/LXX?
+- Avoid diachronic speculation (no "originally in Homer...")
+- **Only mention phonological variants if they actually differ** (e.g., οὐ/οὐκ/οὐχ are true variants; ὁ/ὁ is not)
+- **Don't list identical forms as variants** - check if the Greek text actually differs
+
+**Example (TRUE phonological variants):**
+```markdown
+# οὐ
+
+**Core Meaning:** Negative particle indicating negation or denial.
+
+> **Note:** This word has phonological variants: οὐ (before consonants), οὐκ (before vowels), οὐχ (before aspirates).
+
+**Prototypical Use:** Negates indicative verbs and statements.
+```
+
+**Example (NOT phonological variants - just inflection):**
+```markdown
+# ὁ
+
+**Core Meaning:** Article marking definiteness and identifiability. Points to a specific, known referent.
+
+**Prototypical Use:** With nouns to indicate "the [noun]" (definite/specific).
+```
+
+### 2. SENSE ORGANIZATION
+
+**Target: 4-6 senses maximum** (unless lexical complexity requires more)
+
+Organize senses from **concrete → abstract**, **core → extended**:
+
+1. **Core grammatical function** (most frequent)
+2. **Contextual applications** (specialized constructions)
+3. **Extended/metaphorical** (if applicable)
+4. **Rare patterns** (infrequent but valid Koine)
+
+**Show semantic extension paths:**
+```markdown
+## II. Correlative Construction
+
+Extension of the article's specificity function into contrastive discourse.
+Pattern: ὁ μὲν ... ὁ δέ = "one ... another"
+
+> Note: The article here retains its definite/specific meaning but participates in a correlative structure for contrast.
+```
+
+### 3. CITATION INTEGRITY
+
+**CRITICAL RULES:**
+
+- **NO invented examples** - Only use citations from `reference_analysis`
+- **NO uncited phrases as citations** - All quotes must come from actual verses
+- **PRESERVE all `EDITOR:` notes** - Copy them exactly from `entry_with_examples`
+- **All references must appear** - Verify count before output
+
+### 4. EXAMPLE FORMAT
+
+For each sense, provide:
+- Brief definition (1-2 sentences)
+- "Where found" note (discourse contexts, syntactic patterns)
+- References with Greek + English
+- Usage notes as blockquotes
+- **Related words (at sense level)** - Only if they exist
+
+**Example:**
+```markdown
+## I. Article
+
+Marks definiteness and identifiability. The noun is specific, known, or previously mentioned.
+
+**Where found:** With substantives, participles, adjectives, infinitives. Appears in virtually every clause.
+
+**References:**
+- **Matthew 8:20**: ὁ υἱὸς τοῦ ἀνθρώπου / "the Son of Man"
+- **Luke 10:7**: ὁ ἐργάτης / "the laborer"
+- **John 19:3**: ὁ βασιλεὺς τῶν Ἰουδαίων / "the King of the Jews"
+  > **EDITOR:** Abbott-Smith cited this reference but didn't quote the text. Greek extracted from SBLGNT.
+
+> Note: The article can also substantivize other parts of speech (participles → "the one who...").
+
+### I.1 With substantives
+
+Basic articular usage with nouns.
+
+**References:**
+- **Matthew 8:20**: ὁ υἱὸς τοῦ ἀνθρώπου / "the Son of Man"
+```
+
+**For a typical lexeme with related words:**
+```markdown
+## II. To love (romantic)
+
+Romantic or erotic love between individuals.
+
+**Where found:** Poetry, personal letters, romantic contexts.
+
+**References:**
+- **Song of Songs 1:3**: ἠγάπησάν σε / "they loved you"
+
+**Synonyms:** φιλέω (affectionate love), στέργω (familial love)
+
+**Antonyms:** μισέω (to hate)
+```
+
+### 5. RELATED WORDS FORMAT
+
+**Rules:**
+- Add at the **sense level** (not entry level)
+- Only two categories: **Synonyms** and **Antonyms**
+- Use format: `word (brief gloss)`
+- **If none exist, omit the section entirely** - Don't write "(none)" or "(none - grammatical function word)"
+- Most grammatical function words (articles, particles) have no synonyms/antonyms
+
+**Only add these sections when actual related words exist.**
+
+### 6. EDITOR NOTES FORMAT
+
+When you see an EDITOR note in `entry_with_examples`, preserve it but format as a blockquote:
+
+**Input format:**
+```
+- **John 19:3**: ὁ βασιλεὺς τῶν Ἰουδαίων / "the King of the Jews" EDITOR: No Abbott-Smith quote; extracted based on lemma search
+```
+
+**Output format:**
+```
+- **John 19:3**: ὁ βασιλεὺς τῶν Ἰουδαίων / "the King of the Jews"
+  > **EDITOR:** Abbott-Smith cited this reference but didn't quote the text. Greek extracted from SBLGNT.
+```
+
+### 7. WRITING STYLE
+
+- ✅ **Short, clear sentences** - Active voice
+- ✅ **Simple vocabulary** - No pretentious language
+- ✅ **Structured format** - Headers, blockquotes, lists
+- ❌ **No flowery prose** - Avoid "rich," "nuanced," "sophisticated"
+- ❌ **No diachronic speculation** - Focus on Koine synchronic function
+- ❌ **No Homer unless relevant** - Archaic uses minimized
+
+### 8. VALIDATION BEFORE OUTPUT
+
+- [ ] Prototypical meaning stated clearly at top
+- [ ] 4-6 senses (or justified if more)
+- [ ] All references from `reference_analysis` appear exactly once
+- [ ] All EDITOR notes converted to blockquote format
+- [ ] No invented examples
+- [ ] Semantic extension paths explained
+- [ ] "Where found" notes for each sense
+- [ ] Synonyms/Antonyms only added when they actually exist
+- [ ] Simple, clear language throughout
+
+---
+
+## OUTPUT FORMAT
+
+Return raw markdown (no code fences). Structure:
+
+```markdown
+# {{lemma}}
+
+**Core Meaning:** [1-2 sentence prototypical definition]
+
+**Prototypical Use:** [Most basic/frequent Koine usage]
+
+## I. [Core Sense Label]
+
+[1-2 sentence definition]
+
+**Where found:** [Discourse/syntactic contexts]
+
+**References:**
+- **Reference**: Greek text / "English translation"
+- **Reference**: Greek text / "English translation"
+  > **EDITOR:** [note if Abbott-Smith didn't quote the text]
+
+> Note: [Usage observation]
+
+**Synonyms:** word (gloss), word (gloss)
+(Only include if synonyms actually exist)
+
+**Antonyms:** word (gloss)
+(Only include if antonyms actually exist)
+
+### I.1 [Subsense if needed]
+
+[Brief explanation]
+
+**References:**
+- ...
+
+## II. [Extended Sense Label]
+
+[Show semantic connection to core sense]
+
+**Where found:** [Contexts]
+
+**References:**
+- ...
+```
+
+**Begin writing the expanded entry now. Start with `# {{lemma}}`**

@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
   - passage
@@ -8,7 +8,7 @@ prompt:
   optional: []
   format: JSON
   description: Divides {passage} into natural scenes for discussion
--->
+---
 <!-- GPT: Do not remove or rewrite any template variables like {passage}, {exegetical_culture}, {exegetical_wordstudy}, {source}. -->
 
 # StoryFlow Leader's Guide: Scene List for {passage}

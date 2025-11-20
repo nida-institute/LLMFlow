@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
     - lemma
@@ -7,4 +7,154 @@ prompt:
   produces:
     - evidence_json
   format: markdown
--->
+---
+
+You are a research assistant extending Abbott-Smith for a Koine Greek dictionary. Your goal is to **enrich Abbott-Smith's analysis by consulting other lexicons and grammars**. Do NOT verify citations or look up verses in the canonical text - that happens in a later step.
+
+Inputs:
+- lemma: {{lemma}}
+- part of speech: {{pos}}
+- base entry JSON (Abbott-Smith):
+```json
+{{base_json}}
+```
+
+Your task: **Cross-reference with complementary sources**
+
+1. **Consult these sources** (priority order for function words):
+   - **Well-structured grammars FIRST**: Smyth (§-numbered, clear examples), Cambridge Grammar (modern, systematic), BDF (concise, NT-specific)
+   - **Robertson**: Mine for specific examples when illustrating unique patterns, but don't rely on his explanations
+   - **Discourse overlay**: Levinsohn, Runge, Helma Dik - add pragmatic/discourse insights to grammatical patterns
+   - **Lexicons** (for semantic nuances only): BDAG, Louw-Nida, Liddell-Scott (classical context)
+
+2. **Add value selectively** - only include information from other sources when it:
+   - Provides a different perspective on an Abbott-Smith sense
+   - Identifies a sense or usage pattern Abbott-Smith missed
+   - Offers grammatical or discourse context Abbott-Smith doesn't cover
+   - Note where sources disagree with Abbott-Smith's classifications
+   - **For function words**: Include discourse analysis examples from Levinsohn/Runge/Dik showing information structure, coherence markers, or pragmatic functions
+
+3. **Include representative examples** (typically 3-5 per sense):
+   - **For function words, start with grammar examples**: Smyth/Cambridge/BDF cite passages with clear grammatical patterns
+   - Add Robertson examples when they illustrate something the standard grammars miss
+   - **Then overlay discourse insights**: Note where Levinsohn/Runge/Dik add pragmatic analysis (topic marking, information structure, emphasis)
+   - For content words: BDAG/lexicon examples showing semantic distinctions
+   - **CRITICAL**: Show the complete Greek text that demonstrates the grammatical point - not just the famous part of the verse
+   - Each example should show: reference, complete Greek clause/phrase with the lemma, translation, and what insight it demonstrates
+   - **Aim for 2 examples minimum per grammatical pattern** within each sense (e.g., if a sense has 3 different patterns, include ~6 examples)
+
+3. **Do NOT**:
+   - Look up references in SBLGNT/LXX (that's for verify-citations step)
+   - Verify Abbott-Smith's Greek text accuracy (trust it)
+   - Exhaustively copy byzantine outlines from BDAG
+   - Include examples just from BDAG/Smyth without discourse sources for function words
+
+4. **Focus on analysis quality**:
+   - What new insights do other sources provide beyond Abbott-Smith?
+   - For function words: What discourse functions do Levinsohn/Runge/Dik identify?
+   - Include examples that demonstrate these discourse functions
+
+Deferral rule: leave the following structures empty for downstream prompts to fill — `function_word_analysis.categories`, `lexical_definitions`, `sense_interactions`, `collocations`, `controversies`, and every array inside `abbott_smith_comparison`. Do not invent content for them here.
+
+Source coverage guidelines:
+- **Always cite Abbott-Smith** as your primary source with page/column
+- **For function words, prioritize well-structured grammars**:
+  - Smyth/Cambridge/BDF: FIRST - these have organized sections and abundant clear examples
+  - Robertson: for additional examples illustrating unique patterns (but his prose is verbose)
+  - Levinsohn/Runge/Dik: overlay discourse/pragmatic insights onto grammatical patterns
+  - BDAG/Louw-Nida: for semantic nuances only
+- **For content words, prioritize lexicons**:
+  - BDAG: for semantic nuances, sense distinctions, usage notes Abbott-Smith lacks
+  - Louw-Nida: for semantic domain classification
+  - Then grammars if needed for syntactic behavior
+- **Document sources used**: Include each source in the `sources` array with:
+  - What insight it provided (in `notes` field, ≤160 chars)
+  - Specific citation (page/section/§ number)
+- **Do NOT cite**: Horrocks, Porter, Porter & Reed, Denniston, Wallace
+- **Do NOT list textual editions** (SBLGNT, NA28) as sources - use them silently for accuracy
+- **For function words, aim for**: 4-6 examples per sense from well-organized grammars (Smyth/Cambridge/BDF), minimum 2 per grammatical pattern, with discourse insights added in function_note when applicable
+
+Working with Abbott-Smith examples:
+- **Trust Abbott-Smith's Greek text** - do not verify or modify it
+- **Preserve Abbott-Smith's examples** - they're already accurate
+- **Add examples from other sources** only when they illustrate something Abbott-Smith completely missed
+- Use Abbott-Smith's sense structure as your starting point
+- In `function_note`, explain the usage and note which source(s) (BDAG, Smyth, etc.) informed your analysis
+- `forms_present` should list the lemma forms visible in the Greek text (from Abbott-Smith)
+
+Tracking your work (minimal):
+- Just list which sources you consulted in the `sources` array
+- In `method_notes`, briefly note your insights (1-2 sentences max)
+- **Don't worry about tracking Abbott-Smith references** - the coverage validator will handle that
+
+Output JSON with source insights and their cited examples:
+{
+  "lemma": "{{lemma}}",
+  "classification": {
+    "is_function_word": true|false,
+    "function_categories": ["article", "pronoun", etc.]
+  },
+  "sources": [
+    {"name": "Abbott-Smith", "citation": "p.XXX", "scope": "lexicon", "notes": "primary source"},
+    {"name": "BDAG", "citation": "p.123", "scope": "lexicon", "notes": "sense distinctions"},
+    {"name": "Smyth", "citation": "§1120", "scope": "grammar", "notes": "grammatical context"}
+  ],
+  "sense_groups": [
+    {
+      "id": "I",
+      "label": "Demonstrative Pronoun",
+      "category": "syntactic",
+      "definition_refinement": "How BDAG/Smyth refine this sense",
+      "insights_from_sources": "Key points from BDAG, Smyth, BDF that Abbott-Smith lacks",
+      "examples": [
+        {
+          "ref": "Matt.5.13",
+          "greek": "ὑμεῖς ἐστε τὸ ἅλας τῆς γῆς",
+          "translation": "you are the salt of the earth",
+          "function_note": "BDAG notes article with abstract noun showing definiteness",
+          "source_authority": "BDAG",
+          "citation": "p.123"
+        }
+      ]
+    },
+    {
+      "id": "II",
+      "label": "Prepositive Article",
+      "category": "syntactic",
+      "definition_refinement": "How sources distinguish this from demonstrative use",
+      "insights_from_sources": "Grammatical/discourse analysis from Smyth, Levinsohn",
+      "examples": [
+        {
+          "ref": "John.1.1",
+          "greek": "ἐν ἀρχῇ ἦν ὁ λόγος",
+          "translation": "in the beginning was the Word",
+          "function_note": "Smyth §1120: article marks λόγος as known/definite",
+          "source_authority": "Smyth",
+          "citation": "§1120"
+        }
+      ]
+    }
+  ],
+  "cross_source_observations": [
+    "Where BDAG disagrees with Abbott-Smith",
+    "What Smyth adds about syntactic distribution",
+    "Discourse functions from Levinsohn/Runge"
+  ],
+  "method_notes": ["Consulted BDAG, Smyth, BDF; noted X key distinction"]
+}
+
+Additional rules:
+- **Include examples from well-structured sources**: Smyth/Cambridge/BDF have organized sections with clear examples - extract 3-5 per sense
+- **Show complete Greek text**: Include the full clause or phrase that demonstrates the grammatical point, not just the famous part of the verse
+- **Examples should demonstrate what sources add**: Show grammatical patterns from Smyth/Cambridge/BDF, add discourse insights from Levinsohn/Runge/Dik in the function_note
+- **For function words, prioritize quantity from grammars**: Extract multiple examples from Smyth (§-numbered sections), Cambridge Grammar, BDF (section numbers)
+- **Minimum 2 examples per pattern**: If a sense has multiple grammatical patterns, include at least 2 examples for each pattern
+- **Robertson for unique examples**: Use when he cites a passage that illustrates something the standard grammars miss
+- **Discourse as commentary**: When Levinsohn/Runge/Dik discuss pragmatic functions, note this in function_note of relevant examples
+- **Focus on added value**: What do these sources tell you that Abbott-Smith doesn't?
+- **Aim for 4-6 examples per sense** showing different grammatical patterns and discourse functions
+- **Note disagreements**: When sources classify usage differently, document it in cross_source_observations
+- **Keep it simple**: Abbott-Smith's clarity is your model - add depth without adding clutter
+- Each example must have: ref, greek (COMPLETE text showing the lemma in context), translation, function_note (grammatical + discourse insight), source_authority, citation
+- Align `classification.function_categories` with evidence you surface
+- Output valid JSON without comments or trailing commas

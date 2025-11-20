@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
   - passage
@@ -6,7 +6,7 @@ prompt:
   optional: []
   format: Markdown
   description: Analyzes the heart journey and emotional landscape of {{passage}} using biblical anthropology - emotions as signals of heart orientation toward or away from God
--->
+---
 
 STYLE / METHOD GUARDRAILS (NON-NEGOTIABLE)
 - Inductive order only: description → implication for visualization; no modern application here.

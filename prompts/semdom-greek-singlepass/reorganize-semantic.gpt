@@ -1,0 +1,110 @@
+---
+inputs:
+  lemma: "Target lemma"
+  sense_structure: "Abbott-Smith's diachronic sense structure"
+  reference_analysis: "All reference data"
+outputs:
+  semantic_structure: "Reorganized synchronic structure"
+---
+
+You are reorganizing a lexical entry from diachronic to synchronic perspective.
+
+INPUT LEMMA: {{lemma}}
+
+ABBOTT-SMITH STRUCTURE (diachronic):
+{{sense_structure}}
+
+REFERENCE ANALYSIS:
+{{reference_analysis}}
+
+---
+
+## YOUR TASK
+
+Reorganize senses for **Hellenistic Greek (Koine, 300 BCE - 300 CE)** based on **linguistic function**, not citation counts.
+
+**REORGANIZATION PRINCIPLES:**
+
+1. **Core grammatical function first** - Articles, prepositions, basic verb meanings
+2. **Specialized/extended uses second** - Idioms, correlatives, metaphorical extensions
+3. **Rare patterns third** - Infrequent but valid Koine usage
+4. **Archaic/obsolete last** - Pre-Koine forms rarely seen in NT/LXX
+
+**IGNORE CITATION COUNTS** - Abbott-Smith's 9 examples of distributive ὁ don't mean it's more important than the article (which has 29 examples but appears thousands of times in actual usage).
+
+**APPLY LINGUISTIC KNOWLEDGE:**
+
+- Articles are core grammatical function (high frequency in corpus)
+- Correlatives (ὁ μὲν ... ὁ δέ) are extensions of article function
+- Homeric demonstrative uses are archaic in Koine (unless clearly attested in NT/LXX)
+
+**EXAMPLE REORGANIZATION:**
+
+**Abbott-Smith (organized historically):**
+```json
+{
+  "senses": [
+    {"path": "I", "label": "Demonstrative (Homer)", "reference_ids": [1]},
+    {"path": "I.2", "label": "Distributive", "reference_ids": [2, 3, 4, 5, 6, 7, 8, 9, 10]},
+    {"path": "II", "label": "Article", "reference_ids": [11, 12, ..., 40]}
+  ]
+}
+```
+
+**Your output (organized by Koine function):**
+```json
+{
+  "lemma": "ὁ",
+  "reorganization_rationale": "Reordered by linguistic function in Koine: article (core grammatical function, highest corpus frequency) → correlative (specialized construction, extension of article) → rare genitive pattern (valid Koine, infrequent)",
+  "total_references_preserved": 40,
+  "senses": [
+    {
+      "path": "I",
+      "label": "Article",
+      "core_function": "Marks definiteness and identifiability",
+      "semantic_relation": "core",
+      "linguistic_reasoning": "Primary grammatical function in Koine. Appears in virtually every clause. Core meaning: 'the' (definite/specific).",
+      "reference_count": 29,
+      "reference_ids": [11, 12, 13, ..., 40],
+      "where_found": "With nouns, participles, adjectives, infinitives"
+    },
+    {
+      "path": "II",
+      "label": "Correlative/Distributive",
+      "core_function": "Pattern ὁ μὲν ... ὁ δέ = 'one ... another'",
+      "semantic_relation": "extension",
+      "linguistic_reasoning": "Extension of article's specificity function into correlative constructions. Less frequent than basic article but common enough in discourse.",
+      "reference_count": 9,
+      "reference_ids": [2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "where_found": "Correlative clauses, contrasts"
+    },
+    {
+      "path": "III",
+      "label": "Genitive Article with Possessive Sense",
+      "core_function": "Genitive article (Τοῦ) with possessive nuance",
+      "semantic_relation": "rare_pattern",
+      "linguistic_reasoning": "Normal Koine usage that happens to appear infrequently in NT. Acts 17:28 quotes Greek poet Aratus; genitive article Τοῦ has possessive force ('his offspring').",
+      "reference_count": 1,
+      "reference_ids": [1],
+      "where_found": "Acts 17:28 (Paul's Areopagus speech)"
+    }
+  ],
+  "abbott_smith_changes": "Major reordering: Article (II → I) now primary; Homer reference (I → III) demoted to rare pattern. Reasoning: synchronic Koine frequency and function, not historical development."
+}
+```
+
+**OUTPUT FORMAT:**
+
+Pure JSON. Include:
+- `reorganization_rationale` - Explain linguistic reasoning
+- `linguistic_reasoning` for each sense - Why this ordering?
+- `semantic_relation`: "core" | "extension" | "rare_pattern" | "archaic"
+- All `reference_ids` preserved exactly once
+
+**VALIDATION:**
+- [ ] Core grammatical functions come first
+- [ ] Abbott-Smith's citation counts ignored in favor of linguistic judgment
+- [ ] All 40 reference IDs preserved
+- [ ] "archaic" used only for genuinely obsolete pre-Koine forms
+
+**Begin reorganization now. Apply linguistic reasoning. Output JSON only.**

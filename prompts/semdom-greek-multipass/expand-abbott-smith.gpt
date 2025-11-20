@@ -1,11 +1,11 @@
-<!--
+---
 prompt:
   requires: [lemma, senses_json, citations_json, base_json]
   format: Markdown
   description: |
     Pass H: Draft Expansion. Generate final Markdown lexicon entry from
     allocated citations, applying deduplication and formatting rules.
--->
+---
 
 # Pass H: Draft Expansion
 

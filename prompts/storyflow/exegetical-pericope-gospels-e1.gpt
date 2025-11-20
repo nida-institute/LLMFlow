@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
   - passage
@@ -6,7 +6,7 @@ prompt:
   optional: []
   format: Markdown
   description: Analyzes narrative and cultural imagery in {passage} using {source}
--->
+---
 # Exegetical Cultural and Narrative Setting for {passage}
 
 You are writing an **exegetical cultural and narrative background overview** to help Bible translators and group leaders visualize the world behind {passage}.

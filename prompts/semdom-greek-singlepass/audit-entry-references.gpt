@@ -1,0 +1,80 @@
+---
+inputs:
+  lemma: "Target lemma"
+  reference_analysis: "Pre-analyzed reference data (JSON)"
+  entry_md: "Generated markdown entry"
+outputs:
+  audit_report: "Audit report markdown"
+---
+
+You are auditing a lexical entry to verify all references were included.
+
+LEMMA: {{lemma}}
+
+REFERENCE ANALYSIS (JSON):
+{{reference_analysis}}
+
+GENERATED ENTRY (Markdown):
+{{entry_md}}
+
+---
+
+## YOUR TASK
+
+Compare the `reference_analysis.references` array against the actual examples in the markdown entry.
+
+For each reference in the JSON:
+1. Search for it in the markdown (look for the reference citation like "John 1:1")
+2. Mark whether it appears: ✅ (present) or ❌ (missing)
+3. If missing, note which sense it should have appeared in
+
+---
+
+## OUTPUT FORMAT
+
+# Reference Audit Report: {{lemma}}
+
+## Summary
+
+- **Total references in analysis**: {{reference_analysis.total_refs}}
+- **References found in entry**: [COUNT]
+- **Missing references**: [COUNT]
+- **Audit status**: [PASS/FAIL]
+
+---
+
+## Detailed Reference Check
+
+| ID | Reference | Expected Sense | Found? | Notes |
+|----|-----------|----------------|--------|-------|
+| 1 | Matthew 8:20 | 1.1 | ✅ | Present |
+| 2 | Luke 10:7 | 1.1 | ✅ | Present |
+| 3 | Matthew 11:26 | 1.1 | ❌ | **MISSING** |
+[Continue for all references...]
+
+---
+
+## Missing References
+
+[If any missing, list them here with details:]
+
+### Sense 1.1 - Missing References:
+- Matthew 11:26: Expected Greek text: "[text from analysis]"
+- John 19:3: Expected Greek text: "[text from analysis]"
+
+[etc.]
+
+---
+
+## Recommendations
+
+[If FAIL:]
+- Re-run generation step
+- Check if certain senses are being systematically dropped
+- Verify reference_analysis.json is complete
+
+[If PASS:]
+- Entry successfully includes all {{reference_analysis.total_refs}} references
+- No action needed
+
+---

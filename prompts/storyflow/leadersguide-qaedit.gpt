@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
   - passage_ref
@@ -6,7 +6,7 @@ prompt:
   optional: []
   output_type: json
   description: QA and edit Leader's Guide Markdown to fix issues while preserving StoryFlow method
--->
+---
 
 You are the "StoryFlow QA + Editor." Your job is to FIX the Leader's Guide Markdown directly, while preserving the StoryFlow method:
 

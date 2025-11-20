@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
     - passage
@@ -6,7 +6,7 @@ prompt:
   optional: []
   format: Markdown
   description: Suggests options for helping a group reflect on the whole passage after completing all StoryFlow scenes for {passage}
--->
+---
 
 # StoryFlow Leader's Guide: Wrapping Up the Whole Passage
 

@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
   - passage
@@ -6,7 +6,7 @@ prompt:
   optional: []
   format: Markdown
   description: Provides key Greek terms and textual notes for {passage} using {source}
--->
+---
 # Exegetical Word Study and Textual Notes for {passage}
 
 You are writing a **focused word study and textual overview** to help Bible translators and group leaders understand key terms, rhetorical effects, and textual variations in {passage}.

@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
     - lemma
@@ -6,7 +6,7 @@ prompt:
   produces:
     - verified_json
   format: markdown
--->
+---
 
 # Pass H: Citation Verification & Corpus Balance
 
@@ -22,13 +22,15 @@ prompt:
 
 ## 1. MCP TOOLS AVAILABLE
 
-**get_passage_text** - Retrieve Bible text in original languages
+**⚠️ CRITICAL: MCP can ONLY verify New Testament Greek (GNT/SBLGNT). No other sources available.**
+
+**get_passage_text** - Retrieve Bible text in Greek New Testament only
 ```json
 {
   "tool": "get_passage_text",
   "parameters": {
     "usfm_references": ["JHN 3:16"],
-    "textual_editions": ["SBLGNT"]  // NT = SBLGNT, OT = WLC
+    "textual_editions": ["SBLGNT"]  // ✅ ONLY NT Greek available via MCP
   }
 }
 ```
@@ -37,7 +39,7 @@ prompt:
 
 ## 2. VERIFICATION RULES
 
-### NT Citations (sourceType="NT")
+### NT Citations (sourceType="NT") — ✅ VERIFY VIA MCP
 For each NT citation in the draft:
 
 1. **Fetch verse:** Use `get_passage_text` with `textual_editions: ["SBLGNT"]`
@@ -54,16 +56,24 @@ For each NT citation in the draft:
 - ✅ `ὁ θεός` — "God" (proper name, 2 words OK)
 - ✅ `ὁ κύριος` — "the Lord" (2 words OK)
 
-### LXX Citations (sourceType="LXX")
-- **PRESERVE ALL** from Abbott-Smith (public domain, pre-verified)
-- Do NOT verify or modify
-- Show Hebrew equivalence if mentioned
+### LXX Citations (sourceType="LXX") — ⚠️ CANNOT VERIFY, PRESERVE AS-IS
+- **PRESERVE ALL** from Abbott-Smith (public domain, pre-verified by scholars)
+- **DO NOT attempt to verify** (no LXX text available via MCP)
+- **DO NOT modify or correct** the Greek text
+- Show Hebrew equivalence if mentioned in Abbott-Smith
 
-### Classical/Papyri Citations
-- **Literary (e.g., Plato *Rep.* 1.327a):** Keep if proper citation format
-- **Papyri (P.Oxy., P.Tebt., BGU):** DELETE (cannot verify)
+### Classical/Papyri Citations — ⚠️ CANNOT VERIFY
+**⚠️ DO NOT attempt to verify classical Greek sources. No verification tools available.**
+
+- **Literary (e.g., Plato *Rep.* 1.327a, Hom. *Il.* 1.234):**
+  - **Keep if proper citation format** (author, work, reference)
+  - **Trust Abbott-Smith's scholarship** (public domain, peer-reviewed)
+  - **DO NOT modify** the Greek text or gloss
+
+- **Papyri (P.Oxy., P.Tebt., BGU):** DELETE (unverifiable, unstable texts)
   - Log: `<!-- PAPYRUS REMOVED: P.Oxy. 1234.5-7 - verification unavailable -->`
-- **Inscriptions (IG, SEG, OGIS):** DELETE (cannot verify)
+
+- **Inscriptions (IG, SEG, OGIS):** DELETE (unverifiable, specialized corpora)
   - Log: `<!-- INSCRIPTION REMOVED: IG II² 1234 - verification unavailable -->`
 
 ---

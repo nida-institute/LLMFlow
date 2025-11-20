@@ -31,17 +31,36 @@ def log_and_screen(msg, color="white", level="info"):
 
 
 def parse_prompt_header(prompt_path):
+    """Parse header from a .gpt prompt file (supports both YAML frontmatter and HTML comments)"""
     text = Path(prompt_path).read_text(encoding="utf-8")
-    match = re.search(r"<!--(.*?)-->", text, re.DOTALL)
-    if not match:
-        return None
 
-    block = match.group(1).strip()
-    try:
-        data = yaml.safe_load(block)
-        return data.get("prompt", {})
-    except Exception:
-        return None
+    # Try YAML frontmatter first (--- ... ---)
+    yaml_match = re.search(r"^---\s*\n(.*?)\n---\s*$", text, re.DOTALL | re.MULTILINE)
+    if yaml_match:
+        block = yaml_match.group(1).strip()
+        try:
+            data = yaml.safe_load(block)
+            # Return the data directly (new format: {inputs: {...}, outputs: {...}})
+            return data
+        except Exception as e:
+            logger.error(f"Failed to parse YAML frontmatter in {prompt_path}: {e}")
+            return None
+
+    # Fallback: Try HTML comment style (<!-- ... -->)
+    html_match = re.search(r"<!--(.*?)-->", text, re.DOTALL)
+    if html_match:
+        block = html_match.group(1).strip()
+        try:
+            data = yaml.safe_load(block)
+            # Old format may wrap in 'prompt' key
+            return data.get("prompt", data)
+        except Exception as e:
+            logger.error(f"Failed to parse HTML comment header in {prompt_path}: {e}")
+            return None
+
+    # No header found
+    logger.error(f"No valid header found in {prompt_path} (tried both --- and <!-- formats)")
+    return None
 
 
 def extract_template_variables(template_content):
@@ -150,9 +169,9 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
             # Try multiple paths
             prompt_path = None
             possible_paths = [
-                f"{prompts_dir}/{prompt_file}",  # Use pipeline's prompts_dir
-                f"prompts/{prompt_file}",  # Fallback to standard
-                prompt_file,  # Raw filename (last resort)
+                f"{prompts_dir}/{prompt_file}",
+                f"prompts/{prompt_file}",
+                prompt_file,
             ]
 
             for possible_path in possible_paths:
@@ -168,7 +187,6 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
                 continue
 
             try:
-                # FIXED: Just pass the path to parse_prompt_header, don't read content separately
                 prompt_data = parse_prompt_header(prompt_path)
 
                 if not prompt_data:
@@ -177,9 +195,19 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
                     )
                     continue
 
-                # Validate step inputs match prompt requirements
+                # NEW: Handle both old and new header formats
+                # Old format: { prompt: { requires: [...], optional: [...] } }
+                # New format: { inputs: {...}, outputs: {...} }
+
                 step_inputs = prompt_config.get("inputs", {})
-                required_inputs = prompt_data.get("requires", [])
+
+                # Check if using new format (inputs/outputs) or old format (requires/optional)
+                if "inputs" in prompt_data:
+                    # New format: all keys in 'inputs' are required by default
+                    required_inputs = list(prompt_data.get("inputs", {}).keys())
+                else:
+                    # Old format: explicit 'requires' list
+                    required_inputs = prompt_data.get("requires", [])
 
                 missing_inputs = [
                     inp for inp in required_inputs if inp not in step_inputs
@@ -322,11 +350,10 @@ def lint_pipeline_full(pipeline_path):
 
     # ✅ CHECK IF LINTER IS DISABLED
     linter_config = pipeline_config.get("linter_config", {})
-    if not linter_config.get("enabled", True):  # Default to enabled if not specified
+    if not linter_config.get("enabled", True):
         logger.info("ℹ️  Linter disabled by configuration, skipping validation")
         return LintResult(valid=True, errors=[], warnings=[])
 
-    # Print this once
     logger.info(f"Starting full pipeline lint for: {pipeline_path}")
 
     # 1. Structure validation
@@ -339,8 +366,18 @@ def lint_pipeline_full(pipeline_path):
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     logger.info("✅ Pipeline structure is valid")
 
-    # 2. Contract validation
+    # 1.5 ADD THIS: Step keyword validation
+    logger.info("🔍 Validating step keywords...")
     all_steps = collect_all_steps(pipeline_config.get("steps", []))
+    keyword_errors = lint_pipeline_steps(all_steps)
+    if keyword_errors:
+        all_errors.extend(keyword_errors)
+        for error in keyword_errors:
+            logger.error(error)
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
+    logger.info("✅ All step keywords are valid")
+
+    # 2. Contract validation (existing code continues...)
     errors, validated_count = validate_all_step_contracts(all_steps, log_and_screen, pipeline_config)
 
     if errors:
@@ -469,18 +506,53 @@ def validate_step_prompt_contract(step, prompt_file, step_name):
 # Add to your linter (e.g. llmflow/utils/linter.py)
 
 ALLOWED_STEP_KEYS = {
-    "name", "type", "inputs", "outputs", "saveas", "append_to", "plugin",
-    "prompt", "model", "temperature", "max_tokens", "timeout_seconds",
-    "output_type", "mcp", "steps", "item_var", "input", "condition", "function",
-    "after"
+    "after",
+    "append_to",
+    "condition",
+    "description",
+    "format",
+    "function",
+    "input",
+    "inputs",
+    "item_var",
+    "log",
+    "max_tokens",
+    "mcp",
+    "model",
+    "name",
+    "output_type",
+    "outputs",
+    "plugin",
+    "prompt",
+    "response_format",  # Add this line
+    "saveas",
+    "steps",
+    "temperature",
+    "timeout_seconds",
+    "type",
+}
+
+# Add typo suggestions mapping
+COMMON_TYPOS = {
+    "saveaas": "saveas",
+    "ouput": "outputs",
+    "ouptuts": "outputs",
+    "intputs": "inputs",
+    "inputss": "inputs",
+    "apend_to": "append_to",
 }
 
 def lint_pipeline_steps(steps):
     errors = []
     for step in steps:
+        step_name = step.get('name', '<unnamed>')
         for key in step.keys():
             if key not in ALLOWED_STEP_KEYS:
-                errors.append(
-                    f"Step '{step.get('name', '<unnamed>')}' has unknown keyword '{key}'. Allowed: {sorted(ALLOWED_STEP_KEYS)}"
-                )
+                error_msg = f"Step '{step_name}' has unknown keyword '{key}'. Allowed: {sorted(ALLOWED_STEP_KEYS)}"
+
+                # Check for common typos and suggest correction
+                if key in COMMON_TYPOS:
+                    error_msg += f" (Did you mean '{COMMON_TYPOS[key]}'?)"
+
+                errors.append(error_msg)
     return errors

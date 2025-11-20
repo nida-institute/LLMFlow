@@ -1,0 +1,73 @@
+---
+inputs:
+  lemma: "Target lemma"
+  sense_structure: "JSON sense hierarchy"
+  reference_analysis: "JSON with all analyzed references"
+outputs:
+  entry_with_examples: "Markdown entry with ALL references inserted"
+---
+
+You are inserting biblical references into a lexical entry structure.
+
+INPUT LEMMA: {{lemma}}
+
+SENSE STRUCTURE:
+{{sense_structure}}
+
+REFERENCE ANALYSIS:
+{{reference_analysis}}
+
+---
+
+## YOUR TASK
+
+Create a Markdown lexical entry with ALL references inserted into their assigned senses.
+
+**ABSOLUTE REQUIREMENT:** If reference_analysis has 40 references, the output MUST contain all 40.
+
+**EDITOR NOTES - Add when either condition is true:**
+
+1. **Uncertain extraction** (`needs_review: true`):
+```markdown
+- **Acts 17:28**: EDITOR: Abbott-Smith cites this verse but doesn't quote a specific phrase. The genitive article Τοῦ appears in "Τοῦ γὰρ καὶ γένος ἐσμέν" / "For we are indeed his offspring." Please verify the article usage context.
+```
+
+2. **Questionable sense classification** (linguistic analysis suggests different sense):
+```markdown
+- **Galatians 4:22**: ἕνα ἐκ τῆς παιδίσκης καὶ ἕνα ἐκ τῆς ἐλευθέρας / "one by the slave woman and one by the free woman." EDITOR: Abbott-Smith classifies this under "Distributive," but the distribution appears to be marked by the numeral ἕνα rather than the article itself. The articles τῆς function as simple genitives modifying the nouns.
+```
+
+**EDITOR NOTE FORMAT:**
+- Always starts with `EDITOR:`
+- Concise explanation (1-2 sentences)
+- Includes Greek text + translation BEFORE the note
+- Clear about the specific issue (extraction uncertainty OR sense classification)
+
+## OUTPUT FORMAT
+
+```markdown
+# {{lemma}}
+
+## I. As Demonstrative Pronoun
+
+### I.1 [Subsense]
+
+**References:**
+- **Matthew 8:20**: ὁ δὲ υἱὸς τοῦ ἀνθρώπου / "the Son of Man"
+- **Acts 17:28**: Τοῦ γὰρ καὶ γένος ἐσμέν / "For we are indeed his offspring." EDITOR: Abbott-Smith cites but doesn't quote specific phrase. Genitive Τοῦ appears in second clause. Please verify context.
+
+### I.2 Distributive
+
+**References:**
+- **1 Corinthians 7:7**: ὁ μὲν οὕτως, ὁ δὲ οὕτως / "one this way, another that way."
+- **Galatians 4:22**: ἕνα ἐκ τῆς παιδίσκης καὶ ἕνα ἐκ τῆς ἐλευθέρας / "one by the slave woman and one by the free woman." EDITOR: Distribution marked by numeral ἕνα, not article. Articles τῆς are simple genitives.
+```
+
+**CRITICAL RULES:**
+1. **INCLUDE EVERY REFERENCE** - All 40 must appear
+2. **One flag only** - Use `EDITOR:` for both extraction uncertainty AND sense questions
+3. **Greek + English first** - Show the actual text before the editorial note
+4. **Concise notes** - 1-2 sentences maximum
+5. **Trust Abbott-Smith's structure** - Follow his sense assignments but flag linguistic issues
+
+**Begin writing the entry now. Start with `# {{lemma}}`**

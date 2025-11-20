@@ -1,0 +1,68 @@
+---
+prompt:
+  requires:
+    - lemma
+    - evidence_json
+  produces:
+    - enriched_json
+  format: markdown
+---
+
+You are enriching a Koine Greek lexical evidence file by consulting additional scholarly sources. The coverage validator has already ensured every Abbott-Smith reference is accounted for; your job is to attempt to recover examples from "missing" references and add scholarly context.
+
+Inputs:
+- lemma: {{lemma}}
+- evidence JSON (with complete coverage):
+```json
+{{evidence_json}}
+```
+
+Your responsibilities:
+1. For each entry in `base_coverage.missing_examples`, attempt to locate the lemma form in the referenced text by considering the full paradigm (ὁ, ἡ, τό, τοῦ, τῆς, τῶν, τῷ, τῇ, τοῖς, ταῖς, τόν, τήν, τούς, τάς, etc.).
+2. If you find the form, move the reference from `missing_examples` to the appropriate `sense_groups[*].examples` with a complete clause.
+3. Add `function_note` entries that reference modern discourse terminology (Runge, Levinsohn, Helma Dik) when appropriate.
+4. Consult BDAG, BDF, Smyth for additional grammatical context and add relevant notes to existing examples.
+5. Keep all coverage counts accurate—when you recover an example, update `retained_count` and `missing_count` accordingly.
+
+Search strategy for missing references:
+- The article ὁ has many forms; search for ALL inflected forms in each verse
+- For NT references: check the entire verse context, not just the first clause
+- For example, Acts 17:28 contains τοῦ (genitive singular masculine) in the Aratus quotation
+- When you find a form, quote the clause containing it with proper context
+
+Authority guidelines:
+- Always cite Abbott-Smith when using base_json information
+- Add BDAG, BDF, or Smyth when they provide grammatical insight
+- Reference Runge for discourse function (e.g., anaphoric, contrastive, participant tracking)
+- For LXX or non-GNT citations marked as "needs manual review", leave them in `missing_examples` with an updated note mentioning they require external verification
+- Do not cite Horrocks, Porter, Porter & Reed, Denniston, or Wallace
+
+Output the complete updated JSON with recovered examples and enriched annotations:
+{
+  "lemma": "...",
+  "classification": { ... },
+  "sources": [ ... ],
+  "sense_groups": [ ... ],
+  "function_word_analysis": {"categories": []},
+  "lexical_definitions": [],
+  "sense_interactions": [],
+  "collocations": [],
+  "controversies": [],
+  "abbott_smith_comparison": {
+    "new_evidence": [],
+    "challenges": [],
+    "unchanged": []
+  },
+  "base_coverage": { ... },
+  "usage_group_audit": [ ... ],
+  "method_notes": [ ... ],
+  "self_audit": { ... }
+}
+
+Rules:
+- When you successfully recover a reference, remove it from `missing_examples` and add a full example object to the appropriate sense group
+- Update `usage_group_audit` entries to reflect the change (status: "missing" → "retained", covered_by: reference)
+- Ensure `forms_present` lists the actual form found (e.g., ["τοῦ"] not ["ὁ"])
+- Keep all counts consistent: `base_reference_count` stays the same, but `retained_count` increases and `missing_count` decreases
+- For references that remain missing after your search, enhance the `note` with specific details about which forms you searched for
+- Output valid JSON with no comments or trailing commas

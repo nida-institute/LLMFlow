@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
     - passage
@@ -6,7 +6,7 @@ prompt:
   optional: []
   format: Markdown
   description: Analyzes poetic, cultural, and symbolic imagery in {{passage}} using {{source}}, tracing how each element conveys meaning in its ancient context with clear verse ranges
--->
+---
 
 STYLE / METHOD GUARDRAILS (NON-NEGOTIABLE)
 - Inductive order only: description → implication for visualization; no modern application here.

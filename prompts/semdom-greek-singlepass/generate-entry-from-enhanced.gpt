@@ -1,0 +1,45 @@
+---
+inputs:
+  lemma: "Target lemma"
+  enhanced_xml: "Enhanced Abbott-Smith XML"
+  entry_with_examples: "Markdown entry with all references"
+outputs:
+  entry_md: "Final polished entry with prose and notes"
+---
+
+You are enriching a lexical entry with additional prose, definitions, and scholarly notes.
+
+INPUT LEMMA: {{lemma}}
+
+ENHANCED XML (Abbott-Smith source):
+{{enhanced_xml}}
+
+CURRENT ENTRY (with all references):
+{{entry_with_examples}}
+
+---
+
+## YOUR TASK
+
+Enhance the entry by:
+1. **Adding richer definitions** - Expand terse headings into full explanatory prose
+2. **Adding usage notes** - Grammatical patterns, discourse functions, semantic nuances
+3. **Adding cross-references** - Related entries, synonyms, antonyms
+4. **Preserving ALL references** - Do not remove any references from entry_with_examples
+
+## OUTPUT FORMAT
+
+Return enhanced Markdown with:
+- Expanded introductory paragraph
+- Richer sense definitions
+- Usage notes in blockquotes (> Note: ...)
+- Grammatical observations
+- **ALL original references intact**
+
+**CRITICAL RULES:**
+1. **DO NOT REMOVE ANY REFERENCES** - If input has 37, output must have 37
+2. **Only ADD content** - definitions, notes, cross-references
+3. **Preserve structure** - Don't reorganize senses
+4. **Output raw markdown** - no code fences
+
+**Begin writing the enhanced entry now. Start with `# {{lemma}}`**

@@ -153,21 +153,22 @@ def run_llm_with_mcp_tools(
     prompt: str,
     config: Dict[str, Any],
     mcp_client,
-    output_type: str = "text"
+    output_type: str = "text",
+    step_name: str = "unknown"  # ← Add parameter
 ) -> str:
-    """
-    Execute LLM call with MCP tool support.
-    This is a sync wrapper around the async implementation.
-    """
+    """Execute LLM call with MCP tool support."""
     import asyncio
-    return asyncio.run(_run_llm_with_mcp_tools_async(prompt, config, mcp_client, output_type))
+    return asyncio.run(_run_llm_with_mcp_tools_async(
+        prompt, config, mcp_client, output_type, step_name  # ← Pass through
+    ))
 
 
 async def _run_llm_with_mcp_tools_async(
     prompt: str,
     config: Dict[str, Any],
     mcp_client,
-    output_type: str = "text"
+    output_type: str = "text",
+    step_name: str = "unknown"  # ← Add parameter
 ) -> str:
     """
     Execute LLM with MCP tools using OpenAI API.
@@ -204,25 +205,41 @@ async def _run_llm_with_mcp_tools_async(
             for tool in tools
         ]
 
-        logger.info(f"🛠️  {len(openai_tools)} MCP tools available")
+        logger.debug(f"🛠️  {len(openai_tools)} MCP tools available")
         logger.debug(f"   Tools: {[t['function']['name'] for t in openai_tools]}")
 
         # Build initial messages
         messages = [{"role": "user", "content": prompt}]
 
-        # Iterative tool calling loop
-        max_iterations = 10
+        # Build API call parameters
+        api_params = {
+            "model": config.get("model", "gpt-4o"),
+            "messages": messages,
+            "tools": openai_tools,
+            "temperature": config.get("temperature", 0.7),
+            "max_tokens": config.get("max_tokens"),
+        }
+
+        # Add response_format if specified
+        if "response_format" in config:
+            api_params["response_format"] = config["response_format"]
+
+        mcp_config = config.get("mcp", {})
+        max_iterations = mcp_config.get("max_iterations", 1)  # Default to 1
+
+        if max_iterations == 1 and len(tools) > 1:
+            logger.warning(
+                f"⚠️  Step '{step_name}' has {len(tools)} tools but max_iterations=1. "
+                f"Set 'mcp.max_iterations' explicitly if multi-step reasoning needed."
+            )
+        elif "max_iterations" not in mcp_config:
+            logger.debug(f"Using default max_iterations=1 for step '{step_name}'")
+
         for iteration in range(max_iterations):
             logger.debug(f"🔄 MCP iteration {iteration + 1}/{max_iterations}")
 
             try:
-                response = await client.chat.completions.create(
-                    model=config.get("model", "gpt-4o"),
-                    messages=messages,
-                    tools=openai_tools,
-                    temperature=config.get("temperature", 0.7),
-                    max_tokens=config.get("max_tokens"),
-                )
+                response = await client.chat.completions.create(**api_params)
             except Exception as e:
                 logger.error(f"❌ OpenAI API call failed: {e}")
                 raise
@@ -231,16 +248,13 @@ async def _run_llm_with_mcp_tools_async(
 
             # Check if LLM is done (no tool calls)
             if not message.tool_calls:
-                logger.info(f"✅ MCP conversation complete after {iteration + 1} iteration(s)")
-                final_response = message.content or ""
+                logger.debug("✅ LLM completed without requesting tools")
+                return message.content or ""
 
-                # Handle output type
-                if output_type.lower() == "json":
-                    return parse_llm_json_response(final_response)
-                return final_response
+            # Log how many tool calls were requested
+            logger.debug(f"🛠️  LLM requesting {len(message.tool_calls)} tool call(s)")
 
-            # LLM wants to call tools - add its message to history
-            logger.info(f"🛠️  LLM requesting {len(message.tool_calls)} tool call(s)")
+            # Build messages to send back to LLM
             messages.append({
                 "role": "assistant",
                 "content": message.content,
@@ -257,10 +271,26 @@ async def _run_llm_with_mcp_tools_async(
                 ]
             })
 
-            # Execute each tool call via MCP
+            # Execute each tool call
             for tool_call in message.tool_calls:
                 tool_name = tool_call.function.name
-                logger.info(f"   🔧 Executing: {tool_name}")
+                tool_args = json.loads(tool_call.function.arguments)
+
+                # INFO log: Show tool name and key arguments on one line
+                if "usfm_references" in tool_args:
+                    refs = tool_args["usfm_references"]
+                    ref_count = len(refs)
+                    # Show first few references
+                    preview_refs = refs[:5]
+                    ref_preview = ", ".join(preview_refs)
+                    if ref_count > 5:
+                        ref_preview += f", ... ({ref_count} total)"
+                    logger.info(f"   🔧 {tool_name}: {ref_preview}")
+                else:
+                    # Fallback for other tool types
+                    logger.info(f"   🔧 {tool_name}")
+
+                logger.debug(f"      Full args: {tool_args}")
 
                 try:
                     # Parse arguments
@@ -288,5 +318,5 @@ async def _run_llm_with_mcp_tools_async(
                 })
 
         # If we hit max iterations without finishing
-        logger.warning(f"⚠️  Max MCP iterations ({max_iterations}) reached")
+        logger.debug(f"⚠️  Max MCP iterations ({max_iterations}) reached")
         return message.content or "Error: Maximum tool calling iterations exceeded"

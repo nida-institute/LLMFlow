@@ -1,11 +1,11 @@
-<!--
+---
 prompt:
   requires: [lemma, clusters_json]
   format: JSON
   description: |
     Pass F: Sense Selection. Promote functional clusters to provisional senses,
     demote structural/historical clusters to Notes. Hard exclusion for demonstrative.
--->
+---
 
 # Pass F: Sense Selection
 

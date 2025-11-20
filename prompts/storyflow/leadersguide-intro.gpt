@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
     - passage
@@ -7,8 +7,8 @@ prompt:
     - exegetical_emotionalarc
   optional: []
   format: Markdown
-  description: Introduces the leader’s guide using insights from E1–E3 for {passage}
--->
+  description: Introduces the leader's guide using insights from E1–E3 for {passage}
+---
 
 You are writing an emotionally vivid, culturally grounded **introduction** to {passage} for StoryFlow group leaders.
 
@@ -33,7 +33,7 @@ Use the following resources:
 - Write in **plain English** for smart adults who may be new to Bible study
 - Avoid academic or theological jargon
 - Use **vivid, emotionally accessible language**
-- Do **not** explain the “lesson” or offer interpretation
+- Do **not** explain the "lesson" or offer interpretation
 - Do **not** quote or repeat full content from the other steps—this intro prepares the leader to listen and respond
 
 ---
@@ -45,32 +45,14 @@ Start with a few vivid sentences to draw the leader into the physical and emotio
 Then describe:
 - What participants might already know or feel when they hear this story (remind the leader not to assume—invite the group to share first)
 - What may be unfamiliar to them—cultural references, word meanings, or emotional context
-- What **Step 1 (bodies)** and **Step 2 (hearts)** will explore, and how scholarly background may be used to “fill in the gaps”
+- What **Step 1 (bodies)** and **Step 2 (hearts)** will explore, and how scholarly background may be used to "fill in the gaps"
 - Briefly highlight the emotional and spiritual movement of the passage, including any shifts in the direction of the heart or key turning points.
 
-Encourage the leader to listen well, stay curious, and let participants make discoveries through their own reflections. **Remind them: Don’t jump in with your own knowledge too soon—let the group’s experience and questions lead.**
+Encourage the leader to listen well, stay curious, and let participants make discoveries through their own reflections. **Remind them: Don't jump in with your own knowledge too soon—let the group's experience and questions lead.**
 
 ---
 
 ## Output Format
-
-Start your response with this:
-
-```markdown
-# {passage}: A StoryFlow Leader's Guide
-
-<<<<<<< Updated upstream
-**Introduction for Group Leaders**
-
-**Note**: This introduction is for group leaders. Use it to prepare, not to read aloud. It will help you guide the group by listening well, asking good questions, and gently filling in background when needed.
-```
-
-Write no more than 5–8 short paragraphs. Be concrete, warm, and practical.
-=======
-Start with a few vivid sentences pulling participants into the scene.
-Then briefly set expectations for the emotional and spiritual journey ahead.
-
-## Output
 
 The output should start with this title:
 
@@ -79,6 +61,7 @@ The output should start with this title:
 
 **Introduction for Group Leaders**
 
-**Note**: This introduction is for group leaders.  Use it to prepare, do not read it to the group.
+**Note**: This introduction is for group leaders. Use it to prepare, not to read aloud. It will help you guide the group by listening well, asking good questions, and gently filling in background when needed.
 ```
->>>>>>> Stashed changes
+
+Write no more than 5–8 short paragraphs. Be concrete, warm, and practical.

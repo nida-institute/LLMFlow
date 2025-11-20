@@ -1,9 +1,160 @@
-<!--
+---
 prompt:
   requires:
     - lemma
+    - base_json
     - verified_json
   produces:
     - senses_json
   format: markdown
--->
+---
+
+You are building the final sense structure for a Koine Greek lexical entry by merging Abbott-Smith's base data with insights from other scholarly sources.
+
+Inputs:
+- lemma: {{lemma}}
+- base_json (Abbott-Smith's original structure with ALL examples):
+```json
+{{base_json}}
+```
+- verified_json (scholarly insights from BDAG/Smyth/BDF/discourse grammars):
+```json
+{{verified_json}}
+```
+
+Goals for this pass:
+1. **Merge Abbott-Smith examples with scholarly insights**: Take ALL examples from base_json and organize them into sense_groups enriched with insights from verified_json
+2. **Preserve all Abbott-Smith citations**: Every reference in base_json MUST appear in the final sense_groups (use base_json's path/pattern to determine which sense_group)
+3. **Add cross-source analysis**: Populate analytical sections (function_word_analysis, lexical_definitions, sense_interactions, collocations, controversies) using insights from verified_json's sources
+4. **Maintain data integrity**: All examples must have complete Greek text, glosses, and context from base_json
+
+**CRITICAL FIELD MAPPING - DO NOT CONFUSE:**
+
+For EACH usageGroup in base_json, extract data using this EXACT algorithm:
+
+```
+STEP 1: Initialize variables for this usageGroup
+  greek_text = ""
+  english_gloss = ""
+  context_note = ""
+  references = []
+
+STEP 2: Scan through content[] array ONCE:
+  FOR EACH item in content[]:
+    IF item.type == "foreign" AND item.role == "source":
+      greek_text += item.text + " "
+
+    IF item.type == "gloss" AND item.role == "gloss":
+      english_gloss += item.text + " "
+
+    IF item.type == "text":
+      context_note += item.text + " "
+
+    IF item.type == "reference":
+      references.append(item.reference)
+
+STEP 3: Create ONE example object PER reference:
+  FOR EACH ref in references:
+    OUTPUT {
+      "reference": ref,
+      "greek": greek_text.strip(),           // THE GREEK PHRASE
+      "translation": english_gloss.strip(),   // THE ENGLISH GLOSS
+      "function_note": context_note.strip()   // THE GRAMMATICAL NOTE
+    }
+```
+
+**WRONG vs RIGHT Example:**
+
+Given usageGroup.content:
+```
+[
+  {"type": "text", "text": "Distributive"},
+  {"type": "foreign", "role": "source", "text": "ὁ μὲν ... ὁ δέ"},
+  {"type": "gloss", "role": "gloss", "text": "the one ... the other"},
+  {"type": "reference", "reference": "1Cor.7.7", "text": "I Co 7:7"},
+  {"type": "reference", "reference": "Gal.4.22", "text": "Galatians 4:22"}
+]
+```
+
+❌ **WRONG OUTPUT** (what you did before):
+```
+{
+  "reference": "1Cor.7.7",
+  "greek": "I Co 7:7",                    // WRONG! This is English!
+  "translation": "the one ... the other",
+  "function_note": "ὁ μὲν ... ὁ δέ"       // WRONG! Greek in wrong field!
+}
+```
+
+✅ **CORRECT OUTPUT**:
+```
+{
+  "reference": "1Cor.7.7",
+  "greek": "ὁ μὲν ... ὁ δέ",              // CORRECT! Greek phrase
+  "translation": "the one ... the other",  // CORRECT! English gloss
+  "function_note": "Distributive"          // CORRECT! Grammatical note
+},
+{
+  "reference": "Gal.4.22",
+  "greek": "ὁ μὲν ... ὁ δέ",
+  "translation": "the one ... the other",
+  "function_note": "Distributive"
+}
+```
+
+**KEY RULES:**
+1. `greek` field = ONLY Greek text from items where type=="foreign" AND role=="source"
+2. `translation` field = ONLY English from items where type=="gloss" AND role=="gloss"
+3. `function_note` field = ONLY grammatical notes from items where type=="text"
+4. `reference` field = ONLY from items where type=="reference" → use the `reference` property (like "1Cor.7.7"), NOT the `text` property
+5. Map each usageGroup to sense_group using its `path` (e.g., "I.2" → sense I, subsense 2)
+
+Merging strategy:
+- Use base_json's sense structure (senses → subsenses → usageGroups) as the foundation
+- Extract ALL examples from base_json following the structure above
+- Enrich sense definitions with insights from verified_json's sense_groups
+- Place each base_json example in the appropriate sense_group based on its path
+- Add verified_json's cross_source_observations to sense definitions or controversies section
+- Combine sources lists from both inputs
+
+Conditional logic:
+- If `classification.is_function_word` is true, populate `function_word_analysis.categories`; otherwise leave the array empty.
+- Always provide a `lexical_definitions` entry for each `sense_groups[i].id`.
+- Add `sense_interactions` entries only when a single context clearly activates multiple senses; otherwise leave the array empty.
+- Populate `collocations` sparingly, limited to idioms or technical pairings backed by the examples; leave empty if you have no strong candidates.
+- Use `controversies` and `abbott_smith_comparison.challenges` only when the evidence directly contradicts Abbott-Smith or leading authorities; empty arrays are acceptable when there is no dispute.
+
+Authority guidelines:
+- Prefer Abbott-Smith, BDAG, BDF, Runge, Levinsohn, Helma Dik, Robertson, Smyth, Moulton & Milligan, Turner, or other approved sources already in `sources`.
+- If you introduce a new authority, add it both to `sources` (with `scope` and citation) and to the specific field it supports.
+- Do not cite Horrocks, Porter, Porter & Reed, Denniston, or Wallace.
+
+Output strict JSON mirroring the incoming keys. Replace the entire object with your updated version:
+{
+  "lemma": "...",
+  "classification": { ... },
+  "sources": [ ... ],
+  "sense_groups": [ ... ],
+  "function_word_analysis": {"categories": [ ... ]},
+  "lexical_definitions": [ ... ],
+  "sense_interactions": [ ... ],
+  "collocations": [ ... ],
+  "controversies": [ ... ],
+  "abbott_smith_comparison": {
+    "new_evidence": [ ... ],
+    "challenges": [ ... ],
+    "unchanged": [ ... ]
+  },
+  "base_coverage": { ... },
+  "usage_group_audit": [ ... ],
+  "method_notes": [ ... ],
+  "self_audit": { ... }
+}
+
+Rules:
+- Do not alter or delete any example text (`greek`, `full_ref_greek`, `translation`, `function_note`) except to correct an accidental mismatch such as a missing lemma token. Note any correction in `method_notes`.
+- Keep `base_coverage`, `usage_group_audit`, and `self_audit` counts consistent; if you adjust one value you must adjust the others.
+- Align `classification.function_categories`, `function_word_analysis.categories`, and `sense_groups[*].classification` labels so they tell a coherent story backed by the examples.
+- `lexical_definitions[*].example_refs` and `greek_examples` must point to entries already present in `sense_groups`.
+- Use concise (≤200 chars) prose for summaries and notes.
+- Output valid JSON with no trailing commas or comments.

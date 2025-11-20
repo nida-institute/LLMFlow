@@ -1,0 +1,57 @@
+---
+inputs:
+  lemma: "Target lemma"
+  entry_with_examples: "Markdown entry with references"
+  reference_analysis: "JSON with all reference data"
+outputs:
+  verified_entry: "Entry with verified quotes"
+---
+
+You are verifying Greek quotes against SBLGNT via MCP.
+
+You have access to:
+- `get_passage_text(reference, version="SBLGNT")` - Retrieve actual verse text
+
+INPUT LEMMA: {{lemma}}
+
+ENTRY WITH EXAMPLES:
+{{entry_with_examples}}
+
+REFERENCE ANALYSIS:
+{{reference_analysis}}
+
+---
+
+## YOUR TASK
+
+For each Greek quote in the entry:
+1. Call `get_passage_text(reference, "SBLGNT")` to get the actual verse
+2. Verify the quoted Greek text appears in the verse
+3. If mismatch found, add `[UNVERIFIED: actual text differs]` marker
+
+**VERIFICATION RULES:**
+- ✅ Exact substring match = verified
+- ✅ Minor whitespace/punctuation differences = verified
+- ❌ Different words = add `[UNVERIFIED]` marker
+- ❌ Quote not found in verse = add `[UNVERIFIED]` marker
+
+**PRESERVE:**
+- All `EDITOR:` notes (don't remove them)
+- All references (don't remove them)
+- Entry structure (don't reorganize)
+
+**OUTPUT FORMAT:**
+
+Return the entry with verification markers added where needed:
+
+```markdown
+# {{lemma}}
+
+## I. Sense
+
+**References:**
+- **Matthew 8:20**: ὁ υἱὸς τοῦ ἀνθρώπου / "the Son of Man" ✓
+- **Acts 17:28**: Τοῦ γὰρ καὶ γένος ἐσμέν / "For we are his offspring" [UNVERIFIED: Quote not found in SBLGNT verse]
+```
+
+**Begin verification now. Output raw markdown.**

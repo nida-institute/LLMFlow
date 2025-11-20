@@ -1,0 +1,150 @@
+---
+inputs:
+  base_json: "Original Abbott-Smith structure"
+  senses_json: "Enriched JSON with Greek phrases from MCP"
+outputs:
+  entry_md: "Comprehensive markdown lexicon entry"
+---
+
+You are creating a comprehensive lexicon entry for a Greek word.
+
+INPUT DATA:
+Base JSON (Abbott-Smith structure):
+{{base_json}}
+
+Analyzed Senses:
+{{senses_json}}
+
+YOUR TASK:
+Generate a markdown lexicon entry with this EXACT structure:
+
+### **[lemma] ([Part of Speech], [Strongs Number])**
+
+### **Core Root Meaning**
+
+* **Definition**: [1-2 sentence core/prototypical meaning across all senses]
+* **Remarks**: [Frequency from Abbott-Smith if available, typical contexts, notable usage patterns]
+* **Grammar**: [Voice, case patterns, typical constructions]
+* **Equivalents**: [Hebrew/Aramaic cognates if derivable from data]
+
+---
+
+### **Senses and Semantic Domains**
+
+#### **Sense [ID]: [Label]**
+
+[ONLY include this block if semantic_domain is present in the data:]
+- **Semantic Domains**:
+  **[domain.id] [domain.title]**. Louw & Nida: [TBD]
+
+- **Definition**: [Clear definition of this sense, derived from label + examples]
+
+- **Semantic Extension** (optional): [If sense is derived from root, briefly state path: "From root via metaphor/metonymy/specialization"]
+
+- **Examples**:
+  - **Greek NT**: "[greek text]" — "[translation]" ([reference]).
+  - **Greek LXX**: "[greek text]" — "[translation]" ([reference]).
+  [Include 2-4 representative examples per sense, showing both NT and LXX if available]
+  [If example lacks reference in source data, label as: **Uncited (Abbott-Smith)**: "[greek text]" — NO reference]
+
+- **Usage Scope** (optional): [Genre, register, or context if notable: e.g., "Common in narrative", "Rare in epistles", "Formal register"]
+
+---
+
+[Repeat for each sense_group.subsense]
+
+### **Notes**
+[Optional: Scholarly observations, unresolved questions, contested senses. Mark items needing review as `[@review]`]
+
+### **Citation Audit**
+[Table showing all original Abbott-Smith citations and their assigned sense:]
+
+| Original Reference | Assigned Sense | Note |
+|--------------------|----------------|------|
+| Matt 7:28 | Sense 2 | |
+| Gen 1:5 (LXX) | Sense 1 | |
+| John 1:6 | Sense 1 | Ambiguous |
+
+REQUIREMENTS:
+1. Extract lemma, part of speech, and Strongs number from senses_json
+2. Synthesize core root meaning from sense_groups (common thread across all senses)
+3. **Extract frequency information from base_json** (look for phrases like "freq. in NT", "rare", "common", "X times", etc.)
+4. For grammar: note if function word, typical patterns from examples
+5. For each subsense:
+   - **Check if semantic_domain object exists**
+   - **If yes**: show "- **Semantic Domains**: **domain.id domain.title**. Louw & Nida: [TBD]"
+   - **If no**: OMIT the Semantic Domains line entirely
+6. **Citation Format** (CRITICAL):
+   - Check if citation has `greek_phrase` field (from MCP enrichment)
+   - If `greek_phrase` exists and is not "[@review - ...]":
+     Format as: "{{greek_phrase}}" — "{{translation}}" ({{reference}})
+   - If `greek_phrase` is missing or is "[@review - ...]":
+     Format as: "[Lemma only - needs review]" ({{reference}}) and mark [@review]
+   - Include any notes after reference (e.g., "quoted from the poet Aratus")
+
+   GOOD: "τοῦ γὰρ καὶ γένος ἐσμέν" — "For we are indeed his offspring" (Acts 17:28)
+   BAD: "ὁ" — "he, she, it, his" (Acts 17:28)
+
+7. **Semantic Extension** (optional):
+   - If sense is clearly derived (metaphor, specialization, etc.), briefly state path
+   - Example: "From spatial location → temporal occasion"
+8. Separate NT and LXX examples with labels "Greek NT:" and "Greek LXX:"
+9. Use actual data; do NOT create instructional placeholders
+10. Output ONLY the final markdown; no meta-commentary
+11. **Audit Table**: List all references from base_json and show which sense each was assigned to
+
+EVIDENCE STANDARDS:
+- NO hallucinated examples or references
+- If uncertain about a reference, mark as `[UNVERIFIED]`
+- Every sense must have at least one example
+- If sense has no examples in data, mark as `[@review - needs examples]`
+
+EXAMPLE OUTPUT (for reference):
+
+### **γίνομαι (Verb, G1096)**
+
+### **Core Root Meaning**
+
+* **Definition**: The prototypical meaning of the Greek verb "γίνομαι" is "to come into being" or "to become."
+* **Remarks**: Extremely frequent in NT (669 occurrences). Used in various contexts to describe both physical and metaphorical transformations or occurrences.
+* **Grammar**: Middle voice verb. Commonly used with various prepositions to indicate the means, cause, or result of becoming.
+* **Equivalents**: Hebrew היה (*hayah*), "to be" or "to become."
+
+---
+
+### **Senses and Semantic Domains**
+
+#### **Sense 1: To Come into Being; Be Born**
+
+- **Semantic Domains**:
+  **2.6.3 Birth**. Louw & Nida: [TBD]
+  **9.1.2.3 Create**. Louw & Nida: [TBD]
+
+- **Definition**: Refers to the literal or metaphorical emergence or birth of a person, thing, or event.
+
+- **Examples**:
+  - **Greek NT**: "Ἐγὼ ἐγενόμην ἐν τῇ ἐρήμῳ" — "I became in the wilderness" (John 1:6).
+  - **Greek LXX**: "καὶ ἐγένετο ἡμέρα μία" — "And there was one day" (Genesis 1:5).
+
+---
+
+#### **Sense 2: To Come to Pass; Happen**
+
+- **Definition**: Involves the occurrence or unfolding of events or actions.
+
+- **Semantic Extension**: From concrete coming-into-being → abstract event occurrence.
+
+- **Examples**:
+  - **Greek NT**: "καὶ ἐγένετο ὡς ἐτέλεσεν ὁ Ἰησοῦς" — "And it happened when Jesus finished" (Matthew 7:28).
+  - **Greek LXX**: "καὶ ἐγένετο μετὰ ταῦτα" — "And it came to pass after these things" (Genesis 22:1).
+
+---
+
+### **Citation Audit**
+
+| Original Reference | Assigned Sense | Note |
+|--------------------|----------------|------|
+| John 1:6 | Sense 1 | |
+| Genesis 1:5 (LXX) | Sense 1 | |
+| Matthew 7:28 | Sense 2 | |
+| Genesis 22:1 (LXX) | Sense 2 | |

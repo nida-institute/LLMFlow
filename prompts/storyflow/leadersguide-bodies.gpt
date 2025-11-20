@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
     - passage
@@ -8,7 +8,7 @@ prompt:
   optional: []
   format: Markdown
   description: Guides participants to enter {scene} from {passage} using their bodies and senses, with cultural background woven in. Focuses on detailed attention to what the text actually says and shows.
--->
+---
 <!-- HARD RULE: The FIRST non-empty line of your output MUST be:
 ### Enter the Scene with Your Body ({{citation}})
 Do not use any other H3 before this. -->

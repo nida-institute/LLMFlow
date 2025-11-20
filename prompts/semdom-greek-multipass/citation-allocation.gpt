@@ -1,11 +1,11 @@
-<!--
+---
 prompt:
   requires: [lemma, senses_json, external_json, base_json]
   format: JSON
   description: |
     Pass F: Citation Allocation. Assign harvested citations to promoted senses
     with dynamic cap and corpus balance.
--->
+---
 
 # Pass F: Citation Allocation
 

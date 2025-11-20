@@ -1,0 +1,113 @@
+---
+inputs:
+  lemma: "Target lemma"
+  enhanced_xml: "Enhanced Abbott-Smith XML"
+outputs:
+  reference_analysis: "JSON with all reference data"
+---
+
+You are analyzing an Abbott-Smith entry to extract and fetch ALL biblical references.
+
+INPUT (Enhanced XML):
+{{enhanced_xml}}
+
+TARGET LEMMA: {{lemma}}
+
+---
+
+## YOUR TASK
+
+**PHASE 1: Extract all references from XML**
+
+Parse the XML and create a list of ALL references. For each `<ref>` tag:
+1. Extract the reference text (e.g., "Mt 8:20")
+2. Convert to USFM format (e.g., "MAT 8:20")
+3. Extract the Abbott-Smith Greek quote from nearby `<foreign>` tag (if present)
+4. Determine corpus: NT or LXX/Other
+5. Note the sensePath where this reference appears
+
+**PHASE 2: Batch fetch ALL NT references in ONE MCP call**
+
+Make a SINGLE call to `get_passage_text` with:
+```json
+{
+  "usfm_references": ["MAT 8:20", "ROM 5:12", "JHN 1:1", ...all NT refs...],
+  "textual_editions": ["SBLGNT"]
+}
+```
+
+**PHASE 3: Match results to references**
+
+For each reference:
+- Match the SBLGNT verse from the batch response
+- **IF Abbott-Smith quoted a specific phrase:**
+  - Use that exact phrase as `sblgnt_extracted`
+  - Set `extraction_confidence: "high"` and `quotes_match: true/false`
+- **IF Abbott-Smith did NOT quote a phrase (just cited the verse):**
+  - Search the SBLGNT verse for forms of the lemma (ὁ, ἡ, τό, τοῦ, τῆς, etc.)
+  - Extract the smallest phrase containing the article
+  - Set `extraction_confidence: "low"`
+  - Set `needs_review: true`
+  - Add `extraction_note: "No Abbott-Smith quote; extracted based on lemma search"`
+- Add translation
+
+---
+
+## OUTPUT FORMAT
+
+**Your response must be PURE JSON starting with `{` and ending with `}`.**
+**NO explanations. NO markdown code fences. NO text before or after.**
+
+```json
+{
+  "lemma": "{{lemma}}",
+  "total_refs": <NUMBER>,
+  "nt_refs": <NUMBER>,
+  "lxx_refs": <NUMBER>,
+  "mcp_batch_call": {
+    "usfm_references": ["MAT 8:20", "ROM 5:12", ...],
+    "response": "<full MCP response>"
+  },
+  "references": [
+    {
+      "id": 1,
+      "original_sensePath": "II.1",
+      "reference": "Matthew 8:20",
+      "usfm_reference": "MAT 8:20",
+      "abbott_smith_quote": "ὁ δὲ υἱὸς τοῦ ἀνθρώπου",
+      "corpus": "NT",
+      "sblgnt_full_verse": "καὶ λέγει αὐτῷ ὁ Ἰησοῦς· Αἱ ἀλώπεκες...",
+      "sblgnt_extracted": "ὁ δὲ υἱὸς τοῦ ἀνθρώπου",
+      "extraction_confidence": "high",
+      "quotes_match": true,
+      "needs_review": false,
+      "translation": "the Son of Man"
+    },
+    {
+      "id": 2,
+      "original_sensePath": "I.1",
+      "reference": "Acts 17:28",
+      "usfm_reference": "ACT 17:28",
+      "abbott_smith_quote": null,
+      "corpus": "NT",
+      "sblgnt_full_verse": "ἐν αὐτῷ γὰρ ζῶμεν... Τοῦ γὰρ καὶ γένος ἐσμέν.",
+      "sblgnt_extracted": "Τοῦ γὰρ καὶ γένος ἐσμέν",
+      "extraction_confidence": "medium",
+      "quotes_match": null,
+      "needs_review": true,
+      "extraction_note": "No Abbott-Smith quote; extracted 'Τοῦ' (genitive of ὁ) from verse",
+      "translation": "For we are indeed his offspring"
+    }
+  ]
+}
+```
+
+**CRITICAL RULES:**
+1. **Include ALL references from the XML** - if there are 37 `<ref>` tags, output 37 entries
+2. **Make ONE batch MCP call for ALL NT references** - not one call per reference
+3. **Be honest about extraction confidence** - if Abbott-Smith didn't quote it, flag it
+4. **Search for ALL forms of the lemma** - ὁ, ἡ, τό, τοῦ, τῆς, τῷ, τήν, etc.
+5. **Output ONLY JSON** - first character `{`, last character `}`
+6. **No markdown code fences** - raw JSON only
+
+**Begin processing now. Extract all references, then make ONE batch MCP call.**

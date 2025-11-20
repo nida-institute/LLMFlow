@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
   - passage
@@ -6,7 +6,7 @@ prompt:
   optional: []
   format: Markdown
   description: Analyze the passage {{passage}} using the source {{source}}. Provide key Hebrew terms, textual notes, and implications for scene visualization.
--->
+---
 
 STYLE / METHOD GUARDRAILS (NON-NEGOTIABLE)
 - Inductive order only: description → implication for visualization; no modern application here.

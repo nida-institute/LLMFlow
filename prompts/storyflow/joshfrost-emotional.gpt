@@ -1,4 +1,4 @@
-<!--
+---
 prompt:
   requires:
     - exegetical_culture
@@ -8,7 +8,7 @@ prompt:
     - source
     - scene
   format: markdown
--->
+---
 
 ## Scene Data (in JSON)
 

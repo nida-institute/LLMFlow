@@ -3,24 +3,27 @@ import inspect
 import json
 import os
 import re
+import time
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
+import httpx
 import yaml
+from openai import APIError as OpenAIAPIError, APITimeoutError, RateLimitError
 
 from llmflow.modules.logger import Logger
 from llmflow.plugins import plugin_registry
 from llmflow.plugins.loader import discover_plugins
-from llmflow.utils.get_prefix_directory import get_prefix_directory
 from llmflow.utils.io import validate_all_templates
 from llmflow.utils.linter import lint_pipeline_full
 from llmflow.utils.llm_runner import call_llm, run_llm_with_mcp_tools
+from llmflow.utils.get_prefix_directory import get_prefix_directory  # ← ADD THIS LINE
 from llmflow.exceptions import (
     StepExecutionError,
     ForEachIterationError,
     VariableResolutionError,
-    LLMProviderError,  # Add this
+    LLMProviderError,
     PluginError
 )
 from llmflow.modules.mcp import init_mcp_client
@@ -50,7 +53,7 @@ def _record_written_file(path):
 def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
     """
     Resolve dot notation and list indices from context.
-    Supports: foo.bar, foo[0], foo.bar[key], Row objects with attributes/getitem.
+    Supports: foo.bar, foo[0], foo[key], foo['key'], Row objects with attributes/getitem.
     """
     import re
 
@@ -58,7 +61,7 @@ def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
     result = ctx
 
     for part in parts:
-        # Handle list index: foo[0] OR dict key: foo[key]
+        # Handle list index: foo[0] OR dict key: foo[key] OR foo['key']
         m = re.match(r"^([a-zA-Z0-9_]+)(\[([^\]]+)\])?$", part)
         if not m:
             return None
@@ -79,6 +82,7 @@ def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
 
         # Handle bracket access
         if bracket_content is not None:
+            # Try numeric index first
             try:
                 idx = int(bracket_content)
                 if isinstance(result, list):
@@ -88,19 +92,24 @@ def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
                 else:
                     return None
             except ValueError:
-                # Not an integer - treat as string key
+                # Not a number - treat as dict/object key
+                # Remove quotes if present: 'key' or "key" -> key
+                bracket_key = bracket_content.strip().strip("'\"")
+
+                # Try dict access
                 if isinstance(result, dict):
-                    result = result.get(bracket_content)
+                    result = result.get(bracket_key)
+                # Try Row object __getitem__
                 elif hasattr(result, '__getitem__'):
                     try:
-                        result = result[bracket_content]
+                        result = result[bracket_key]
                     except (KeyError, TypeError):
                         return None
+                # Try attribute access as fallback
+                elif hasattr(result, bracket_key):
+                    result = getattr(result, bracket_key)
                 else:
                     return None
-
-        if result is None:
-            return None
 
     return result
 
@@ -210,11 +219,11 @@ def render_prompt(
     return rendered_prompt
 
 
-def handle_step_outputs(rule: Dict[str, Any], result: Any, context: Dict[str, Any]):
+def handle_step_outputs(step: Dict[str, Any], result: Any, context: Dict[str, Any]) -> None:
     """Store step results in context based on outputs configuration."""
 
     # 1. Handle outputs - store results in context
-    outputs = rule.get("outputs")
+    outputs = step.get("outputs")  # ← Changed from 'rule' to 'step'
     if outputs is not None:
         if isinstance(outputs, str):
             context[outputs] = result
@@ -233,7 +242,7 @@ def handle_step_outputs(rule: Dict[str, Any], result: Any, context: Dict[str, An
                     logger.debug(f"Stored result in context['{output_name}']")
 
     # 2. Handle append_to - append result to a list
-    append_to = rule.get("append_to")
+    append_to = step.get("append_to")  # ← Changed from 'rule' to 'step'
     if append_to:
         if append_to not in context:
             context[append_to] = []
@@ -253,14 +262,14 @@ def handle_step_outputs(rule: Dict[str, Any], result: Any, context: Dict[str, An
         logger.debug(f"Appended to {append_to}: now has {len(context[append_to])} items")
 
     # 3. Handle saveas - save result to file(s)
-    if "saveas" in rule:
-        handle_step_saveas(rule, context)
+    if "saveas" in step:  # ← Changed from 'rule' to 'step'
+        handle_step_saveas(step, context)  # ← Changed from 'rule' to 'step'
 
 
-def handle_step_saveas(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
+def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> None:  # ← Changed parameter name from 'rule' to 'step'
     """Handle saveas output for pipeline steps."""
-    saveas_config = rule["saveas"]
-    outputs = rule.get("outputs")
+    saveas_config = step["saveas"]  # ← Changed from 'rule' to 'step'
+    outputs = step.get("outputs")  # ← Changed from 'rule' to 'step'
 
     def get_content():
         if isinstance(outputs, list):
@@ -272,7 +281,8 @@ def handle_step_saveas(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
     if isinstance(saveas_config, str):
         path = resolve(saveas_config, context)
         content = get_content()
-        saved_path = save_content_to_file(content, path)
+        fmt = step.get("format", "auto")
+        saved_path = save_content_to_file(content, path, fmt)
         _record_written_file(saved_path)
         return
 
@@ -280,6 +290,7 @@ def handle_step_saveas(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
         path = resolve(saveas_config["path"], context)
         group_cfg = saveas_config.get("group_by_prefix")
         content = get_content()
+        fmt = step.get("format", "auto")
 
         if group_cfg:
             from pathlib import Path as _P
@@ -294,7 +305,7 @@ def handle_step_saveas(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
                 )
             path = str(_P(path).parent / prefix_dir / fname)
 
-        saved_path = save_content_to_file(content, path)
+        saved_path = save_content_to_file(content, path, fmt)
         _record_written_file(saved_path)
         return
 
@@ -312,29 +323,49 @@ def handle_step_saveas(rule: Dict[str, Any], context: Dict[str, Any]) -> None:
     raise ValueError("Invalid saveas configuration type")
 
 
-def run_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> str | None:
-    """
-    Execute a single step based on its type.
-    Returns 'exit' if step has 'after: exit', 'continue' if 'after: continue', else None.
-    """
+def run_step(
+    step: Dict[str, Any],
+    context: Dict[str, Any],
+    pipeline_config: Dict[str, Any] | None = None
+) -> Any:
+    """Execute a step based on its type"""
     step_type = step.get("type")
+
+    # Check condition BEFORE executing any step type
+    condition = step.get("condition")
+    if condition:
+        # Resolve variables in condition before evaluation
+        resolved_condition = resolve(condition, context)
+        logger.debug(f"🔍 Evaluating condition: {condition}")
+        logger.debug(f"   Resolved to: {resolved_condition}")
+
+        try:
+            if isinstance(resolved_condition, bool):
+                condition_result = resolved_condition
+            elif isinstance(resolved_condition, (int, float)):
+                condition_result = bool(resolved_condition)
+            else:
+                condition_result = bool(eval(str(resolved_condition)))
+        except Exception as e:
+            logger.warning(f"Condition evaluation failed: {condition} - {e}")
+            condition_result = False
+
+        if not condition_result:
+            logger.info(f"⏭️  Skipping step '{step.get('name')}' (condition false)")
+            return None
+
+    # Execute step based on type
+    after_action = None
 
     if step_type == "for-each":
         after_action = run_for_each_step(step, context, pipeline_config)
-        # Check if nested step returned exit
-        if after_action == "exit":
-            return "exit"
     elif step_type == "llm":
         result = run_llm_step(step, context, pipeline_config)
         handle_step_outputs(step, result, context)
     elif step_type == "function":
         result = run_function_step(step, context, pipeline_config)
-        # handle_step_outputs is called inside run_function_step
     elif step_type == "if":
         after_action = run_if_step(step, context, pipeline_config)
-        # Check if nested step returned exit
-        if after_action == "exit":
-            return "exit"
     elif step_type == "save":
         run_save_step(step, context, pipeline_config)
     elif step.get("plugin"):
@@ -346,8 +377,18 @@ def run_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dic
     else:
         raise ValueError(f"Unknown step type: {step_type}")
 
-    # Return the after action to propagate it up
-    return step.get("after")
+    # ✅ CENTRALIZED: Handle 'after' directive for ALL steps
+    # Priority: nested step's after_action > step's own after directive
+    if after_action:
+        return after_action  # Propagate from nested steps
+
+    # Handle this step's own after directive
+    after_directive = step.get("after")
+    if after_directive:
+        logger.debug(f"Step '{step.get('name')}' has after: {after_directive}")
+        return after_directive  # Return "exit", "continue", or "skip"
+
+    return None
 
 
 def run_plugin_step(
@@ -417,31 +458,28 @@ def run_function_step(
     return result
 
 
-def run_llm_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> str:
+def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> str:
     """Execute an LLM step and return its result"""
-    name = rule.get("name", "unnamed_llm_step")
+    name = step.get("name", "unnamed_llm_step")
 
     logger.info(f"🤖 Starting LLM step: {name}")
-    logger.debug(f"Step details: {rule}")
+    logger.debug(f"Step details: {step}")
     logger.debug(f"Context keys available: {list(context.keys())}")
 
-    rendered_prompt = render_prompt(rule["prompt"], context)
+    rendered_prompt = render_prompt(step["prompt"], context)
 
-    # Build merged config - FIX: Use llm_options if present
+    # Build merged config
     llm_config = pipeline_config.get("llm_config", {})
-
-    # FIX: Check for llm_options in step
-    step_options = rule.get("llm_options", {})
+    step_options = step.get("llm_options", {})
     step_config = {
-        "model": rule.get("model"),
-        "temperature": rule.get("temperature") or step_options.get("temperature"),
-        "max_tokens": rule.get("max_tokens") or step_options.get("max_tokens"),
-        "timeout_seconds": rule.get("timeout_seconds") or step_options.get("timeout_seconds"),
+        "model": step.get("model"),
+        "temperature": step.get("temperature") or step_options.get("temperature"),
+        "max_tokens": step.get("max_tokens") or step_options.get("max_tokens"),
+        "timeout_seconds": step.get("timeout_seconds") or step_options.get("timeout_seconds"),
+        "response_format": step.get("response_format"),
     }
-    # Remove None values
     step_config = {k: v for k, v in step_config.items() if v is not None}
 
-    # Merge configs: defaults < pipeline < step-level
     merged_config = {
         "model": "gpt-4o",
         "temperature": 0.7,
@@ -449,36 +487,71 @@ def run_llm_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config:
         "timeout_seconds": 30,
     }
     merged_config.update(llm_config)
-    merged_config.update(step_options)  # FIX: Merge llm_options
-    merged_config.update(step_config)    # Then override with direct step attrs
+    merged_config.update(step_options)
+    merged_config.update(step_config)
 
-    output_type = rule.get("output_type", "text")
+    # Determine output type
+    output_type = step.get("output_type", "text")
+
+    if output_type == "text":
+        saveas_config = step.get("saveas")
+        if saveas_config:
+            path = saveas_config if isinstance(saveas_config, str) else saveas_config.get("path", "")
+            if path.endswith(".json"):
+                output_type = "json"
+                logger.debug(f"    🔍 Auto-detected JSON output from saveas path: {path}")
 
     # Initialize MCP client if enabled
-    mcp_client = init_mcp_client(rule, pipeline_config)
+    mcp_client = init_mcp_client(step, pipeline_config)
 
     try:
-        if mcp_client:
-            # Use tool-calling flow with iterative calls
-            logger.info(f"    ⏳ Calling {merged_config.get('model')} with MCP tools for step '{name}'...")
-            response = run_llm_with_mcp_tools(
-                rendered_prompt,
-                merged_config,
-                mcp_client,
-                output_type
-            )
-        else:
-            # Use simple flow without tools
-            logger.info(f"    ⏳ Calling {merged_config.get('model')} for step '{name}'...")
-            response = call_llm(
-                rendered_prompt,
-                config=merged_config,
-                output_type=output_type
-            )
+        # Retry configuration
+        max_retries = 3
+        retry_delay = 2
 
-        # Check for templates
-        if "template" in rule or "format_with" in rule:
-            template_path = rule.get("template") or rule.get("format_with")
+        response = None
+        for attempt in range(max_retries):
+            try:
+                if mcp_client:
+                    logger.info(f"    ⏳ Calling {merged_config.get('model')} with MCP tools for step '{name}'...")
+                    response = run_llm_with_mcp_tools(
+                        rendered_prompt,
+                        merged_config,  # ← Changed from 'config' to 'merged_config'
+                        mcp_client,
+                        output_type,
+                        step_name=step.get("name", "unknown")
+                    )
+                else:
+                    logger.info(f"    ⏳ Calling {merged_config.get('model')} for step '{name}'...")
+                    response = call_llm(
+                        rendered_prompt,
+                        config=merged_config,
+                        output_type=output_type
+                    )
+
+                # Success! Break out of retry loop
+                break
+
+            except KeyboardInterrupt:
+                # Don't retry on Ctrl+C
+                logger.info("⚠️  User interrupted - exiting")
+                raise
+
+            except Exception as e:
+                # Catch ANY exception from LLM call
+                if attempt < max_retries - 1:
+                    wait_time = retry_delay * (2 ** attempt)  # 2s, 4s, 8s
+                    logger.warning(f"⚠️  LLM error (attempt {attempt + 1}/{max_retries}): {type(e).__name__}: {str(e)[:100]}")
+                    logger.warning(f"    Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"❌ LLM call failed after {max_retries} attempts")
+                    logger.error(f"    Final error: {type(e).__name__}: {e}")
+                    raise  # Re-raise after all retries exhausted
+
+        # Check for templates (only runs if we got a response)
+        if response and ("template" in step or "format_with" in step):
+            template_path = step.get("template") or step.get("format_with")
             response = apply_output_template(response, template_path, context)
 
         logger.info(f"✅ Completed LLM step: {name}")
@@ -510,33 +583,65 @@ def run_save_step(
     logger.info(f"✅ Completed save step: {name}")
 
 
-def save_content_to_file(content: Any, path: str, format_type: str = "auto") -> str:
-    """Save content to a file with format detection"""
-    output_path = Path(path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+def save_content_to_file(content: Any, path: str, format: str = None) -> str:
+    """Save content to file with optional format specification."""
+    import json
+    from pathlib import Path
 
-    # Auto-detect format from extension
-    if format_type == "auto":
-        ext = output_path.suffix.lower()
-        if ext in [".json"]:
-            format_type = "json"
-        elif ext in [".yaml", ".yml"]:
-            format_type = "yaml"
+    # Auto-detect format from extension if not specified OR if format='auto'
+    if format is None or format == 'auto':
+        if path.endswith('.json'):
+            format = 'json'
         else:
-            format_type = "text"
+            format = 'text'  # Default to text mode
 
-    # Write file by format (inline the logic)
-    if format_type == "json":
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(content, f, indent=2, ensure_ascii=False)
-    elif format_type == "yaml":
-        with open(output_path, "w", encoding="utf-8") as f:
-            yaml.dump(content, f, default_flow_style=False, allow_unicode=True)
+    # Apply format
+    if format == 'json':
+        # Case 1: Python dict/list - serialize directly
+        if isinstance(content, (dict, list)):
+            formatted_content = json.dumps(content, ensure_ascii=False, indent=2)
+
+        # Case 2: String that might be JSON
+        elif isinstance(content, str):
+            try:
+                parsed = json.loads(content)
+
+                # FIX: Check if parsed is a string (double-encoded JSON)
+                if isinstance(parsed, str):
+                    # It's double-encoded - parse again and use indented format
+                    try:
+                        double_parsed = json.loads(parsed)
+                        formatted_content = json.dumps(double_parsed, ensure_ascii=False, indent=2)  # ← Changed
+                    except (json.JSONDecodeError, ValueError):
+                        # Can't parse inner string, just use outer parsed value
+                        formatted_content = parsed
+                else:
+                    # Normal JSON - re-serialize with proper formatting
+                    formatted_content = json.dumps(parsed, ensure_ascii=False, indent=2)
+
+            except (json.JSONDecodeError, ValueError):
+                # Not valid JSON, treat as plain string and serialize it
+                formatted_content = json.dumps(content, ensure_ascii=False, indent=2)
+
+        # Case 3: Other Python objects
+        else:
+            formatted_content = json.dumps(content, ensure_ascii=False, indent=2)
     else:
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(str(content))
+        # Text mode - just convert to string (preserve exact content)
+        if isinstance(content, str):
+            formatted_content = content  # FIX: Don't call str() on strings
+        else:
+            formatted_content = str(content)
 
-    return str(output_path.absolute())
+    # Create parent directories if they don't exist
+    path_obj = Path(path)
+    path_obj.parent.mkdir(parents=True, exist_ok=True)
+
+    # Write the file
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(formatted_content)
+
+    return str(path_obj.absolute())
 
 
 def resolve_template(template: str, context: Dict[str, Any]) -> str:
@@ -552,11 +657,11 @@ def resolve_template(template: str, context: Dict[str, Any]) -> str:
     return resolved
 
 
-def run_for_each_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> str | None:
+def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> str | None:
     """Execute a for-each loop step"""
-    input_data = resolve(rule.get("input", []), context)
-    item_var = rule.get("item_var", "item")
-    steps = rule.get("steps", [])
+    input_data = resolve(step.get("input", []), context)
+    item_var = step.get("item_var", "item")
+    steps = step.get("steps", [])
 
     # Collect all append_to targets AND regular outputs
     def collect_outputs(steps_list):
@@ -625,50 +730,23 @@ def run_for_each_step(rule: Dict[str, Any], context: Dict[str, Any], pipeline_co
 
 
 def run_if_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> str | None:
-    """Execute an if step conditionally. Returns 'exit' if any nested step has 'after: exit'."""
-    condition_expr = step.get("condition")
+    """Execute an if step - evaluate condition and run nested steps"""
     nested_steps = step.get("steps", [])
-
-    if not condition_expr:
-        raise ValueError("if step missing 'condition'")
-    if not nested_steps:
-        return None
-
     name = step.get("name", "unnamed")
-    logger.info(f"❓ Starting if step: {name}")
 
-    try:
-        resolved = resolve(condition_expr, context)
-        # If resolve returns a boolean/int directly, use it as-is
-        # Otherwise evaluate it as a Python expression
-        if isinstance(resolved, bool):
-            condition_result = resolved
-        elif isinstance(resolved, (int, float)):
-            condition_result = bool(resolved)
-        else:
-            # It's a string expression, evaluate it
-            condition_result = bool(eval(resolved))
+    # Condition already evaluated in run_step(), we only get here if TRUE
+    logger.debug(f"✅ Condition true for '{name}', running nested steps")
 
-        if condition_result:
-            logger.info(f"   Condition is true, executing {len(nested_steps)} steps")
-            for nested in nested_steps:
-                after_action = run_step(nested, context, pipeline_config)
-                if after_action == "exit":
-                    logger.info("🛑 'after: exit' in nested step - propagating exit signal")
-                    return "exit"
-                elif after_action == "continue":
-                    logger.info("⏭️  'after: continue' in nested step - breaking out of if block")
-                    # CHANGE: For now, only break from if block
-                    # In the future, this should propagate to enclosing for-each loop
-                    return None  # Don't propagate continue from if to for-each
-        else:
-            logger.info("   Condition is false, skipping steps")
+    # Run nested steps
+    if nested_steps:
+        logger.debug(f"   Running {len(nested_steps)} nested steps")
+        for nested_step in nested_steps:
+            after_action = run_step(nested_step, context, pipeline_config)
+            if after_action in ["exit", "continue"]:
+                logger.debug(f"   Propagating after action: {after_action}")
+                return after_action  # Propagate up
 
-    except Exception as e:
-        logger.error(f"Error evaluating condition '{condition_expr}': {e}")
-
-    logger.info(f"✅ Completed if step: {step.get('name', 'unnamed')}")
-    return None
+    return None  # Normal completion
 
 
 def run_pipeline(
@@ -775,10 +853,10 @@ def run_pipeline(
     logger.info("\n🎯 Starting pipeline execution...")
 
     # Execute each step
-    for rule in steps:
-        after_action = run_step(rule, context, pipeline_config)
+    for step in steps:
+        after_action = run_step(step, context, pipeline_config)
         if after_action == "exit":
-            logger.info(f"🛑 'after: exit' - exiting pipeline early after step '{rule.get('name')}'.")
+            logger.info(f"🛑 'after: exit' - exiting pipeline early after step '{step.get('name')}'.")
             break
         elif after_action == "continue":
             continue  # Default behavior

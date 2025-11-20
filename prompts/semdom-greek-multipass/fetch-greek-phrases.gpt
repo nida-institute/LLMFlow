@@ -1,0 +1,89 @@
+---
+inputs:
+  lemma: "Greek lemma"
+  base_json: "Abbott-Smith base JSON with references"
+outputs:
+  enriched_json: "Base JSON enriched with Greek phrases from MCP"
+---
+
+You are filling in missing Greek phrases for biblical citations.
+
+INPUT:
+Lemma: {{lemma}}
+
+Abbott-Smith Data:
+{{base_json}}
+
+YOUR TASK:
+For each reference in the Abbott-Smith data:
+
+1. **Check if Greek phrase exists**:
+   - Look for meaningful Greek text (not just the lemma "{{lemma}}")
+   - If you find phrases like "ὁ μὲν ... ὁ δέ", keep them as-is
+
+2. **If Greek phrase is missing or just the lemma**:
+   - Use MCP tool `get_passage_text` to fetch the verse
+   - Extract a phrase of 3-10 words that includes the lemma in context
+   - Provide accurate translation
+
+3. **Preserve all original data**:
+   - Keep sense paths, glosses, notes
+   - Add new fields without removing existing ones
+
+OUTPUT FORMAT:
+Return the complete base_json structure with these additions for each citation:
+```json
+{
+  "reference": "Acts.17.28",
+  "greek_phrase": "τοῦ γὰρ καὶ γένος ἐσμέν",
+  "translation": "For we are indeed his offspring",
+  "note": "quoted from the poet Aratus",
+  "mcp_enriched": true
+}
+```
+
+EXAMPLE TRANSFORMATION:
+
+Before (from base.json):
+```json
+{
+  "path": "I.1",
+  "label": "As demonstrative pronoun, absolute",
+  "usageGroups": [{
+    "references": [{
+      "osisRef": "Acts.17.28",
+      "text": "Acts 17:28",
+      "note": "quoted from the poet Aratus"
+    }]
+  }],
+  "glosses": ["he", "she", "it", "his"]
+}
+```
+
+After (enriched with MCP):
+```json
+{
+  "path": "I.1",
+  "label": "As demonstrative pronoun, absolute",
+  "usageGroups": [{
+    "references": [{
+      "osisRef": "Acts.17.28",
+      "text": "Acts 17:28",
+      "note": "quoted from the poet Aratus",
+      "greek_phrase": "τοῦ γὰρ καὶ γένος ἐσμέν",
+      "translation": "For we are indeed his offspring",
+      "mcp_enriched": true
+    }]
+  }],
+  "glosses": ["he", "she", "it", "his"]
+}
+```
+
+RULES:
+- Use MCP to fetch verses when Greek phrases are missing
+- Extract contextual phrases, not just the lemma
+- Preserve ALL existing structure and data
+- If MCP is unavailable, mark as: "greek_phrase": "[@review - MCP unavailable]"
+- Do NOT invent Greek text - only use MCP-fetched data
+
+NOW PROCESS THE DATA AND ENRICH ALL CITATIONS:
