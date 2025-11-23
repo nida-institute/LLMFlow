@@ -1,0 +1,20 @@
+name: "Hello World Smoke Test"
+description: |
+  Quick check that LLMFlow can run a pipeline end-to-end. From repo root:
+    llmflow run pipelines/hello-world.yaml
+
+variables:
+  prompts_dir: "prompts"
+
+llm_config:
+  model: "gpt-4o-mini"
+  temperature: 0.2
+  max_tokens: 300
+
+steps:
+  - name: "hello-world"
+    type: "llm"
+    prompt:
+      file: "${prompts_dir}/hello-world.gpt"
+      inputs:
+        project_name: "LLMFlow"
