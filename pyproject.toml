@@ -4,7 +4,24 @@ version = "0.1.0"
 description = "Declarative pipelines for LLM-powered workflows"
 authors = [{name = "Your Name", email = "you@example.com"}]
 license = {text = "MIT"}
-dependencies = ["click", "lxml", "deepdiff", "pyyaml"]
+dependencies = [
+  "click",
+  "lxml",
+  "deepdiff",
+  "pyyaml",
+  "httpx",
+  "openai",
+  "markdown",
+  "basexclient",
+  "llm",
+  "mcp",
+  "typer",
+  "rich",
+  "python-dotenv",
+  "pydantic",
+  "saxonche",
+  "jinja2"
+]
 readme = "README.md"
 requires-python = ">=3.8"
 
