@@ -204,7 +204,7 @@ def render_prompt(
     )
 
     logger.debug(f"Loading prompt from: {full_prompt_path}")
-    rendered_prompt = full_prompt_path.read_text()
+    rendered_prompt = full_prompt_path.read_text(encoding="utf-8")
 
     # FIRST: Handle {{variable}} syntax (double braces) - your existing prompts
     for key, val in context.items():
