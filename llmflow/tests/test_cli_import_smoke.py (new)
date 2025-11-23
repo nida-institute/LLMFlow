@@ -1,0 +1,4 @@
+def test_import_main():
+    from llmflow.cli import main
+
+    assert main is not None
