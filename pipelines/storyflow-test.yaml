@@ -1,5 +1,7 @@
 name: "Test Storyflow Pipeline"
-description: "Test pipeline for storyflow functionality"
+description: |
+  Minimal Storyflow harness used by the automated tests. Run from repo root:
+    llmflow run pipelines/storyflow-test.yaml
 
 llm_config:
   model: "gpt-4o"
