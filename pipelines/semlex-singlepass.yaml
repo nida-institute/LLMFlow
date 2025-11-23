@@ -1,4 +1,8 @@
 name: SemLex Single-Pass
+description: |
+  Generate single-pass semantic lexicon entries using the SemLex prompts and MCP Bible access.
+  Run from the repository root, optionally limiting the number of entries processed:
+    llmflow run --pipeline pipelines/semlex-singlepass.yaml
 
 variables:
   prompts_dir: prompts/semdom-greek-singlepass
