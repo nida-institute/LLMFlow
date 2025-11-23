@@ -16,6 +16,7 @@
   "tests/test_function_context_passing.py": true,
   "tests/test_function_outputs_list.py": true,
   "tests/test_group_by_prefix.py": true,
+  "tests/test_init.py": true,
   "tests/test_json_array_handling.py": true,
   "tests/test_json_array_handling.py::test_save_json_array_to_file": true,
   "tests/test_json_fix.py": true,
@@ -44,6 +45,7 @@
   "tests/test_template_resolution.py": true,
   "tests/test_tsv_plugin.py": true,
   "tests/test_verify_citations_integration.py": true,
+  "tests/test_windows_encoding.py": true,
   "tests/test_xpath_integration.py": true,
   "tests/test_xpath_plugin.py": true
 }
