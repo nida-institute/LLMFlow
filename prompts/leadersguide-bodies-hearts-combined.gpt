@@ -1,0 +1,163 @@
+---
+prompt:
+  requires:
+    - passage
+    - scene
+    - citation
+    - exegetical_culture
+    - exegetical_emotionalarc
+    - joshfrost_emotional
+  optional: []
+  format: Markdown
+  description: Combined Leader’s Guide prompt that first generates “Enter the Scene with Your Body” (bodies.gpt style) and then builds directly into “Enter the Scene with Your Whole Heart” (hearts.gpt style), weaving cultural background and emotional arc. Output must resemble the attached markdown guide.
+---
+<!-- HARD RULES:
+1) The FIRST non-empty line of your output MUST be:
+### Enter the Scene with Your Body ({{citation}})
+Do not use any other H3 before this.
+
+2) After finishing the Bodies section, the NEXT H3 MUST be:
+### Enter the Scene with Your Whole Heart ({{citation}})
+-->
+
+# StoryFlow Leader's Guide – Combined: Bodies → Hearts
+
+## 📥 Inputs
+
+### passage
+{{passage}}
+
+### scene
+{{scene}}
+
+### citation
+{{citation}}
+
+### exegetical_culture
+{{exegetical_culture}}
+
+### exegetical_emotionalarc
+{{exegetical_emotionalarc}}
+
+### joshfrost_emotional
+{{joshfrost_emotional}}
+
+---
+
+You are helping group leaders guide the group first to enter the scene physically (bodies.gpt), then to discern heart-level dynamics (hearts.gpt). Begin with embodied, text-grounded attention, weaving in brief cultural insights only when they sharpen visualization. Then transition (without repeating earlier details) into heart dynamics—desire, trust, fear, will—anchored in the same scene, guided by the emotional arc variables.
+
+Base your reasoning on the original-language source embedded in the scene (Hebrew or Greek), but do not mention Hebrew/Greek, transliterations, or grammar in the output. Avoid highlighting English translator helper words; describe the meaning instead in plain English.
+
+---
+
+## 🛠 Step-by-Step (Generation Plan — DO NOT OUTPUT)
+
+1) Generate Bodies section exactly per leadersguide-bodies.gpt Output Format (numbered sections, 6–8 questions total).
+2) Immediately follow with Hearts section per leadersguide-hearts.gpt (no repetition; brief callbacks allowed; emotionally focused questions).
+3) Keep tone, headings, rhythm, and question-driven style consistent with the attached example guide.
+
+---
+
+## 📝 Output Format (EMIT THIS STRUCTURE ONLY)
+
+### Enter the Scene with Your Body ({{citation}})
+
+- Use numbered sections with descriptive headings.
+- Total 6–8 questions across 2–3 numbered sections.
+- Weave cultural insight only when it helps concrete imagination; don’t label it.
+- Ancient focus: their physical experience in that time and place.
+- Text-grounded: only details the Scripture actually provides.
+
+1. **[Descriptive heading for first group of questions]**:
+   - [Text-grounded embodied question accessible to most people]
+   - [Text-grounded embodied question + brief scene-bound context when illuminating]
+
+2. **[Descriptive heading for second group of questions]**:
+   - [Text-grounded embodied question accessible to most people]
+   - [Text-grounded embodied question + brief scene-bound context when illuminating]
+
+3. **[Descriptive heading for third group of questions]** (if needed):
+   - [Text-grounded embodied question + brief scene-bound context when helpful]
+
+Requirements:
+- Start each section with accessible questions.
+- Add essential context on first mention (5–12 words; parenthetical or short clause).
+- Do not use scholarly/technical terms.
+- Match person/number to the text; avoid singular “they” when text is singular.
+
+---
+
+### Enter the Scene with Your Whole Heart ({{citation}})
+
+- Hearts focus: desire, trust, fear, resistance, attention, relational stance.
+- Do not re-describe physical scene; use brief callbacks only.
+- Tie emotions to {{exegetical_emotionalarc}} and {{joshfrost_emotional}}.
+- Weave brief background only when it clarifies stakes (risk, honor, scarcity, danger, loyalty).
+
+**Structure (questions only; no mini-lectures):**
+- [2–3 accessible, text-bound heart questions, rooted in imagery and stakes]
+- [1–2 questions that connect emotional arc variables to visible heart posture]
+- [1–2 perspective-taking questions (bystander, addressee, leader, opponent)]
+- [1 invitation question (trust, lament, courage, gratitude) named from the scene]
+
+Guidelines:
+- Plain English; conversational tone.
+- Match number/person to the passage.
+- Metaphor-first: explore stakes inside imagery; then connect to heart reality.
+- Hard bans: no language terms, transliterations, Strong’s numbers, or labeled “Background” sections.
+
+---
+
+## ⚖️ Guidelines for Bodies Generation (DO NOT OUTPUT)
+
+- Text-Grounded Sensory Attention:
+  - Start with physical words, verbs, imagery the text uses.
+  - Begin with questions answerable from common experience.
+  - First-Mention Rule: essential context immediately (terrain, tools, roles, customs).
+  - Use brief parentheticals or short clauses; keep it scene-bound.
+- Metaphor & Reality:
+  - Explore embodied world of imagery first.
+  - Phrase neutrally (“the scene shows…” “the speaker describes…”).
+- Precision & Tone:
+  - Plain, self-contained questions.
+  - Active voice, concrete language.
+
+## ⚖️ Guidelines for Hearts Generation (DO NOT OUTPUT)
+
+- Avoid repeating Bodies content; use brief callbacks only.
+- Select background when it clarifies emotional stakes.
+- Metaphor-first heart engagement; do not literalize metaphors.
+- Accessible questions; match grammar (number/person) to text.
+- Hard bans: no Hebrew/Greek mention, no technical terms, no labeled background.
+
+---
+
+## ✅ Safe Question Patterns (DO NOT OUTPUT)
+
+- Bodies:
+  - “Standing where [participant] is, what movements or positions do you notice, and what do they suggest about effort or risk?”
+  - “Considering the tools/terrain named here, what does guidance or protection look and feel like?”
+- Hearts:
+  - “Notice the imagery of [X]. What does it reveal about vulnerability, dependence, or risk?”
+  - “Given this, where is the speaker’s heart turning—toward trust, or toward fear/self-reliance?”
+  - “What do their words/actions suggest they treasure or trust right now?”
+
+---
+
+## 🚫 Red Flags to Rewrite Before Emitting (DO NOT OUTPUT)
+
+- Mentioning “in Hebrew/Greek,” naming original words, grammar terms.
+- Highlighting English helper words rather than underlying meaning.
+- Making the speaker become the metaphor.
+- Scholarly or formal religious tone.
+
+---
+
+## 🔧 Generation Inputs (Silent)
+
+- passage: {{passage}}
+- scene_text: {{scene}}
+- citation: {{citation}}
+- cultural: {{exegetical_culture}}
+- emotional_arc: {{exegetical_emotionalarc}}
+- emotional_notes: {{joshfrost_emotional}}
