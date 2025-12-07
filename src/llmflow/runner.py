@@ -30,6 +30,7 @@ from llmflow.exceptions import (
     PluginError
 )
 from llmflow.modules.mcp import init_mcp_client
+from llmflow.utils.guards import build_step_eval_ctx, enforce_require, collect_warnings
 
 discover_plugins()
 
@@ -390,6 +391,28 @@ def run_step(
     if after_directive:
         logger.debug(f"Step '{step.get('name')}' has after: {after_directive}")
         return after_directive  # Return "exit", "continue", or "skip"
+
+    # NEW: enforce 'require' and 'warn' after outputs have been stored
+    try:
+        eval_ctx = build_step_eval_ctx(step, context)
+
+        # Fail-hard requires (raises ValueError)
+        if "require" in step and step.get("require"):
+            enforce_require(eval_ctx, step.get("require"))
+
+        # Non-blocking warnings: collect and attach to context
+        if "warn" in step and step.get("warn"):
+            msgs = collect_warnings(eval_ctx, step.get("warn"))
+            if msgs:
+                # initialize warnings sink once
+                if "_warnings" not in context or context["_warnings"] is None:
+                    context["_warnings"] = []
+                context["_warnings"].extend(msgs)
+                for m in msgs:
+                    logger.warning(f"⚠️  {m}")
+    except Exception:
+        # propagate require failures and eval errors
+        raise
 
     return None
 
@@ -773,35 +796,38 @@ def run_pipeline(
     if verbose:
         logger.set_level("DEBUG")
 
-    pipeline_path = Path(pipeline_file)
+    # Accept dict pipelines directly
+    if isinstance(pipeline_file, dict):
+        pipeline_path = None
+        pipeline_config = pipeline_file
+    else:
+        pipeline_path = Path(pipeline_file)
+        if not pipeline_path.exists():
+            logger.error(f"❌ Pipeline file not found: {pipeline_file}")
+            raise SystemExit(1)
 
-    # Check if file exists
-    if not pipeline_path.exists():
-        logger.error(f"❌ Pipeline file not found: {pipeline_file}")
-        raise SystemExit(1)  # Change from FileNotFoundError
+        # Load and parse YAML with error handling
+        try:
+            with open(pipeline_path, "r") as f:
+                pipeline_config = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            logger.error(f"❌ YAML syntax error in {pipeline_file}:")
+            if hasattr(e, 'problem_mark'):
+                mark = e.problem_mark
+                logger.error(f"   Line {mark.line + 1}, Column {mark.column + 1}")
+                logger.error(f"   {e.problem}")
+                if hasattr(e, 'context'):
+                    logger.error(f"   Context: {e.context}")
+            else:
+                logger.error(f"   {str(e)}")
+            raise SystemExit(1)
+        except Exception as e:
+            logger.error(f"❌ Error reading pipeline file {pipeline_file}: {e}")
+            raise SystemExit(1)
 
-    # Load and parse YAML with error handling
-    try:
-        with open(pipeline_path, 'r') as f:
-            pipeline_config = yaml.safe_load(f)
-    except yaml.YAMLError as e:
-        logger.error(f"❌ YAML syntax error in {pipeline_file}:")
-        if hasattr(e, 'problem_mark'):
-            mark = e.problem_mark
-            logger.error(f"   Line {mark.line + 1}, Column {mark.column + 1}")
-            logger.error(f"   {e.problem}")
-            if hasattr(e, 'context'):
-                logger.error(f"   Context: {e.context}")
-        else:
-            logger.error(f"   {str(e)}")
-        raise SystemExit(1)
-    except Exception as e:
-        logger.error(f"❌ Error reading pipeline file {pipeline_file}: {e}")
-        raise SystemExit(1)
-
-    if not pipeline_config:
-        logger.error(f"❌ Pipeline file is empty or invalid: {pipeline_file}")
-        raise SystemExit(1)
+        if not pipeline_config:
+            logger.error(f"❌ Pipeline file is empty or invalid: {pipeline_file}")
+            raise SystemExit(1)
 
     # Validate pipeline structure with Pydantic
     try:
@@ -819,10 +845,9 @@ def run_pipeline(
         raise SystemExit(1)
 
     # Lint if requested
-    if not skip_lint:
+    if not skip_lint and pipeline_path is not None:
         logger.info("🔍 Validating pipeline...")
         lint_result = lint_pipeline_full(str(pipeline_path))
-        # Handle None return (for mocked tests)
         if lint_result and not lint_result.valid:
             logger.error("❌ Pipeline validation failed:")
             for error in lint_result.errors:

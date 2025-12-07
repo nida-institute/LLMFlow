@@ -6,6 +6,7 @@ from pathlib import Path
 import markdown
 
 from llmflow.modules.logger import Logger
+from llmflow.plugins.echo import echo
 
 # Use unified logger
 logger = Logger()
