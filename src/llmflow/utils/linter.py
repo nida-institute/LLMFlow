@@ -7,7 +7,60 @@ from pathlib import Path
 import click
 import yaml
 from pydantic import ValidationError
-from llmflow.pipeline_schema import PipelineConfig
+from llmflow.pipeline_schema import PipelineConfig, PIPELINE_SCHEMA
+
+def _allowed_step_keys_from_schema() -> set:
+    props = PIPELINE_SCHEMA.get("properties", {}).get("steps", {}).get("items", {}).get("properties", {})
+    return set(props.keys())
+
+ALLOWED_STEP_KEYS = {
+    "name",
+    "type",
+    "description",
+    "input",
+    "inputs",
+    "output",
+    "outputs",
+    "item_var",
+    "steps",
+    "after",
+    "append_to",
+    "condition",
+    "format",
+    "function",
+    "log",
+    "max_tokens",
+    "model",
+    "output_type",
+    "plugin",
+    "prompt",
+    "response_format",
+    "saveas",
+    "temperature",
+    "timeout_seconds",
+    "mcp",
+    "llm_options",
+    "tools",
+    "path",
+    "xpath",
+    "namespaces",
+    "output_format",
+    "stylesheet_path",
+    "xml_string",
+    "group_by_prefix",
+    "limit",
+    "variables",
+    "require",
+    "warn",
+}
+COMMON_TYPOS = {
+    "saveaas": "saveas",
+    "ouput": "outputs",
+    "ouptuts": "outputs",
+    "intputs": "inputs",
+    "inputss": "inputs",
+    "apend_to": "append_to",
+}
 
 from llmflow.modules.logger import Logger
 
@@ -339,6 +392,37 @@ class LintResult:
     warnings: List[str]
 
 
+def _collect_declared_outputs(all_steps):
+    declared = set()
+    for step in all_steps:
+        outs = step.get("outputs")
+        if isinstance(outs, dict):
+            declared.update(outs.keys())
+        elif isinstance(outs, list):
+            declared.update(outs)
+        elif isinstance(outs, str):
+            declared.add(outs)
+    return declared
+
+
+def _validate_template_var_provenance(all_steps, errors):
+    declared = _collect_declared_outputs(all_steps)
+    for step in all_steps:
+        if step.get("function") != "llmflow.utils.io.render_markdown_template":
+            continue
+        vars_map = step.get("inputs", {}).get("variables", {})
+        if not isinstance(vars_map, dict):
+            continue
+        for k, v in vars_map.items():
+            s = (v or "").strip()
+            if s.startswith("${") and s.endswith("}"):
+                ref = s[2:-1]
+                if ref not in declared:
+                    errors.append(
+                        f"❌ Template var '{k}' references '{v}' but no prior step declared '{ref}' in outputs"
+                    )
+
+
 def lint_pipeline_full(pipeline_path):
     """Lint pipeline and return result object instead of raising SystemExit"""
     all_errors = []
@@ -356,7 +440,7 @@ def lint_pipeline_full(pipeline_path):
 
     logger.info(f"Starting full pipeline lint for: {pipeline_path}")
 
-    # 1. Structure validation
+    # 1) Structure validation
     logger.info("🔍 Validating pipeline structure...")
     structure_errors = validate_pipeline_structure(pipeline_config)
     if structure_errors:
@@ -366,7 +450,7 @@ def lint_pipeline_full(pipeline_path):
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     logger.info("✅ Pipeline structure is valid")
 
-    # 1.5 ADD THIS: Step keyword validation
+    # 1.5) Step keyword validation
     logger.info("🔍 Validating step keywords...")
     all_steps = collect_all_steps(pipeline_config.get("steps", []))
     keyword_errors = lint_pipeline_steps(all_steps)
@@ -377,9 +461,8 @@ def lint_pipeline_full(pipeline_path):
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     logger.info("✅ All step keywords are valid")
 
-    # 2. Contract validation (existing code continues...)
+    # 2) Prompt contract validation
     errors, validated_count = validate_all_step_contracts(all_steps, log_and_screen, pipeline_config)
-
     if errors:
         all_errors.extend(errors)
         for error in errors:
@@ -388,36 +471,46 @@ def lint_pipeline_full(pipeline_path):
     else:
         logger.info(f"✅ All {validated_count} step contracts valid")
 
-    # 3. Template validation
-    logger.info("🔍 Validating pipeline templates...")
+    # 3) Template variables validation (NEW: ensure templates and variables match)
+    logger.info("🔍 Validating template variables...")
     template_errors = []
     template_warnings = []
 
-    template_steps = [
-        step for step in all_steps if step.get("inputs", {}).get("template_path")
-    ]
-
+    template_steps = [step for step in all_steps if step.get("inputs", {}).get("template_path")]
     for step in template_steps:
         template_path = step.get("inputs", {}).get("template_path", "")
-        logger.info(
-            f"🔍 Validating template: {template_path} (step: {step.get('name')})"
-        )
-
+        logger.info(f"🔍 Validating template: {template_path} (step: {step.get('name')})")
         validate_template_step(step, template_errors, template_warnings)
-
-        if not template_errors:
-            logger.info(f"✅ Template {template_path} is valid")
 
     if template_errors:
         all_errors.extend(template_errors)
-        logger.error(
-            f"\n❌ Template validation failed with {len(template_errors)} errors:"
-        )
+        logger.error(f"\n❌ Template validation failed with {len(template_errors)} errors:")
         for error in template_errors:
             logger.error(f"  {error}")
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
-    else:
-        logger.info("✅ All templates validated successfully")
+    logger.info("✅ Template variables match pipeline-provided variables")
+
+    # 4) Optional: scan rendered outputs for leftover placeholders and empty sections
+    logger.info("🔍 Scanning rendered outputs for leftovers...")
+    outputs_dir = Path(pipeline_path).resolve().parents[2] / "outputs" / "leaders_guide"
+    if outputs_dir.exists():
+        placeholder_re = re.compile(r"\{\{\s*([^}]+?)\s*\}\}")
+        hrule_re = re.compile(r"^\s*---\s*$", re.MULTILINE)
+        for md in outputs_dir.glob("*.md"):
+            text = md.read_text(encoding="utf-8")
+            unexpanded = {m.group(1).strip() for m in placeholder_re.finditer(text)
+                          if not (m.group(1).strip().startswith("#")
+                                  or m.group(1).strip().startswith("/")
+                                  or m.group(1).strip().startswith("%"))}
+            if unexpanded:
+                all_errors.append(f"❌ Unexpanded placeholders in {md.name}: {sorted(unexpanded)}")
+            parts = [p.strip() for p in hrule_re.split(text)]
+            empty_idxs = [i for i, p in enumerate(parts) if len(p) == 0]
+            if empty_idxs:
+                all_errors.append(f"❌ Empty sections around '---' in {md.name}: indices {empty_idxs} (sections: {len(parts)})")
+
+    if all_errors:
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
 
     # Show any warnings
     all_warnings.extend(template_warnings)
@@ -425,8 +518,6 @@ def lint_pipeline_full(pipeline_path):
         logger.warning(f"⚠️  {warning}")
 
     logger.info("✅ Pipeline validation completed successfully")
-
-    # Return success result
     return LintResult(valid=True, errors=[], warnings=all_warnings)
 
 
@@ -452,8 +543,6 @@ def check_step_outputs(step):
 def validate_step_prompt_contract(step, prompt_file, step_name):
     """Validate that a step's inputs match its prompt contract"""
     errors = []
-
-    # Try to find the prompt file in common locations
     prompt_path = None
     for possible_path in [
         f"prompts/{prompt_file}",
@@ -463,84 +552,54 @@ def validate_step_prompt_contract(step, prompt_file, step_name):
         if Path(possible_path).exists():
             prompt_path = possible_path
             break
-
     if not prompt_path:
         errors.append(f"❌ Step '{step_name}': Prompt file not found: {prompt_file}")
         return errors
 
-    # Parse the prompt header
     header = parse_prompt_header(prompt_path)
     if not header:
-        errors.append(
-            f"❌ Step '{step_name}': Missing or invalid YAML header in {prompt_path}"
-        )
+        errors.append(f"❌ Step '{step_name}': Missing or invalid YAML header in {prompt_path}")
         return errors
 
-    # Get required inputs from prompt
-    required_inputs = set(header.get("requires", []))
-    optional_inputs = set(header.get("optional", []))
-
-    # Get inputs provided by the step
     step_inputs = set(step.get("prompt", {}).get("inputs", {}).keys())
 
-    # Check for missing required inputs
+    # Support both formats
+    if "inputs" in header and isinstance(header["inputs"], dict):
+        required_inputs = set(header["inputs"].keys())
+        optional_inputs = set()
+    else:
+        required_inputs = set(header.get("requires", []))
+        optional_inputs = set(header.get("optional", []))
+
     missing_required = required_inputs - step_inputs
     if missing_required:
-        for missing in missing_required:
-            errors.append(
-                f"❌ Step '{step_name}': Missing required input '{missing}' for prompt '{prompt_file}'"
-            )
+        for missing in sorted(missing_required):
+            errors.append(f"❌ Step '{step_name}': Missing required input '{missing}' for prompt '{prompt_file}'")
 
-    # Check for unexpected inputs (not required or optional)
-    all_valid_inputs = required_inputs | optional_inputs
-    unexpected_inputs = step_inputs - all_valid_inputs
+    unexpected_inputs = step_inputs - (required_inputs | optional_inputs)
     if unexpected_inputs:
-        for unexpected in unexpected_inputs:
-            errors.append(
-                f"⚠️  Step '{step_name}': Unexpected input '{unexpected}' for prompt '{prompt_file}' (not in requires or optional)"
-            )
+        for unexpected in sorted(unexpected_inputs):
+            errors.append(f"⚠️  Step '{step_name}': Unexpected input '{unexpected}' for prompt '{prompt_file}' (not declared)")
 
     return errors
 
 
 # Add to your linter (e.g. llmflow/utils/linter.py)
 
-ALLOWED_STEP_KEYS = {
-    "after",
-    "append_to",
-    "condition",
-    "description",
-    "format",
-    "function",
-    "input",
-    "inputs",
-    "item_var",
-    "log",
-    "max_tokens",
-    "mcp",
-    "model",
-    "name",
-    "output_type",
-    "outputs",
-    "plugin",
-    "prompt",
-    "response_format",  # Add this line
-    "saveas",
-    "steps",
-    "temperature",
-    "timeout_seconds",
-    "type",
-}
-
-# Add typo suggestions mapping
-COMMON_TYPOS = {
-    "saveaas": "saveas",
-    "ouput": "outputs",
-    "ouptuts": "outputs",
-    "intputs": "inputs",
-    "inputss": "inputs",
-    "apend_to": "append_to",
-}
+def _lint_conditional_rules(step, errors, key: str):
+    rules = step.get(key, [])
+    if rules and not isinstance(rules, list):
+        errors.append(f"Step '{step.get('name','unnamed')}': '{key}' must be a list")
+        return
+    for r in rules or []:
+        if not isinstance(r, dict):
+            errors.append(f"Step '{step.get('name','unnamed')}': each '{key}' rule must be an object")
+            continue
+        if "if" not in r or not isinstance(r.get("if"), str) or not r.get("if").strip():
+            errors.append(f"Step '{step.get('name','unnamed')}': '{key}' rule must include non-empty 'if' expression")
+        for k in r.keys():
+            if k not in {"if", "message"}:
+                errors.append(f"Step '{step.get('name','unnamed')}': unknown '{key}' key '{k}'")
 
 def lint_pipeline_steps(steps):
     errors = []
@@ -548,11 +607,11 @@ def lint_pipeline_steps(steps):
         step_name = step.get('name', '<unnamed>')
         for key in step.keys():
             if key not in ALLOWED_STEP_KEYS:
-                error_msg = f"Step '{step_name}' has unknown keyword '{key}'. Allowed: {sorted(ALLOWED_STEP_KEYS)}"
-
-                # Check for common typos and suggest correction
-                if key in COMMON_TYPOS:
-                    error_msg += f" (Did you mean '{COMMON_TYPOS[key]}'?)"
-
-                errors.append(error_msg)
+                suggestion = COMMON_TYPOS.get(key)
+                message = f"Step '{step_name}' has unknown keyword '{key}'"
+                if suggestion:
+                    message += f" (Did you mean '{suggestion}'?)"
+                errors.append(message)
+        _lint_conditional_rules(step, errors, "require")
+        _lint_conditional_rules(step, errors, "warn")
     return errors

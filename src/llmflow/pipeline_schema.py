@@ -54,6 +54,9 @@ class StepConfig(BaseModel):
     append_to: Optional[str] = None
     log: Optional[str] = None
     saveas: Optional[Union[str, SaveAsConfig, List[Dict[str, Any]]]] = None
+    # NEW: guards
+    require: Optional[List[Dict[str, Any]]] = None
+    warn: Optional[List[Dict[str, Any]]] = None
 
 
 class PipelineConfig(BaseModel):
@@ -79,10 +82,7 @@ PIPELINE_SCHEMA = {
     "properties": {
         "name": {"type": "string"},
         "description": {"type": "string"},
-        "variables": {
-            "type": "object",
-            "additionalProperties": True,
-        },
+        "variables": {"type": "object", "additionalProperties": True},
         "llm_config": {
             "type": "object",
             "properties": {
@@ -93,10 +93,7 @@ PIPELINE_SCHEMA = {
             },
             "required": ["provider", "model"],
         },
-        "linter_config": {
-            "type": "object",
-            "additionalProperties": True,
-        },
+        "linter_config": {"type": "object", "additionalProperties": True},
         "steps": {
             "type": "array",
             "items": {
@@ -108,10 +105,7 @@ PIPELINE_SCHEMA = {
                     "prompt": {
                         "oneOf": [
                             {"type": "string"},
-                            {
-                                "type": "object",
-                                "additionalProperties": True,
-                            }
+                            {"type": "object", "additionalProperties": True},
                         ]
                     },
                     "input": {},
@@ -119,7 +113,7 @@ PIPELINE_SCHEMA = {
                     "outputs": {
                         "oneOf": [
                             {"type": "string"},
-                            {"type": "array", "items": {"type": "string"}}
+                            {"type": "array", "items": {"type": "string"}},
                         ]
                     },
                     "append_to": {"type": "string"},
@@ -135,26 +129,51 @@ PIPELINE_SCHEMA = {
                                     "path": {"type": "string"},
                                     "group_by_prefix": {
                                         "oneOf": [
-                                            {"type": "integer"},   # e.g. group_by_prefix: 2
+                                            {"type": "integer"},
                                             {
                                                 "type": "object",
                                                 "properties": {
                                                     "prefix_length": {"type": "integer"},
-                                                    "prefix_delimiter": {"type": "string"}
+                                                    "prefix_delimiter": {"type": "string"},
                                                 },
                                                 "additionalProperties": False,
                                                 "anyOf": [
                                                     {"required": ["prefix_length"]},
-                                                    {"required": ["prefix_delimiter"]}
-                                                ]
-                                            }
+                                                    {"required": ["prefix_delimiter"]},
+                                                ],
+                                            },
                                         ]
-                                    }
+                                    },
                                 },
                                 "required": ["path"],
-                                "additionalProperties": False
-                            }
+                                "additionalProperties": False,
+                            },
                         ]
+                    },
+                    # NEW: guards in schema
+                    "require": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "if": {"type": "string"},
+                                "message": {"type": "string"},
+                            },
+                            "required": ["if"],
+                            "additionalProperties": False,
+                        },
+                    },
+                    "warn": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "if": {"type": "string"},
+                                "message": {"type": "string"},
+                            },
+                            "required": ["if"],
+                            "additionalProperties": False,
+                        },
                     },
                 },
                 "required": ["name", "type"],

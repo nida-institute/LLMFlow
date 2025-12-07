@@ -1,0 +1,99 @@
+---
+prompt:
+  requires:
+    - passage
+    - scene
+    - citation
+    - exegetical_culture
+    - exegetical_emotionalarc
+    - joshfrost_emotional
+  optional: []
+  format: Markdown
+  description: Leader’s Guide with scene-specific questions. Start with Bodies (concrete, oral English, culturally visualized), then Hearts (emotionally accessible, tied to the arc). Questions are tailored to {{scene}}.
+---
+HARD RULES:
+1) The FIRST non-empty line of your output MUST be:
+### Enter the Scene with Your Body ({{citation}})
+Do not use any other H3 before this.
+
+2) The NEXT H3 MUST be:
+### Enter the Scene with Your Whole Heart ({{citation}})
+
+3) Questions MUST be built from the exact words, people, actions, places, and objects in {{scene}}. No generic templates.
+
+---
+
+# Guidance for the LLM (DO NOT OUTPUT)
+- Read {{scene}} aloud in your “mind’s ear.” Build questions from what the scene shows: people, place, actions, time, objects, and changes.
+- Bodies questions MUST invite inductive discovery. Do not supply answers. Do not ask about “words”; ask about what the words describe.
+- Adapt to presence and absence. If the text omits setting details, say that plainly and focus on what is present (e.g., who just left, where they are, what happens next, content of a dream).
+- If visualization needs cultural help ({{exegetical_culture}}), add 1–2 short sentences first, then ask the group to picture it in this scene.
+  Example: “People ate at low tables and leaned on cushions. Picture that—whose hands reach, where are the feet?”
+- Hearts questions stay tied to actions and outcomes in {{scene}} and follow {{exegetical_emotionalarc}} and {{joshfrost_emotional}}. Short, oral English. No mini-lectures.
+- No Hebrew/Greek, grammar terms, or “background” headings. Warm, simple tone.
+
+---
+
+## 📝 Output Format (EMIT ONLY THIS)
+
+### Enter the Scene with Your Body ({{citation}})
+
+- Use 2–3 numbered sections with short headings.
+- Ask 6–8 concrete, scene-specific questions total.
+- Plain, oral, emotionally accessible English. Short sentences. No jargon.
+- Name what is present and what is absent. Focus on actions and changes when setting is sparse.
+- Add cultural help only when it helps us see; 1–2 short sentences, then a picture-it question.
+- Questions MUST invite inductive discovery and avoid supplying answers.
+
+1. **Place — describe the scene**:
+   - “When they had gone”—who just left, and what does that leave behind here?
+   - Where are we in this story (named place if present)? What do we picture first—people, objects, land, sky—and where is each (near/far, inside/outside)?
+   - If the text does not name the room or time, say that. How does that absence shape what we picture—what stays in focus?
+
+2. **Actions and Movement — what is happening?**:
+   - What happens next in simple order—what do you see one person do, and what changes because of it?
+   - What is moving in this scene—people, hands, feet, eyes, travel—and where do we sense urgency or calm?
+   - Which places or objects affect what people do (door, road, water, crowd, night)? How do they guide or limit action here? ({{exegetical_culture}})
+   - If details are missing (room, time), how does that sharpen the action we do have?
+
+3. **Zooming In — describe the details** (use if needed):
+   - Name one small detail we can see (a gesture, where something sits, timing). What simple reason in the scene might explain it?
+   - If pressure or discomfort fits this passage, where do we see it—in bodies, pacing, choices—and what small shift happens next?
+
+Requirements:
+- Short, concrete questions.
+- Inductive: invite noticing; do not give the answers.
+- Cultural help only when needed: two short sentences, then a picture-it question.
+- Match person/number to what the scene shows.
+
+---
+
+### Enter the Scene with Your Whole Heart ({{citation}})
+
+- Hearts focus: the biblical heart (Hebrew lev; Greek kardia)—what we set our heart on, what we turn it toward or away from; the deliberations of the heart; what is at stake. Heart, mind, and will together.
+- Keep it short and tied to what happens in {{scene}}.
+- Use {{exegetical_emotionalarc}} and {{joshfrost_emotional}} to guide the feel of the questions.
+- Add one short cultural sentence only when it clarifies the stakes (risk, honor, scarcity, danger, loyalty).
+- Inductive: invite discovery; do not supply answers.
+- Participant-focused: name participants from the scene (e.g., speaker, addressee, bystanders). Ask about their heart-direction and choices.
+- Embodied lens: invite noticing in the body (breath, posture, hands, pacing) as signs of heart-direction (toward trust, away in fear, steady in hope, moved by love/compassion, checked by shame/guilt, stirred by anger, opened to gratitude).
+
+1. **Orientation — what the heart is set on**:
+   - Whose heart comes into focus first in {{scene}} (name the participant)? What or whom are they set on right now, and how do we see that in the moment shown?
+   - Where does this participant turn the heart—toward trust or away in fear—and what action in {{scene}} shows that turn (notice breath, hands, pace)?
+
+2. **Deliberation and Choice — what happens at stake**:
+   - What is at stake here (loss, danger, honor, calling)? How does that guide the will—what decision happens now, and how do we see it?
+   - Where do we notice care or attachment (love/compassion)—toward whom—and how does that shape the next move?
+
+3. **Future and Response — hope, judgment, gratitude** (use if needed):
+   - Where do we sense a pull toward the future (hope)—whose heart leans forward—and what small step points that way?
+   - If a wrong or threat is present, how is it judged here (anger, shame/guilt), and how do hearts respond—speak, wait, move, hide? What do bodies show?
+   - What invites gratitude in this scene—whose heart opens—and how might we name it together in one short sentence?
+
+Requirements:
+- Short, concrete questions.
+- Oral, emotionally accessible English.
+- Tie questions to specific participants and actions in {{scene}}.
+- Inductive: invite noticing; do not give the answers.
+
