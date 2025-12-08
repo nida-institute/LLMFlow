@@ -20,6 +20,7 @@
   "tests/test_json_array_handling.py": true,
   "tests/test_json_array_handling.py::test_save_json_array_to_file": true,
   "tests/test_json_fix.py": true,
+  "tests/test_json_output_type.py": true,
   "tests/test_lint_exit.py": true,
   "tests/test_linter.py": true,
   "tests/test_linter_append_to.py": true,
@@ -28,12 +29,12 @@
   "tests/test_llm_prompt_variable_resolution.py": true,
   "tests/test_mcp.py": true,
   "tests/test_mcp_integration.py": true,
-  "tests/test_parse.py": true,
   "tests/test_parse_bible_reference.py": true,
   "tests/test_pipeline_integration.py": true,
   "tests/test_pipeline_integration_final.py": true,
-  "tests/test_plugin_loader.py": true,
+  "tests/test_plugin_loader.py::TestPluginLoader::()": true,
   "tests/test_regression_scene_duplication.py": true,
+  "tests/test_require_clause.py": true,
   "tests/test_resolve_function.py": true,
   "tests/test_run_pipeline.py": true,
   "tests/test_runner_full.py": true,
@@ -47,5 +48,5 @@
   "tests/test_verify_citations_integration.py": true,
   "tests/test_windows_encoding.py": true,
   "tests/test_xpath_integration.py": true,
-  "tests/test_xpath_plugin.py": true
+  "tests/test_xpath_plugin.py::TestXPathPlugin::()": true
 }
