@@ -87,22 +87,25 @@ class TestHandleStepOutputs:
         assert len(context["items"]) == 2
         assert context["items"][1] == "new_item"
 
-    def test_saveas_simple(self):
+    def test_saveas_simple(self, tmp_path):
+        """Test saveas writes file correctly"""
         context = {}
-        rule = {
+        step = {
             "name": "test",
             "outputs": "content",
-            "saveas": "output/test.txt"
+            "saveas": str(tmp_path / "output.txt")
         }
         result = "Hello World"
 
-        with patch("llmflow.runner.save_content_to_file") as mock_save:
-            with patch("llmflow.runner._record_written_file"):
-                handle_step_outputs(rule, result, context)
+        handle_step_outputs(step, result, context, base_dir=str(tmp_path.parent))
 
-                mock_save.assert_called_once()
-                args = mock_save.call_args[0]
-                assert "Hello World" in str(args)
+        # Verify file was written
+        output_file = tmp_path / "output.txt"
+        assert output_file.exists()
+        assert output_file.read_text() == "Hello World"
+
+        # Verify context was updated
+        assert context["content"] == "Hello World"
 
 
 class TestRunFunctionStep:

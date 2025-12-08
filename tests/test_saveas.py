@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from llmflow.runner import run_pipeline
+from llmflow.runner import run_pipeline, handle_step_outputs
 
 
 @pytest.fixture
@@ -655,3 +655,25 @@ steps:
     # Check for indentation (multiple lines with spaces/tabs)
     lines = content.split('\n')
     assert len(lines) > 1, "JSON should be multi-line formatted"
+
+
+class TestHandleStepOutputs:
+    def test_saveas_simple(self, tmp_path):
+        """Test saveas writes file correctly"""
+        context = {}
+        step = {
+            "name": "test",
+            "outputs": "content",
+            "saveas": str(tmp_path / "output.txt")
+        }
+        result = "Hello World"
+
+        handle_step_outputs(step, result, context, base_dir=str(tmp_path.parent))
+
+        # Verify file was written
+        output_file = tmp_path / "output.txt"
+        assert output_file.exists()
+        assert output_file.read_text() == "Hello World"
+
+        # Verify context was updated
+        assert context["content"] == "Hello World"
