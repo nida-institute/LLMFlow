@@ -4,8 +4,8 @@ description: |
   Generate a StoryFlow Leader's Guide for a specific Gospel passage.
 
   Examples:
-    llmflow run --pipeline pipelines/storyflow-psalms.yaml --var passage="Mark 16"
-    llmflow run --pipeline pipelines/storyflow-psalms.yaml --var passage="Matthew 5:3-8"
+    llmflow run --pipeline pipelines/storyflow-gospels-combined.yaml --var passage="Mark 16"
+    llmflow run --pipeline pipelines/storyflow-gospels-combined.yaml --var passage="Matthew 5:3-8"
 
   Outputs:
     - Exegetical guide in outputs/exegetical/
@@ -117,6 +117,7 @@ steps:
       content: "${scene_list}"
       output_path: "outputs/scenes/${passage_info.filename_prefix}.json"
     outputs: scene_json_path
+    log: debug
 
   # --- For Each Scene (Bodies/Hearts/Connecting/Naming) ---
   - name: process_each_scene
@@ -198,10 +199,9 @@ steps:
           variables:
             scene_title: "${scene.Title}"
             scene_citation: "${scene.Citation}"
-            step1: "${bodies_content}"
-            step2: "${hearts_content}"
-            step3: "${connecting_content}"
-            step4: "${naming_content}"
+            bodies_hearts_content: "${bodies_hearts_content}"
+            connecting_content: "${connecting_content}"
+            naming_content: "${naming_content}"
         outputs: leadersguide_scene_markdown
         append_to: leadersguide_scenes_markdown_list
         log: debug

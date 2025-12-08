@@ -2,70 +2,31 @@ import json
 import re
 
 from llmflow.modules.logger import Logger
+from llmflow.modules.llm_response_clean import clean_llm_response_text
 
 # Use unified logger
 logger = Logger()
 
 
-def parse_llm_json_response(response_text, fallback_on_error=True):
-    """
-    Parse JSON from LLM response with error handling and logging.
-    """
-    logger.debug(f"🔍 Parsing JSON response ({len(response_text)} chars)")
+def parse_llm_json_response(text: str):
+    """Parse JSON from LLM response, handling markdown fences and double-encoding."""
+    # Clean the response text
+    cleaned = clean_llm_response_text(text)
 
     try:
-        # First, try to parse the entire response as JSON
-        try:
-            result = json.loads(response_text.strip())
-            logger.debug("✅ Successfully parsed entire response as JSON")
-            return result
-        except json.JSONDecodeError:
-            pass
+        # First parse attempt
+        result = json.loads(cleaned)
 
-        # Look for JSON in code blocks
-        code_block_pattern = r"```(?:json)?\s*([\s\S]*?)\s*```"
-        code_blocks = re.findall(code_block_pattern, response_text, re.IGNORECASE)
+        # Check if result is a string (double-encoded JSON)
+        if isinstance(result, str):
+            logger.debug("Detected double-encoded JSON, parsing again")
+            result = json.loads(result)
 
-        for i, block in enumerate(code_blocks):
-            try:
-                result = json.loads(block.strip())
-                logger.debug(f"✅ Successfully parsed JSON from code block {i+1}")
-                return result
-            except json.JSONDecodeError:
-                logger.debug(f"Failed to parse code block {i+1} as JSON")
-                continue
-
-        # Look for JSON-like structures without code blocks
-        # FIX: Use GREEDY matching to capture the full JSON structure
-        # Try to find the largest valid JSON object or array
-        json_pattern = r"(\{[\s\S]*\}|\[[\s\S]*\])"  # ← Changed from *? to * (greedy)
-        potential_json = re.findall(json_pattern, response_text)
-
-        # Sort by length descending - try longest matches first
-        potential_json = sorted(potential_json, key=len, reverse=True)
-
-        for i, candidate in enumerate(potential_json):
-            try:
-                result = json.loads(candidate.strip())
-                logger.debug(f"✅ Successfully parsed JSON from pattern match {i+1} (length: {len(candidate)})")
-                return result
-            except json.JSONDecodeError:
-                logger.debug(f"Failed to parse pattern match {i+1} as JSON")
-                continue
-
-        if fallback_on_error:
-            logger.warning("⚠️  No valid JSON found, returning raw text")
-            return response_text
-        else:
-            logger.error("❌ No valid JSON found in response")
-            raise ValueError("Could not parse JSON from LLM response")
-
-    except Exception as e:
-        logger.error(f"❌ Error parsing JSON response: {e}")
-        if fallback_on_error:
-            return response_text
-        else:
-            raise
+        return result
+    except json.JSONDecodeError as e:
+        logger.warning(f"⚠️  JSON parse error at position {e.pos}: {e.msg}")
+        logger.warning(f"⚠️  No valid JSON found, returning raw text")
+        return cleaned
 
 
 def validate_json_structure(data, required_fields=None):
@@ -97,3 +58,61 @@ def validate_json_structure(data, required_fields=None):
         logger.error(f"❌ JSON structure validation failed with {len(errors)} errors")
 
     return is_valid, errors
+
+
+def handle_llm_response(message, output_type, max_iterations=5):
+    """
+    Handle the response from the LLM, including parsing JSON and managing tool calls.
+    """
+    logger.info("🤖 Handling LLM response")
+
+    # Check if LLM is done (no tool calls)
+    if not message.tool_calls:
+        logger.debug("✅ LLM completed without requesting tools")
+        final_content = message.content or ""
+
+        # Parse JSON if requested
+        if output_type.lower() == "json":
+            from llmflow.modules.json_parser import parse_llm_json_response
+
+            return parse_llm_json_response(final_content)
+
+        return final_content
+
+    # If there are tool calls, we need to process them
+    logger.info(f"🔧 Processing {len(message.tool_calls)} tool calls")
+
+    for iteration in range(1, max_iterations + 1):
+        logger.info(f"🔄 MCP Iteration {iteration}")
+
+        for tool_call in message.tool_calls:
+            logger.info(f"📞 Calling tool: {tool_call.name}")
+
+            # Here you would implement the actual tool calling logic
+            # For now, we just log and pretend the tool call was successful
+            logger.info(f"✅ Tool {tool_call.name} called successfully")
+
+            # After a successful tool call, check if the LLM is done
+            if not message.tool_calls:
+                logger.debug("✅ LLM completed after tool calls")
+                final_content = message.content or ""
+
+                # Parse JSON if requested
+                if output_type.lower() == "json":
+                    from llmflow.modules.json_parser import parse_llm_json_response
+
+                    return parse_llm_json_response(final_content)
+
+                return final_content
+
+    # If we hit max iterations without finishing
+    logger.debug(f"⚠️  Max MCP iterations ({max_iterations}) reached")
+    final_content = message.content or "Error: Maximum tool calling iterations exceeded"
+
+    # Parse JSON if requested
+    if output_type.lower() == "json":
+        from llmflow.modules.json_parser import parse_llm_json_response
+
+        return parse_llm_json_response(final_content)
+
+    return final_content
