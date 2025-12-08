@@ -6,35 +6,18 @@ from llmflow.utils.io import normalize_nfc
 
 def clean_llm_response_text(text: str) -> str:
     """
-    Strips LLM hedges, code fences, and normalizes to NFC.
-
-    Remove outer markdown fences from LLM response text.
+    Clean LLM response text by extracting JSON from markdown fences.
+    If fences are present, extract only the content between them.
+    Otherwise, just strip whitespace.
     """
-    hedge_patterns = [
-        r"^Here\'s the (JSON )?response:?\s*",
-        r"^The (JSON )?output is:?\s*",
-        r"^```json\s*",
-        r"^```markdown\s*",
-        r"^```xml\s*",
-        r"^```html\s*",
-        r"^```csv\s*",
-        r"^```tsv\s*",
-        r"^```txt\s*",
-        r"^```\s*",
-        r"\s*```\s*$",
-        r"^Here is the.*?:\s*",
-        r"^Based on.*?:\s*",
-        r"^The result is:?\s*",
-        r"^Output:\s*",
-        r"^Answer:\s*",
-        r"^Sure, here.*?:\s*",
-        r"^Certainly!.*?:\s*",
-        r"^Of course!.*?:\s*",
-        r"^As requested.*?:\s*",
-        r"^Below is.*?:\s*",
-    ]
-    cleaned = text.strip()
-    for pattern in hedge_patterns:
-        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE | re.MULTILINE)
-        cleaned = cleaned.strip()
-    return normalize_nfc(cleaned)
+    # Try to extract content from markdown code fences
+    # Match ```json or ``` followed by content, then closing ```
+    fence_pattern = r"```(?:json)?\s*\n?(.*?)\n?```"
+    match = re.search(fence_pattern, text, re.DOTALL)
+
+    if match:
+        # Return only the content inside the fences
+        return match.group(1).strip()
+
+    # No fences found, just strip whitespace
+    return text.strip()

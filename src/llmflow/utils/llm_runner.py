@@ -168,17 +168,10 @@ async def _run_llm_with_mcp_tools_async(
     config: Dict[str, Any],
     mcp_client,
     output_type: str = "text",
-    step_name: str = "unknown"  # ← Add parameter
+    step_name: str = "unknown"
 ) -> str:
-    """
-    Execute LLM with MCP tools using OpenAI API.
+    """Execute LLM with MCP tools using OpenAI API."""
 
-    Handles iterative tool calling:
-    1. Send prompt to LLM
-    2. If LLM requests tools, execute them via MCP
-    3. Send results back to LLM
-    4. Repeat until LLM gives final answer
-    """
     import json
     from openai import AsyncOpenAI
 
@@ -249,7 +242,13 @@ async def _run_llm_with_mcp_tools_async(
             # Check if LLM is done (no tool calls)
             if not message.tool_calls:
                 logger.debug("✅ LLM completed without requesting tools")
-                return message.content or ""
+                final_content = message.content or ""
+
+                # Parse JSON if requested
+                if output_type.lower() == "json":
+                    return parse_llm_json_response(final_content)
+
+                return final_content
 
             # Log how many tool calls were requested
             logger.debug(f"🛠️  LLM requesting {len(message.tool_calls)} tool call(s)")
@@ -319,4 +318,10 @@ async def _run_llm_with_mcp_tools_async(
 
         # If we hit max iterations without finishing
         logger.debug(f"⚠️  Max MCP iterations ({max_iterations}) reached")
-        return message.content or "Error: Maximum tool calling iterations exceeded"
+        final_content = message.content or "Error: Maximum tool calling iterations exceeded"
+
+        # Parse JSON if requested
+        if output_type.lower() == "json":
+            return parse_llm_json_response(final_content)
+
+        return final_content
