@@ -223,35 +223,29 @@ def render_prompt(
     return rendered_prompt
 
 
-def handle_step_outputs(step: Dict[str, Any], result: Any, context: Dict[str, Any]) -> None:
-    """Store step results in context based on outputs configuration."""
-
+def handle_step_outputs(step, result, context, base_dir="."):
+    """Handle step outputs, including saveas."""
     # 1. Handle outputs - store results in context
-    outputs = step.get("outputs")  # ← Changed from 'rule' to 'step'
+    outputs = step.get("outputs")
     if outputs is not None:
         if isinstance(outputs, str):
             context[outputs] = result
             logger.debug(f"Stored result in context['{outputs}']")
         elif isinstance(outputs, list):
-            # Store the entire result under the first output name
-            # This allows both ${entries} and ${entries[0]} to work
             if len(outputs) == 1:
-                context[outputs[0]] = result  # Store the list, not result[0]
+                context[outputs[0]] = result
                 logger.debug(f"Stored result in context['{outputs[0]}']")
             else:
-                # Multiple outputs - unpack the result
                 for i, output_name in enumerate(outputs):
                     value = result[i] if isinstance(result, (list, tuple)) and i < len(result) else result
                     context[output_name] = value
                     logger.debug(f"Stored result in context['{output_name}']")
 
-    # 2. Handle append_to - append result to a list
-    append_to = step.get("append_to")  # ← Changed from 'rule' to 'step'
+    # 2. Handle append_to
+    append_to = step.get("append_to")
     if append_to:
         if append_to not in context:
             context[append_to] = []
-
-        # Get the value to append (use output variable if specified, otherwise raw result)
         if outputs:
             if isinstance(outputs, str):
                 value_to_append = context.get(outputs)
@@ -261,13 +255,39 @@ def handle_step_outputs(step: Dict[str, Any], result: Any, context: Dict[str, An
                 value_to_append = result
         else:
             value_to_append = result
-
         context[append_to].append(value_to_append)
         logger.debug(f"Appended to {append_to}: now has {len(context[append_to])} items")
 
-    # 3. Handle saveas - save result to file(s)
-    if "saveas" in step:  # ← Changed from 'rule' to 'step'
-        handle_step_saveas(step, context)  # ← Changed from 'rule' to 'step'
+    # 3. Handle saveas
+    if "saveas" in step:
+        saveas_config = step["saveas"]
+
+        # Handle dict saveas (e.g., {"path": "...", "group_by_prefix": ...})
+        if isinstance(saveas_config, dict):
+            saveas_path = resolve(saveas_config.get("path"), context)
+        else:
+            # Simple string path
+            saveas_path = resolve(saveas_config, context)
+
+        full_path = Path(base_dir) / saveas_path
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Determine file type and apply appropriate cleaning
+        if saveas_path.endswith('.md'):
+            from llmflow.utils.markdown_cleaner import clean_markdown
+            content = clean_markdown(str(result))
+            with open(full_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            _record_written_file(str(full_path))
+        elif saveas_path.endswith('.json'):
+            save_content_to_file(result, str(full_path), format='json')
+            _record_written_file(str(full_path))
+        else:
+            with open(full_path, "w", encoding="utf-8") as f:
+                f.write(str(result))
+            _record_written_file(str(full_path))
+
+        logger.info(f"💾 Saved to {saveas_path}")
 
 
 def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> None:  # ← Changed parameter name from 'rule' to 'step'
@@ -619,7 +639,7 @@ def save_content_to_file(content: Any, path: str, format: str = None) -> str:
         if path.endswith('.json'):
             format = 'json'
         else:
-            format = 'text'  # Default to text mode
+            format = 'text'
 
     # Apply format
     if format == 'json':
@@ -632,38 +652,31 @@ def save_content_to_file(content: Any, path: str, format: str = None) -> str:
             try:
                 parsed = json.loads(content)
 
-                # FIX: Check if parsed is a string (double-encoded JSON)
-                if isinstance(parsed, str):
-                    # It's double-encoded - parse again and use indented format
+                # Handle double/triple encoding - keep parsing strings
+                while isinstance(parsed, str):
                     try:
-                        double_parsed = json.loads(parsed)
-                        formatted_content = json.dumps(double_parsed, ensure_ascii=False, indent=2)  # ← Changed
+                        parsed = json.loads(parsed)
                     except (json.JSONDecodeError, ValueError):
-                        # Can't parse inner string, just use outer parsed value
-                        formatted_content = parsed
-                else:
-                    # Normal JSON - re-serialize with proper formatting
-                    formatted_content = json.dumps(parsed, ensure_ascii=False, indent=2)
+                        break  # Can't parse further
+
+                # Now re-serialize with proper formatting
+                formatted_content = json.dumps(parsed, ensure_ascii=False, indent=2)
 
             except (json.JSONDecodeError, ValueError):
-                # Not valid JSON, treat as plain string and serialize it
+                # Not valid JSON, serialize the string itself
                 formatted_content = json.dumps(content, ensure_ascii=False, indent=2)
 
         # Case 3: Other Python objects
         else:
             formatted_content = json.dumps(content, ensure_ascii=False, indent=2)
     else:
-        # Text mode - just convert to string (preserve exact content)
-        if isinstance(content, str):
-            formatted_content = content  # FIX: Don't call str() on strings
-        else:
-            formatted_content = str(content)
+        # Text mode - preserve exact content
+        formatted_content = content if isinstance(content, str) else str(content)
 
-    # Create parent directories if they don't exist
+    # Create parent directories and write
     path_obj = Path(path)
     path_obj.parent.mkdir(parents=True, exist_ok=True)
 
-    # Write the file
     with open(path, 'w', encoding='utf-8') as f:
         f.write(formatted_content)
 
