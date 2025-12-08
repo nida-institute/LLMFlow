@@ -1,18 +1,33 @@
+from typing import Optional
+from markdown_it import MarkdownIt
 import mdformat
 
 
-def clean_markdown(content: str) -> str:
+def clean_markdown(content: str, style: Optional[str] = None) -> str:
     """
-    Normalize / clean markdown by parsing and re-serializing it.
+    Normalize Markdown by parsing and re-serializing.
 
-    This uses mdformat, which parses the markdown and then
-    pretty-prints it back to a canonical Markdown form.
+    - Parses with markdown-it-py to validate tokenization for any Markdown.
+    - Formats with mdformat to produce canonical, consistent Markdown.
+    - Preserves content semantics; does not apply domain-specific heuristics.
+    - Only trims trailing newlines to avoid altering meaningful whitespace.
 
     Args:
         content: Raw markdown string
+        style: Optional mdformat style (None uses default)
 
     Returns:
         Normalized markdown string
     """
-    # mdformat parses to an AST and then serializes back to markdown
-    return mdformat.text(content).strip()
+    if not isinstance(content, str):
+        content = str(content)
+
+    # Validate tokenization for arbitrary Markdown
+    md = MarkdownIt()
+    md.parse(content)
+
+    # Serialize to canonical Markdown
+    formatted = mdformat.text(content, options={} if style is None else {"style": style})
+
+    # Preserve content; only remove trailing newline mdformat adds by default
+    return formatted.rstrip("\n")

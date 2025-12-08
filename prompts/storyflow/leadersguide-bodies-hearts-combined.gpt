@@ -9,91 +9,106 @@ prompt:
     - joshfrost_emotional
   optional: []
   format: Markdown
-  description: Leader’s Guide with scene-specific questions. Start with Bodies (concrete, oral English, culturally visualized), then Hearts (emotionally accessible, tied to the arc). Questions are tailored to {{scene}}.
+  description: Leader’s Guide with four steps of Ears to Hear, tied to {{scene}}. Plain, emotionally accessible English. Follow the article’s guidance (storyworld, viewpoint, embodied space, emotion as cognition).
 ---
 HARD RULES:
-1) The FIRST non-empty line of your output MUST be:
-### Enter the Scene with Your Body ({{citation}})
-Do not use any other H3 before this.
+1) Emit the 4 steps in this exact order and with these H3 headings:
+   - ### Step 1: Enter the Scene with Your Body ({{citation}})
+   - ### Step 2: Enter the Scene with Your Whole Heart ({{citation}})
+   - ### Step 3: Let the Scene Speak to Us ({{citation}})
+   - ### Step 4: Name the Scene ({{citation}})
+   No other H3s before, between, or after.
 
-2) The NEXT H3 MUST be:
-### Enter the Scene with Your Whole Heart ({{citation}})
+2) Build questions only from the exact content of {{scene}} (people, actions, movement, space, objects, changes). No generic templates.
 
-3) Questions MUST be built from the exact words, people, actions, places, and objects in {{scene}}. No generic templates.
+3) Plain, oral English. Short sentences. Emotionally accessible. Invite inductive discovery (no mini-lectures, do not supply answers).
+
+4) Cultural notes (from {{exegetical_culture}}) only if they help us see the scene. Use 1–2 short sentences, then a “picture it” question.
+
+5) Keep Hearts questions tied to actions and outcomes in {{scene}}, shaped by {{exegetical_emotionalarc}} and {{joshfrost_emotional}}.
 
 ---
 
 # Guidance for the LLM (DO NOT OUTPUT)
-- Read {{scene}} aloud in your “mind’s ear.” Build questions from what the scene shows: people, place, actions, time, objects, and changes.
-- Bodies questions MUST invite inductive discovery. Do not supply answers. Do not ask about “words”; ask about what the words describe.
-- Adapt to presence and absence. If the text omits setting details, say that plainly and focus on what is present (e.g., who just left, where they are, what happens next, content of a dream).
-- If visualization needs cultural help ({{exegetical_culture}}), add 1–2 short sentences first, then ask the group to picture it in this scene.
-  Example: “People ate at low tables and leaned on cushions. Picture that—whose hands reach, where are the feet?”
-- Hearts questions stay tied to actions and outcomes in {{scene}} and follow {{exegetical_emotionalarc}} and {{joshfrost_emotional}}. Short, oral English. No mini-lectures.
-- No Hebrew/Greek, grammar terms, or “background” headings. Warm, simple tone.
+- Follow the article’s approach:
+  - Storyworld construction: picture place, movement, posture, near/far, inside/outside; name absences as absences.
+  - Viewpoint shifting: invite perspective-taking (who sees, knows, fears, hopes).
+  - Embodied cognition: track bodies, space, thresholds, path/journey; let movement carry meaning.
+  - Emotion as cognition: treat emotion as value-laden judgment (what matters, what is at stake); tie feelings to actions and decisions.
+- No technical terms (Greek/Hebrew, grammar). Warm, simple tone. Inductive questions.
 
 ---
 
 ## 📝 Output Format (EMIT ONLY THIS)
 
-### Enter the Scene with Your Body ({{citation}})
-
+### Step 1: Enter the Scene with Your Body ({{citation}})
 - Use 2–3 numbered sections with short headings.
 - Ask 6–8 concrete, scene-specific questions total.
-- Plain, oral, emotionally accessible English. Short sentences. No jargon.
 - Name what is present and what is absent. Focus on actions and changes when setting is sparse.
 - Add cultural help only when it helps us see; 1–2 short sentences, then a picture-it question.
-- Questions MUST invite inductive discovery and avoid supplying answers.
 
 1. **Place — describe the scene**:
    - “When they had gone”—who just left, and what does that leave behind here?
-   - Where are we in this story (named place if present)? What do we picture first—people, objects, land, sky—and where is each (near/far, inside/outside)?
-   - If the text does not name the room or time, say that. How does that absence shape what we picture—what stays in focus?
+   - Where are we (named place if present)? What do we picture first—people, objects, land, sky—and where is each (near/far, inside/outside)?
+   - If the text does not name room or time, say that plainly. How does that absence shape what we picture—what stays in focus?
 
 2. **Actions and Movement — what is happening?**:
-   - What happens next in simple order—what do you see one person do, and what changes because of it?
-   - What is moving in this scene—people, hands, feet, eyes, travel—and where do we sense urgency or calm?
+   - What happens next in simple order—what does one person do, and what changes because of it?
+   - What is moving—people, hands, feet, eyes, travel—and where do we sense urgency or calm?
    - Which places or objects affect what people do (door, road, water, crowd, night)? How do they guide or limit action here? ({{exegetical_culture}})
    - If details are missing (room, time), how does that sharpen the action we do have?
 
-3. **Zooming In — describe the details** (use if needed):
+3. **Zooming In — small details** (use if needed):
    - Name one small detail we can see (a gesture, where something sits, timing). What simple reason in the scene might explain it?
-   - If pressure or discomfort fits this passage, where do we see it—in bodies, pacing, choices—and what small shift happens next?
-
-Requirements:
-- Short, concrete questions.
-- Inductive: invite noticing; do not give the answers.
-- Cultural help only when needed: two short sentences, then a picture-it question.
-- Match person/number to what the scene shows.
+   - If pressure fits this passage, where do we see it—in bodies, pacing, choices—and what small shift happens next?
 
 ---
 
-### Enter the Scene with Your Whole Heart ({{citation}})
+### Step 2: Enter the Scene with Your Whole Heart ({{citation}})
+- Hearts: what we set the heart on; turning toward/away; deliberation; what is at stake (loss, danger, honor); hope/gratitude; judgment of wrong.
+- Short, concrete, participant-focused. Tie feelings to actions and outcomes. Inductive.
 
-- Hearts focus: the biblical heart (Hebrew lev; Greek kardia)—what we set our heart on, what we turn it toward or away from; the deliberations of the heart; what is at stake. Heart, mind, and will together.
-- Keep it short and tied to what happens in {{scene}}.
-- Use {{exegetical_emotionalarc}} and {{joshfrost_emotional}} to guide the feel of the questions.
-- Add one short cultural sentence only when it clarifies the stakes (risk, honor, scarcity, danger, loyalty).
-- Inductive: invite discovery; do not supply answers.
-- Participant-focused: name participants from the scene (e.g., speaker, addressee, bystanders). Ask about their heart-direction and choices.
-- Embodied lens: invite noticing in the body (breath, posture, hands, pacing) as signs of heart-direction (toward trust, away in fear, steady in hope, moved by love/compassion, checked by shame/guilt, stirred by anger, opened to gratitude).
+1. **Orientation — set of the heart**:
+   - Whose heart comes into focus first? What or whom are they set on now, and how do we see that in this moment?
+   - Where does the heart turn—toward trust or away in fear—and what action shows that turn (breath, hands, pace)?
 
-1. **Orientation — what the heart is set on**:
-   - Whose heart comes into focus first in {{scene}} (name the participant)? What or whom are they set on right now, and how do we see that in the moment shown?
-   - Where does this participant turn the heart—toward trust or away in fear—and what action in {{scene}} shows that turn (notice breath, hands, pace)?
-
-2. **Deliberation and Choice — what happens at stake**:
+2. **Deliberation and Choice — at stake**:
    - What is at stake here (loss, danger, honor, calling)? How does that guide the will—what decision happens now, and how do we see it?
    - Where do we notice care or attachment (love/compassion)—toward whom—and how does that shape the next move?
 
 3. **Future and Response — hope, judgment, gratitude** (use if needed):
    - Where do we sense a pull toward the future (hope)—whose heart leans forward—and what small step points that way?
-   - If a wrong or threat is present, how is it judged here (anger, shame/guilt), and how do hearts respond—speak, wait, move, hide? What do bodies show?
+   - If a wrong or threat is present, how is it judged (anger, shame/guilt), and how do hearts respond—speak, wait, move, hide? What do bodies show?
    - What invites gratitude in this scene—whose heart opens—and how might we name it together in one short sentence?
 
-Requirements:
-- Short, concrete questions.
-- Oral, emotionally accessible English.
-- Tie questions to specific participants and actions in {{scene}}.
-- Inductive: invite noticing; do not give the answers.
+---
+
+### Step 3: Let the Scene Speak to Us ({{citation}})
+- Read the scene again (leader cue).
+- 3 short, inductive prompts that connect the scene to participants’ lives (identity, risk, trust, belonging). Use the scene’s people, actions, and outcomes.
+
+**Leader: Let's read the scene again before we begin.**
+
+1. **First prompt — stakes in the moment**:
+   - As this action unfolds, where do you see yourself—responding, waiting, fearing, hoping? What rises in you?
+
+2. **Second prompt — heart direction**:
+   - When this choice or fear appears, where does your heart tend to turn—toward trust, toward doubt, or toward something else?
+
+3. **Third prompt — belonging and home**:
+   - As this setting shifts (near/far, inside/outside, return/flight), what does it stir in you about home, safety, or starting anew?
+
+---
+
+### Step 4: Name the Scene ({{citation}})
+- Invite a short title the group can carry forward. 4–6 options, specific to {{scene}}. Plain, memorable, concrete.
+
+> Choose a short phrase that captures what stood out to you.
+> This helps the group remember the scene and take ownership of it.
+
+- [Example] Night Escape to Egypt
+- [Example] Joseph’s Protective Journey
+- [Example] Weeping in Ramah
+- [Example] Safe in Galilee
+- [Example] Fulfilled in Nazareth
 
