@@ -609,22 +609,6 @@ def load_json(file_path):
         raise
 
 
-def save_json(data, file_path, indent=2):
-    """Save data as JSON file with error handling and logging"""
-    logger.debug(f"💾 Saving JSON to: {file_path}")
-
-    try:
-        # Ensure directory exists
-        Path(file_path).parent.mkdir(parents=True, exist_ok=True)
-
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=indent, ensure_ascii=False)
-        logger.debug("✅ Successfully saved JSON")
-    except Exception as e:
-        logger.error(f"❌ Error saving JSON to {file_path}: {e}")
-        raise
-
-
 def load_yaml(file_path):
     """Load YAML data from file with error handling and logging"""
     logger.debug(f"📖 Loading YAML from: {file_path}")

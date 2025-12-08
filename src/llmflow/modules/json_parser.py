@@ -18,15 +18,30 @@ def parse_llm_json_response(text: str):
         result = json.loads(cleaned)
 
         # Check if result is a string (double-encoded JSON)
-        if isinstance(result, str):
+        while isinstance(result, str):
             logger.debug("Detected double-encoded JSON, parsing again")
             result = json.loads(result)
 
         return result
     except json.JSONDecodeError as e:
         logger.warning(f"⚠️  JSON parse error at position {e.pos}: {e.msg}")
-        logger.warning(f"⚠️  No valid JSON found, returning raw text")
-        return cleaned
+
+        # Try to fix common escape issues
+        try:
+            # Replace invalid escapes with proper ones
+            fixed = cleaned.replace('\\ ', ' ')  # Remove backslash before spaces
+            fixed = re.sub(r'\\(?!["\\/bfnrtu])', '', fixed)  # Remove invalid escapes
+            result = json.loads(fixed)
+            logger.debug("✅ Fixed invalid escape sequences and parsed successfully")
+
+            # Check for double-encoding again
+            while isinstance(result, str):
+                result = json.loads(result)
+
+            return result
+        except json.JSONDecodeError:
+            logger.warning(f"⚠️  Could not fix JSON, returning raw text")
+            return cleaned
 
 
 def validate_json_structure(data, required_fields=None):
