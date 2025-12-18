@@ -22,6 +22,10 @@ def _safe_eval(expr: str, ctx: Dict[str, object]) -> bool:
 def build_step_eval_ctx(step: dict, context: Dict[str, object]) -> Dict[str, object]:
     eval_ctx: Dict[str, object] = {}
 
+    # Handle None context gracefully
+    if context is None:
+        context = {}
+
     outs = step.get("outputs")
     if isinstance(outs, dict):
         for k in outs.keys():

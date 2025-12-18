@@ -60,6 +60,7 @@ def read_text(path):
 
 def eval_template_expr(expr, variables):
     """Safely evaluate dot notation and subscript expressions using variables dict."""
+    variables = to_attrdict(variables)  # Convert to AttrDict for dot notation support
     try:
         return str(eval(expr, {"__builtins__": {}}, variables))
     except Exception:
