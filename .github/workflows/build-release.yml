@@ -65,7 +65,7 @@ jobs:
     - name: Build with Nuitka (Windows)
       if: runner.os == 'Windows'
       run: |
-        python -m nuitka --standalone --onefile --include-package=llmflow --include-package-data=puremagic --include-package-data=llm --include-data-dir=prompts=prompts --include-data-dir=templates=templates --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
+        python -m nuitka --standalone --onefile --assume-yes-for-downloads --include-package=llmflow --include-package-data=puremagic --include-package-data=llm --include-data-dir=prompts=prompts --include-data-dir=templates=templates --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
