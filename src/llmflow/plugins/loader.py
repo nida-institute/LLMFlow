@@ -25,14 +25,19 @@ def discover_plugins():
     """
     logger.info("🔌 Loading plugins...")
 
-    plugins_dir = Path(__file__).parent
+    # List of known plugin modules (hardcoded for PyInstaller compatibility)
+    known_plugins = [
+        "coverage_validator",
+        "echo", 
+        "insert_references",
+        "xml_entry_to_base_json",
+        "xpath",
+        "xslt_transform",
+    ]
+    
     plugin_count = 0
 
-    for finder, name, ispkg in pkgutil.iter_modules([str(plugins_dir)]):
-        # Skip private modules and loader itself
-        if name.startswith("_") or name == "loader":
-            continue
-
+    for name in known_plugins:
         try:
             # Import the plugin module
             module = importlib.import_module(f"llmflow.plugins.{name}")
