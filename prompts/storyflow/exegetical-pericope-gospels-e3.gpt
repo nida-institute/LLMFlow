@@ -1,65 +1,72 @@
 ---
 prompt:
   requires:
-  - passage
-  - source
+    - passage
+    - source
   optional: []
   format: Markdown
-  description: Analyzes the emotional arc of {passage} using Nussbaum's framework
+  description: Plain-language emotional and spiritual arc for {{passage}} using {{source}} and Martha Nussbaum’s model (emotion as judgment of what matters). Help readers feel the movement in the scene with simple, concrete language.
 ---
-# Exegetical Emotional and Spiritual Arc for {passage}
+# Emotional and Spiritual Arc for {{passage}}
 
-You are writing an **emotional and spiritual journey analysis** of {passage} to help Bible translators and group leaders feel how the narrative moves and resonates with the soul.
+You are writing a warm, plain-language guide to the emotional and spiritual journey in {{passage}}. Use {{source}} to ground meaning when helpful. Keep sentences short and oral. Avoid academic tone.
 
-Analyze the text based on {source}. Include transliteration and translation for Greek quotes.
+Use Martha Nussbaum’s model of emotion:
+- Emotions are judgments about what matters.
+- They show what is at stake and how people are vulnerable.
+- Tie feelings to actions, choices, and outcomes in the scene.
 
-Use **Martha Nussbaum’s model of emotion**, treating emotions as **judgments about what matters**, tied to human vulnerability and value.
-
-Your goal is to uncover:
-- What emotional values are exposed, threatened, or confirmed
-- How the narrative evokes emotional **shifts or conflicts**
-- How different people might resonate emotionally with the scene
+Include Greek words only when they help us see or feel the moment; add transliteration and a simple gloss.
 
 ---
 
-## Structure
+## Martha Nussbaum: Emotion as Judgment (use as lens; keep output plain)
+- Emotions are judgments about what matters (value at stake).
+- They reveal vulnerability (where loss or gain can happen).
+- They move with the scene’s actions and outcomes (what someone does or what happens to them).
+- Apply this lens in simple clauses. Tie each feeling to a value and an action/line that shows it.
 
-Present your output under this heading:
+---
 
 ## Emotional and Spiritual Flow
 
-For each emotionally significant moment in the narrative, use this structure:
+For each key moment in the scene (2–5 moments), use this pattern:
 
-### [Section Title: e.g., “Fear in the Storm”]
+### [Plain title, e.g., “Fear in the Storm”]
+- What we can picture:
+  - Place and space: where are we (inside/outside, near/far, doorway/road/boat/home)?
+  - Bodies and movement: who moves or stays; hands, feet, eyes, posture; pace (calm/urgent).
+  - Objects and setting: boat, road, lamp, door; what is present and what is missing.
 
-- **Dominant Emotions**:
-  - Identify tones: fear, awe, grief, joy, anger, shame, etc.
-  - Use Nussbaum’s framework when meaningful.
-  - What **values or relationships** are at stake?
+- Values at stake (Nussbaum):
+  - What matters here (safety, belonging, trust, honor, hope)?
+  - What judgment does the emotion make about that value (danger, risk, gain, loss)?
+  - Where vulnerability shows (exposed to harm/help), as the action or line displays it.
 
-- **Emotional Movement**:
-  - How does the emotional state evolve?
-  - What is the **spiritual arc** — e.g., despair to faith, shame to welcome?
+- Emotional movement:
+  - What shifts in the heart (fear to trust, shame to welcome, grief to hope)?
+  - What action shows the shift (speak, wait, move, protect, hide)?
 
-- **Language and Symbolism**:
-  - How do the Greek phrases or symbols intensify the emotion?
-  - Include emotionally loaded Greek terms with gloss and transliteration.
+- Greek that intensifies tone (if helpful):
+  - Term (Greek + transliteration) — short gloss and how it colors the moment (soft, sharp, everyday vs formal).
 
-- **Multiple Viewpoints**:
-  - How might this affect:
-    - A suffering person
-    - A hopeful seeker
-    - A disillusioned disciple
-    - An outsider to the group
-  - Show how life experience shapes emotional resonance.
+- Viewpoints (short prompts):
+  - “See it through X’s eyes—what do they notice first? What do they miss?”
+  - “If you stand near the doorway/on the road/in the boat, what changes in what you feel?”
 
-Repeat for 2–5 key emotional scenes.
+Repeat for the few moments that most carry the emotional movement in {{passage}}.
 
 ---
 
-## Writing Style
+## Brief Notes (only if needed)
+- If a textual or cultural note changes the picture or tone, name it simply and say what we now see or feel differently.
+- Keep this brief and concrete.
 
-- Emotionally rich but grounded in text.
-- Include Greek terms as helpful.
-- Avoid devotional or doctrinal extrapolation.
+---
+
+## Style
+- Plain English. Warm and simple. Short sentences.
+- Tie emotions to actions and outcomes in the scene (emotion as judgment of what matters; vulnerability visible).
+- Avoid long explanations or academic terms.
+- Focus on what we can see, how bodies move, where hearts turn, and what is at stake.
 

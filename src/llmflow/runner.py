@@ -31,6 +31,7 @@ from llmflow.exceptions import (
 )
 from llmflow.modules.mcp import init_mcp_client
 from llmflow.utils.guards import build_step_eval_ctx, enforce_require, collect_warnings
+from llmflow.utils.io import sanitize_filename
 
 discover_plugins()
 
@@ -230,7 +231,9 @@ def handle_step_outputs(step, result, context, base_dir="."):
     if outputs is not None:
         if isinstance(outputs, str):
             context[outputs] = result
-            logger.debug(f"Stored result in context['{outputs}']")
+            logger.info(f"📦 Stored in context['{outputs}']: {type(result).__name__}, length={len(str(result)) if result else 0}")
+            if step.get("name") == "bodies":
+                logger.debug(f"   First 100 chars: {repr(str(result)[:100]) if result else 'NONE'}")
         elif isinstance(outputs, list):
             if len(outputs) == 1:
                 context[outputs[0]] = result
@@ -355,86 +358,117 @@ def run_step(
     """Execute a step based on its type"""
     step_type = step.get("type")
 
-    # Check condition BEFORE executing any step type
-    condition = step.get("condition")
-    if condition:
-        # Resolve variables in condition before evaluation
-        resolved_condition = resolve(condition, context)
-        logger.debug(f"🔍 Evaluating condition: {condition}")
-        logger.debug(f"   Resolved to: {resolved_condition}")
+    # Handle step-level log configuration
+    step_log_level = step.get("log", "").upper()
+    original_level = None
+    if step_log_level == "DEBUG":
+        original_level = logger.level
+        logger.set_level("DEBUG")
+        logger.debug(f"🔍 Enabled DEBUG logging for step: {step.get('name')}")
 
-        try:
-            if isinstance(resolved_condition, bool):
-                condition_result = resolved_condition
-            elif isinstance(resolved_condition, (int, float)):
-                condition_result = bool(resolved_condition)
-            else:
-                condition_result = bool(eval(str(resolved_condition)))
-        except Exception as e:
-            logger.warning(f"Condition evaluation failed: {condition} - {e}")
-            condition_result = False
-
-        if not condition_result:
-            logger.info(f"⏭️  Skipping step '{step.get('name')}' (condition false)")
-            return None
-
-    # Execute step based on type
-    after_action = None
-
-    if step_type == "for-each":
-        after_action = run_for_each_step(step, context, pipeline_config)
-    elif step_type == "llm":
-        result = run_llm_step(step, context, pipeline_config)
-        handle_step_outputs(step, result, context)
-    elif step_type == "function":
-        result = run_function_step(step, context, pipeline_config)
-    elif step_type == "if":
-        after_action = run_if_step(step, context, pipeline_config)
-    elif step_type == "save":
-        run_save_step(step, context, pipeline_config)
-    elif step.get("plugin"):
-        result = run_plugin_step(step, context, pipeline_config)
-        handle_step_outputs(step, result, context)
-    elif step_type in plugin_registry:
-        result = run_plugin_step(step, context, pipeline_config)
-        handle_step_outputs(step, result, context)
-    else:
-        raise ValueError(f"Unknown step type: {step_type}")
-
-    # ✅ CENTRALIZED: Handle 'after' directive for ALL steps
-    # Priority: nested step's after_action > step's own after directive
-    if after_action:
-        return after_action  # Propagate from nested steps
-
-    # Handle this step's own after directive
-    after_directive = step.get("after")
-    if after_directive:
-        logger.debug(f"Step '{step.get('name')}' has after: {after_directive}")
-        return after_directive  # Return "exit", "continue", or "skip"
-
-    # NEW: enforce 'require' and 'warn' after outputs have been stored
     try:
-        eval_ctx = build_step_eval_ctx(step, context)
+        # Check condition BEFORE executing any step type
+        condition = step.get("condition")
+        if condition:
+            # Resolve variables in condition before evaluation
+            resolved_condition = resolve(condition, context)
+            logger.debug(f"🔍 Evaluating condition: {condition}")
+            logger.debug(f"   Resolved to: {resolved_condition}")
 
-        # Fail-hard requires (raises ValueError)
-        if "require" in step and step.get("require"):
-            enforce_require(eval_ctx, step.get("require"))
+            try:
+                if isinstance(resolved_condition, bool):
+                    condition_result = resolved_condition
+                elif isinstance(resolved_condition, (int, float)):
+                    condition_result = bool(resolved_condition)
+                else:
+                    condition_result = bool(eval(str(resolved_condition)))
+            except Exception as e:
+                logger.warning(f"Condition evaluation failed: {condition} - {e}")
+                condition_result = False
 
-        # Non-blocking warnings: collect and attach to context
-        if "warn" in step and step.get("warn"):
-            msgs = collect_warnings(eval_ctx, step.get("warn"))
-            if msgs:
-                # initialize warnings sink once
-                if "_warnings" not in context or context["_warnings"] is None:
-                    context["_warnings"] = []
-                context["_warnings"].extend(msgs)
-                for m in msgs:
-                    logger.warning(f"⚠️  {m}")
-    except Exception:
-        # propagate require failures and eval errors
-        raise
+            if not condition_result:
+                logger.info(f"⏭️  Skipping step '{step.get('name')}' (condition false)")
+                return None
 
-    return None
+        # Execute step based on type
+        after_action = None
+
+        if step_type == "for-each":
+            after_action = run_for_each_step(step, context, pipeline_config)
+        elif step_type == "llm":
+            result = run_llm_step(step, context, pipeline_config)
+            handle_step_outputs(step, result, context)
+        elif step_type == "function":
+            result = run_function_step(step, context, pipeline_config)
+        elif step_type == "if":
+            after_action = run_if_step(step, context, pipeline_config)
+        elif step_type == "save":
+            run_save_step(step, context, pipeline_config)
+        elif step.get("plugin"):
+            result = run_plugin_step(step, context, pipeline_config)
+            handle_step_outputs(step, result, context)
+        elif step_type in plugin_registry:
+            result = run_plugin_step(step, context, pipeline_config)
+            handle_step_outputs(step, result, context)
+        else:
+            raise ValueError(f"Unknown step type: {step_type}")
+
+        # ✅ CENTRALIZED: Handle 'after' directive for ALL steps
+        # Priority: nested step's after_action > step's own after directive
+        if after_action:
+            return after_action  # Propagate from nested steps
+
+        # Handle this step's own after directive
+        after_directive = step.get("after")
+        if after_directive:
+            logger.debug(f"Step '{step.get('name')}' has after: {after_directive}")
+            return after_directive  # Return "exit", "continue", or "skip"
+
+        # NEW: enforce 'require' and 'warn' after outputs have been stored
+        try:
+            eval_ctx = build_step_eval_ctx(step, context)
+
+            # Debug logging for guards
+            if step.get("name") == "bodies" and "require" in step:
+                outputs = step.get("outputs")
+                if outputs:
+                    logger.debug(f"🔍 Bodies guard check - outputs key: {outputs}")
+                    logger.debug(f"🔍 Value in context: {repr(context.get(outputs, 'NOT_FOUND'))[:200]}")
+                    logger.debug(f"🔍 Value in eval_ctx: {repr(eval_ctx.get(outputs, 'NOT_FOUND'))[:200]}")
+                    logger.debug(f"🔍 Variable '{outputs}' in eval_ctx keys: {outputs in eval_ctx}")
+                    logger.debug(f"🔍 Type of eval_ctx['{outputs}']: {type(eval_ctx.get(outputs))}")
+
+            # Fail-hard requires (raises ValueError)
+            if "require" in step and step.get("require"):
+                # Build context info for better error messages
+                context_info = {}
+                if "scene" in context:
+                    scene = context.get("scene")
+                    if isinstance(scene, dict):
+                        context_info["scene_citation"] = scene.get("Citation", "unknown")
+                enforce_require(eval_ctx, step.get("require"), step_name=step.get("name"), context_info=context_info)
+
+            # Non-blocking warnings: collect and attach to context
+            if "warn" in step and step.get("warn"):
+                msgs = collect_warnings(eval_ctx, step.get("warn"))
+                if msgs:
+                    # initialize warnings sink once
+                    if "_warnings" not in context or context["_warnings"] is None:
+                        context["_warnings"] = []
+                    context["_warnings"].extend(msgs)
+                    for m in msgs:
+                        logger.warning(f"⚠️  {m}")
+        except Exception:
+            # propagate require failures and eval errors
+            raise
+
+        return None
+
+    finally:
+        # Restore original logger level if it was changed
+        if original_level is not None:
+            logger.level = original_level
+            logger.debug(f"🔍 Restored logger level after step: {step.get('name')}")
 
 
 def run_plugin_step(
@@ -513,6 +547,24 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
     logger.debug(f"Context keys available: {list(context.keys())}")
 
     rendered_prompt = render_prompt(step["prompt"], context)
+
+    # Debug: save rendered prompt when log_level=debug
+    try:
+        if (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
+            safe_step = sanitize_filename(step.get("name", "llm_step"))
+            citation = ""
+            try:
+                scene_obj = context.get("scene", {})
+                if isinstance(scene_obj, dict):
+                    citation = scene_obj.get("Citation", "") or ""
+            except Exception:
+                pass
+            suffix = sanitize_filename(citation) if citation else "no_citation"
+            prompt_path = f"outputs/debug/prompts/{safe_step}-{suffix}.md"
+            save_content_to_file(rendered_prompt, prompt_path, format="text")
+            logger.debug(f"📝 Saved rendered prompt to {prompt_path}")
+    except Exception as e:
+        logger.debug(f"(prompt debug save skipped: {e})")
 
     # Build merged config
     llm_config = pipeline_config.get("llm_config", {})
@@ -594,6 +646,24 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
                     logger.error(f"❌ LLM call failed after {max_retries} attempts")
                     logger.error(f"    Final error: {type(e).__name__}: {e}")
                     raise  # Re-raise after all retries exhausted
+
+        # Debug: save raw response text
+        try:
+            if response is not None and (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
+                safe_step = sanitize_filename(step.get("name", "llm_step"))
+                citation = ""
+                try:
+                    scene_obj = context.get("scene", {})
+                    if isinstance(scene_obj, dict):
+                        citation = scene_obj.get("Citation", "") or ""
+                except Exception:
+                    pass
+                suffix = sanitize_filename(citation) if citation else "no_citation"
+                resp_path = f"outputs/debug/responses/{safe_step}-{suffix}.txt"
+                save_content_to_file(response if isinstance(response, str) else str(response), resp_path, format="text")
+                logger.debug(f"🗒️ Saved raw LLM response to {resp_path}")
+        except Exception as e:
+            logger.debug(f"(response debug save skipped: {e})")
 
         # Check for templates (only runs if we got a response)
         if response and ("template" in step or "format_with" in step):
@@ -813,6 +883,13 @@ def run_pipeline(
     if isinstance(pipeline_file, dict):
         pipeline_path = None
         pipeline_config = pipeline_file
+
+        # Check for pipeline-level log_level configuration
+        linter_config = pipeline_config.get('linter_config', {})
+        if isinstance(linter_config, dict):
+            pipeline_log_level = linter_config.get('log_level', '').upper()
+            if pipeline_log_level == 'DEBUG':
+                logger.set_level("DEBUG")
     else:
         pipeline_path = Path(pipeline_file)
         if not pipeline_path.exists():

@@ -1,78 +1,87 @@
 ---
 prompt:
   requires:
-  - passage
-  - source
+    - passage
+    - source
   optional: []
   format: Markdown
-  description: Analyzes narrative and cultural imagery in {passage} using {source}
----
-# Exegetical Cultural and Narrative Setting for {passage}
-
-You are writing an **exegetical cultural and narrative background overview** to help Bible translators and group leaders visualize the world behind {passage}.
-
-You should analyze the text based on {source}. In output, transliterate and translate any quotes from Greek.
-
-Your output should describe:
-- The **vivid metaphorical or narrative imagery** in the passage
-- The **sensory, emotional, and cultural impact** on its original hearers
-- The **social and theological framework** those scenes or images would evoke
+  description: >-
+    Scene-bounded, plain-language cultural and narrative background for {{passage}} using {{source}}.
+    Purpose: supply concrete, verifiable facts that help visualize the scene for Bodies: setting (place/space, time),
+    participants and simple positions, ordered actions and pacing, objects and built environment, distances/routes and
+    travel practice/risks, and relevant administrative geography. Include historical background and scholarly findings
+    when attested. Quantify when possible. No questions. No interpretation or emotion.
 
 ---
+NON-NEGOTIABLE GUARDRAILS
+- Scene-bounded (not verse-by-verse). Treat each coherent scene/image as a unit.
+- Evidence-only: describe what is text-bound or attested in {{source}}; include brief source cues for non-obvious claims.
+- Quantify where possible (mi/km, days on foot, population scale, jurisdiction scope).
+- Plain English. Short sentences. Concrete nouns and verbs.
+- Greek/Hebrew terms only when they clarify tone/action; include transliteration + simple gloss.
+- Forbidden: “Imagine…”, reenactment language, application, moral summary, emotions/meaning/stakes, or any questions.
 
-## Structure
+# Bodies‑Ready Facts for {{passage}}
 
-Present your output under the following heading:
+## Guidance for the LLM (DO NOT OUTPUT)
+- Output facts only. Do not ask questions. Do not summarize themes or emotions.
+- Prioritize anchors the Bodies step can use: setting (place/time), who/where, actions and pacing, objects/structures,
+  distances/routes and travel practice/risks, administrative/geographic context, brief language notes that affect what can be pictured.
+- Name absences plainly (e.g., “No setting is stated.”). Do not fill gaps with guesses.
+- For non-obvious claims add a parenthetical source cue: (Josephus, Ant. …), (BDAG s.v. …), (m. Shabbat …), (Carta Atlas …).
 
-## Narrative Imagery and Cultural Resonance
+## Scenes and Concrete Anchors
 
-For each major scene or teaching in {passage}, use this structure:
+For each coherent scene or image in {{passage}}, use the following subsections (omit any subsection the text does not support):
 
 ### [Scene or Image Title]
 
-- **Narrative or Figurative Device**:
-  - Describe key **Greek expressions**, including lemma (in Greek) and transliteration.
-  - Identify **symbolism**, **parable structure**, or **progression** (e.g., seed → growth → harvest).
-  - Name relevant scholars (e.g., Jeremias, Wright, Keener) only when directly helpful.
+- Setting
+  - Place/space: inside/outside; thresholds; line-of-sight; crowding; terrain/road type if relevant. Cite text phrase.
+  - Time-of-day/season if stated or attested; quantify if possible. (Source)
 
-- **Cultural Resonance**:
-  - What would the **original audience** recognize from their **daily life** (e.g., farming, fishing, household life, Roman governance)?
-  - How do the **image or action** connect to Jewish customs or Greco-Roman context?
-  - How would **honor/shame**, **purity laws**, or **kingdom expectations** affect interpretation?
+- Participants and simple positions
+  - Who is present (named or clearly implied). Do not invent figures.
+  - Simple spatial relations: near/far; ahead/behind; seated/standing; room/area if attested. Cite text phrase.
 
-- **Sensory and Emotional Impact**:
-  - **Sensory**: What would they **see, hear, feel, taste, or smell**?
-  - **Emotional**: What reactions would this evoke (e.g., hope, fear, awe)?
-  - **Cognitive Framework**: How would this shape views of **God**, **Messiah**, or **discipleship**?
+- Actions and pacing
+  - Ordered actions from the text (imperatives, movements, speech acts).
+  - Pace cues (“immediately,” “by night,” delays); travel timeframe if deducible. Cite text phrase. (Source if needed)
 
-Repeat for each major narrative or metaphor in the passage. Use 2–4 sections as needed.
+- Objects and built environment
+  - Tools/containers/structures mentioned or implied by the text; one-clause function if it helps picture. (Source)
+
+- Distances, routes, and travel practice
+  - Approximate distance(s) and common route(s) with walking time in days (assume ~12–20 miles / 20–32 km per day; reduce for family with child, night travel, or caution). (Source)
+  - Example (for context; adapt to {{passage}} as applicable): Bethlehem → Egyptian border ≈ 75 miles / 120 km, typically 4–6 days on foot; Bethlehem → interior Egyptian refuge (100–200 miles / 160–320 km) typically 7–12 days depending on destination and pace. (Atlas/itinerary source)
+  - Typical travel rhythms and risks (night travel urgency/secrecy; road hazards; escorts/patrols where attested). (Source)
+
+- Walking days (if travel is in view)
+  - One line with the best estimate for days on foot to the nearest boundary/destination relevant to the scene; give a range; include assumption/source cue. (Source)
+
+- Risks (if travel is in view)
+  - One line naming concrete, attested hazards (e.g., darkness/visibility, exposure, banditry/theft, questioning by authorities); avoid speculation; include source cue. (Source)
+
+- Administrative/geographic context
+  - Jurisdictions, town/village scale, proximity to notable sites (mi/km). (Source)
+
+- Language notes
+  - Term (original + transliteration): simple gloss; one clause on tone/action if it changes how the scene is seen/heard. (Lexicon/source)
+
+- Hearts-ready cultural cues (plain, attested; DO NOT interpret)
+  - Childlessness and social pain (e.g., stigma, loss of honor) — one clause; source cue.
+  - Table fellowship boundaries (e.g., Jews/Gentiles not eating together) — one clause; source cue.
+  - Honor/shame dynamics tied to public acts (e.g., obedience/disobedience seen) — one clause; source cue.
+  - Purity practices affecting inclusion/exclusion (e.g., touch, food laws) — one clause; source cue.
+  - Patronage/dependence realities (e.g., who provides protection) — one clause; source cue.
+  - Travel risks/needs (e.g., several days on foot; night travel danger) — one clause; source cue.
+
+## Style
+- Plain English. Short sentences. Concrete description.
+- Evidence-first. Quantify when possible. Name unknowns plainly.
+- No emotions, stakes, or meanings. No questions. No reenactment.
 
 ---
-
-## Parable Classification and Literary Parallels (for Parables only)
-
-If the passage is a **parable**, add the following section:
-
-### Narrative Structure
-
-- Classify the parable as a **1-, 2-, or 3-character parable**.
-- Explain what this structure emphasizes (e.g., divine initiative, relational contrast, justice dynamics).
-
-### Jewish Literary Parallels
-
-- Identify **similar parables or imagery** in Targums, Midrash, Dead Sea Scrolls, or early rabbinic sources.
-- Briefly compare:
-  - **Themes** (e.g., divine judgment, human response, covenant)
-  - **Symbols** (e.g., vineyard, seed, soil)
-  - **Audience impact**
-  - How Jesus’ use **aligns with, deepens, or subverts** known Jewish traditions
-
-Use this section only for genres such as **parables, genealogies, apocalyptic, wisdom sayings, legal controversies, and prophetic woes**.
-
----
-
-## Writing Style
-
-- Use vivid, emotionally accessible, but precise language.
-- Integrate Greek words and translation naturally.
-- Avoid theological summary or application—focus on cultural insight and resonance.
+Mini example (Matt 2:13–15) — DO NOT OUTPUT
+- Walking days: Bethlehem → Egyptian border ≈ 4–6 days on foot for a family moving cautiously; Bethlehem → likely refuge inside Egypt ≈ 7–12 days depending on destination and pace. (Carta/itineraries)
+- Risks: Night travel reduces visibility; uneven roads increase fall risk; exposure for an infant; opportunistic theft/banditry on major roads; potential questioning by authorities near towns. (Josephus; Roman road/security studies)

@@ -43,7 +43,7 @@ def build_step_eval_ctx(step: dict, context: Dict[str, object]) -> Dict[str, obj
     eval_ctx.update(context or {})
     return eval_ctx
 
-def enforce_require(eval_ctx: Dict[str, object], rules: List[Dict[str, object]]):
+def enforce_require(eval_ctx: Dict[str, object], rules: List[Dict[str, object]], step_name: str = None, context_info: Dict[str, object] = None):
     for rule in rules or []:
         expr = rule.get("if")
         msg = rule.get("message", "Require condition failed")
@@ -52,7 +52,26 @@ def enforce_require(eval_ctx: Dict[str, object], rules: List[Dict[str, object]])
         except Exception as e:
             raise ValueError(f"Require eval error for '{expr}': {e}")
         if not ok:
-            raise ValueError(msg)
+            # Build detailed error message
+            error_parts = []
+            if step_name:
+                error_parts.append(f"Step: {step_name}")
+            if context_info:
+                info_str = ", ".join(f"{k}={repr(v)[:100]}" for k, v in context_info.items())
+                error_parts.append(f"Context: {info_str}")
+            error_parts.append(f"Condition: {expr}")
+            error_parts.append(f"Message: {msg}")
+
+            # Show actual variable values being checked
+            for var_name in eval_ctx:
+                if var_name in expr and not var_name.startswith('_'):
+                    val = eval_ctx[var_name]
+                    if isinstance(val, str):
+                        error_parts.append(f"  {var_name} = {repr(val[:200])}... (length={len(val)})")
+                    else:
+                        error_parts.append(f"  {var_name} = {repr(val)[:200]}")
+
+            raise ValueError("\n".join(error_parts))
 
 def collect_warnings(eval_ctx: Dict[str, object], rules: List[Dict[str, object]]) -> List[str]:
     messages: List[str] = []

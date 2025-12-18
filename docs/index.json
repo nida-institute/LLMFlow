@@ -1,0 +1,4733 @@
+{
+  "modules": [
+    {
+      "module": "run_tests",
+      "imports": [
+        "os",
+        "subprocess",
+        "sys"
+      ],
+      "functions": [
+        {
+          "name": "run_tests",
+          "signature": "run_tests()",
+          "doc": "Run pytest with coverage"
+        }
+      ]
+    },
+    {
+      "module": "tools.index_signatures",
+      "imports": [
+        "ast",
+        "json",
+        "pathlib",
+        "sys",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "format_param",
+          "signature": "format_param(arg: ast.arg, defaults_map)",
+          "doc": "Format a single parameter with optional type and default."
+        },
+        {
+          "name": "simple_signature",
+          "signature": "simple_signature(node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> str",
+          "doc": "Generate a simple function signature string."
+        },
+        {
+          "name": "collect_imports",
+          "signature": "collect_imports(tree: ast.Module) -> list[str]",
+          "doc": "Extract just the module names being imported (no details)."
+        },
+        {
+          "name": "module_name_from_path",
+          "signature": "module_name_from_path(path: str, root: Optional[str]) -> str",
+          "doc": "Convert file path to Python module name."
+        },
+        {
+          "name": "index_file",
+          "signature": "index_file(path: str, root: Optional[str] = None) -> Optional[dict]",
+          "doc": "Extract minimal module information."
+        },
+        {
+          "name": "main",
+          "signature": "main(root: str)",
+          "doc": "Index all Python files in root directory."
+        }
+      ]
+    },
+    {
+      "module": "tests.test_prompt_file_resolution",
+      "imports": [
+        "os",
+        "pathlib",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "test_prompt_file_resolution",
+          "signature": "test_prompt_file_resolution()",
+          "doc": "Test that the linter can resolve prompt file paths correctly"
+        },
+        {
+          "name": "test_variable_resolution_in_context",
+          "signature": "test_variable_resolution_in_context()",
+          "doc": "Test if variable resolution works for prompt file paths"
+        },
+        {
+          "name": "test_debug_linter_path_resolution",
+          "signature": "test_debug_linter_path_resolution()",
+          "doc": "Debug the exact linter path resolution logic"
+        },
+        {
+          "name": "test_simple_file_check",
+          "signature": "test_simple_file_check()",
+          "doc": "Simple test to verify the files actually exist"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_parse_bible_reference",
+      "imports": [
+        "llmflow.utils.data",
+        "llmflow.utils.linter",
+        "pathlib",
+        "pytest",
+        "sys",
+        "tempfile",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "run_tests",
+          "signature": "run_tests()",
+          "doc": "Run all tests - useful for CLI testing"
+        },
+        {
+          "name": "test_psalm_pipeline_verse_content_mismatch",
+          "signature": "test_psalm_pipeline_verse_content_mismatch()",
+          "doc": "Test that the pipeline correctly handles verse content mismatches"
+        },
+        {
+          "name": "test_whole_chapter_psalm",
+          "signature": "test_whole_chapter_psalm(self)",
+          "doc": "Test parsing whole chapter reference - Psalm 23"
+        },
+        {
+          "name": "test_verse_range_luke",
+          "signature": "test_verse_range_luke(self)",
+          "doc": "Test parsing verse range - Luke 1:5-25"
+        },
+        {
+          "name": "test_single_verse_john",
+          "signature": "test_single_verse_john(self)",
+          "doc": "Test parsing single verse - John 3:16"
+        },
+        {
+          "name": "test_abbreviations",
+          "signature": "test_abbreviations(self)",
+          "doc": "Test various book abbreviations"
+        },
+        {
+          "name": "test_case_insensitive",
+          "signature": "test_case_insensitive(self)",
+          "doc": "Test that parsing is case insensitive"
+        },
+        {
+          "name": "test_two_word_books",
+          "signature": "test_two_word_books(self)",
+          "doc": "Test books with two words in name"
+        },
+        {
+          "name": "test_three_word_book_names",
+          "signature": "test_three_word_book_names(self)",
+          "doc": "Test books with three or more words in their names"
+        },
+        {
+          "name": "test_filename_prefix_formatting",
+          "signature": "test_filename_prefix_formatting(self)",
+          "doc": "Test that filename prefixes are correctly zero-padded"
+        },
+        {
+          "name": "test_display_name_formatting",
+          "signature": "test_display_name_formatting(self)",
+          "doc": "Test display name formatting"
+        },
+        {
+          "name": "test_canonical_reference_formatting",
+          "signature": "test_canonical_reference_formatting(self)",
+          "doc": "Test canonical reference formatting"
+        },
+        {
+          "name": "test_invalid_book_names",
+          "signature": "test_invalid_book_names(self)",
+          "doc": "Test that invalid book names raise ValueError"
+        },
+        {
+          "name": "test_ambiguous_abbreviations",
+          "signature": "test_ambiguous_abbreviations(self)",
+          "doc": "Test handling of ambiguous abbreviations"
+        },
+        {
+          "name": "test_regex_pattern_coverage",
+          "signature": "test_regex_pattern_coverage(self)",
+          "doc": "Test that regex patterns handle various word combinations"
+        },
+        {
+          "name": "test_filename_prefix_length_verification",
+          "signature": "test_filename_prefix_length_verification(self)",
+          "doc": "Test actual filename prefix lengths are correct"
+        },
+        {
+          "name": "test_chapter_verse_boundary_conditions",
+          "signature": "test_chapter_verse_boundary_conditions(self)",
+          "doc": "Test boundary conditions for chapters and verses"
+        },
+        {
+          "name": "test_verse_range_edge_cases",
+          "signature": "test_verse_range_edge_cases(self)",
+          "doc": "Test edge cases in verse ranges"
+        },
+        {
+          "name": "test_book_name_variations",
+          "signature": "test_book_name_variations(self)",
+          "doc": "Test various ways to write book names"
+        },
+        {
+          "name": "test_malformed_input_handling",
+          "signature": "test_malformed_input_handling(self)",
+          "doc": "Test handling of malformed or unusual inputs"
+        },
+        {
+          "name": "test_whitespace_handling",
+          "signature": "test_whitespace_handling(self)",
+          "doc": "Test various whitespace scenarios"
+        },
+        {
+          "name": "test_numbered_book_edge_cases",
+          "signature": "test_numbered_book_edge_cases(self)",
+          "doc": "Test edge cases with numbered books (1, 2, 3)"
+        },
+        {
+          "name": "test_verse_count_estimation",
+          "signature": "test_verse_count_estimation(self)",
+          "doc": "Test verse count estimation for whole chapters"
+        },
+        {
+          "name": "test_filename_prefix_format_consistency",
+          "signature": "test_filename_prefix_format_consistency(self)",
+          "doc": "Test that filename prefix format is consistent"
+        },
+        {
+          "name": "test_display_name_special_characters",
+          "signature": "test_display_name_special_characters(self)",
+          "doc": "Test display name handles special characters correctly"
+        },
+        {
+          "name": "test_canonical_reference_consistency",
+          "signature": "test_canonical_reference_consistency(self)",
+          "doc": "Test canonical reference format consistency"
+        },
+        {
+          "name": "test_book_number_zero_padding",
+          "signature": "test_book_number_zero_padding(self)",
+          "doc": "Test that book numbers are properly zero-padded"
+        },
+        {
+          "name": "test_error_message_quality",
+          "signature": "test_error_message_quality(self)",
+          "doc": "Test that error messages are helpful and specific"
+        },
+        {
+          "name": "test_ambiguous_abbreviation_handling",
+          "signature": "test_ambiguous_abbreviation_handling(self)",
+          "doc": "Test specific handling of ambiguous abbreviations"
+        },
+        {
+          "name": "test_performance_with_long_inputs",
+          "signature": "test_performance_with_long_inputs(self)",
+          "doc": "Test performance doesn't degrade with longer book names"
+        },
+        {
+          "name": "test_return_value_immutability",
+          "signature": "test_return_value_immutability(self)",
+          "doc": "Test that returned dictionaries don't share mutable objects"
+        },
+        {
+          "name": "test_unicode_and_special_characters",
+          "signature": "test_unicode_and_special_characters(self)",
+          "doc": "Test handling of unicode and special characters in input"
+        },
+        {
+          "name": "test_multi_chapter_range",
+          "signature": "test_multi_chapter_range(self)",
+          "doc": "Test parsing multi-chapter ranges like Genesis 1:1-2:3"
+        },
+        {
+          "name": "test_multi_chapter_range_abbreviated",
+          "signature": "test_multi_chapter_range_abbreviated(self)",
+          "doc": "Test parsing abbreviated multi-chapter ranges"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_runner_integration",
+      "imports": [],
+      "functions": []
+    },
+    {
+      "module": "tests.test_windows_encoding",
+      "imports": [
+        "io",
+        "llmflow.runner",
+        "pathlib",
+        "pytest"
+      ],
+      "functions": [
+        {
+          "name": "test_render_prompt_uses_utf8",
+          "signature": "test_render_prompt_uses_utf8(monkeypatch, tmp_path)",
+          "doc": ""
+        },
+        {
+          "name": "test_render_prompt_handles_utf8_bom",
+          "signature": "test_render_prompt_handles_utf8_bom(tmp_path)",
+          "doc": ""
+        },
+        {
+          "name": "fake_read_text",
+          "signature": "fake_read_text(self, encoding = None, errors = None)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_critical_resolution",
+      "imports": [],
+      "functions": [
+        {
+          "name": "test_resolution_chain_through_pipeline",
+          "signature": "test_resolution_chain_through_pipeline(self)",
+          "doc": "Test that variables resolve correctly through pipeline steps"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_cli_lint",
+      "imports": [
+        "pathlib",
+        "subprocess",
+        "sys"
+      ],
+      "functions": [
+        {
+          "name": "test_cli_lint_valid",
+          "signature": "test_cli_lint_valid(tmp_path)",
+          "doc": ""
+        },
+        {
+          "name": "test_cli_lint_invalid",
+          "signature": "test_cli_lint_invalid(tmp_path)",
+          "doc": ""
+        },
+        {
+          "name": "test_cli_lint_json",
+          "signature": "test_cli_lint_json(tmp_path)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.conftest",
+      "imports": [
+        "pathlib",
+        "pytest"
+      ],
+      "functions": [
+        {
+          "name": "temp_prompt_file",
+          "signature": "temp_prompt_file(tmp_path)",
+          "doc": "Create a temporary prompt file for testing"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_tsv_plugin",
+      "imports": [
+        "csv",
+        "llmflow.plugins",
+        "llmflow.plugins.loader",
+        "llmflow.plugins.tsv_reader",
+        "llmflow.runner",
+        "pathlib",
+        "pytest"
+      ],
+      "functions": [
+        {
+          "name": "sample_tsv",
+          "signature": "sample_tsv(self, tmp_path)",
+          "doc": "Create a sample TSV file."
+        },
+        {
+          "name": "test_row_dot_notation",
+          "signature": "test_row_dot_notation(self, sample_tsv)",
+          "doc": "Test Row object allows dot notation access."
+        },
+        {
+          "name": "test_row_bracket_notation",
+          "signature": "test_row_bracket_notation(self, sample_tsv)",
+          "doc": "Test Row object allows bracket notation access."
+        },
+        {
+          "name": "test_row_to_dict",
+          "signature": "test_row_to_dict(self, sample_tsv)",
+          "doc": "Test Row object can convert back to dict."
+        },
+        {
+          "name": "test_execute_reads_tsv",
+          "signature": "test_execute_reads_tsv(self, sample_tsv)",
+          "doc": "Test plugin reads TSV file correctly."
+        },
+        {
+          "name": "test_execute_with_limit",
+          "signature": "test_execute_with_limit(self, sample_tsv)",
+          "doc": "Test plugin respects limit parameter."
+        },
+        {
+          "name": "test_execute_with_from_keyword",
+          "signature": "test_execute_with_from_keyword(self, sample_tsv)",
+          "doc": "Test plugin accepts 'from' as alternative to 'path'."
+        },
+        {
+          "name": "test_execute_csv_delimiter",
+          "signature": "test_execute_csv_delimiter(self, tmp_path)",
+          "doc": "Test plugin can read CSV with comma delimiter."
+        },
+        {
+          "name": "test_execute_file_not_found",
+          "signature": "test_execute_file_not_found(self)",
+          "doc": "Test plugin raises error for missing file."
+        },
+        {
+          "name": "test_execute_missing_path",
+          "signature": "test_execute_missing_path(self)",
+          "doc": "Test plugin raises error when path is missing."
+        },
+        {
+          "name": "test_resolve_row_dot_notation",
+          "signature": "test_resolve_row_dot_notation(self)",
+          "doc": "Test that ${row.lemma} resolves to the actual value."
+        },
+        {
+          "name": "test_resolve_row_in_string",
+          "signature": "test_resolve_row_in_string(self)",
+          "doc": "Test that Row values resolve within strings."
+        },
+        {
+          "name": "test_resolve_row_in_xpath",
+          "signature": "test_resolve_row_in_xpath(self)",
+          "doc": "Test that Row values work in XPath expressions."
+        }
+      ]
+    },
+    {
+      "module": "tests.test_function_outputs_list",
+      "imports": [
+        "llmflow.runner"
+      ],
+      "functions": [
+        {
+          "name": "test_function_with_list_outputs",
+          "signature": "test_function_with_list_outputs(self)",
+          "doc": "Test that function steps handle outputs as a list correctly"
+        },
+        {
+          "name": "test_function_with_single_item_list_outputs",
+          "signature": "test_function_with_single_item_list_outputs(self)",
+          "doc": "Test function with outputs as a single-item list"
+        },
+        {
+          "name": "return_multiple",
+          "signature": "return_multiple()",
+          "doc": ""
+        },
+        {
+          "name": "return_single",
+          "signature": "return_single()",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_linter_path_bug",
+      "imports": [
+        "inspect",
+        "os",
+        "pathlib"
+      ],
+      "functions": [
+        {
+          "name": "test_linter_path_resolution_bug",
+          "signature": "test_linter_path_resolution_bug()",
+          "doc": "Test to isolate the linter path resolution issue"
+        },
+        {
+          "name": "test_manual_contract_validation",
+          "signature": "test_manual_contract_validation()",
+          "doc": "Manually test what the contract validation is doing"
+        },
+        {
+          "name": "test_direct_linter_call",
+          "signature": "test_direct_linter_call()",
+          "doc": "Test calling the linter functions directly to see exact error"
+        },
+        {
+          "name": "test_find_actual_validation_error",
+          "signature": "test_find_actual_validation_error()",
+          "doc": "Try to trigger the exact same error that the CLI is showing"
+        },
+        {
+          "name": "test_debug_validate_step_prompt_contract",
+          "signature": "test_debug_validate_step_prompt_contract()",
+          "doc": "Debug exactly what validate_step_prompt_contract is doing"
+        },
+        {
+          "name": "test_trace_exact_path_resolution",
+          "signature": "test_trace_exact_path_resolution()",
+          "doc": "Trace exactly how the linter resolves prompt file paths"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_pipeline_integration",
+      "imports": [
+        "llmflow.runner",
+        "pathlib"
+      ],
+      "functions": [
+        {
+          "name": "test_function_step_with_template_rendering",
+          "signature": "test_function_step_with_template_rendering(self)",
+          "doc": "Test that run_function_step properly passes context to render_markdown_template"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_pipeline_integration_final",
+      "imports": [
+        "llmflow.runner",
+        "pathlib",
+        "tempfile"
+      ],
+      "functions": [
+        {
+          "name": "test_complete_pipeline_flow",
+          "signature": "test_complete_pipeline_flow(self)",
+          "doc": "Test the full flow: append_to -> list resolution -> template rendering"
+        },
+        {
+          "name": "generate_body_content",
+          "signature": "generate_body_content()",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_plugin_loader",
+      "imports": [
+        "llmflow.plugins.loader",
+        "pytest"
+      ],
+      "functions": [
+        {
+          "name": "test_discover_plugins_loads_builtin_plugins",
+          "signature": "test_discover_plugins_loads_builtin_plugins(self)",
+          "doc": "Test that built-in plugins are loaded."
+        },
+        {
+          "name": "test_plugin_registry_is_dict",
+          "signature": "test_plugin_registry_is_dict(self)",
+          "doc": "Test that plugin_registry is a dictionary."
+        },
+        {
+          "name": "test_plugins_are_callable",
+          "signature": "test_plugins_are_callable(self)",
+          "doc": "Test that registered plugins are callable."
+        },
+        {
+          "name": "test_discover_plugins_can_be_called_multiple_times",
+          "signature": "test_discover_plugins_can_be_called_multiple_times(self)",
+          "doc": "Test that discover_plugins is idempotent."
+        }
+      ]
+    },
+    {
+      "module": "tests.test_critical_error_handling",
+      "imports": [
+        "pytest"
+      ],
+      "functions": [
+        {
+          "name": "test_pipeline_continues_after_step_failure",
+          "signature": "test_pipeline_continues_after_step_failure(self)",
+          "doc": "Ensure pipeline handles errors gracefully"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_json_fix",
+      "imports": [
+        "llmflow.modules.json_parser"
+      ],
+      "functions": [
+        {
+          "name": "test_full_nested_structure",
+          "signature": "test_full_nested_structure()",
+          "doc": "Test parsing full nested JSON with array."
+        },
+        {
+          "name": "test_json_with_surrounding_text",
+          "signature": "test_json_with_surrounding_text()",
+          "doc": "Test parsing JSON embedded in text."
+        },
+        {
+          "name": "test_single_object",
+          "signature": "test_single_object()",
+          "doc": "Test parsing single JSON object still works."
+        }
+      ]
+    },
+    {
+      "module": "tests.test_for_each_append",
+      "imports": [],
+      "functions": [
+        {
+          "name": "test_append_to_lists",
+          "signature": "test_append_to_lists(self)",
+          "doc": "Test that append_to correctly builds lists during for-each"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_foreach_scene_sequence",
+      "imports": [
+        "os",
+        "pytest",
+        "shutil",
+        "src.llmflow.runner",
+        "tempfile",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "test_psalm_pipeline_verse_content_mismatch",
+          "signature": "test_psalm_pipeline_verse_content_mismatch()",
+          "doc": "Test that the pipeline correctly handles verse content mismatches"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_template_resolution",
+      "imports": [
+        "llmflow.runner"
+      ],
+      "functions": [
+        {
+          "name": "test_resolve_function_supports_negative_indices",
+          "signature": "test_resolve_function_supports_negative_indices(self)",
+          "doc": "Test that the resolve function properly handles list[-1] syntax"
+        },
+        {
+          "name": "test_template_variables_resolution_order",
+          "signature": "test_template_variables_resolution_order(self)",
+          "doc": "Test that variables are resolved BEFORE being passed to template"
+        },
+        {
+          "name": "test_complex_variable_patterns",
+          "signature": "test_complex_variable_patterns(self)",
+          "doc": "Test various variable patterns we use"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_parse",
+      "imports": [
+        "llmflow.utils.data",
+        "sys"
+      ],
+      "functions": []
+    },
+    {
+      "module": "tests.test_for_each_minimal_bug",
+      "imports": [],
+      "functions": [
+        {
+          "name": "test_minimal_for_each_append_bug",
+          "signature": "test_minimal_for_each_append_bug()",
+          "doc": "Minimal test case showing the for-each append duplication bug"
+        },
+        {
+          "name": "track_and_return",
+          "signature": "track_and_return(object)",
+          "doc": ""
+        },
+        {
+          "name": "track_and_return",
+          "signature": "track_and_return(object)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_run_pipeline",
+      "imports": [
+        "llmflow.runner",
+        "pytest",
+        "unittest.mock",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "simple_pipeline",
+          "signature": "simple_pipeline(self, tmp_path)",
+          "doc": "Create a simple test pipeline"
+        },
+        {
+          "name": "complex_pipeline",
+          "signature": "complex_pipeline(self, tmp_path)",
+          "doc": "Create a more complex pipeline with for-each"
+        },
+        {
+          "name": "test_run_pipeline_basic_execution",
+          "signature": "test_run_pipeline_basic_execution(self, mock_lint, mock_validate, simple_pipeline)",
+          "doc": "Test basic pipeline execution with function step"
+        },
+        {
+          "name": "test_run_pipeline_with_variables",
+          "signature": "test_run_pipeline_with_variables(self, mock_lint, mock_validate, simple_pipeline)",
+          "doc": "Test pipeline execution with custom variables"
+        },
+        {
+          "name": "test_run_pipeline_dry_run",
+          "signature": "test_run_pipeline_dry_run(self, mock_lint, mock_validate, simple_pipeline)",
+          "doc": "Test pipeline dry run mode"
+        },
+        {
+          "name": "test_run_pipeline_complex_workflow",
+          "signature": "test_run_pipeline_complex_workflow(self, mock_lint, mock_validate, complex_pipeline)",
+          "doc": "Test complex pipeline with for-each and append_to"
+        },
+        {
+          "name": "test_run_pipeline_validation_failure",
+          "signature": "test_run_pipeline_validation_failure(self, mock_lint, mock_validate, simple_pipeline)",
+          "doc": "Test pipeline execution when validation fails"
+        },
+        {
+          "name": "test_run_pipeline_step_failure",
+          "signature": "test_run_pipeline_step_failure(self, mock_lint, mock_validate, simple_pipeline)",
+          "doc": "Test pipeline execution when a step fails"
+        },
+        {
+          "name": "test_run_pipeline_file_not_found",
+          "signature": "test_run_pipeline_file_not_found(self)",
+          "doc": "Test pipeline execution with non-existent file"
+        },
+        {
+          "name": "test_run_pipeline_invalid_yaml",
+          "signature": "test_run_pipeline_invalid_yaml(self, mock_lint, mock_validate, tmp_path)",
+          "doc": "Test pipeline execution with invalid YAML"
+        },
+        {
+          "name": "test_run_pipeline_skip_lint",
+          "signature": "test_run_pipeline_skip_lint(self, mock_lint, mock_validate, simple_pipeline)",
+          "doc": "Test that linting is skipped when skip_lint=True"
+        },
+        {
+          "name": "test_run_pipeline_with_lint",
+          "signature": "test_run_pipeline_with_lint(self, mock_lint, simple_pipeline)",
+          "doc": "Test that linting runs when skip_lint=False"
+        },
+        {
+          "name": "test_run_pipeline_context_preservation",
+          "signature": "test_run_pipeline_context_preservation(self, mock_lint, mock_validate, tmp_path)",
+          "doc": "Test that context is properly preserved and returned"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_runner_full",
+      "imports": [
+        "llmflow.runner",
+        "pytest",
+        "unittest.mock"
+      ],
+      "functions": [
+        {
+          "name": "test_resolve_simple_variable",
+          "signature": "test_resolve_simple_variable(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_resolve_nested_dict",
+          "signature": "test_resolve_nested_dict(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_resolve_list_indexing",
+          "signature": "test_resolve_list_indexing(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_resolve_row_object",
+          "signature": "test_resolve_row_object(self)",
+          "doc": "Test resolving dot notation on Row-like objects"
+        },
+        {
+          "name": "test_resolve_dict_recursively",
+          "signature": "test_resolve_dict_recursively(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_outputs_string",
+          "signature": "test_outputs_string(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_outputs_list",
+          "signature": "test_outputs_list(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_append_to_creates_list",
+          "signature": "test_append_to_creates_list(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_append_to_extends_list",
+          "signature": "test_append_to_extends_list(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_saveas_simple",
+          "signature": "test_saveas_simple(self, tmp_path)",
+          "doc": "Test saveas writes file correctly"
+        },
+        {
+          "name": "test_basic_function_execution",
+          "signature": "test_basic_function_execution(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_function_with_inputs",
+          "signature": "test_function_with_inputs(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_function_with_append_to",
+          "signature": "test_function_with_append_to(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_plugin_execution",
+          "signature": "test_plugin_execution(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_plugin_with_variable_resolution",
+          "signature": "test_plugin_with_variable_resolution(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_llm_basic",
+          "signature": "test_llm_basic(self, mock_call_llm, mock_render_prompt)",
+          "doc": ""
+        },
+        {
+          "name": "test_llm_with_config_override",
+          "signature": "test_llm_with_config_override(self, mock_call_llm, mock_render_prompt)",
+          "doc": ""
+        },
+        {
+          "name": "test_dispatch_function_step",
+          "signature": "test_dispatch_function_step(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_dispatch_plugin_step",
+          "signature": "test_dispatch_plugin_step(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_unknown_step_type_raises_error",
+          "signature": "test_unknown_step_type_raises_error(self)",
+          "doc": ""
+        },
+        {
+          "name": "test_function_to_llm_flow",
+          "signature": "test_function_to_llm_flow(self)",
+          "doc": "Test data flow from function to LLM step"
+        },
+        {
+          "name": "test_append_to_multiple_iterations",
+          "signature": "test_append_to_multiple_iterations(self)",
+          "doc": "Test append_to across multiple step executions"
+        },
+        {
+          "name": "test_nested_for_each_append",
+          "signature": "test_nested_for_each_append(self)",
+          "doc": "Test nested for-each loops with append_to - FIXED by context isolation!"
+        },
+        {
+          "name": "test_func",
+          "signature": "test_func()",
+          "doc": ""
+        },
+        {
+          "name": "greet",
+          "signature": "greet(name)",
+          "doc": ""
+        },
+        {
+          "name": "generate",
+          "signature": "generate()",
+          "doc": ""
+        },
+        {
+          "name": "mock_plugin",
+          "signature": "mock_plugin(config)",
+          "doc": ""
+        },
+        {
+          "name": "mock_plugin",
+          "signature": "mock_plugin(config)",
+          "doc": ""
+        },
+        {
+          "name": "test_func",
+          "signature": "test_func()",
+          "doc": ""
+        },
+        {
+          "name": "mock_plugin",
+          "signature": "mock_plugin(config)",
+          "doc": ""
+        },
+        {
+          "name": "generate_data",
+          "signature": "generate_data()",
+          "doc": ""
+        },
+        {
+          "name": "gen_item",
+          "signature": "gen_item(n)",
+          "doc": ""
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, lemma)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_path_resolution",
+      "imports": [
+        "pathlib"
+      ],
+      "functions": [
+        {
+          "name": "test_pipeline_path_resolution",
+          "signature": "test_pipeline_path_resolution()",
+          "doc": "Test that pipeline path resolution works correctly"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_mcp_integration",
+      "imports": [
+        "llmflow.runner",
+        "pytest",
+        "unittest.mock"
+      ],
+      "functions": [
+        {
+          "name": "test_llm_step_with_mcp_enabled",
+          "signature": "test_llm_step_with_mcp_enabled()",
+          "doc": "Test that run_llm_step properly handles MCP-enabled steps."
+        },
+        {
+          "name": "test_llm_step_without_mcp",
+          "signature": "test_llm_step_without_mcp()",
+          "doc": "Test that run_llm_step falls back to regular LLM when MCP disabled."
+        }
+      ]
+    },
+    {
+      "module": "tests.test_resolve_function",
+      "imports": [
+        "llmflow.runner"
+      ],
+      "functions": [
+        {
+          "name": "test_simple_variable",
+          "signature": "test_simple_variable(self)",
+          "doc": "Test basic variable resolution"
+        },
+        {
+          "name": "test_list_indexing",
+          "signature": "test_list_indexing(self)",
+          "doc": "Test list indexing with positive and negative indices"
+        },
+        {
+          "name": "test_nested_resolution",
+          "signature": "test_nested_resolution(self)",
+          "doc": "Test nested object resolution"
+        },
+        {
+          "name": "test_template_variables",
+          "signature": "test_template_variables(self)",
+          "doc": "Test the exact pattern used in templates"
+        },
+        {
+          "name": "test_dict_bracket_notation_unquoted",
+          "signature": "test_dict_bracket_notation_unquoted(self)",
+          "doc": "Test ${row[lemma]} - unquoted bracket notation with dict"
+        },
+        {
+          "name": "test_dict_bracket_notation_single_quotes",
+          "signature": "test_dict_bracket_notation_single_quotes(self)",
+          "doc": "Test ${row['lemma']} - single-quoted bracket notation"
+        },
+        {
+          "name": "test_dict_bracket_notation_double_quotes",
+          "signature": "test_dict_bracket_notation_double_quotes(self)",
+          "doc": "Test ${row[\"lemma\"]} - double-quoted bracket notation"
+        },
+        {
+          "name": "test_row_object_with_getitem",
+          "signature": "test_row_object_with_getitem(self)",
+          "doc": "Test Row objects that support __getitem__ (like TSV plugin)"
+        },
+        {
+          "name": "test_bracket_notation_in_xpath_expression",
+          "signature": "test_bracket_notation_in_xpath_expression(self)",
+          "doc": "Test bracket notation in XPath expressions (real use case)"
+        },
+        {
+          "name": "test_bracket_notation_in_file_paths",
+          "signature": "test_bracket_notation_in_file_paths(self)",
+          "doc": "Test bracket notation in saveas file paths (real use case)"
+        },
+        {
+          "name": "test_bracket_notation_with_special_characters",
+          "signature": "test_bracket_notation_with_special_characters(self)",
+          "doc": "Test bracket notation with keys containing special characters"
+        },
+        {
+          "name": "test_bracket_notation_with_unicode",
+          "signature": "test_bracket_notation_with_unicode(self)",
+          "doc": "Test bracket notation with Unicode keys and values"
+        },
+        {
+          "name": "test_mixed_dot_and_bracket_notation",
+          "signature": "test_mixed_dot_and_bracket_notation(self)",
+          "doc": "Test mixing dot and bracket notation"
+        },
+        {
+          "name": "test_empty_context",
+          "signature": "test_empty_context(self)",
+          "doc": "Test resolution with missing variables"
+        },
+        {
+          "name": "test_none_values_in_context",
+          "signature": "test_none_values_in_context(self)",
+          "doc": "Test resolution when context has None values"
+        },
+        {
+          "name": "test_simple_dict_access",
+          "signature": "test_simple_dict_access(self)",
+          "doc": "Test simple dictionary access"
+        },
+        {
+          "name": "test_bracket_notation_unquoted",
+          "signature": "test_bracket_notation_unquoted(self)",
+          "doc": "Test bracket notation without quotes"
+        },
+        {
+          "name": "test_bracket_notation_single_quoted",
+          "signature": "test_bracket_notation_single_quoted(self)",
+          "doc": "Test bracket notation with single quotes"
+        },
+        {
+          "name": "test_bracket_notation_double_quoted",
+          "signature": "test_bracket_notation_double_quoted(self)",
+          "doc": "Test bracket notation with double quotes"
+        },
+        {
+          "name": "test_dot_notation",
+          "signature": "test_dot_notation(self)",
+          "doc": "Test dot notation"
+        },
+        {
+          "name": "test_numeric_indexing",
+          "signature": "test_numeric_indexing(self)",
+          "doc": "Test numeric array indexing"
+        },
+        {
+          "name": "test_row_object_bracket_access",
+          "signature": "test_row_object_bracket_access(self)",
+          "doc": "Test Row objects that support __getitem__"
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, data)",
+          "doc": ""
+        },
+        {
+          "name": "__getitem__",
+          "signature": "__getitem__(self, key)",
+          "doc": ""
+        },
+        {
+          "name": "__getattr__",
+          "signature": "__getattr__(self, key)",
+          "doc": ""
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, data)",
+          "doc": ""
+        },
+        {
+          "name": "__getitem__",
+          "signature": "__getitem__(self, key)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_lint_exit",
+      "imports": [
+        "builtins",
+        "src.llmflow.utils.linter",
+        "sys"
+      ],
+      "functions": [
+        {
+          "name": "traced_exit",
+          "signature": "traced_exit(code = 0)",
+          "doc": ""
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, *args, **kwargs)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_template_dot_and_subscript",
+      "imports": [
+        "llmflow.utils.io",
+        "os",
+        "pytest",
+        "tempfile"
+      ],
+      "functions": [
+        {
+          "name": "test_template_dot_and_subscript_not_expanded",
+          "signature": "test_template_dot_and_subscript_not_expanded()",
+          "doc": "Test that dot notation and subscript expressions are expanded correctly in templates"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_linter",
+      "imports": [
+        "llmflow.utils.linter",
+        "pytest"
+      ],
+      "functions": [
+        {
+          "name": "test_disallowed_keyword_fails",
+          "signature": "test_disallowed_keyword_fails()",
+          "doc": ""
+        },
+        {
+          "name": "test_after_continue_allowed",
+          "signature": "test_after_continue_allowed()",
+          "doc": ""
+        },
+        {
+          "name": "test_after_exit_allowed",
+          "signature": "test_after_exit_allowed()",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.__init__",
+      "imports": [],
+      "functions": []
+    },
+    {
+      "module": "tests.test_append_to_function_steps",
+      "imports": [
+        "llmflow.runner"
+      ],
+      "functions": [
+        {
+          "name": "test_append_to_not_implemented_for_function_steps",
+          "signature": "test_append_to_not_implemented_for_function_steps(self)",
+          "doc": "Test that append_to NOW WORKS for function steps"
+        },
+        {
+          "name": "test_workaround_for_function_append",
+          "signature": "test_workaround_for_function_append(self)",
+          "doc": "Test a workaround - manually append in a subsequent step"
+        },
+        {
+          "name": "return_value",
+          "signature": "return_value()",
+          "doc": ""
+        },
+        {
+          "name": "generate_content",
+          "signature": "generate_content()",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_run_save_step",
+      "imports": [
+        "llmflow.runner",
+        "pathlib",
+        "pytest",
+        "unittest.mock"
+      ],
+      "functions": [
+        {
+          "name": "test_basic_save",
+          "signature": "test_basic_save(self, tmp_path)",
+          "doc": "Test basic save operation with explicit content"
+        },
+        {
+          "name": "test_save_with_variable_resolution",
+          "signature": "test_save_with_variable_resolution(self, tmp_path)",
+          "doc": "Test save with variables in path and content"
+        },
+        {
+          "name": "test_save_uses_context_content_fallback",
+          "signature": "test_save_uses_context_content_fallback(self, tmp_path)",
+          "doc": "Test save uses context['content'] when content not specified"
+        },
+        {
+          "name": "test_save_with_default_path",
+          "signature": "test_save_with_default_path(self, tmp_path)",
+          "doc": "Test save uses default path when not specified"
+        },
+        {
+          "name": "test_save_creates_parent_directories",
+          "signature": "test_save_creates_parent_directories(self, tmp_path)",
+          "doc": "Test save creates parent directories if they don't exist"
+        },
+        {
+          "name": "test_save_with_dict_content",
+          "signature": "test_save_with_dict_content(self, tmp_path)",
+          "doc": "Test save converts dict to string"
+        },
+        {
+          "name": "test_save_with_list_content",
+          "signature": "test_save_with_list_content(self, tmp_path)",
+          "doc": "Test save converts list to string"
+        },
+        {
+          "name": "test_save_with_empty_content",
+          "signature": "test_save_with_empty_content(self, tmp_path)",
+          "doc": "Test save with empty string content"
+        },
+        {
+          "name": "test_save_with_context_variable_content",
+          "signature": "test_save_with_context_variable_content(self, tmp_path)",
+          "doc": "Test save with content from context variable"
+        },
+        {
+          "name": "test_save_records_written_file",
+          "signature": "test_save_records_written_file(self, tmp_path)",
+          "doc": "Test save records the written file path"
+        },
+        {
+          "name": "test_save_logs_info_messages",
+          "signature": "test_save_logs_info_messages(self, tmp_path)",
+          "doc": "Test save logs appropriate info messages"
+        },
+        {
+          "name": "test_save_with_no_context_content_fallback",
+          "signature": "test_save_with_no_context_content_fallback(self, tmp_path)",
+          "doc": "Test save with no content and empty context defaults to empty string"
+        },
+        {
+          "name": "test_save_with_multiline_content",
+          "signature": "test_save_with_multiline_content(self, tmp_path)",
+          "doc": "Test save preserves multiline content"
+        },
+        {
+          "name": "test_save_with_unicode_content",
+          "signature": "test_save_with_unicode_content(self, tmp_path)",
+          "doc": "Test save handles Unicode content correctly"
+        },
+        {
+          "name": "test_save_overwrites_existing_file",
+          "signature": "test_save_overwrites_existing_file(self, tmp_path)",
+          "doc": "Test save overwrites existing file"
+        },
+        {
+          "name": "test_save_with_nested_variable_resolution",
+          "signature": "test_save_with_nested_variable_resolution(self, tmp_path)",
+          "doc": "Test save with nested variable resolution"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_llm_prompt_variable_resolution",
+      "imports": [
+        "llmflow.runner",
+        "pathlib",
+        "pytest",
+        "tempfile"
+      ],
+      "functions": [
+        {
+          "name": "test_prompt_inputs_basic_resolution",
+          "signature": "test_prompt_inputs_basic_resolution()",
+          "doc": "Test that prompt inputs are resolved and added to context"
+        },
+        {
+          "name": "test_prompt_inputs_list_indexing",
+          "signature": "test_prompt_inputs_list_indexing()",
+          "doc": "Test that prompt inputs can use list indexing like ${entries[0]}"
+        },
+        {
+          "name": "test_prompt_inputs_with_object_attributes",
+          "signature": "test_prompt_inputs_with_object_attributes()",
+          "doc": "Test that prompt inputs work with object attributes like ${row.lemma}"
+        },
+        {
+          "name": "test_prompt_inputs_complex_scenario",
+          "signature": "test_prompt_inputs_complex_scenario()",
+          "doc": "Test the exact scenario from the lexicon pipeline"
+        },
+        {
+          "name": "test_prompt_without_inputs",
+          "signature": "test_prompt_without_inputs()",
+          "doc": "Test that prompts work without inputs specified"
+        },
+        {
+          "name": "test_prompt_inputs_from_yaml_string",
+          "signature": "test_prompt_inputs_from_yaml_string()",
+          "doc": "Test that prompt inputs work when coming from YAML as strings"
+        },
+        {
+          "name": "test_xpath_plugin_returns_list",
+          "signature": "test_xpath_plugin_returns_list()",
+          "doc": "Test that xpath plugin returns a list, not a string"
+        },
+        {
+          "name": "test_full_lexicon_pipeline_simulation",
+          "signature": "test_full_lexicon_pipeline_simulation(mocker)",
+          "doc": "Simulate the exact flow of the lexicon pipeline"
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, data)",
+          "doc": ""
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, data)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_linter_integration",
+      "imports": [
+        "llmflow.utils.linter",
+        "pathlib"
+      ],
+      "functions": [
+        {
+          "name": "test_typo_saveaas_caught_by_full_linter",
+          "signature": "test_typo_saveaas_caught_by_full_linter(tmp_path)",
+          "doc": "Integration test: full linter should catch 'saveaas' typo"
+        },
+        {
+          "name": "test_typo_ouput_caught_by_full_linter",
+          "signature": "test_typo_ouput_caught_by_full_linter(tmp_path)",
+          "doc": "Integration test: full linter should catch 'ouput' typo"
+        },
+        {
+          "name": "test_valid_pipeline_passes_full_linter",
+          "signature": "test_valid_pipeline_passes_full_linter(tmp_path)",
+          "doc": "Integration test: valid pipeline should pass"
+        },
+        {
+          "name": "test_nested_steps_typos_caught",
+          "signature": "test_nested_steps_typos_caught(tmp_path)",
+          "doc": "Integration test: typos in nested for-each steps should be caught"
+        },
+        {
+          "name": "test_multiple_typos_all_reported",
+          "signature": "test_multiple_typos_all_reported(tmp_path)",
+          "doc": "Integration test: multiple typos should all be reported"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_append_to_mechanism",
+      "imports": [],
+      "functions": [
+        {
+          "name": "test_append_to_with_function_steps",
+          "signature": "test_append_to_with_function_steps(self)",
+          "doc": "Test that append_to works with function steps (not just LLM steps)"
+        },
+        {
+          "name": "test_append_creates_list_if_missing",
+          "signature": "test_append_creates_list_if_missing(self)",
+          "doc": "Test that append_to creates the list if it doesn't exist"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_json_output_type",
+      "imports": [
+        "llmflow.modules.json_parser",
+        "pytest"
+      ],
+      "functions": [
+        {
+          "name": "test_parse_json_string_wrapped_in_quotes",
+          "signature": "test_parse_json_string_wrapped_in_quotes()",
+          "doc": "Test the actual bug - JSON returned as a quoted string."
+        },
+        {
+          "name": "test_parse_empty_structures",
+          "signature": "test_parse_empty_structures()",
+          "doc": "Test empty JSON structures."
+        },
+        {
+          "name": "test_parse_json_with_all_value_types",
+          "signature": "test_parse_json_with_all_value_types()",
+          "doc": "Test JSON with booleans, null, numbers."
+        },
+        {
+          "name": "test_parse_deeply_nested_arrays",
+          "signature": "test_parse_deeply_nested_arrays()",
+          "doc": "Test deeply nested array structures."
+        },
+        {
+          "name": "test_parse_json_with_unicode",
+          "signature": "test_parse_json_with_unicode()",
+          "doc": "Test JSON with Greek/Hebrew text."
+        },
+        {
+          "name": "test_parse_invalid_json_returns_text",
+          "signature": "test_parse_invalid_json_returns_text()",
+          "doc": "Invalid JSON returns the cleaned text without raising."
+        },
+        {
+          "name": "test_parse_json_with_markdown_fence_variants",
+          "signature": "test_parse_json_with_markdown_fence_variants()",
+          "doc": "Test various markdown fence formats."
+        },
+        {
+          "name": "test_parse_json_with_surrounding_prose",
+          "signature": "test_parse_json_with_surrounding_prose()",
+          "doc": "Test JSON embedded in explanatory text."
+        },
+        {
+          "name": "test_parse_json_with_escaped_characters",
+          "signature": "test_parse_json_with_escaped_characters()",
+          "doc": "Test JSON with escaped characters in strings."
+        },
+        {
+          "name": "test_parse_json_array_of_primitives",
+          "signature": "test_parse_json_array_of_primitives()",
+          "doc": "Test arrays containing only primitives."
+        },
+        {
+          "name": "test_parse_json_with_scientific_notation",
+          "signature": "test_parse_json_with_scientific_notation()",
+          "doc": "Test numbers in scientific notation."
+        },
+        {
+          "name": "test_parse_triple_encoded_json",
+          "signature": "test_parse_triple_encoded_json()",
+          "doc": "Test edge case of triple-encoded JSON (shouldn't happen, but be defensive)."
+        }
+      ]
+    },
+    {
+      "module": "tests.test_scene_concatenation",
+      "imports": [
+        "llmflow.runner",
+        "llmflow.utils.data",
+        "pathlib",
+        "tempfile"
+      ],
+      "functions": [
+        {
+          "name": "test_append_to_in_for_each_creates_full_list",
+          "signature": "test_append_to_in_for_each_creates_full_list(self)",
+          "doc": "Test that append_to in for-each loop collects ALL items, not just the last"
+        },
+        {
+          "name": "test_flatten_json_to_markdown_concatenates_all_items",
+          "signature": "test_flatten_json_to_markdown_concatenates_all_items(self)",
+          "doc": "Test that flatten_json_to_markdown concatenates ALL items, not just the last"
+        },
+        {
+          "name": "test_template_receives_all_scenes",
+          "signature": "test_template_receives_all_scenes(self)",
+          "doc": "Test that the final template rendering receives all concatenated scenes"
+        },
+        {
+          "name": "test_overwrite_vs_append_bug",
+          "signature": "test_overwrite_vs_append_bug(self)",
+          "doc": "Test the difference between overwriting and appending in a loop"
+        },
+        {
+          "name": "format_scene_content",
+          "signature": "format_scene_content(scene)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_verify_citations_integration",
+      "imports": [
+        "llmflow.modules.mcp",
+        "llmflow.runner",
+        "pytest",
+        "unittest.mock"
+      ],
+      "functions": [
+        {
+          "name": "test_mcp_client_returns_tools",
+          "signature": "test_mcp_client_returns_tools()",
+          "doc": "Test that MCP client actually fetches tool definitions."
+        },
+        {
+          "name": "test_get_passage_text_schema",
+          "signature": "test_get_passage_text_schema()",
+          "doc": "Get the actual schema for get_passage_text to understand its parameters."
+        },
+        {
+          "name": "test_mcp_client_with_tool_filter",
+          "signature": "test_mcp_client_with_tool_filter()",
+          "doc": "Test that MCPClient can filter tools."
+        },
+        {
+          "name": "test_get_textual_editions",
+          "signature": "test_get_textual_editions()",
+          "doc": "Get the list of valid textual editions to use."
+        },
+        {
+          "name": "test_get_passage_text_directly",
+          "signature": "test_get_passage_text_directly()",
+          "doc": "Test calling get_passage_text tool directly using the correct schema."
+        },
+        {
+          "name": "test_get_passage_text_with_greek",
+          "signature": "test_get_passage_text_with_greek()",
+          "doc": "Test getting passage text in Greek (SBLGNT) - the preferred edition."
+        },
+        {
+          "name": "test_get_passage_text_with_hebrew",
+          "signature": "test_get_passage_text_with_hebrew()",
+          "doc": "Test getting passage text in Hebrew (WLC) - Westminster Leningrad Codex."
+        },
+        {
+          "name": "test_verify_citations_with_real_mcp_mock_llm",
+          "signature": "test_verify_citations_with_real_mcp_mock_llm()",
+          "doc": "Test verify-citations step with real MCP server but mocked LLM."
+        }
+      ]
+    },
+    {
+      "module": "tests.test_template_rendering",
+      "imports": [
+        "llmflow.utils.io",
+        "pathlib",
+        "tempfile"
+      ],
+      "functions": [
+        {
+          "name": "test_render_with_list_indexing",
+          "signature": "test_render_with_list_indexing(self)",
+          "doc": "Test that template rendering properly resolves list indices"
+        },
+        {
+          "name": "test_render_with_empty_lists",
+          "signature": "test_render_with_empty_lists(self)",
+          "doc": "Test template rendering with empty lists"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_storyflow_pipeline",
+      "imports": [
+        "pathlib",
+        "pytest",
+        "re",
+        "subprocess",
+        "sys"
+      ],
+      "functions": [
+        {
+          "name": "mock_identity",
+          "signature": "mock_identity(value)",
+          "doc": "Simple identity function for testing"
+        },
+        {
+          "name": "leaders_guide_content",
+          "signature": "leaders_guide_content(self)",
+          "doc": "Load the leaders guide content for testing"
+        },
+        {
+          "name": "test_file_exists_and_readable",
+          "signature": "test_file_exists_and_readable(self)",
+          "doc": "Test that the leaders guide file exists and is readable"
+        },
+        {
+          "name": "test_markdown_structure",
+          "signature": "test_markdown_structure(self, leaders_guide_content)",
+          "doc": "Test that the markdown structure is valid"
+        },
+        {
+          "name": "test_template_variables_resolved",
+          "signature": "test_template_variables_resolved(self, leaders_guide_content)",
+          "doc": "Test that template variables are properly resolved"
+        },
+        {
+          "name": "test_content_consistency_across_scenes",
+          "signature": "test_content_consistency_across_scenes(self, leaders_guide_content)",
+          "doc": "Test that content is consistent across scenes"
+        },
+        {
+          "name": "test_biblical_accuracy_markers",
+          "signature": "test_biblical_accuracy_markers(self, leaders_guide_content)",
+          "doc": "Test for markers of biblical accuracy and cultural context"
+        },
+        {
+          "name": "test_instructional_elements",
+          "signature": "test_instructional_elements(self, leaders_guide_content)",
+          "doc": "Test that proper instructional elements are present"
+        },
+        {
+          "name": "test_file_encoding_and_format",
+          "signature": "test_file_encoding_and_format(self)",
+          "doc": "Test that file is properly encoded and formatted"
+        },
+        {
+          "name": "test_citation_content_alignment",
+          "signature": "test_citation_content_alignment(self)",
+          "doc": "Test that citations align with expected Psalm 1 content"
+        },
+        {
+          "name": "test_scene_sequence_integrity",
+          "signature": "test_scene_sequence_integrity(self)",
+          "doc": "Test that scenes appear in logical biblical sequence"
+        },
+        {
+          "name": "test_template_processing_completeness",
+          "signature": "test_template_processing_completeness(self)",
+          "doc": "Test that template processing completed successfully"
+        },
+        {
+          "name": "test_output_file_metadata",
+          "signature": "test_output_file_metadata(self)",
+          "doc": "Test output file has correct metadata and naming"
+        },
+        {
+          "name": "test_all_prompts_exist",
+          "signature": "test_all_prompts_exist(self)",
+          "doc": "Test that all referenced prompt files exist"
+        },
+        {
+          "name": "test_pipeline_runs_successfully",
+          "signature": "test_pipeline_runs_successfully(self)",
+          "doc": "Test that the pipeline can run without crashing"
+        },
+        {
+          "name": "test_contract_validation_passes",
+          "signature": "test_contract_validation_passes(self)",
+          "doc": "Test that contract validation works correctly"
+        },
+        {
+          "name": "test_template_validation_passes",
+          "signature": "test_template_validation_passes(self)",
+          "doc": "Test that template validation works correctly"
+        },
+        {
+          "name": "test_pipeline_produces_output",
+          "signature": "test_pipeline_produces_output(self)",
+          "doc": "Test that pipeline actually creates output files (dry run only)"
+        },
+        {
+          "name": "test_pipeline_handles_errors_gracefully",
+          "signature": "test_pipeline_handles_errors_gracefully(self)",
+          "doc": "Test that pipeline fails gracefully with bad input"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_debug_null_resolution",
+      "imports": [
+        "llmflow.runner",
+        "tempfile",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "test_null_value_resolution",
+          "signature": "test_null_value_resolution()",
+          "doc": "Debug how null values are resolved"
+        },
+        {
+          "name": "debug_variable_types",
+          "signature": "debug_variable_types(null_var, string_var, empty_var)",
+          "doc": "Debug what types we receive"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_linter_for_each",
+      "imports": [
+        "llmflow.utils.linter"
+      ],
+      "functions": [
+        {
+          "name": "test_collect_all_steps_finds_nested_steps",
+          "signature": "test_collect_all_steps_finds_nested_steps(self)",
+          "doc": "Test that collect_all_steps recursively finds steps in for-each"
+        },
+        {
+          "name": "test_linter_validates_nested_contracts",
+          "signature": "test_linter_validates_nested_contracts(self)",
+          "doc": "Test that linter checks contracts for steps inside for-each"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_critical_foreach_context",
+      "imports": [
+        "llmflow.runner",
+        "pytest",
+        "unittest.mock"
+      ],
+      "functions": [
+        {
+          "name": "mutate_context",
+          "signature": "mutate_context(item)",
+          "doc": ""
+        },
+        {
+          "name": "append_to_shared_list",
+          "signature": "append_to_shared_list(item, shared_list)",
+          "doc": "This function modifies the list - testing if deepcopy isolates it"
+        },
+        {
+          "name": "test_nested_context_isolation",
+          "signature": "test_nested_context_isolation(self)",
+          "doc": "Ensure for-each iterations don't contaminate each other"
+        },
+        {
+          "name": "test_deepcopy_prevents_list_sharing",
+          "signature": "test_deepcopy_prevents_list_sharing(self)",
+          "doc": "Regression test: deepcopy prevents the shallow copy bug where lists were shared"
+        },
+        {
+          "name": "test_for_each_parent_context_isolation",
+          "signature": "test_for_each_parent_context_isolation(self, tmp_path, temp_prompt_file)",
+          "doc": "Test that for-each iterations don't mutate parent context variables"
+        },
+        {
+          "name": "test_nested_for_each_parent_list_isolation",
+          "signature": "test_nested_for_each_parent_list_isolation(self, tmp_path, temp_prompt_file)",
+          "doc": "Test that nested for-each loops don't mutate parent lists"
+        },
+        {
+          "name": "test_for_each_dict_modification_isolation",
+          "signature": "test_for_each_dict_modification_isolation(self, tmp_path, temp_prompt_file)",
+          "doc": "Test that for-each iterations don't mutate parent dict variables"
+        },
+        {
+          "name": "test_for_each_with_function_mutating_context",
+          "signature": "test_for_each_with_function_mutating_context(self, tmp_path)",
+          "doc": "Test that function steps in for-each don't mutate parent context"
+        },
+        {
+          "name": "test_for_each_append_to_does_propagate",
+          "signature": "test_for_each_append_to_does_propagate(self, tmp_path, temp_prompt_file)",
+          "doc": "Test that append_to DOES propagate to parent (expected behavior)"
+        },
+        {
+          "name": "test_for_each_variable_shadowing_isolation",
+          "signature": "test_for_each_variable_shadowing_isolation(self, tmp_path, temp_prompt_file)",
+          "doc": "Test that item_var shadowing doesn't leak between iterations"
+        },
+        {
+          "name": "test_for_each_multiple_lists_no_cross_contamination",
+          "signature": "test_for_each_multiple_lists_no_cross_contamination(self, tmp_path, temp_prompt_file)",
+          "doc": "Test that multiple list variables don't cross-contaminate"
+        },
+        {
+          "name": "test_for_each_with_nested_objects_isolation",
+          "signature": "test_for_each_with_nested_objects_isolation(self, tmp_path, temp_prompt_file)",
+          "doc": "Test that nested objects in context are properly isolated"
+        },
+        {
+          "name": "test_for_each_outputs_without_append_to_dont_mutate_parent",
+          "signature": "test_for_each_outputs_without_append_to_dont_mutate_parent(self, tmp_path, temp_prompt_file)",
+          "doc": "Test that regular outputs in for-each don't accumulate in parent"
+        },
+        {
+          "name": "test_for_each_with_if_context_isolation",
+          "signature": "test_for_each_with_if_context_isolation(self, tmp_path, temp_prompt_file)",
+          "doc": "Test context isolation with for-each containing if blocks"
+        },
+        {
+          "name": "test_for_each_parallel_loops_no_interference",
+          "signature": "test_for_each_parallel_loops_no_interference(self, tmp_path, temp_prompt_file)",
+          "doc": "Test that sequential for-each loops don't interfere with each other"
+        },
+        {
+          "name": "test_for_each_with_save_and_context_isolation",
+          "signature": "test_for_each_with_save_and_context_isolation(self, tmp_path)",
+          "doc": "Test that save steps in for-each don't mutate parent context"
+        },
+        {
+          "name": "test_for_each_iteration_counter_doesnt_leak",
+          "signature": "test_for_each_iteration_counter_doesnt_leak(self, tmp_path, temp_prompt_file)",
+          "doc": "Test that iteration state doesn't leak between loops"
+        },
+        {
+          "name": "test_for_each_with_pre_existing_append_target",
+          "signature": "test_for_each_with_pre_existing_append_target(self, tmp_path, temp_prompt_file)",
+          "doc": "Test append_to behavior when target list already exists"
+        },
+        {
+          "name": "test_deeply_nested_for_each_context_isolation",
+          "signature": "test_deeply_nested_for_each_context_isolation(self, tmp_path, temp_prompt_file)",
+          "doc": "Test context isolation in 3-level nested for-each"
+        },
+        {
+          "name": "test_for_each_with_complex_data_structures",
+          "signature": "test_for_each_with_complex_data_structures(self, tmp_path, temp_prompt_file)",
+          "doc": "Test that complex data structures in context are properly isolated"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_linter_append_to",
+      "imports": [
+        "llmflow.utils.linter",
+        "pathlib",
+        "pytest",
+        "tempfile",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "test_linter_passes_with_outputs_and_append_to",
+          "signature": "test_linter_passes_with_outputs_and_append_to()",
+          "doc": "Test that linter allows outputs with append_to directive"
+        },
+        {
+          "name": "test_linter_catches_append_to_without_outputs",
+          "signature": "test_linter_catches_append_to_without_outputs()",
+          "doc": "Test that linter catches append_to without outputs"
+        },
+        {
+          "name": "test_linter_catches_append_to_in_nested_for_each",
+          "signature": "test_linter_catches_append_to_in_nested_for_each()",
+          "doc": "Test that linter catches append_to in nested for_each without outputs"
+        },
+        {
+          "name": "test_linter_handles_empty_outputs_list",
+          "signature": "test_linter_handles_empty_outputs_list()",
+          "doc": "Test that linter catches append_to with empty outputs list"
+        },
+        {
+          "name": "test_linter_checks_function_steps_with_append_to",
+          "signature": "test_linter_checks_function_steps_with_append_to()",
+          "doc": "Test that linter checks append_to for function steps too"
+        },
+        {
+          "name": "test_linter_allows_function_steps_with_outputs_and_append_to",
+          "signature": "test_linter_allows_function_steps_with_outputs_and_append_to()",
+          "doc": "Test that linter allows function steps with both outputs and append_to"
+        },
+        {
+          "name": "test_linter_catches_multiple_append_to_violations",
+          "signature": "test_linter_catches_multiple_append_to_violations()",
+          "doc": "Test that linter catches multiple append_to violations in one pipeline"
+        },
+        {
+          "name": "test_linter_ignores_append_to_when_linter_disabled",
+          "signature": "test_linter_ignores_append_to_when_linter_disabled()",
+          "doc": "Test that linter doesn't check append_to when disabled"
+        },
+        {
+          "name": "test_linter_allows_append_to_with_single_output",
+          "signature": "test_linter_allows_append_to_with_single_output()",
+          "doc": "Test that linter allows append_to with a single output value"
+        },
+        {
+          "name": "test_linter_allows_append_to_with_multiple_outputs",
+          "signature": "test_linter_allows_append_to_with_multiple_outputs()",
+          "doc": "Test that linter allows append_to with multiple output values"
+        },
+        {
+          "name": "test_linter_catches_append_to_in_deeply_nested_structure",
+          "signature": "test_linter_catches_append_to_in_deeply_nested_structure()",
+          "doc": "Test that linter finds append_to violations in deeply nested structures"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_conditional",
+      "imports": [
+        "llmflow.runner"
+      ],
+      "functions": [
+        {
+          "name": "test_conditional_step_with_continue",
+          "signature": "test_conditional_step_with_continue()",
+          "doc": "Test that if step with condition executes 'after: continue' when condition is true."
+        },
+        {
+          "name": "test_conditional_step_condition_false",
+          "signature": "test_conditional_step_condition_false()",
+          "doc": "Test that if step skips when condition is false."
+        },
+        {
+          "name": "test_conditional_step_with_break",
+          "signature": "test_conditional_step_with_break()",
+          "doc": "Test that if step can execute 'after: exit'."
+        },
+        {
+          "name": "test_conditional_step_without_after",
+          "signature": "test_conditional_step_without_after()",
+          "doc": "Test that if step works without after action."
+        }
+      ]
+    },
+    {
+      "module": "tests.test_execution_output",
+      "imports": [
+        "llmflow.runner",
+        "logging",
+        "pytest",
+        "tempfile",
+        "unittest.mock",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "simple_function",
+          "signature": "simple_function()",
+          "doc": "Simple function that succeeds"
+        },
+        {
+          "name": "configure_logger_for_test",
+          "signature": "configure_logger_for_test(self)",
+          "doc": "Configure logger to propagate for testing"
+        },
+        {
+          "name": "test_dry_run_shows_would_run",
+          "signature": "test_dry_run_shows_would_run(self, caplog)",
+          "doc": "Test that dry run shows what would be executed"
+        },
+        {
+          "name": "test_execution_shows_progress_messages",
+          "signature": "test_execution_shows_progress_messages(self, caplog)",
+          "doc": "Test that execution shows progress messages"
+        },
+        {
+          "name": "test_no_duplicate_messages",
+          "signature": "test_no_duplicate_messages(self, caplog)",
+          "doc": "Test that messages aren't duplicated"
+        },
+        {
+          "name": "test_llm_step_shows_calling_message",
+          "signature": "test_llm_step_shows_calling_message(self)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_for_each_append_bug",
+      "imports": [
+        "llmflow.runner",
+        "pytest"
+      ],
+      "functions": [
+        {
+          "name": "test_for_each_iteration_count",
+          "signature": "test_for_each_iteration_count(self)",
+          "doc": "Test that for-each runs exactly once per item"
+        },
+        {
+          "name": "test_for_each_append_isolation",
+          "signature": "test_for_each_append_isolation(self)",
+          "doc": "Test that append_to in different iterations don't interfere"
+        },
+        {
+          "name": "test_context_isolation_between_iterations",
+          "signature": "test_context_isolation_between_iterations(self)",
+          "doc": "Test that context changes in one iteration don't affect others"
+        },
+        {
+          "name": "test_nested_for_each_append",
+          "signature": "test_nested_for_each_append(self)",
+          "doc": "Test append_to in nested for-each loops"
+        },
+        {
+          "name": "count_calls",
+          "signature": "count_calls(item)",
+          "doc": ""
+        },
+        {
+          "name": "process_and_log",
+          "signature": "process_and_log(item)",
+          "doc": ""
+        },
+        {
+          "name": "modify_context",
+          "signature": "modify_context(item, context)",
+          "doc": ""
+        },
+        {
+          "name": "combine_items",
+          "signature": "combine_items(outer, inner)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_debug_resolution",
+      "imports": [
+        "llmflow.runner",
+        "llmflow.utils.io"
+      ],
+      "functions": [
+        {
+          "name": "test_resolve_with_pipeline_context",
+          "signature": "test_resolve_with_pipeline_context(self)",
+          "doc": "Test that resolve works when variables reference context"
+        },
+        {
+          "name": "test_render_markdown_template_full_flow",
+          "signature": "test_render_markdown_template_full_flow(self)",
+          "doc": "Test the exact flow that's failing in production"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_saveas",
+      "imports": [
+        "json",
+        "llmflow.runner",
+        "pathlib",
+        "pytest",
+        "shutil",
+        "tempfile"
+      ],
+      "functions": [
+        {
+          "name": "temp_output_dir",
+          "signature": "temp_output_dir()",
+          "doc": "Create a temporary directory for test outputs"
+        },
+        {
+          "name": "test_saveas_json_from_dict",
+          "signature": "test_saveas_json_from_dict(temp_output_dir)",
+          "doc": "Test saving a Python dict as JSON (normal case)"
+        },
+        {
+          "name": "test_saveas_json_string_from_xslt",
+          "signature": "test_saveas_json_string_from_xslt(temp_output_dir)",
+          "doc": "Test saving already-serialized JSON string (XSLT case)"
+        },
+        {
+          "name": "test_saveas_json_double_encoded_string",
+          "signature": "test_saveas_json_double_encoded_string(temp_output_dir)",
+          "doc": "Test unwrapping double-encoded JSON (regression test)"
+        },
+        {
+          "name": "test_saveas_json_with_unicode",
+          "signature": "test_saveas_json_with_unicode(temp_output_dir)",
+          "doc": "Test JSON string with unicode characters"
+        },
+        {
+          "name": "test_saveas_json_list_from_function",
+          "signature": "test_saveas_json_list_from_function(temp_output_dir)",
+          "doc": "Test saving a Python list as JSON"
+        },
+        {
+          "name": "test_saveas_json_nested_structures",
+          "signature": "test_saveas_json_nested_structures(temp_output_dir)",
+          "doc": "Test complex nested JSON structures"
+        },
+        {
+          "name": "test_saveas_txt_extension_no_json_processing",
+          "signature": "test_saveas_txt_extension_no_json_processing(temp_output_dir)",
+          "doc": "Test that .txt extension doesn't trigger JSON processing"
+        },
+        {
+          "name": "test_saveas_json_with_subdirectory",
+          "signature": "test_saveas_json_with_subdirectory(temp_output_dir)",
+          "doc": "Test saving JSON to a subdirectory that doesn't exist yet"
+        },
+        {
+          "name": "test_saveas_markdown_extension",
+          "signature": "test_saveas_markdown_extension(temp_output_dir)",
+          "doc": "Test saving markdown content"
+        },
+        {
+          "name": "test_saveas_json_format_validation",
+          "signature": "test_saveas_json_format_validation(temp_output_dir)",
+          "doc": "Test that JSON files are properly formatted with double quotes"
+        },
+        {
+          "name": "test_saveas_preserves_newlines",
+          "signature": "test_saveas_preserves_newlines(temp_output_dir)",
+          "doc": "Test that multiline text preserves newlines"
+        },
+        {
+          "name": "test_saveas_empty_string",
+          "signature": "test_saveas_empty_string(temp_output_dir)",
+          "doc": "Test saving an empty string"
+        },
+        {
+          "name": "test_saveas_boolean_values_in_json",
+          "signature": "test_saveas_boolean_values_in_json(temp_output_dir)",
+          "doc": "Test that Python booleans are properly converted to JSON"
+        },
+        {
+          "name": "test_saveas_number_types_in_json",
+          "signature": "test_saveas_number_types_in_json(temp_output_dir)",
+          "doc": "Test various number types in JSON"
+        },
+        {
+          "name": "test_saveas_empty_json_array",
+          "signature": "test_saveas_empty_json_array(temp_output_dir)",
+          "doc": "Test saving an empty JSON array"
+        },
+        {
+          "name": "test_saveas_empty_json_object",
+          "signature": "test_saveas_empty_json_object(temp_output_dir)",
+          "doc": "Test saving an empty JSON object"
+        },
+        {
+          "name": "test_saveas_special_characters_in_path",
+          "signature": "test_saveas_special_characters_in_path(temp_output_dir)",
+          "doc": "Test saving to paths with special characters"
+        },
+        {
+          "name": "test_saveas_deeply_nested_json",
+          "signature": "test_saveas_deeply_nested_json(temp_output_dir)",
+          "doc": "Test saving deeply nested JSON structures"
+        },
+        {
+          "name": "test_saveas_json_with_mixed_types_array",
+          "signature": "test_saveas_json_with_mixed_types_array(temp_output_dir)",
+          "doc": "Test JSON array with mixed types"
+        },
+        {
+          "name": "test_saveas_overwrite_existing_file",
+          "signature": "test_saveas_overwrite_existing_file(temp_output_dir)",
+          "doc": "Test that saveas overwrites existing files"
+        },
+        {
+          "name": "test_saveas_json_indentation",
+          "signature": "test_saveas_json_indentation(temp_output_dir)",
+          "doc": "Test that JSON output is properly indented for readability"
+        },
+        {
+          "name": "test_saveas_simple",
+          "signature": "test_saveas_simple(self, tmp_path)",
+          "doc": "Test saveas writes file correctly"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_critical_template_flow",
+      "imports": [],
+      "functions": [
+        {
+          "name": "test_template_receives_all_processed_data",
+          "signature": "test_template_receives_all_processed_data(self)",
+          "doc": "Ensure templates get complete data from pipeline"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_markdown_cleaner_generic",
+      "imports": [
+        "llmflow.utils.markdown_cleaner",
+        "pytest"
+      ],
+      "functions": [
+        {
+          "name": "test_basic_headings_and_paragraphs",
+          "signature": "test_basic_headings_and_paragraphs()",
+          "doc": ""
+        },
+        {
+          "name": "test_trailing_newline_is_removed_only_if_added",
+          "signature": "test_trailing_newline_is_removed_only_if_added()",
+          "doc": ""
+        },
+        {
+          "name": "test_lists_bulleted_and_numbered",
+          "signature": "test_lists_bulleted_and_numbered()",
+          "doc": ""
+        },
+        {
+          "name": "test_code_fence_preservation",
+          "signature": "test_code_fence_preservation()",
+          "doc": ""
+        },
+        {
+          "name": "test_inline_code_and_emphasis",
+          "signature": "test_inline_code_and_emphasis()",
+          "doc": ""
+        },
+        {
+          "name": "test_blockquote_formatting",
+          "signature": "test_blockquote_formatting()",
+          "doc": ""
+        },
+        {
+          "name": "test_table_preservation",
+          "signature": "test_table_preservation()",
+          "doc": ""
+        },
+        {
+          "name": "test_html_block_preservation",
+          "signature": "test_html_block_preservation()",
+          "doc": ""
+        },
+        {
+          "name": "test_mixed_content_complex",
+          "signature": "test_mixed_content_complex()",
+          "doc": ""
+        },
+        {
+          "name": "test_non_string_input_is_stringified",
+          "signature": "test_non_string_input_is_stringified()",
+          "doc": ""
+        },
+        {
+          "name": "test_preserves_multiple_scenes_and_repeated_headings",
+          "signature": "test_preserves_multiple_scenes_and_repeated_headings()",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_append_to_fixed",
+      "imports": [
+        "llmflow.runner"
+      ],
+      "functions": [
+        {
+          "name": "test_function_step_with_append_to_works",
+          "signature": "test_function_step_with_append_to_works(self)",
+          "doc": "Test that function steps now support append_to"
+        },
+        {
+          "name": "test_multiple_appends",
+          "signature": "test_multiple_appends(self)",
+          "doc": "Test multiple appends to the same list"
+        },
+        {
+          "name": "return_value",
+          "signature": "return_value()",
+          "doc": ""
+        },
+        {
+          "name": "make_value",
+          "signature": "make_value(value)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_json_array_handling",
+      "imports": [
+        "json",
+        "llmflow.modules.json_parser"
+      ],
+      "functions": [
+        {
+          "name": "test_parse_json_array_with_markdown_fences",
+          "signature": "test_parse_json_array_with_markdown_fences()",
+          "doc": "Test parsing JSON array wrapped in markdown code fences."
+        },
+        {
+          "name": "test_parse_json_array_without_fences",
+          "signature": "test_parse_json_array_without_fences()",
+          "doc": "Test parsing raw JSON array without markdown."
+        },
+        {
+          "name": "test_save_json_array_to_file",
+          "signature": "test_save_json_array_to_file(tmpdir)",
+          "doc": "Test that JSON array is saved correctly to file."
+        },
+        {
+          "name": "test_context_variable_preserves_array",
+          "signature": "test_context_variable_preserves_array()",
+          "doc": "Test that storing JSON in context preserves array structure."
+        }
+      ]
+    },
+    {
+      "module": "tests.test_group_by_prefix",
+      "imports": [
+        "llmflow.utils.get_prefix_directory",
+        "pathlib",
+        "pytest"
+      ],
+      "functions": [
+        {
+          "name": "test_strip_diacritics",
+          "signature": "test_strip_diacritics(self)",
+          "doc": "Test diacritic removal."
+        },
+        {
+          "name": "test_get_prefix_directory_two_chars",
+          "signature": "test_get_prefix_directory_two_chars(self)",
+          "doc": "Test default 2-character prefix."
+        },
+        {
+          "name": "test_get_prefix_directory_lowercase",
+          "signature": "test_get_prefix_directory_lowercase(self)",
+          "doc": "Test that output is always lowercase."
+        },
+        {
+          "name": "test_get_prefix_directory_hebrew",
+          "signature": "test_get_prefix_directory_hebrew(self)",
+          "doc": "Test Hebrew filenames."
+        },
+        {
+          "name": "test_get_prefix_directory_mandarin",
+          "signature": "test_get_prefix_directory_mandarin(self)",
+          "doc": "Test Mandarin (Chinese) filenames."
+        },
+        {
+          "name": "test_get_prefix_directory_one_char",
+          "signature": "test_get_prefix_directory_one_char(self)",
+          "doc": "Test single character filename."
+        },
+        {
+          "name": "test_get_prefix_directory_custom_length",
+          "signature": "test_get_prefix_directory_custom_length(self)",
+          "doc": "Test custom prefix length."
+        }
+      ]
+    },
+    {
+      "module": "tests.test_xpath_plugin",
+      "imports": [
+        "llmflow.plugins.xpath",
+        "lxml",
+        "pathlib",
+        "pytest",
+        "tempfile"
+      ],
+      "functions": [
+        {
+          "name": "execute",
+          "signature": "execute(step_config)",
+          "doc": "Execute XPath query on XML file."
+        },
+        {
+          "name": "register",
+          "signature": "register()",
+          "doc": "Register the xpath plugin."
+        },
+        {
+          "name": "sample_xml",
+          "signature": "sample_xml(self, tmp_path)",
+          "doc": "Create a sample XML file for testing."
+        },
+        {
+          "name": "namespaced_xml",
+          "signature": "namespaced_xml(self, tmp_path)",
+          "doc": "Create XML with namespaces for testing."
+        },
+        {
+          "name": "test_extract_text_from_elements",
+          "signature": "test_extract_text_from_elements(self, sample_xml)",
+          "doc": "Test extracting text content from XML elements."
+        },
+        {
+          "name": "test_extract_xml_strings",
+          "signature": "test_extract_xml_strings(self, sample_xml)",
+          "doc": "Test extracting XML strings from elements."
+        },
+        {
+          "name": "test_extract_attribute_values",
+          "signature": "test_extract_attribute_values(self, sample_xml)",
+          "doc": "Test extracting attribute values using XPath."
+        },
+        {
+          "name": "test_xpath_with_namespaces",
+          "signature": "test_xpath_with_namespaces(self, namespaced_xml)",
+          "doc": "Test XPath queries on XML with namespaces."
+        },
+        {
+          "name": "test_xpath_with_namespaces_element_text",
+          "signature": "test_xpath_with_namespaces_element_text(self, namespaced_xml)",
+          "doc": "Test extracting text from namespaced elements."
+        },
+        {
+          "name": "test_nested_inputs_config",
+          "signature": "test_nested_inputs_config(self, sample_xml)",
+          "doc": "Test plugin with nested 'inputs' config structure."
+        },
+        {
+          "name": "test_flat_config_structure",
+          "signature": "test_flat_config_structure(self, sample_xml)",
+          "doc": "Test plugin with flat config structure (no nested inputs)."
+        },
+        {
+          "name": "test_from_keyword_instead_of_path",
+          "signature": "test_from_keyword_instead_of_path(self, sample_xml)",
+          "doc": "Test using 'from' keyword instead of 'path'."
+        },
+        {
+          "name": "test_default_output_format_is_xml_string",
+          "signature": "test_default_output_format_is_xml_string(self, sample_xml)",
+          "doc": "Test that default output format is xml-string."
+        },
+        {
+          "name": "test_empty_results",
+          "signature": "test_empty_results(self, sample_xml)",
+          "doc": "Test XPath that returns no results."
+        },
+        {
+          "name": "test_complex_xpath_expression",
+          "signature": "test_complex_xpath_expression(self, sample_xml)",
+          "doc": "Test complex XPath expression with predicates."
+        },
+        {
+          "name": "test_missing_path_raises_error",
+          "signature": "test_missing_path_raises_error(self)",
+          "doc": "Test that missing path raises ValueError."
+        },
+        {
+          "name": "test_missing_xpath_raises_error",
+          "signature": "test_missing_xpath_raises_error(self, sample_xml)",
+          "doc": "Test that missing xpath key raises KeyError."
+        },
+        {
+          "name": "test_file_not_found",
+          "signature": "test_file_not_found(self)",
+          "doc": "Test handling of non-existent file."
+        },
+        {
+          "name": "test_malformed_xml",
+          "signature": "test_malformed_xml(self, tmp_path)",
+          "doc": "Test handling of malformed XML."
+        },
+        {
+          "name": "test_invalid_xpath_expression",
+          "signature": "test_invalid_xpath_expression(self, sample_xml)",
+          "doc": "Test handling of invalid XPath expression."
+        },
+        {
+          "name": "test_element_with_no_text",
+          "signature": "test_element_with_no_text(self, tmp_path)",
+          "doc": "Test extracting text from element with no text content."
+        },
+        {
+          "name": "test_mixed_content_extraction",
+          "signature": "test_mixed_content_extraction(self, tmp_path)",
+          "doc": "Test extracting from elements with mixed content."
+        },
+        {
+          "name": "test_xpath_returns_generator",
+          "signature": "test_xpath_returns_generator(self, sample_xml)",
+          "doc": "Test that execute returns a generator."
+        },
+        {
+          "name": "test_multiple_namespace_prefixes",
+          "signature": "test_multiple_namespace_prefixes(self, tmp_path)",
+          "doc": "Test XPath with multiple namespace prefixes."
+        },
+        {
+          "name": "test_register_function",
+          "signature": "test_register_function(self)",
+          "doc": "Test the register function returns correct dict."
+        }
+      ]
+    },
+    {
+      "module": "tests.test_cli_smoke",
+      "imports": [
+        "os",
+        "subprocess",
+        "sys",
+        "tempfile",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "test_cli_lint_valid",
+          "signature": "test_cli_lint_valid(tmp_path)",
+          "doc": ""
+        },
+        {
+          "name": "test_cli_lint_invalid",
+          "signature": "test_cli_lint_invalid(tmp_path)",
+          "doc": ""
+        },
+        {
+          "name": "test_cli_lint_json",
+          "signature": "test_cli_lint_json(tmp_path)",
+          "doc": ""
+        },
+        {
+          "name": "test_verbose_flag_dry_run",
+          "signature": "test_verbose_flag_dry_run()",
+          "doc": "Test that --verbose and --dry-run flags work together"
+        },
+        {
+          "name": "test_verbose_short_flag",
+          "signature": "test_verbose_short_flag()",
+          "doc": "Test that -v short flag is accepted"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_regression_scene_duplication",
+      "imports": [
+        "llmflow.runner",
+        "os",
+        "pytest",
+        "tempfile",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "create_test_verses",
+          "signature": "create_test_verses()",
+          "doc": "Create test verses for pipeline testing"
+        },
+        {
+          "name": "mock_llm_response",
+          "signature": "mock_llm_response(verse, citation)",
+          "doc": "Mock LLM response for testing"
+        },
+        {
+          "name": "create_indexed_list",
+          "signature": "create_indexed_list()",
+          "doc": "Create a list with indexed items for testing"
+        },
+        {
+          "name": "test_for_each_variable_isolation_minimal",
+          "signature": "test_for_each_variable_isolation_minimal()",
+          "doc": "Minimal test for for-each variable isolation"
+        },
+        {
+          "name": "test_simple_for_each_context_contamination",
+          "signature": "test_simple_for_each_context_contamination()",
+          "doc": "Test simple for-each context contamination"
+        },
+        {
+          "name": "test_list_indexing_behavior",
+          "signature": "test_list_indexing_behavior()",
+          "doc": "Test list indexing behavior"
+        },
+        {
+          "name": "test_append_list_indexing",
+          "signature": "test_append_list_indexing()",
+          "doc": "Test append list indexing"
+        },
+        {
+          "name": "create_simple_items",
+          "signature": "create_simple_items()",
+          "doc": "Create simple test items for context contamination test"
+        },
+        {
+          "name": "list_access_helper",
+          "signature": "list_access_helper(full_list, first_item, last_item, second_item)",
+          "doc": "Test basic list access patterns"
+        },
+        {
+          "name": "capture_list_indexing",
+          "signature": "capture_list_indexing(current_item, item_id, full_list, first_from_list, last_from_list)",
+          "doc": "Capture indexing behavior during for-each"
+        },
+        {
+          "name": "mock_scene_generation",
+          "signature": "mock_scene_generation(verse_data, verse_number)",
+          "doc": "Mock scene generation that should preserve verse context"
+        },
+        {
+          "name": "capture_item_context",
+          "signature": "capture_item_context(current_item, item_id, item_name)",
+          "doc": "Capture the current context to detect contamination"
+        },
+        {
+          "name": "append_list_access_helper",
+          "signature": "append_list_access_helper(current_scene, joshfrost_list, bodies_list, last_joshfrost, last_bodies)",
+          "doc": "Test append list indexing behavior"
+        },
+        {
+          "name": "mock_joshfrost_generation",
+          "signature": "mock_joshfrost_generation(scene)",
+          "doc": "Mock joshfrost content generation"
+        },
+        {
+          "name": "mock_bodies_generation",
+          "signature": "mock_bodies_generation(scene)",
+          "doc": "Mock bodies content generation"
+        },
+        {
+          "name": "test_psalm_pipeline_scene_content_mismatch",
+          "signature": "test_psalm_pipeline_scene_content_mismatch()",
+          "doc": "Regression test for scene duplication bug in Psalm pipeline."
+        },
+        {
+          "name": "save_json_helper",
+          "signature": "save_json_helper(data, filename)",
+          "doc": "Helper function to save JSON data"
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, code = 0)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_helpers",
+      "imports": [],
+      "functions": [
+        {
+          "name": "mock_function",
+          "signature": "mock_function(a, p)",
+          "doc": "Mock function for testing - concatenates parameters with underscore"
+        },
+        {
+          "name": "transform_function",
+          "signature": "transform_function(a, p)",
+          "doc": "Transform function for testing - concatenates parameters with underscore"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_function_context_passing",
+      "imports": [
+        "inspect",
+        "llmflow.runner",
+        "llmflow.utils.io"
+      ],
+      "functions": [
+        {
+          "name": "test_render_markdown_template_signature",
+          "signature": "test_render_markdown_template_signature(self)",
+          "doc": "Check that render_markdown_template accepts context parameter"
+        },
+        {
+          "name": "test_function_step_passes_context",
+          "signature": "test_function_step_passes_context(self)",
+          "doc": "Test that run_function_step passes context when function accepts it"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_integration",
+      "imports": [],
+      "functions": [
+        {
+          "name": "test_template_variables_in_pipeline",
+          "signature": "test_template_variables_in_pipeline(self)",
+          "doc": "Test that template variables are resolved correctly in a full pipeline"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_linter_fix",
+      "imports": [
+        "pathlib",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "test_linter_path_fix",
+          "signature": "test_linter_path_fix()",
+          "doc": "Test the correct path resolution logic"
+        },
+        {
+          "name": "test_simulate_fixed_linter",
+          "signature": "test_simulate_fixed_linter()",
+          "doc": "Simulate how the linter should work after the fix"
+        },
+        {
+          "name": "find_prompt_file",
+          "signature": "find_prompt_file(prompt_file)",
+          "doc": "Simulate the fixed prompt file resolution"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_output_integration",
+      "imports": [
+        "os",
+        "subprocess",
+        "sys",
+        "tempfile",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "simple_test_func",
+          "signature": "simple_test_func()",
+          "doc": "Simple test function for integration tests"
+        },
+        {
+          "name": "test_execution_shows_progress_messages",
+          "signature": "test_execution_shows_progress_messages()",
+          "doc": "Test that execution shows progress messages in stderr"
+        },
+        {
+          "name": "test_verbose_flag_shows_debug_output",
+          "signature": "test_verbose_flag_shows_debug_output()",
+          "doc": "Test that --verbose flag is accepted"
+        },
+        {
+          "name": "test_dry_run_flag_accepted",
+          "signature": "test_dry_run_flag_accepted()",
+          "doc": "Test that dry run flag is accepted and pipeline doesn't fail"
+        },
+        {
+          "name": "test_plugin_loading_message",
+          "signature": "test_plugin_loading_message()",
+          "doc": "Test that plugin loading messages appear in stderr"
+        },
+        {
+          "name": "test_pipeline_with_multiple_steps",
+          "signature": "test_pipeline_with_multiple_steps()",
+          "doc": "Test pipeline execution with multiple sequential steps"
+        },
+        {
+          "name": "test_pipeline_with_variables",
+          "signature": "test_pipeline_with_variables()",
+          "doc": "Test that pipeline variables are properly passed and resolved"
+        },
+        {
+          "name": "test_pipeline_with_cli_variables",
+          "signature": "test_pipeline_with_cli_variables()",
+          "doc": "Test passing variables via CLI --var flag"
+        },
+        {
+          "name": "test_skip_lint_flag",
+          "signature": "test_skip_lint_flag()",
+          "doc": "Test that --skip-lint flag works"
+        },
+        {
+          "name": "test_list_command",
+          "signature": "test_list_command()",
+          "doc": "Test that list command works"
+        },
+        {
+          "name": "test_version_command",
+          "signature": "test_version_command()",
+          "doc": "Test that version information is available"
+        },
+        {
+          "name": "test_invalid_pipeline_path",
+          "signature": "test_invalid_pipeline_path()",
+          "doc": "Test handling of non-existent pipeline file"
+        },
+        {
+          "name": "test_empty_pipeline",
+          "signature": "test_empty_pipeline()",
+          "doc": "Test handling of pipeline with no steps"
+        },
+        {
+          "name": "test_pipeline_with_conditional_steps",
+          "signature": "test_pipeline_with_conditional_steps()",
+          "doc": "Test pipeline with conditional step execution"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_xpath_integration",
+      "imports": [
+        "llmflow.runner",
+        "pathlib",
+        "pytest",
+        "tempfile",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "sample_xml",
+          "signature": "sample_xml(self, tmp_path)",
+          "doc": "Create a sample XML file for testing."
+        },
+        {
+          "name": "tsv_data",
+          "signature": "tsv_data(self, tmp_path)",
+          "doc": "Create a TSV file with test data."
+        },
+        {
+          "name": "namespaced_xml",
+          "signature": "namespaced_xml(self, tmp_path)",
+          "doc": "Create XML with namespaces for testing."
+        },
+        {
+          "name": "test_xpath_extracts_text_content",
+          "signature": "test_xpath_extracts_text_content(self, tmp_path, sample_xml)",
+          "doc": "Test XPath plugin extracts text content from XML elements."
+        },
+        {
+          "name": "test_xpath_extracts_xml_strings",
+          "signature": "test_xpath_extracts_xml_strings(self, tmp_path, sample_xml)",
+          "doc": "Test XPath plugin extracts XML as strings."
+        },
+        {
+          "name": "test_xpath_can_index_results",
+          "signature": "test_xpath_can_index_results(self, tmp_path, sample_xml)",
+          "doc": "Test that XPath results can be indexed with [0] syntax."
+        },
+        {
+          "name": "test_xpath_in_llm_prompt_inputs",
+          "signature": "test_xpath_in_llm_prompt_inputs(self, tmp_path, sample_xml, mocker)",
+          "doc": "Test XPath results can be used in LLM prompt inputs with indexing."
+        },
+        {
+          "name": "test_xpath_with_attribute_selector",
+          "signature": "test_xpath_with_attribute_selector(self, tmp_path, sample_xml)",
+          "doc": "Test XPath with attribute-based selection."
+        },
+        {
+          "name": "test_xpath_extracts_attribute_values",
+          "signature": "test_xpath_extracts_attribute_values(self, tmp_path, sample_xml)",
+          "doc": "Test XPath extracts attribute values."
+        },
+        {
+          "name": "test_xpath_multiple_matches",
+          "signature": "test_xpath_multiple_matches(self, tmp_path, sample_xml)",
+          "doc": "Test XPath returns multiple matching elements."
+        },
+        {
+          "name": "test_xpath_with_namespaces",
+          "signature": "test_xpath_with_namespaces(self, tmp_path, namespaced_xml)",
+          "doc": "Test XPath with XML namespaces."
+        },
+        {
+          "name": "test_xpath_with_namespace_attributes",
+          "signature": "test_xpath_with_namespace_attributes(self, tmp_path, namespaced_xml)",
+          "doc": "Test XPath extracts namespaced attributes."
+        },
+        {
+          "name": "test_xpath_empty_results",
+          "signature": "test_xpath_empty_results(self, tmp_path, sample_xml)",
+          "doc": "Test XPath with no matching elements."
+        },
+        {
+          "name": "test_xpath_with_predicate",
+          "signature": "test_xpath_with_predicate(self, tmp_path, sample_xml)",
+          "doc": "Test XPath with position predicate."
+        },
+        {
+          "name": "test_xpath_complex_expression",
+          "signature": "test_xpath_complex_expression(self, tmp_path, sample_xml)",
+          "doc": "Test XPath with complex expression."
+        },
+        {
+          "name": "test_xpath_from_keyword_alias",
+          "signature": "test_xpath_from_keyword_alias(self, tmp_path, sample_xml)",
+          "doc": "Test XPath plugin accepts 'from' as alias for 'path'."
+        },
+        {
+          "name": "test_xpath_default_output_format",
+          "signature": "test_xpath_default_output_format(self, tmp_path, sample_xml)",
+          "doc": "Test XPath uses xml-string as default output format."
+        },
+        {
+          "name": "test_xpath_with_saveas",
+          "signature": "test_xpath_with_saveas(self, tmp_path, sample_xml)",
+          "doc": "Test XPath with saveas directive."
+        },
+        {
+          "name": "test_xpath_in_for_each_loop",
+          "signature": "test_xpath_in_for_each_loop(self, tmp_path, sample_xml, tsv_data)",
+          "doc": "Test XPath used in for-each loop."
+        },
+        {
+          "name": "test_xpath_chained_with_other_steps",
+          "signature": "test_xpath_chained_with_other_steps(self, tmp_path, sample_xml)",
+          "doc": "Test XPath output used by subsequent steps."
+        },
+        {
+          "name": "test_xpath_nested_in_conditional",
+          "signature": "test_xpath_nested_in_conditional(self, tmp_path, sample_xml)",
+          "doc": "Test XPath in conditional step."
+        },
+        {
+          "name": "test_xpath_with_variable_substitution",
+          "signature": "test_xpath_with_variable_substitution(self, tmp_path, sample_xml)",
+          "doc": "Test XPath with variable substitution in xpath expression."
+        },
+        {
+          "name": "test_xpath_multiple_outputs",
+          "signature": "test_xpath_multiple_outputs(self, tmp_path, sample_xml)",
+          "doc": "Test XPath with multiple output variables."
+        },
+        {
+          "name": "test_xpath_with_nested_xml",
+          "signature": "test_xpath_with_nested_xml(self, tmp_path)",
+          "doc": "Test XPath with nested XML structure."
+        },
+        {
+          "name": "test_xpath_descendant_axis",
+          "signature": "test_xpath_descendant_axis(self, tmp_path)",
+          "doc": "Test XPath with descendant axis."
+        }
+      ]
+    },
+    {
+      "module": "tests.test_template_rendering_debug",
+      "imports": [
+        "llmflow.runner",
+        "llmflow.utils.io"
+      ],
+      "functions": [
+        {
+          "name": "test_manual_resolution_works",
+          "signature": "test_manual_resolution_works(self)",
+          "doc": "Test that manually resolving before template rendering works"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_cli_verbose",
+      "imports": [
+        "os",
+        "subprocess",
+        "sys",
+        "tempfile",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "test_verbose_flag_dry_run",
+          "signature": "test_verbose_flag_dry_run()",
+          "doc": "Test that --verbose and --dry-run flags work together"
+        },
+        {
+          "name": "test_verbose_short_flag",
+          "signature": "test_verbose_short_flag()",
+          "doc": "Test that -v short flag is accepted"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_data_flow",
+      "imports": [
+        "llmflow.runner",
+        "os",
+        "pydantic",
+        "tempfile",
+        "typing",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "create_test_dict",
+          "signature": "create_test_dict()",
+          "doc": "Helper function to create test data"
+        },
+        {
+          "name": "create_nested_dict",
+          "signature": "create_nested_dict()",
+          "doc": "Helper function to create nested data"
+        },
+        {
+          "name": "create_empty_list",
+          "signature": "create_empty_list()",
+          "doc": "Helper function to create empty list"
+        },
+        {
+          "name": "create_large_list",
+          "signature": "create_large_list()",
+          "doc": "Helper function to create large list"
+        },
+        {
+          "name": "get_item",
+          "signature": "get_item(obj, key)",
+          "doc": "Helper to get item from dict"
+        },
+        {
+          "name": "get_length",
+          "signature": "get_length(obj)",
+          "doc": "Helper to get length of an object."
+        },
+        {
+          "name": "test_data_flows_through_pipeline",
+          "signature": "test_data_flows_through_pipeline()",
+          "doc": "Test that data flows correctly through a multi-step pipeline"
+        },
+        {
+          "name": "test_data_flow_with_nested_references",
+          "signature": "test_data_flow_with_nested_references()",
+          "doc": "Test data flow with nested variable references"
+        },
+        {
+          "name": "test_data_flow_with_empty_lists",
+          "signature": "test_data_flow_with_empty_lists()",
+          "doc": "Test that empty lists are handled correctly"
+        },
+        {
+          "name": "test_data_flow_with_conditional_processing",
+          "signature": "test_data_flow_with_conditional_processing()",
+          "doc": "Test data flow with conditional logic"
+        },
+        {
+          "name": "test_data_flow_with_error_recovery",
+          "signature": "test_data_flow_with_error_recovery()",
+          "doc": "Test that the system handles errors gracefully"
+        },
+        {
+          "name": "test_data_flow_with_deeply_nested_structures",
+          "signature": "test_data_flow_with_deeply_nested_structures()",
+          "doc": "Test data flow with deeply nested data structures"
+        },
+        {
+          "name": "test_data_flow_with_large_datasets",
+          "signature": "test_data_flow_with_large_datasets()",
+          "doc": "Test data flow with larger datasets"
+        },
+        {
+          "name": "test_data_flow_with_variable_substitution_edge_cases",
+          "signature": "test_data_flow_with_variable_substitution_edge_cases()",
+          "doc": "Test edge cases in variable substitution"
+        },
+        {
+          "name": "test_data_flow_with_circular_references",
+          "signature": "test_data_flow_with_circular_references()",
+          "doc": "Test that circular references are detected/handled"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_critical_pipeline_flow",
+      "imports": [
+        "llmflow.runner",
+        "os",
+        "pytest",
+        "tempfile",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "generate_scene_content",
+          "signature": "generate_scene_content(scene_name)",
+          "doc": "Helper function for test"
+        },
+        {
+          "name": "test_full_pipeline_produces_all_scenes",
+          "signature": "test_full_pipeline_produces_all_scenes(self)",
+          "doc": "Test that a complete pipeline with for-each, function, and save steps"
+        }
+      ]
+    },
+    {
+      "module": "tests.test_mcp",
+      "imports": [
+        "asyncio",
+        "llmflow.modules.mcp",
+        "pytest"
+      ],
+      "functions": [
+        {
+          "name": "test_connection_to_biblica_server",
+          "signature": "test_connection_to_biblica_server(self)",
+          "doc": "Test actual connection to Biblica MCP server."
+        },
+        {
+          "name": "test_list_tools",
+          "signature": "test_list_tools(self)",
+          "doc": "Test listing available tools."
+        },
+        {
+          "name": "test_tool_filtering",
+          "signature": "test_tool_filtering(self)",
+          "doc": "Test filtering tools by requested list."
+        },
+        {
+          "name": "test_get_textual_editions",
+          "signature": "test_get_textual_editions(self)",
+          "doc": "Test calling get_textual_edition_abbreviations."
+        },
+        {
+          "name": "test_get_passage_text",
+          "signature": "test_get_passage_text(self)",
+          "doc": "Test fetching Bible passage text."
+        },
+        {
+          "name": "test_get_word_info",
+          "signature": "test_get_word_info(self)",
+          "doc": "Test word alignment lookup."
+        },
+        {
+          "name": "test_caching_of_tool_definitions",
+          "signature": "test_caching_of_tool_definitions(self)",
+          "doc": "Test that tool definitions are cached."
+        },
+        {
+          "name": "test_mcp_disabled",
+          "signature": "test_mcp_disabled(self)",
+          "doc": "Test that None is returned when MCP is disabled."
+        },
+        {
+          "name": "test_mcp_not_configured",
+          "signature": "test_mcp_not_configured(self)",
+          "doc": "Test that None is returned when MCP not in config."
+        },
+        {
+          "name": "test_missing_server_definition",
+          "signature": "test_missing_server_definition(self)",
+          "doc": "Test error when server not defined in pipeline config."
+        },
+        {
+          "name": "test_full_bible_lookup_workflow",
+          "signature": "test_full_bible_lookup_workflow(self)",
+          "doc": "Test complete workflow: list editions → fetch passage → verify content."
+        },
+        {
+          "name": "test_multiple_references",
+          "signature": "test_multiple_references(self)",
+          "doc": "Test fetching multiple Bible references in one call."
+        },
+        {
+          "name": "run_tests",
+          "signature": "run_tests()",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_init",
+      "imports": [
+        "llmflow.cli",
+        "llmflow.cli_utils",
+        "logging",
+        "pathlib",
+        "pytest"
+      ],
+      "functions": [
+        {
+          "name": "test_cli_init_creates_hello_prompt",
+          "signature": "test_cli_init_creates_hello_prompt(tmp_path, monkeypatch, caplog)",
+          "doc": ""
+        },
+        {
+          "name": "test_init_environment_creates_files",
+          "signature": "test_init_environment_creates_files(tmp_path, caplog)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_require_clause",
+      "imports": [
+        "llmflow.runner",
+        "pytest"
+      ],
+      "functions": [
+        {
+          "name": "test_require_if_passes_with_nonempty_output",
+          "signature": "test_require_if_passes_with_nonempty_output()",
+          "doc": ""
+        },
+        {
+          "name": "test_require_if_fails_on_empty_output",
+          "signature": "test_require_if_fails_on_empty_output()",
+          "doc": ""
+        },
+        {
+          "name": "test_warn_if_does_not_block_pipeline_and_is_surfaced",
+          "signature": "test_warn_if_does_not_block_pipeline_and_is_surfaced()",
+          "doc": ""
+        },
+        {
+          "name": "test_require_and_warn_both_supported",
+          "signature": "test_require_and_warn_both_supported()",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.test_pipeline_mcp",
+      "imports": [
+        "pathlib",
+        "pytest",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "test_pipeline_mcp_configuration",
+          "signature": "test_pipeline_mcp_configuration()",
+          "doc": "Test that pipeline has valid MCP configuration."
+        },
+        {
+          "name": "test_runner_has_mcp_support",
+          "signature": "test_runner_has_mcp_support()",
+          "doc": "Test that runner module has MCP integration."
+        },
+        {
+          "name": "test_mcp_module_structure",
+          "signature": "test_mcp_module_structure()",
+          "doc": "Test MCP module has required components."
+        }
+      ]
+    },
+    {
+      "module": "tests.test_condition_on_steps",
+      "imports": [
+        "pytest",
+        "src.llmflow.runner"
+      ],
+      "functions": [
+        {
+          "name": "test_llm_step_with_condition_true",
+          "signature": "test_llm_step_with_condition_true()",
+          "doc": "Test that LLM step executes when condition is true."
+        },
+        {
+          "name": "test_llm_step_with_condition_false",
+          "signature": "test_llm_step_with_condition_false()",
+          "doc": "Test that LLM step is skipped when condition is false."
+        },
+        {
+          "name": "test_function_step_with_condition_false",
+          "signature": "test_function_step_with_condition_false()",
+          "doc": "Test that function step is skipped when condition is false."
+        },
+        {
+          "name": "test_xpath_step_with_condition_false",
+          "signature": "test_xpath_step_with_condition_false()",
+          "doc": "Test that xpath step is skipped when condition is false."
+        }
+      ]
+    },
+    {
+      "module": "tests.test_after",
+      "imports": [
+        "llmflow.runner",
+        "pathlib",
+        "pytest",
+        "unittest.mock"
+      ],
+      "functions": [
+        {
+          "name": "temp_prompt_file",
+          "signature": "temp_prompt_file(tmp_path)",
+          "doc": "Create a temporary prompt file"
+        },
+        {
+          "name": "test_run_pipeline_exits_on_after_exit",
+          "signature": "test_run_pipeline_exits_on_after_exit(tmp_path, temp_prompt_file)",
+          "doc": "Test that pipeline exits when a step has 'after: exit'"
+        },
+        {
+          "name": "test_run_pipeline_continues_on_after_continue",
+          "signature": "test_run_pipeline_continues_on_after_continue(tmp_path, temp_prompt_file)",
+          "doc": "Test that pipeline continues to next step when 'after: continue'"
+        },
+        {
+          "name": "test_run_pipeline_for_each_with_after_exit",
+          "signature": "test_run_pipeline_for_each_with_after_exit(tmp_path, temp_prompt_file)",
+          "doc": "Test that for-each exits entire loop when nested step has 'after: exit'"
+        },
+        {
+          "name": "test_run_pipeline_for_each_with_after_continue",
+          "signature": "test_run_pipeline_for_each_with_after_continue(tmp_path, temp_prompt_file)",
+          "doc": "Test that for-each skips remaining steps in current iteration with 'after: continue'"
+        },
+        {
+          "name": "test_run_pipeline_if_with_after_exit",
+          "signature": "test_run_pipeline_if_with_after_exit(tmp_path, temp_prompt_file)",
+          "doc": "Test that pipeline exits when nested step in if block has 'after: exit'"
+        },
+        {
+          "name": "test_run_pipeline_if_with_after_continue",
+          "signature": "test_run_pipeline_if_with_after_continue(tmp_path, temp_prompt_file)",
+          "doc": "Test that if block breaks to next step when nested step has 'after: continue'"
+        },
+        {
+          "name": "test_run_pipeline_no_after_runs_all_steps",
+          "signature": "test_run_pipeline_no_after_runs_all_steps(tmp_path, temp_prompt_file)",
+          "doc": "Test that pipeline runs all steps when no 'after' directive is present"
+        },
+        {
+          "name": "test_nested_for_each_with_after_exit",
+          "signature": "test_nested_for_each_with_after_exit(tmp_path, temp_prompt_file)",
+          "doc": "Test that nested for-each propagates exit signal correctly"
+        },
+        {
+          "name": "test_for_each_with_exit_after_loop",
+          "signature": "test_for_each_with_exit_after_loop(tmp_path, temp_prompt_file)",
+          "doc": "Test that exit in for-each prevents subsequent pipeline steps"
+        },
+        {
+          "name": "test_function_step_with_after_exit",
+          "signature": "test_function_step_with_after_exit(tmp_path)",
+          "doc": "Test that function steps respect 'after: exit'"
+        },
+        {
+          "name": "test_mixed_steps_with_after_directives",
+          "signature": "test_mixed_steps_with_after_directives(tmp_path, temp_prompt_file)",
+          "doc": "Test complex pipeline with mixed step types and after directives"
+        },
+        {
+          "name": "test_if_false_condition_skips_steps",
+          "signature": "test_if_false_condition_skips_steps(tmp_path, temp_prompt_file)",
+          "doc": "Test that if block with false condition skips all nested steps"
+        },
+        {
+          "name": "test_multiple_after_exit_in_sequence",
+          "signature": "test_multiple_after_exit_in_sequence(tmp_path, temp_prompt_file)",
+          "doc": "Test that first 'after: exit' stops entire pipeline"
+        },
+        {
+          "name": "test_for_each_exit_propagates_to_parent",
+          "signature": "test_for_each_exit_propagates_to_parent(tmp_path, temp_prompt_file)",
+          "doc": "Test that exit in nested for-each propagates to parent pipeline"
+        },
+        {
+          "name": "test_nested_if_with_exit",
+          "signature": "test_nested_if_with_exit(tmp_path, temp_prompt_file)",
+          "doc": "Test that exit in nested if blocks propagates correctly"
+        },
+        {
+          "name": "test_for_each_with_append_to_and_continue",
+          "signature": "test_for_each_with_append_to_and_continue(tmp_path, temp_prompt_file)",
+          "doc": "Test that continue in for-each still appends results to parent context"
+        },
+        {
+          "name": "test_save_step_with_exit",
+          "signature": "test_save_step_with_exit(tmp_path)",
+          "doc": "Test that save steps respect 'after: exit'"
+        },
+        {
+          "name": "test_save_step_with_continue_in_loop",
+          "signature": "test_save_step_with_continue_in_loop(tmp_path)",
+          "doc": "Test that save steps respect 'after: continue' in loops"
+        },
+        {
+          "name": "test_for_each_with_nested_save_and_llm",
+          "signature": "test_for_each_with_nested_save_and_llm(tmp_path, temp_prompt_file)",
+          "doc": "Test for-each with both save and llm steps"
+        },
+        {
+          "name": "test_exit_in_first_iteration_of_loop",
+          "signature": "test_exit_in_first_iteration_of_loop(tmp_path, temp_prompt_file)",
+          "doc": "Test that exit in first iteration stops the entire loop"
+        },
+        {
+          "name": "test_continue_in_first_step_of_loop_iteration",
+          "signature": "test_continue_in_first_step_of_loop_iteration(tmp_path, temp_prompt_file)",
+          "doc": "Test continue as first step in loop iteration"
+        },
+        {
+          "name": "test_nested_if_both_conditions_false",
+          "signature": "test_nested_if_both_conditions_false(tmp_path, temp_prompt_file)",
+          "doc": "Test nested if where outer condition is false"
+        },
+        {
+          "name": "test_for_each_with_empty_list",
+          "signature": "test_for_each_with_empty_list(tmp_path, temp_prompt_file)",
+          "doc": "Test for-each with empty list"
+        },
+        {
+          "name": "test_exit_and_continue_in_same_pipeline",
+          "signature": "test_exit_and_continue_in_same_pipeline(tmp_path, temp_prompt_file)",
+          "doc": "Test pipeline with both exit and continue directives"
+        },
+        {
+          "name": "test_if_with_explicit_true_condition",
+          "signature": "test_if_with_explicit_true_condition(tmp_path, temp_prompt_file)",
+          "doc": "Test if condition with explicit true value (not variable)"
+        },
+        {
+          "name": "test_if_with_explicit_false_condition",
+          "signature": "test_if_with_explicit_false_condition(tmp_path, temp_prompt_file)",
+          "doc": "Test if condition with explicit false value"
+        },
+        {
+          "name": "test_exit_in_save_step_stops_subsequent_saves",
+          "signature": "test_exit_in_save_step_stops_subsequent_saves(tmp_path)",
+          "doc": "Test that exit in save step prevents subsequent saves"
+        },
+        {
+          "name": "test_continue_with_multiple_outputs",
+          "signature": "test_continue_with_multiple_outputs(tmp_path, temp_prompt_file)",
+          "doc": "Test that continue preserves multiple outputs in append_to"
+        },
+        {
+          "name": "test_exit_after_successful_search",
+          "signature": "test_exit_after_successful_search(tmp_path, temp_prompt_file)",
+          "doc": "Test using exit to stop after finding a match"
+        },
+        {
+          "name": "test_save_and_llm_mixed_with_exit",
+          "signature": "test_save_and_llm_mixed_with_exit(tmp_path, temp_prompt_file)",
+          "doc": "Test mixed save and llm steps with exit"
+        },
+        {
+          "name": "test_for_each_with_index_variable",
+          "signature": "test_for_each_with_index_variable(tmp_path, temp_prompt_file)",
+          "doc": "Test for-each accessing loop index"
+        },
+        {
+          "name": "test_deeply_nested_exit_propagation",
+          "signature": "test_deeply_nested_exit_propagation(tmp_path, temp_prompt_file)",
+          "doc": "Test exit propagates through 3 levels of nesting"
+        }
+      ]
+    },
+    {
+      "module": "scripts.fix_duplicate_key_attributes",
+      "imports": [
+        "re",
+        "unicodedata"
+      ],
+      "functions": [
+        {
+          "name": "normalize_unicode",
+          "signature": "normalize_unicode(text)",
+          "doc": "Normalize ambiguous Unicode characters."
+        },
+        {
+          "name": "identify_and_fix_duplicate_key_attributes",
+          "signature": "identify_and_fix_duplicate_key_attributes(xml_file, output_file)",
+          "doc": "Fix elements with duplicate key attributes in an XML file."
+        },
+        {
+          "name": "find_all_duplicate_key_elements",
+          "signature": "find_all_duplicate_key_elements(xml_file)",
+          "doc": "Find all elements with duplicate key attributes in an XML file."
+        }
+      ]
+    },
+    {
+      "module": "scripts.complete_evidence_coverage",
+      "imports": [
+        "json",
+        "pathlib",
+        "sys",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "extract_all_references",
+          "signature": "extract_all_references(base_json: Dict) -> List[Tuple[str, str, str]]",
+          "doc": "Walk the base_json structure and extract all references."
+        },
+        {
+          "name": "get_covered_references",
+          "signature": "get_covered_references(evidence_json: Dict) -> Set[str]",
+          "doc": "Extract all references that are covered in evidence_json."
+        },
+        {
+          "name": "find_article_in_reference",
+          "signature": "find_article_in_reference(reference: str, lemma: str = 'ὁ') -> Dict",
+          "doc": "Stub function - in production this would query the SBLGNT/LXX text"
+        },
+        {
+          "name": "complete_coverage",
+          "signature": "complete_coverage(base_json: Dict, evidence_json: Dict) -> Dict",
+          "doc": "Ensure all references from base_json are accounted for in evidence_json."
+        },
+        {
+          "name": "main",
+          "signature": "main()",
+          "doc": ""
+        },
+        {
+          "name": "walk_subsenses",
+          "signature": "walk_subsenses(subsenses, parent_path)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "scripts.fix_output_buffering",
+      "imports": [
+        "os",
+        "src.llmflow.cli",
+        "sys"
+      ],
+      "functions": []
+    },
+    {
+      "module": "llmflow.cli_utils",
+      "imports": [
+        "logging",
+        "pathlib"
+      ],
+      "functions": [
+        {
+          "name": "init_project",
+          "signature": "init_project(base_dir: Path) -> None",
+          "doc": "Initialize a new LLMFlow project structure."
+        },
+        {
+          "name": "list_pipelines",
+          "signature": "list_pipelines(directory: str) -> list[str]",
+          "doc": "List all YAML pipeline files in a directory."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.runner",
+      "imports": [
+        "argparse",
+        "copy",
+        "httpx",
+        "importlib",
+        "inspect",
+        "json",
+        "llmflow.exceptions",
+        "llmflow.modules.logger",
+        "llmflow.modules.mcp",
+        "llmflow.plugins",
+        "llmflow.plugins.loader",
+        "llmflow.utils.get_prefix_directory",
+        "llmflow.utils.guards",
+        "llmflow.utils.io",
+        "llmflow.utils.linter",
+        "llmflow.utils.llm_runner",
+        "logging",
+        "openai",
+        "os",
+        "pathlib",
+        "re",
+        "sys",
+        "time",
+        "typing",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "_record_written_file",
+          "signature": "_record_written_file(path)",
+          "doc": ""
+        },
+        {
+          "name": "get_from_context",
+          "signature": "get_from_context(expr: str, ctx: Dict[str, Any]) -> Any",
+          "doc": "Resolve dot notation and list indices from context."
+        },
+        {
+          "name": "resolve",
+          "signature": "resolve(value, context, max_depth = 5)",
+          "doc": "Resolves variables within a value using the provided context."
+        },
+        {
+          "name": "render_prompt",
+          "signature": "render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, Any]) -> str",
+          "doc": "Renders a prompt from a file with variable substitution."
+        },
+        {
+          "name": "handle_step_outputs",
+          "signature": "handle_step_outputs(step, result, context, base_dir = '.')",
+          "doc": "Handle step outputs, including saveas."
+        },
+        {
+          "name": "handle_step_saveas",
+          "signature": "handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> None",
+          "doc": "Handle saveas output for pipeline steps."
+        },
+        {
+          "name": "run_step",
+          "signature": "run_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> Any",
+          "doc": "Execute a step based on its type"
+        },
+        {
+          "name": "run_plugin_step",
+          "signature": "run_plugin_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> Any",
+          "doc": "Execute a plugin step"
+        },
+        {
+          "name": "run_function_step",
+          "signature": "run_function_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> Any",
+          "doc": "Execute a function step and return its result"
+        },
+        {
+          "name": "run_llm_step",
+          "signature": "run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> str",
+          "doc": "Execute an LLM step and return its result"
+        },
+        {
+          "name": "run_save_step",
+          "signature": "run_save_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> None",
+          "doc": "Execute a save step to write content to a file"
+        },
+        {
+          "name": "save_content_to_file",
+          "signature": "save_content_to_file(content: Any, path: str, format: str = None) -> str",
+          "doc": "Save content to file with optional format specification."
+        },
+        {
+          "name": "resolve_template",
+          "signature": "resolve_template(template: str, context: Dict[str, Any]) -> str",
+          "doc": "Resolve template variables in a string using context."
+        },
+        {
+          "name": "run_for_each_step",
+          "signature": "run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> str | None",
+          "doc": "Execute a for-each loop step"
+        },
+        {
+          "name": "run_if_step",
+          "signature": "run_if_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> str | None",
+          "doc": "Execute an if step - evaluate condition and run nested steps"
+        },
+        {
+          "name": "run_pipeline",
+          "signature": "run_pipeline(pipeline_file, vars = None, dry_run = False, verbose = False, skip_lint = False)",
+          "doc": "Run a pipeline from a YAML file."
+        },
+        {
+          "name": "get_content",
+          "signature": "get_content()",
+          "doc": ""
+        },
+        {
+          "name": "collect_outputs",
+          "signature": "collect_outputs(steps_list)",
+          "doc": ""
+        },
+        {
+          "name": "replace_var",
+          "signature": "replace_var(match)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "llmflow.__init__",
+      "imports": [],
+      "functions": []
+    },
+    {
+      "module": "llmflow.pipeline_schema",
+      "imports": [
+        "pydantic",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "model_post_init",
+          "signature": "model_post_init(self, __context)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "llmflow.cli",
+      "imports": [
+        "argparse",
+        "json",
+        "llmflow.cli_utils",
+        "llmflow.runner",
+        "logging",
+        "pathlib",
+        "sys"
+      ],
+      "functions": [
+        {
+          "name": "list_pipelines",
+          "signature": "list_pipelines(directory: str) -> list[str]",
+          "doc": "List all YAML pipeline files in a directory."
+        },
+        {
+          "name": "build_parser",
+          "signature": "build_parser()",
+          "doc": ""
+        },
+        {
+          "name": "_collect_cli_variables",
+          "signature": "_collect_cli_variables(pairs)",
+          "doc": ""
+        },
+        {
+          "name": "command_lint",
+          "signature": "command_lint(pipeline_path: str, fix_paths: bool, json_mode: bool, verbose: bool)",
+          "doc": ""
+        },
+        {
+          "name": "main",
+          "signature": "main(argv = None)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "llmflow.exceptions",
+      "imports": [],
+      "functions": [
+        {
+          "name": "__init__",
+          "signature": "__init__(self, message: str, step_name: str = None, context: dict = None, original_error: Exception = None)",
+          "doc": ""
+        },
+        {
+          "name": "__str__",
+          "signature": "__str__(self)",
+          "doc": ""
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, message: str, step_name: str, step_type: str, context: dict = None, original_error: Exception = None)",
+          "doc": ""
+        },
+        {
+          "name": "__str__",
+          "signature": "__str__(self)",
+          "doc": ""
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, message: str, step_name: str, iteration_index: int, item_value: any, context: dict = None, original_error: Exception = None)",
+          "doc": ""
+        },
+        {
+          "name": "__str__",
+          "signature": "__str__(self)",
+          "doc": ""
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, message: str, expression: str, context: dict = None, original_error: Exception = None)",
+          "doc": ""
+        },
+        {
+          "name": "__str__",
+          "signature": "__str__(self)",
+          "doc": ""
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, message: str, provider: str, model: str, original_error: Exception = None)",
+          "doc": ""
+        },
+        {
+          "name": "__str__",
+          "signature": "__str__(self)",
+          "doc": ""
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, message: str, plugin_name: str, original_error: Exception = None)",
+          "doc": ""
+        },
+        {
+          "name": "__str__",
+          "signature": "__str__(self)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "llmflow.plugins.xslt_transform",
+      "imports": [
+        "llmflow.modules.logger",
+        "pathlib"
+      ],
+      "functions": [
+        {
+          "name": "execute",
+          "signature": "execute(config: dict) -> str",
+          "doc": "Execute XSLT transformation using Saxon for XSLT 3.0 support"
+        },
+        {
+          "name": "register",
+          "signature": "register()",
+          "doc": "Register the xslt plugin."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.plugins.__init__",
+      "imports": [
+        "llmflow.plugins.loader"
+      ],
+      "functions": []
+    },
+    {
+      "module": "llmflow.plugins.insert_references",
+      "imports": [
+        "json",
+        "llmflow.modules.logger",
+        "re",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "execute",
+          "signature": "execute(step_config: Dict[str, Any]) -> Dict[str, Any]",
+          "doc": "LLMflow plugin entry point - mechanically insert references."
+        },
+        {
+          "name": "extract_json_from_text",
+          "signature": "extract_json_from_text(text: str) -> str",
+          "doc": "Extract JSON from text that may have markdown fences or extra content."
+        },
+        {
+          "name": "insert_references",
+          "signature": "insert_references(lemma: str, sense_structure: Any, reference_analysis: Any) -> str",
+          "doc": "Mechanically insert all references into their assigned senses."
+        },
+        {
+          "name": "register",
+          "signature": "register()",
+          "doc": "Register the insert_references plugin."
+        },
+        {
+          "name": "process_sense",
+          "signature": "process_sense(sense: Dict[str, Any], level: int = 2) -> None",
+          "doc": "Recursively process a sense and its subsenses."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.plugins.loader",
+      "imports": [
+        "importlib",
+        "llmflow.modules.logger",
+        "llmflow.plugins.tsv_reader",
+        "pathlib",
+        "pkgutil"
+      ],
+      "functions": [
+        {
+          "name": "discover_plugins",
+          "signature": "discover_plugins()",
+          "doc": "Discover and load all plugins from the plugins directory."
+        },
+        {
+          "name": "get_plugin",
+          "signature": "get_plugin(name)",
+          "doc": "Get a plugin function by name"
+        },
+        {
+          "name": "list_plugins",
+          "signature": "list_plugins()",
+          "doc": "List all registered plugins"
+        }
+      ]
+    },
+    {
+      "module": "llmflow.plugins.xml_entry_to_base_json",
+      "imports": [
+        "llmflow.modules.logger",
+        "re",
+        "unicodedata",
+        "xml.etree.ElementTree"
+      ],
+      "functions": [
+        {
+          "name": "xml_entry_to_base_json",
+          "signature": "xml_entry_to_base_json(entry_xml: str) -> dict",
+          "doc": ""
+        },
+        {
+          "name": "run",
+          "signature": "run(**kwargs) -> dict",
+          "doc": "Wrapper that accepts kwargs from runner"
+        },
+        {
+          "name": "normalize_greek",
+          "signature": "normalize_greek(text: str) -> tuple",
+          "doc": "Normalize Greek text to NFC and track if changed"
+        },
+        {
+          "name": "check_pattern_flags",
+          "signature": "check_pattern_flags(foreign_text: str, all_foreign_in_group: list) -> list",
+          "doc": "Check for generic pattern flags"
+        },
+        {
+          "name": "check_incomplete",
+          "signature": "check_incomplete(foreign_text: str) -> bool",
+          "doc": "Check if foreign segment is incomplete (ends with article/genitive)"
+        },
+        {
+          "name": "check_semantic_concerns",
+          "signature": "check_semantic_concerns(gloss: str, foreign: str) -> list",
+          "doc": "Check for semantic concerns (possessives without morphology)"
+        },
+        {
+          "name": "tokenize_text",
+          "signature": "tokenize_text(text: str) -> list",
+          "doc": "Tokenize plain text into prose and punctuation segments"
+        },
+        {
+          "name": "process_sense_recursive",
+          "signature": "process_sense_recursive(sense_elem, parent_path = '')",
+          "doc": "Recursively process sense elements to maintain hierarchy"
+        }
+      ]
+    },
+    {
+      "module": "llmflow.plugins.xpath",
+      "imports": [
+        "llmflow.modules.logger",
+        "lxml"
+      ],
+      "functions": [
+        {
+          "name": "execute",
+          "signature": "execute(step_config)",
+          "doc": "Execute XPath query on XML file."
+        },
+        {
+          "name": "register",
+          "signature": "register()",
+          "doc": "Register the xpath plugin."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.plugins.coverage_validator",
+      "imports": [
+        "json",
+        "llmflow.modules.logger",
+        "pathlib",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "extract_reference_details",
+          "signature": "extract_reference_details(base_json: Dict) -> List[Dict]",
+          "doc": "Walk the base_json structure and extract all references with full context."
+        },
+        {
+          "name": "get_covered_references",
+          "signature": "get_covered_references(evidence_json: Dict) -> Set[str]",
+          "doc": "Extract all references that are covered in evidence_json."
+        },
+        {
+          "name": "execute",
+          "signature": "execute(step_config: Dict) -> str",
+          "doc": "Validate coverage and enrich evidence.json with missing Abbott-Smith references."
+        },
+        {
+          "name": "register",
+          "signature": "register()",
+          "doc": "Register the coverage_validator plugin."
+        },
+        {
+          "name": "walk_subsenses",
+          "signature": "walk_subsenses(subsenses, parent_path)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "llmflow.plugins.echo",
+      "imports": [
+        "llmflow.modules.logger",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "echo",
+          "signature": "echo(inputs: Dict[str, Any] | None = None, context: Dict[str, Any] | None = None, **kwargs) -> Any",
+          "doc": "Simple echo plugin that returns the provided value unchanged."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.plugins.tsv_reader",
+      "imports": [
+        "csv",
+        "llmflow.modules.logger",
+        "pathlib",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "execute",
+          "signature": "execute(step_config) -> Iterator[Row]",
+          "doc": "Read TSV/CSV file and yield Row objects."
+        },
+        {
+          "name": "register",
+          "signature": "register()",
+          "doc": "Register the tsv plugin."
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, data: dict)",
+          "doc": ""
+        },
+        {
+          "name": "__getitem__",
+          "signature": "__getitem__(self, key)",
+          "doc": "Support dict-like access: row['key']"
+        },
+        {
+          "name": "__repr__",
+          "signature": "__repr__(self)",
+          "doc": ""
+        },
+        {
+          "name": "to_dict",
+          "signature": "to_dict(self)",
+          "doc": "Convert to plain dictionary"
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.get_prefix_directory",
+      "imports": [
+        "pathlib",
+        "unicodedata"
+      ],
+      "functions": [
+        {
+          "name": "strip_diacritics",
+          "signature": "strip_diacritics(text: str) -> str",
+          "doc": "Remove diacritics/accents from Unicode text."
+        },
+        {
+          "name": "get_prefix_directory",
+          "signature": "get_prefix_directory(filename: str, prefix_length: int | None = 2, prefix_delimiter: str | None = None) -> str",
+          "doc": "Derive grouping directory name from filename (without extension)."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.guards",
+      "imports": [
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "_safe_eval",
+          "signature": "_safe_eval(expr: str, ctx: Dict[str, object]) -> bool",
+          "doc": ""
+        },
+        {
+          "name": "build_step_eval_ctx",
+          "signature": "build_step_eval_ctx(step: dict, context: Dict[str, object]) -> Dict[str, object]",
+          "doc": ""
+        },
+        {
+          "name": "enforce_require",
+          "signature": "enforce_require(eval_ctx: Dict[str, object], rules: List[Dict[str, object]])",
+          "doc": ""
+        },
+        {
+          "name": "collect_warnings",
+          "signature": "collect_warnings(eval_ctx: Dict[str, object], rules: List[Dict[str, object]]) -> List[str]",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.io",
+      "imports": [
+        "json",
+        "llmflow.modules.logger",
+        "llmflow.plugins.echo",
+        "markdown",
+        "pathlib",
+        "re",
+        "unicodedata"
+      ],
+      "functions": [
+        {
+          "name": "normalize_nfc",
+          "signature": "normalize_nfc(text)",
+          "doc": "Normalize text to NFC (Canonical Decomposition, followed by Canonical Composition)"
+        },
+        {
+          "name": "write_nfc",
+          "signature": "write_nfc(path, content)",
+          "doc": ""
+        },
+        {
+          "name": "sanitize_filename",
+          "signature": "sanitize_filename(text)",
+          "doc": ""
+        },
+        {
+          "name": "read_text",
+          "signature": "read_text(path)",
+          "doc": "Read text content from a file and return it as a string."
+        },
+        {
+          "name": "eval_template_expr",
+          "signature": "eval_template_expr(expr, variables)",
+          "doc": "Safely evaluate dot notation and subscript expressions using variables dict."
+        },
+        {
+          "name": "render_template",
+          "signature": "render_template(template_content, variables)",
+          "doc": "Enhanced template rendering supporting dot notation and subscripts."
+        },
+        {
+          "name": "render_markdown_template",
+          "signature": "render_markdown_template(template_path, variables, context = None)",
+          "doc": "Render a markdown template with variable substitution."
+        },
+        {
+          "name": "extract_template_variables",
+          "signature": "extract_template_variables(template_content)",
+          "doc": "Extract variables from templates that use {{variable}} or ${variable} syntax"
+        },
+        {
+          "name": "validate_template",
+          "signature": "validate_template(template_path, required_variables = None)",
+          "doc": "Validate that a template file exists and contains expected variables."
+        },
+        {
+          "name": "validate_all_templates",
+          "signature": "validate_all_templates(pipeline_config)",
+          "doc": "Validate all templates referenced in a pipeline configuration."
+        },
+        {
+          "name": "save_markdown_as",
+          "signature": "save_markdown_as(text, passage, format = 'md', output_dir = 'outputs')",
+          "doc": "Save text content as a file with custom naming and directory."
+        },
+        {
+          "name": "save_xml",
+          "signature": "save_xml(xml_string, basename, output_dir = 'outputs/xml')",
+          "doc": "Save an XML string to a file, using a sanitized version of the entry_id."
+        },
+        {
+          "name": "save_text",
+          "signature": "save_text(content, output_path, format = 'md')",
+          "doc": "Save text content to a file."
+        },
+        {
+          "name": "save_json",
+          "signature": "save_json(content, output_path)",
+          "doc": "Save JSON content to a file."
+        },
+        {
+          "name": "extract_pipeline_variables",
+          "signature": "extract_pipeline_variables(pipeline)",
+          "doc": "Extract all variables that will be available in context"
+        },
+        {
+          "name": "extract_interleave_fields",
+          "signature": "extract_interleave_fields(pipeline)",
+          "doc": "Extract field names from interleave operations"
+        },
+        {
+          "name": "extract_pipeline_variables_at_step",
+          "signature": "extract_pipeline_variables_at_step(pipeline, target_step_name)",
+          "doc": "Extract variables available when a specific step runs"
+        },
+        {
+          "name": "validate_template_structure",
+          "signature": "validate_template_structure(template_path, pipeline, step_name)",
+          "doc": "Check template against variables available when that step runs"
+        },
+        {
+          "name": "to_attrdict",
+          "signature": "to_attrdict(obj)",
+          "doc": "Recursively convert dicts in obj to AttrDict."
+        },
+        {
+          "name": "replacer",
+          "signature": "replacer(match)",
+          "doc": ""
+        },
+        {
+          "name": "check_step_templates",
+          "signature": "check_step_templates(steps)",
+          "doc": ""
+        },
+        {
+          "name": "__getattr__",
+          "signature": "__getattr__(self, item)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.xml",
+      "imports": [
+        "lxml"
+      ],
+      "functions": [
+        {
+          "name": "xpath_get",
+          "signature": "xpath_get(xml, xpath, namespaces = None)",
+          "doc": "Evaluate an XPath expression on a single XML string."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.__init__",
+      "imports": [],
+      "functions": [
+        {
+          "name": "eval_condition",
+          "signature": "eval_condition(condition: str, context: dict) -> bool",
+          "doc": "Evaluate a condition string against the context."
+        },
+        {
+          "name": "interpolate_template",
+          "signature": "interpolate_template(template: str, context: dict) -> str",
+          "doc": "Interpolate variables in a template string."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.markdown_cleaner",
+      "imports": [
+        "markdown_it",
+        "mdformat",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "clean_markdown",
+          "signature": "clean_markdown(content: str, style: Optional[str] = None) -> str",
+          "doc": "Normalize Markdown by parsing and re-serializing."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.linter",
+      "imports": [
+        "click",
+        "dataclasses",
+        "difflib",
+        "llmflow.modules.logger",
+        "llmflow.pipeline_schema",
+        "pathlib",
+        "pydantic",
+        "re",
+        "typing",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "_allowed_step_keys_from_schema",
+          "signature": "_allowed_step_keys_from_schema() -> set",
+          "doc": ""
+        },
+        {
+          "name": "log_and_screen",
+          "signature": "log_and_screen(msg, color = 'white', level = 'info')",
+          "doc": "Log to file and display once on screen with color"
+        },
+        {
+          "name": "parse_prompt_header",
+          "signature": "parse_prompt_header(prompt_path)",
+          "doc": "Parse header from a .gpt prompt file (supports both YAML frontmatter and HTML comments)"
+        },
+        {
+          "name": "extract_template_variables",
+          "signature": "extract_template_variables(template_content)",
+          "doc": "Extract variables from templates that use {{ variable }} syntax"
+        },
+        {
+          "name": "format_diff_box",
+          "signature": "format_diff_box(step, file, declared, passed)",
+          "doc": ""
+        },
+        {
+          "name": "collect_all_steps",
+          "signature": "collect_all_steps(items)",
+          "doc": "Recursively collect all steps, including nested for-each and substeps."
+        },
+        {
+          "name": "validate_all_step_contracts",
+          "signature": "validate_all_step_contracts(all_steps, log_func, pipeline_root = None)",
+          "doc": "Validate all LLM steps against their prompt contracts"
+        },
+        {
+          "name": "lint_pipeline_contracts",
+          "signature": "lint_pipeline_contracts(pipeline_path)",
+          "doc": "Validate that all pipeline steps match their prompt contracts"
+        },
+        {
+          "name": "validate_template_step",
+          "signature": "validate_template_step(step, errors, warnings)",
+          "doc": "Validate a template rendering step"
+        },
+        {
+          "name": "validate_pipeline",
+          "signature": "validate_pipeline(pipeline_config)",
+          "doc": "Main pipeline validation function"
+        },
+        {
+          "name": "validate_pipeline_structure",
+          "signature": "validate_pipeline_structure(pipeline_config)",
+          "doc": ""
+        },
+        {
+          "name": "_collect_declared_outputs",
+          "signature": "_collect_declared_outputs(all_steps)",
+          "doc": ""
+        },
+        {
+          "name": "_validate_template_var_provenance",
+          "signature": "_validate_template_var_provenance(all_steps, errors)",
+          "doc": ""
+        },
+        {
+          "name": "lint_pipeline_full",
+          "signature": "lint_pipeline_full(pipeline_path)",
+          "doc": "Lint pipeline and return result object instead of raising SystemExit"
+        },
+        {
+          "name": "check_step_outputs",
+          "signature": "check_step_outputs(step)",
+          "doc": "Warn if a step generates data but doesn't store it"
+        },
+        {
+          "name": "validate_step_prompt_contract",
+          "signature": "validate_step_prompt_contract(step, prompt_file, step_name)",
+          "doc": "Validate that a step's inputs match its prompt contract"
+        },
+        {
+          "name": "_lint_conditional_rules",
+          "signature": "_lint_conditional_rules(step, errors, key: str)",
+          "doc": ""
+        },
+        {
+          "name": "lint_pipeline_steps",
+          "signature": "lint_pipeline_steps(steps)",
+          "doc": ""
+        },
+        {
+          "name": "unified_logger",
+          "signature": "unified_logger(msg, color = 'white', level = 'info')",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.llm_runner",
+      "imports": [
+        "llm",
+        "llmflow.modules.json_parser",
+        "llmflow.modules.llm_response_clean",
+        "llmflow.modules.logger",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "get_model",
+          "signature": "get_model(model_name: str)",
+          "doc": "Get LLM model with caching."
+        },
+        {
+          "name": "validate_parameter",
+          "signature": "validate_parameter(name: str, value: Any) -> list[str]",
+          "doc": "Validate a single parameter generically."
+        },
+        {
+          "name": "validate_llm_config",
+          "signature": "validate_llm_config(config: Dict[str, Any]) -> tuple[bool, list[str], list[str]]",
+          "doc": "Validate LLM configuration parameters."
+        },
+        {
+          "name": "call_llm",
+          "signature": "call_llm(prompt: str, config: Dict[str, Any], output_type: str = 'text')",
+          "doc": "Main LLM calling function with validation and caching."
+        },
+        {
+          "name": "_call_model",
+          "signature": "_call_model(model, prompt: str, config: Dict[str, Any]) -> str",
+          "doc": "Internal helper to call the model."
+        },
+        {
+          "name": "run_llm_with_mcp_tools",
+          "signature": "run_llm_with_mcp_tools(prompt: str, config: Dict[str, Any], mcp_client, output_type: str = 'text', step_name: str = 'unknown') -> str",
+          "doc": "Execute LLM call with MCP tool support."
+        },
+        {
+          "name": "_run_llm_with_mcp_tools_async",
+          "signature": "_run_llm_with_mcp_tools_async(prompt: str, config: Dict[str, Any], mcp_client, output_type: str = 'text', step_name: str = 'unknown') -> str",
+          "doc": "Execute LLM with MCP tools using OpenAI API."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.data",
+      "imports": [
+        "json",
+        "llmflow.modules.logger",
+        "pathlib",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "create_json_dictionary",
+          "signature": "create_json_dictionary(**kwargs)",
+          "doc": "Create a JSON dictionary from keyword arguments."
+        },
+        {
+          "name": "interleave",
+          "signature": "interleave(json_structure, output_format = None)",
+          "doc": "Interleave arrays from a JSON structure using zip."
+        },
+        {
+          "name": "_format_as_markdown",
+          "signature": "_format_as_markdown(interleaved_data)",
+          "doc": "Convert interleaved data to Markdown format"
+        },
+        {
+          "name": "flatten_structure",
+          "signature": "flatten_structure(nested_dict, separator = '_')",
+          "doc": "Flatten nested dictionaries for pipeline processing"
+        },
+        {
+          "name": "validate_array_lengths",
+          "signature": "validate_array_lengths(json_structure)",
+          "doc": "Ensure all arrays in structure have the same length"
+        },
+        {
+          "name": "parse_bible_reference",
+          "signature": "parse_bible_reference(passage)",
+          "doc": "Parse a Bible reference and return comprehensive range information."
+        },
+        {
+          "name": "simple_json_compare",
+          "signature": "simple_json_compare(expected, actual, test_name = 'comparison')",
+          "doc": "Simple comparison using JSON serialization - works with standard library only."
+        },
+        {
+          "name": "flatten_json_to_markdown",
+          "signature": "flatten_json_to_markdown(data)",
+          "doc": "Recursively flatten any dict or list to Markdown by concatenating all values in document order."
+        },
+        {
+          "name": "load_json",
+          "signature": "load_json(file_path)",
+          "doc": "Load JSON data from file with error handling and logging"
+        },
+        {
+          "name": "load_yaml",
+          "signature": "load_yaml(file_path)",
+          "doc": "Load YAML data from file with error handling and logging"
+        },
+        {
+          "name": "save_yaml",
+          "signature": "save_yaml(data, file_path)",
+          "doc": "Save data as YAML file with error handling and logging"
+        },
+        {
+          "name": "merge_dicts",
+          "signature": "merge_dicts(dict1, dict2, deep = True)",
+          "doc": "Merge two dictionaries with optional deep merging"
+        },
+        {
+          "name": "flatten_dict",
+          "signature": "flatten_dict(nested_dict, separator = '.')",
+          "doc": "Flatten a nested dictionary using dot notation"
+        },
+        {
+          "name": "validate_data_structure",
+          "signature": "validate_data_structure(data, required_keys, optional_keys = None)",
+          "doc": "Validate that data contains required keys and log validation results"
+        },
+        {
+          "name": "identity",
+          "signature": "identity(value)",
+          "doc": "Return the input value unchanged."
+        },
+        {
+          "name": "walk",
+          "signature": "walk(val)",
+          "doc": ""
+        },
+        {
+          "name": "_flatten",
+          "signature": "_flatten(obj, parent_key = '')",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "llmflow.modules.__init__",
+      "imports": [],
+      "functions": []
+    },
+    {
+      "module": "llmflow.modules.logger",
+      "imports": [
+        "logging",
+        "sys"
+      ],
+      "functions": [
+        {
+          "name": "__init__",
+          "signature": "__init__(self, log_file = 'llmflow.log')",
+          "doc": ""
+        },
+        {
+          "name": "set_level",
+          "signature": "set_level(self, level: str)",
+          "doc": "Set logging level"
+        },
+        {
+          "name": "debug",
+          "signature": "debug(self, msg)",
+          "doc": ""
+        },
+        {
+          "name": "info",
+          "signature": "info(self, msg)",
+          "doc": ""
+        },
+        {
+          "name": "warning",
+          "signature": "warning(self, msg)",
+          "doc": ""
+        },
+        {
+          "name": "error",
+          "signature": "error(self, msg)",
+          "doc": ""
+        },
+        {
+          "name": "log_section",
+          "signature": "log_section(self, title, level = 'info')",
+          "doc": "Log a section header with visual separation."
+        },
+        {
+          "name": "log_subsection",
+          "signature": "log_subsection(self, title, level = 'info')",
+          "doc": "Log a subsection header with lighter visual separation."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.modules.mcp",
+      "imports": [
+        "asyncio",
+        "httpx",
+        "json",
+        "llmflow.modules.logger",
+        "mcp",
+        "mcp.client.stdio",
+        "time",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "init_mcp_client",
+          "signature": "init_mcp_client(step_config: Dict[str, Any], pipeline_config: Dict[str, Any]) -> Optional[MCPClient]",
+          "doc": "Initialize MCP client from step and pipeline configuration."
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, server_url: str, tools: Optional[List[str]] = None)",
+          "doc": ""
+        },
+        {
+          "name": "__aenter__",
+          "signature": "__aenter__(self)",
+          "doc": "Async context manager entry."
+        },
+        {
+          "name": "__aexit__",
+          "signature": "__aexit__(self, exc_type, exc_val, exc_tb)",
+          "doc": "Async context manager exit."
+        },
+        {
+          "name": "_get_next_id",
+          "signature": "_get_next_id(self) -> int",
+          "doc": "Get next message ID."
+        },
+        {
+          "name": "_send_jsonrpc",
+          "signature": "_send_jsonrpc(self, method: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]",
+          "doc": "Send JSON-RPC request to HTTP MCP server."
+        },
+        {
+          "name": "_async_init_session",
+          "signature": "_async_init_session(self)",
+          "doc": "Initialize MCP session asynchronously via HTTP POST."
+        },
+        {
+          "name": "_async_get_tool_definitions",
+          "signature": "_async_get_tool_definitions(self) -> List[Dict[str, Any]]",
+          "doc": "Fetch tool definitions asynchronously."
+        },
+        {
+          "name": "_async_call_tool",
+          "signature": "_async_call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> str",
+          "doc": "Execute tool call asynchronously."
+        },
+        {
+          "name": "_async_close",
+          "signature": "_async_close(self)",
+          "doc": "Close session asynchronously."
+        },
+        {
+          "name": "get_tool_definitions",
+          "signature": "get_tool_definitions(self) -> List[Dict[str, Any]]",
+          "doc": "Fetch tool definitions (sync wrapper)."
+        },
+        {
+          "name": "call_tool",
+          "signature": "call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> str",
+          "doc": "Execute tool call (sync wrapper)."
+        },
+        {
+          "name": "close",
+          "signature": "close(self)",
+          "doc": "Close the MCP session (sync wrapper)."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.modules.llm_response_clean",
+      "imports": [
+        "re"
+      ],
+      "functions": [
+        {
+          "name": "clean_llm_response_text",
+          "signature": "clean_llm_response_text(text: str) -> str",
+          "doc": "Clean LLM response text by extracting JSON from markdown fences or surrounding text."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.modules.json_parser",
+      "imports": [
+        "json",
+        "llmflow.modules.llm_response_clean",
+        "llmflow.modules.logger",
+        "re"
+      ],
+      "functions": [
+        {
+          "name": "parse_llm_json_response",
+          "signature": "parse_llm_json_response(text: str)",
+          "doc": "Parse JSON from LLM response, handling markdown fences and double-encoding."
+        },
+        {
+          "name": "validate_json_structure",
+          "signature": "validate_json_structure(data, required_fields = None)",
+          "doc": "Validate that parsed JSON has expected structure."
+        },
+        {
+          "name": "handle_llm_response",
+          "signature": "handle_llm_response(message, output_type, max_iterations = 5)",
+          "doc": "Handle the response from the LLM, including parsing JSON and managing tool calls."
+        }
+      ]
+    },
+    {
+      "module": "inputs.Abbot-Smith.mismatch",
+      "imports": [
+        "csv",
+        "lxml",
+        "unicodedata"
+      ],
+      "functions": [
+        {
+          "name": "normalize_greek",
+          "signature": "normalize_greek(text)",
+          "doc": "Normalize Greek text to NFC for comparison"
+        }
+      ]
+    },
+    {
+      "module": "tests.integration.test_mcp_batch_calls",
+      "imports": [
+        "json",
+        "llmflow.modules.mcp",
+        "llmflow.runner",
+        "pytest",
+        "time"
+      ],
+      "functions": [
+        {
+          "name": "mcp_server_url",
+          "signature": "mcp_server_url(self)",
+          "doc": "MCP server URL"
+        },
+        {
+          "name": "sample_references",
+          "signature": "sample_references(self)",
+          "doc": "Sample Bible references for testing"
+        },
+        {
+          "name": "test_single_batch_call",
+          "signature": "test_single_batch_call(self, mcp_server_url, sample_references)",
+          "doc": "Test that multiple references can be fetched in one batch call"
+        },
+        {
+          "name": "test_batch_vs_individual_calls",
+          "signature": "test_batch_vs_individual_calls(self, mcp_server_url, sample_references)",
+          "doc": "Compare batch call performance vs individual calls"
+        },
+        {
+          "name": "test_pipeline_with_mcp_batch",
+          "signature": "test_pipeline_with_mcp_batch(self, tmp_path)",
+          "doc": "Test full pipeline with MCP batch calls"
+        },
+        {
+          "name": "test_large_batch",
+          "signature": "test_large_batch(self, mcp_server_url)",
+          "doc": "Test batch call with many references (stress test)"
+        },
+        {
+          "name": "test_mcp_tool_call_counting",
+          "signature": "test_mcp_tool_call_counting(self, mcp_server_url, sample_references)",
+          "doc": "Verify that batch calls count as ONE tool call, not multiple"
+        },
+        {
+          "name": "test_chunked_batches",
+          "signature": "test_chunked_batches(self, mcp_server_url)",
+          "doc": "Test fetching references in smaller chunks"
+        },
+        {
+          "name": "tracked_call_tool",
+          "signature": "tracked_call_tool(*args, **kwargs)",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "tests.fixtures.__init__",
+      "imports": [],
+      "functions": []
+    }
+  ],
+  "summary": {
+    "total_modules": 109,
+    "total_functions": 729
+  }
+}

@@ -39,9 +39,10 @@ def parse_llm_json_response(text: str):
                 result = json.loads(result)
 
             return result
-        except json.JSONDecodeError:
-            logger.warning(f"⚠️  Could not fix JSON, returning raw text")
-            return cleaned
+        except json.JSONDecodeError as final_error:
+            logger.error(f"⚠️  Could not fix JSON after attempted repairs")
+            logger.error(f"   First 500 chars: {repr(cleaned[:500])}")
+            raise ValueError(f"JSON parse failed: {final_error.msg} at position {final_error.pos}") from final_error
 
 
 def validate_json_structure(data, required_fields=None):

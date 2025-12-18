@@ -98,6 +98,7 @@ steps:
 
   - name: generate_scene_list
     type: llm
+    max_tokens: 8192
     prompt:
       file: leadersguide-scenes.gpt
       inputs:
@@ -142,9 +143,9 @@ steps:
 
       - name: bodies
         type: llm
-        llm_params:
-          temperature: 0.6
-          max_tokens: 2600
+#       llm_params:
+#         temperature: 0.6
+#         max_tokens: 2600
         prompt:
           file: leadersguide-bodies.gpt
           inputs:
@@ -154,12 +155,17 @@ steps:
             exegetical_culture: "${exegetical_culture}"
         outputs: bodies_content
         append_to: bodies_list
+        require:
+          - if: "bool(str(bodies_content or '').strip())"
+            message: "Bodies step produced empty content for a scene."
+          - if: "'Enter the Scene with Your Body' in str(bodies_content or '')"
+            message: "Bodies content missing required heading."
 
       - name: hearts
         type: llm
-        llm_params:
-          temperature: 0.6
-          max_tokens: 2600
+#       llm_params:
+#         temperature: 0.6
+#         max_tokens: 2600
         prompt:
           file: leadersguide-hearts.gpt
           inputs:

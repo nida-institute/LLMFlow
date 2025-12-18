@@ -65,13 +65,16 @@ def test_parse_json_with_unicode():
     assert result["hebrew"] == "בְּרֵאשִׁית"
 
 
-def test_parse_invalid_json_returns_text():
-    """Invalid JSON returns the cleaned text without raising."""
-    result = parse_llm_json_response('{"incomplete":')
-    assert isinstance(result, str)
+def test_parse_invalid_json_raises_error():
+    """Invalid JSON raises ValueError to trigger retry logic."""
+    with pytest.raises(ValueError, match="JSON parse failed"):
+        parse_llm_json_response('{"incomplete":')
 
-    result = parse_llm_json_response("not json at all")
-    assert result == "not json at all"
+    with pytest.raises(ValueError, match="JSON parse failed"):
+        parse_llm_json_response('{"unterminated": "string')
+
+    with pytest.raises(ValueError, match="JSON parse failed"):
+        parse_llm_json_response("not json at all")
 
 
 def test_parse_json_with_markdown_fence_variants():

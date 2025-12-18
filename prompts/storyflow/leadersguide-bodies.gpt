@@ -5,163 +5,43 @@ prompt:
     - scene
     - citation
     - exegetical_culture
-  optional: []
   format: Markdown
-  description: Guides participants to enter {scene} from {passage} using their bodies and senses, with cultural background woven in. Focuses on detailed attention to what the text actually says and shows.
----
-<!-- HARD RULE: The FIRST non-empty line of your output MUST be:
-### Enter the Scene with Your Body ({{citation}})
-Do not use any other H3 before this. -->
-
-# StoryFlow Leader's Guide: Step 1 – Enter the Scene with Your Body
-
-## 📥 Inputs
-
-### passage
-{{passage}}
-
-### scene
-{{scene}}
-
-### citation
-{{citation}}
-
-### exegetical_culture
-{{exegetical_culture}}
+  description: Plain-language, text-anchored Body questions for NT narrative scenes. Natural wording, quotes last (BSB), no speculation, optional internal Greek anchors for grounding.
 
 ---
 
-You are helping group leaders guide the group to step into the scene physically using their bodies and senses, with detailed attention to what the text actually says and shows. Use cultural background to help the group notice and understand the specific physical details the biblical text provides.
+Generate 4-7 questions that help readers enter a Gospel scene with their physical senses.
 
-Base your reasoning on the original-language source embedded in the scene (Hebrew or Greek), but do not mention Hebrew/Greek, transliterations, or grammar in the output. Avoid highlighting English translator helper words that are not distinct words in the original; describe the meaning instead.
+Each question must have THREE parts:
+1. A natural conversational question in English
+2. A Greek anchor followed by the English equivalent in this format: (GRK: Greek text, BSB: BSB translation"
 
----
+# EXAMPLE OF COMPLETE OUTPUT:
 
-## 🛠 Step-by-Step Instructions
+For the scene John 4:5-6, here is the complete output format:
 
-1. **Text-Grounded Sensory Attention**
-   - Start with specific physical words, verbs, and imagery that the text actually uses.
-   - Begin with questions people can answer from common experience — what most people would understand about the physical details.
-   - **On first mention** of tools, roles, or cultural elements, provide essential context immediately so modern readers can visualize accurately.
-   - Add cultural background when it helps the group imagine more concretely.
-   - Do not hesitate to lead with a short, scene-bound context clause (1–2 sentences) when it sharpens visualization.
-   - Focus on the exact details the text gives us about bodies, actions, settings, movements.
-   - Help the group slow down and notice physical language they might have skipped over.
+### Enter the Scene with Your Body (John 4:5-6)
 
----
-
-## 📝 Output Format
-
-Generate ONLY the following content for leaders to use with the group:
-
-### Enter the Scene with Your Body ({{citation}})
-
-**Format as numbered sections with descriptive headings:**
-
-1. **[Descriptive heading for first group of questions]**:
-   - [Text-grounded embodied question accessible to most people]
-   - [Text-grounded embodied question + brief scene-bound context when illuminating]
-
-2. **[Descriptive heading for second group of questions]**:
-   - [Text-grounded embodied question accessible to most people]
-   - [Text-grounded embodied question + brief scene-bound context when illuminating]
-
-3. **[Descriptive heading for third group of questions]** (if needed):
-   - [Text-grounded embodied question + brief scene-bound context when helpful]
-
-Total 6–8 questions across 2–3 numbered sections with descriptive headings.
-
-Requirements:
-- Start each section with accessible questions.
-- Weave in cultural insight when it helps concrete imagination; do not label it.
-- All questions are equal — no distinction between those with or without background.
-- Ancient focus: their physical experience in that time and place.
-- Text-grounded: only details the Scripture actually provides.
+1. Picture Jesus at the well at noon—what would the light and heat feel like in an open area with no shade? (GRK: ὥρα ἦν ὡς ἕκτη, BSB: It was about the sixth hour)
+1. Where is Jesus positioned as the scene opens—standing, walking, or already seated? (GRK: ἐκαθέζετο οὕτως ἐπὶ τῇ πηγῇ, BSB: sat down by the well)
+1. How far has Jesus traveled to reach this point, and what does "weary from His journey" tell you about the pace and distance? (GRK: κεκοπιακὼς ἐκ τῆς ὁδοιπορίας, BSB: weary from His journey)
+1. What sensory details would you notice at a well in the midday heat—sounds, temperature, the feel of stone? (GRK: ἐπὶ τῇ πηγῇ, BSB: by the well)
+1. Wells in this region were often stone-lined and deep (Jacob's well was over 100 feet); what would that structure look and feel like? (GRK: τῆς πηγῆς τοῦ Ἰακώβ, BSB: Jacob's well)
 
 ---
 
-## ⚖️ Guidelines for Content Generation (DO NOT OUTPUT)
+# NOW GENERATE YOUR QUESTIONS:
 
-Plain, accessible language
-- Avoid scholarly/technical terms: use "the speaker," "David," "the person praying" instead of "the psalmist"
-- Avoid formal religious language: use "pray," "talk to God" instead of "petition," "invoke"
-- Use everyday words for roles: "king," "leader," "prophet" not "monarch," "sovereign," "seer"
-- Keep vocabulary conversational and concrete
-- If you must use a less common word, immediately clarify it in plain language
+**Scene text (SBLGNT):** {{scene}}
 
-Terminology
-- "Participants" always refers to people in the scene (speakers, addressees, bystanders, opponents, messengers, etc.).
-- Use "the group" to refer to people discussing the text today.
-- Encourage perspective-taking: ask questions from different in‑scene participants' viewpoints (e.g., "From the bystander's vantage point…," "If you stand where the addressee is…").
+**Citation:** {{citation}}
 
-Silent original-text grounding
-- Derive meaning from the original text in scene (Hebrew or Greek); do not display or name original words, scripts, transliterations, Strong's numbers, or grammar.
-- If original meaning differs from common English renderings, explain it briefly in plain English without language terms (e.g., "this line shows being caused to settle into rest").
+**Cultural facts:** {{exegetical_culture}}
 
-Metaphor and reality
-- When imagery is metaphorical, explore the embodied world of the image first (e.g., what sheep experience, what a tree by water experiences).
-- Do not cast the human speaker as literally performing the metaphor. Phrase neutrally (e.g., "the scene depicts sheep settling to rest," not "the psalmist lies down like a sheep").
-- Use plain language: "the scene shows sheep settling to rest," "the speaker describes..." or "David pictures..."
-- Use the metaphor's embodied dynamics to clarify what the text is showing.
-
-Cultural/background/biographical context
-- Use when it helps the group visualize more concretely (landscape, tools, roles, customs, travel, terrain, climate).
-- **First-Mention Rule:** When an element appears for the first time in the passage (tools like rod/staff, settings like green pastures, roles, practices), include essential context immediately.
-- **Essential context** = needed for basic scene comprehension (e.g., what a rod/staff does, rarity of green pastures, what a village gate is).
-- **Format:** Use brief parenthetical explanations or short clauses: "The shepherd's rod (a club for defense)..." or "In this dry land, green grazing was rare..."
-- Don't assume modern readers know ancient physical realities - explain basics they need to picture the scene.
-- Keep it brief (1–2 sentences), scene-bound, and immediately followed by a question tied to the text.
-- Biographical notes (author, audience) are sparing and come after imagery/scene dynamics, only if they clarify the embodied picture already in view.
-- Never create a separate "background" section; weave context naturally into questions (no labels).
-- It's fine to lead a question with a concise context nudge (terrain, climate, kinship roles, temple practice) when it clarifies what bodies are doing/feeling.
-- Default posture: include at least one contextual nudge per numbered section when it meaningfully sharpens the physical picture or stakes.
-
-First-Mention Examples (adapt to your passage)
-- **Rod & Staff:** "The shepherd carries a rod (a club for defending against predators) and a staff (a curved stick for guiding on difficult paths). What do you notice about..."
-- **Green Pastures:** "In this arid landscape, green pastures were rare and quickly exhausted by grazing flocks. Picture finding such a place..."
-- **Still Waters:** "Sheep avoid fast-moving water and need calm pools to drink safely. Imagine being led to such water..."
-- **Valley of Shadow:** "Deep ravines with steep walls where predators lurked and rocks could fall. What would walking through such terrain..."
-- **Village Gate:** "The town gate (where elders gathered to settle disputes and conduct business). Standing at this place..."
-- **Anointing with Oil:** "Pouring olive oil on a guest's head (a sign of honor and welcome). What does this physical gesture..."
-
-Language to avoid
-- ❌ "the psalmist" → ✅ "the speaker," "David," "the person praying"
-- ❌ "petition," "invoke" → ✅ "ask," "call on," "pray to"
-- ❌ "the nations," "the gentiles" → ✅ "other nations," "foreign peoples"
-- ❌ "supplication" → ✅ "desperate prayer," "plea"
-- ❌ "lament" → ✅ "cry out," "grieve," "complain to God"
-- ❌ "vindication" → ✅ "being proven right," "justice"
-- ❌ "adversaries," "foes" → ✅ "enemies," "opponents"
-- ❌ "they" (singular) → ✅ "he," "she," "the speaker," or use the person's name when clear from context
-- Match the grammar to the text: if the original is singular, use singular pronouns
-
-Precision and tone
-- Match number (singular/plural), person, and perspective to the passage.
-- Use plain, self-contained, text-grounded questions. No mini-lectures, technical terms, or meta-instructions.
-- When introducing essential context, keep explanations to 5–10 words in parentheses or a brief clause.
-- Write at a conversational level - as if explaining to a friend, not writing an academic paper.
-- Use active voice and concrete language wherever possible.
-
-Safe patterns
-- "From the viewpoint of [participant in the scene], what movements or positions do you notice, and what do they suggest about safety, effort, or danger?"
-- "As an observer standing with [another participant], what would bodies be doing or feeling in this moment?"
-- "Considering the tools/terrain named here, what does guidance or protection look and feel like for those present?"
-- "The shepherd carries a rod (a club for defense) and a staff (a walking stick for guidance). What do these tools reveal about both protection and direction in this terrain?"
-- "In this dry land, green pastures were rare - flocks would strip an area and need to be led elsewhere. What effort and care does finding such a place suggest?"
-- "Deep valleys with steep walls created danger from predators and rockfalls. Picture walking through such terrain - what does the body experience?"
-
-## ⚖️ Guidelines for Content Generation (DO NOT OUTPUT)
-
-+ Context integration (DO NOT OUTPUT)
-+ - Source background from: {{exegetical_culture}} {{exegetical_background}}
-+ - Selection algorithm:
-+   1) Scan the scene_text for concrete items, roles, or settings.
-+   2) From background, choose only facts that clarify visualization or stakes for those items.
-+   3) On first mention of any culturally loaded item, add a 5–12 word parenthetical or one-clause lead-in explaining function/significance.
-+   4) If no background is needed for clarity, do not add any. Include context as many or as few times as needed.
-+ - Categories to consider (pick only what applies): terrain/climate, travel/wayfinding, tools/implements, livestock/agriculture, honor/hospitality, sanctuary/temple, law/court/gate, economy/weights, time/festivals.
-+ - Keep each context clause brief, plain, and scene-bound. Avoid scholarly terms.
-+ - First-mention rule applies across numbered items; don’t repeat explanations already given.
-
-
-
+**INSTRUCTIONS:**
+- Start with the heading: ### Enter the Scene with Your Body ({{citation}})
+- Generate 4-7 questions as a numbered list
+- Each question: natural conversational English, followed by (GRK: Greek phrase, BSB translation)
+- Cover: setting (light/sound/space), participants, actions, sensory details, objects
+- Use only what's in the scene text - no speculation
+- Questions should help readers picture the physical scene

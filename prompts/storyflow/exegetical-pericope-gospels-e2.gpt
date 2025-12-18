@@ -1,8 +1,8 @@
 ---
 prompt:
   requires:
-  - passage
-  - source
+    - passage
+    - source
   optional: []
   format: Markdown
   description: Provides key Greek terms and textual notes for {passage} using {source}
@@ -53,10 +53,19 @@ Repeat for **2–6 terms or phrases** that matter most for meaning.
 
 ---
 
-## Writing Style
+## Stakes Hooks for Hearts (plain, short; DO NOT interpret)
+For 2–6 terms above that most shape what matters in the scene, add one or two plain hooks each:
 
-- Use **precise**, vivid, and clear English.
-- Quote Greek terms with **Unicode Greek**, transliteration, and English gloss.
-- Do **not** cite later Church Fathers or theological systems.
-- Avoid devotional or doctrinal application.
+- [short quote or term] — one clause on what matters (trust, safety, honor, belonging).
+- [short quote or term] — one clause on the concrete choice or attention it shows.
+
+Examples (pattern only; do not force if not supported):
+- “φεῦγε (pheuge) — escape” — safety at stake; choice to move now.
+- “νυκτός (nyktos) — by night” — risk is visible; caution and urgency.
+- “Ἐγερθεὶς (Egertheis) — having risen” — immediate action; willing attention.
+- “παρέλαβεν (parelaben) — took/received” — protective care; responsibility carried.
+
+## Writing Style
+- Use precise, vivid, clear English.
+- Keep “Stakes Hooks” plain, everyday words. One clause per hook. No academic terms.
 
