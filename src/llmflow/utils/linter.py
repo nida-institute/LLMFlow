@@ -492,8 +492,17 @@ def lint_pipeline_full(pipeline_path):
 
     # 4) Optional: scan rendered outputs for leftover placeholders and empty sections
     logger.info("🔍 Scanning rendered outputs for leftovers...")
-    outputs_dir = Path(pipeline_path).resolve().parents[2] / "outputs" / "leaders_guide"
-    if outputs_dir.exists():
+    # Try to find outputs directory relative to pipeline, fall back to skipping if not found
+    pipeline_parent = Path(pipeline_path).resolve().parent
+    outputs_dir = None
+    # Walk up to find outputs/leaders_guide
+    for parent in [pipeline_parent] + list(pipeline_parent.parents):
+        potential_outputs = parent / "outputs" / "leaders_guide"
+        if potential_outputs.exists():
+            outputs_dir = potential_outputs
+            break
+
+    if outputs_dir and outputs_dir.exists():
         placeholder_re = re.compile(r"\{\{\s*([^}]+?)\s*\}\}")
         hrule_re = re.compile(r"^\s*---\s*$", re.MULTILINE)
         for md in outputs_dir.glob("*.md"):
