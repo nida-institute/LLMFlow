@@ -39,59 +39,10 @@ jobs:
         pip install pyinstaller
         pip install -e .
 
-    - name: Build with PyInstaller (Unix)
-      if: runner.os != 'Windows'
+    - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile \
-          --name ${{ matrix.artifact_name }} \
-          --add-data "prompts:prompts" \
-          --add-data "templates:templates" \
-          --hidden-import llmflow \
-          --hidden-import llmflow.cli \
-          --hidden-import llmflow.runner \
-          --hidden-import llmflow.utils \
-          --hidden-import llmflow.modules \
-          --hidden-import llmflow.plugins \
-          --hidden-import decimal \
-          --hidden-import fractions \
-          --hidden-import rich \
-          --hidden-import rich.console \
-          --hidden-import rich.table \
-          --hidden-import rich._ratio \
-          --hidden-import httpx \
-          --collect-all rich \
-          --collect-all httpx \
-          --exclude-module setuptools \
-          --exclude-module distutils \
-          --noupx \
-          src/llmflow/cli.py
-
-    - name: Build with PyInstaller (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        pyinstaller --onefile `
-          --name ${{ matrix.artifact_name }} `
-          --add-data "prompts;prompts" `
-          --add-data "templates;templates" `
-          --hidden-import llmflow `
-          --hidden-import llmflow.cli `
-          --hidden-import llmflow.runner `
-          --hidden-import llmflow.utils `
-          --hidden-import llmflow.modules `
-          --hidden-import llmflow.plugins `
-          --hidden-import decimal `
-          --hidden-import fractions `
-          --hidden-import rich `
-          --hidden-import rich.console `
-          --hidden-import rich.table `
-          --hidden-import rich._ratio `
-          --hidden-import httpx `
-          --collect-all rich `
-          --collect-all httpx `
-          --exclude-module setuptools `
-          --exclude-module distutils `
-          --noupx `
-          src/llmflow/cli.py
+        pyinstaller llmflow.spec
+        mv dist/llmflow dist/${{ matrix.artifact_name }}
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
