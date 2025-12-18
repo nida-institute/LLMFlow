@@ -1,0 +1,10 @@
+#!/bin/bash
+# Auto-generate docs/index.json from function signatures
+
+echo "Updating docs/index.json..."
+python tools/index_signatures.py
+
+# Add the updated file to the commit if it changed
+git add docs/index.json docs/index.signatures.json
+
+echo "✓ Function index updated"
