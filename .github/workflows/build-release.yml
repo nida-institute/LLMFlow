@@ -52,6 +52,15 @@ jobs:
           --hidden-import llmflow.utils \
           --hidden-import llmflow.modules \
           --hidden-import llmflow.plugins \
+          --hidden-import decimal \
+          --hidden-import fractions \
+          --hidden-import rich \
+          --hidden-import rich.console \
+          --hidden-import rich.table \
+          --hidden-import rich._ratio \
+          --hidden-import httpx \
+          --collect-all rich \
+          --collect-all httpx \
           src/llmflow/cli.py
 
     - name: Build with PyInstaller (Windows)
@@ -67,6 +76,15 @@ jobs:
           --hidden-import llmflow.utils `
           --hidden-import llmflow.modules `
           --hidden-import llmflow.plugins `
+          --hidden-import decimal `
+          --hidden-import fractions `
+          --hidden-import rich `
+          --hidden-import rich.console `
+          --hidden-import rich.table `
+          --hidden-import rich._ratio `
+          --hidden-import httpx `
+          --collect-all rich `
+          --collect-all httpx `
           src/llmflow/cli.py
 
     - name: Upload artifact
