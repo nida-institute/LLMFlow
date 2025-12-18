@@ -28,13 +28,13 @@ def discover_plugins():
     # List of known plugin modules (hardcoded for PyInstaller compatibility)
     known_plugins = [
         "coverage_validator",
-        "echo", 
+        "echo",
         "insert_references",
         "xml_entry_to_base_json",
         "xpath",
         "xslt_transform",
     ]
-    
+
     plugin_count = 0
 
     for name in known_plugins:
