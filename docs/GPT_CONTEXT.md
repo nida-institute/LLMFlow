@@ -29,6 +29,15 @@ To get effective help from GPT when creating or debugging pipelines:
 
 **Quick Command:** Run `llmflow context` to generate this file automatically.
 
+## Documentation Resources
+
+- **This file (GPT_CONTEXT.md)**: Conceptual guide with pipeline patterns and examples
+- **docs/index.json**: Complete function reference with 1052 functions across 118 modules
+  - Auto-generated from source code
+  - Shows function signatures, parameters, and locations
+  - Use for quick lookup of available utilities and APIs
+- **docs/index.signatures.json**: Detailed signature data for tooling integration
+
 ---
 
 ## Pipeline Structure Reference
