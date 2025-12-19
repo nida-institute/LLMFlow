@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Set
 import re
 from difflib import unified_diff
 from pathlib import Path
@@ -8,6 +8,27 @@ import click
 import yaml
 from pydantic import ValidationError
 from llmflow.pipeline_schema import PipelineConfig, PIPELINE_SCHEMA
+
+
+def extract_variable_references(text: str) -> Set[str]:
+    """Extract all variable references from a string (${var} or {{var}} syntax)"""
+    variables = set()
+
+    # Extract ${...} patterns
+    for match in re.finditer(r'\$\{([^\}]+)\}', text):
+        var = match.group(1).strip()
+        # Extract root variable (before . or [)
+        root = re.split(r'[.\[]', var)[0]
+        variables.add(root)
+
+    # Extract {{...}} patterns
+    for match in re.finditer(r'\{\{([^\}]+)\}\}', text):
+        var = match.group(1).strip()
+        # Extract root variable (before . or [)
+        root = re.split(r'[.\[]', var)[0]
+        variables.add(root)
+
+    return variables
 
 def _allowed_step_keys_from_schema() -> set:
     props = PIPELINE_SCHEMA.get("properties", {}).get("steps", {}).get("items", {}).get("properties", {})
@@ -423,6 +444,137 @@ def _validate_template_var_provenance(all_steps, errors):
                     )
 
 
+def _extract_all_variables_from_value(value, path=""):
+    """Recursively extract all variable references from any value (string, dict, list)"""
+    variables = set()
+
+    if isinstance(value, str):
+        variables.update(extract_variable_references(value))
+    elif isinstance(value, dict):
+        for k, v in value.items():
+            variables.update(_extract_all_variables_from_value(v, f"{path}.{k}" if path else k))
+    elif isinstance(value, list):
+        for i, item in enumerate(value):
+            variables.update(_extract_all_variables_from_value(item, f"{path}[{i}]"))
+
+    return variables
+
+
+def _build_available_context(pipeline_vars, declared_outputs, item_var=None, for_each_var=None):
+    """Build set of variables available at a given step"""
+    available = set()
+
+    # Pipeline-level variables
+    if pipeline_vars:
+        available.update(pipeline_vars.keys())
+
+    # Outputs from previous steps
+    available.update(declared_outputs)
+
+    # For-each context
+    if item_var:
+        available.add(item_var)
+    if for_each_var:
+        available.add(for_each_var)
+
+    return available
+
+
+def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs, errors, parent_item_vars=None):
+    """Recursively validate variable references with proper scoping for nested steps
+
+    Args:
+        steps: List of steps to validate
+        pipeline_vars: Pipeline-level variables
+        parent_outputs: Set of outputs declared by parent/previous steps (mutable, shared across recursion)
+        errors: List to append error messages to
+        parent_item_vars: Set of item_var names from parent for-each loops
+    """
+    if parent_item_vars is None:
+        parent_item_vars = set()
+
+    # Use parent_outputs directly (don't copy) so nested steps can add outputs visible to parent
+    declared_outputs = parent_outputs
+
+    for step in steps:
+        step_name = step.get("name", "unnamed")
+        step_type = step.get("type", "")
+
+        # Build available context for this step
+        item_var = step.get("item_var")
+        for_each_input = step.get("input")  # for-each uses "input" not "for-each"
+
+        # Combine parent item_vars with current item_var
+        current_item_vars = parent_item_vars.copy()
+        if item_var:
+            current_item_vars.add(item_var)
+
+        available = _build_available_context(
+            pipeline_vars,
+            declared_outputs,
+            None,  # Don't pass item_var here
+            for_each_input
+        )
+        # Add all parent and current item_vars
+        available.update(current_item_vars)
+
+        # Extract all variable references from step configuration
+        # Check: inputs, outputs, condition, saveas, format, input (for-each)
+        # NOTE: append_to is NOT checked - it declares a new variable, doesn't reference one
+        fields_to_check = ["inputs", "condition", "saveas", "format", "input"]
+
+        for field in fields_to_check:
+            if field in step:
+                field_value = step[field]
+                referenced_vars = _extract_all_variables_from_value(field_value)
+
+                # Check each referenced variable
+                for var in referenced_vars:
+                    # Extract root variable (before . or [)
+                    root_var = re.split(r'[.\[]', var)[0]
+
+                    if root_var not in available:
+                        # Show helpful error message with available variables
+                        available_list = sorted(available)
+                        errors.append(
+                            f"❌ Step '{step_name}' field '{field}': Variable '${{{var}}}' not available. "
+                            f"Available: {available_list if available_list else '(none)'}"
+                        )
+
+        # Handle nested steps (for-each loops)
+        if "steps" in step and isinstance(step["steps"], list):
+            # Recursively validate nested steps with current context plus item_var
+            _validate_variable_references_recursive(
+                step["steps"],
+                pipeline_vars,
+                declared_outputs,
+                errors,
+                current_item_vars
+            )
+
+        # After processing step (including nested steps), add its outputs to declared_outputs
+        outs = step.get("outputs")
+        if isinstance(outs, dict):
+            declared_outputs.update(outs.keys())
+        elif isinstance(outs, list):
+            declared_outputs.update(outs)
+        elif isinstance(outs, str):
+            declared_outputs.add(outs)
+
+        # Handle append_to - these create implicit lists
+        append_to = step.get("append_to")
+        if append_to:
+            declared_outputs.add(append_to)
+
+
+def _validate_all_variable_references(all_steps, pipeline_vars, errors):
+    """Validate that all variable references in step configurations can be resolved
+
+    This is the top-level entry point that starts recursive validation.
+    """
+    _validate_variable_references_recursive(all_steps, pipeline_vars, set(), errors)
+
+
 def lint_pipeline_full(pipeline_path):
     """Lint pipeline and return result object instead of raising SystemExit"""
     all_errors = []
@@ -470,6 +622,22 @@ def lint_pipeline_full(pipeline_path):
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     else:
         logger.info(f"✅ All {validated_count} step contracts valid")
+
+    # 2.5) Variable reference validation (NEW: ensure all variable references can be resolved)
+    logger.info("🔍 Validating variable references...")
+    variable_errors = []
+    pipeline_vars = pipeline_config.get("variables", {})
+    # Use pipeline_config.get("steps", []) instead of all_steps to preserve hierarchy
+    _validate_all_variable_references(pipeline_config.get("steps", []), pipeline_vars, variable_errors)
+
+    if variable_errors:
+        all_errors.extend(variable_errors)
+        logger.error(f"\n❌ Variable validation failed with {len(variable_errors)} errors:")
+        for error in variable_errors:
+            logger.error(f"  {error}")
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
+    else:
+        logger.info("✅ All variable references can be resolved")
 
     # 3) Template variables validation (NEW: ensure templates and variables match)
     logger.info("🔍 Validating template variables...")

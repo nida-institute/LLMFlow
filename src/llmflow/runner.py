@@ -261,36 +261,18 @@ def handle_step_outputs(step, result, context, base_dir="."):
         context[append_to].append(value_to_append)
         logger.debug(f"Appended to {append_to}: now has {len(context[append_to])} items")
 
-    # 3. Handle saveas
+    # 3. Handle saveas - delegate to handle_step_saveas for proper group_by_prefix support
     if "saveas" in step:
-        saveas_config = step["saveas"]
-
-        # Handle dict saveas (e.g., {"path": "...", "group_by_prefix": ...})
-        if isinstance(saveas_config, dict):
-            saveas_path = resolve(saveas_config.get("path"), context)
+        # Store result in context temporarily if not already there
+        if outputs is None:
+            # Need a temporary output name for saveas to work
+            temp_output = f"_temp_output_{id(result)}"
+            step_with_output = {**step, "outputs": temp_output}
+            context[temp_output] = result
+            handle_step_saveas(step_with_output, context)
+            del context[temp_output]
         else:
-            # Simple string path
-            saveas_path = resolve(saveas_config, context)
-
-        full_path = Path(base_dir) / saveas_path
-        full_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Determine file type and apply appropriate cleaning
-        if saveas_path.endswith('.md'):
-            from llmflow.utils.markdown_cleaner import clean_markdown
-            content = clean_markdown(str(result))
-            with open(full_path, "w", encoding="utf-8") as f:
-                f.write(content)
-            _record_written_file(str(full_path))
-        elif saveas_path.endswith('.json'):
-            save_content_to_file(result, str(full_path), format='json')
-            _record_written_file(str(full_path))
-        else:
-            with open(full_path, "w", encoding="utf-8") as f:
-                f.write(str(result))
-            _record_written_file(str(full_path))
-
-        logger.info(f"💾 Saved to {saveas_path}")
+            handle_step_saveas(step, context)
 
 
 def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> None:  # ← Changed parameter name from 'rule' to 'step'
@@ -314,7 +296,11 @@ def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> None:  
         return
 
     if isinstance(saveas_config, dict):
-        path = resolve(saveas_config["path"], context)
+        raw_path = saveas_config["path"]
+        logger.debug(f"Resolving saveas path: {raw_path}")
+        logger.debug(f"Context keys: {list(context.keys())}")
+        path = resolve(raw_path, context)
+        logger.debug(f"Resolved path: {path}")
         group_cfg = saveas_config.get("group_by_prefix")
         content = get_content()
         fmt = step.get("format", "auto")

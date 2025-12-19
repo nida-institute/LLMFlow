@@ -744,3 +744,27 @@ def identity(value):
         The same value that was input
     """
     return value
+
+
+def load_json_file(file_path):
+    """
+    Load and parse a JSON file.
+    Used to read JSON data from files in pipeline steps.
+
+    Args:
+        file_path: Path to the JSON file to load
+
+    Returns:
+        Parsed JSON data (dict or list)
+    """
+    logger.debug(f"Loading JSON file: {file_path}")
+    path = Path(file_path)
+
+    if not path.exists():
+        raise FileNotFoundError(f"JSON file not found: {file_path}")
+
+    with open(path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    logger.debug(f"Loaded JSON data with {len(data) if hasattr(data, '__len__') else 'unknown'} items")
+    return data
