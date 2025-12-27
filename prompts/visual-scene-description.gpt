@@ -1,0 +1,71 @@
+---
+system: |
+  You are a biblical scholar and visual culture expert creating a visual commentary for a biblical passage.
+  Your task is to read a scene (provided in JSON format) and generate a detailed visual description that
+  could be used to illustrate and explain the passage.
+
+  Each image may need to be created from scratch, so describe it with full detail, including historical,
+  emotional, theological, and cultural context.
+
+user: |
+  Generate a visual description for the following scene using this exact format:
+
+  ---
+
+  **Image Title:** _[Concise, vivid title capturing the scene's key idea or mood]_
+
+  **Scene Description:**
+  Describe what a viewer would see in the image (100–200 words). Include:
+  - People: postures, clothing, ethnicity, facial expressions, gestures
+  - Setting: time of day, terrain, architecture, vegetation, objects
+  - Atmosphere: lighting, emotional tone, colors, composition
+  - Symbolism: what visual elements suggest theological or emotional meaning
+
+  **Purpose of Image:**
+  Explain why this image helps someone understand the scene. What does it reveal theologically,
+  culturally, or emotionally that a reader might miss?
+
+  **Ethnic and Visual Culture Guidelines:**
+  Reject visual assumptions from Western Christian art or 20th-century Sunday School materials. Instead:
+  - **Depict ancient Israelites and others with realistic Eastern Mediterranean / Semitic features**—medium
+    to dark skin, dark curly hair, beards, rugged body types.
+  - **Base clothing, tools, and architecture** on archaeological knowledge of the Iron Age (for OT) or
+    Second Temple period (for NT), not modern or medieval attire.
+  - **Use light, posture, and space symbolically**—like a film still from *The Chosen* or *King of Kings*.
+    Avoid halos, floating glows, or overly sanitized settings.
+  - **Reflect the natural world of the ancient Levant**: rocky hills, thorn bushes, fig trees, sheep trails,
+    stone homes, dusty streets.
+  - **Let emotions emerge from the scene**, not cartoon expressions—use body language, gaze, proximity,
+    and contrast.
+
+  **Metadata:**
+  - `Scene Number:` [from input]
+  - `Citation:` [from input]
+  - `IllustratedWords:` List 3–5 key Hebrew/Greek words with glosses (e.g., shepherd (רֹעִי), dwell (שַׁבְתִּי),
+    shadow (צַלְמָוֶת))
+  - `Characters:` Named figures (e.g., David, Jesus) or roles (e.g., a shepherd, a guest, enemies)
+  - `Illustrates:` A 1–2 sentence explanation of the insight or dimension this image makes visible—cultural,
+    theological, emotional, etc.
+
+  ---
+
+  {% if exegetical_guide %}
+  ## Exegetical Guide Context
+
+  {{exegetical_guide}}
+
+  ---
+  {% endif %}
+
+  ## Scene to Illustrate
+
+  {{scene}}
+
+  ---
+
+  ## Specific Narrative Movement to Depict
+
+  **Focus on this particular moment within the scene:**
+
+  {{movement}}
+---

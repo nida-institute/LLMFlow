@@ -845,7 +845,7 @@ def run_if_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: 
 
 
 def run_pipeline(
-    pipeline_file, vars=None, dry_run=False, verbose=False, skip_lint=False
+    pipeline_file, vars=None, dry_run=False, verbose=False, skip_lint=False, log_file='llmflow.log'
 ):
     """
     Run a pipeline from a YAML file.
@@ -856,10 +856,16 @@ def run_pipeline(
         dry_run: If True, only validate and show what would run
         verbose: Enable verbose logging
         skip_lint: Skip linting validation
+        log_file: Path to log file (default: llmflow.log in cwd)
     """
     from pathlib import Path
     from pydantic import ValidationError
     from llmflow.pipeline_schema import PipelineConfig  # FIX: Correct module name
+
+    # Reset logger singleton for new run - ensures log file is overwritten, not appended
+    Logger.reset(log_file=log_file)
+    # Force recreation of singleton by calling Logger() again
+    _ = Logger()
 
     # Set up logging
     if verbose:

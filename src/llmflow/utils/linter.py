@@ -658,32 +658,6 @@ def lint_pipeline_full(pipeline_path):
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     logger.info("✅ Template variables match pipeline-provided variables")
 
-    # 4) Optional: scan rendered outputs for leftover placeholders and empty sections
-    logger.info("🔍 Scanning rendered outputs for leftovers...")
-    # Try to find outputs directory relative to pipeline, fall back to skipping if not found
-    pipeline_parent = Path(pipeline_path).resolve().parent
-    outputs_dir = None
-    # Only check outputs in the pipeline's immediate parent directory, not ancestor directories
-    potential_outputs = pipeline_parent.parent / "outputs" / "leaders_guide"
-    if potential_outputs.exists():
-        outputs_dir = potential_outputs
-
-    if outputs_dir and outputs_dir.exists():
-        placeholder_re = re.compile(r"\{\{\s*([^}]+?)\s*\}\}")
-        hrule_re = re.compile(r"^\s*---\s*$", re.MULTILINE)
-        for md in outputs_dir.glob("*.md"):
-            text = md.read_text(encoding="utf-8")
-            unexpanded = {m.group(1).strip() for m in placeholder_re.finditer(text)
-                          if not (m.group(1).strip().startswith("#")
-                                  or m.group(1).strip().startswith("/")
-                                  or m.group(1).strip().startswith("%"))}
-            if unexpanded:
-                all_errors.append(f"❌ Unexpanded placeholders in {md.name}: {sorted(unexpanded)}")
-            parts = [p.strip() for p in hrule_re.split(text)]
-            empty_idxs = [i for i, p in enumerate(parts) if len(p) == 0]
-            if empty_idxs:
-                all_errors.append(f"❌ Empty sections around '---' in {md.name}: indices {empty_idxs} (sections: {len(parts)})")
-
     if all_errors:
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
 

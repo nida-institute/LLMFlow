@@ -40,6 +40,7 @@ def build_parser():
     run_p.add_argument("--dry-run", action="store_true", help="Dry run (no LLM calls)")
     run_p.add_argument("--skip-lint", action="store_true", help="Skip linting")
     run_p.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
+    run_p.add_argument("--log", default="llmflow.log", help="Path to log file (default: llmflow.log in cwd)")
 
     # list command
     list_p = subparsers.add_parser("list", help="List available pipelines")
@@ -142,7 +143,7 @@ def main(argv=None):
                 sys.exit(1)
 
         variables = _collect_cli_variables(args.var)
-        run_pipeline(args.pipeline, vars=variables, dry_run=args.dry_run, verbose=args.verbose)
+        run_pipeline(args.pipeline, vars=variables, dry_run=args.dry_run, verbose=args.verbose, log_file=args.log)
         return
 
     parser.print_help()

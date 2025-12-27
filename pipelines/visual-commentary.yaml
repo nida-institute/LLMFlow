@@ -1,0 +1,90 @@
+name: visual-commentary
+
+description: |
+  Generate visual descriptions for biblical scenes to create a visual commentary.
+  Takes a passage and its scene list JSON to generate detailed visual descriptions.
+
+  Examples:
+    llmflow run --pipeline pipelines/visual-commentary.yaml --var passage="Psalm 23"
+    llmflow run --pipeline pipelines/visual-commentary.yaml --var passage="Psalm 1"
+    llmflow run --pipeline pipelines/visual-commentary.yaml --var passage="Matthew 2:13-23"
+
+  Inputs:
+    - Scene list JSON from ./scenes/ directory
+    - Optional: Exegetical guide from ./exegetical/ directory
+
+  Outputs:
+    - Visual descriptions in ./output/ directory
+
+variables:
+  prompts_dir: prompts
+  output_dir: output
+  passage: "${passage}"
+  scenes_dir: scenes
+  exegetical_dir: exegetical
+
+llm_config:
+  model: gpt-4o
+  max_tokens: 4096
+  temperature: 0.5
+  timeout_seconds: 60
+
+linter_config:
+  enabled: true
+
+steps:
+
+  # --- Parse Passage Reference ---
+  - name: parse_passage_reference
+    type: function
+    function: llmflow.utils.data.parse_bible_reference
+    inputs:
+      passage: "${passage}"
+    outputs: passage_info
+
+  # --- Load Scene List ---
+  - name: load_scene_list
+    type: function
+    function: llmflow.utils.data.load_json_file
+    inputs:
+      file_path: "${scenes_dir}/${passage_info.filename_prefix}.json"
+    outputs: scene_list
+
+  # --- Load Exegetical Guide (Optional) ---
+  - name: load_exegetical_guide
+    type: function
+    function: llmflow.utils.io.read_file
+    inputs:
+      file_path: "${exegetical_dir}/${passage_info.filename_prefix}_exegetical_guide.md"
+    outputs: exegetical_guide
+    condition: "Path('${exegetical_dir}/${passage_info.filename_prefix}_exegetical_guide.md').exists()"
+    after: continue
+
+  # --- For Each Scene, Generate Visual Description ---
+  - name: process_each_scene
+    type: for-each
+    input: "${scene_list}"
+    item_var: scene
+    steps:
+
+      - name: generate_visual_description
+        type: llm
+        prompt:
+          file: visual-scene-description.gpt
+          inputs:
+            scene: "${scene}"
+            exegetical_guide: "${exegetical_guide}"
+        outputs: visual_description
+        append_to: visual_descriptions_list
+
+  # --- Combine All Visual Descriptions into Single Document ---
+  - name: render_visual_commentary
+    type: function
+    function: llmflow.utils.io.render_markdown_template
+    inputs:
+      template_path: "templates/visual_commentary_template.md"
+      variables:
+        passage: "${passage}"
+        visual_descriptions: "${visual_descriptions_list}"
+    outputs: visual_commentary_markdown
+    saveas: "${output_dir}/${passage_info.filename_prefix}_visual_commentary.md"
