@@ -10,23 +10,73 @@ prompt:
 
 ---
 
-Generate 4-7 questions that help readers enter a Gospel scene with their physical senses.
+Generate questions that help readers enter a Gospel scene with their physical senses.
 
-Each question must have THREE parts:
-1. A natural conversational question in English
-2. A Greek anchor followed by the English equivalent in this format: (GRK: Greek text, BSB: BSB translation"
+Each question: simple English question + Greek anchor in this format: (GRK: Greek text, BSB: BSB translation)
 
-# EXAMPLE OF COMPLETE OUTPUT:
+# GOOD EXAMPLE FIRST:
 
-For the scene John 4:5-6, here is the complete output format:
+### Enter the Scene with Your Body (Matthew 2:13-15)
 
-### Enter the Scene with Your Body (John 4:5-6)
+1. How does the angel appear to Joseph? (GRK: κατ᾽ ὄναρ, BSB: in a dream)
+2. What does the angel tell Joseph to do? (GRK: φεῦγε εἰς Αἴγυπτον, BSB: flee to Egypt)
+3. Why must they flee? (GRK: Ἡρῴδης ζητεῖν τὸ παιδίον τοῦ ἀπολέσαι αὐτό, BSB: Herod is going to search for the Child to kill Him)
+4. When does Joseph leave? (GRK: νυκτὸς, BSB: by night)
+5. How long will they stay in Egypt? (GRK: ἕως ἂν εἴπω σοι, BSB: until I tell you)
 
-1. Picture Jesus at the well at noon—what would the light and heat feel like in an open area with no shade? (GRK: ὥρα ἦν ὡς ἕκτη, BSB: It was about the sixth hour)
-1. Where is Jesus positioned as the scene opens—standing, walking, or already seated? (GRK: ἐκαθέζετο οὕτως ἐπὶ τῇ πηγῇ, BSB: sat down by the well)
-1. How far has Jesus traveled to reach this point, and what does "weary from His journey" tell you about the pace and distance? (GRK: κεκοπιακὼς ἐκ τῆς ὁδοιπορίας, BSB: weary from His journey)
-1. What sensory details would you notice at a well in the midday heat—sounds, temperature, the feel of stone? (GRK: ἐπὶ τῇ πηγῇ, BSB: by the well)
-1. Wells in this region were often stone-lined and deep (Jacob's well was over 100 feet); what would that structure look and feel like? (GRK: τῆς πηγῆς τοῦ Ἰακώβ, BSB: Jacob's well)
+---
+
+# THREE PRIMARY RULES (NEVER BREAK THESE):
+
+## 1. MATCH QUESTION TYPE TO THE GREEK
+
+Work from the GREEK text (BSB is just for readers). Match your question to what the Greek indicates:
+- Greek indicates WHEN → ask WHEN ("When does...?")
+- Greek indicates WHERE → ask WHERE ("Where is...?")
+- Greek indicates HOW → ask HOW ("How does...?")
+- Greek indicates WHAT → ask WHAT ("What does...?")
+- Greek indicates WHO → ask WHO ("Who...?")
+
+✅ RIGHT: "How does the angel appear?" (GRK: κατ᾽ ὄναρ = manner)
+❌ WRONG: "Where does Joseph receive the message?" (GRK: κατ᾽ ὄναρ = manner, NOT location)
+
+## 2. ONE QUESTION AT A TIME (NO COMPOUNDS)
+
+❌ WRONG: "What does the angel tell Joseph to do, and how does this affect their movements?"
+✅ RIGHT: "What does the angel tell Joseph to do?"
+
+## 3. USE SIMPLE WORDS ONLY
+
+✅ Use: tell, ask, say, do, go, take, leave, come, see, hear
+❌ Avoid: instruct, inquire, indicate, commence, proceed, articulate, demonstrate
+
+❌ WRONG: "What does the angel instruct Joseph to do?"
+✅ RIGHT: "What does the angel tell Joseph to do?"
+
+---
+
+# SECONDARY GUIDANCE:
+
+**Write like a screenplay:** Think WHERE/WHO/WHAT. Engage all senses (sight, sound, touch, temperature, smell, movement). Short, concrete questions—not analytical essays.
+
+**κατ᾽ ὄναρ / ἐν ὀνείρῳ (in a dream):** This indicates HOW, not WHERE. The dream happens IN THE DREAM. Ask about actions AFTER waking: "What does Joseph do when he wakes up?"
+
+**No speculation:** Only ask about what's in the Greek text or exegetical_culture. No "might," "imagine," "atmosphere," or invented details.
+
+**Body not Heart:** Physical/spatial/visible details only. No emotions or inner life.
+
+---
+
+# WORST MISTAKES (DON'T DO THESE):
+
+❌ Question/answer mismatch:
+"Where does Joseph receive the message?" (GRK: κατ᾽ ὄναρ = HOW, not WHERE)
+
+❌ Academic words:
+"What does the angel instruct..." → Use "tell" not "instruct"
+
+❌ Compound questions:
+"When does Joseph leave, and what does this suggest?" → Pick ONE question
 
 ---
 
@@ -39,9 +89,9 @@ For the scene John 4:5-6, here is the complete output format:
 **Cultural facts:** {{exegetical_culture}}
 
 **INSTRUCTIONS:**
-- Start with the heading: ### Enter the Scene with Your Body ({{citation}})
-- Generate 4-7 questions as a numbered list
-- Each question: natural conversational English, followed by (GRK: Greek phrase, BSB translation)
-- Cover: setting (light/sound/space), participants, actions, sensory details, objects
-- Use only what's in the scene text - no speculation
-- Questions should help readers picture the physical scene
+- Start with: ### Enter the Scene with Your Body ({{citation}})
+- Generate numbered questions covering essential physical details
+- Each question: simple English + (GRK: Greek phrase, BSB: BSB translation)
+- Cover WHERE/WHO/WHAT/WHEN/HOW from the scene
+- Work from GREEK text (BSB is just reference)
+- Number of questions depends on scene content (usually 4-7 questions)
