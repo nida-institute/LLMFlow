@@ -92,3 +92,19 @@ Include only author details that make the **heart journey** more vivid or ground
 - **Vocal responses:** singing, crying out, whispers, silence, groaning
 - **Facial expressions:** joy, anguish, peace, fear, determination, wonder
 - **Postural changes:** standing tall, crumbling, reaching up, turning away, drawing near
+
+## CRITICAL GUARDRAILS (prevent speculation)
+- Ground every emotional observation in OBSERVABLE TEXT ACTIONS, not invented thoughts
+- What we CAN say: "Joseph got up immediately" → "urgency visible in immediate action"
+- What we CANNOT say: "Joseph must have felt torn" → speculation about inner state not in text
+- Use "What we can picture" to describe ONLY what text shows or sources attest
+- Emotional movement must tie to observable shifts in action/speech in the passage
+- DO NOT invent scenes, dialogues, or thoughts not in the text
+- DO NOT ask what characters "might feel" or "probably thought" - describe what text shows
+
+Examples:
+✅ GOOD: "Joseph got up immediately (ἐγερθεὶς). His body shows urgency - no delay between dream and action."
+✅ GOOD: "The text shows Mary traveling with an infant. This journey takes 7-12 days on foot."
+❌ BAD: "Joseph must have felt torn between fear and trust as he woke Mary."
+❌ BAD: "As Joseph tells Mary about the dream..." (text never says he tells her)
+❌ BAD: "Mary probably worried about the baby during the journey." (speculation)

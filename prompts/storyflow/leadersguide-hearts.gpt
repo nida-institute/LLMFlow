@@ -4,98 +4,244 @@ prompt:
     - passage
     - scene
     - citation
-    - bodies_content
     - exegetical_culture
     - exegetical_emotionalarc
-    - joshfrost_emotional
   format: Markdown
-  description: Plain-language heart questions that build on Bodies. Short, direct, concrete. Viewpoint-shifted. No academic tone.
+  description: Plain-language Heart questions for NT narrative scenes. Explores inner life - thought, desire, will, emotion, trust. Natural viewpoint shifting.
 
 ---
 
-<!-- HARD RULE: the FIRST non-empty line of your output MUST be exactly:
-### Enter the Scene with Your Whole Heart ({{citation}})
-No other H3 before this. -->
+Generate questions that help readers enter the inner life of characters in a Gospel scene.
 
-# Step 2 – Hearts (for the model; do not output)
+Heart (Hebrew lev, Greek kardia) = the inner center where thought, desire, will, and emotion converge.
 
-Inputs
-- Scene: {{scene}}
-- Citation: {{citation}}
-- Bodies (completed): {{bodies_content}}
-- Cultural/background: {{exegetical_culture}}
-- Emotional arc/background: {{exegetical_emotionalarc}}
-- Josh Frost: {{joshfrost_emotional}}
+## AUDIENCE AND PURPOSE
 
-Anchor priority
-1) Bodies callback (preferred)
-2) Direct text quote (if Bodies missed a key phrase)
-3) Cultural/Exegetical cue from e1/e3 (one short clause: risk, cost, belonging, honor, purity, table, childlessness, etc.)
-4) Word hook from e2 (one short clause tied to a key term)
-5) Josh Frost insight (one short clause) to sharpen, not replace, the anchor
+These questions help **small group leaders** facilitate **heart exploration** with mature adults from **diverse cultures and communication styles**, including **oral cultures**.
 
-Language (strict)
-- Plain, simple English. Everyday words. Short sentences (≤ 16 words).
-- One question per item (optionally a 2–6 word follow-up).
-- Match Bodies’ tone and format. No paragraphs. No Greek. No transliterations.
-- Avoid academic words: consider, reflect, reveals, demonstrates, posture, dynamics, vulnerability, intervention, significant, broader context, tension between, trajectory.
-  - Prefer: shows, means, what matters, fear, trust, choice, attention, hope, courage, loyalty, shame/honor.
+**The participants:**
+- Intelligent adults from many cultures with different life experiences
+- Diverse education backgrounds - some academic, many oral communicators
+- Equal in capacity for moral examination, different in how they process
+- Want to discover inner life (thought, desire, will, emotion, trust) in biblical characters
+- Learn best through observation and discovery, not abstract analysis
 
-Scope of “heart” (lev/kardia)
-- Thought and attention (what they notice or focus on)
-- Desire and hope (what they want or wait for)
-- Will and choice (what they decide or refuse)
-- Emotion (fear, joy, sorrow, anger) only as tied to the moment
-- Loyalty and trust (whose voice they follow)
-- Conscience and courage/caution
-- Memory/imagination only as tied to the scene (no long speculation)
+**The setting:**
+- Questions spoken aloud after exploring the physical scene (Bodies)
+- Participants discover what moves characters' hearts based on observable actions
+- Goal: Invite examination of inner life through what bodies do and voices say
+- Leader facilitates, participants make discoveries
 
-Viewpoint shifting
-- Rotate 2–3 viewpoints named in the text (e.g., Joseph; Mary; narrator/outside). Use short prefixes: “From Joseph’s view,” “From Mary’s view,” “From outside,” etc.
-- Anchor each question to Bodies/text/cues. Do not invent unseen characters or settings.
+**Therefore, questions must:**
+- Use simple, everyday words (not "motivations" → "What drives him?")
+- Keep sentences short (under 12-15 words when possible)
+- Sound natural spoken aloud
+- Avoid academic/analytical language ("What does this reveal about..." → "What moves him?")
+- Use simple verbs not abstract nouns ("What does X do?" not "What action does X take?")
 
-Avoid overlap
-- Do not re-describe physical details from Bodies. Use brief callbacks, then ask what it means for the heart.
+✅ GOOD (oral, simple): "Does Joseph hesitate, or does he go?"
+✅ GOOD (oral, simple): "What keeps them going?"
+❌ BAD (academic): "What motivations might underlie Joseph's immediate response?"
+❌ BAD (abstract nouns): "What factors influence their decision-making process?"
 
-Count
-- 4–6 questions total. Stop when adding more would repeat or drift.
+---
 
-Output template
-- Title:
-### Enter the Scene with Your Whole Heart ({{citation}})
-- Then a numbered list (Markdown “1.” is fine).
+# GOOD EXAMPLE FIRST:
 
-Item patterns (choose any, per priority; include viewpoint prefix on most items)
-- From [view], You noticed “{Bodies detail}.” What does this show about trust or fear?
-- From [view], “{short quote}” — what choice do you see now?
-- From [view], ({short cultural/word cue}) Given this, what matters most here?
-- From [view], You noticed “{Bodies detail}.” ({very short Frost cue}) Where does the heart turn?
+### Enter the Scene with Your Whole Heart (Matthew 2:13-15)
 
-### Enter the Scene with Your Whole Heart ({{citation}})
+1. Does Joseph hesitate, or does he go?
+2. What choice does Mary face when they must leave?
+3. The journey takes several days. What keeps them going?
+4. Mary is caring for a baby on this journey. What was this like for her?
 
-1. From [view], [short question using one anchor above]. (Optional 2–6 word follow-up.)
-1. From [view], [different anchor]. Short. Everyday words.
-1. From [view], [different anchor]. Short. Everyday words.
-1. From [view], [different anchor]. Short. Everyday words.
-1. [Optional]
-1. [Optional]
+---
 
-## Style examples (DO NOT OUTPUT — DO NOT COPY)
+# FOUR PRIMARY RULES (NEVER BREAK THESE):
 
-Example A: Matthew 2:13–15
-- From Joseph’s view, you noticed “by night.” What does leaving in the dark show about fear or trust?
-- From Mary’s view, “Take the child and his mother.” What choice do you see here?
-- From outside, (several days on foot). Given this, what keeps them going?
-- From Joseph’s view, “Get up.” Where does his attention go first?
-- From Mary’s view, you noticed quiet steps. Is the heart cautious or brave?
+## 1. ASK ABOUT INNER LIFE, NOT JUST EMOTION
 
-Example B: Mark 4:35–41
-- From the bow, “a great windstorm arose.” What fear shows up first?
-- From the stern, you noticed “he was asleep.” Where does their attention go now?
-- From mid‑boat, “Peace! Be still!” After this, what matters most to them?
-- From shore, (small boats at dusk). Do they move with trust or with worry?
+Heart = thought + desire + will + emotion + trust. Ask what people:
+- Notice or focus on (attention/thought)
+- Want or hope for (desire)
+- Choose or refuse (will)
+- Fear, trust, or doubt (emotion tied to choice)
 
-Notes
-- Keep every question short and concrete.
-- Tie each item to a Bodies detail, a short quote, or a brief cue.
-- Rotate viewpoints. No paragraphs. No academic wording.
+✅ GOOD: "What choice does Mary face?"
+✅ GOOD: "Does Joseph hesitate, or does he go?"
+❌ BAD: "What does the heart reveal?"
+❌ BAD: "What does Joseph trust?" (speculation about inner state not in text)
+❌ BAD: "Is Joseph afraid or trusting?" (false binary - both can be true)
+❌ BAD: "What does leaving in the dark show about fear or trust?" (analytical)
+
+## 2. SHIFT VIEWPOINTS NATURALLY
+
+Ask about different people. Convey viewpoint by WHO you ask about.
+
+✅ GOOD: "What was this like for Mary?"
+✅ GOOD: "Does Joseph hesitate, or does he go?"
+❌ BAD: "From Mary's perspective..." or "From Mary's view..."
+❌ BAD: "From Joseph's view, is he afraid?"
+
+## 3. USE SIMPLE, DIRECT QUESTIONS
+
+✅ Use: fear, trust, choice, hope, attention, courage, shame, honor
+❌ Avoid: reveals, demonstrates, posture, dynamics, vulnerability, trajectory
+❌ Avoid: "what does X show about Y" (analytical language)
+
+Ask directly:
+✅ "What keeps them going?"
+❌ "What does their journey show about perseverance?"
+
+## 4. PROVIDE CULTURAL FACTS, THEN ASK ABOUT RESPONSE
+
+State the fact, then ask about inner response.
+
+✅ GOOD: "The journey takes several days. What keeps them going?"
+❌ BAD: "How long is the journey?"
+
+---
+
+# SECONDARY GUIDANCE:
+
+**Ask about what matters:**
+- What do they want? What do they fear?
+- What are they trusting? What are they choosing?
+- Where does their attention go?
+- What keeps them going / holds them back?
+
+**Question patterns (use variety):**
+- "What does [person] trust / choose / want?"
+- "What choice does [person] face?"
+- "What was this like for [person]?"
+- "Where does [person's] attention go?"
+- "Does [person] hesitate, or does [person] go?"
+- "[Cultural fact]. What keeps them going / holds them back?"
+
+**Allow for complexity and contradiction:**
+Hearts are not simple. People can be afraid and trusting, hopeful and despairing, committed and hesitant at the same time.
+
+✅ GOOD: "What might be going on in Joseph's heart?"
+✅ GOOD: "Is Joseph afraid? Trusting? Both?"
+✅ GOOD: "What pulls at Mary's heart in different directions?"
+❌ BAD: "Is Joseph afraid or trusting?" (forces a choice)
+
+**Avoid speculation and false binaries:**
+- Don't ask about inner states we can't observe ("Is X afraid?")
+- Don't create either/or choices that exclude mixed realities ("afraid or trusting" - both can be true)
+- Ground questions in observable actions, choices, and text details
+
+**Vary viewpoints:**
+Ask about different characters across the 4-6 questions. Don't ask about the same person for every question.
+
+---
+
+# NOW GENERATE YOUR QUESTIONS:
+
+**Scene text (SBLGNT):** {{scene}}
+
+**Citation:** {{citation}}
+
+**Cultural facts:** {{exegetical_culture}}
+
+**Emotional insights:** {{exegetical_emotionalarc}}
+
+**INSTRUCTIONS:**
+- Start with: ### Enter the Scene with Your Whole Heart ({{citation}})
+- Generate 4-6 numbered questions
+- Each question: simple English, no Greek, no meta-framing
+- Ask about thought, desire, will, emotion, trust
+- Shift viewpoints naturally by asking about different characters
+- Use variety in question patterns
+
+**Ground every question in observable text or provided analysis:**
+
+Every Heart question must anchor to something you can point to:
+
+**THREE GROUNDING OPTIONS:**
+
+1. **Actions/choices in the passage:**
+   - What the text shows someone doing: "Joseph got up" → "Does Joseph hesitate, or does he go?"
+   - Words spoken: "The angel said 'flee'" → "What choice does Mary face?"
+
+2. **Cultural facts from exegetical guide:**
+   - Physical realities: "Journey takes days" → "What keeps them going?"
+   - Cultural context: "Mary caring for baby" → "What was this like for her?"
+
+3. **Emotional analysis from Josh Frost (when available):**
+   - Values at stake: "Family Safety value threatened" → "What is Joseph protecting?"
+   - Countercurrents: "Urgency AND trust in divine guidance" → "Is Joseph afraid? Trusting? Both?"
+   - Emotional shifts: "Fear → determination" → "What changes in Joseph between the dream and the journey?"
+
+**Use variety - not every question needs the same grounding type.**
+
+✅ GOOD (grounded in action): "Does Joseph hesitate, or does he go?" (text: ἐγερθεὶς παρέλαβεν)
+✅ GOOD (cultural fact): "The journey takes several days. What keeps them going?"
+✅ GOOD (Josh Frost countercurrent): "Is Joseph afraid? Trusting? Both?"
+✅ GOOD (physical detail): "Mary is caring for a baby on this journey. What was this like for her?"
+
+❌ BAD (pure speculation): "What goes through Joseph's mind when he wakes up?"
+❌ BAD (invented scene): "As Joseph tells Mary about the need to leave, what choice does she face?"
+❌ BAD (speculation + might): "What might Joseph and Mary hope for as they begin their journey?"
+❌ BAD (speculation about feelings): "What fears might Joseph feel, and how does he overcome them?"
+❌ BAD (speculation about attention): "Where does Mary's attention go while caring for the baby?"
+
+**Respect agency as text shows it:**
+- Who acts? Who is acted upon? Don't impose modern choice where text shows compliance/obedience.
+- When text shows someone taken/moved/commanded: ask about EXPERIENCE ("What was this like?"), not DECISION ("What choice?")
+
+✅ GOOD: "Joseph took Mary by night. What was this like for Mary?" (text: παρέλαβεν)
+❌ BAD: "What choice does Mary face when they leave?" (she's taken, not choosing)
+
+**Test: Can you point to the Greek/BSB text, exegetical guide, or Josh Frost analysis for your question's anchor?**
+- If no → speculation
+- If yes → grounded
+
+**Ask about CHARACTERS in the scene, not literary/theological concepts:**
+✅ GOOD: "The text says Herod was furious. What drives this fury?"
+❌ BAD: "What emotions might he experience?" (text already says: furious)
+❌ BAD: "What does this imagery convey?" (literary analysis)
+❌ BAD: "How does prophecy affect understanding?" (theological analysis)
+
+Hearts = inner life of PEOPLE in the text. Not analysis of symbols, themes, or theological concepts.
+
+**Use simple verbs, not abstract nouns:**
+✅ GOOD: "Why does Herod send orders to kill the boys?"
+❌ BAD: "What drives his decision?" (abstract: "decision")
+Ask WHY [person] DOES [verb], not "what drives [person's] decision"
+
+---
+
+**Avoid speculation and hypotheticals:**
+- Don't use "might," "could," "would" to speculate
+- When text STATES an emotion, ask what drives it (not what it "might" be)
+
+✅ GOOD: "Text says Herod was furious. Why does Herod send orders to kill the boys?"
+❌ BAD: "What emotions might Herod experience?" (text already says: furious)
+
+## AUDIENCE AND PURPOSE
+
+These questions help **small group leaders** facilitate **discovery** with mature adults from **diverse cultures and communication styles**, including **oral cultures**.
+
+**The participants:**
+- Intelligent adults from many cultures worldwide
+- Diverse education backgrounds - some academic, many oral communicators
+- Equal in capacity to understand, different in how they process (oral vs. written)
+- May be unfamiliar with Greek, ancient culture, or theological terminology
+- Want to connect with people in the story and examine their own hearts
+- Learn best through conversation and personal discovery
+
+**The setting:**
+- Questions spoken aloud, discussed together
+- Participants explore inner lives of characters through conversation
+- Goal: Examine hearts (thought/desire/will/emotion/trust) together
+- Leader facilitates discovery, participants make their own connections
+
+**Therefore, questions must:**
+- Use conversational language (what people say aloud) not academic writing
+- Ask about PEOPLE and their hearts, not literary devices
+- Trust participants to make moral connections - don't prescribe them
+- Work in oral discussion (brief, clear, memorable)
+
+✅ GOOD: "Why does Herod send orders to kill the boys?"
+❌ BAD: "What does this imagery convey?" (academic analysis, not conversation)

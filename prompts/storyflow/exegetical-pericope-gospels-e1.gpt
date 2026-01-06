@@ -68,13 +68,25 @@ For each coherent scene or image in {{passage}}, use the following subsections (
 - Language notes
   - Term (original + transliteration): simple gloss; one clause on tone/action if it changes how the scene is seen/heard. (Lexicon/source)
 
-- Hearts-ready cultural cues (plain, attested; DO NOT interpret)
-  - Childlessness and social pain (e.g., stigma, loss of honor) — one clause; source cue.
-  - Table fellowship boundaries (e.g., Jews/Gentiles not eating together) — one clause; source cue.
-  - Honor/shame dynamics tied to public acts (e.g., obedience/disobedience seen) — one clause; source cue.
-  - Purity practices affecting inclusion/exclusion (e.g., touch, food laws) — one clause; source cue.
-  - Patronage/dependence realities (e.g., who provides protection) — one clause; source cue.
-  - Travel risks/needs (e.g., several days on foot; night travel danger) — one clause; source cue.
+- Hearts-ready cultural cues (provide label + concrete observable fact; DO NOT interpret)
+  - Format: [Cultural label]: [Specific concrete fact with observable consequence]
+  - Honor/shame dynamics: [Public action + social consequence] (e.g., "Herod's public decree to kill infants; failure to execute it would expose him as weak before Rome")
+  - Patronage/dependence: [Specific relationship + material reality] (e.g., "Joseph has no legal recourse against royal decree; depends entirely on divine warning for escape route and timing")
+  - Purity practices: [Physical requirement + exclusion consequence] (e.g., "Touching corpse requires 7-day purification outside camp; excludes from temple/synagogue worship")
+  - Table fellowship boundaries: [Who cannot share meals + social cost] (e.g., "Jews entering Gentile homes or sharing meals causes ritual defilement; community may ostracize")
+  - Childlessness/social pain: [Stigma + material consequence] (e.g., "Barren women blamed for sin; may be divorced; lose security in old age")
+  - Travel risks/needs: [Physical requirements for journey] (e.g., "7-12 day journey requires carrying water (~1 liter/person/day), grain/dried food, sleeping outdoors or paying for lodging; infant needs constant nursing")
+  - Economic realities: [Specific costs, wages, debts] (e.g., "Day laborer earns 1 denarius/day; family of 3 needs 3+ denarii/week for food; journey costs 10+ denarii total")
+
+  REQUIRED: Every cultural label must include concrete, observable facts with source cue
+  AVOID: Abstract labels without specific grounding details
+
+- Physical logistics (if travel or action requires preparation)
+  - What must be carried, obtained, or arranged for the action to succeed (water containers, food provisions, tools, travel documents, lodging arrangements)
+  - Quantities when estimable from sources (e.g., water needs per person per day, food that doesn't spoil, typical provisions for journey length)
+  - How items are transported (donkey, carried by hand, worn on body) when text implies or sources attest
+  - Where travelers sleep/rest during multi-day journeys (roadside, caravanserais/inns, with relatives) and typical costs if known (Source)
+  - Example: "7-12 day journey: ~7-12 liters water per person, grain or dried fruit/fish, leather water skins. Lodging at inns 1-2 asses per night (papyri). Infant care requires nursing mother or wet nurse; swaddling clothes." (Travel studies/papyri/Josephus)
 
 ## Style
 - Plain English. Short sentences. Concrete description.

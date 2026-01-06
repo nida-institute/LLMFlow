@@ -11,12 +11,34 @@ prompt:
 
 You are writing a warm, plain-language guide to the emotional and spiritual journey in {{passage}}. Use {{source}} to ground meaning when helpful. Keep sentences short and oral. Avoid academic tone.
 
-Use Martha Nussbaum’s model of emotion:
-- Emotions are judgments about what matters.
-- They show what is at stake and how people are vulnerable.
-- Tie feelings to actions, choices, and outcomes in the scene.
+Use Martha Nussbaum's model of emotion:
+ - Emotions are judgments about what matters.
+ - They show what is at stake and how people are vulnerable.
+ - Tie feelings to actions, choices, and outcomes in the scene.
 
-Include Greek words only when they help us see or feel the moment; add transliteration and a simple gloss.
+ Include Greek words only when they help us see or feel the moment; add transliteration and a simple gloss.
+
+ ---
+
+## CRITICAL GUARDRAILS (prevent speculation)
+
+**E3 provides observable facts for Hearts questions to use as grounding.**
+
+Ground every observation in OBSERVABLE TEXT ACTIONS or ATTESTED CULTURAL FACTS:
+- ✅ GOOD: "Joseph got up immediately (ἐγερθεὶς). Urgency visible in immediate action."
+- ✅ GOOD: "The text shows Mary traveling with infant. Journey takes 7-12 days on foot (cultural sources)."
+- ❌ BAD: "Joseph must have felt torn between fear and trust as he woke Mary."
+- ❌ BAD: "As Joseph tells Mary about the dream..." (text never says he tells her)
+- ❌ BAD: "Mary probably worried about baby during journey." (speculation)
+
+**NO emotional arc narratives** ("from fear to trust," "uncertainty to hope") unless text explicitly states both emotions:
+- Describe what BODIES DO (rise immediately, depart by night, settle in Nazareth)
+- Describe what VOICES SAY (direct quotes only)
+- Let Hearts prompt discover inner life - E3 provides facts for grounding
+
+**Title each moment by OBSERVABLE ACTION, not emotional label:**
+- ✅ GOOD: "Urgent Escape" or "Night Departure"
+- ❌ BAD: "Fear in the Storm" (names emotion not in text)
 
 ---
 
@@ -39,13 +61,14 @@ For each key moment in the scene (2–5 moments), use this pattern:
   - Objects and setting: boat, road, lamp, door; what is present and what is missing.
 
 - Values at stake (Nussbaum):
-  - What matters here (safety, belonging, trust, honor, hope)?
-  - What judgment does the emotion make about that value (danger, risk, gain, loss)?
-  - Where vulnerability shows (exposed to harm/help), as the action or line displays it.
+  - What action or choice in the text shows something matters? (cite specific verse/action)
+  - What vulnerability does this action expose? (based on cultural context or stated outcome)
+  - What's at stake is shown BY what characters do/say, not what we imagine they feel
 
 - Emotional movement:
-  - What shifts in the heart (fear to trust, shame to welcome, grief to hope)?
-  - What action shows the shift (speak, wait, move, protect, hide)?
+  - What OBSERVABLE shift in action, speech, or position? (Examples: speak → silent, near → far, slow → urgent, hidden → visible)
+  - What does this observable shift reveal is at stake? (cite Greek word, cultural fact, or textual detail that grounds it)
+  - DO NOT name emotions unless text explicitly states them (no "fear to trust" unless text says both)
 
 - Greek that intensifies tone (if helpful):
   - Term (Greek + transliteration) — short gloss and how it colors the moment (soft, sharp, everyday vs formal).
@@ -55,6 +78,24 @@ For each key moment in the scene (2–5 moments), use this pattern:
   - “If you stand near the doorway/on the road/in the boat, what changes in what you feel?”
 
 Repeat for the few moments that most carry the emotional movement in {{passage}}.
+
+ ---
+
+## CRITICAL GUARDRAILS (prevent speculation)
+- Ground every emotional observation in OBSERVABLE TEXT ACTIONS, not invented thoughts
+- What we CAN say: "Joseph got up immediately" → "urgency visible in immediate action"
+- What we CANNOT say: "Joseph must have felt torn" → speculation about inner state not in text
+- Use "What we can picture" to describe ONLY what text shows or sources attest
+- Emotional movement must tie to observable shifts in action/speech in the passage
+- DO NOT invent scenes, dialogues, or thoughts not in the text
+- DO NOT ask what characters "might feel" or "probably thought" - describe what text shows
+
+Examples:
+-✅ GOOD: "Joseph got up immediately (ἐγερθεὶς). His body shows urgency - no delay between dream and action."
+-✅ GOOD: "The text shows Mary traveling with an infant. This journey takes 7-12 days on foot."
+-❌ BAD: "Joseph must have felt torn between fear and trust as he woke Mary."
+-❌ BAD: "As Joseph tells Mary about the dream..." (text never says he tells her)
+-❌ BAD: "Mary probably worried about the baby during the journey." (speculation)
 
 ---
 

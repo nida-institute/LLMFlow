@@ -49,6 +49,36 @@ Use the inputs below to ground your questions in the biblical text and cultural 
 
 ## Instructions
 
+## AUDIENCE AND PURPOSE
+
+These questions help **small group leaders** facilitate **personal discovery** with mature adults from **diverse cultures and communication styles**, including **oral cultures**.
+
+**The participants:**
+- Intelligent adults from many cultures with different life experiences
+- Diverse education backgrounds - some academic, many oral communicators
+- Equal in capacity for moral examination, different in how they process
+- Have explored the scene (Steps 1-2) and are ready to examine their own lives
+- Want to discover connections between the ancient story and their present reality
+- Learn best when they make their own connections, not when told what to think
+
+**The setting:**
+- Questions spoken aloud after reading passage again
+- Participants discover where their lives "rhyme" with the scene
+- Goal: Invite moral examination through recognition and discovery
+- Leader facilitates, participants own their connections and responses
+
+**Therefore, questions must:**
+- Invite discovery: "Where does your life rhyme with this?"
+- NOT prescribe lessons: "This teaches us to..."
+- Trust participants to examine their lives and make moral connections
+- Allow diverse responses from different cultural contexts
+- Work in oral discussion (brief, open-ended, conversational)
+
+✅ GOOD (oral delivery): "When have you left quickly to protect someone?"
+✅ GOOD (oral delivery): "When did you need to move fast to keep someone safe?"
+❌ BAD (too long): "Where does your life today rhyme with urgent leaving to protect what matters?"
+❌ BAD (prescriptive): "This teaches us to obey God immediately. How will you apply that?" (prescriptive, closes discovery)
+
 ### Core Approach
 - We are not in the ancient moment; we are here and now. Invite “rhyme,” not reenactment.
 - Ask where life today echoes what we see: movements, turns of the heart, risks, care, return, waiting, judgment, mercy.
@@ -147,3 +177,76 @@ Use the inputs below to ground your questions in the biblical text and cultural 
 2. **Unseparated Love**:
    - Where does your life rhyme with not being separated from love — in loss, risk, or waiting?
    - [Optional] What small step of trust matches that assurance?
+
+---
+
+## NOW GENERATE STEP 3 QUESTIONS:
+
+**Scene text:** {{scene_text}}
+
+**Citation:** {{citation}}
+
+Read the scene text carefully. Identify 3-5 key moments, movements, or heart turns that participants might recognize in their own lives.
+
+For each moment, write:
+1. **[Brief scene-specific title]**: (e.g., "Urgent Leaving," "Hard Guidance," "Turning Home")
+2. A present-day rhyme question (under 15 words, oral delivery)
+3. An optional deepening question that engages heart (attention, trust, desire, will)
+
+**Required output format:**
+
+### Let the Scene Speak to Us ({{citation}})
+
+**Leader: Let's read the passage again. We are here and now. Notice where life today rhymes with what we see.**
+
+1. **[Scene moment 1]**:
+   - [Rhyme question - brief, conversational, under 15 words]
+   - [Optional] [Deepening question - engages heart/attention/trust]
+
+2. **[Scene moment 2]**:
+   - [Rhyme question - brief, conversational, under 15 words]
+   - [Optional] [Deepening question - engages heart/attention/trust]
+
+[Continue for 3-5 total question sets]
+
+**CRITICAL:**
+- Use specific imagery from {{scene_text}}, not generic spiritual language
+- Draw from {{bodies_content}} and {{hearts_content}} observations as needed
+- Keep all questions focused on "where does your life rhyme with this?"
+- DO NOT output "[Optional]" as placeholder - write the actual deepening question
+
+### CRITICAL: Handling Atrocity and Violence Passages
+
+When passages involve atrocity (genocide, massacre, systematic oppression, torture):
+
+**Distinguish between human-scale wrongs and atrocity-scale evil:**
+
+**Human-scale wrongs** (we all examine these):
+- ✅ "When have you hurt someone in anger and regretted it?"
+- ✅ "Where have you made a choice that harmed others?"
+- ✅ "When have you failed to protect someone vulnerable?"
+
+**Atrocity-scale evil** (genocide, massacre, systematic cruelty):
+- ❌ DON'T ask for identification with the perpetrator at the moment of atrocity
+- ❌ DON'T create false equivalence between common wrongs and genocide
+- ✅ DO position with victims, witnesses, those who grieve
+
+**For Matthew 2:16-18 (Herod's massacre):**
+- ❌ BAD: "When have you reacted strongly to feeling deceived?" (identifies with Herod at moment of child murder - creates false equivalence)
+- ✅ GOOD: "When have you been powerless while violence destroyed what you love?"
+- ✅ GOOD: "Where have you witnessed grief that had no comfort?"
+- ✅ ALSO GOOD: "When have you seen anger escalate beyond all proportion?" (witnesses violence, doesn't identify with it)
+
+**The key test:** Would this question normalize atrocity by treating it like common human experience?
+
+**We DO examine:**
+- Our capacity to harm others (anger, pride, selfishness)
+- Times we failed to stop injustice
+- When we benefited from systems that oppress
+- Our complicity in collective evils
+
+**We DON'T:**
+- Ask people to find their lives "rhyming" with genocide
+- Normalize massacre through "we all get angry when deceived"
+- Position participants with perpetrators at moment of extreme violence
+
