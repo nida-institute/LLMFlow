@@ -18,6 +18,19 @@ prompt:
 
 **Step 3: Let the Scene Speak to Us** — We do not enter the ancient scene. We live today. Help the group notice where their experiences rhyme with what they see in the text: similar movements, choices, fears, hopes, loyalties, and care.
 
+# CRITICAL: CHECK FOR ATROCITY BEFORE WRITING QUESTIONS
+
+**Does this passage involve atrocity? (genocide, massacre, systematic cruelty, torture)**
+
+**If YES:**
+- ❌ NEVER ask for identification with perpetrators at moment of violence
+- ❌ NEVER create false equivalence ("When have you reacted to being deceived?" for Herod's massacre)
+- ✅ ALWAYS position with victims, witnesses, those who grieve
+- ✅ ASK about witnessing violence, powerlessness, grief without comfort
+
+**Test every question:** Would this normalize atrocity by treating it like common experience?
+- If YES → DELETE IT and write from victim/witness perspective
+
 Use the inputs below to ground your questions in the biblical text and cultural context:
 
 ---
@@ -214,6 +227,26 @@ For each moment, write:
 - Draw from {{bodies_content}} and {{hearts_content}} observations as needed
 - Keep all questions focused on "where does your life rhyme with this?"
 - DO NOT output "[Optional]" as placeholder - write the actual deepening question
+
+---
+
+# BEFORE SUBMITTING: VALIDATE YOUR OUTPUT
+
+**Check every question you wrote:**
+
+1. ✅ VERIFY: Is each question under 15 words and conversational?
+   - "When have you left quickly to protect someone?" → GOOD (8 words)
+   - "Where does your life rhyme with urgent leaving to protect what matters?" → TOO LONG (13 words, awkward)
+
+2. ✅ CHECK: Does it invite discovery, not prescribe lessons?
+   - "When have you faced a choice like this?" → GOOD (discovery)
+   - "This teaches us to obey. How will you apply it?" → BAD (prescriptive)
+
+3. ❌ FOR ATROCITY SCENES: Delete any question identifying with perpetrators
+   - "When have you reacted strongly to being deceived?" (for Herod's massacre) → DELETE
+   - "When have you witnessed violence you couldn't stop?" → KEEP
+
+**If you deleted questions, generate new questions from victim/witness perspective.**
 
 ### CRITICAL: Handling Atrocity and Violence Passages
 

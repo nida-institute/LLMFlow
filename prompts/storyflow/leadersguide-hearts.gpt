@@ -11,9 +11,21 @@ prompt:
 
 ---
 
+# CRITICAL: EVERY QUESTION MUST BE GROUNDED - NO SPECULATION
+
 Generate questions that help readers enter the inner life of characters in a Gospel scene.
 
 Heart (Hebrew lev, Greek kardia) = the inner center where thought, desire, will, and emotion converge.
+
+**BEFORE WRITING ANY QUESTION:**
+- Can you point to a TEXT ACTION that shows this? ("Joseph got up" → "Does he hesitate?")
+- Can you point to a CULTURAL FACT from the exegetical guide? ("Journey takes days" → "What keeps them going?")
+- Can you point to EMOTIONAL ANALYSIS from Josh Frost? ("Countercurrent: fear + trust")
+
+**IF YOU CANNOT POINT TO GROUNDING → DO NOT ASK THE QUESTION**
+
+❌ NEVER use "might," "could," "would" for speculation
+✅ ALWAYS ground in observable actions, provided facts, or analysis
 
 ## AUDIENCE AND PURPOSE
 
@@ -121,8 +133,8 @@ State the fact, then ask about inner response.
 **Allow for complexity and contradiction:**
 Hearts are not simple. People can be afraid and trusting, hopeful and despairing, committed and hesitant at the same time.
 
-✅ GOOD: "What might be going on in Joseph's heart?"
-✅ GOOD: "Is Joseph afraid? Trusting? Both?"
+✅ GOOD: "What is going on in Joseph's heart?" (only when anchored)
+✅ GOOD: "Is Joseph afraid? Trusting? Both?" (only when anchored to observed action)
 ✅ GOOD: "What pulls at Mary's heart in different directions?"
 ❌ BAD: "Is Joseph afraid or trusting?" (forces a choice)
 
@@ -132,7 +144,7 @@ Hearts are not simple. People can be afraid and trusting, hopeful and despairing
 - Ground questions in observable actions, choices, and text details
 
 **Vary viewpoints:**
-Ask about different characters across the 4-6 questions. Don't ask about the same person for every question.
+Ask about different characters across the 3–5 questions. Don't ask about the same person for every question.
 
 ---
 
@@ -148,7 +160,8 @@ Ask about different characters across the 4-6 questions. Don't ask about the sam
 
 **INSTRUCTIONS:**
 - Start with: ### Enter the Scene with Your Whole Heart ({{citation}})
-- Generate 4-6 numbered questions
+- Generate 3–5 numbered questions
+- Quality first: Stop at 3–4 if only those are strong. Do not pad.
 - Each question: simple English, no Greek, no meta-framing
 - Ask about thought, desire, will, emotion, trust
 - Shift viewpoints naturally by asking about different characters
@@ -245,3 +258,31 @@ These questions help **small group leaders** facilitate **discovery** with matur
 
 ✅ GOOD: "Why does Herod send orders to kill the boys?"
 ❌ BAD: "What does this imagery convey?" (academic analysis, not conversation)
+
+---
+
+# BEFORE SUBMITTING: VALIDATE YOUR OUTPUT
+
+**Check every question you wrote:**
+
+1. ❌ DELETE any question with "might," "could," "would"
+   - "What might be going on..." → REWRITE: "What is going on..."
+   - "What could Joseph be feeling..." → DELETE (pure speculation)
+
+2. ✅ VERIFY: Can you point to grounding for EACH question?
+   - Text action? Cultural fact? Josh Frost analysis?
+   - If NO grounding → DELETE IT
+
+3. ✅ CHECK: Are all questions conversational (under 15 words)?
+   - "Does Joseph hesitate, or does he go?" → GOOD (9 words)
+   - "What motivations might underlie his response?" → BAD (academic)
+
+4. ✅ VERIFY: Do questions use simple verbs, not abstract nouns?
+   - "Why does Herod kill the boys?" → GOOD
+   - "What drives his decision?" → BAD (abstract noun)
+
+5. ❌ DELETE repetition and filler; do not pad to hit a number
+   - If a question repeats earlier wording/idea or lacks a clear anchor, DELETE it.
+   - If you already have 3–4 strong questions, STOP rather than inventing filler.
+
+**If you deleted questions, generate new GROUNDED questions to replace them.**

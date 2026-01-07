@@ -10,9 +10,31 @@ prompt:
 
 ---
 
-Generate questions that help readers enter a Gospel scene with their physical senses.
+# CRITICAL: BODY QUESTIONS ONLY - NO EMOTIONS OR INNER LIFE
+
+Generate questions that help readers enter a Gospel scene with their **physical senses only**.
+
+**NEVER ask about:**
+- Feelings, emotions, or inner states ("How might Mary feel..." ❌)
+- Thoughts, desires, or motivations (those are Heart questions)
+- What anyone thinks, wants, fears, or trusts
+
+**ONLY ask about:**
+- What people see, hear, touch, smell
+- Physical actions and movements
+- Distances, terrain, weather, time
+- What people carry, wear, eat, drink
+- Physical challenges and dangers
 
 Each question: simple English question + Greek anchor in this format: (GRK: Greek text, BSB: BSB translation)
+
+## CRITICAL: FACT → QUESTION FORMULA (for background/culture)
+
+When using cultural or background details (distance, duration, terrain, risk):
+- State the fact briefly, then ask an inference.
+✅ GOOD: "It takes 7–12 days to reach refuge. How would you prepare?"
+❌ BAD: "How far is the journey?" (trivia guessing)
+❌ BAD: "How long might it take?" (subjunctive + trivia)
 
 ## AUDIENCE AND PURPOSE
 
@@ -58,8 +80,8 @@ These questions help **small group leaders** facilitate **physical entry into bi
 
 **Reasonable inference questions (explore physical implications):**
 6. What does Joseph need to do between waking up and leaving? (GRK: ἐγερθεὶς παρέλαβεν, BSB: he got up, took)
-7. It takes 4-6 days to reach the Egyptian border. How would they prepare for a trip like that?
-8. What dangers might they face traveling at night?
+7. It takes 7–12 days to reach refuge. How would they prepare for a trip like that?
+8. Traveling by night is risky. What dangers do they face traveling at night?
 9. What was this like for Mary? (GRK: τὸ παιδίον καὶ τὴν μητέρα αὐτοῦ, BSB: the Child and His mother)
 
 **This pattern works for any scene type:**
@@ -97,7 +119,7 @@ Work from GREEK text (BSB is reference). Match question to what Greek indicates:
 
 Use exegetical guide for distances, risks, settings. State the fact, then ask inference.
 
-✅ GOOD: "It takes 4-6 days to the Egyptian border. How would you prepare?"
+✅ GOOD: "It takes 7–12 days to reach refuge. How would you prepare?"
 ❌ BAD: "How long would it take to reach Egypt?" (asking user to guess)
 
 ---
@@ -109,7 +131,7 @@ Use exegetical guide for distances, risks, settings. State the fact, then ask in
 2. Inference questions second (explore physical implications grounded in text)
 
 **Reasonable inference = grounded in text:**
-✅ "by night" → "What dangers might they face traveling at night?"
+✅ "by night" → "Traveling by night is risky. What dangers do they face?"
 ✅ "got up, took" → "What does Joseph need to do between waking and leaving?"
 ❌ "What does the cool night air feel like?" (inventing sensation)
 
@@ -207,3 +229,26 @@ These questions help **small group leaders** facilitate **discovery** with matur
 
 Use simple verbs (do, go, say, see, hear), not abstract nouns (action, scene, situation).
 Avoid subjunctive (might, would, could) - ask directly.
+
+---
+
+# BEFORE SUBMITTING: VALIDATE YOUR OUTPUT
+
+**Check every question you wrote:**
+
+1. ❌ DELETE any question that asks about feelings, emotions, or inner life
+   - "How might Mary feel..." → DELETE IT
+   - "What might Joseph be thinking..." → DELETE IT
+
+2. ✅ KEEP only questions about physical, visible, sensory details
+   - "What does Joseph pack?" → GOOD
+  - "It takes 7–12 days to reach refuge. How would you prepare?" → GOOD
+   - "What dangers do they face at night?" → GOOD
+
+3. ❌ DELETE trivia-only questions without the Fact → Question pattern
+  - "How far is the journey?" → DELETE (replace with fact, then question)
+  - "How long might it take?" → DELETE (subjunctive + guessing)
+
+4. ✅ CHECK: Are all questions under 15 words and conversational?
+
+**If you deleted questions, generate new PHYSICAL questions (use Fact → Question when using background).**
