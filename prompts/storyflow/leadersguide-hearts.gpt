@@ -4,6 +4,7 @@ prompt:
     - passage
     - scene
     - citation
+      - bodies_content
     - exegetical_culture
     - exegetical_emotionalarc
   format: Markdown
@@ -26,6 +27,19 @@ Heart (Hebrew lev, Greek kardia) = the inner center where thought, desire, will,
 
 ❌ NEVER use "might," "could," "would" for speculation
 ✅ ALWAYS ground in observable actions, provided facts, or analysis
+
+## Quick Critical Rules (for fast scanning)
+- Ground every question in: Text action, Cultural fact, or Emotional analysis.
+- No speculation (ban: might/could/would); ask direct, simple questions.
+- Oral phrasing under 15 words; avoid abstract/analytical language.
+- Shift viewpoints naturally; ask about different people.
+- Ensure consistency with Bodies facts: when referencing travel or concrete details, mirror exact ranges/phrasing found in Bodies (e.g., "7–12 days on foot", "75–200 miles", "by night"). If Bodies lacks the fact, use exegetical_culture.
+
+## Forbidden Patterns (DELETE and REWRITE)
+- Ungrounded inner states ("What is Joseph thinking?")
+- Abstract nouns and analytical phrasing ("What does this reveal about…")
+- False binaries that force a choice when both can be true
+- Vague duration/distance phrasing when precise ranges exist: "several days", "many days", "about", "around"
 
 ## AUDIENCE AND PURPOSE
 
@@ -64,7 +78,7 @@ These questions help **small group leaders** facilitate **heart exploration** wi
 
 1. Does Joseph hesitate, or does he go?
 2. What choice does Mary face when they must leave?
-3. The journey takes several days. What keeps them going?
+3. The journey takes 7–12 days on foot. What keeps them going?
 4. Mary is caring for a baby on this journey. What was this like for her?
 
 ---
@@ -109,7 +123,7 @@ Ask directly:
 
 State the fact, then ask about inner response.
 
-✅ GOOD: "The journey takes several days. What keeps them going?"
+✅ GOOD: "The journey takes 7–12 days on foot. What keeps them going?"
 ❌ BAD: "How long is the journey?"
 
 ---
@@ -128,7 +142,7 @@ State the fact, then ask about inner response.
 - "What was this like for [person]?"
 - "Where does [person's] attention go?"
 - "Does [person] hesitate, or does [person] go?"
-- "[Cultural fact]. What keeps them going / holds them back?"
+- "[Cultural fact with precise range]. What keeps them going / holds them back?"
 
 **Allow for complexity and contradiction:**
 Hearts are not simple. People can be afraid and trusting, hopeful and despairing, committed and hesitant at the same time.
@@ -158,6 +172,9 @@ Ask about different characters across the 3–5 questions. Don't ask about the s
 
 **Emotional insights:** {{exegetical_emotionalarc}}
 
+## Enter the Scene with Your Body (Step 1) — Context
+{{bodies_content}}
+
 **INSTRUCTIONS:**
 - Start with: ### Enter the Scene with Your Whole Heart ({{citation}})
 - Generate 3–5 numbered questions
@@ -166,6 +183,12 @@ Ask about different characters across the 3–5 questions. Don't ask about the s
 - Ask about thought, desire, will, emotion, trust
 - Shift viewpoints naturally by asking about different characters
 - Use variety in question patterns
+
+### Generation Steps
+1) Identify 3–4 strong, grounded questions; stop rather than padding.
+2) Vary anchors: text action, cultural fact, emotional analysis.
+3) Vary viewpoints across people in the scene.
+4) Keep questions simple, direct, ≤15 words.
 
 **Ground every question in observable text or provided analysis:**
 
@@ -189,7 +212,7 @@ Every Heart question must anchor to something you can point to:
 **Use variety - not every question needs the same grounding type.**
 
 ✅ GOOD (grounded in action): "Does Joseph hesitate, or does he go?" (text: ἐγερθεὶς παρέλαβεν)
-✅ GOOD (cultural fact): "The journey takes several days. What keeps them going?"
+✅ GOOD (cultural fact): "The journey takes 7–12 days on foot. What keeps them going?"
 ✅ GOOD (Josh Frost countercurrent): "Is Joseph afraid? Trusting? Both?"
 ✅ GOOD (physical detail): "Mary is caring for a baby on this journey. What was this like for her?"
 
@@ -273,7 +296,12 @@ These questions help **small group leaders** facilitate **discovery** with matur
    - Text action? Cultural fact? Josh Frost analysis?
    - If NO grounding → DELETE IT
 
+2a. ✅ TRIAD CHECK: Ensure at least two different grounding types are used
+   - Mix of text action + cultural fact or emotional analysis
+
 3. ✅ CHECK: Are all questions conversational (under 15 words)?
+   6. ✅ CONSISTENCY CHECK WITH BODIES: When a Hearts question references travel (duration, distance, night travel) or other concrete facts, ensure phrasing and ranges match Bodies content for the same scene. If Bodies lacks the fact, use `exegetical_culture`.
+
    - "Does Joseph hesitate, or does he go?" → GOOD (9 words)
    - "What motivations might underlie his response?" → BAD (academic)
 

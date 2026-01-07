@@ -28,13 +28,35 @@ Generate questions that help readers enter a Gospel scene with their **physical 
 
 Each question: simple English question + Greek anchor in this format: (GRK: Greek text, BSB: BSB translation)
 
+## Quick Critical Rules (for fast scanning)
+- Embed facts first, then ask a physical inference.
+- Use Greek anchors where the text grounds the question (e.g., νυκτός).
+- Keep oral phrasing under 15 words; avoid academic language.
+- Bodies only: sensory/physical details — no inner life.
+
+## Forbidden Trivia Patterns (DELETE and REPLACE)
+- "approximate distance"
+- "how far"
+- "how long"
+- "might it take"
+- Any request for participants to estimate numbers
+
+Replacement rule: Use the Fact → Question formula with provided ranges from `exegetical_culture`.
+
 ## CRITICAL: FACT → QUESTION FORMULA (for background/culture)
 
 When using cultural or background details (distance, duration, terrain, risk):
 - State the fact briefly, then ask an inference.
-✅ GOOD: "It takes 7–12 days to reach refuge. How would you prepare?"
+✅ GOOD: "It takes 7–12 days to reach a safe place. How would you prepare?"
 ❌ BAD: "How far is the journey?" (trivia guessing)
 ❌ BAD: "How long might it take?" (subjunctive + trivia)
+
+## Travel Scenes: Required Facts (enforce embedding)
+- If travel is indicated (e.g., GRK: φεῦγε εἰς Αἴγυπτον, νυκτός):
+  - Prefer ONE travel-prep Fact → Question: either distance OR duration. If both are used, differentiate their focus (e.g., duration → carrying essentials; distance → packing choices).
+  - When used, embed ranges from `exegetical_culture` (e.g., 75–200 miles; 7–12 days).
+  - Do not ask participants to estimate numbers.
+  - Use νυκτός as the anchor for night-travel risk where present.
 
 ## AUDIENCE AND PURPOSE
 
@@ -80,9 +102,10 @@ These questions help **small group leaders** facilitate **physical entry into bi
 
 **Reasonable inference questions (explore physical implications):**
 6. What does Joseph need to do between waking up and leaving? (GRK: ἐγερθεὶς παρέλαβεν, BSB: he got up, took)
-7. It takes 7–12 days to reach refuge. How would they prepare for a trip like that?
+7. It takes 7–12 days to reach a safe place. How would they prepare for a trip like that?
 8. Traveling by night is risky. What dangers do they face traveling at night?
 9. What was this like for Mary? (GRK: τὸ παιδίον καὶ τὴν μητέρα αὐτοῦ, BSB: the Child and His mother)
+10. Routes range 75–200 miles. How does this change what they pack? (use either this or #7, not both unless differentiated)
 
 **This pattern works for any scene type:**
 - Teaching scene: Concrete = where is Jesus, who's listening, what does he say; Inference = how close are people, what's the setting like
@@ -242,13 +265,22 @@ Avoid subjunctive (might, would, could) - ask directly.
 
 2. ✅ KEEP only questions about physical, visible, sensory details
    - "What does Joseph pack?" → GOOD
-  - "It takes 7–12 days to reach refuge. How would you prepare?" → GOOD
+  - "It takes 7–12 days to reach a safe place. How would you prepare?" → GOOD
    - "What dangers do they face at night?" → GOOD
 
 3. ❌ DELETE trivia-only questions without the Fact → Question pattern
   - "How far is the journey?" → DELETE (replace with fact, then question)
   - "How long might it take?" → DELETE (subjunctive + guessing)
+  - Banned phrases present ("approximate distance", "how far", "how long", "might it take") → DELETE
 
-4. ✅ CHECK: Are all questions under 15 words and conversational?
+4. ✅ CHECK travel prompts include embedded facts
+  - Prefer ONE travel-prep question (either distance OR duration) unless clearly differentiated
+  - Embedded range included when used (e.g., 75–200 miles or 7–12 days)
+  - νυκτός anchor used where the text indicates night travel
+
+5. ✅ CHECK: Are all questions under 15 words and conversational?
+
+6. ✅ CHECK delivery constraints
+  - Oral phrasing, simple verbs; avoid academic/abstract nouns
 
 **If you deleted questions, generate new PHYSICAL questions (use Fact → Question when using background).**
