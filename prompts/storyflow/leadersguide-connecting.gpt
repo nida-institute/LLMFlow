@@ -81,93 +81,10 @@ Use the inputs below to ground your questions in the biblical text and cultural 
 {hearts_content}
 
 ---
-
-## Instructions
-
-## AUDIENCE AND PURPOSE
-
-These questions help **small group leaders** facilitate **personal discovery** with mature adults from **diverse cultures and communication styles**, including **oral cultures**.
-
-**The participants:**
-- Intelligent adults from many cultures with different life experiences
-- Diverse education backgrounds - some academic, many oral communicators
-- Equal in capacity for moral examination, different in how they process
-- Have explored the scene (Steps 1-2) and are ready to examine their own lives
-- Want to discover connections between the ancient story and their present reality
-- Learn best when they make their own connections, not when told what to think
-
-**The setting:**
-- Questions spoken aloud after reading passage again
-- Participants discover where their lives "rhyme" with the scene
-- Goal: Invite moral examination through recognition and discovery
-- Leader facilitates, participants own their connections and responses
-
-**Therefore, questions must:**
-- Invite discovery: "Where does your life rhyme with this?"
-- NOT prescribe lessons: "This teaches us to..."
-- Trust participants to examine their lives and make moral connections
-- Allow diverse responses from different cultural contexts
-- Work in oral discussion (brief, open-ended, conversational)
-
-✅ GOOD (oral delivery): "Have you left quickly to protect someone? Or seen someone do that?"
-✅ GOOD (oral delivery): "Have you or someone you know moved fast to keep someone safe?"
-❌ BAD (too long): "Where does your life today rhyme with urgent leaving to protect what matters?"
-❌ BAD (prescriptive): "This teaches us to obey God immediately. How will you apply that?" (prescriptive, closes discovery)
-
-### Core Approach
-- We are not in the ancient moment; we are here and now. Invite “rhyme,” not reenactment.
-- Ask where life today echoes what we see: movements, turns of the heart, risks, care, return, waiting, judgment, mercy.
-- Engage the biblical heart (lev/kardia): thought, desire, attention, will, and trust together.
-- Use scene-specific imagery and dynamics; avoid generic spiritual language.
-- Draw briefly from what the group noticed in Steps 1–2 (bodies and hearts) as anchors. Use short callbacks (“Given the urgency you noticed earlier…”). Do not re-describe the scene.
-- Keep imagery and culture bounded to this passage. Do not import other texts unless present here.
-
-### Question Patterns (present-day “rhyme”)
-- Instead of: “Where do you see yourself in this scene?”
-  - Ask: “Where does your life today rhyme with what we see here?”
-- Instead of: “How can you apply this?”
-  - Ask: “What echoes in your own choices, fears, care, or trust right now?”
-- Instead of: “What lesson do you learn?”
-  - Ask: “What in your life sounds like this moment — in pace, pressure, turning, or hope?”
-
-Inclusive phrasing patterns (do not assume experience):
-- "Have you…? Or seen someone do that?"
-- "Have you or someone you know…?"
-- "Where have you seen this happen?"
-- "If not you, where have you seen this?"
-- "Have you seen or heard this?"
-- "Where have you seen or heard this in your world?"
-
-### Connection Structure
-1) One short anchor from the text (image, movement, heart turn)
-2) Present-day “rhyme” question
-3) Optional follow-up that deepens heart engagement (attention, treasure, trust, turning)
-
-### Generation Steps
-1) Identify 3–5 scene moments (image, movement, risk, turn).
-2) For each, write a brief title, a  ≤15-word rhyme question, and one optional deepening follow-up.
-3) Use short callbacks to Bodies/Hearts when helpful; don’t re-describe the scene.
-4) Apply the atrocity test where relevant; reposition with victims/witnesses.
-
-### Cultural Integration
-- Use insights from cultural background **only when they illuminate heart dynamics** visible in the scene
-- Keep cultural details **scene-bound** and immediately connected to heart discernment
-- Avoid cultural lectures; provide just enough context to sharpen observation
-
----
-
-## Key Guidelines
-
-- Keep the group **in the biblical scene** while helping them recognize their own story
-- Use **specific imagery** from the text rather than abstract concepts
-- Let the **scene's dynamics** guide the heart questions
-- Avoid importing imagery not present in this passage; do not conflate with other texts.
-- Context integration (DO NOT OUTPUT):
-  - Pull background only from {{exegetical_culture}} / {{exegetical_background}} that clarifies the current question.
-  - Start a question set with one short context clause only when needed for clarity; skip when not needed.
-  - Selection algorithm: detect items/roles/settings in this scene, attach a 5–12 word function/setting note on first mention of culturally loaded elements.
-  - Categories to consider (selectively): terrain/climate, tools/implements, roles/relationships, practices/rituals, sanctuary/temple, legal/conflict settings, economy/time.
-  - No quotas: include background as many or as few times as the scene requires.
+## FLOW
+1) Apply the atrocity test; if applicable, position with victims/witnesses.
+2) Name a scene image/movement, then ask an inclusive present-day rhyme.
+3) Optional deepening follow-up; keep ≤15 words; use "seen or heard" options.
 
 ## Output Format
 
@@ -188,44 +105,6 @@ Inclusive phrasing patterns (do not assume experience):
    - [Optional] What small step today would match the turn you noticed?
 
 ---
-
-## Example Patterns (Adapt to Your Specific Scene)
-
-**For Matthew 2:13–15 (night departure):**
-1. **Urgent Leaving at Night**:
-   - Have you left quickly to protect someone? Or seen or heard someone do that?
-   - [Optional] When safety sets the pace, what small action shows trust?
-
-2. **Obeying a Hard Word**:
-   - Have you acted quickly on difficult guidance? Or seen or heard someone do that?
-   - [Optional] Where does attention turn as you act — toward fear or toward care?
-
-**For Psalm 23:1–3 (care and guidance):**
-1. **Led to Rest**:
-   - Where does your life rhyme with being led to rest rather than striving?
-   - [Optional] What competes for your attention when care invites you to lie down?
-
-2. **Right Paths**:
-   - What present decision rhymes with being guided on a right path?
-   - [Optional] Where does trust turn as you take that step?
-
-**For Luke 15 (return and welcome):**
-1. **Turning Home**:
-   - Have you turned back after failure? Or seen or heard someone welcomed like that?
-   - [Optional] What small action marks that turn?
-
-2. **Welcome and Joy**:
-   - Have you or someone you know received a welcome like this? Or heard a story like that?
-   - [Optional] What in you resists or receives that welcome?
-
-**For Romans 8:31–39 (assurance amid threats):**
-1. **Naming Threats**:
-   - What present pressure or fear in your life rhymes with the list we hear here?
-   - [Optional] Where does assurance steady your attention?
-
-2. **Unseparated Love**:
-   - Where does your life rhyme with not being separated from love — in loss, risk, or waiting?
-   - [Optional] What small step of trust matches that assurance?
 
 ---
 
@@ -280,7 +159,7 @@ For each moment, write:
 
 3. ❌ FOR ATROCITY SCENES: Delete any question identifying with perpetrators
    - "When have you reacted strongly to being deceived?" (for Herod's massacre) → DELETE
-   - "When have you witnessed violence you couldn't stop?" → KEEP
+   - "Where have you seen or heard violence you couldn't stop?" → KEEP
 
 4. ✅ CHECK delivery and framing
    - Under 15 words, oral delivery
@@ -306,9 +185,9 @@ When passages involve atrocity (genocide, massacre, systematic oppression, tortu
 **Distinguish between human-scale wrongs and atrocity-scale evil:**
 
 **Human-scale wrongs** (we all examine these):
-- ✅ "When have you hurt someone in anger and regretted it?"
-- ✅ "Where have you made a choice that harmed others?"
-- ✅ "When have you failed to protect someone vulnerable?"
+- ✅ "Have you or someone you know hurt someone in anger and regretted it? Or seen or heard that?"
+ - ✅ "Where have you made a choice that harmed others?"
+- ✅ "Have you or someone you know failed to protect someone vulnerable? Or seen or heard that?"
 
 **Atrocity-scale evil** (genocide, massacre, systematic cruelty):
 - ❌ DON'T ask for identification with the perpetrator at the moment of atrocity
@@ -317,9 +196,9 @@ When passages involve atrocity (genocide, massacre, systematic oppression, tortu
 
 **For Matthew 2:16-18 (Herod's massacre):**
 - ❌ BAD: "When have you reacted strongly to feeling deceived?" (identifies with Herod at moment of child murder - creates false equivalence)
-- ✅ GOOD: "When have you been powerless while violence destroyed what you love?"
-- ✅ GOOD: "Where have you witnessed grief that had no comfort?"
-- ✅ ALSO GOOD: "When have you seen anger escalate beyond all proportion?" (witnesses violence, doesn't identify with it)
+- ✅ GOOD: "Have you or someone you know been powerless while violence destroyed what was loved? Or seen or heard this?"
+- ✅ GOOD: "Where have you seen or heard grief that had no comfort?"
+- ✅ ALSO GOOD: "Have you seen or heard anger escalate beyond all proportion?" (witnesses violence, doesn't identify with it)
 
 **The key test:** Would this question normalize atrocity by treating it like common human experience?
 
