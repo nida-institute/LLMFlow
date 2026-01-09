@@ -574,6 +574,10 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
     merged_config.update(step_options)
     merged_config.update(step_config)
 
+    # Include MCP config if present
+    if "mcp" in step:
+        merged_config["mcp"] = step["mcp"]
+
     # Determine output type
     output_type = step.get("output_type", "text")
 
@@ -870,6 +874,11 @@ def run_pipeline(
     # Set up logging
     if verbose:
         logger.set_level("DEBUG")
+
+    # Add current working directory to sys.path for local plugin imports
+    cwd = os.getcwd()
+    if cwd not in sys.path:
+        sys.path.insert(0, cwd)
 
     # Accept dict pipelines directly
     if isinstance(pipeline_file, dict):

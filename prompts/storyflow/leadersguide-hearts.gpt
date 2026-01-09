@@ -30,17 +30,17 @@ Heart (Hebrew lev, Greek kardia) = the inner center where thought, desire, will,
 
 ## Quick Critical Rules (for fast scanning)
 - Ground every question in: Text action, Cultural fact, or Emotional analysis.
-- No speculation (ban: might/could/would); ask direct, simple questions.
+- No speculation about known facts (e.g., duration, night travel). Allow anchored inner-life inference (might/could/would) only when grounded in text action, cultural fact, or emotional analysis.
 - Oral phrasing under 15 words; avoid abstract/analytical language.
 - Shift viewpoints naturally; ask about different people.
-- Ensure consistency with Bodies facts: when referencing travel or concrete details, mirror exact ranges/phrasing found in Bodies (e.g., "7–12 days on foot", "75–200 miles", "by night"). If Bodies lacks the fact, use exegetical_culture.
+- Ensure consistency with Bodies facts: when referencing travel or concrete details, mirror exact duration/phrasing found in Bodies (e.g., "7–12 days on foot", "by night"). If Bodies lacks the fact, use exegetical_culture.
 - Ask about people in the text; avoid literary/theological analysis.
 
 ## Forbidden Patterns (DELETE and REWRITE)
 - Ungrounded inner states ("What is Joseph thinking?")
 - Abstract nouns and analytical phrasing ("What does this reveal about…")
 - False binaries that force a choice when both can be true
-- Vague duration/distance phrasing when precise ranges exist: "several days", "many days", "about", "around"
+- Vague duration phrasing when precise ranges exist: "several days", "many days", "about", "around"
 
 ## AUDIENCE AND PURPOSE
 
@@ -170,10 +170,12 @@ Every Heart question must anchor to something you can point to:
 
 Hearts = inner life of PEOPLE in the text. Not analysis of symbols, themes, or theological concepts.
 
-**Use simple verbs, not abstract nouns:**
+**Use simple verbs and concrete nouns; avoid abstract nouns:**
 ✅ GOOD: "Why does Herod send orders to kill the boys?"
+✅ GOOD: "What does Joseph pack for the journey?" (concrete: water, bread, cloths)
 ❌ BAD: "What drives his decision?" (abstract: "decision")
-Ask WHY [person] DOES [verb], not "what drives [person's] decision"
+❌ BAD: "What factors influence their decision-making process?" (abstract phrasing)
+Ask WHY [person] DOES [verb], and use tangible, scene-specific nouns; avoid abstract noun frames.
 
 ---
 
@@ -190,9 +192,11 @@ Ask WHY [person] DOES [verb], not "what drives [person's] decision"
 
 **Check every question you wrote:**
 
-1. ❌ DELETE any question with "might," "could," "would"
-   - "What might be going on..." → REWRITE: "What is going on..."
-   - "What could Joseph be feeling..." → DELETE (pure speculation)
+1. ❌ DELETE speculation about known facts (e.g., duration, night travel)
+   - "How long might it take..." → DELETE (known fact; use precise duration phrasing)
+   - "What might happen at night..." → REWRITE with νυκτός risk anchored fact
+1a. ✅ ALLOW anchored inner-life inference when grounded
+   - "Given the angel’s command and the urgency, what might Joseph hesitate over?" → KEEP (grounded in text action)
 
 2. ✅ VERIFY: Can you point to grounding for EACH question?
    - Text action? Cultural fact? Josh Frost analysis?
@@ -202,7 +206,7 @@ Ask WHY [person] DOES [verb], not "what drives [person's] decision"
    - Mix of text action + cultural fact or emotional analysis
 
 3. ✅ CHECK: Are all questions conversational (under 15 words)?
-   6. ✅ CONSISTENCY CHECK WITH BODIES: When a Hearts question references travel (duration, distance, night travel) or other concrete facts, ensure phrasing and ranges match Bodies content for the same scene. If Bodies lacks the fact, use `exegetical_culture`.
+   6. ✅ CONSISTENCY CHECK WITH BODIES: When a Hearts question references travel (duration, night travel) or other concrete facts, ensure phrasing and ranges match Bodies content for the same scene. If Bodies lacks the fact, use `exegetical_culture`.
 
    - "Does Joseph hesitate, or does he go?" → GOOD (9 words)
    - "What motivations might underlie his response?" → BAD (academic)

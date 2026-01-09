@@ -172,7 +172,6 @@ steps:
             passage: "${passage}"
             scene: "${scene.SBLGNT}"
             citation: "${scene.Citation}"
-            bodies_content: "${bodies_content}"
             exegetical_culture: "${exegetical_culture}"
             exegetical_emotionalarc: "${exegetical_emotionalarc}"
             joshfrost_emotional: "${joshfrost_content}"

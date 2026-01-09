@@ -418,3 +418,107 @@ class TestIntegration:
         run_step(rule, context, {})
 
         assert sorted(context["all_tags"]) == ["a", "b", "b", "c"]
+
+
+class TestMCPConfigMerging:
+    """Test that MCP configuration from step is properly merged into config passed to llm_runner"""
+
+    @patch("llmflow.runner.render_prompt")
+    @patch("llmflow.runner.init_mcp_client")
+    @patch("llmflow.runner.run_llm_with_mcp_tools")
+    def test_mcp_config_includes_max_iterations(self, mock_run_llm_mcp, mock_init_mcp, mock_render_prompt):
+        """Test that mcp.max_iterations from step is included in merged_config"""
+        mock_render_prompt.return_value = "Rendered prompt"
+
+        # Create async mock for MCP client
+        mock_mcp_client = MagicMock()
+        async def async_close():
+            pass
+        mock_mcp_client._async_close = async_close
+        mock_init_mcp.return_value = mock_mcp_client
+
+        mock_run_llm_mcp.return_value = '{"result": "success"}'
+
+        context = {}
+        step = {
+            "name": "test_mcp_step",
+            "type": "llm",
+            "prompt": {"file": "test.gpt", "inputs": {}},
+            "output_type": "json",
+            "mcp": {
+                "enabled": True,
+                "server": "bible",
+                "max_iterations": 5,
+                "tools": ["get_passage_text"]
+            },
+            "outputs": "response"
+        }
+        pipeline_config = {
+            "mcp_servers": {
+                "bible": {
+                    "url": "https://bible-resource-server-preview.labs.biblica.com/mcp",
+                    "tools": ["get_passage_text"]
+                }
+            }
+        }
+
+        result = run_llm_step(step, context, pipeline_config)
+
+        # Verify run_llm_with_mcp_tools was called with merged config containing mcp section
+        assert mock_run_llm_mcp.called
+        call_args = mock_run_llm_mcp.call_args
+        merged_config = call_args[0][1]  # Second positional arg is config
+
+        assert "mcp" in merged_config, "MCP config should be in merged_config"
+        assert merged_config["mcp"]["max_iterations"] == 5, "max_iterations should be preserved"
+        assert merged_config["mcp"]["enabled"] is True
+        assert merged_config["mcp"]["server"] == "bible"
+
+    @patch("llmflow.runner.render_prompt")
+    @patch("llmflow.runner.init_mcp_client")
+    @patch("llmflow.runner.run_llm_with_mcp_tools")
+    def test_mcp_config_all_fields_preserved(self, mock_run_llm_mcp, mock_init_mcp, mock_render_prompt):
+        """Test that all MCP config fields are preserved in merged_config"""
+        mock_render_prompt.return_value = "Rendered prompt"
+
+        # Create async mock for MCP client
+        mock_mcp_client = MagicMock()
+        async def async_close():
+            pass
+        mock_mcp_client._async_close = async_close
+        mock_init_mcp.return_value = mock_mcp_client
+        mock_run_llm_mcp.return_value = '{"scenes": []}'
+
+        context = {}
+        step = {
+            "name": "test_step",
+            "type": "llm",
+            "prompt": {"file": "test.gpt"},
+            "output_type": "json",
+            "mcp": {
+                "enabled": True,
+                "server": "bible",
+                "max_iterations": 10,
+                "tools": [
+                    "get_passage_text",
+                    "get_acai_entities_for_passage",
+                    "get_word_sense"
+                ]
+            },
+            "outputs": "result"
+        }
+        pipeline_config = {
+            "mcp_servers": {
+                "bible": {"url": "https://example.com/mcp"}
+            }
+        }
+
+        run_llm_step(step, context, pipeline_config)
+
+        merged_config = mock_run_llm_mcp.call_args[0][1]
+        mcp_config = merged_config["mcp"]
+
+        assert mcp_config["max_iterations"] == 10
+        assert len(mcp_config["tools"]) == 3
+        assert "get_passage_text" in mcp_config["tools"]
+        assert "get_acai_entities_for_passage" in mcp_config["tools"]

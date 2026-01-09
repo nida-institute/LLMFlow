@@ -3958,7 +3958,7 @@
       ],
       "functions": [
         {
-          "name": "echo",
+          "name": "log_section",
           "signature": "echo(inputs: Dict[str, Any] | None = None, context: Dict[str, Any] | None = None, **kwargs) -> Any",
           "doc": "Simple echo plugin that returns the provided value unchanged."
         }

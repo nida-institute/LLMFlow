@@ -6,7 +6,7 @@ prompt:
     - citation
     - exegetical_culture
   format: Markdown
-  description: Plain-language, text-anchored Body questions for NT narrative scenes. Natural wording, quotes last (BSB), no speculation, optional internal Greek anchors for grounding.
+  description: Plain-language, text-anchored Body questions for NT narrative scenes. Natural wording, quotes last (BSB). Anchored physical inference allowed (e.g., "might") only after stating a fact; never invite guessing where facts are known.
 
 ---
 
@@ -33,6 +33,9 @@ Each question: simple English question + Greek anchor in this format: (GRK: Gree
 - Use Greek anchors where the text grounds the question (e.g., νυκτός).
 - Keep oral phrasing under 15 words; avoid academic language.
 - Bodies only: sensory/physical details — no inner life.
+- Travel policy: Use duration only for travel; do not ask for distance.
+- Anchored inference allowed: gentle "might" is OK when grounded by a stated fact; never use "might/could/would" to estimate known facts (e.g., duration, night travel).
+ - Prefer concrete nouns (water, bread, sandals, baby, road) and simple verbs; avoid abstract nouns (imagery, decision, dynamics).
 
 ## Forbidden Trivia Patterns (DELETE and REPLACE)
 - "approximate distance"
@@ -47,14 +50,13 @@ Replacement rule: Use the Fact → Question formula with provided ranges from `e
 
 When using cultural or background details (distance, duration, terrain, risk):
 - State the fact briefly, then ask an inference.
-✅ GOOD: "It takes 7–12 days to reach a safe place. How would you prepare?"
+✅ GOOD: "It takes 7–12 days to reach a safe place. What might Joseph and Mary take with them?"
 ❌ BAD: "How far is the journey?" (trivia guessing)
 ❌ BAD: "How long might it take?" (subjunctive + trivia)
 
 ## Travel Scenes: Required Facts (enforce embedding)
 - If travel is indicated (e.g., GRK: φεῦγε εἰς Αἴγυπτον, νυκτός):
-  - Prefer ONE travel-prep Fact → Question: either distance OR duration. If both are used, differentiate their focus (e.g., duration → carrying essentials; distance → packing choices).
-  - When used, embed ranges from `exegetical_culture` (e.g., 75–200 miles; 7–12 days).
+  - Use ONE duration-only Fact → Question (do not use distance). Embed ranges from `exegetical_culture` (e.g., 7–12 days on foot).
   - Do not ask participants to estimate numbers.
   - Use νυκτός as the anchor for night-travel risk where present.
 
@@ -102,10 +104,10 @@ These questions help **small group leaders** facilitate **physical entry into bi
 
 **Reasonable inference questions (explore physical implications):**
 6. What does Joseph need to do between waking up and leaving? (GRK: ἐγερθεὶς παρέλαβεν, BSB: he got up, took)
-7. It takes 7–12 days to reach a safe place. How would they prepare for a trip like that?
+7. It takes 7–12 days to reach a safe place. What might Joseph and Mary take with them?
 8. Traveling by night is risky. What dangers do they face traveling at night?
 9. What was this like for Mary? (GRK: τὸ παιδίον καὶ τὴν μητέρα αὐτοῦ, BSB: the Child and His mother)
-10. Routes range 75–200 miles. How does this change what they pack? (use either this or #7, not both unless differentiated)
+10. The journey takes 7–12 days on foot. How does this change what they pack?
 ---
 
 ## QUICK RULES (KEEP HANDY)
@@ -154,12 +156,13 @@ These questions help **small group leaders** facilitate **physical entry into bi
 **Who to ask about:** Anyone present in the scene (main characters, crowds, opponents, bystanders, family members). Vary your viewpoints across inference questions.
 
 **Avoid abstract phrasing and hypotheticals - use simple verbs:**
+Concrete nouns are encouraged; they help participants picture the scene.
 - ✅ "What does Herod do?" NOT ❌ "What action does Herod take?"
 - ✅ "Where does Herod do it?" NOT ❌ "Where does Herod carry out this action?"
 - ✅ "What do the soldiers do?" NOT ❌ "What might the scene be like?"
 
 Use simple verbs (do, go, say, see, hear), not abstract nouns (action, scene, situation).
-Avoid subjunctive (might, would, could) - ask directly.
+Allow "might" for anchored physical inference only after stating a fact; do not use "might/could/would" to guess known facts (e.g., duration, night travel). Ask directly when no anchoring fact is stated.
 
 ---
 
@@ -182,9 +185,10 @@ Avoid subjunctive (might, would, could) - ask directly.
   - Banned phrases present ("approximate distance", "how far", "how long", "might it take") → DELETE
 
 4. ✅ CHECK travel prompts include embedded facts
-  - Prefer ONE travel-prep question (either distance OR duration) unless clearly differentiated
-  - Embedded range included when used (e.g., 75–200 miles or 7–12 days)
+  - Use ONE duration-only travel-prep question; do not use distance
+  - Embedded range included when used (e.g., 7–12 days on foot)
   - νυκτός anchor used where the text indicates night travel
+  - No distance wording present (e.g., "miles", "75–200")
 
 5. ✅ CHECK: Are all questions under 15 words and conversational?
 
