@@ -19,16 +19,136 @@ def get_model(model_name: str):
     return _model_cache[model_name]
 
 
+# ============================================================================
+# Model Family Detection and Parameter Sets
+# ============================================================================
+
+# Model family patterns for detection
+MODEL_FAMILIES = {
+    "gpt-5": ["gpt-5", "o3-mini", "o3", "o4"],
+    "o1": ["o1"],
+    "gpt-4": ["gpt-4", "gpt-3.5"],  # ← gpt-3.5 uses same params as gpt-4
+    "claude": ["claude-3", "claude-4"],
+    "gemini": ["gemini-"],
+}
+
+# Family-specific valid parameters
+FAMILY_PARAMETERS = {
+    "gpt-5": {
+        "max_completion_tokens",
+        "temperature",
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "seed",
+        "stop",
+        "response_format",
+    },
+    "o1": {
+        "max_completion_tokens",
+    },
+    "gpt-4": {
+        "max_tokens",
+        "temperature",
+        "top_p",
+        "top_k",
+        "stop",
+        "frequency_penalty",
+        "presence_penalty",
+        "seed",
+        "response_format",
+    },
+    "claude": {
+        "max_tokens",
+        "temperature",
+        "top_p",
+        "top_k",
+        "stop_sequences",
+    },
+    "gemini": {
+        "maxOutputTokens",
+        "temperature",
+        "topP",
+        "topK",
+        "candidateCount",
+        "response_mime_type",
+        "response_schema",
+    },
+}
+
+
+def get_model_family(model_name: str) -> str:
+    """Detect model family from model name."""
+    for family, patterns in MODEL_FAMILIES.items():
+        if any(pattern in model_name for pattern in patterns):
+            return family
+    return "gpt-4"  # Default to gpt-4 instead of "unknown"
+
+
+def get_valid_parameters(model_name: str) -> set:
+    """Get valid parameters for a specific model."""
+    family = get_model_family(model_name)
+    return FAMILY_PARAMETERS.get(family, set())
+
+
+def validate_model_parameter(model_name: str, param_name: str, value: Any) -> list[str]:
+    """Validate a parameter for a specific model."""
+    errors = []
+    valid_params = get_valid_parameters(model_name)
+
+    if param_name not in valid_params:
+        # Helpful suggestions for common mistakes
+        if param_name == "max_tokens" and "max_completion_tokens" in valid_params:
+            errors.append(
+                f"Parameter 'max_tokens' is not supported by {model_name}. "
+                "Use 'max_completion_tokens' instead."
+            )
+            return errors
+        elif param_name == "max_completion_tokens" and "max_tokens" in valid_params:
+            errors.append(
+                f"Parameter 'max_completion_tokens' is not supported by {model_name}. "
+                "Use 'max_tokens' instead."
+            )
+            return errors
+        elif param_name in PARAMETER_SCHEMAS:
+            # Known parameter but not for this model
+            errors.append(f"Parameter '{param_name}' is not supported by {model_name}")
+            return errors
+        # Unknown parameter - pass through (let API validate)
+        return []
+
+    # Type and range validation
+    if param_name in PARAMETER_SCHEMAS:
+        schema = PARAMETER_SCHEMAS[param_name]
+        if not isinstance(value, schema["type"]):
+            errors.append(f"{param_name} must be of type {schema['type'].__name__}")
+            return errors
+        if "min" in schema and value < schema["min"]:
+            errors.append(f"{param_name} must be >= {schema['min']}")
+        if "max" in schema and value > schema["max"]:
+            errors.append(f"{param_name} must be <= {schema['max']}")
+
+    return errors
+
+
 # Generic parameter schema
 PARAMETER_SCHEMAS = {
     "temperature": {"type": float, "min": 0, "max": 2},
     "max_tokens": {"type": int, "min": 1},
+    "max_completion_tokens": {"type": int, "min": 1},
+    "maxOutputTokens": {"type": int, "min": 1},
     "top_p": {"type": float, "min": 0, "max": 1},
+    "topP": {"type": float, "min": 0, "max": 1},
     "top_k": {"type": int, "min": 1},
+    "topK": {"type": int, "min": 1},
     "frequency_penalty": {"type": float, "min": -2, "max": 2},
     "presence_penalty": {"type": float, "min": -2, "max": 2},
     "timeout_seconds": {"type": int, "min": 1},
     "seed": {"type": int},
+    "candidateCount": {"type": int, "min": 1},
+    "response_format": {"type": dict},        # ← ADD: OpenAI JSON schema
+    "response_schema": {"type": dict},        # ← ADD: Gemini JSON schema
+    "response_mime_type": {"type": str},      # ← ADD: Gemini MIME type
 }
 
 
@@ -117,31 +237,32 @@ def call_llm(prompt: str, config: Dict[str, Any], output_type: str = "text"):
 
 def _call_model(model, prompt: str, config: Dict[str, Any]) -> str:
     """Internal helper to call the model."""
-    # Only pass known valid LLM parameters
-    valid_llm_params = {
-        "temperature",
-        "max_tokens",
-        "top_p",
-        "top_k",
-        "stop",
-        "frequency_penalty",
-        "presence_penalty",
-        "seed",
-    }
+    model_name = config.get("model")
 
-    # Filter config to only include valid parameters
+    if model_name:
+        valid_llm_params = get_valid_parameters(model_name)
+    else:
+        # Fallback for backward compatibility
+        valid_llm_params = {
+            "temperature",
+            "max_tokens",
+            "max_completion_tokens",
+            "top_p",
+            "top_k",
+            "stop",
+            "frequency_penalty",
+            "presence_penalty",
+            "seed",
+        }
+
     options = {
         k: v for k, v in config.items() if k != "model" and k in valid_llm_params
     }
-
-    logger.debug(f"Filtered options for model: {options}")
+    logger.debug(f"Filtered options for {model_name or 'model'}: {options}")
 
     response = model.prompt(prompt, **options)
     raw_response = response.text()
-
-    # Clean the response to remove outer markdown fences BEFORE any processing
     cleaned_response = clean_llm_response_text(raw_response)
-
     return cleaned_response
 
 

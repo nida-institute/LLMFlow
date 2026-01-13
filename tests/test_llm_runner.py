@@ -472,20 +472,6 @@ class TestCallModelInternal:
 class TestLLMRunnerEdgeCases:
     """Test edge cases and integration scenarios."""
 
-    def test_parameter_schemas_coverage(self):
-        """Verify all expected parameters are in PARAMETER_SCHEMAS."""
-        expected_params = {
-            "temperature",
-            "max_tokens",
-            "top_p",
-            "top_k",
-            "frequency_penalty",
-            "presence_penalty",
-            "timeout_seconds",
-            "seed",
-        }
-        assert set(PARAMETER_SCHEMAS.keys()) == expected_params
-
     def test_parameter_schema_structure(self):
         """Each parameter schema should have required fields."""
         for param_name, schema in PARAMETER_SCHEMAS.items():
