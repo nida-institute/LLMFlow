@@ -325,14 +325,21 @@ async def _run_llm_with_mcp_tools_async(
         # Build initial messages
         messages = [{"role": "user", "content": prompt}]
 
-        # Build API call parameters
+        # Build API call parameters with model-aware token limits
+        model_name = config.get("model", "gpt-4o")
+
         api_params = {
-            "model": config.get("model", "gpt-4o"),
+            "model": model_name,
             "messages": messages,
             "tools": openai_tools,
             "temperature": config.get("temperature", 0.7),
-            "max_tokens": config.get("max_tokens"),
         }
+
+        # Add token limit parameter based on what's in config (don't pass None)
+        if "max_completion_tokens" in config:
+            api_params["max_completion_tokens"] = config["max_completion_tokens"]
+        elif "max_tokens" in config:
+            api_params["max_tokens"] = config["max_tokens"]
 
         # Add response_format if specified
         if "response_format" in config:

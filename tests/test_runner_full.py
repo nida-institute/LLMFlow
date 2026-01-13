@@ -674,3 +674,156 @@ class TestModelSpecificDefaults:
         assert "max_tokens" in config
         assert config["max_tokens"] == 2500
         assert "max_completion_tokens" not in config
+
+
+class TestMCPModelSpecificParameters:
+    """Test that MCP path applies model-specific token parameters correctly"""
+
+    @patch("llmflow.runner.render_prompt")
+    @patch("llmflow.runner.init_mcp_client")
+    @patch("llmflow.runner.run_llm_with_mcp_tools")
+    def test_mcp_gpt5_gets_max_completion_tokens(self, mock_run_llm_mcp, mock_init_mcp, mock_render_prompt):
+        """GPT-5 with MCP should get max_completion_tokens, not max_tokens"""
+        mock_render_prompt.return_value = "Rendered prompt"
+
+        # Mock MCP client
+        mock_mcp_client = MagicMock()
+        async def async_close():
+            pass
+        mock_mcp_client._async_close = async_close
+        mock_init_mcp.return_value = mock_mcp_client
+
+        mock_run_llm_mcp.return_value = '{"result": "success"}'
+
+        context = {}
+        step = {
+            "name": "test_mcp_gpt5",
+            "type": "llm",
+            "model": "gpt-5",
+            "prompt": {"file": "test.gpt", "inputs": {}},
+            "output_type": "json",
+            "mcp": {
+                "enabled": True,
+                "server": "bible",
+                "max_iterations": 5,
+                "tools": ["get_passage_text"]
+            },
+            "outputs": "response"
+        }
+        pipeline_config = {
+            "mcp_servers": {
+                "bible": {
+                    "url": "https://bible-resource-server-preview.labs.biblica.com/mcp",
+                    "tools": ["get_passage_text"]
+                }
+            }
+        }
+
+        result = run_llm_step(step, context, pipeline_config)
+
+        # Verify run_llm_with_mcp_tools was called
+        assert mock_run_llm_mcp.called
+        call_args = mock_run_llm_mcp.call_args
+        merged_config = call_args[0][1]  # Second positional arg is config
+
+        # Should have max_completion_tokens, not max_tokens
+        assert "max_completion_tokens" in merged_config
+        assert merged_config["max_completion_tokens"] == 2500
+        assert "max_tokens" not in merged_config
+
+    @patch("llmflow.runner.render_prompt")
+    @patch("llmflow.runner.init_mcp_client")
+    @patch("llmflow.runner.run_llm_with_mcp_tools")
+    def test_mcp_gpt4_gets_max_tokens(self, mock_run_llm_mcp, mock_init_mcp, mock_render_prompt):
+        """GPT-4 with MCP should get max_tokens, not max_completion_tokens"""
+        mock_render_prompt.return_value = "Rendered prompt"
+
+        mock_mcp_client = MagicMock()
+        async def async_close():
+            pass
+        mock_mcp_client._async_close = async_close
+        mock_init_mcp.return_value = mock_mcp_client
+
+        mock_run_llm_mcp.return_value = '{"result": "success"}'
+
+        context = {}
+        step = {
+            "name": "test_mcp_gpt4",
+            "type": "llm",
+            "model": "gpt-4o",
+            "prompt": {"file": "test.gpt", "inputs": {}},
+            "output_type": "json",
+            "mcp": {
+                "enabled": True,
+                "server": "bible",
+                "max_iterations": 5,
+                "tools": ["get_passage_text"]
+            },
+            "outputs": "response"
+        }
+        pipeline_config = {
+            "mcp_servers": {
+                "bible": {
+                    "url": "https://bible-resource-server-preview.labs.biblica.com/mcp",
+                    "tools": ["get_passage_text"]
+                }
+            }
+        }
+
+        result = run_llm_step(step, context, pipeline_config)
+
+        assert mock_run_llm_mcp.called
+        merged_config = mock_run_llm_mcp.call_args[0][1]
+
+        # Should have max_tokens, not max_completion_tokens
+        assert "max_tokens" in merged_config
+        assert merged_config["max_tokens"] == 2500
+        assert "max_completion_tokens" not in merged_config
+
+    @patch("llmflow.runner.render_prompt")
+    @patch("llmflow.runner.init_mcp_client")
+    @patch("llmflow.runner.run_llm_with_mcp_tools")
+    def test_mcp_explicit_max_completion_tokens_preserved(self, mock_run_llm_mcp, mock_init_mcp, mock_render_prompt):
+        """Explicit max_completion_tokens should be preserved in MCP config"""
+        mock_render_prompt.return_value = "Rendered prompt"
+
+        mock_mcp_client = MagicMock()
+        async def async_close():
+            pass
+        mock_mcp_client._async_close = async_close
+        mock_init_mcp.return_value = mock_mcp_client
+
+        mock_run_llm_mcp.return_value = '{"result": "success"}'
+
+        context = {}
+        step = {
+            "name": "test_mcp_explicit",
+            "type": "llm",
+            "model": "gpt-5",
+            "max_completion_tokens": 8192,
+            "prompt": {"file": "test.gpt", "inputs": {}},
+            "output_type": "json",
+            "mcp": {
+                "enabled": True,
+                "server": "bible",
+                "max_iterations": 5,
+                "tools": ["get_passage_text"]
+            },
+            "outputs": "response"
+        }
+        pipeline_config = {
+            "mcp_servers": {
+                "bible": {
+                    "url": "https://bible-resource-server-preview.labs.biblica.com/mcp",
+                    "tools": ["get_passage_text"]
+                }
+            }
+        }
+
+        result = run_llm_step(step, context, pipeline_config)
+
+        assert mock_run_llm_mcp.called
+        merged_config = mock_run_llm_mcp.call_args[0][1]
+
+        # Should preserve explicit value
+        assert merged_config["max_completion_tokens"] == 8192
