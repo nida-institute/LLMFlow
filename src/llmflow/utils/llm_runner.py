@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import llm
 
@@ -268,12 +268,15 @@ def run_llm_with_mcp_tools(
     config: Dict[str, Any],
     mcp_client,
     output_type: str = "text",
-    step_name: str = "unknown"  # ← Add parameter
+    step_name: str = "unknown",
+    step: Optional[Dict[str, Any]] = None,
+    context: Optional[Dict[str, Any]] = None,
+    pipeline_config: Optional[Dict[str, Any]] = None
 ) -> str:
     """Execute LLM call with MCP tool support."""
     import asyncio
     return asyncio.run(_run_llm_with_mcp_tools_async(
-        prompt, config, mcp_client, output_type, step_name  # ← Pass through
+        prompt, config, mcp_client, output_type, step_name, step, context, pipeline_config
     ))
 
 
@@ -282,7 +285,10 @@ async def _run_llm_with_mcp_tools_async(
     config: Dict[str, Any],
     mcp_client,
     output_type: str = "text",
-    step_name: str = "unknown"
+    step_name: str = "unknown",
+    step: Optional[Dict[str, Any]] = None,
+    context: Optional[Dict[str, Any]] = None,
+    pipeline_config: Optional[Dict[str, Any]] = None
 ) -> str:
     """Execute LLM with MCP tools using OpenAI API.
 
@@ -308,13 +314,20 @@ async def _run_with_responses_api(
     config: Dict[str, Any],
     mcp_client,
     output_type: str = "text",
-    step_name: str = "unknown"
+    step_name: str = "unknown",
+    step: Optional[Dict[str, Any]] = None,
+    context: Optional[Dict[str, Any]] = None,
+    pipeline_config: Optional[Dict[str, Any]] = None
 ) -> str:
-    """Execute LLM using Responses API (for GPT-5, o1)."""
+    """Execute LLM using Responses API (for GPT-5, O1)."""
+    from llmflow.runner import build_debug_filename, save_content_to_file
     import json
-    from openai import AsyncOpenAI
+    from openai import OpenAI
+    import asyncio
+    from functools import partial
 
-    client = AsyncOpenAI()
+    # Responses API is only available in sync client, so we'll use it in a thread pool
+    client = OpenAI()
 
     # Initialize MCP session and get tools
     async with mcp_client as mcp:
@@ -324,21 +337,19 @@ async def _run_with_responses_api(
             logger.warning("⚠️  No MCP tools available, falling back to simple call")
             return call_llm(prompt, config=config, output_type=output_type)
 
-        # Convert MCP schema to OpenAI tool format
+        # Convert MCP schema to Responses API tool format (flatter than Chat Completions)
         openai_tools = [
             {
                 "type": "function",
-                "function": {
-                    "name": tool["name"],
-                    "description": tool.get("description", ""),
-                    "parameters": tool.get("inputSchema", {})
-                }
+                "name": tool["name"],
+                "description": tool.get("description", ""),
+                "parameters": tool.get("inputSchema", {})
             }
             for tool in tools
         ]
 
         logger.debug(f"🛠️  {len(openai_tools)} MCP tools available")
-        logger.debug(f"   Tools: {[t['function']['name'] for t in openai_tools]}")
+        logger.debug(f"   Tools: {[t['name'] for t in openai_tools]}")
 
         model_name = config.get("model", "gpt-5")
 
@@ -360,6 +371,7 @@ async def _run_with_responses_api(
 
         mcp_config = config.get("mcp", {})
         max_iterations = mcp_config.get("max_iterations", 1)
+        timeout_seconds = config.get("timeout_seconds", 60)
 
         if max_iterations == 1 and len(tools) > 1:
             logger.warning(
@@ -369,30 +381,75 @@ async def _run_with_responses_api(
 
         for iteration in range(max_iterations):
             logger.debug(f"🔄 MCP iteration {iteration + 1}/{max_iterations}")
+            logger.info(f"📤 API params: model={api_params['model']}, tools={len(api_params.get('tools', []))}, input_messages={len(api_params.get('input', []))}")
 
             try:
-                response = await client.responses.create(**api_params)
+                response = await asyncio.to_thread(
+                    client.responses.create,
+                    **api_params,
+                    timeout=timeout_seconds
+                )
+
+                # Debug: save raw response
+                try:
+                    if step and context and pipeline_config:
+                        if (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
+                            filename = build_debug_filename(step, context, "response")
+                            resp_path = f"outputs/debug/{filename}"
+                            save_content_to_file(str(response), resp_path, format="text")
+                            logger.debug(f"🗒️ Saved response to {resp_path}")
+                except Exception as e:
+                    logger.debug(f"(response debug save skipped: {e})")
+
             except Exception as e:
                 logger.error(f"❌ OpenAI Responses API call failed: {e}")
                 raise
 
+            # Debug: Log response structure
+            logger.info(f"📊 Response status: {response.status}")
+            logger.info(f"📊 Response output items: {len(response.output)}")
+            for i, item in enumerate(response.output):
+                logger.info(f"📊 Output item {i}: type={getattr(item, 'type', 'NO TYPE')}, hasattr text={hasattr(item, 'text')}")
+                if hasattr(item, '__dict__'):
+                    logger.info(f"📊 Output item {i} attributes: {list(item.__dict__.keys())}")
+
             # Check response status
             if response.status == "completed":
-                # Extract output text from response
-                output_text = ""
-                for item in response.output:
-                    if hasattr(item, 'type') and item.type == "message":
-                        for content in item.content:
-                            if hasattr(content, 'type') and content.type == "output_text":
-                                output_text += content.text
+                # Check if there are function calls to handle
+                has_function_calls = any(
+                    hasattr(item, 'type') and item.type == "function_call"
+                    for item in response.output
+                )
 
-                logger.debug("✅ LLM completed without requesting tools")
+                if not has_function_calls:
+                    # No function calls, extract final text output
+                    output_text = ""
+                    for item in response.output:
+                        if hasattr(item, 'type'):
+                            # Handle both 'text' and 'message' types
+                            if item.type == "text" and hasattr(item, 'text'):
+                                output_text += item.text
+                            elif item.type == "message" and hasattr(item, 'content'):
+                                # After tool execution, GPT-5 returns 'message' type with 'content'
+                                # content is ALWAYS an array of ResponseOutputText objects
+                                if isinstance(item.content, list):
+                                    for content_item in item.content:
+                                        if hasattr(content_item, 'text'):
+                                            output_text += content_item.text
+                                else:
+                                    # Fallback for unexpected structure
+                                    output_text += str(item.content)
 
-                if output_type.lower() == "json":
-                    return parse_llm_json_response(output_text)
-                return output_text
+                    logger.debug(f"✅ LLM completed without requesting tools. Output length: {len(output_text)}")
 
-            # Check for tool calls
+                    if output_type.lower() == "json":
+                        return parse_llm_json_response(output_text)
+                    return output_text
+
+                # Has function calls - fall through to handle them
+                logger.debug(f"🛠️  LLM requesting tool calls")
+
+            # Check for tool calls (even if status is not "completed")
             tool_calls_found = False
             for item in response.output:
                 if hasattr(item, 'type') and item.type == "function_call":
@@ -400,14 +457,21 @@ async def _run_with_responses_api(
                     break
 
             if not tool_calls_found:
-                # No tool calls but also not completed - shouldn't happen
+                # No tool calls and already handled completed status above
                 logger.warning(f"⚠️  Unexpected response status: {response.status}")
                 output_text = ""
                 for item in response.output:
-                    if hasattr(item, 'type') and item.type == "message":
-                        for content in item.content:
-                            if hasattr(content, 'type') and content.type == "output_text":
-                                output_text += content.text
+                    if hasattr(item, 'type'):
+                        if item.type == "text" and hasattr(item, 'text'):
+                            output_text += item.text
+                        elif item.type == "message" and hasattr(item, 'content'):
+                            # content is ALWAYS an array of ResponseOutputText objects
+                            if isinstance(item.content, list):
+                                for content_item in item.content:
+                                    if hasattr(content_item, 'text'):
+                                        output_text += content_item.text
+                            else:
+                                output_text += str(item.content)
                 return output_text or "Error: Unexpected response format"
 
             # Execute tool calls and add results to input
@@ -415,6 +479,33 @@ async def _run_with_responses_api(
 
             new_input_items = list(api_params["input"])  # Copy existing input
 
+            # First, add all response output items (includes function_call items)
+            for item in response.output:
+                if hasattr(item, 'type'):
+                    # Convert the response item to dict for input
+                    if item.type in ["reasoning", "function_call"]:
+                        # Add these items to the conversation history
+                        item_dict = {
+                            "type": item.type,
+                            "id": item.id,
+                        }
+                        if item.type == "function_call":
+                            item_dict["call_id"] = item.call_id
+                            item_dict["name"] = item.name
+                            item_dict["arguments"] = item.arguments
+                        elif item.type == "reasoning":
+                            # summary is REQUIRED by API and must be an array
+                            summary = getattr(item, 'summary', None)
+                            if summary is None or not isinstance(summary, list):
+                                summary = []
+                            item_dict["summary"] = summary
+
+                            content = getattr(item, 'content', None)
+                            if content:
+                                item_dict["content"] = content
+                        new_input_items.append(item_dict)
+
+            # Now execute tool calls and add their outputs
             for item in response.output:
                 if hasattr(item, 'type'):
                     if item.type == "function_call":
@@ -432,17 +523,15 @@ async def _run_with_responses_api(
                             # Add function call result to input
                             new_input_items.append({
                                 "type": "function_call_output",
-                                "call_id": item.id,
-                                "name": tool_name,
-                                "content": str(result)
+                                "call_id": item.call_id,
+                                "output": str(result)
                             })
                         except Exception as e:
                             logger.error(f"      ❌ Tool execution failed: {e}")
                             new_input_items.append({
                                 "type": "function_call_output",
-                                "call_id": item.id,
-                                "name": tool_name,
-                                "content": f"Error: {e}"
+                                "call_id": item.call_id,
+                                "output": f"Error: {e}"
                             })
 
             # Update input for next iteration

@@ -527,3 +527,124 @@ class TestLLMRunnerEdgeCases:
                 valid_value = int(schema.get("min", 1))
             else:
                 valid_value = float((schema.get("min", 0) + schema.get("max", 1)) / 2)
+
+
+# ============================================================================
+# Test timeout_seconds in Responses API
+# ============================================================================
+
+class TestResponsesAPITimeout:
+    """Test that timeout_seconds parameter is correctly passed to Responses API."""
+
+    @pytest.mark.asyncio
+    async def test_timeout_default_value(self):
+        """Test that default timeout is 60 seconds when not specified."""
+        from llmflow.utils.llm_runner import _run_with_responses_api
+        from unittest.mock import AsyncMock, Mock, patch
+
+        # Mock MCP client
+        mock_mcp = AsyncMock()
+        mock_mcp.__aenter__ = AsyncMock(return_value=mock_mcp)
+        mock_mcp.__aexit__ = AsyncMock()
+        mock_mcp._async_get_tool_definitions = AsyncMock(return_value=[
+            {
+                "name": "test_tool",
+                "description": "Test tool",
+                "inputSchema": {}
+            }
+        ])
+
+        # Mock OpenAI client
+        mock_response = Mock()
+        mock_response.status = "completed"
+        mock_response.output = [
+            Mock(type="text", text="Test response")
+        ]
+
+        with patch("openai.OpenAI") as mock_openai_class:
+            mock_client = Mock()
+            mock_openai_class.return_value = mock_client
+            
+            # Track the timeout value passed to create()
+            create_called_with_timeout = None
+            def capture_create(**kwargs):
+                nonlocal create_called_with_timeout
+                create_called_with_timeout = kwargs.get("timeout")
+                return mock_response
+            
+            mock_client.responses.create = capture_create
+
+            config = {
+                "model": "gpt-5",
+                "reasoning_effort": "low",
+                "mcp": {"max_iterations": 1}
+                # No timeout_seconds specified
+            }
+
+            with patch("asyncio.to_thread", new=lambda fn, *args, **kwargs: fn(*args, **kwargs)):
+                result = await _run_with_responses_api(
+                    "Test prompt",
+                    config,
+                    mock_mcp,
+                    "text"
+                )
+
+            # Verify default timeout of 60 seconds was used
+            assert create_called_with_timeout == 60, f"Expected default timeout of 60, got {create_called_with_timeout}"
+
+    @pytest.mark.asyncio
+    async def test_timeout_custom_value(self):
+        """Test that custom timeout_seconds is correctly passed to API."""
+        from llmflow.utils.llm_runner import _run_with_responses_api
+        from unittest.mock import AsyncMock, Mock, patch
+
+        # Mock MCP client
+        mock_mcp = AsyncMock()
+        mock_mcp.__aenter__ = AsyncMock(return_value=mock_mcp)
+        mock_mcp.__aexit__ = AsyncMock()
+        mock_mcp._async_get_tool_definitions = AsyncMock(return_value=[
+            {
+                "name": "test_tool",
+                "description": "Test tool",
+                "inputSchema": {}
+            }
+        ])
+
+        # Mock OpenAI client
+        mock_response = Mock()
+        mock_response.status = "completed"
+        mock_response.output = [
+            Mock(type="text", text="Test response")
+        ]
+
+        with patch("openai.OpenAI") as mock_openai_class:
+            mock_client = Mock()
+            mock_openai_class.return_value = mock_client
+            
+            # Track the timeout value passed to create()
+            create_called_with_timeout = None
+            def capture_create(**kwargs):
+                nonlocal create_called_with_timeout
+                create_called_with_timeout = kwargs.get("timeout")
+                return mock_response
+            
+            mock_client.responses.create = capture_create
+
+            config = {
+                "model": "gpt-5",
+                "reasoning_effort": "low",
+                "timeout_seconds": 180,  # Custom 3-minute timeout
+                "mcp": {"max_iterations": 1}
+            }
+
+            with patch("asyncio.to_thread", new=lambda fn, *args, **kwargs: fn(*args, **kwargs)):
+                result = await _run_with_responses_api(
+                    "Test prompt",
+                    config,
+                    mock_mcp,
+                    "text"
+                )
+
+            # Verify custom timeout of 180 seconds was used
+            assert create_called_with_timeout == 180, f"Expected timeout of 180, got {create_called_with_timeout}"
+

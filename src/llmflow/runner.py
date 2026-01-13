@@ -32,11 +32,55 @@ from llmflow.exceptions import (
 from llmflow.modules.mcp import init_mcp_client
 from llmflow.utils.guards import build_step_eval_ctx, enforce_require, collect_warnings
 from llmflow.utils.io import sanitize_filename
+from datetime import datetime
 
 discover_plugins()
 
 # Single unified logger instance
 logger = Logger()
+
+def build_debug_filename(step: Dict[str, Any], context: Dict[str, Any], request_or_response: str) -> str:
+    """Build a debug filename from passage (or timestamp), prompt file, and request/response type.
+
+    Format with passage: {passage}_{prompt_file}_{request_or_response}.txt
+    Format without passage: {timestamp}_{prompt_file}_{request_or_response}.txt
+
+    Example: Mark-1-1-12_leadersguide-naming-ast_request.txt
+    Example: 2026-01-13-143045_lexicon-step_request.txt
+    """
+    parts = []
+
+    # Get passage from context (try multiple possible keys)
+    passage = context.get("passage") or context.get("Citation") or context.get("scene", {}).get("Citation")
+    if passage:
+        parts.append(sanitize_filename(str(passage)))
+    else:
+        # Fallback to timestamp when no passage available
+        timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
+        parts.append(timestamp)
+
+    # Get prompt filename from step config
+    prompt_config = step.get("prompt", {})
+    if isinstance(prompt_config, dict):
+        prompt_file = prompt_config.get("file", "")
+    elif isinstance(prompt_config, str):
+        prompt_file = prompt_config
+    else:
+        prompt_file = ""
+
+    if prompt_file:
+        # Extract just the filename without extension
+        prompt_name = Path(prompt_file).stem
+        parts.append(sanitize_filename(prompt_name))
+    else:
+        # Fallback to step name
+        step_name = step.get("name", "llm_step")
+        parts.append(sanitize_filename(step_name))
+
+    # Add request/response indicator
+    parts.append(request_or_response)
+
+    return "_".join(parts) + ".txt"
 
 # Track files written during a run and emit to both llmflow.log and stdout
 WRITTEN_FILES = []
@@ -534,23 +578,15 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
 
     rendered_prompt = render_prompt(step["prompt"], context)
 
-    # Debug: save rendered prompt when log_level=debug
+    # Debug: save rendered prompt (request) when log_level=debug
     try:
         if (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
-            safe_step = sanitize_filename(step.get("name", "llm_step"))
-            citation = ""
-            try:
-                scene_obj = context.get("scene", {})
-                if isinstance(scene_obj, dict):
-                    citation = scene_obj.get("Citation", "") or ""
-            except Exception:
-                pass
-            suffix = sanitize_filename(citation) if citation else "no_citation"
-            prompt_path = f"outputs/debug/prompts/{safe_step}-{suffix}.md"
+            filename = build_debug_filename(step, context, "request")
+            prompt_path = f"outputs/debug/{filename}"
             save_content_to_file(rendered_prompt, prompt_path, format="text")
-            logger.debug(f"📝 Saved rendered prompt to {prompt_path}")
+            logger.debug(f"📝 Saved request to {prompt_path}")
     except Exception as e:
-        logger.debug(f"(prompt debug save skipped: {e})")
+        logger.debug(f"(request debug save skipped: {e})")
 
     # Build merged config
     llm_config = pipeline_config.get("llm_config", {})
@@ -562,6 +598,7 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
         "max_completion_tokens": step.get("max_completion_tokens") or step_options.get("max_completion_tokens"),
         "timeout_seconds": step.get("timeout_seconds") or step_options.get("timeout_seconds"),
         "response_format": step.get("response_format"),
+        "reasoning_effort": step.get("reasoning_effort") or step_options.get("reasoning_effort"),
     }
     step_config = {k: v for k, v in step_config.items() if v is not None}
 
@@ -620,7 +657,10 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
                         merged_config,  # ← Changed from 'config' to 'merged_config'
                         mcp_client,
                         output_type,
-                        step_name=step.get("name", "unknown")
+                        step_name=step.get("name", "unknown"),
+                        step=step,
+                        context=context,
+                        pipeline_config=pipeline_config
                     )
                 else:
                     logger.info(f"    ⏳ Calling {merged_config.get('model')} for step '{name}'...")
@@ -653,18 +693,10 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
         # Debug: save raw response text
         try:
             if response is not None and (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
-                safe_step = sanitize_filename(step.get("name", "llm_step"))
-                citation = ""
-                try:
-                    scene_obj = context.get("scene", {})
-                    if isinstance(scene_obj, dict):
-                        citation = scene_obj.get("Citation", "") or ""
-                except Exception:
-                    pass
-                suffix = sanitize_filename(citation) if citation else "no_citation"
-                resp_path = f"outputs/debug/responses/{safe_step}-{suffix}.txt"
+                filename = build_debug_filename(step, context, "response")
+                resp_path = f"outputs/debug/{filename}"
                 save_content_to_file(response if isinstance(response, str) else str(response), resp_path, format="text")
-                logger.debug(f"🗒️ Saved raw LLM response to {resp_path}")
+                logger.debug(f"🗒️ Saved response to {resp_path}")
         except Exception as e:
             logger.debug(f"(response debug save skipped: {e})")
 
