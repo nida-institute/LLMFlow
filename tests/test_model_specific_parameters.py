@@ -61,12 +61,13 @@ class TestValidParametersForFamily:
     """Test that each model family has the correct parameter set."""
 
     def test_gpt5_valid_parameters(self):
-        """GPT-5 family should accept max_completion_tokens, not max_tokens."""
+        """GPT-5 family uses Responses API with limited parameter set."""
         params = get_valid_parameters("gpt-5")
         assert "max_completion_tokens" in params
         assert "max_tokens" not in params
-        assert "temperature" in params
-        assert "top_p" in params
+        # GPT-5 uses Responses API - temperature/top_p handled via reasoning.effort
+        assert "temperature" not in params
+        assert "top_p" not in params
 
     def test_o1_limited_parameters(self):
         """o1 family has very restricted parameter set."""
@@ -149,9 +150,10 @@ class TestModelSpecificParameterValidation:
         assert errors == []
 
     def test_universal_parameter_temperature(self):
-        """Temperature should work for most models (except o1)."""
+        """Temperature should work for most models (except o1 and gpt-5)."""
         assert validate_model_parameter("gpt-4o", "temperature", 0.7) == []
-        assert validate_model_parameter("gpt-5", "temperature", 0.7) == []
+        # GPT-5 uses Responses API which doesn't support temperature parameter
+        assert len(validate_model_parameter("gpt-5", "temperature", 0.7)) > 0
         assert validate_model_parameter("claude-3.7-sonnet", "temperature", 0.7) == []
         assert len(validate_model_parameter("o1", "temperature", 0.7)) > 0
 
@@ -218,17 +220,19 @@ class TestJSONCapabilities:
         errors = validate_model_parameter("gpt-4o", "response_format", schema)
         assert errors == []
 
-    def test_gpt5_accepts_response_format(self):
-        """GPT-5 models support response_format parameter."""
+    def test_gpt5_rejects_response_format(self):
+        """GPT-5 uses Responses API with different structured output handling."""
         schema = {"type": "json_object"}
         errors = validate_model_parameter("gpt-5", "response_format", schema)
-        assert errors == []
+        # GPT-5 uses Responses API - structured outputs handled via different mechanism
+        assert len(errors) > 0
+        assert "not supported" in errors[0].lower()
 
     def test_o1_rejects_response_format(self):
         """o1 models do not support response_format."""
         schema = {"type": "json_object"}
         errors = validate_model_parameter("o1", "response_format", schema)
-        assert len(errors) > 0
+        assert len(errors) > 0  # Expects errors
         assert "not supported" in errors[0].lower()
 
     def test_o1_mini_rejects_response_format(self):
