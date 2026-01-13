@@ -559,20 +559,33 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
         "model": step.get("model"),
         "temperature": step.get("temperature") or step_options.get("temperature"),
         "max_tokens": step.get("max_tokens") or step_options.get("max_tokens"),
+        "max_completion_tokens": step.get("max_completion_tokens") or step_options.get("max_completion_tokens"),
         "timeout_seconds": step.get("timeout_seconds") or step_options.get("timeout_seconds"),
         "response_format": step.get("response_format"),
     }
     step_config = {k: v for k, v in step_config.items() if v is not None}
 
+    # Start with universal defaults only
     merged_config = {
         "model": "gpt-4o",
         "temperature": 0.7,
-        "max_tokens": 2500,
         "timeout_seconds": 30,
     }
     merged_config.update(llm_config)
     merged_config.update(step_options)
     merged_config.update(step_config)
+
+    # Add model-specific defaults only if not already set
+    from llmflow.utils.llm_runner import get_model_family
+    final_model = merged_config.get("model", "gpt-4o")
+    model_family = get_model_family(final_model)
+
+    if "max_tokens" not in merged_config and "max_completion_tokens" not in merged_config:
+        # Apply appropriate token limit default based on model family
+        if model_family in ("gpt-5", "o1"):
+            merged_config["max_completion_tokens"] = 2500
+        else:
+            merged_config["max_tokens"] = 2500
 
     # Include MCP config if present
     if "mcp" in step:

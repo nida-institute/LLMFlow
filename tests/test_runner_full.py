@@ -522,3 +522,155 @@ class TestMCPConfigMerging:
         assert len(mcp_config["tools"]) == 3
         assert "get_passage_text" in mcp_config["tools"]
         assert "get_acai_entities_for_passage" in mcp_config["tools"]
+
+
+class TestModelSpecificDefaults:
+    """Test that token limit defaults are model-aware"""
+
+    @patch("llmflow.runner.render_prompt")
+    @patch("llmflow.runner.call_llm")
+    def test_gpt4_gets_max_tokens_default(self, mock_call_llm, mock_render_prompt):
+        """GPT-4 should get max_tokens default if not specified"""
+        mock_render_prompt.return_value = "Prompt"
+        mock_call_llm.return_value = "Response"
+
+        context = {}
+        step = {
+            "name": "test",
+            "type": "llm",
+            "model": "gpt-4o",
+            "prompt": {"file": "test.gpt"},
+            "outputs": "result"
+        }
+        pipeline_config = {}
+
+        run_llm_step(step, context, pipeline_config)
+
+        call_kwargs = mock_call_llm.call_args[1]
+        config = call_kwargs["config"]
+        assert "max_tokens" in config
+        assert config["max_tokens"] == 2500
+        assert "max_completion_tokens" not in config
+
+    @patch("llmflow.runner.render_prompt")
+    @patch("llmflow.runner.call_llm")
+    def test_gpt5_gets_max_completion_tokens_default(self, mock_call_llm, mock_render_prompt):
+        """GPT-5 should get max_completion_tokens default if not specified"""
+        mock_render_prompt.return_value = "Prompt"
+        mock_call_llm.return_value = "Response"
+
+        context = {}
+        step = {
+            "name": "test",
+            "type": "llm",
+            "model": "gpt-5",
+            "prompt": {"file": "test.gpt"},
+            "outputs": "result"
+        }
+        pipeline_config = {}
+
+        run_llm_step(step, context, pipeline_config)
+
+        call_kwargs = mock_call_llm.call_args[1]
+        config = call_kwargs["config"]
+        assert "max_completion_tokens" in config
+        assert config["max_completion_tokens"] == 2500
+        assert "max_tokens" not in config
+
+    @patch("llmflow.runner.render_prompt")
+    @patch("llmflow.runner.call_llm")
+    def test_o1_gets_max_completion_tokens_default(self, mock_call_llm, mock_render_prompt):
+        """o1 should get max_completion_tokens default if not specified"""
+        mock_render_prompt.return_value = "Prompt"
+        mock_call_llm.return_value = "Response"
+
+        context = {}
+        step = {
+            "name": "test",
+            "type": "llm",
+            "model": "o1",
+            "prompt": {"file": "test.gpt"},
+            "outputs": "result"
+        }
+        pipeline_config = {}
+
+        run_llm_step(step, context, pipeline_config)
+
+        call_kwargs = mock_call_llm.call_args[1]
+        config = call_kwargs["config"]
+        assert "max_completion_tokens" in config
+        assert config["max_completion_tokens"] == 2500
+        assert "max_tokens" not in config
+
+    @patch("llmflow.runner.render_prompt")
+    @patch("llmflow.runner.call_llm")
+    def test_explicit_max_tokens_overrides_default(self, mock_call_llm, mock_render_prompt):
+        """Explicit max_tokens should override default"""
+        mock_render_prompt.return_value = "Prompt"
+        mock_call_llm.return_value = "Response"
+
+        context = {}
+        step = {
+            "name": "test",
+            "type": "llm",
+            "model": "gpt-4o",
+            "max_tokens": 4096,
+            "prompt": {"file": "test.gpt"},
+            "outputs": "result"
+        }
+        pipeline_config = {}
+
+        run_llm_step(step, context, pipeline_config)
+
+        call_kwargs = mock_call_llm.call_args[1]
+        config = call_kwargs["config"]
+        assert config["max_tokens"] == 4096
+
+    @patch("llmflow.runner.render_prompt")
+    @patch("llmflow.runner.call_llm")
+    def test_explicit_max_completion_tokens_overrides_default(self, mock_call_llm, mock_render_prompt):
+        """Explicit max_completion_tokens should override default"""
+        mock_render_prompt.return_value = "Prompt"
+        mock_call_llm.return_value = "Response"
+
+        context = {}
+        step = {
+            "name": "test",
+            "type": "llm",
+            "model": "gpt-5",
+            "max_completion_tokens": 8192,
+            "prompt": {"file": "test.gpt"},
+            "outputs": "result"
+        }
+        pipeline_config = {}
+
+        run_llm_step(step, context, pipeline_config)
+
+        call_kwargs = mock_call_llm.call_args[1]
+        config = call_kwargs["config"]
+        assert config["max_completion_tokens"] == 8192
+
+    @patch("llmflow.runner.render_prompt")
+    @patch("llmflow.runner.call_llm")
+    def test_claude_gets_max_tokens_default(self, mock_call_llm, mock_render_prompt):
+        """Claude should get max_tokens default (not GPT-5 family)"""
+        mock_render_prompt.return_value = "Prompt"
+        mock_call_llm.return_value = "Response"
+
+        context = {}
+        step = {
+            "name": "test",
+            "type": "llm",
+            "model": "claude-3.7-sonnet",
+            "prompt": {"file": "test.gpt"},
+            "outputs": "result"
+        }
+        pipeline_config = {}
+
+        run_llm_step(step, context, pipeline_config)
+
+        call_kwargs = mock_call_llm.call_args[1]
+        config = call_kwargs["config"]
+        assert "max_tokens" in config
+        assert config["max_tokens"] == 2500
+        assert "max_completion_tokens" not in config
