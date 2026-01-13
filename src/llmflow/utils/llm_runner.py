@@ -35,17 +35,10 @@ MODEL_FAMILIES = {
 # Family-specific valid parameters
 FAMILY_PARAMETERS = {
     "gpt-5": {
-        "max_completion_tokens",
-        "temperature",
-        "top_p",
-        "frequency_penalty",
-        "presence_penalty",
-        "seed",
-        "stop",
-        "response_format",
+        "max_completion_tokens",  # GPT-5 uses Responses API with reasoning.effort
     },
     "o1": {
-        "max_completion_tokens",
+        "max_completion_tokens",  # o1 uses Responses API with reasoning.effort
     },
     "gpt-4": {
         "max_tokens",
@@ -291,8 +284,183 @@ async def _run_llm_with_mcp_tools_async(
     output_type: str = "text",
     step_name: str = "unknown"
 ) -> str:
-    """Execute LLM with MCP tools using OpenAI API."""
+    """Execute LLM with MCP tools using OpenAI API.
 
+    Routes to Responses API for GPT-5/o1 (better reasoning),
+    or Chat Completions API for other models.
+    """
+    model_name = config.get("model", "gpt-4o")
+    model_family = get_model_family(model_name)
+
+    # Use Responses API for reasoning models (GPT-5, o1)
+    if model_family in ("gpt-5", "o1"):
+        return await _run_with_responses_api(
+            prompt, config, mcp_client, output_type, step_name
+        )
+    else:
+        return await _run_with_chat_completions(
+            prompt, config, mcp_client, output_type, step_name
+        )
+
+
+async def _run_with_responses_api(
+    prompt: str,
+    config: Dict[str, Any],
+    mcp_client,
+    output_type: str = "text",
+    step_name: str = "unknown"
+) -> str:
+    """Execute LLM using Responses API (for GPT-5, o1)."""
+    import json
+    from openai import AsyncOpenAI
+
+    client = AsyncOpenAI()
+
+    # Initialize MCP session and get tools
+    async with mcp_client as mcp:
+        tools = await mcp._async_get_tool_definitions()
+
+        if not tools:
+            logger.warning("⚠️  No MCP tools available, falling back to simple call")
+            return call_llm(prompt, config=config, output_type=output_type)
+
+        # Convert MCP schema to OpenAI tool format
+        openai_tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": tool["name"],
+                    "description": tool.get("description", ""),
+                    "parameters": tool.get("inputSchema", {})
+                }
+            }
+            for tool in tools
+        ]
+
+        logger.debug(f"🛠️  {len(openai_tools)} MCP tools available")
+        logger.debug(f"   Tools: {[t['function']['name'] for t in openai_tools]}")
+
+        model_name = config.get("model", "gpt-5")
+
+        # Build Responses API request
+        api_params = {
+            "model": model_name,
+            "input": [{"role": "user", "content": prompt}],
+            "tools": openai_tools,
+            "reasoning": {
+                "effort": config.get("reasoning_effort", "medium")
+            }
+        }
+
+        # Add max_output_tokens if specified
+        if "max_completion_tokens" in config:
+            api_params["max_output_tokens"] = config["max_completion_tokens"]
+        elif "max_tokens" in config:
+            api_params["max_output_tokens"] = config["max_tokens"]
+
+        mcp_config = config.get("mcp", {})
+        max_iterations = mcp_config.get("max_iterations", 1)
+
+        if max_iterations == 1 and len(tools) > 1:
+            logger.warning(
+                f"⚠️  Step '{step_name}' has {len(tools)} tools but max_iterations=1. "
+                f"Set 'mcp.max_iterations' explicitly if multi-step reasoning needed."
+            )
+
+        for iteration in range(max_iterations):
+            logger.debug(f"🔄 MCP iteration {iteration + 1}/{max_iterations}")
+
+            try:
+                response = await client.responses.create(**api_params)
+            except Exception as e:
+                logger.error(f"❌ OpenAI Responses API call failed: {e}")
+                raise
+
+            # Check response status
+            if response.status == "completed":
+                # Extract output text from response
+                output_text = ""
+                for item in response.output:
+                    if hasattr(item, 'type') and item.type == "message":
+                        for content in item.content:
+                            if hasattr(content, 'type') and content.type == "output_text":
+                                output_text += content.text
+
+                logger.debug("✅ LLM completed without requesting tools")
+
+                if output_type.lower() == "json":
+                    return parse_llm_json_response(output_text)
+                return output_text
+
+            # Check for tool calls
+            tool_calls_found = False
+            for item in response.output:
+                if hasattr(item, 'type') and item.type == "function_call":
+                    tool_calls_found = True
+                    break
+
+            if not tool_calls_found:
+                # No tool calls but also not completed - shouldn't happen
+                logger.warning(f"⚠️  Unexpected response status: {response.status}")
+                output_text = ""
+                for item in response.output:
+                    if hasattr(item, 'type') and item.type == "message":
+                        for content in item.content:
+                            if hasattr(content, 'type') and content.type == "output_text":
+                                output_text += content.text
+                return output_text or "Error: Unexpected response format"
+
+            # Execute tool calls and add results to input
+            logger.debug(f"🛠️  LLM requesting tool calls")
+
+            new_input_items = list(api_params["input"])  # Copy existing input
+
+            for item in response.output:
+                if hasattr(item, 'type'):
+                    if item.type == "function_call":
+                        tool_name = item.name
+                        tool_args = json.loads(item.arguments) if isinstance(item.arguments, str) else item.arguments
+
+                        logger.info(f"   🔧 {tool_name}")
+                        logger.debug(f"      Args: {tool_args}")
+
+                        try:
+                            result = await mcp._async_call_tool(tool_name, tool_args)
+                            result_preview = result[:200] + "..." if len(result) > 200 else result
+                            logger.debug(f"      ✅ Result: {result_preview}")
+
+                            # Add function call result to input
+                            new_input_items.append({
+                                "type": "function_call_output",
+                                "call_id": item.id,
+                                "name": tool_name,
+                                "content": str(result)
+                            })
+                        except Exception as e:
+                            logger.error(f"      ❌ Tool execution failed: {e}")
+                            new_input_items.append({
+                                "type": "function_call_output",
+                                "call_id": item.id,
+                                "name": tool_name,
+                                "content": f"Error: {e}"
+                            })
+
+            # Update input for next iteration
+            api_params["input"] = new_input_items
+
+        # Max iterations reached
+        logger.warning(f"⚠️  Max MCP iterations ({max_iterations}) reached")
+        return "Error: Maximum tool calling iterations exceeded"
+
+
+async def _run_with_chat_completions(
+    prompt: str,
+    config: Dict[str, Any],
+    mcp_client,
+    output_type: str = "text",
+    step_name: str = "unknown"
+) -> str:
+    """Execute LLM using Chat Completions API (for GPT-4, GPT-3.5)."""
     import json
     from openai import AsyncOpenAI
 
@@ -325,15 +493,17 @@ async def _run_llm_with_mcp_tools_async(
         # Build initial messages
         messages = [{"role": "user", "content": prompt}]
 
-        # Build API call parameters with model-aware token limits
+        # Build API call parameters with model-aware defaults
         model_name = config.get("model", "gpt-4o")
 
         api_params = {
             "model": model_name,
             "messages": messages,
             "tools": openai_tools,
-            "temperature": config.get("temperature", 0.7),
         }
+
+        # Add temperature (all models in Chat Completions support it)
+        api_params["temperature"] = config.get("temperature", 0.7)
 
         # Add token limit parameter based on what's in config (don't pass None)
         if "max_completion_tokens" in config:
