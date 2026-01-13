@@ -28,7 +28,9 @@ class TestParseBibleReference:
         expected = {
             "book_name": "Psalms",
             "book_number": "19",
+            "book_code": "PSA",
             "chapter": 23,
+            "chapter_padded": "023",
             "start_verse": 1,
             "end_verse": 6,  # Changed from 176 - Psalm 23 has 6 verses
             "is_whole_chapter": True,
@@ -44,7 +46,9 @@ class TestParseBibleReference:
         expected = {
             "book_name": "Luke",
             "book_number": "42",
+            "book_code": "LUK",
             "chapter": 1,
+            "chapter_padded": "001",
             "start_verse": 5,
             "end_verse": 25,
             "is_whole_chapter": False,
@@ -60,7 +64,9 @@ class TestParseBibleReference:
         expected = {
             "book_name": "John",
             "book_number": "43",
+            "book_code": "JHN",
             "chapter": 3,
+            "chapter_padded": "003",
             "start_verse": 16,
             "end_verse": 16,
             "is_whole_chapter": False,

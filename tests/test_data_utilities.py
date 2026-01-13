@@ -26,7 +26,9 @@ class TestParseBibleReference:
         result = parse_bible_reference("Psalm 23")
         assert result["book_name"] == "Psalms"
         assert result["book_number"] == "19"
+        assert result["book_code"] == "PSA"
         assert result["chapter"] == 23
+        assert result["chapter_padded"] == "023"
         assert result["start_verse"] == 1
         assert result["end_verse"] == 6
         assert result["is_whole_chapter"] is True
@@ -39,7 +41,9 @@ class TestParseBibleReference:
         result = parse_bible_reference("John 3:16")
         assert result["book_name"] == "John"
         assert result["book_number"] == "43"
+        assert result["book_code"] == "JHN"
         assert result["chapter"] == 3
+        assert result["chapter_padded"] == "003"
         assert result["start_verse"] == 16
         assert result["end_verse"] == 16
         assert result["is_whole_chapter"] is False
@@ -52,7 +56,9 @@ class TestParseBibleReference:
         result = parse_bible_reference("Luke 12:5-19")
         assert result["book_name"] == "Luke"
         assert result["book_number"] == "42"
+        assert result["book_code"] == "LUK"
         assert result["chapter"] == 12
+        assert result["chapter_padded"] == "012"
         assert result["start_verse"] == 5
         assert result["end_verse"] == 19
         assert result["is_whole_chapter"] is False
@@ -65,6 +71,7 @@ class TestParseBibleReference:
         result = parse_bible_reference("Gen 1:1")
         assert result["book_name"] == "Genesis"
         assert result["book_number"] == "01"
+        assert result["book_code"] == "GEN"
         assert result["chapter"] == 1
         assert result["start_verse"] == 1
 
@@ -73,6 +80,7 @@ class TestParseBibleReference:
         result = parse_bible_reference("Matt 5:3-12")
         assert result["book_name"] == "Matthew"
         assert result["book_number"] == "40"
+        assert result["book_code"] == "MAT"
         assert result["chapter"] == 5
         assert result["start_verse"] == 3
         assert result["end_verse"] == 12
@@ -82,6 +90,7 @@ class TestParseBibleReference:
         result = parse_bible_reference("Rom 8:28")
         assert result["book_name"] == "Romans"
         assert result["book_number"] == "45"
+        assert result["book_code"] == "ROM"
         assert result["chapter"] == 8
         assert result["start_verse"] == 28
 
@@ -98,6 +107,7 @@ class TestParseBibleReference:
         result = parse_bible_reference("1 Samuel 17:45")
         assert result["book_name"] == "1 Samuel"
         assert result["book_number"] == "09"
+        assert result["book_code"] == "1SA"
         assert result["chapter"] == 17
         assert result["start_verse"] == 45
 
@@ -106,6 +116,7 @@ class TestParseBibleReference:
         result = parse_bible_reference("2 Corinthians 5:17")
         assert result["book_name"] == "2 Corinthians"
         assert result["book_number"] == "47"
+        assert result["book_code"] == "2CO"
         assert result["chapter"] == 5
         assert result["start_verse"] == 17
 
@@ -114,6 +125,7 @@ class TestParseBibleReference:
         result = parse_bible_reference("1Cor 13:4-8")
         assert result["book_name"] == "1 Corinthians"
         assert result["book_number"] == "46"
+        assert result["book_code"] == "1CO"
         assert result["chapter"] == 13
         assert result["start_verse"] == 4
         assert result["end_verse"] == 8
@@ -126,13 +138,56 @@ class TestParseBibleReference:
         assert result["chapter"] == 2
         assert result["start_verse"] == 1
 
+    def test_revelation_chapter_padded(self):
+        """Revelation 6:12-17 should have correct chapter_padded for directory paths."""
+        result = parse_bible_reference("Revelation 6:12-17")
+        assert result["book_name"] == "Revelation"
+        assert result["book_number"] == "66"
+        assert result["book_code"] == "REV"
+        assert result["chapter"] == 6
+        assert result["chapter_padded"] == "006"
+        assert result["start_verse"] == 12
+        assert result["end_verse"] == 17
+        assert result["filename_prefix"] == "66006012-66006017"
+
     def test_revelation_abbreviation(self):
         """Revelation abbreviation 'Rev' should work."""
         result = parse_bible_reference("Rev 21:4")
         assert result["book_name"] == "Revelation"
         assert result["book_number"] == "66"
+        assert result["book_code"] == "REV"
         assert result["chapter"] == 21
         assert result["start_verse"] == 4
+
+    def test_usfm_book_codes_all_books(self):
+        """All 66 books should have valid USFM 3.0 book codes."""
+        test_cases = [
+            ("Genesis 1:1", "GEN"), ("Exodus 1:1", "EXO"), ("Leviticus 1:1", "LEV"),
+            ("Numbers 1:1", "NUM"), ("Deuteronomy 1:1", "DEU"), ("Joshua 1:1", "JOS"),
+            ("Judges 1:1", "JDG"), ("Ruth 1:1", "RUT"), ("1 Samuel 1:1", "1SA"),
+            ("2 Samuel 1:1", "2SA"), ("1 Kings 1:1", "1KI"), ("2 Kings 1:1", "2KI"),
+            ("1 Chronicles 1:1", "1CH"), ("2 Chronicles 1:1", "2CH"), ("Ezra 1:1", "EZR"),
+            ("Nehemiah 1:1", "NEH"), ("Esther 1:1", "EST"), ("Job 1:1", "JOB"),
+            ("Psalms 1:1", "PSA"), ("Proverbs 1:1", "PRO"), ("Ecclesiastes 1:1", "ECC"),
+            ("Song of Songs 1:1", "SNG"), ("Isaiah 1:1", "ISA"), ("Jeremiah 1:1", "JER"),
+            ("Lamentations 1:1", "LAM"), ("Ezekiel 1:1", "EZK"), ("Daniel 1:1", "DAN"),
+            ("Hosea 1:1", "HOS"), ("Joel 1:1", "JOL"), ("Amos 1:1", "AMO"),
+            ("Obadiah 1:1", "OBA"), ("Jonah 1:1", "JON"), ("Micah 1:1", "MIC"),
+            ("Nahum 1:1", "NAM"), ("Habakkuk 1:1", "HAB"), ("Zephaniah 1:1", "ZEP"),
+            ("Haggai 1:1", "HAG"), ("Zechariah 1:1", "ZEC"), ("Malachi 1:1", "MAL"),
+            ("Matthew 1:1", "MAT"), ("Mark 1:1", "MRK"), ("Luke 1:1", "LUK"),
+            ("John 1:1", "JHN"), ("Acts 1:1", "ACT"), ("Romans 1:1", "ROM"),
+            ("1 Corinthians 1:1", "1CO"), ("2 Corinthians 1:1", "2CO"), ("Galatians 1:1", "GAL"),
+            ("Ephesians 1:1", "EPH"), ("Philippians 1:1", "PHP"), ("Colossians 1:1", "COL"),
+            ("1 Thessalonians 1:1", "1TH"), ("2 Thessalonians 1:1", "2TH"), ("1 Timothy 1:1", "1TI"),
+            ("2 Timothy 1:1", "2TI"), ("Titus 1:1", "TIT"), ("Philemon 1:1", "PHM"),
+            ("Hebrews 1:1", "HEB"), ("James 1:1", "JAS"), ("1 Peter 1:1", "1PE"),
+            ("2 Peter 1:1", "2PE"), ("1 John 1:1", "1JN"), ("2 John 1:1", "2JN"),
+            ("3 John 1:1", "3JN"), ("Jude 1:1", "JUD"), ("Revelation 1:1", "REV"),
+        ]
+        for passage, expected_code in test_cases:
+            result = parse_bible_reference(passage)
+            assert result["book_code"] == expected_code, f"{passage} should have code {expected_code}"
 
     def test_psalms_plural(self):
         """'Psalms' (plural) should work."""
