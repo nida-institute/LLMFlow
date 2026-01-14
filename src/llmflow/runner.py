@@ -16,6 +16,7 @@ import yaml
 from openai import APIError as OpenAIAPIError, APITimeoutError, RateLimitError
 
 from llmflow.modules.logger import Logger
+from llmflow.modules.telemetry import TelemetryCollector, generate_optimization_suggestions
 from llmflow.plugins import plugin_registry
 from llmflow.plugins.loader import discover_plugins
 from llmflow.utils.io import validate_all_templates
@@ -576,6 +577,12 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
     logger.debug(f"Step details: {step}")
     logger.debug(f"Context keys available: {list(context.keys())}")
 
+    # Start telemetry tracking
+    telemetry = pipeline_config.get("_telemetry")
+    model = step.get("model", "gpt-4o")
+    if telemetry:
+        telemetry.start_step(name, "llm", model=model)
+
     rendered_prompt = render_prompt(step["prompt"], context)
 
     # Debug: save rendered prompt (request) when log_level=debug
@@ -690,23 +697,44 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
                     logger.error(f"    Final error: {type(e).__name__}: {e}")
                     raise  # Re-raise after all retries exhausted
 
+        # Extract content and token usage from response
+        # LLM functions now return dict with 'content' and 'usage' keys
+        usage = {}
+        response_content = response
+
+        if isinstance(response, dict):
+            if "content" in response:
+                response_content = response["content"]
+                usage = response.get("usage", {})
+            # else: backward compatibility - dict is the actual content
+
         # Debug: save raw response text
         try:
-            if response is not None and (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
+            if response_content is not None and (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
                 filename = build_debug_filename(step, context, "response")
                 resp_path = f"outputs/debug/{filename}"
-                save_content_to_file(response if isinstance(response, str) else str(response), resp_path, format="text")
+                save_content_to_file(response_content if isinstance(response_content, str) else str(response_content), resp_path, format="text")
                 logger.debug(f"🗒️ Saved response to {resp_path}")
         except Exception as e:
             logger.debug(f"(response debug save skipped: {e})")
 
         # Check for templates (only runs if we got a response)
-        if response and ("template" in step or "format_with" in step):
+        if response_content and ("template" in step or "format_with" in step):
             template_path = step.get("template") or step.get("format_with")
-            response = apply_output_template(response, template_path, context)
+            response_content = apply_output_template(response_content, template_path, context)
 
         logger.info(f"✅ Completed LLM step: {name}")
-        return response
+
+        # End telemetry tracking with token counts
+        if telemetry:
+            telemetry.end_step(
+                name,
+                prompt_tokens=usage.get("prompt_tokens", 0),
+                completion_tokens=usage.get("completion_tokens", 0),
+                total_tokens=usage.get("total_tokens", 0)
+            )
+
+        return response_content
 
     finally:
         # Always close MCP client if it was created
@@ -920,6 +948,9 @@ def run_pipeline(
     if verbose:
         logger.set_level("DEBUG")
 
+    # Initialize telemetry collector
+    telemetry = TelemetryCollector(pipeline_name=str(pipeline_file) if not isinstance(pipeline_file, dict) else "inline")
+
     # Add current working directory to sys.path for local plugin imports
     cwd = os.getcwd()
     if cwd not in sys.path:
@@ -994,6 +1025,9 @@ def run_pipeline(
     pipeline_root = pipeline_config.get("pipeline", pipeline_config)
     pipeline_vars = pipeline_root.get("variables", {})
 
+    # Store telemetry in pipeline config for step access
+    pipeline_config["_telemetry"] = telemetry
+
     # Initialize context with merged variables (CLI vars override pipeline vars)
     context = {**pipeline_vars, **(vars or {})}
     logger.debug(f"Variables: {vars}")
@@ -1026,4 +1060,27 @@ def run_pipeline(
             continue  # Default behavior
 
     logger.info("Pipeline complete.")
+
+    # Generate and log telemetry summary
+    summary = telemetry.generate_summary()
+    logger.info("\n" + "="*80)
+    logger.info("📊 Pipeline Telemetry Summary")
+    logger.info("="*80)
+    logger.info(summary)
+
+    # Generate optimization suggestions
+    mcp_config = pipeline_config.get("mcp", {})
+    mcp_max_iterations = mcp_config.get("max_iterations", 10)
+    suggestions = generate_optimization_suggestions(
+        telemetry.pipeline.steps,
+        mcp_max_iterations=mcp_max_iterations
+    )
+    if suggestions:
+        logger.info("\n" + "="*80)
+        logger.info("💡 Optimization Suggestions")
+        logger.info("="*80)
+        for suggestion in suggestions:
+            logger.info(f"  • {suggestion}")
+        logger.info("="*80)
+
     return context

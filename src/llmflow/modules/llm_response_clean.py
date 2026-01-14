@@ -8,7 +8,7 @@ def clean_llm_response_text(text: str) -> str:
     """
     # Try to extract content from markdown code fences first
     fence_pattern = r"```(?:json)?\s*\n?(.*?)\n?```"
-    match = re.search(fence_pattern, text, re.DOTALL)
+    match = re.search(fence_pattern, text, re.DOTALL | re.IGNORECASE)
 
     if match:
         return match.group(1).strip()

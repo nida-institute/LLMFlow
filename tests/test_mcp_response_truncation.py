@@ -44,6 +44,10 @@ async def test_truncation_applies_when_response_exceeds_limit():
 
     mock_response = Mock()
     mock_response.choices = [mock_choice]
+    mock_response.usage = Mock()
+    mock_response.usage.prompt_tokens = 100
+    mock_response.usage.completion_tokens = 50
+    mock_response.usage.total_tokens = 150
 
     # Mock final text response
     mock_final_message = Mock()
@@ -55,6 +59,10 @@ async def test_truncation_applies_when_response_exceeds_limit():
 
     mock_final_response = Mock()
     mock_final_response.choices = [mock_final_choice]
+    mock_final_response.usage = Mock()
+    mock_final_response.usage.prompt_tokens = 120
+    mock_final_response.usage.completion_tokens = 60
+    mock_final_response.usage.total_tokens = 180
 
     config = {
         "model": "gpt-4",
@@ -137,6 +145,10 @@ async def test_no_truncation_when_response_under_limit():
 
     mock_response = Mock()
     mock_response.choices = [mock_choice]
+    mock_response.usage = Mock()
+    mock_response.usage.prompt_tokens = 100
+    mock_response.usage.completion_tokens = 50
+    mock_response.usage.total_tokens = 150
 
     mock_final_message = Mock()
     mock_final_message.content = "Done"
@@ -147,6 +159,10 @@ async def test_no_truncation_when_response_under_limit():
 
     mock_final_response = Mock()
     mock_final_response.choices = [mock_final_choice]
+    mock_final_response.usage = Mock()
+    mock_final_response.usage.prompt_tokens = 120
+    mock_final_response.usage.completion_tokens = 60
+    mock_final_response.usage.total_tokens = 180
 
     config = {
         "model": "gpt-4",
@@ -221,6 +237,10 @@ async def test_default_truncation_limit():
 
     mock_response = Mock()
     mock_response.choices = [mock_choice]
+    mock_response.usage = Mock()
+    mock_response.usage.prompt_tokens = 100
+    mock_response.usage.completion_tokens = 50
+    mock_response.usage.total_tokens = 150
 
     mock_final_message = Mock()
     mock_final_message.content = "Done"
@@ -231,6 +251,10 @@ async def test_default_truncation_limit():
 
     mock_final_response = Mock()
     mock_final_response.choices = [mock_final_choice]
+    mock_final_response.usage = Mock()
+    mock_final_response.usage.prompt_tokens = 120
+    mock_final_response.usage.completion_tokens = 60
+    mock_final_response.usage.total_tokens = 180
 
     # No max_tool_response_size specified - should use default 100k
     config = {
@@ -306,6 +330,10 @@ async def test_truncation_includes_character_count():
 
     mock_response = Mock()
     mock_response.choices = [mock_choice]
+    mock_response.usage = Mock()
+    mock_response.usage.prompt_tokens = 100
+    mock_response.usage.completion_tokens = 50
+    mock_response.usage.total_tokens = 150
 
     mock_final_message = Mock()
     mock_final_message.content = "Done"
@@ -316,6 +344,10 @@ async def test_truncation_includes_character_count():
 
     mock_final_response = Mock()
     mock_final_response.choices = [mock_final_choice]
+    mock_final_response.usage = Mock()
+    mock_final_response.usage.prompt_tokens = 120
+    mock_final_response.usage.completion_tokens = 60
+    mock_final_response.usage.total_tokens = 180
 
     config = {
         "model": "gpt-4",

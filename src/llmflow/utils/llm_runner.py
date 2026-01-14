@@ -380,6 +380,12 @@ async def _run_with_responses_api(
                 f"Set 'mcp.max_iterations' explicitly if multi-step reasoning needed."
             )
 
+        # Track cumulative token usage across all iterations
+        # Note: Responses API doesn't expose usage data yet, so we track what we can
+        total_prompt_tokens = 0
+        total_completion_tokens = 0
+        total_tokens = 0
+
         for iteration in range(max_iterations):
             logger.debug(f"🔄 MCP iteration {iteration + 1}/{max_iterations}")
             logger.info(f"📤 API params: model={api_params['model']}, tools={len(api_params.get('tools', []))}, input_messages={len(api_params.get('input', []))}")
@@ -405,6 +411,12 @@ async def _run_with_responses_api(
             except Exception as e:
                 logger.error(f"❌ OpenAI Responses API call failed: {e}")
                 raise
+
+            # Track token usage if available (Responses API may not expose this yet)
+            if hasattr(response, 'usage') and response.usage:
+                total_prompt_tokens += getattr(response.usage, 'prompt_tokens', 0) or 0
+                total_completion_tokens += getattr(response.usage, 'completion_tokens', 0) or 0
+                total_tokens += getattr(response.usage, 'total_tokens', 0) or 0
 
             # Debug: Log response structure
             logger.debug(f"📊 Response status: {response.status}")
@@ -443,9 +455,19 @@ async def _run_with_responses_api(
 
                     logger.debug(f"✅ LLM completed without requesting tools. Output length: {len(output_text)}")
 
+                    # Parse JSON if requested
                     if output_type.lower() == "json":
-                        return parse_llm_json_response(output_text)
-                    return output_text
+                        output_text = parse_llm_json_response(output_text)
+
+                    # Return content with token usage
+                    return {
+                        "content": output_text,
+                        "usage": {
+                            "prompt_tokens": total_prompt_tokens,
+                            "completion_tokens": total_completion_tokens,
+                            "total_tokens": total_tokens
+                        }
+                    }
 
                 # Has function calls - fall through to handle them
                 logger.debug(f"🛠️  LLM requesting tool calls")
@@ -473,7 +495,16 @@ async def _run_with_responses_api(
                                         output_text += content_item.text
                             else:
                                 output_text += str(item.content)
-                return output_text or "Error: Unexpected response format"
+
+                # Return with usage data
+                return {
+                    "content": output_text or "Error: Unexpected response format",
+                    "usage": {
+                        "prompt_tokens": total_prompt_tokens,
+                        "completion_tokens": total_completion_tokens,
+                        "total_tokens": total_tokens
+                    }
+                }
 
             # Execute tool calls and add results to input
             logger.debug(f"🛠️  LLM requesting tool calls")
@@ -550,7 +581,14 @@ async def _run_with_responses_api(
 
         # Max iterations reached
         logger.warning(f"⚠️  Max MCP iterations ({max_iterations}) reached")
-        return "Error: Maximum tool calling iterations exceeded"
+        return {
+            "content": "Error: Maximum tool calling iterations exceeded",
+            "usage": {
+                "prompt_tokens": total_prompt_tokens,
+                "completion_tokens": total_completion_tokens,
+                "total_tokens": total_tokens
+            }
+        }
 
 
 async def _run_with_chat_completions(
@@ -627,6 +665,11 @@ async def _run_with_chat_completions(
         elif "max_iterations" not in mcp_config:
             logger.debug(f"Using default max_iterations=1 for step '{step_name}'")
 
+        # Track cumulative token usage across all iterations
+        total_prompt_tokens = 0
+        total_completion_tokens = 0
+        total_tokens = 0
+
         for iteration in range(max_iterations):
             logger.debug(f"🔄 MCP iteration {iteration + 1}/{max_iterations}")
 
@@ -635,6 +678,12 @@ async def _run_with_chat_completions(
             except Exception as e:
                 logger.error(f"❌ OpenAI API call failed: {e}")
                 raise
+
+            # Accumulate token usage from this iteration
+            if hasattr(response, 'usage') and response.usage:
+                total_prompt_tokens += response.usage.prompt_tokens or 0
+                total_completion_tokens += response.usage.completion_tokens or 0
+                total_tokens += response.usage.total_tokens or 0
 
             message = response.choices[0].message
 
@@ -645,9 +694,17 @@ async def _run_with_chat_completions(
 
                 # Parse JSON if requested
                 if output_type.lower() == "json":
-                    return parse_llm_json_response(final_content)
+                    final_content = parse_llm_json_response(final_content)
 
-                return final_content
+                # Return content with token usage
+                return {
+                    "content": final_content,
+                    "usage": {
+                        "prompt_tokens": total_prompt_tokens,
+                        "completion_tokens": total_completion_tokens,
+                        "total_tokens": total_tokens
+                    }
+                }
 
             # Log how many tool calls were requested
             logger.debug(f"🛠️  LLM requesting {len(message.tool_calls)} tool call(s)")
@@ -731,6 +788,14 @@ async def _run_with_chat_completions(
 
         # Parse JSON if requested
         if output_type.lower() == "json":
-            return parse_llm_json_response(final_content)
+            final_content = parse_llm_json_response(final_content)
 
-        return final_content
+        # Return content with token usage (even on max iterations)
+        return {
+            "content": final_content,
+            "usage": {
+                "prompt_tokens": total_prompt_tokens,
+                "completion_tokens": total_completion_tokens,
+                "total_tokens": total_tokens
+            }
+        }
