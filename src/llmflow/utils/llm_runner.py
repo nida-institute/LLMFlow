@@ -371,7 +371,7 @@ async def _run_with_responses_api(
 
         mcp_config = config.get("mcp", {})
         max_iterations = mcp_config.get("max_iterations", 1)
-        max_tool_response_size = mcp_config.get("max_tool_response_size", 100000)  # Default: 100k chars (~25k tokens)
+        max_tool_response_size = mcp_config.get("max_tool_response_size", 100000)
         timeout_seconds = config.get("timeout_seconds", 60)
 
         if max_iterations == 1 and len(tools) > 1:
@@ -518,16 +518,15 @@ async def _run_with_responses_api(
 
                         try:
                             result = await mcp._async_call_tool(tool_name, tool_args)
-
-                            # Truncate result if max_tool_response_size is set
                             result_str = str(result)
-                            original_size = len(result_str)
 
-                            if max_tool_response_size and original_size > max_tool_response_size:
-                                result_str = result_str[:max_tool_response_size] + f"\n\n[...truncated {original_size - max_tool_response_size:,} characters]"
-                                logger.warning(f"   ⚠️  Tool response truncated: {original_size:,} → {max_tool_response_size:,} chars")
+                            # Truncate if needed
+                            if len(result_str) > max_tool_response_size:
+                                truncated_chars = len(result_str) - max_tool_response_size
+                                result_str = result_str[:max_tool_response_size] + f"\n\n[...truncated {truncated_chars:,} characters]"
+                                logger.warning(f"      ⚠️  Tool response truncated from {len(str(result)):,} to {len(result_str):,} chars")
                             else:
-                                logger.info(f"   ⏱️  Response size: {original_size:,} chars")
+                                logger.info(f"      ℹ️  Tool response size: {len(result_str):,} chars (within {max_tool_response_size:,} limit)")
 
                             result_preview = result_str[:200] + "..." if len(result_str) > 200 else result_str
                             logger.debug(f"      ✅ Result: {result_preview}")
@@ -618,7 +617,7 @@ async def _run_with_chat_completions(
 
         mcp_config = config.get("mcp", {})
         max_iterations = mcp_config.get("max_iterations", 1)  # Default to 1
-        max_tool_response_size = mcp_config.get("max_tool_response_size", 100000)  # Default: 100k chars (~25k tokens)
+        max_tool_response_size = mcp_config.get("max_tool_response_size", 100000)
 
         if max_iterations == 1 and len(tools) > 1:
             logger.warning(
@@ -698,18 +697,15 @@ async def _run_with_chat_completions(
 
                     # Call MCP server (async!)
                     result = await mcp._async_call_tool(tool_name, args)
-                    result_preview = result[:200] + "..." if len(result) > 200 else result
-                    logger.debug(f"      ✅ Result: {result_preview}")
-
-                    # Truncate result if max_tool_response_size is set
                     result_str = str(result)
-                    original_size = len(result_str)
 
-                    if max_tool_response_size and original_size > max_tool_response_size:
-                        result_str = result_str[:max_tool_response_size] + f"\n\n[...truncated {original_size - max_tool_response_size:,} characters]"
-                        logger.warning(f"   ⚠️  Tool response truncated: {original_size:,} → {max_tool_response_size:,} chars")
+                    # Truncate if needed
+                    if len(result_str) > max_tool_response_size:
+                        truncated_chars = len(result_str) - max_tool_response_size
+                        result_str = result_str[:max_tool_response_size] + f"\n\n[...truncated {truncated_chars:,} characters]"
+                        logger.warning(f"      ⚠️  Tool response truncated from {len(str(result)):,} to {len(result_str):,} chars")
                     else:
-                        logger.info(f"   ⏱️  Response size: {original_size:,} chars")
+                        logger.info(f"      ℹ️  Tool response size: {len(result_str):,} chars (within {max_tool_response_size:,} limit)")
 
                     result_preview = result_str[:200] + "..." if len(result_str) > 200 else result_str
                     logger.debug(f"      ✅ Result: {result_preview}")
