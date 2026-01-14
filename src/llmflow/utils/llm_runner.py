@@ -371,6 +371,7 @@ async def _run_with_responses_api(
 
         mcp_config = config.get("mcp", {})
         max_iterations = mcp_config.get("max_iterations", 1)
+        max_tool_response_size = mcp_config.get("max_tool_response_size", 100000)  # Default: 100k chars (~25k tokens)
         timeout_seconds = config.get("timeout_seconds", 60)
 
         if max_iterations == 1 and len(tools) > 1:
@@ -517,14 +518,25 @@ async def _run_with_responses_api(
 
                         try:
                             result = await mcp._async_call_tool(tool_name, tool_args)
-                            result_preview = result[:200] + "..." if len(result) > 200 else result
+
+                            # Truncate result if max_tool_response_size is set
+                            result_str = str(result)
+                            original_size = len(result_str)
+
+                            if max_tool_response_size and original_size > max_tool_response_size:
+                                result_str = result_str[:max_tool_response_size] + f"\n\n[...truncated {original_size - max_tool_response_size:,} characters]"
+                                logger.warning(f"   ⚠️  Tool response truncated: {original_size:,} → {max_tool_response_size:,} chars")
+                            else:
+                                logger.info(f"   ⏱️  Response size: {original_size:,} chars")
+
+                            result_preview = result_str[:200] + "..." if len(result_str) > 200 else result_str
                             logger.debug(f"      ✅ Result: {result_preview}")
 
                             # Add function call result to input
                             new_input_items.append({
                                 "type": "function_call_output",
                                 "call_id": item.call_id,
-                                "output": str(result)
+                                "output": result_str
                             })
                         except Exception as e:
                             logger.error(f"      ❌ Tool execution failed: {e}")
@@ -606,6 +618,7 @@ async def _run_with_chat_completions(
 
         mcp_config = config.get("mcp", {})
         max_iterations = mcp_config.get("max_iterations", 1)  # Default to 1
+        max_tool_response_size = mcp_config.get("max_tool_response_size", 100000)  # Default: 100k chars (~25k tokens)
 
         if max_iterations == 1 and len(tools) > 1:
             logger.warning(
@@ -688,19 +701,32 @@ async def _run_with_chat_completions(
                     result_preview = result[:200] + "..." if len(result) > 200 else result
                     logger.debug(f"      ✅ Result: {result_preview}")
 
+                    # Truncate result if max_tool_response_size is set
+                    result_str = str(result)
+                    original_size = len(result_str)
+
+                    if max_tool_response_size and original_size > max_tool_response_size:
+                        result_str = result_str[:max_tool_response_size] + f"\n\n[...truncated {original_size - max_tool_response_size:,} characters]"
+                        logger.warning(f"   ⚠️  Tool response truncated: {original_size:,} → {max_tool_response_size:,} chars")
+                    else:
+                        logger.info(f"   ⏱️  Response size: {original_size:,} chars")
+
+                    result_preview = result_str[:200] + "..." if len(result_str) > 200 else result_str
+                    logger.debug(f"      ✅ Result: {result_preview}")
+
                 except json.JSONDecodeError as e:
                     logger.error(f"      ❌ Invalid JSON arguments: {e}")
-                    result = f"Error: Invalid arguments format - {e}"
+                    result_str = f"Error: Invalid arguments format - {e}"
                 except Exception as e:
                     logger.error(f"      ❌ Tool execution failed: {e}")
-                    result = f"Error: {e}"
+                    result_str = f"Error: {e}"
 
                 # Add tool result to message history
                 messages.append({
                     "role": "tool",
                     "tool_call_id": tool_call.id,
                     "name": tool_name,
-                    "content": str(result)
+                    "content": result_str
                 })
 
         # If we hit max iterations without finishing

@@ -114,8 +114,8 @@ def parse_prompt_header(prompt_path):
         block = yaml_match.group(1).strip()
         try:
             data = yaml.safe_load(block)
-            # Return the data directly (new format: {inputs: {...}, outputs: {...}})
-            return data
+            # Unwrap 'prompt' key if present (same as HTML comment format)
+            return data.get("prompt", data)
         except Exception as e:
             logger.error(f"Failed to parse YAML frontmatter in {prompt_path}: {e}")
             return None
