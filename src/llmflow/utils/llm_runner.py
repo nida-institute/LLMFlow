@@ -407,12 +407,12 @@ async def _run_with_responses_api(
                 raise
 
             # Debug: Log response structure
-            logger.info(f"📊 Response status: {response.status}")
-            logger.info(f"📊 Response output items: {len(response.output)}")
+            logger.debug(f"📊 Response status: {response.status}")
+            logger.debug(f"📊 Response output items: {len(response.output)}")
             for i, item in enumerate(response.output):
-                logger.info(f"📊 Output item {i}: type={getattr(item, 'type', 'NO TYPE')}, hasattr text={hasattr(item, 'text')}")
+                logger.debug(f"📊 Output item {i}: type={getattr(item, 'type', 'NO TYPE')}, hasattr text={hasattr(item, 'text')}")
                 if hasattr(item, '__dict__'):
-                    logger.info(f"📊 Output item {i} attributes: {list(item.__dict__.keys())}")
+                    logger.debug(f"📊 Output item {i} attributes: {list(item.__dict__.keys())}")
 
             # Check response status
             if response.status == "completed":
@@ -526,7 +526,7 @@ async def _run_with_responses_api(
                                 result_str = result_str[:max_tool_response_size] + f"\n\n[...truncated {truncated_chars:,} characters]"
                                 logger.warning(f"      ⚠️  Tool response truncated from {len(str(result)):,} to {len(result_str):,} chars")
                             else:
-                                logger.info(f"      ℹ️  Tool response size: {len(result_str):,} chars (within {max_tool_response_size:,} limit)")
+                                logger.debug(f"      ℹ️  Tool response size: {len(result_str):,} chars (within {max_tool_response_size:,} limit)")
 
                             result_preview = result_str[:200] + "..." if len(result_str) > 200 else result_str
                             logger.debug(f"      ✅ Result: {result_preview}")
@@ -705,7 +705,7 @@ async def _run_with_chat_completions(
                         result_str = result_str[:max_tool_response_size] + f"\n\n[...truncated {truncated_chars:,} characters]"
                         logger.warning(f"      ⚠️  Tool response truncated from {len(str(result)):,} to {len(result_str):,} chars")
                     else:
-                        logger.info(f"      ℹ️  Tool response size: {len(result_str):,} chars (within {max_tool_response_size:,} limit)")
+                        logger.debug(f"      ℹ️  Tool response size: {len(result_str):,} chars (within {max_tool_response_size:,} limit)")
 
                     result_preview = result_str[:200] + "..." if len(result_str) > 200 else result_str
                     logger.debug(f"      ✅ Result: {result_preview}")
