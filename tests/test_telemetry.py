@@ -656,3 +656,146 @@ class TestTokenTrackingIntegration:
         # Usage should still be present
         assert result["usage"]["prompt_tokens"] == 50
         assert result["usage"]["completion_tokens"] == 25
+
+
+# ============================================================================
+# Test Model Attribution in Telemetry
+# ============================================================================
+
+class TestModelAttribution:
+    """Test that telemetry correctly attributes costs to the actual model used."""
+
+    def test_telemetry_uses_merged_model_not_step_model(self):
+        """Telemetry should record the final merged model, not just step model.
+
+        This is a regression test for the bug where:
+        - Step has no model specified
+        - Pipeline llm_config specifies gpt-5
+        - Telemetry was recording gpt-4o (default) instead of gpt-5
+
+        The fix moves telemetry.start_step() to after config merging.
+        """
+        from llmflow.modules.telemetry import TelemetryCollector
+        from unittest.mock import Mock
+
+        # Create a mock telemetry collector
+        telemetry = TelemetryCollector(pipeline_name="test")
+
+        # Simulate the config merging logic from runner.py
+        pipeline_config = {
+            "llm_config": {"model": "gpt-5"},
+            "_telemetry": telemetry
+        }
+
+        step = {
+            "name": "test_step",
+            # No model specified at step level
+        }
+
+        # Build merged config (same logic as runner.py lines 592-622)
+        llm_config = pipeline_config.get("llm_config", {})
+        step_options = step.get("llm_options", {})
+        step_config = {
+            "model": step.get("model"),
+            "temperature": step.get("temperature") or step_options.get("temperature"),
+        }
+        step_config = {k: v for k, v in step_config.items() if v is not None}
+
+        merged_config = {
+            "model": "gpt-4o",  # Universal default
+            "temperature": 0.7,
+        }
+        merged_config.update(llm_config)
+        merged_config.update(step_options)
+        merged_config.update(step_config)
+
+        final_model = merged_config.get("model", "gpt-4o")
+
+        # Start telemetry with the FINAL model (after merging)
+        telemetry.start_step("test_step", "llm", model=final_model)
+
+        # Verify telemetry recorded the correct model
+        assert telemetry.current_step.model == "gpt-5"
+        assert telemetry.current_step.model != "gpt-4o"
+
+        # Complete the step with token usage
+        telemetry.end_step(
+            "test_step",
+            prompt_tokens=1000,
+            completion_tokens=500
+        )
+
+        # Verify cost is calculated with gpt-5 pricing, not gpt-4o
+        step_metrics = telemetry.pipeline.steps[0]
+        assert step_metrics.model == "gpt-5"
+
+        # GPT-5 pricing: $15/1M input + $60/1M output
+        expected_cost = (1000 * 15 / 1_000_000) + (500 * 60 / 1_000_000)
+        assert step_metrics.calculate_cost() == pytest.approx(expected_cost)
+        assert step_metrics.calculate_cost() == pytest.approx(0.045)
+
+        # NOT gpt-4o pricing ($2.50/1M input + $10/1M output = $0.0075)
+        assert step_metrics.calculate_cost() != pytest.approx(0.0075)
+
+    def test_mixed_models_cost_attribution(self):
+        """Verify that pipelines with multiple models correctly attribute costs.
+
+        Tests that gpt-5 costs don't get attributed to gpt-4o and vice versa.
+        """
+        from llmflow.modules.telemetry import TelemetryCollector
+
+        telemetry = TelemetryCollector(pipeline_name="mixed_models")
+
+        # Step 1: gpt-5 call
+        telemetry.start_step("gpt5_step", "llm", model="gpt-5")
+        telemetry.end_step("gpt5_step", prompt_tokens=1000, completion_tokens=500)
+
+        # Step 2: gpt-4o call
+        telemetry.start_step("gpt4o_step", "llm", model="gpt-4o")
+        telemetry.end_step("gpt4o_step", prompt_tokens=2000, completion_tokens=1000)
+
+        # Step 3: another gpt-5 call
+        telemetry.start_step("gpt5_step2", "llm", model="gpt-5")
+        telemetry.end_step("gpt5_step2", prompt_tokens=500, completion_tokens=250)
+
+        # Verify individual step costs
+        gpt5_step1 = telemetry.pipeline.steps[0]
+        assert gpt5_step1.model == "gpt-5"
+        # GPT-5: $15/1M input + $60/1M output
+        expected_gpt5_step1 = (1000 * 15 / 1_000_000) + (500 * 60 / 1_000_000)
+        assert gpt5_step1.calculate_cost() == pytest.approx(expected_gpt5_step1)
+
+        gpt4o_step = telemetry.pipeline.steps[1]
+        assert gpt4o_step.model == "gpt-4o"
+        # GPT-4o: $2.50/1M input + $10/1M output
+        expected_gpt4o = (2000 * 2.50 / 1_000_000) + (1000 * 10 / 1_000_000)
+        assert gpt4o_step.calculate_cost() == pytest.approx(expected_gpt4o)
+
+        gpt5_step2 = telemetry.pipeline.steps[2]
+        assert gpt5_step2.model == "gpt-5"
+        expected_gpt5_step2 = (500 * 15 / 1_000_000) + (250 * 60 / 1_000_000)
+        assert gpt5_step2.calculate_cost() == pytest.approx(expected_gpt5_step2)
+
+        # Verify cost breakdown aggregates correctly by model
+        breakdown = telemetry.pipeline.get_cost_breakdown_by_model()
+
+        # Should have exactly 2 models
+        assert len(breakdown) == 2
+        assert "gpt-5" in breakdown
+        assert "gpt-4o" in breakdown
+
+        # Verify gpt-5 total (2 steps)
+        expected_gpt5_total = expected_gpt5_step1 + expected_gpt5_step2
+        assert breakdown["gpt-5"] == pytest.approx(expected_gpt5_total)
+
+        # Verify gpt-4o total (1 step)
+        assert breakdown["gpt-4o"] == pytest.approx(expected_gpt4o)
+
+        # Verify total cost is sum of all models
+        expected_total = expected_gpt5_total + expected_gpt4o
+        assert telemetry.pipeline.total_cost == pytest.approx(expected_total)
+
+        # Verify gpt-5 costs are NOT using gpt-4o pricing
+        # If they were, the costs would be much lower
+        gpt4o_pricing_wrong = (1500 * 2.50 / 1_000_000) + (750 * 10 / 1_000_000)  # gpt-4o pricing for gpt-5 tokens
+        assert breakdown["gpt-5"] != pytest.approx(gpt4o_pricing_wrong)

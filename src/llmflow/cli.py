@@ -132,31 +132,44 @@ def main(argv=None):
         return
 
     if args.command == "run":
-        if not args.skip_lint:
-            from llmflow.utils.linter import lint_pipeline_full
+        try:
+            if not args.skip_lint:
+                from llmflow.utils.linter import lint_pipeline_full
 
-            logger.info("🔍 Validating pipeline...")
+                logger.info("🔍 Validating pipeline...")
+                try:
+                    result = lint_pipeline_full(args.pipeline)
+                except FileNotFoundError as e:
+                    logger.error(f"❌ Pipeline file not found: {args.pipeline}")
+                    logger.error(f"   Current directory: {os.getcwd()}")
+                    logger.error("   💡 Tip: Make sure you're running from the correct directory")
+                    sys.exit(1)
+
+                if not result.valid:
+                    logger.error("❌ Pipeline validation failed:")
+                    for error in result.errors:
+                        logger.error(f"  - {error}")
+                    sys.exit(1)
+
+            variables = _collect_cli_variables(args.var)
             try:
-                result = lint_pipeline_full(args.pipeline)
+                run_pipeline(args.pipeline, vars=variables, dry_run=args.dry_run, verbose=args.verbose, log_file=args.log)
             except FileNotFoundError as e:
                 logger.error(f"❌ Pipeline file not found: {args.pipeline}")
                 logger.error(f"   Current directory: {os.getcwd()}")
                 logger.error("   💡 Tip: Make sure you're running from the correct directory")
                 sys.exit(1)
-
-            if not result.valid:
-                logger.error("❌ Pipeline validation failed:")
-                for error in result.errors:
-                    logger.error(f"  - {error}")
-                sys.exit(1)
-
-        variables = _collect_cli_variables(args.var)
-        try:
-            run_pipeline(args.pipeline, vars=variables, dry_run=args.dry_run, verbose=args.verbose, log_file=args.log)
-        except FileNotFoundError as e:
-            logger.error(f"❌ Pipeline file not found: {args.pipeline}")
-            logger.error(f"   Current directory: {os.getcwd()}")
-            logger.error("   💡 Tip: Make sure you're running from the correct directory")
+        except KeyboardInterrupt:
+            logger.info("\n⚠️  Execution interrupted by user (Ctrl+C)")
+            logger.info("   Pipeline stopped.")
+            sys.exit(130)  # Standard exit code for SIGINT
+        except BrokenPipeError:
+            # Output was piped to a command that closed (e.g., head, less)
+            # This is normal behavior, exit quietly
+            sys.exit(0)
+        except PermissionError as e:
+            logger.error(f"❌ Permission denied: {e}")
+            logger.error("   💡 Tip: Check file/directory permissions")
             sys.exit(1)
         return
 

@@ -577,11 +577,8 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
     logger.debug(f"Step details: {step}")
     logger.debug(f"Context keys available: {list(context.keys())}")
 
-    # Start telemetry tracking
+    # Get telemetry reference (but don't start tracking yet - we need merged config first)
     telemetry = pipeline_config.get("_telemetry")
-    model = step.get("model", "gpt-4o")
-    if telemetry:
-        telemetry.start_step(name, "llm", model=model)
 
     rendered_prompt = render_prompt(step["prompt"], context)
 
@@ -623,6 +620,10 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
     from llmflow.utils.llm_runner import get_model_family
     final_model = merged_config.get("model", "gpt-4o")
     model_family = get_model_family(final_model)
+
+    # Now start telemetry tracking with the ACTUAL model that will be used
+    if telemetry:
+        telemetry.start_step(name, "llm", model=final_model)
 
     if "max_tokens" not in merged_config and "max_completion_tokens" not in merged_config:
         # Apply appropriate token limit default based on model family
@@ -1053,13 +1054,18 @@ def run_pipeline(
     logger.info("\n🎯 Starting pipeline execution...")
 
     # Execute each step
-    for step in steps:
-        after_action = run_step(step, context, pipeline_config)
-        if after_action == "exit":
-            logger.info(f"🛑 'after: exit' - exiting pipeline early after step '{step.get('name')}'.")
-            break
-        elif after_action == "continue":
-            continue  # Default behavior
+    try:
+        for step in steps:
+            after_action = run_step(step, context, pipeline_config)
+            if after_action == "exit":
+                logger.info(f"🛑 'after: exit' - exiting pipeline early after step '{step.get('name')}'.")
+                break
+            elif after_action == "continue":
+                continue  # Default behavior
+    except KeyboardInterrupt:
+        logger.info("\n⚠️  Execution interrupted by user (Ctrl+C)")
+        logger.info("   Pipeline stopped. Partial results may be available.")
+        raise  # Re-raise to be caught by CLI handler
 
     logger.info("Pipeline complete.")
 
