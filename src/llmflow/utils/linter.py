@@ -581,7 +581,12 @@ def lint_pipeline_full(pipeline_path):
     all_warnings = []
 
     # Load pipeline first
-    pipeline = yaml.safe_load(Path(pipeline_path).read_text())
+    try:
+        pipeline = yaml.safe_load(Path(pipeline_path).read_text())
+    except FileNotFoundError:
+        # Re-raise to let cli.py handle with better error message
+        raise
+
     pipeline_config = pipeline.get("pipeline", pipeline)
 
     # ✅ CHECK IF LINTER IS DISABLED

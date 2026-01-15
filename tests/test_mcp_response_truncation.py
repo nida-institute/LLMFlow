@@ -60,9 +60,9 @@ async def test_truncation_applies_when_response_exceeds_limit():
     mock_final_response = Mock()
     mock_final_response.choices = [mock_final_choice]
     mock_final_response.usage = Mock()
-    mock_final_response.usage.prompt_tokens = 120
-    mock_final_response.usage.completion_tokens = 60
-    mock_final_response.usage.total_tokens = 180
+    mock_final_response.usage.prompt_tokens = 200
+    mock_final_response.usage.completion_tokens = 75
+    mock_final_response.usage.total_tokens = 275
 
     config = {
         "model": "gpt-4",
@@ -160,9 +160,9 @@ async def test_no_truncation_when_response_under_limit():
     mock_final_response = Mock()
     mock_final_response.choices = [mock_final_choice]
     mock_final_response.usage = Mock()
-    mock_final_response.usage.prompt_tokens = 120
-    mock_final_response.usage.completion_tokens = 60
-    mock_final_response.usage.total_tokens = 180
+    mock_final_response.usage.prompt_tokens = 200
+    mock_final_response.usage.completion_tokens = 75
+    mock_final_response.usage.total_tokens = 275
 
     config = {
         "model": "gpt-4",
@@ -252,9 +252,9 @@ async def test_default_truncation_limit():
     mock_final_response = Mock()
     mock_final_response.choices = [mock_final_choice]
     mock_final_response.usage = Mock()
-    mock_final_response.usage.prompt_tokens = 120
-    mock_final_response.usage.completion_tokens = 60
-    mock_final_response.usage.total_tokens = 180
+    mock_final_response.usage.prompt_tokens = 200
+    mock_final_response.usage.completion_tokens = 75
+    mock_final_response.usage.total_tokens = 275
 
     # No max_tool_response_size specified - should use default 100k
     config = {
@@ -345,9 +345,9 @@ async def test_truncation_includes_character_count():
     mock_final_response = Mock()
     mock_final_response.choices = [mock_final_choice]
     mock_final_response.usage = Mock()
-    mock_final_response.usage.prompt_tokens = 120
-    mock_final_response.usage.completion_tokens = 60
-    mock_final_response.usage.total_tokens = 180
+    mock_final_response.usage.prompt_tokens = 200
+    mock_final_response.usage.completion_tokens = 75
+    mock_final_response.usage.total_tokens = 275
 
     config = {
         "model": "gpt-4",

@@ -971,6 +971,8 @@ def run_pipeline(
         pipeline_path = Path(pipeline_file)
         if not pipeline_path.exists():
             logger.error(f"❌ Pipeline file not found: {pipeline_file}")
+            logger.error(f"   Current directory: {os.getcwd()}")
+            logger.error("   💡 Tip: Make sure you're running from the correct directory")
             raise SystemExit(1)
 
         # Load and parse YAML with error handling

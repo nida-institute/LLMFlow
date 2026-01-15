@@ -2,6 +2,7 @@ import sys
 import argparse
 import logging
 import json
+import os
 from pathlib import Path
 
 try:
@@ -135,7 +136,14 @@ def main(argv=None):
             from llmflow.utils.linter import lint_pipeline_full
 
             logger.info("🔍 Validating pipeline...")
-            result = lint_pipeline_full(args.pipeline)
+            try:
+                result = lint_pipeline_full(args.pipeline)
+            except FileNotFoundError as e:
+                logger.error(f"❌ Pipeline file not found: {args.pipeline}")
+                logger.error(f"   Current directory: {os.getcwd()}")
+                logger.error("   💡 Tip: Make sure you're running from the correct directory")
+                sys.exit(1)
+
             if not result.valid:
                 logger.error("❌ Pipeline validation failed:")
                 for error in result.errors:
@@ -143,7 +151,13 @@ def main(argv=None):
                 sys.exit(1)
 
         variables = _collect_cli_variables(args.var)
-        run_pipeline(args.pipeline, vars=variables, dry_run=args.dry_run, verbose=args.verbose, log_file=args.log)
+        try:
+            run_pipeline(args.pipeline, vars=variables, dry_run=args.dry_run, verbose=args.verbose, log_file=args.log)
+        except FileNotFoundError as e:
+            logger.error(f"❌ Pipeline file not found: {args.pipeline}")
+            logger.error(f"   Current directory: {os.getcwd()}")
+            logger.error("   💡 Tip: Make sure you're running from the correct directory")
+            sys.exit(1)
         return
 
     parser.print_help()
