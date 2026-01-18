@@ -35,7 +35,7 @@ MODEL_FAMILIES = {
 # Family-specific valid parameters
 FAMILY_PARAMETERS = {
     "gpt-5": {
-        "max_completion_tokens",  # GPT-5 uses Responses API with reasoning.effort
+        # GPT-5 reasoning models only accept reasoning_effort, no token limits
     },
     "o1": {
         "max_completion_tokens",  # o1 uses Responses API with reasoning.effort

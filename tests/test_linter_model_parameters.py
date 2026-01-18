@@ -22,23 +22,7 @@ class TestModelParameterValidation:
 
         assert len(errors) > 0
         assert "max_tokens" in errors[0].lower()
-        assert "max_completion_tokens" in errors[0].lower()
-
-    def test_gpt5_accepts_max_completion_tokens(self):
-        """GPT-5 should pass validation with max_completion_tokens."""
-        all_steps = [
-            {
-                "name": "test_step",
-                "type": "llm",
-                "model": "gpt-5",
-                "max_completion_tokens": 2500,
-            }
-        ]
-        pipeline_config = {}
-
-        errors = validate_model_parameters(all_steps, pipeline_config)
-
-        assert len(errors) == 0
+        assert "not supported" in errors[0].lower()
 
     def test_gpt4o_accepts_max_tokens(self):
         """GPT-4o should pass validation with max_tokens."""

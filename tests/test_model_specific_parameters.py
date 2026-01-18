@@ -61,9 +61,9 @@ class TestValidParametersForFamily:
     """Test that each model family has the correct parameter set."""
 
     def test_gpt5_valid_parameters(self):
-        """GPT-5 family uses Responses API with limited parameter set."""
+        """GPT-5 family uses Responses API - ONLY accepts reasoning_effort, NO token limits."""
         params = get_valid_parameters("gpt-5")
-        assert "max_completion_tokens" in params
+        assert "max_completion_tokens" not in params
         assert "max_tokens" not in params
         # GPT-5 uses Responses API - temperature/top_p handled via reasoning.effort
         assert "temperature" not in params
@@ -108,16 +108,15 @@ class TestModelSpecificParameterValidation:
         errors = validate_model_parameter("gpt-4o", "max_tokens", 1000)
         assert errors == []
 
-    def test_gpt5_accepts_max_completion_tokens(self):
-        """GPT-5 models accept max_completion_tokens parameter."""
+    def test_gpt5_rejects_max_completion_tokens(self):
+        """GPT-5 models reject max_completion_tokens (only accepts reasoning_effort)."""
         errors = validate_model_parameter("gpt-5", "max_completion_tokens", 1000)
-        assert errors == []
+        assert len(errors) > 0
 
     def test_gpt5_rejects_max_tokens(self):
-        """GPT-5 models should reject max_tokens with helpful message."""
+        """GPT-5 models should reject max_tokens (no token limit params allowed)."""
         errors = validate_model_parameter("gpt-5", "max_tokens", 1000)
         assert len(errors) > 0
-        assert "max_completion_tokens" in errors[0].lower()
 
     def test_gpt4_rejects_max_completion_tokens(self):
         """GPT-4 models should reject max_completion_tokens."""
@@ -176,11 +175,6 @@ class TestModelSpecificParameterValidation:
 
 class TestParameterAutoTranslation:
     """Test automatic parameter translation for cross-model compatibility."""
-
-    def test_suggest_max_completion_tokens_for_gpt5(self):
-        """When max_tokens is used with GPT-5, suggest max_completion_tokens."""
-        errors = validate_model_parameter("gpt-5", "max_tokens", 1000)
-        assert any("max_completion_tokens" in err for err in errors)
 
     def test_suggest_max_tokens_for_gpt4_if_using_max_completion_tokens(self):
         """When max_completion_tokens is used with GPT-4, suggest max_tokens."""

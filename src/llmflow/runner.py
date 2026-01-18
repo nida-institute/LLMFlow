@@ -627,9 +627,10 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
 
     if "max_tokens" not in merged_config and "max_completion_tokens" not in merged_config:
         # Apply appropriate token limit default based on model family
-        if model_family in ("gpt-5", "o1"):
+        # Note: gpt-5 reasoning models don't accept token limits, only reasoning_effort
+        if model_family == "o1":
             merged_config["max_completion_tokens"] = 2500
-        else:
+        elif model_family != "gpt-5":
             merged_config["max_tokens"] = 2500
 
     # Include MCP config if present

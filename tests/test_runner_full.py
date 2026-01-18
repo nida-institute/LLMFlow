@@ -554,8 +554,8 @@ class TestModelSpecificDefaults:
 
     @patch("llmflow.runner.render_prompt")
     @patch("llmflow.runner.call_llm")
-    def test_gpt5_gets_max_completion_tokens_default(self, mock_call_llm, mock_render_prompt):
-        """GPT-5 should get max_completion_tokens default if not specified"""
+    def test_gpt5_gets_no_token_limit_defaults(self, mock_call_llm, mock_render_prompt):
+        """GPT-5 should NOT get any token limit defaults (only accepts reasoning_effort)"""
         mock_render_prompt.return_value = "Prompt"
         mock_call_llm.return_value = "Response"
 
@@ -573,8 +573,7 @@ class TestModelSpecificDefaults:
 
         call_kwargs = mock_call_llm.call_args[1]
         config = call_kwargs["config"]
-        assert "max_completion_tokens" in config
-        assert config["max_completion_tokens"] == 2500
+        assert "max_completion_tokens" not in config
         assert "max_tokens" not in config
 
     @patch("llmflow.runner.render_prompt")
@@ -682,8 +681,8 @@ class TestMCPModelSpecificParameters:
     @patch("llmflow.runner.render_prompt")
     @patch("llmflow.runner.init_mcp_client")
     @patch("llmflow.runner.run_llm_with_mcp_tools")
-    def test_mcp_gpt5_gets_max_completion_tokens(self, mock_run_llm_mcp, mock_init_mcp, mock_render_prompt):
-        """GPT-5 with MCP should get max_completion_tokens, not max_tokens"""
+    def test_mcp_gpt5_gets_no_token_limits(self, mock_run_llm_mcp, mock_init_mcp, mock_render_prompt):
+        """GPT-5 with MCP should NOT get any token limit defaults (only accepts reasoning_effort)"""
         mock_render_prompt.return_value = "Rendered prompt"
 
         # Mock MCP client
@@ -726,9 +725,8 @@ class TestMCPModelSpecificParameters:
         call_args = mock_run_llm_mcp.call_args
         merged_config = call_args[0][1]  # Second positional arg is config
 
-        # Should have max_completion_tokens, not max_tokens
-        assert "max_completion_tokens" in merged_config
-        assert merged_config["max_completion_tokens"] == 2500
+        # Should have NO token limit parameters
+        assert "max_completion_tokens" not in merged_config
         assert "max_tokens" not in merged_config
 
     @patch("llmflow.runner.render_prompt")
