@@ -8,6 +8,7 @@ import click
 import yaml
 from pydantic import ValidationError
 from llmflow.pipeline_schema import PipelineConfig, PIPELINE_SCHEMA
+from llmflow.utils.llm_runner import validate_model_parameter, get_model_family
 
 
 def extract_variable_references(text: str) -> Set[str]:
@@ -575,6 +576,71 @@ def _validate_all_variable_references(all_steps, pipeline_vars, errors):
     _validate_variable_references_recursive(all_steps, pipeline_vars, set(), errors)
 
 
+def validate_model_parameters(all_steps, pipeline_config):
+    """Validate that LLM parameters are compatible with the model being used.
+
+    Checks parameters from all sources:
+    - Pipeline-level llm_config
+    - Step-level llm_options
+    - Step-level direct parameters
+
+    Returns list of error messages.
+    """
+    errors = []
+    llm_config = pipeline_config.get("llm_config", {})
+
+    # Parameters that can be specified and should be validated
+    VALIDATED_PARAMS = {
+        "max_tokens",
+        "max_completion_tokens",
+        "temperature",
+        "top_p",
+        "top_k",
+        "frequency_penalty",
+        "presence_penalty",
+    }
+
+    for step in all_steps:
+        if step.get("type") != "llm":
+            continue
+
+        step_name = step.get("name", "unnamed")
+
+        # Build merged config following same logic as runner.py
+        step_options = step.get("llm_options", {})
+
+        # Determine the model for this step
+        model = step.get("model") or llm_config.get("model") or "gpt-4o"
+
+        # Collect all parameters from all sources
+        all_params = {}
+
+        # 1. Pipeline-level defaults
+        for param in VALIDATED_PARAMS:
+            if param in llm_config:
+                all_params[param] = ("pipeline.llm_config", llm_config[param])
+
+        # 2. Step-level llm_options (override pipeline defaults)
+        for param in VALIDATED_PARAMS:
+            if param in step_options:
+                all_params[param] = (f"step '{step_name}' llm_options", step_options[param])
+
+        # 3. Step-level direct parameters (override everything)
+        for param in VALIDATED_PARAMS:
+            if param in step:
+                all_params[param] = (f"step '{step_name}'", step[param])
+
+        # Validate each parameter against the model
+        for param, (source, value) in all_params.items():
+            param_errors = validate_model_parameter(model, param, value)
+            if param_errors:
+                # Add context about where the invalid parameter came from
+                for error in param_errors:
+                    errors.append(f"❌ In {source}: {error}")
+
+    return errors
+
+
 def lint_pipeline_full(pipeline_path):
     """Lint pipeline and return result object instead of raising SystemExit"""
     all_errors = []
@@ -617,6 +683,16 @@ def lint_pipeline_full(pipeline_path):
             logger.error(error)
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     logger.info("✅ All step keywords are valid")
+
+    # 1.6) Model-parameter compatibility validation
+    logger.info("🔍 Validating model-parameter compatibility...")
+    parameter_errors = validate_model_parameters(all_steps, pipeline_config)
+    if parameter_errors:
+        all_errors.extend(parameter_errors)
+        for error in parameter_errors:
+            logger.error(error)
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
+    logger.info("✅ All model parameters are compatible")
 
     # 2) Prompt contract validation
     errors, validated_count = validate_all_step_contracts(all_steps, log_and_screen, pipeline_config)

@@ -324,14 +324,28 @@ class TelemetryCollector:
                 lines.append(f"  {i}. {step.step_name}: {format_duration(step.duration or 0)}{model_info}")
             lines.append("")
 
-        # Cost breakdown
+        # Cost breakdown (nested by model → step/prompt)
         breakdown = self.pipeline.get_cost_breakdown_by_model()
         if breakdown:
             lines.append("💰 Cost Breakdown by Model:")
             total = self.pipeline.total_cost
-            for model, cost in sorted(breakdown.items(), key=lambda x: x[1], reverse=True):
-                pct = (cost / total * 100) if total > 0 else 0
-                lines.append(f"  • {model}: ${cost:.4f} ({pct:.0f}%)")
+            for model, model_cost in sorted(breakdown.items(), key=lambda x: x[1], reverse=True):
+                model_pct = (model_cost / total * 100) if total > 0 else 0
+                lines.append(f"  • {model}: ${model_cost:.4f} ({model_pct:.0f}%)")
+
+                # Per-step breakdown for this model
+                step_costs = []
+                for step in self.pipeline.steps:
+                    if step.model == model:
+                        cost = step.calculate_cost()
+                        if cost > 0:
+                            step_costs.append((step.step_name, cost))
+
+                # Sort steps by cost descending and print
+                for step_name, cost in sorted(step_costs, key=lambda x: x[1], reverse=True):
+                    step_pct = (cost / model_cost * 100) if model_cost > 0 else 0
+                    lines.append(f"     - {step_name}: ${cost:.4f} ({step_pct:.0f}%)")
+
             lines.append("")
 
         # MCP stats

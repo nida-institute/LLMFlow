@@ -709,6 +709,35 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
                 usage = response.get("usage", {})
             # else: backward compatibility - dict is the actual content
 
+        # Fallback: estimate tokens for gpt-5/o1 if usage is missing
+        # Following the guideline: Telemetry & Cost Tracking — ensure accurate cost attribution
+        try:
+            pt = int(usage.get("prompt_tokens", 0) or 0)
+            ct = int(usage.get("completion_tokens", 0) or 0)
+        except Exception:
+            pt, ct = 0, 0
+
+        if model_family in ("gpt-5", "o1") and pt == 0 and ct == 0:
+            def _estimate_tokens(text: Any) -> int:
+                try:
+                    s = text if isinstance(text, str) else str(text or "")
+                    # Simple heuristic: ~4 characters per token (English average)
+                    return max(1, int(len(s) / 4))
+                except Exception:
+                    return 0
+
+            est_prompt = _estimate_tokens(rendered_prompt)
+            est_completion = _estimate_tokens(response_content)
+            usage = {
+                "prompt_tokens": est_prompt,
+                "completion_tokens": est_completion,
+                "total_tokens": est_prompt + est_completion
+            }
+            logger.warning(
+                f"⚠️  No usage data from Responses API; estimated tokens for cost "
+                f"(prompt≈{est_prompt}, completion≈{est_completion})."
+            )
+
         # Debug: save raw response text
         try:
             if response_content is not None and (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
@@ -1076,19 +1105,7 @@ def run_pipeline(
     logger.info("="*80)
     logger.info(summary)
 
-    # Generate optimization suggestions
-    mcp_config = pipeline_config.get("mcp", {})
-    mcp_max_iterations = mcp_config.get("max_iterations", 10)
-    suggestions = generate_optimization_suggestions(
-        telemetry.pipeline.steps,
-        mcp_max_iterations=mcp_max_iterations
-    )
-    if suggestions:
-        logger.info("\n" + "="*80)
-        logger.info("💡 Optimization Suggestions")
-        logger.info("="*80)
-        for suggestion in suggestions:
-            logger.info(f"  • {suggestion}")
-        logger.info("="*80)
+    # NOTE: Optimization suggestions table suppressed in favor of detailed cost breakdown
+    # Detailed per-model/per-prompt breakdown is included in the telemetry summary above.
 
     return context
