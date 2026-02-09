@@ -525,6 +525,10 @@ def run_plugin_step(
         if isinstance(results, types.GeneratorType):
             results = list(results)
 
+        # If plugin returns a file path, print it for user convenience
+        if isinstance(results, str) and (results.endswith('.md') or results.endswith('.usx') or results.endswith('.json') or '/' in results):
+            logger.info(f"📄 Created file: {results}")
+        
         logger.info(f"✅ Completed plugin step: {name}")
         return results
 
