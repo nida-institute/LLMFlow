@@ -197,6 +197,59 @@ class TestParseBibleReference:
         assert result["chapter"] == 119
         assert result["end_verse"] == 176  # Longest chapter
 
+    def test_cross_chapter_genesis_creation(self):
+        """Cross-chapter range 'Genesis 1:1-2:3' should parse correctly."""
+        result = parse_bible_reference("Genesis 1:1-2:3")
+        assert result["book_name"] == "Genesis"
+        assert result["book_number"] == "01"
+        assert result["book_code"] == "GEN"
+        assert result["chapter"] == 1
+        assert result["chapter_padded"] == "001"
+        assert result["start_verse"] == 1
+        assert result["end_verse"] == 3
+        assert result["end_chapter"] == 2
+        assert result["is_whole_chapter"] is False
+        assert result["display_name"] == "Genesis-1-1-2-3"
+        assert result["canonical_reference"] == "Genesis 1:1-2:3"
+        assert result["filename_prefix"] == "01001001-01002003"
+
+    def test_cross_chapter_matthew_sermon(self):
+        """Cross-chapter range 'Matthew 5:1-7:29' should parse correctly."""
+        result = parse_bible_reference("Matthew 5:1-7:29")
+        assert result["book_name"] == "Matthew"
+        assert result["book_number"] == "40"
+        assert result["book_code"] == "MAT"
+        assert result["chapter"] == 5
+        assert result["start_verse"] == 1
+        assert result["end_verse"] == 29
+        assert result["end_chapter"] == 7
+        assert result["display_name"] == "Matthew-5-1-7-29"
+        assert result["canonical_reference"] == "Matthew 5:1-7:29"
+        assert result["filename_prefix"] == "40005001-40007029"
+
+    def test_cross_chapter_with_en_dash(self):
+        """Cross-chapter with en-dash 'Romans 12:1–13:14' should parse correctly."""
+        result = parse_bible_reference("Romans 12:1–13:14")
+        assert result["book_name"] == "Romans"
+        assert result["book_number"] == "45"
+        assert result["book_code"] == "ROM"
+        assert result["chapter"] == 12
+        assert result["start_verse"] == 1
+        assert result["end_verse"] == 14
+        assert result["end_chapter"] == 13
+        assert result["canonical_reference"] == "Romans 12:1-13:14"
+        assert result["filename_prefix"] == "45012001-45013014"
+
+    def test_cross_chapter_abbreviated_book(self):
+        """Cross-chapter with abbreviation 'Gen 1:1-2:3' should parse correctly."""
+        result = parse_bible_reference("Gen 1:1-2:3")
+        assert result["book_name"] == "Genesis"
+        assert result["book_code"] == "GEN"
+        assert result["chapter"] == 1
+        assert result["start_verse"] == 1
+        assert result["end_chapter"] == 2
+        assert result["end_verse"] == 3
+
     def test_empty_reference_raises(self):
         """Empty reference should raise ValueError."""
         with pytest.raises(ValueError, match="cannot be empty"):

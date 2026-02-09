@@ -33,6 +33,7 @@ class TestParseBibleReference:
             "chapter_padded": "023",
             "start_verse": 1,
             "end_verse": 6,  # Changed from 176 - Psalm 23 has 6 verses
+            "end_chapter": 23,  # Added for cross-chapter support
             "is_whole_chapter": True,
             "filename_prefix": "19023001-19023006",  # Changed from 19023176
             "display_name": "Psalms-23",
@@ -51,6 +52,7 @@ class TestParseBibleReference:
             "chapter_padded": "001",
             "start_verse": 5,
             "end_verse": 25,
+            "end_chapter": 1,  # Added for cross-chapter support
             "is_whole_chapter": False,
             "filename_prefix": "42001005-42001025",
             "display_name": "Luke-1-5-25",
@@ -69,6 +71,7 @@ class TestParseBibleReference:
             "chapter_padded": "003",
             "start_verse": 16,
             "end_verse": 16,
+            "end_chapter": 3,  # Added for cross-chapter support
             "is_whole_chapter": False,
             "filename_prefix": "43003016-43003016",
             "display_name": "John-3-16",
@@ -321,6 +324,7 @@ class TestParseBibleReference:
             # Result is a dict, not an object
             assert result["book_name"] == "Psalms"  # Note: full name is "Psalms"
             assert result["chapter"] == 23
+            assert result["end_chapter"] == 23  # Should be same chapter
         except ValueError:
             pass  # Also acceptable
 
@@ -535,7 +539,6 @@ class TestParseBibleReference:
             # It's OK if unicode characters cause parsing to fail
             pass
 
-    @pytest.mark.skip(reason="Multi-chapter range parsing not yet implemented")
     def test_multi_chapter_range(self):
         """Test parsing multi-chapter ranges like Genesis 1:1-2:3"""
         result = parse_bible_reference("Genesis 1:1-2:3")
@@ -545,7 +548,6 @@ class TestParseBibleReference:
         assert result["chapter"] == 1
         assert result["end_chapter"] == 2
 
-    @pytest.mark.skip(reason="Multi-chapter range parsing not yet implemented")
     def test_multi_chapter_range_abbreviated(self):
         """Test parsing abbreviated multi-chapter ranges"""
         result = parse_bible_reference("Gen 1:1-2:3")

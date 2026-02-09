@@ -439,12 +439,14 @@ def parse_bible_reference(passage):
 
     # Parse different formats
     patterns = [
-        # "Luke 12:5-19", "John 3:16-20", "Song of Songs 1:1-5"
+        # Cross-chapter range: "Genesis 1:1-2:3", "Matthew 5:1-7:29"
         # Accept both hyphen (-) and en-dash (–) for verse ranges
+        r"([\w\s]+?)\s+(\d+):(\d+)[-–](\d+):(\d+)",
+        # Same-chapter range: "Luke 12:5-19", "John 3:16-20", "Song of Songs 1:1-5"
         r"([\w\s]+?)\s+(\d+):(\d+)[-–](\d+)",
-        # "Luke 12:5", "John 3:16", "Song of Songs 1:1"
+        # Single verse: "Luke 12:5", "John 3:16", "Song of Songs 1:1"
         r"([\w\s]+?)\s+(\d+):(\d+)",
-        # "Psalm 23", "Luke 12", "Song of Songs 1" (whole chapter)
+        # Whole chapter: "Psalm 23", "Luke 12", "Song of Songs 1"
         r"([\w\s]+?)\s+(\d+)$",
     ]
 
@@ -476,37 +478,49 @@ def parse_bible_reference(passage):
 
             book_number, book_display_name, book_code = book_info
 
-            if i == 0:  # Range format "Luke 12:5-19"
+            if i == 0:  # Cross-chapter range "Genesis 1:1-2:3"
                 start_verse = int(match.group(3))
-                end_verse = int(match.group(4))
+                end_chapter = int(match.group(4))
+                end_verse = int(match.group(5))
                 is_whole_chapter = False
 
-            elif i == 1:  # Single verse "John 3:16"
+            elif i == 1:  # Same-chapter range "Luke 12:5-19"
+                start_verse = int(match.group(3))
+                end_verse = int(match.group(4))
+                end_chapter = chapter  # Same as start chapter
+                is_whole_chapter = False
+
+            elif i == 2:  # Single verse "John 3:16"
                 start_verse = int(match.group(3))
                 end_verse = start_verse
+                end_chapter = chapter
                 is_whole_chapter = False
 
             else:  # Whole chapter "Psalm 23"
                 start_verse = 1
                 # Look up or estimate end verse
                 end_verse = chapter_verse_counts.get(book_number, {}).get(chapter, 999)
+                end_chapter = chapter
                 is_whole_chapter = True
 
             # Build result
             start_code = f"{book_number}{chapter:03d}{start_verse:03d}"
-            end_code = f"{book_number}{chapter:03d}{end_verse:03d}"
+            end_code = f"{book_number}{end_chapter:03d}{end_verse:03d}"
             filename_prefix = f"{start_code}-{end_code}"
 
-            # Create display name
+            # Create display name and canonical reference
             if is_whole_chapter:
                 display_name = f"{book_display_name.replace(' ', '-')}-{chapter}"
                 canonical_reference = f"{book_display_name} {chapter}:1-{end_verse}"
-            elif start_verse == end_verse:
+            elif end_chapter != chapter:  # Cross-chapter
+                display_name = f"{book_display_name.replace(' ', '-')}-{chapter}-{start_verse}-{end_chapter}-{end_verse}"
+                canonical_reference = f"{book_display_name} {chapter}:{start_verse}-{end_chapter}:{end_verse}"
+            elif start_verse == end_verse:  # Single verse
                 display_name = (
                     f"{book_display_name.replace(' ', '-')}-{chapter}-{start_verse}"
                 )
                 canonical_reference = f"{book_display_name} {chapter}:{start_verse}"
-            else:
+            else:  # Same-chapter range
                 display_name = f"{book_display_name.replace(' ', '-')}-{chapter}-{start_verse}-{end_verse}"
                 canonical_reference = (
                     f"{book_display_name} {chapter}:{start_verse}-{end_verse}"
@@ -520,6 +534,7 @@ def parse_bible_reference(passage):
                 "chapter_padded": f"{chapter:03d}",
                 "start_verse": start_verse,
                 "end_verse": end_verse,
+                "end_chapter": end_chapter,
                 "is_whole_chapter": is_whole_chapter,
                 "filename_prefix": filename_prefix,
                 "display_name": display_name,
