@@ -440,7 +440,8 @@ def parse_bible_reference(passage):
     # Parse different formats
     patterns = [
         # "Luke 12:5-19", "John 3:16-20", "Song of Songs 1:1-5"
-        r"([\w\s]+?)\s+(\d+):(\d+)-(\d+)",
+        # Accept both hyphen (-) and en-dash (–) for verse ranges
+        r"([\w\s]+?)\s+(\d+):(\d+)[-–](\d+)",
         # "Luke 12:5", "John 3:16", "Song of Songs 1:1"
         r"([\w\s]+?)\s+(\d+):(\d+)",
         # "Psalm 23", "Luke 12", "Song of Songs 1" (whole chapter)

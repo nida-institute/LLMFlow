@@ -313,6 +313,12 @@ def save_text(content, output_path, format="md"):
     return str(output_path)
 
 
+def load_json(file_path):
+    """Load JSON content from a file."""
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 def save_json(content, output_path):
     """Save JSON content to a file."""
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
