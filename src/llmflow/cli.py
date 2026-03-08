@@ -1,8 +1,8 @@
 import sys
 import argparse
-import logging
 import json
 import os
+import signal
 from pathlib import Path
 
 try:
@@ -13,8 +13,25 @@ except Exception:
 
 from llmflow.runner import run_pipeline
 from llmflow.cli_utils import init_project, list_pipelines
+from llmflow.modules.logger import Logger
 
-logger = logging.getLogger(__name__)
+# Following the Logger Pattern guideline: use the shared Logger()
+# singleton so CLI messages go to both console and llmflow.log.
+logger = Logger()
+
+
+def _cli_sigint_handler(signum, frame):
+    """Handle Ctrl+C at the CLI process level.
+
+    This ensures we always show a friendly message instead of a Python
+    traceback when users interrupt a run from the terminal.
+    """
+    logger.info("\n⚠️  Execution interrupted by user (Ctrl+C)")
+    logger.info("   Pipeline stopped.")
+    sys.exit(130)
+
+
+signal.signal(signal.SIGINT, _cli_sigint_handler)
 
 
 def list_pipelines(directory: str) -> list[str]:

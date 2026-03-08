@@ -6,7 +6,10 @@ with GPT-5, particularly around tool calling and response parsing.
 """
 
 import pytest
+from types import SimpleNamespace
 from unittest.mock import Mock, AsyncMock, MagicMock
+
+from llmflow.exceptions import ModerationError
 from llmflow.utils.llm_runner import _run_with_responses_api
 
 
@@ -284,3 +287,51 @@ def test_extract_final_text_from_different_types(output_type, expected_attr):
         result = ""
 
     assert result == "The final answer"
+
+
+@pytest.mark.asyncio
+async def test_responses_api_moderation_block(monkeypatch):
+    """Ensure moderation blocks raise ModerationError with context."""
+
+    class DummyResponses:
+        def create(self, **kwargs):
+            return SimpleNamespace(
+                status="incomplete",
+                output=[],
+                usage=None,
+                incomplete_details=SimpleNamespace(
+                    reason="content_filter",
+                    explanation="Blocked because passage considered sensitive",
+                    content_filter_results=[{"filtered": True, "category": "violence"}]
+                )
+            )
+
+    class DummyClient:
+        def __init__(self):
+            self.responses = DummyResponses()
+
+    class DummyMCP:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def _async_get_tool_definitions(self):
+            return [{"name": "noop", "inputSchema": {}}]
+
+        async def _async_call_tool(self, name, args):
+            return "noop"
+
+    monkeypatch.setattr("openai.OpenAI", lambda: DummyClient())
+
+    with pytest.raises(ModerationError) as excinfo:
+        await _run_with_responses_api(
+            prompt="Translate a Bible verse",
+            config={"model": "gpt-5.1"},
+            mcp_client=DummyMCP(),
+            output_type="text",
+            step_name="moderation-test"
+        )
+
+    assert "content_filter" in str(excinfo.value)

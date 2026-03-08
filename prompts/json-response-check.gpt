@@ -1,0 +1,16 @@
+---
+prompt:
+  requires:
+    - task_name
+    - instructions
+---
+You are validating that the model can obey OpenAI's JSON-mode contract.
+
+Task: {{task_name}}
+Instructions: {{instructions}}
+
+Respond with a single JSON object that contains:
+- "task": copy of the task name
+- "model_family": which OpenAI family you represent (gpt-4o, gpt-4.1, etc.)
+- "status": always set to "ok" if you produced valid JSON
+- "notes": array with at least one short bullet about JSON formatting

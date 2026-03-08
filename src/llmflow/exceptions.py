@@ -103,6 +103,39 @@ class LLMProviderError(LLMFlowError):
         return "\n".join(parts)
 
 
+class ModerationError(LLMProviderError):
+    """Raised when a provider blocks content via moderation filters."""
+
+    def __init__(
+        self,
+        message: str,
+        provider: str,
+        model: str,
+        step_name: str | None = None,
+        reason: str | None = None,
+        explanation: str | None = None,
+        details: dict | None = None,
+        original_error: Exception | None = None,
+    ):
+        self.step_name = step_name
+        self.reason = reason
+        self.explanation = explanation
+        self.details = details
+        super().__init__(message, provider, model, original_error=original_error)
+
+    def __str__(self):
+        parts = [super().__str__()]
+        if self.step_name:
+            parts.append(f"  Step: {self.step_name}")
+        if self.reason:
+            parts.append(f"  Moderation reason: {self.reason}")
+        if self.explanation:
+            parts.append(f"  Explanation: {self.explanation}")
+        if self.details:
+            parts.append(f"  Details: {self.details}")
+        return "\n".join(parts)
+
+
 class PluginError(LLMFlowError):
     """Error executing a plugin."""
 

@@ -1,0 +1,96 @@
+name: "JSON Response Support (OpenAI)"
+description: |
+  Exercises OpenAI models that natively honor the Responses API JSON-mode flag.
+  Run from repo root:
+    llmflow run pipelines/json-response-openai.yaml
+
+documentation:
+  json_response_parameters:
+    - model: "gpt-4o"
+      parameter: "response_format"
+      value:
+        type: "json_object"
+      notes: "Set type=json_object to force JSON mode."
+    - model: "gpt-4o-mini"
+      parameter: "response_format"
+      value:
+        type: "json_object"
+      notes: "Mini tier uses the same flag."
+    - model: "gpt-4.1"
+      parameter: "response_format"
+      value:
+        type: "json_object"
+      notes: "4.1 family also accepts JSON mode via response_format."
+    - model: "gpt-4.1-mini"
+      parameter: "response_format"
+      value:
+        type: "json_object"
+      notes: "Mini variant mirrors the 4.1 contract."
+
+variables:
+  prompts_dir: "prompts"
+  output_dir: "outputs/json-response"
+  json_mode_request:
+    type: "json_object"
+  default_instructions: "Return a compact JSON document matching the listed fields."
+
+steps:
+  - name: "gpt-4o-json"
+    type: "llm"
+    model: "gpt-4o"
+    temperature: 0.0
+    llm_options:
+      response_format: ${json_mode_request}
+    prompt:
+      file: "json-response-check.gpt"
+      inputs:
+        task_name: "gpt-4o json mode"
+        instructions: "${default_instructions}"
+    outputs: gpt_4o_payload
+    saveas:
+      path: "${output_dir}/gpt-4o.json"
+
+  - name: "gpt-4o-mini-json"
+    type: "llm"
+    model: "gpt-4o-mini"
+    temperature: 0.0
+    llm_options:
+      response_format: ${json_mode_request}
+    prompt:
+      file: "json-response-check.gpt"
+      inputs:
+        task_name: "gpt-4o-mini json mode"
+        instructions: "${default_instructions}"
+    outputs: gpt_4o_mini_payload
+    saveas:
+      path: "${output_dir}/gpt-4o-mini.json"
+
+  - name: "gpt-4_1-json"
+    type: "llm"
+    model: "gpt-4.1"
+    temperature: 0.0
+    llm_options:
+      response_format: ${json_mode_request}
+    prompt:
+      file: "json-response-check.gpt"
+      inputs:
+        task_name: "gpt-4.1 json mode"
+        instructions: "${default_instructions}"
+    outputs: gpt_4_1_payload
+    saveas:
+      path: "${output_dir}/gpt-4.1.json"
+
+  - name: "gpt-4_1-mini-json"
+    type: "llm"
+    model: "gpt-4.1-mini"
+    temperature: 0.0
+    llm_options:
+      response_format: ${json_mode_request}
+    prompt:
+      file: "json-response-check.gpt"
+      inputs:
+        task_name: "gpt-4.1-mini json mode"
+        instructions: "${default_instructions}"
+    outputs: gpt_4_1_mini_payload
+    saveas:
+      path: "${output_dir}/gpt-4.1-mini.json"

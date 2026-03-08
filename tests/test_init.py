@@ -4,7 +4,17 @@ from pathlib import Path
 import pytest
 
 from llmflow.cli import main
-from llmflow.cli_utils import HELLO_PIPELINE, HELLO_PROMPT, init_project as init_environment
+from llmflow.cli_utils import (
+    HELLO_PIPELINE,
+    HELLO_PROMPT,
+    HELLO_REPLY_PROMPT,
+    AI_INDEX_DOC,
+    AI_OVERVIEW_DOC,
+    AI_RULES_DOC,
+    LANGUAGE_QUICKREF_DOC,
+    TUTORIAL_DOC,
+    init_project as init_environment,
+)
 
 
 def test_cli_init_creates_hello_prompt(tmp_path, monkeypatch, caplog):
@@ -28,13 +38,36 @@ def test_init_environment_creates_files(tmp_path, caplog):
     init_environment(tmp_path)
 
     prompt_path = tmp_path / "prompts" / "hello.gpt"
+    reply_prompt_path = tmp_path / "prompts" / "reply.gpt"
     pipeline_path = tmp_path / "pipelines" / "hello-llmflow.yaml"
     output_dir = tmp_path / "output"
+    docs_dir = tmp_path / "docs"
+    ai_context_dir = docs_dir / "ai-context"
+
+    tutorial_doc_path = docs_dir / "tutorial.md"
+    language_quickref_path = docs_dir / "llmflow-language-quickref.md"
+    ai_overview_path = ai_context_dir / "overview.md"
+    ai_rules_path = ai_context_dir / "rules.md"
+    ai_index_path = ai_context_dir / "index.md"
 
     assert prompt_path.read_text(encoding="utf-8") == HELLO_PROMPT
+    assert reply_prompt_path.read_text(encoding="utf-8") == HELLO_REPLY_PROMPT
     assert pipeline_path.read_text(encoding="utf-8") == HELLO_PIPELINE
     assert output_dir.is_dir()
 
+    assert tutorial_doc_path.read_text(encoding="utf-8") == TUTORIAL_DOC
+    assert language_quickref_path.read_text(encoding="utf-8") == LANGUAGE_QUICKREF_DOC
+    assert ai_overview_path.read_text(encoding="utf-8") == AI_OVERVIEW_DOC
+    assert ai_rules_path.read_text(encoding="utf-8") == AI_RULES_DOC
+    assert ai_index_path.read_text(encoding="utf-8") == AI_INDEX_DOC
+
+    # idempotency: second run should not change existing files
     init_environment(tmp_path)
     assert prompt_path.read_text(encoding="utf-8") == HELLO_PROMPT
+    assert reply_prompt_path.read_text(encoding="utf-8") == HELLO_REPLY_PROMPT
     assert pipeline_path.read_text(encoding="utf-8") == HELLO_PIPELINE
+    assert tutorial_doc_path.read_text(encoding="utf-8") == TUTORIAL_DOC
+    assert language_quickref_path.read_text(encoding="utf-8") == LANGUAGE_QUICKREF_DOC
+    assert ai_overview_path.read_text(encoding="utf-8") == AI_OVERVIEW_DOC
+    assert ai_rules_path.read_text(encoding="utf-8") == AI_RULES_DOC
+    assert ai_index_path.read_text(encoding="utf-8") == AI_INDEX_DOC

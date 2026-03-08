@@ -2,14 +2,80 @@ from typing import Any, Dict, Optional
 
 import llm
 
+from llmflow.exceptions import ModerationError
 from llmflow.modules.json_parser import parse_llm_json_response
 from llmflow.modules.llm_response_clean import clean_llm_response_text
 from llmflow.modules.logger import Logger
 
 logger = Logger()
+MODERATION_GUIDE_PATH = "docs/moderation-handling.md"
 
 # Model cache - simpler than singleton pattern
 _model_cache: Dict[str, Any] = {}
+def _extract_detail_value(details: Any, attr: str) -> Any:
+    if details is None:
+        return None
+    if isinstance(details, dict):
+        return details.get(attr)
+    return getattr(details, attr, None)
+
+
+def _raise_if_moderation_blocked(response: Any, model_name: str, step_name: str) -> None:
+    """Inspect a Responses API payload for moderation blocks and raise immediately."""
+
+    status = getattr(response, "status", "") or ""
+    details = getattr(response, "incomplete_details", None)
+    raw_reason = _extract_detail_value(details, "reason")
+    normalized_reason = raw_reason.lower() if isinstance(raw_reason, str) else raw_reason
+    explanation = _extract_detail_value(details, "explanation")
+    filter_results = _extract_detail_value(details, "content_filter_results")
+    status_details = getattr(response, "status_details", None)
+
+    blocked = False
+
+    if status.lower() == "blocked":
+        blocked = True
+        normalized_reason = normalized_reason or "blocked"
+    elif status.lower() == "incomplete" and (normalized_reason in {"content_filter", "safety"}):
+        blocked = True
+    elif isinstance(normalized_reason, str) and normalized_reason in {"content_filter", "safety"}:
+        blocked = True
+
+    if not blocked:
+        return
+
+    details_payload = {
+        "status": status,
+        "reason": raw_reason or normalized_reason,
+        "content_filter_results": filter_results,
+        "status_details": status_details,
+    }
+    details_payload = {k: v for k, v in details_payload.items() if v is not None}
+
+    message_parts = [
+        f"OpenAI Responses API blocked step '{step_name}' for model {model_name}.",
+        f"Reason: {raw_reason or normalized_reason or 'moderation'}.",
+    ]
+
+    if explanation:
+        message_parts.append(f"Explanation: {explanation}.")
+    if filter_results:
+        message_parts.append(f"Filter results: {filter_results}.")
+    if status_details:
+        message_parts.append(f"Status details: {status_details}.")
+
+    message_parts.append(f"See {MODERATION_GUIDE_PATH} for mitigation strategies.")
+
+    # Following the Error Handling guideline: provide actionable tips without raw tracebacks
+    raise ModerationError(
+        " ".join(message_parts),
+        provider="openai",
+        model=model_name,
+        step_name=step_name,
+        reason=raw_reason or normalized_reason,
+        explanation=explanation,
+        details=details_payload,
+    )
 
 
 def get_model(model_name: str):
@@ -411,6 +477,8 @@ async def _run_with_responses_api(
             except Exception as e:
                 logger.error(f"❌ OpenAI Responses API call failed: {e}")
                 raise
+
+            _raise_if_moderation_blocked(response, model_name, step_name)
 
             # Track token usage if available (Responses API may not expose this yet)
             if hasattr(response, 'usage') and response.usage:

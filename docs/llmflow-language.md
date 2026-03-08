@@ -24,7 +24,7 @@ linter_config:
 
 steps:
   - name: step_name
-    type: llm | function | for-each
+    type: llm | function | for-each | save
     ...
 ```
 
@@ -55,7 +55,6 @@ Controls pipeline validation:
 Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette.io/).
 
 ```yaml
-- name: generate_intro
   type: llm
   prompt:
     file: leadersguide-intro.gpt
@@ -67,9 +66,6 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
 ```
 
 **Required Fields:**
-- `prompt`: Object with `file` and `inputs`
-  - `file`: Path to prompt file (relative to project root or prompts directory)
-  - `inputs`: Variables to substitute into the prompt
 - `outputs`: Variable name (string) or list of names to store result(s)
 
 **Optional Fields:**
@@ -78,7 +74,6 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
 - `saveas`: File path to save the output
 - `append_to`: List variable name to append result to (used in `for-each`)
 
-**Example with JSON output:**
 ```yaml
 - name: generate_scene_list
   type: llm
@@ -87,10 +82,8 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
     inputs:
       passage: "${passage}"
       source: "${source}"
-  output_type: json
   outputs: scene_list
   log: debug
-```
 
 ---
 
@@ -121,7 +114,7 @@ Calls a Python function from the LLMFlow library or custom code.
 
 **Common functions:**
 - `llmflow.utils.data.parse_bible_reference` - Parse Bible references
-- `llmflow.utils.io.render_markdown_template` - Render Jinja2 templates
+- `llmflow.utils.io.render_markdown_template` - Render markdown templates
 - `llmflow.utils.io.save_json` - Save JSON to file
 - `llmflow.utils.data.flatten_json_to_markdown` - Convert JSON to markdown
 - `llmflow.utils.data.identity` - Pass through data unchanged
@@ -229,10 +222,10 @@ llmflow run --pipeline pipeline.yaml --var passage="Psalm 23"
 - Array indexing: `"${scene_list[0]}"`
 - Array mapping: `"${scene_list[*].Title}"` - extracts all Title fields
 
-**In prompt files:**
-- Use `{var}` for Jinja2-style substitution
-- Access nested: `{scene.WLC}`
-- Conditionals and loops supported (Jinja2 syntax)
+**In prompt / template files (`.gpt`, `.md`):**
+- Use `{{var}}` for substitution
+- Access nested fields with dot notation: `{{scene.WLC}}`
+- Index into lists: `{{items[0]}}`
 
 ---
 
@@ -240,7 +233,7 @@ llmflow run --pipeline pipeline.yaml --var passage="Psalm 23"
 
 ### `saveas:` field
 
-Any step can save its output to a file:
+Any `llm` or `function` step can save its output to a file:
 
 ```yaml
 - name: save_leaders_guide
@@ -477,7 +470,8 @@ linter_config:
 
 ### Prompt File Format
 
-Prompt files (`.gpt` extension) use **double curly brace syntax**:
+Prompt files (`.gpt` extension) use **double curly brace syntax** with
+`{{variable_name}}` placeholders:
 
 ```
 <!--
@@ -493,12 +487,13 @@ prompt:
 
 # Your Prompt Title
 
-Your prompt instructions here. Reference variables using {{variable_name}}.
+Your prompt instructions here. Reference variables using
+`{{variable_name}}`.
 
 Supports:
-- Simple variables: {{passage}}
-- Dot notation: {{scene.WLC}}
-- Array access: {{items[0]}}
+- Simple variables: `{{passage}}`
+- Dot notation: `{{scene.WLC}}`
+- Array access: `{{items[0]}}`
 ```
 
 **Key features:**
@@ -508,7 +503,8 @@ Supports:
 
 ### Template File Format
 
-Template files (`.md` extension) use the same **double curly brace syntax**:
+Template files (`.md` extension) use the same **double curly brace
+syntax** with `{{variable_name}}` placeholders:
 
 ```markdown
 # {{passage}} Leader's Guide
@@ -522,9 +518,8 @@ Template files (`.md` extension) use the same **double curly brace syntax**:
 {{step2}}
 ```
 
-**Variable substitution**: `{{variable_name}}`
-
-**Also supports**: `${variable}` syntax with context resolution
+**Variable substitution**: `{{variable_name}}`. `${variable}` is used
+inside pipeline YAML, not inside `.md` or `.gpt` files.
 
 ### Pipeline Variable Reference Syntax
 
@@ -538,12 +533,13 @@ In pipeline YAML files:
 ### Template Engine Implementation
 
 LLMFlow uses a **custom template engine** with regex-based substitution:
-- First pass: `{{variable}}` replacement
-- Second pass: `${variable}` resolution from context
-- Supports dot notation and subscript access via Python's `eval()` in safe context
-- Does NOT use Jinja2 or Mustache libraries
+- In prompt and template files, `{{variable}}` placeholders are
+  replaced using values from the current context.
+- In pipeline YAML, `${variable}` expressions are resolved when
+  constructing step inputs and file paths.
+- Dot notation (`scene.WLC`) and simple indexing (`items[0]`) are
+  supported in both forms.
 
 **Summary of syntax by context:**
-- **Pipeline YAML**: `${var}` with dollar sign
-- **Prompt files**: `{{var}}` double curly braces
-- **Template files**: `{{var}}` or `${var}` both supported
+- **Pipeline YAML**: `${var}` with dollar sign.
+- **Prompt / template files**: `{{var}}` double curly braces.
