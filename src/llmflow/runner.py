@@ -78,10 +78,50 @@ def build_debug_filename(step: Dict[str, Any], context: Dict[str, Any], request_
         step_name = step.get("name", "llm_step")
         parts.append(sanitize_filename(step_name))
 
+    # Include for-each metadata when available
+    iteration_meta = None
+    stack = context.get("_for_each_stack")
+    if isinstance(stack, list) and stack:
+        iteration_meta = stack[-1]
+    if iteration_meta is None:
+        iteration_meta = context.get("_for_each_meta")
+
+    if iteration_meta:
+        level = iteration_meta.get("level")
+        if level:
+            parts.append(f"lvl{level}")
+
+        var_name = iteration_meta.get("variable")
+        label_value = iteration_meta.get("label") or iteration_meta.get("value")
+        if var_name and label_value:
+            var_token = sanitize_filename(str(var_name)) or "item"
+            label_token = sanitize_filename(str(label_value)) or "value"
+            parts.append(f"{var_token}-{label_token}")
+
     # Add request/response indicator
     parts.append(request_or_response)
 
     return "_".join(parts) + ".txt"
+
+
+def _format_iteration_fragment(value: Any, max_length: int = 48) -> str:
+    """Create a filesystem-safe fragment representing an iteration value."""
+    try:
+        if isinstance(value, str):
+            text = value
+        elif isinstance(value, (int, float)):
+            text = str(value)
+        else:
+            text = json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else str(value)
+    except Exception:
+        text = "item"
+
+    text = text.strip() or "item"
+    if len(text) > max_length:
+        text = text[:max_length]
+
+    sanitized = sanitize_filename(text)
+    return sanitized or "item"
 
 # Track files written during a run and emit to both llmflow.log and stdout
 WRITTEN_FILES = []
@@ -528,7 +568,7 @@ def run_plugin_step(
         # If plugin returns a file path, print it for user convenience
         if isinstance(results, str) and (results.endswith('.md') or results.endswith('.usx') or results.endswith('.json') or '/' in results):
             logger.info(f"📄 Created file: {results}")
-        
+
         logger.info(f"✅ Completed plugin step: {name}")
         return results
 
@@ -869,6 +909,7 @@ def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_co
     input_data = resolve(step.get("input", []), context)
     item_var = step.get("item_var", "item")
     steps = step.get("steps", [])
+    debug_label_template = step.get("debug_label")
 
     # Collect all append_to targets AND regular outputs
     def collect_outputs(steps_list):
@@ -891,9 +932,35 @@ def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_co
 
     append_to_targets, output_vars = collect_outputs(steps)
 
-    for item in input_data:
+    for index, item in enumerate(input_data, start=1):
         iteration_context = deepcopy(context)
         iteration_context[item_var] = item
+
+        parent_stack = iteration_context.get("_for_each_stack") or []
+        stack = [dict(frame) for frame in parent_stack] if parent_stack else []
+
+        label_fragment = None
+        if debug_label_template:
+            try:
+                resolved_label = resolve(debug_label_template, iteration_context)
+                if resolved_label is not None:
+                    label_fragment = _format_iteration_fragment(resolved_label)
+            except Exception as exc:
+                logger.debug(
+                    f"debug_label resolution failed in for-each '{step.get('name', 'unnamed')}': {exc}"
+                )
+
+        value_fragment = _format_iteration_fragment(item)
+        new_frame = {
+            "level": len(stack) + 1,
+            "variable": item_var,
+            "value": value_fragment,
+            "label": label_fragment or "",
+            "index": index,
+        }
+        stack.append(new_frame)
+        iteration_context["_for_each_stack"] = stack
+        iteration_context["_for_each_meta"] = new_frame
 
         for step in steps:
             after_action = run_step(step, iteration_context, pipeline_config)

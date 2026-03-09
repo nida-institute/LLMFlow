@@ -59,6 +59,43 @@ class TestDebugFilename:
         assert "response" in filename_response
         assert filename_request != filename_response
 
+    def test_build_filename_includes_iteration_metadata(self):
+        """For-each metadata should add nesting and item label"""
+        step = {
+            "name": "lexeme_step",
+            "prompt": {"file": "prompts/lexeme.gpt"}
+        }
+        context = {
+            "passage": "John 1:1-5",
+            "_for_each_stack": [
+                {"level": 1, "variable": "lexeme", "value": "logos", "label": "logos"}
+            ]
+        }
+
+        filename = build_debug_filename(step, context, "request")
+
+        assert "lvl1" in filename
+        assert "lexeme-logos" in filename
+
+    def test_build_filename_prefers_debug_label(self):
+        """Custom debug label should override derived value"""
+        step = {
+            "name": "lexeme_step",
+            "prompt": {"file": "prompts/lexeme.gpt"}
+        }
+        context = {
+            "passage": "John 1:1-5",
+            "_for_each_stack": [
+                {"level": 2, "variable": "entry", "value": "logos", "label": "BRQ"}
+            ]
+        }
+
+        filename = build_debug_filename(step, context, "response")
+
+        assert "lvl2" in filename
+        assert "entry-BRQ" in filename
+        assert "logos" not in filename  # ensure label overrides raw value
+
 
 class TestSaveContentToFile:
     """Test content saving utility"""
