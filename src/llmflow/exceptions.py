@@ -60,6 +60,30 @@ class ForEachIterationError(PipelineExecutionError):
         return "\n".join(parts)
 
 
+class StepRetryError(PipelineExecutionError):
+    """Raised when a step exhausts its retry attempts without meeting the condition."""
+
+    def __init__(
+        self,
+        message: str,
+        step_name: str,
+        attempts: int,
+        condition: str | None = None,
+        context: dict | None = None,
+        original_error: Exception | None = None,
+    ):
+        self.attempts = attempts
+        self.condition = condition
+        super().__init__(message, step_name, context, original_error)
+
+    def __str__(self):
+        parts = [super().__str__()]
+        parts.insert(1, f"  Attempts: {self.attempts}")
+        if self.condition:
+            parts.insert(2, f"  Condition: {self.condition}")
+        return "\n".join(parts)
+
+
 class VariableResolutionError(LLMFlowError):
     """Error resolving a variable expression."""
 

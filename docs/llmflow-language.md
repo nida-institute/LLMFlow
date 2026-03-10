@@ -50,6 +50,28 @@ Controls pipeline validation:
 
 ## 🔧 Types of Steps
 
+### Common Step Options
+
+All step types accept an optional `retry` block to re-run the step when a condition stays true or the step raises:
+
+```yaml
+retry:
+  max_attempts: 3          # default 3
+  delay_seconds: 2         # wait between attempts
+  condition: "${len(payload or '') < 2000}"
+```
+
+- Retries trigger on any exception raised by the step or when `condition` evaluates truthy.
+- Context/output changes are rolled back between attempts, so only the final successful run (or failure) mutates state.
+- During retries, the current attempt number is available as `${_retry_attempt}`.
+
+#### Retry best practices
+
+- Keep the `condition` expression side-effect free; it runs with the current context after a successful attempt. Use helpers like `len(...)`, `any(...)`, or custom functions already on the context.
+- Use `${_retry_attempt}` to tailor prompts (`"attempt ${_retry_attempt}"`, adjusting instructions, etc.) or to gate additional tooling on later attempts.
+- Assume every attempt starts from a clean slate: `append_to` lists, derived variables, and function outputs are restored to their pre-step values unless the attempt ultimately succeeds.
+- Log *why* a retry is configured (missing verse, short summary, etc.) so future maintainers know the guardrail’s intent.
+
 ### type: `llm`
 
 Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette.io/).
@@ -69,10 +91,13 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
 - `outputs`: Variable name (string) or list of names to store result(s)
 
 **Optional Fields:**
+- `model`: Override the pipeline-level model for this specific step.
+- `max_tokens`, `temperature`, `timeout_seconds`: Per-step LLM overrides when a step has different needs than the global defaults.
 - `output_type: json` - Parse LLM response as JSON
 - `log`: Log level for this step (`debug`, `info`, `warning`, `error`)
 - `saveas`: File path to save the output
 - `append_to`: List variable name to append result to (used in `for-each`)
+- `retry` (see above) to re-run when a response is too short/long, missing data, etc.
 
 ```yaml
 - name: generate_scene_list

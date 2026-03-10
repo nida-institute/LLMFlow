@@ -28,7 +28,8 @@ from llmflow.exceptions import (
     ForEachIterationError,
     VariableResolutionError,
     LLMProviderError,
-    PluginError
+    PluginError,
+    StepRetryError,
 )
 from llmflow.modules.mcp import init_mcp_client
 from llmflow.utils.guards import build_step_eval_ctx, enforce_require, collect_warnings
@@ -125,6 +126,8 @@ def _format_iteration_fragment(value: Any, max_length: int = 48) -> str:
 
 # Track files written during a run and emit to both llmflow.log and stdout
 WRITTEN_FILES = []
+
+_RETRY_MISSING = object()
 
 
 def _record_written_file(path):
@@ -360,6 +363,217 @@ def handle_step_outputs(step, result, context, base_dir="."):
             handle_step_saveas(step, context)
 
 
+def _evaluate_retry_condition(condition_expr, context):
+    if not condition_expr:
+        return False
+
+    try:
+        resolved = resolve(condition_expr, context)
+    except Exception as exc:
+        logger.warning(f"Retry condition resolution failed: {condition_expr} - {exc}")
+        return False
+
+    if isinstance(resolved, bool):
+        return resolved
+    if isinstance(resolved, (int, float)):
+        return bool(resolved)
+
+    try:
+        return bool(eval(str(resolved)))
+    except Exception as exc:
+        logger.warning(f"Retry condition eval failed: {condition_expr} - {exc}")
+        return False
+
+
+def _snapshot_retry_targets(step, context):
+    snapshot = {"outputs": {}, "append_to": None}
+
+    outputs = step.get("outputs")
+    if isinstance(outputs, str):
+        output_names = [outputs]
+    elif isinstance(outputs, list):
+        output_names = outputs
+    else:
+        output_names = []
+
+    for name in output_names:
+        if name in context:
+            snapshot["outputs"][name] = deepcopy(context[name])
+        else:
+            snapshot["outputs"][name] = _RETRY_MISSING
+
+    append_to = step.get("append_to")
+    if append_to:
+        exists = append_to in context
+        value = deepcopy(context[append_to]) if exists else None
+        snapshot["append_to"] = (append_to, exists, value)
+
+    return snapshot
+
+
+def _restore_retry_targets(context, snapshot):
+    for name, value in snapshot.get("outputs", {}).items():
+        if value is _RETRY_MISSING:
+            context.pop(name, None)
+        else:
+            context[name] = deepcopy(value)
+
+    append_snapshot = snapshot.get("append_to")
+    if append_snapshot:
+        name, existed_before, value = append_snapshot
+        if existed_before:
+            context[name] = deepcopy(value)
+        else:
+            context.pop(name, None)
+
+
+def _build_eval_locals(context):
+    def ctx_lookup(expr):
+        return get_from_context(expr, context)
+
+    eval_locals = {"context": context, "ctx": ctx_lookup}
+    for key, value in context.items():
+        if isinstance(key, str) and key.isidentifier():
+            eval_locals[key] = value
+    return eval_locals
+
+
+def _evaluate_condition_expression(condition_expr, context, *, label="condition"):
+    if condition_expr is None:
+        return False
+
+    if isinstance(condition_expr, bool):
+        return condition_expr
+    if isinstance(condition_expr, (int, float)):
+        return bool(condition_expr)
+
+    expression = condition_expr
+    expr_str = None
+
+    if isinstance(expression, str):
+        stripped = expression.strip()
+        if stripped.startswith("${") and stripped.endswith("}"):
+            expr_str = stripped[2:-1]
+        else:
+            expr_str = stripped
+
+    try:
+        resolved = resolve(expression, context)
+    except Exception as exc:
+        logger.warning(f"{label} resolution failed: {expression} - {exc}")
+        resolved = expression
+
+    if isinstance(resolved, bool):
+        return resolved
+    if isinstance(resolved, (int, float)):
+        return bool(resolved)
+
+    if isinstance(resolved, str):
+        stripped = resolved.strip()
+        if stripped.startswith("${") and stripped.endswith("}"):
+            expr_str = stripped[2:-1]
+        else:
+            expr_str = stripped
+    else:
+        expr_str = str(resolved)
+
+    if not expr_str:
+        return False
+
+    try:
+        return bool(eval(expr_str, {}, _build_eval_locals(context)))
+    except Exception as exc:
+        logger.warning(f"{label} eval failed: {expr_str} - {exc}")
+        return False
+
+
+def _evaluate_retry_condition(condition_expr, context):
+    return _evaluate_condition_expression(condition_expr, context, label="retry condition")
+
+
+def _coerce_retry_number(value, default, context, cast_type=int):
+    if value is None:
+        return default
+
+    try:
+        resolved = resolve(value, context)
+    except Exception:
+        resolved = value
+
+    try:
+        return cast_type(resolved)
+    except (TypeError, ValueError):
+        return default
+
+
+def _execute_step_with_retry(step, context, retry_cfg, execute_once):
+    if not isinstance(retry_cfg, dict):
+        return execute_once()
+
+    step_name = step.get("name", "unnamed")
+    max_attempts = _coerce_retry_number(retry_cfg.get("max_attempts", 3), 3, context, int)
+    if max_attempts < 1:
+        max_attempts = 1
+    delay_seconds = _coerce_retry_number(retry_cfg.get("delay_seconds", 2), 2.0, context, float)
+    if delay_seconds < 0:
+        delay_seconds = 0
+    condition_expr = retry_cfg.get("condition")
+
+    snapshot = _snapshot_retry_targets(step, context)
+    last_exception = None
+
+    for attempt in range(1, max_attempts + 1):
+        context["_retry_attempt"] = attempt
+        try:
+            after_action = execute_once()
+            last_exception = None
+        except KeyboardInterrupt:
+            context.pop("_retry_attempt", None)
+            raise
+        except Exception as exc:
+            last_exception = exc
+            retry_needed = True
+            reason = f"exception {type(exc).__name__}: {exc}"
+        else:
+            if after_action:
+                context.pop("_retry_attempt", None)
+                return after_action
+
+            retry_needed = _evaluate_retry_condition(condition_expr, context)
+            if not retry_needed:
+                context.pop("_retry_attempt", None)
+                return None
+
+            reason = f"condition '{condition_expr}' still true"
+
+        if attempt == max_attempts:
+            _restore_retry_targets(context, snapshot)
+            context.pop("_retry_attempt", None)
+            message = (
+                f"Step '{step_name}' failed after {max_attempts} attempts"
+                if last_exception
+                else f"Step '{step_name}' did not meet retry condition after {max_attempts} attempts"
+            )
+            raise StepRetryError(
+                message,
+                step_name=step_name,
+                attempts=max_attempts,
+                condition=condition_expr,
+                context=context,
+                original_error=last_exception,
+            )
+
+        logger.warning(
+            f"🔁 Retry {attempt}/{max_attempts} for step '{step_name}' ({reason}). Next attempt in {delay_seconds}s"
+        )
+        _restore_retry_targets(context, snapshot)
+        if delay_seconds:
+            time.sleep(delay_seconds)
+
+    context.pop("_retry_attempt", None)
+    return None
+
+
 def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> None:  # ← Changed parameter name from 'rule' to 'step'
     """Handle saveas output for pipeline steps."""
     saveas_config = step["saveas"]  # ← Changed from 'rule' to 'step'
@@ -441,48 +655,43 @@ def run_step(
         # Check condition BEFORE executing any step type
         condition = step.get("condition")
         if condition:
-            # Resolve variables in condition before evaluation
-            resolved_condition = resolve(condition, context)
             logger.debug(f"🔍 Evaluating condition: {condition}")
-            logger.debug(f"   Resolved to: {resolved_condition}")
-
-            try:
-                if isinstance(resolved_condition, bool):
-                    condition_result = resolved_condition
-                elif isinstance(resolved_condition, (int, float)):
-                    condition_result = bool(resolved_condition)
-                else:
-                    condition_result = bool(eval(str(resolved_condition)))
-            except Exception as e:
-                logger.warning(f"Condition evaluation failed: {condition} - {e}")
-                condition_result = False
-
+            condition_result = _evaluate_condition_expression(condition, context)
+            logger.debug(f"   Condition result: {condition_result}")
             if not condition_result:
                 logger.info(f"⏭️  Skipping step '{step.get('name')}' (condition false)")
                 return None
 
-        # Execute step based on type
-        after_action = None
+        def _execute_once():
+            local_after_action = None
 
-        if step_type == "for-each":
-            after_action = run_for_each_step(step, context, pipeline_config)
-        elif step_type == "llm":
-            result = run_llm_step(step, context, pipeline_config)
-            handle_step_outputs(step, result, context)
-        elif step_type == "function":
-            result = run_function_step(step, context, pipeline_config)
-        elif step_type == "if":
-            after_action = run_if_step(step, context, pipeline_config)
-        elif step_type == "save":
-            run_save_step(step, context, pipeline_config)
-        elif step.get("plugin"):
-            result = run_plugin_step(step, context, pipeline_config)
-            handle_step_outputs(step, result, context)
-        elif step_type in plugin_registry:
-            result = run_plugin_step(step, context, pipeline_config)
-            handle_step_outputs(step, result, context)
+            if step_type == "for-each":
+                local_after_action = run_for_each_step(step, context, pipeline_config)
+            elif step_type == "llm":
+                result = run_llm_step(step, context, pipeline_config)
+                handle_step_outputs(step, result, context)
+            elif step_type == "function":
+                result = run_function_step(step, context, pipeline_config)
+            elif step_type == "if":
+                local_after_action = run_if_step(step, context, pipeline_config)
+            elif step_type == "save":
+                run_save_step(step, context, pipeline_config)
+            elif step.get("plugin"):
+                result = run_plugin_step(step, context, pipeline_config)
+                handle_step_outputs(step, result, context)
+            elif step_type in plugin_registry:
+                result = run_plugin_step(step, context, pipeline_config)
+                handle_step_outputs(step, result, context)
+            else:
+                raise ValueError(f"Unknown step type: {step_type}")
+
+            return local_after_action
+
+        retry_cfg = step.get("retry")
+        if retry_cfg:
+            after_action = _execute_step_with_retry(step, context, retry_cfg, _execute_once)
         else:
-            raise ValueError(f"Unknown step type: {step_type}")
+            after_action = _execute_once()
 
         # ✅ CENTRALIZED: Handle 'after' directive for ALL steps
         # Priority: nested step's after_action > step's own after directive
@@ -1169,6 +1378,7 @@ def run_pipeline(
         raise  # Re-raise to be caught by CLI handler
 
     logger.info("Pipeline complete.")
+    telemetry.complete_pipeline()
 
     # Generate and log telemetry summary
     summary = telemetry.generate_summary()

@@ -176,6 +176,13 @@ class PipelineMetrics:
         return sum(step.duration or 0.0 for step in self.steps)
 
     @property
+    def wall_clock_duration(self) -> float:
+        """Actual wall-clock time from start to end."""
+        if self.end_time is None:
+            return 0.0
+        return max(0.0, (self.end_time - self.start_time).total_seconds())
+
+    @property
     def total_cost(self) -> float:
         """Total cost across all steps."""
         return sum(step.calculate_cost() for step in self.steps)
@@ -279,6 +286,10 @@ class TelemetryCollector:
         self.pipeline.add_step(self.current_step)
         self.current_step = None
 
+    def complete_pipeline(self):
+        """Mark the overall pipeline end time."""
+        self.pipeline.end_time = datetime.now()
+
     def record_mcp_call(
         self,
         tool_name: str,
@@ -311,9 +322,22 @@ class TelemetryCollector:
         lines.append("━" * 60)
         lines.append(f"Pipeline: {self.pipeline.pipeline_name}")
         lines.append(f"Total Duration: {format_duration(self.pipeline.total_duration)}")
+        lines.append(f"Wall Clock: {format_duration(self.pipeline.wall_clock_duration)}")
         lines.append(f"Total Cost: ${self.pipeline.total_cost:.4f}")
         lines.append(f"Total Tokens: {self.pipeline.total_tokens:,}")
         lines.append("")
+
+        if self.pipeline.steps:
+            lines.append("⏱️ Step Timeline:")
+            cumulative = 0.0
+            for step in self.pipeline.steps:
+                step_duration = step.duration or 0.0
+                cumulative += step_duration
+                model_info = f" ({step.model})" if step.model else ""
+                lines.append(
+                    f"  • {step.step_name}: {format_duration(step_duration)} | Cumulative {format_duration(cumulative)}{model_info}"
+                )
+            lines.append("")
 
         # Slowest steps
         slowest = self.pipeline.get_slowest_steps(n=5)

@@ -1,0 +1,10 @@
+---
+system: |
+  You are a cultural etiquette coach who replies warmly to multilingual greetings.
+user: |
+  You received this markdown list of greetings:
+
+  {{greeting_markdown}}
+
+  For each bullet, craft a short reply in the same language (when appropriate) plus an English explanation of the cultural nuance you appreciated. Return markdown with the same bullet structure.
+---

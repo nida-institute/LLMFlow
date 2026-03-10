@@ -54,9 +54,14 @@ class StepConfig(BaseModel):
     append_to: Optional[str] = None
     log: Optional[str] = None
     saveas: Optional[Union[str, SaveAsConfig, List[Dict[str, Any]]]] = None
+    model: Optional[str] = None
+    max_tokens: Optional[int] = None
+    temperature: Optional[float] = None
+    timeout_seconds: Optional[int] = None
     # NEW: guards
     require: Optional[List[Dict[str, Any]]] = None
     warn: Optional[List[Dict[str, Any]]] = None
+    retry: Optional[Dict[str, Any]] = None
 
 
 class PipelineConfig(BaseModel):
@@ -108,6 +113,10 @@ PIPELINE_SCHEMA = {
                             {"type": "object", "additionalProperties": True},
                         ]
                     },
+                    "model": {"type": "string"},
+                    "max_tokens": {"type": "integer"},
+                    "temperature": {"type": "number"},
+                    "timeout_seconds": {"type": "number"},
                     "input": {},
                     "inputs": {"type": "object"},
                     "outputs": {
@@ -174,6 +183,15 @@ PIPELINE_SCHEMA = {
                             "required": ["if"],
                             "additionalProperties": False,
                         },
+                    },
+                    "retry": {
+                        "type": "object",
+                        "properties": {
+                            "max_attempts": {"type": "integer", "minimum": 1},
+                            "delay_seconds": {"type": "number", "minimum": 0},
+                            "condition": {"type": "string"},
+                        },
+                        "additionalProperties": True,
                     },
                 },
                 "required": ["name", "type"],

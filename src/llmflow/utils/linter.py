@@ -32,32 +32,28 @@ def extract_variable_references(text: str) -> Set[str]:
     return variables
 
 def _allowed_step_keys_from_schema() -> set:
-    props = PIPELINE_SCHEMA.get("properties", {}).get("steps", {}).get("items", {}).get("properties", {})
+    props = (
+        PIPELINE_SCHEMA.get("properties", {})
+        .get("steps", {})
+        .get("items", {})
+        .get("properties", {})
+    )
     return set(props.keys())
 
-ALLOWED_STEP_KEYS = {
-    "name",
-    "type",
+
+# Keep schema-driven keys authoritative so new keywords (like "retry") are picked up
+# automatically, then union the plugin-specific extras that live outside the schema.
+_SCHEMA_STEP_KEYS = _allowed_step_keys_from_schema()
+_EXTRA_STEP_KEYS = {
     "description",
-    "input",
-    "inputs",
     "output",
-    "outputs",
-    "item_var",
-    "steps",
     "after",
-    "append_to",
-    "condition",
     "format",
-    "function",
     "log",
     "max_tokens",
-    "model",
     "output_type",
     "plugin",
-    "prompt",
     "response_format",
-    "saveas",
     "temperature",
     "timeout_seconds",
     "mcp",
@@ -72,9 +68,9 @@ ALLOWED_STEP_KEYS = {
     "group_by_prefix",
     "limit",
     "variables",
-    "require",
-    "warn",
 }
+
+ALLOWED_STEP_KEYS = _SCHEMA_STEP_KEYS | _EXTRA_STEP_KEYS
 COMMON_TYPOS = {
     "saveaas": "saveas",
     "ouput": "outputs",
