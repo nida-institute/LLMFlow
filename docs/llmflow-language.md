@@ -412,6 +412,39 @@ llmflow run --pipeline pipelines/my-pipeline.yaml \
 llmflow run --pipeline pipelines/my-pipeline.yaml --skip-lint
 ```
 
+### Rewind to a step (replay from saved artifacts)
+
+`--rewind-to <step-name>` replays the pipeline from disk instead of calling the LLM again. Every step up to and including the named step is satisfied by reading its previously saved file; every step after it executes normally. This is useful when you want to change a later step without re-running expensive upstream LLM calls.
+
+```bash
+# Re-run everything after `generate_discourse_outline`, loading that step and
+# all earlier steps from their saved artifacts instead of calling the LLM.
+llmflow run --pipeline pipelines/discourse-flow.yaml \
+  --var passage="Mark 11:12-25" \
+  --rewind-to generate_discourse_outline
+```
+
+**Requirements for a rewindable step:**
+- The step must declare `saveas:` pointing to the file that holds its output.
+- The step must declare a single `outputs:` variable name.
+- The `saveas` path must be fully resolvable (no unresolved `${...}` variables).
+- Steps that use `append_to:` are not rewindable.
+
+If the saved file is missing LLMFlow raises a clear error rather than silently re-running.
+
+### Stop after a step
+
+`--stop-after <step-name>` halts the pipeline immediately after the named step completes, without running any subsequent steps. Combine with `--rewind-to` to re-run exactly one step of a long pipeline.
+
+```bash
+# Replay up through enrich_passage from disk, re-run generate_discourse_outline,
+# then stop — useful to inspect the outline before continuing.
+llmflow run --pipeline pipelines/discourse-flow.yaml \
+  --var passage="Mark 11:12-25" \
+  --rewind-to enrich_passage \
+  --stop-after generate_discourse_outline
+```
+
 ### Validate a pipeline
 ```bash
 llmflow lint pipelines/my-pipeline.yaml

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Set
+from typing import Any, List, Set
 import re
 from difflib import unified_diff
 from pathlib import Path
@@ -8,7 +8,9 @@ import click
 import yaml
 from pydantic import ValidationError
 from llmflow.pipeline_schema import PipelineConfig, PIPELINE_SCHEMA
+from llmflow.exceptions import StepRewindError
 from llmflow.utils.llm_runner import validate_model_parameter, get_model_family
+from llmflow.utils.get_prefix_directory import get_prefix_directory
 
 
 def extract_variable_references(text: str) -> Set[str]:
@@ -637,7 +639,115 @@ def validate_model_parameters(all_steps, pipeline_config):
     return errors
 
 
-def lint_pipeline_full(pipeline_path):
+def _validate_rewind_requirements(
+    pipeline_config: dict,
+    cli_vars: dict | None,
+    rewind_to: str | None,
+):
+    if not rewind_to:
+        return []
+
+    errors = []
+    pipeline_root = pipeline_config.get("pipeline", pipeline_config)
+    steps = pipeline_root.get("steps", []) or []
+    variables = dict(pipeline_root.get("variables", {}))
+    if cli_vars:
+        variables.update(cli_vars)
+
+    required_steps = []
+    for step in steps:
+        required_steps.append(step)
+        if step.get("name") == rewind_to:
+            break
+    else:
+        errors.append(f"❌ Rewind target '{rewind_to}' not found in pipeline steps")
+        return errors
+
+    for step in required_steps:
+        step_name = step.get("name", "unnamed")
+        if not step.get("saveas"):
+            # No saveas — this step will be re-executed during rewind (cheap/deterministic).
+            # Its outputs (e.g. passage_info) populate context so downstream saveas paths
+            # can be resolved.  Not an error.
+            continue
+
+        try:
+            candidate_paths = _resolve_save_paths_for_lint(step, variables)
+        except StepRewindError:
+            # saveas path contains variables that depend on runtime step outputs
+            # (e.g. ${passage_info.filename_prefix}).  We cannot validate the artifact
+            # at lint time; defer to execution.
+            continue
+
+        missing = []
+        for candidate in candidate_paths:
+            candidate_path = Path(candidate).expanduser()
+            if not candidate_path.is_absolute():
+                candidate_path = Path.cwd() / candidate_path
+            if not candidate_path.exists():
+                missing.append(candidate_path)
+
+        if missing:
+            errors.append(
+                f"❌ Step '{step_name}': saved artifact missing for rewind ({missing[0]})"
+            )
+
+    return errors
+
+
+def _resolve_save_paths_for_lint(step: dict, context: dict) -> List[str]:
+    from llmflow.runner import resolve
+
+    saveas_config = step.get("saveas")
+    paths: List[str] = []
+
+    if isinstance(saveas_config, str):
+        path = resolve(saveas_config, context)
+        _ensure_path_resolved_for_lint(path, saveas_config, step)
+        return [str(path)]
+
+    if isinstance(saveas_config, dict):
+        raw_path = saveas_config.get("path")
+        path = resolve(raw_path, context)
+        _ensure_path_resolved_for_lint(path, raw_path, step)
+
+        group_cfg = saveas_config.get("group_by_prefix")
+        if group_cfg:
+            filename = Path(path).name
+            if isinstance(group_cfg, int):
+                prefix_dir = get_prefix_directory(filename, prefix_length=group_cfg)
+            else:
+                prefix_dir = get_prefix_directory(
+                    filename,
+                    prefix_length=group_cfg.get("prefix_length"),
+                    prefix_delimiter=group_cfg.get("prefix_delimiter"),
+                )
+            parent = Path(path).parent
+            path = str(parent / prefix_dir / filename)
+
+        return [str(path)]
+
+    raise StepRewindError(
+        f"Unsupported saveas configuration for step '{step.get('name', 'unnamed')}'",
+        step_name=step.get("name"),
+    )
+
+
+def _ensure_path_resolved_for_lint(resolved_value: Any, original: Any, step: dict) -> None:
+    path_str = str(resolved_value)
+    if "${" in path_str or "{" in path_str:
+        raise StepRewindError(
+            f"Saveas path for step '{step.get('name', 'unnamed')}' contains unresolved variables: {original}",
+            step_name=step.get("name"),
+        )
+
+
+def lint_pipeline_full(
+    pipeline_path,
+    *,
+    vars: dict | None = None,
+    rewind_to: str | None = None,
+):
     """Lint pipeline and return result object instead of raising SystemExit"""
     all_errors = []
     all_warnings = []
@@ -650,6 +760,7 @@ def lint_pipeline_full(pipeline_path):
         raise
 
     pipeline_config = pipeline.get("pipeline", pipeline)
+    cli_vars = vars or {}
 
     # ✅ CHECK IF LINTER IS DISABLED
     linter_config = pipeline_config.get("linter_config", {})
@@ -734,6 +845,18 @@ def lint_pipeline_full(pipeline_path):
             logger.error(f"  {error}")
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     logger.info("✅ Template variables match pipeline-provided variables")
+
+    # 4) Rewind readiness validation (optional)
+    rewind_errors = _validate_rewind_requirements(
+        pipeline_config,
+        cli_vars,
+        rewind_to,
+    )
+    if rewind_errors:
+        all_errors.extend(rewind_errors)
+        for error in rewind_errors:
+            logger.error(error)
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
 
     if all_errors:
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)

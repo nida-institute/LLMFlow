@@ -30,10 +30,12 @@ from llmflow.exceptions import (
     LLMProviderError,
     PluginError,
     StepRetryError,
+    StepRewindError,
 )
 from llmflow.modules.mcp import init_mcp_client
 from llmflow.utils.guards import build_step_eval_ctx, enforce_require, collect_warnings
 from llmflow.utils.io import sanitize_filename
+from llmflow.utils.rewind import StepRewindManager
 from datetime import datetime
 
 discover_plugins()
@@ -314,6 +316,8 @@ def render_prompt(
 
 def handle_step_outputs(step, result, context, base_dir="."):
     """Handle step outputs, including saveas."""
+    context.pop("_last_saved_files", None)
+    saved_paths: List[str] = []
     # 1. Handle outputs - store results in context
     outputs = step.get("outputs")
     if outputs is not None:
@@ -357,10 +361,12 @@ def handle_step_outputs(step, result, context, base_dir="."):
             temp_output = f"_temp_output_{id(result)}"
             step_with_output = {**step, "outputs": temp_output}
             context[temp_output] = result
-            handle_step_saveas(step_with_output, context)
+            saved_paths = handle_step_saveas(step_with_output, context)
             del context[temp_output]
         else:
-            handle_step_saveas(step, context)
+            saved_paths = handle_step_saveas(step, context)
+
+    context["_last_saved_files"] = saved_paths
 
 
 def _evaluate_retry_condition(condition_expr, context):
@@ -574,10 +580,11 @@ def _execute_step_with_retry(step, context, retry_cfg, execute_once):
     return None
 
 
-def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> None:  # ← Changed parameter name from 'rule' to 'step'
-    """Handle saveas output for pipeline steps."""
-    saveas_config = step["saveas"]  # ← Changed from 'rule' to 'step'
-    outputs = step.get("outputs")  # ← Changed from 'rule' to 'step'
+def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> List[str]:
+    """Handle saveas output for pipeline steps and return written paths."""
+    saveas_config = step["saveas"]
+    outputs = step.get("outputs")
+    saved_paths: List[str] = []
 
     def get_content():
         if isinstance(outputs, list):
@@ -592,7 +599,8 @@ def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> None:  
         fmt = step.get("format", "auto")
         saved_path = save_content_to_file(content, path, fmt)
         _record_written_file(saved_path)
-        return
+        saved_paths.append(saved_path)
+        return saved_paths
 
     if isinstance(saveas_config, dict):
         raw_path = saveas_config["path"]
@@ -619,7 +627,8 @@ def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> None:  
 
         saved_path = save_content_to_file(content, path, fmt)
         _record_written_file(saved_path)
-        return
+        saved_paths.append(saved_path)
+        return saved_paths
 
     if isinstance(saveas_config, list):
         for item in saveas_config:
@@ -630,7 +639,8 @@ def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> None:  
                 fmt = item.get("format", "auto")
                 saved_path = save_content_to_file(content, path, fmt)
                 _record_written_file(saved_path)
-        return
+                saved_paths.append(saved_path)
+        return saved_paths
 
     raise ValueError("Invalid saveas configuration type")
 
@@ -650,6 +660,8 @@ def run_step(
         original_level = logger.level
         logger.set_level("DEBUG")
         logger.debug(f"🔍 Enabled DEBUG logging for step: {step.get('name')}")
+
+    step_completed = False
 
     try:
         # Check condition BEFORE executing any step type
@@ -692,6 +704,8 @@ def run_step(
             after_action = _execute_step_with_retry(step, context, retry_cfg, _execute_once)
         else:
             after_action = _execute_once()
+
+        step_completed = True
 
         # ✅ CENTRALIZED: Handle 'after' directive for ALL steps
         # Priority: nested step's after_action > step's own after directive
@@ -749,6 +763,16 @@ def run_step(
         if original_level is not None:
             logger.level = original_level
             logger.debug(f"🔍 Restored logger level after step: {step.get('name')}")
+
+        # Persist rewind checkpoints when enabled
+        manager = pipeline_config.get("_rewind_manager") if pipeline_config else None
+        if manager:
+            if step_completed:
+                manager.record_step(step, context)
+            else:
+                context.pop("_last_saved_files", None)
+        else:
+            context.pop("_last_saved_files", None)
 
 
 def run_plugin_step(
@@ -1233,7 +1257,14 @@ def run_if_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: 
 
 
 def run_pipeline(
-    pipeline_file, vars=None, dry_run=False, verbose=False, skip_lint=False, log_file='llmflow.log'
+    pipeline_file,
+    vars=None,
+    dry_run=False,
+    verbose=False,
+    skip_lint=False,
+    log_file='llmflow.log',
+    rewind_to: str | None = None,
+    stop_after: str | None = None,
 ):
     """
     Run a pipeline from a YAML file.
@@ -1245,6 +1276,8 @@ def run_pipeline(
         verbose: Enable verbose logging
         skip_lint: Skip linting validation
         log_file: Path to log file (default: llmflow.log in cwd)
+        rewind_to: Optional step name to replay from saved artifacts instead of executing
+        stop_after: Optional step name after which to halt execution
     """
     from pathlib import Path
     from pydantic import ValidationError
@@ -1327,7 +1360,11 @@ def run_pipeline(
     # Lint if requested
     if not skip_lint and pipeline_path is not None:
         logger.info("🔍 Validating pipeline...")
-        lint_result = lint_pipeline_full(str(pipeline_path))
+        lint_result = lint_pipeline_full(
+            str(pipeline_path),
+            vars=vars,
+            rewind_to=rewind_to,
+        )
         if lint_result and not lint_result.valid:
             logger.error("❌ Pipeline validation failed:")
             for error in lint_result.errors:
@@ -1338,8 +1375,12 @@ def run_pipeline(
     pipeline_root = pipeline_config.get("pipeline", pipeline_config)
     pipeline_vars = pipeline_root.get("variables", {})
 
-    # Store telemetry in pipeline config for step access
+    # Initialize rewind manager (always record checkpoints; replay only when requested)
+    rewind_manager = StepRewindManager(rewind_to=rewind_to)
+
+    # Store telemetry and rewind manager in pipeline config for step access
     pipeline_config["_telemetry"] = telemetry
+    pipeline_config["_rewind_manager"] = rewind_manager
 
     # Initialize context with merged variables (CLI vars override pipeline vars)
     context = {**pipeline_vars, **(vars or {})}
@@ -1366,7 +1407,32 @@ def run_pipeline(
     # Execute each step
     try:
         for step in steps:
+            step_name = step.get("name", "unnamed")
+
+            if rewind_manager and rewind_manager.should_replay(step_name, step=step):
+                try:
+                    rewind_manager.replay_step(step, context)
+                except StepRewindError as exc:
+                    logger.error(f"❌ {exc}")
+                    raise
+
+                if stop_after and step_name == stop_after:
+                    logger.info(f"🛑 Stop-after '{step_name}' reached (rewind).")
+                    break
+                continue
+
             after_action = run_step(step, context, pipeline_config)
+
+            # If we are still in the rewind phase and just executed a step normally
+            # (because it had no saveas), check whether it was the rewind target so
+            # we can mark the phase complete and let subsequent steps run normally.
+            if rewind_manager and rewind_manager.in_rewind_phase:
+                rewind_manager.mark_target_reached(step_name)
+
+            if stop_after and step_name == stop_after:
+                logger.info(f"🛑 Stop-after '{step_name}' reached.")
+                break
+
             if after_action == "exit":
                 logger.info(f"🛑 'after: exit' - exiting pipeline early after step '{step.get('name')}'.")
                 break

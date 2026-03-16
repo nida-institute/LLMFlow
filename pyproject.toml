@@ -1,6 +1,6 @@
 [project]
 name = "llmflow"
-version = "0.1.5.01"
+version = "0.1.5.02"
 description = "Declarative pipelines for LLM-powered workflows"
 authors = [{name = "Your Name", email = "you@example.com"}]
 license = {text = "MIT"}
@@ -20,7 +20,8 @@ dependencies = [
   "python-dotenv",
   "pydantic",
   "saxonche",
-  "jinja2"
+  "jinja2",
+  "jsonschema"
 ]
 readme = "README.md"
 requires-python = ">=3.8"

@@ -22,8 +22,9 @@ def create_json_dictionary(**kwargs):
             f"  {key}: {type(value)} with {len(value) if hasattr(value, '__len__') else 'unknown'} items"
         )
         if hasattr(value, "__len__") and len(value) > 0:
+            first = next(iter(value.values())) if isinstance(value, dict) else value[0]
             logger.debug(
-                f"    First item: {value[0][:100] if isinstance(value[0], str) else value[0]}"
+                f"    First item: {first[:100] if isinstance(first, str) else first}"
             )
 
     result = dict(kwargs)
@@ -540,6 +541,30 @@ def parse_bible_reference(passage):
                 "display_name": display_name,
                 "canonical_reference": canonical_reference,
             }
+
+    # Last resort: try matching the entire input as a book name (whole-book reference)
+    # e.g. "1 John", "Romans", "Revelation"
+    book_info_whole = book_numbers.get(passage) or book_numbers.get(
+        passage.replace(" ", "")
+    )
+    if book_info_whole:
+        book_number, book_display_name, book_code = book_info_whole
+        filename_prefix = f"{book_number}_book"
+        return {
+            "book_name": book_display_name,
+            "book_number": book_number,
+            "book_code": book_code,
+            "chapter": None,
+            "chapter_padded": None,
+            "start_verse": 1,
+            "end_verse": None,
+            "end_chapter": None,
+            "is_whole_chapter": False,
+            "is_whole_book": True,
+            "filename_prefix": filename_prefix,
+            "display_name": book_display_name.replace(" ", "-"),
+            "canonical_reference": book_display_name,
+        }
 
     # If we get here, the passage wasn't recognized
     raise ValueError(f"Could not parse Bible reference '{original_passage}'")

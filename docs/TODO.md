@@ -17,6 +17,34 @@
 5. **Notify downstream repos**
    - Update dependent projects’ `pyproject.toml` / `requirements.txt` to reference the new version.
 
+## Rewind: for-each inner step support
+
+**Context:** `--rewind-to` currently raises a `StepRewindError` for any step that
+declares `append_to`. This is overly strict. When each for-each iteration saves
+to a **unique per-iteration path** (e.g.
+`outputs/scenes/${item.reference}_scenes.json`) every artifact is preserved and
+replayable; the replayed content simply needs to be re-appended to the
+`append_to` list rather than stored to a single output variable.
+
+**Plan:**
+1. In `StepRewindManager.replay_step`, remove the blanket `append_to` guard.
+2. After loading the artifact content, append it to `context[step["append_to"]]`
+   (initialising the list if absent) instead of assigning to `context[target_output]`.
+3. Validate that the `saveas` path contains at least one loop-scoped variable
+   reference (warn if it doesn't — same path every iteration means only the last
+   artifact survives).
+4. Add a lint check: if a for-each inner step declares both `append_to` and
+   `saveas`, ensure the saveas path differs per iteration (heuristic: path must
+   reference the `item_var` or a dot-path of it).
+5. Add integration tests using a fixture pipeline where a for-each loop writes
+   per-item JSON files, then verify `--rewind-to` replays all iterations
+   correctly and final `append_to` list length matches.
+
+**Do not start** until the current rewind fix (no-saveas steps + dynamic paths)
+is merged and stable.
+
+---
+
 ## Runner Refactor Plan
 
 Goal: make `src/llmflow/runner.py` maintainable by extracting focused modules while preserving current behavior.

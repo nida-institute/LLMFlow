@@ -84,6 +84,12 @@ class StepRetryError(PipelineExecutionError):
         return "\n".join(parts)
 
 
+class StepRewindError(PipelineExecutionError):
+    """Raised when a rewind checkpoint cannot be used."""
+
+    def __init__(self, message: str, step_name: str, context: dict | None = None, original_error: Exception | None = None):
+        super().__init__(message, step_name=step_name, context=context, original_error=original_error)
+
 class VariableResolutionError(LLMFlowError):
     """Error resolving a variable expression."""
 

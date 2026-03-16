@@ -301,9 +301,10 @@ class TestParseBibleReference:
         with pytest.raises(ValueError, match="Unrecognized Bible book"):
             parse_bible_reference("NotABook 1:1")
 
-        # Test "Psalm" with no chapter - should fail
-        with pytest.raises(ValueError):
-            parse_bible_reference("Psalm")
+        # Test "Psalm" with no chapter - treated as a whole-book reference
+        result = parse_bible_reference("Psalm")
+        assert result["is_whole_book"] is True
+        assert result["book_name"] == "Psalms"
 
         # Test cases that might succeed or fail depending on implementation
         # "Psalm 23:1-" might parse as "Psalm 23:1" (just the starting verse)

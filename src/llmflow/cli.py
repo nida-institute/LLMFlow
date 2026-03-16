@@ -1,9 +1,36 @@
 import sys
+import signal
+
+logger = None  # Initialized after Logger singleton is available
+
+
+def _cli_sigint_handler(signum, frame):
+    """Handle Ctrl+C at the CLI process level."""
+    msg1 = "\n⚠️  Execution interrupted by user (Ctrl+C)"
+    msg2 = "   Pipeline stopped."
+    if logger is not None:
+        logger.info(msg1)
+        logger.info(msg2)
+    else:
+        sys.stderr.write(f"{msg1}\n{msg2}\n")
+        sys.stderr.flush()
+    sys.exit(130)
+
+
+signal.signal(signal.SIGINT, _cli_sigint_handler)
+
+
 import argparse
 import json
 import os
-import signal
 from pathlib import Path
+
+from llmflow.modules.logger import Logger
+
+# Following the Logger Pattern guideline: use the shared Logger()
+# singleton so CLI messages go to both console and llmflow.log.
+logger = Logger()
+
 
 try:
     from importlib.metadata import version
@@ -13,26 +40,6 @@ except Exception:
 
 from llmflow.runner import run_pipeline
 from llmflow.cli_utils import init_project, list_pipelines
-from llmflow.modules.logger import Logger
-
-# Following the Logger Pattern guideline: use the shared Logger()
-# singleton so CLI messages go to both console and llmflow.log.
-logger = Logger()
-
-
-def _cli_sigint_handler(signum, frame):
-    """Handle Ctrl+C at the CLI process level.
-
-    This ensures we always show a friendly message instead of a Python
-    traceback when users interrupt a run from the terminal.
-    """
-    logger.info("\n⚠️  Execution interrupted by user (Ctrl+C)")
-    logger.info("   Pipeline stopped.")
-    sys.exit(130)
-
-
-signal.signal(signal.SIGINT, _cli_sigint_handler)
-
 
 def list_pipelines(directory: str) -> list[str]:
     """List all YAML pipeline files in a directory."""
@@ -59,6 +66,8 @@ def build_parser():
     run_p.add_argument("--skip-lint", action="store_true", help="Skip linting")
     run_p.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
     run_p.add_argument("--log", default="llmflow.log", help="Path to log file (default: llmflow.log in cwd)")
+    run_p.add_argument("--rewind-to", help="Replay checkpoints up to and including this step name")
+    run_p.add_argument("--stop-after", help="Stop pipeline after this step name runs")
 
     # list command
     list_p = subparsers.add_parser("list", help="List available pipelines")
@@ -68,9 +77,11 @@ def build_parser():
     # lint command
     lint_p = subparsers.add_parser("lint", help="Validate (lint) a pipeline without executing")
     lint_p.add_argument("--pipeline", required=True, help="Path to pipeline YAML")
+    lint_p.add_argument("--var", action="append", default=[], help="Pipeline variables key=value")
     lint_p.add_argument("--fix-paths", action="store_true", help="Attempt simple path normalizations")
     lint_p.add_argument("--json", action="store_true", help="Emit JSON result")
     lint_p.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
+    lint_p.add_argument("--rewind-to", help="Validate rewind readiness up to this step")
 
     # version command
     subparsers.add_parser("version", help="Show version")
@@ -89,13 +100,24 @@ def _collect_cli_variables(pairs):
     return variables
 
 
-def command_lint(pipeline_path: str, fix_paths: bool, json_mode: bool, verbose: bool):
+def command_lint(
+    pipeline_path: str,
+    fix_paths: bool,
+    json_mode: bool,
+    verbose: bool,
+    cli_vars: dict | None = None,
+    rewind_to: str | None = None,
+):
     from llmflow.utils.linter import lint_pipeline_full
 
     if verbose:
         print(f"🔍 Linting pipeline: {pipeline_path}")
 
-    result = lint_pipeline_full(pipeline_path)
+    result = lint_pipeline_full(
+        pipeline_path,
+        vars=cli_vars,
+        rewind_to=rewind_to,
+    )
 
     if json_mode:
         output = {
@@ -141,7 +163,15 @@ def main(argv=None):
         return
 
     if args.command == "lint":
-        command_lint(args.pipeline, args.fix_paths, args.json, args.verbose)
+        variables = _collect_cli_variables(args.var)
+        command_lint(
+            args.pipeline,
+            args.fix_paths,
+            args.json,
+            args.verbose,
+            cli_vars=variables,
+            rewind_to=args.rewind_to,
+        )
         return
 
     if args.command == "init":
@@ -150,12 +180,17 @@ def main(argv=None):
 
     if args.command == "run":
         try:
+            variables = _collect_cli_variables(args.var)
             if not args.skip_lint:
                 from llmflow.utils.linter import lint_pipeline_full
 
                 logger.info("🔍 Validating pipeline...")
                 try:
-                    result = lint_pipeline_full(args.pipeline)
+                    result = lint_pipeline_full(
+                        args.pipeline,
+                        vars=variables,
+                        rewind_to=args.rewind_to,
+                    )
                 except FileNotFoundError as e:
                     logger.error(f"❌ Pipeline file not found: {args.pipeline}")
                     logger.error(f"   Current directory: {os.getcwd()}")
@@ -168,9 +203,16 @@ def main(argv=None):
                         logger.error(f"  - {error}")
                     sys.exit(1)
 
-            variables = _collect_cli_variables(args.var)
             try:
-                run_pipeline(args.pipeline, vars=variables, dry_run=args.dry_run, verbose=args.verbose, log_file=args.log)
+                run_pipeline(
+                    args.pipeline,
+                    vars=variables,
+                    dry_run=args.dry_run,
+                    verbose=args.verbose,
+                    log_file=args.log,
+                    rewind_to=args.rewind_to,
+                    stop_after=args.stop_after,
+                )
             except FileNotFoundError as e:
                 logger.error(f"❌ Pipeline file not found: {args.pipeline}")
                 logger.error(f"   Current directory: {os.getcwd()}")

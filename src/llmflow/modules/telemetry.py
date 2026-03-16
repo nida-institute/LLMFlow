@@ -120,6 +120,8 @@ class StepMetrics:
     # Timing
     start_time: datetime = field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
+    start_perf: float = field(default_factory=time.perf_counter)
+    end_perf: Optional[float] = None
     duration: Optional[float] = None  # seconds
 
     # Token usage
@@ -139,7 +141,9 @@ class StepMetrics:
     def complete(self):
         """Mark step as complete and calculate duration."""
         self.end_time = datetime.now()
-        self.duration = (self.end_time - self.start_time).total_seconds()
+        self.end_perf = time.perf_counter()
+        # perf_counter yields monotonic durations, avoiding clock skew in ordering
+        self.duration = max(0.0, (self.end_perf - self.start_perf))
 
         # Calculate total tokens if not already set
         if self.total_tokens == 0 and (self.prompt_tokens or self.completion_tokens):

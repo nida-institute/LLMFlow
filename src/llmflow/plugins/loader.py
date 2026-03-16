@@ -30,6 +30,7 @@ def discover_plugins():
         "coverage_validator",
         "echo",
         "insert_references",
+        "json_schema_validator",
         "xml_entry_to_base_json",
         "xpath",
         "xslt_transform",
