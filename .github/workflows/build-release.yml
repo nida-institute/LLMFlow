@@ -67,6 +67,23 @@ jobs:
       run: |
         python -m nuitka --standalone --onefile --assume-yes-for-downloads --include-package=llmflow --include-package-data=puremagic --include-package-data=llm --include-data-dir=prompts=prompts --include-data-dir=templates=templates --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
 
+    - name: Smoke test binary (Unix)
+      if: runner.os != 'Windows'
+      run: |
+        BIN=./nuitka_dist/${{ matrix.artifact_name }}
+        $BIN --version
+        $BIN lint tests/fixtures/smoke.yaml
+        $BIN run --pipeline tests/fixtures/smoke.yaml --dry-run
+
+    - name: Smoke test binary (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $bin = ".\nuitka_dist\${{ matrix.artifact_name }}"
+        & $bin --version
+        & $bin lint tests/fixtures/smoke.yaml
+        & $bin run --pipeline tests/fixtures/smoke.yaml --dry-run
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:

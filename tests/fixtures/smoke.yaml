@@ -1,0 +1,14 @@
+# Smoke test pipeline — no LLM calls, no API key required.
+# Used by the binary smoke test in .github/workflows/build-release.yml.
+# Tests: CLI loads, YAML parser, linter, variable resolution, function dispatch.
+name: smoke
+variables:
+  passage: "John 3:16"
+
+steps:
+  - name: parse_reference
+    type: function
+    function: llmflow.utils.data.parse_bible_reference
+    inputs:
+      passage: "${passage}"
+    outputs: passage_info
