@@ -1,7 +1,10 @@
 # Changelog
 
 ## Unreleased
-- Added `--version` flag to the CLI (`llmflow --version`). The existing `version` subcommand is unchanged. The flag is what the CI binary smoke test calls and what users expect from a standard Unix tool. Fixed CI Run #15 failure where `$BIN --version` exited with code 2 because argparse didn't recognise `--version` as a flag.
+- _No changes yet._
+
+## 0.1.5.04 — 2026-03-16
+- Added `--version` flag to the CLI (`llmflow --version`). The existing `version` subcommand is unchanged. The flag is what CI binary smoke tests call and what users expect from a standard Unix tool. Fixes CI Run #15 failure where `$BIN --version` exited with code 2 because argparse didn't recognise it.
 
 ## 0.1.5.03 — 2026-03-16
 - Added `json_schema_validator` plugin: validates a pipeline payload against a JSON Schema file. Handles both live Python objects (fresh LLM run) and raw JSON strings/bytes loaded from disk via `--rewind-to`, fixing a crash (`'<string>' is not of type 'array'`) that made schema-validated steps unusable after rewind. (See `src/llmflow/plugins/json_schema_validator.py` and `tests/test_json_schema_validator.py`.)
