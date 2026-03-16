@@ -87,6 +87,9 @@ def build_parser():
     subparsers.add_parser("version", help="Show version")
     subparsers.add_parser("init", help="Create a starter LLMFlow environment")
 
+    # Standard --version flag (e.g. used by CI smoke tests: llmflow --version)
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+
     return parser
 
 

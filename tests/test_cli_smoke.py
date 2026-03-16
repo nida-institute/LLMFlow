@@ -5,6 +5,14 @@ import tempfile
 
 import yaml
 
+def test_cli_version_flag():
+    """llmflow --version should exit 0 and print version (used by binary smoke tests)."""
+    cmd = [sys.executable, "-m", "llmflow.cli", "--version"]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    assert r.returncode == 0
+    assert "llmflow" in (r.stdout + r.stderr)
+
+
 def test_cli_lint_valid(tmp_path):
     p = tmp_path / "pipe.yaml"
     p.write_text("""
