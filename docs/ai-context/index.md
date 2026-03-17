@@ -13,6 +13,5 @@ Use this map to decide which reference to consult when answering questions.
 | Philosophy & comparisons | [docs/why-llmflow.md](../why-llmflow.md) | When/why to use LLMFlow vs other frameworks |
 | AI persona & tone | [docs/ai-context/rules.md](rules.md) | Guardrails for assistant responses |
 | Moderation handling | [docs/moderation-handling.md](../moderation-handling.md) | OpenAI Responses blocks, Bible-text mitigation checklist |
-| Intermediate data shapes | [docs/ai-context/data-shapes.md](data-shapes.md) | `passage_info`, `scene_list` items; note on `[*]` implementation status; note on consumer-project artifacts |
 
 When an AI assistant needs more detail, direct it to the appropriate file above instead of paraphrasing from memory. This keeps answers aligned with the single source of truth.
