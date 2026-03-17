@@ -514,3 +514,79 @@ class TestResolve:
         ctx = {"pi": 3.14159}
         assert resolve("${pi}", ctx) == 3.14159
         assert resolve("Pi is ${pi}", ctx) == "Pi is 3.14159"
+
+
+class TestStarWildcardResolution:
+    """Tests for ${list[*].field} wildcard extraction.
+
+    Semantics: when [*] is encountered, the *remaining path* after [*] is
+    applied to each element via recursive get_from_context(), and the results
+    are collected into a flat list at that depth.  This means:
+
+        get_from_context("items[*].a.b[0].c", ctx)
+        # equivalent to: [get_from_context("a.b[0].c", item) for item in ctx["items"]]
+
+    Used in production pipelines:
+      - storyflow-psalms.yaml:           ${scene_list[*].Title}
+      - storyflow-gospels.yaml:          ${scene_list[*].Title}
+      - storyflow-gospels-combined.yaml: ${scene_list[*].Title}
+    """
+
+    def test_star_extracts_field_from_list(self):
+        """get_from_context('list[*].field') returns a list of field values."""
+        ctx = {"scene_list": [
+            {"Title": "Arrival"},
+            {"Title": "Conflict"},
+            {"Title": "Resolution"},
+        ]}
+        result = get_from_context("scene_list[*].Title", ctx)
+        assert result == ["Arrival", "Conflict", "Resolution"]
+
+    def test_star_via_resolve_returns_list(self):
+        """resolve('${list[*].field}') returns native list."""
+        ctx = {"scene_list": [{"Title": "Scene A"}, {"Title": "Scene B"}]}
+        result = resolve("${scene_list[*].Title}", ctx)
+        assert result == ["Scene A", "Scene B"]
+
+    def test_star_empty_list(self):
+        """[*] on an empty list returns []."""
+        ctx = {"items": []}
+        result = get_from_context("items[*].name", ctx)
+        assert result == []
+
+    def test_star_missing_field_none_filled(self):
+        """[*] on items missing the target field None-fills that slot."""
+        ctx = {"items": [{"name": "a"}, {"other": "b"}, {"name": "c"}]}
+        result = get_from_context("items[*].name", ctx)
+        assert result == ["a", None, "c"]
+
+    def test_star_deep_path_with_index(self):
+        """[*] with multiple remaining segments including a numeric index.
+
+        Pattern: list[*].nested[0].field
+        Equivalent Python: [item["nested"][0]["field"] for item in list]
+
+        This covers the real-world case:
+            pericope_results[*].segments[0].boundary_signals
+        """
+        ctx = {
+            "pericope_results": [
+                {"segments": [{"boundary_signals": "high", "score": 0.9}, {"boundary_signals": "low"}]},
+                {"segments": [{"boundary_signals": "medium", "score": 0.5}]},
+                {"segments": [{"boundary_signals": "none", "score": 0.1}]},
+            ]
+        }
+        result = get_from_context("pericope_results[*].segments[0].boundary_signals", ctx)
+        assert result == ["high", "medium", "none"]
+
+    def test_star_deep_path_missing_index(self):
+        """[*] deep path where one item's nested index is out of bounds → None for that slot."""
+        ctx = {
+            "items": [
+                {"parts": [{"val": "a"}, {"val": "b"}]},
+                {"parts": []},          # no index 0
+                {"parts": [{"val": "c"}]},
+            ]
+        }
+        result = get_from_context("items[*].parts[0].val", ctx)
+        assert result == ["a", None, "c"]

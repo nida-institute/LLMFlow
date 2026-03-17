@@ -71,7 +71,27 @@ retry:
 - Use `${_retry_attempt}` to tailor prompts (`"attempt ${_retry_attempt}"`, adjusting instructions, etc.) or to gate additional tooling on later attempts.
 - Assume every attempt starts from a clean slate: `append_to` lists, derived variables, and function outputs are restored to their pre-step values unless the attempt ultimately succeeds.
 - Log *why* a retry is configured (missing verse, short summary, etc.) so future maintainers know the guardrail’s intent.
+#### Step-level `condition:` (skip guard)
 
+Any step (any type) accepts an optional `condition:` field. When present, the expression is evaluated before the step runs; if it evaluates to false the step is silently skipped.
+
+```yaml
+- name: enrich_if_needed
+  type: llm
+  condition: "${needs_enrichment}"
+  prompt:
+    file: enrich.gpt
+    inputs:
+      data: "${raw_data}"
+  outputs: enriched_data
+```
+
+The expression is resolved through the normal `resolve()` / `_evaluate_condition_expression()` pipeline:
+- A bare variable reference: `"${my_flag}"` — truthy/falsy of its value
+- A Python eval expression: `"${len(results) < 3}"` — evaluated in the current context
+- A boolean literal `true` / `false`
+
+**Note:** This is a *skip* guard. The step is either fully executed or fully skipped — no partial execution. For a conditional *block* of multiple steps, use `type: if` (see below).
 ### type: `llm`
 
 Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette.io/).
@@ -214,6 +234,45 @@ Within `for-each` loops, use `append_to` to accumulate results across iterations
 
 ---
 
+### type: `if`
+
+Evaluates a `condition:` and, when true, executes a nested `steps:` block. When false the entire block is skipped.
+
+```yaml
+- name: add_cultural_notes
+  type: if
+  condition: "${include_culture}"
+  steps:
+    - name: generate_culture
+      type: llm
+      prompt:
+        file: culture.gpt
+        inputs:
+          passage: "${passage}"
+      outputs: cultural_notes
+
+    - name: save_culture
+      type: save
+      content: "${cultural_notes}"
+      saveas: "outputs/${passage_info.filename_prefix}_culture.md"
+```
+
+**Required Fields:**
+- `condition`: Expression evaluated before any nested step runs (same syntax as the step-level skip guard above)
+- `steps`: List of steps to execute when the condition is true
+
+**How it works (implementation detail):**
+The `condition:` is evaluated in the shared `run_step()` dispatcher. If false the `type: if` step returns immediately. If true, `run_if_step()` iterates over the nested `steps:` list, propagating any `after:` directives (`exit`, `continue`) upward.
+
+**Difference from step-level `condition:`:**
+| | `condition:` on any step | `type: if` |
+|---|---|---|
+| Skips what | That single step | The entire nested block |
+| Has `steps:` sub-list | No | Yes (required) |
+| Can produce outputs | Via normal `outputs:` | Via nested steps' `outputs:` |
+
+---
+
 ## 🔁 Variables
 
 ### Defining Variables
@@ -245,7 +304,7 @@ llmflow run --pipeline pipeline.yaml --var passage="Psalm 23"
 - Simple: `"${passage}"`
 - Nested object: `"${scene.WLC}"` or `"${scene.Citation}"`
 - Array indexing: `"${scene_list[0]}"`
-- Array mapping: `"${scene_list[*].Title}"` - extracts all Title fields
+- Array mapping: `"${scene_list[*].Title}"` — extracts all `Title` fields as a flat list, one entry per item.
 
 **In prompt / template files (`.gpt`, `.md`):**
 - Use `{{var}}` for substitution
@@ -586,7 +645,7 @@ In pipeline YAML files:
 - **Simple reference**: `"${variable}"`
 - **Nested object**: `"${scene.WLC}"`, `"${scene.Citation}"`
 - **Array access**: `"${scene_list[0]}"`
-- **Array mapping**: `"${scene_list[*].Title}"` - extracts all Title fields
+- **Array mapping**: `"${scene_list[*].Title}"` — extracts all `Title` fields as a flat list
 
 ### Template Engine Implementation
 

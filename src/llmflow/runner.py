@@ -155,7 +155,7 @@ def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
     parts = re.split(r"\.(?![^\[]*\])", expr)  # split on dots not inside brackets
     result = ctx
 
-    for part in parts:
+    for i, part in enumerate(parts):
         # Handle list index: foo[0] OR dict key: foo[key] OR foo['key']
         m = re.match(r"^([a-zA-Z0-9_]+)(\[([^\]]+)\])?$", part)
         if not m:
@@ -177,6 +177,16 @@ def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
 
         # Handle bracket access
         if bracket_content is not None:
+            # Wildcard: map remaining path over every item in the list
+            if bracket_content == "*":
+                if not isinstance(result, list):
+                    return None
+                remaining = parts[i + 1:]
+                if remaining:
+                    sub_expr = ".".join(remaining)
+                    return [get_from_context(sub_expr, item) for item in result]
+                return list(result)
+
             # Try numeric index first
             try:
                 idx = int(bracket_content)
