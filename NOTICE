@@ -1,0 +1,48 @@
+LLMFlow
+Copyright (c) 2024-2026 NIDA Institute
+
+This project includes third-party data files under their respective licenses:
+
+-------------------------------------------------------------------------------
+SBL Greek New Testament (SBLGNT)
+-------------------------------------------------------------------------------
+File: data/usfm/MAT.usfm
+
+The Greek New Testament text used in this project is the SBL Greek New
+Testament (SBLGNT), edited by Michael W. Holmes.
+
+Copyright 2010 Society of Biblical Literature and Logos Bible Software.
+
+Licensed under the SBLGNT Terms of Use:
+  https://sblgnt.com/license/
+
+The SBLGNT may be used without charge for personal, educational, and
+scholarly purposes. Commercial use and redistribution in derivative
+products require compliance with the full license terms above.
+
+Attribution: Holmes, Michael W., ed. The Greek New Testament: SBL Edition.
+Atlanta: Society of Biblical Literature, 2010. https://sblgnt.com/
+
+-------------------------------------------------------------------------------
+SIL / Paratext Biblical Terms Lists
+-------------------------------------------------------------------------------
+Files: inputs/SILBiblicalTerms/ParatextAllBiblicalTerms.xml
+       inputs/SILBiblicalTerms/ParatextSILMajorBiblicalTerms.xml
+
+These files contain Hebrew and Greek biblical term metadata (glosses,
+Strong's numbers, semantic domains, and verse references) derived from
+the Paratext Biblical Terms list maintained by SIL International.
+
+Copyright SIL International. Distributed with Paratext Bible translation
+software (https://paratext.org/).
+
+Used here for research and development purposes. For licensing terms,
+contact SIL International: https://www.sil.org/
+
+-------------------------------------------------------------------------------
+Abbott-Smith Lexicon
+-------------------------------------------------------------------------------
+Files: inputs/Abbot-Smith/
+
+A Manual Greek Lexicon of the New Testament by G. Abbott-Smith
+(T&T Clark, Edinburgh, 1921). This work is in the public domain.

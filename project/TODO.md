@@ -34,7 +34,8 @@
 - [ ] API key story for workshop: shared org key so participants don't each need one
 
 ### 🚀 Publishing
-- [ ] Clean up repo for public release (remove private data, audit history)
+- [ ] Clean up repo for public release → #33
+  (metadata, data licensing, .gitignore gaps, README, history audit)
 - [ ] Publish to PyPI as `llmflow` (name is currently available)
 
 ### 🔧 Open issues on board
