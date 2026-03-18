@@ -1,11 +1,29 @@
 # Installing LLMFlow (Prebuilt Executables)
 
+LLMFlow publishes single-file executables for Windows, macOS, and Linux. No Python or package managers required.
+
+## Quick Install (recommended)
+
+### macOS / Linux
+```bash
+curl -fsSL https://raw.githubusercontent.com/nida-institute/LLMFlow/main/install.sh | bash
+```
+
+### Windows (PowerShell)
+```powershell
+irm https://raw.githubusercontent.com/nida-institute/LLMFlow/main/install.ps1 | iex
+```
+
+After installing, run `llmflow setup` to configure your API key for OpenAI, Anthropic, or Google Gemini.
+
+---
+
+## Manual Install
+
 **⬇️ [Download the latest release](https://github.com/nida-institute/LLMFlow/releases/latest)** — click Assets and pick the file for your platform.
 
-LLMFlow publishes single-file executables for Windows, macOS, and Linux via Nuitka. Follow the steps below to install the CLI without cloning the repo or managing Python environments manually.
-
 > **Prerequisites**
-> - An OpenAI-compatible API key exported as `OPENAI_API_KEY` (or provider-specific equivalents).
+> - An OpenAI, Anthropic, or Google Gemini API key (configured via `llmflow setup` after install).
 > - macOS 13+/Windows 11+/Ubuntu 22.04+ are the tested targets (other recent versions typically work, but aren’t guaranteed).
 
 ---
