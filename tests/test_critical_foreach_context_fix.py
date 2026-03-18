@@ -2,6 +2,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "critical: mark test as critical")
 
 import pytest
+from llmflow.runner import run_pipeline, run_for_each_step
 
 @pytest.fixture
 def temp_prompt_file(tmp_path):
