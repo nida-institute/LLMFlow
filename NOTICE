@@ -46,3 +46,15 @@ Files: inputs/Abbot-Smith/
 
 A Manual Greek Lexicon of the New Testament by G. Abbott-Smith
 (T&T Clark, Edinburgh, 1921). This work is in the public domain.
+
+-------------------------------------------------------------------------------
+SIL Semantic Domains (semdom.org)
+-------------------------------------------------------------------------------
+Files: inputs/semdom.org/
+
+Semantic domain definitions and question sets published by SIL International
+at https://semdom.org/. Used here for research and development purposes with
+permission.
+
+Copyright SIL International. For licensing terms, see https://semdom.org/
+or contact SIL International: https://www.sil.org/
