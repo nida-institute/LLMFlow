@@ -83,5 +83,7 @@
     "spps": false,
     "taskkill": false,
     "taskkill.exe": false
-  }
+  },
+
+  "ruff.importStrategy": "fromEnvironment"
 }

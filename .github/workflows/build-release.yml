@@ -42,7 +42,7 @@ jobs:
             asset_name: llmflow-linux-x64
           - os: macos-latest
             artifact_name: llmflow-macos
-            asset_name: llmflow-macos-x64
+            asset_name: llmflow-macos-arm64
           - os: windows-latest
             artifact_name: llmflow-windows.exe
             asset_name: llmflow-windows-x64.exe
@@ -61,6 +61,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install nuitka ordered-set
         pip install -e .
+        pip install llm-anthropic llm-gemini
 
     - name: Install C compiler (Linux)
       if: runner.os == 'Linux'
@@ -79,6 +80,8 @@ jobs:
           --include-package=llmflow \
           --include-package-data=puremagic \
           --include-package-data=llm \
+          --include-package=llm_anthropic \
+          --include-package=llm_gemini \
           --include-data-dir=prompts=prompts \
           --include-data-dir=templates=templates \
           --output-dir=nuitka_dist \
@@ -88,7 +91,7 @@ jobs:
     - name: Build with Nuitka (Windows)
       if: runner.os == 'Windows'
       run: |
-        python -m nuitka --standalone --onefile --assume-yes-for-downloads --include-package=llmflow --include-package-data=puremagic --include-package-data=llm --include-data-dir=prompts=prompts --include-data-dir=templates=templates --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
+        python -m nuitka --standalone --onefile --assume-yes-for-downloads --include-package=llmflow --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=templates=templates --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
 
     - name: Smoke test binary (Unix)
       if: runner.os != 'Windows'
