@@ -1,17 +1,87 @@
 {
-  "github.copilot.chat.welcomeMessage": "I can help with LLMFlow pipelines! Check docs/GPT_CONTEXT.md for reference.",
-  "github.copilot.chat.localeOverride": "en",
-  "github.copilot.chat.context.files": [
-    "docs/GPT_CONTEXT.md",
-    "README.md"
-  ],
-  "python.testing.pytestArgs": [
-    "tests"
-  ],
-  "python.testing.unittestEnabled": false,
-  "python.testing.pytestEnabled": true,
-  "github.copilot.enable": {
-    "*": false
-  },
-  "github.copilot.chat.enable": false
+  "files.trimTrailingWhitespace": true,
+  "editor.largeFileOptimizations": false,
+
+  "git.openRepositoryInParentFolders": "never",
+
+  "chat.viewSessions.orientation": "stacked",
+
+  "chat.tools.terminal.autoApprove": {
+    "pwd": true,
+    "ls": true,
+    "dir": true,
+    "echo": true,
+    "cat": true,
+    "head": true,
+    "tail": true,
+    "wc": true,
+    "nl": true,
+    "grep": true,
+    "rg": true,
+    "find": true,
+    "sort": true,
+    "column": true,
+    "date": true,
+    "basename": true,
+    "dirname": true,
+    "which": true,
+    "file": true,
+    "stat": true,
+
+    "/^git\\s+status\\b/": true,
+    "/^git\\s+log\\b/": true,
+    "/^git\\s+show\\b/": true,
+    "/^git\\s+diff\\b/": true,
+    "/^git\\s+ls-files\\b/": true,
+    "/^git\\s+grep\\b/": true,
+    "/^git\\s+branch\\b$/": true,
+
+    "cd": false,
+    "realpath": false,
+    "readlink": false,
+
+    "/^git(\\s+(-C\\s+\\S+|--no-pager))*\\s+status\\b/": false,
+    "/^git(\\s+(-C\\s+\\S+|--no-pager))*\\s+log\\b/": false,
+    "/^git(\\s+(-C\\s+\\S+|--no-pager))*\\s+show\\b/": false,
+    "/^git(\\s+(-C\\s+\\S+|--no-pager))*\\s+diff\\b/": false,
+    "/^git(\\s+(-C\\s+\\S+|--no-pager))*\\s+ls-files\\b/": false,
+    "/^git(\\s+(-C\\s+\\S+|--no-pager))*\\s+grep\\b/": false,
+    "/^git(\\s+(-C\\s+\\S+|--no-pager))*\\s+branch\\b/": false,
+
+    "rm": false,
+    "rmdir": false,
+    "del": false,
+    "Remove-Item": false,
+    "ri": false,
+    "rd": false,
+    "erase": false,
+    "dd": false,
+
+    "curl": false,
+    "wget": false,
+    "Invoke-RestMethod": false,
+    "Invoke-WebRequest": false,
+    "irm": false,
+    "iwr": false,
+
+    "chmod": false,
+    "chown": false,
+    "Set-ItemProperty": false,
+    "sp": false,
+    "Set-Acl": false,
+
+    "jq": false,
+    "xargs": false,
+    "eval": false,
+    "Invoke-Expression": false,
+    "iex": false,
+
+    "kill": false,
+    "ps": false,
+    "top": false,
+    "Stop-Process": false,
+    "spps": false,
+    "taskkill": false,
+    "taskkill.exe": false
+  }
 }

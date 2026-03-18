@@ -279,3 +279,64 @@ class TestRewindLinting:
         )
         assert not lint_result.valid
         assert any("saved artifact" in err for err in lint_result.errors)
+
+
+# ---------------------------------------------------------------------------
+# Unit tests: replay_step JSON parsing
+# ---------------------------------------------------------------------------
+
+class TestReplayStepJsonParsing:
+    """replay_step must store parsed objects, not raw strings.
+
+    Bug: previously content was always stored as str, causing downstream
+    steps that iterate over the payload to see characters instead of items.
+    """
+
+    def _make_step(self, artifact_path, output_type=None):
+        step = {
+            "name": "the_step",
+            "type": "llm",
+            "outputs": "result",
+            "saveas": str(artifact_path),
+        }
+        if output_type:
+            step["output_type"] = output_type
+        return step
+
+    def test_json_list_is_parsed_to_list(self, tmp_path):
+        artifact = tmp_path / "out.json"
+        artifact.write_text('[{"Title": "A"}, {"Title": "B"}]', encoding="utf-8")
+        manager = StepRewindManager(rewind_to="the_step")
+        ctx = {}
+        manager.replay_step(self._make_step(artifact), ctx)
+        assert isinstance(ctx["result"], list)
+        assert ctx["result"][0]["Title"] == "A"
+
+    def test_json_dict_is_parsed_to_dict(self, tmp_path):
+        artifact = tmp_path / "out.json"
+        artifact.write_text('{"key": "value", "count": 3}', encoding="utf-8")
+        manager = StepRewindManager(rewind_to="the_step")
+        ctx = {}
+        manager.replay_step(self._make_step(artifact), ctx)
+        assert isinstance(ctx["result"], dict)
+        assert ctx["result"]["count"] == 3
+
+    def test_plain_text_stays_as_string(self, tmp_path):
+        artifact = tmp_path / "out.md"
+        artifact.write_text("# Some markdown\n\nParagraph.", encoding="utf-8")
+        manager = StepRewindManager(rewind_to="the_step")
+        ctx = {}
+        manager.replay_step(self._make_step(artifact), ctx)
+        assert isinstance(ctx["result"], str)
+        assert "markdown" in ctx["result"]
+
+    def test_output_type_json_invalid_content_warns_and_stores_string(self, tmp_path, caplog):
+        import logging
+        artifact = tmp_path / "out.json"
+        artifact.write_text("this is not json", encoding="utf-8")
+        manager = StepRewindManager(rewind_to="the_step")
+        ctx = {}
+        with caplog.at_level(logging.WARNING):
+            manager.replay_step(self._make_step(artifact, output_type="json"), ctx)
+        assert isinstance(ctx["result"], str)
+        assert any("not valid JSON" in r.message for r in caplog.records)

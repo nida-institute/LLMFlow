@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -105,7 +106,21 @@ class StepRewindManager:
             )
 
         content = primary_path.read_text(encoding="utf-8")
-        context[target_output] = content
+        # Attempt JSON parse so downstream steps receive the same type
+        # (list, dict) they would have from a live run. Fall back to raw
+        # string for non-JSON artifacts (markdown, plain text, etc.).
+        # Honor output_type: json as an explicit signal; warn if it is set
+        # but the artifact cannot be parsed.
+        output_type = step.get("output_type", "")
+        try:
+            context[target_output] = json.loads(content)
+        except (json.JSONDecodeError, ValueError):
+            if output_type == "json":
+                logger.warning(
+                    f"Step '{step_name}' declares output_type: json but artifact "
+                    f"at {primary_path} is not valid JSON — storing as string"
+                )
+            context[target_output] = content
         logger.info(f"⏪ Replayed step '{step_name}' using {primary_path}")
 
         if step_name == self.rewind_to:
