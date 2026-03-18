@@ -35,7 +35,8 @@ dependencies = [
   "python-dotenv",
   "pydantic",
   "saxonche",
-  "jsonschema"
+  "jsonschema",
+  "mdformat"
 ]
 readme = "README.md"
 requires-python = ">=3.8"
@@ -59,7 +60,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.envs.default]
 dependencies = [
-  "pytest"
+  "pytest",
+  "pytest-asyncio",
+  "pytest-mock"
 ]
 
 [tool.ruff]
