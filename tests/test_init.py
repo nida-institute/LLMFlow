@@ -12,7 +12,10 @@ from llmflow.cli_utils import (
     AI_OVERVIEW_DOC,
     AI_RULES_DOC,
     LANGUAGE_QUICKREF_DOC,
+    PROJECT_AUDITS_README,
+    PROJECT_TODO,
     TUTORIAL_DOC,
+    VSCODE_DOC,
     init_project as init_environment,
 )
 
@@ -61,6 +64,14 @@ def test_init_environment_creates_files(tmp_path, caplog):
     assert ai_rules_path.read_text(encoding="utf-8") == AI_RULES_DOC
     assert ai_index_path.read_text(encoding="utf-8") == AI_INDEX_DOC
 
+    vscode_doc_path = docs_dir / "vscode.md"
+    project_todo_path = tmp_path / "project" / "TODO.md"
+    project_audits_readme_path = tmp_path / "project" / "audits" / "README.md"
+
+    assert vscode_doc_path.read_text(encoding="utf-8") == VSCODE_DOC
+    assert project_todo_path.read_text(encoding="utf-8") == PROJECT_TODO
+    assert project_audits_readme_path.read_text(encoding="utf-8") == PROJECT_AUDITS_README
+
     # idempotency: second run should not change existing files
     init_environment(tmp_path)
     assert prompt_path.read_text(encoding="utf-8") == HELLO_PROMPT
@@ -71,6 +82,10 @@ def test_init_environment_creates_files(tmp_path, caplog):
     assert ai_overview_path.read_text(encoding="utf-8") == AI_OVERVIEW_DOC
     assert ai_rules_path.read_text(encoding="utf-8") == AI_RULES_DOC
     assert ai_index_path.read_text(encoding="utf-8") == AI_INDEX_DOC
+    # project/TODO.md must never be overwritten — it's hand-edited from first run
+    project_todo_path.write_text("# my hand-edited TODO\n", encoding="utf-8")
+    init_environment(tmp_path)
+    assert project_todo_path.read_text(encoding="utf-8") == "# my hand-edited TODO\n"
 
 
 def test_init_update_overwrites_generated_files(tmp_path):
@@ -106,3 +121,49 @@ def test_init_update_flag_via_cli(tmp_path, monkeypatch):
     main(["init", "--update"])
 
     assert quickref_path.read_text(encoding="utf-8") == LANGUAGE_QUICKREF_DOC
+
+
+class TestHelloGptContract:
+    """hello.gpt and reply.gpt must declare variable contracts parseable by the linter."""
+
+    def test_hello_prompt_has_requires_header(self, tmp_path):
+        """HELLO_PROMPT must have a ---...--- frontmatter with requires: listing language_count."""
+        from llmflow.utils.linter import parse_prompt_header
+
+        p = tmp_path / "hello.gpt"
+        p.write_text(HELLO_PROMPT, encoding="utf-8")
+        header = parse_prompt_header(str(p))
+        assert header is not None, "HELLO_PROMPT has no parseable header"
+        requires = header.get("requires", [])
+        assert "language_count" in requires, (
+            f"HELLO_PROMPT header must declare 'language_count' in requires, got: {requires}"
+        )
+
+    def test_reply_prompt_has_requires_header(self, tmp_path):
+        """HELLO_REPLY_PROMPT must have a ---...--- frontmatter with requires: listing greeting_markdown."""
+        from llmflow.utils.linter import parse_prompt_header
+
+        p = tmp_path / "reply.gpt"
+        p.write_text(HELLO_REPLY_PROMPT, encoding="utf-8")
+        header = parse_prompt_header(str(p))
+        assert header is not None, "HELLO_REPLY_PROMPT has no parseable header"
+        requires = header.get("requires", [])
+        assert "greeting_markdown" in requires, (
+            f"HELLO_REPLY_PROMPT header must declare 'greeting_markdown' in requires, got: {requires}"
+        )
+
+
+class TestAiContextDocsCoverGptFormat:
+    """AI context docs must teach an LLM how to write .gpt variable contract headers."""
+
+    def test_language_quickref_includes_requires_syntax(self):
+        """LANGUAGE_QUICKREF_DOC must show 'requires:' so an AI knows to declare it."""
+        assert "requires:" in LANGUAGE_QUICKREF_DOC, (
+            "LANGUAGE_QUICKREF_DOC must include 'requires:' to teach .gpt contract syntax"
+        )
+
+    def test_ai_rules_doc_mentions_prompt_contract(self):
+        """AI_RULES_DOC must reference 'requires' so the AI knows to declare prompt contracts."""
+        assert "requires" in AI_RULES_DOC, (
+            "AI_RULES_DOC must reference 'requires' so the AI knows to declare prompt contracts"
+        )

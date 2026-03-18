@@ -917,6 +917,15 @@ def validate_step_prompt_contract(step, prompt_file, step_name):
         required_inputs = set(header["inputs"].keys())
         optional_inputs = set()
     else:
+        # If step provides inputs but the header has no requires: key at all,
+        # the contract is incomplete — treat as an error so lint catches it.
+        if step_inputs and "requires" not in header:
+            errors.append(
+                f"❌ Step '{step_name}': Prompt '{prompt_file}' has no 'requires:' "
+                f"declaration — cannot validate variable contract. "
+                f"Add a 'requires:' list to the frontmatter."
+            )
+            return errors
         required_inputs = set(header.get("requires", []))
         optional_inputs = set(header.get("optional", []))
 

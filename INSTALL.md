@@ -1,5 +1,7 @@
 # Installing LLMFlow (Prebuilt Executables)
 
+**⬇️ [Download the latest release](https://github.com/nida-institute/LLMFlow/releases/latest)** — click Assets and pick the file for your platform.
+
 LLMFlow publishes single-file executables for Windows, macOS, and Linux via Nuitka. Follow the steps below to install the CLI without cloning the repo or managing Python environments manually.
 
 > **Prerequisites**
@@ -23,23 +25,72 @@ LLMFlow publishes single-file executables for Windows, macOS, and Linux via Nuit
 ## 2. Install per Operating System
 
 ### macOS
-1. Move the binary into a directory on your PATH, e.g.:
+1. Create a personal `bin` folder (if it doesn't exist) and move the binary there — no admin rights needed:
    ```bash
-   mv ~/Downloads/llmflow-macos /usr/local/bin/llmflow
-   chmod +x /usr/local/bin/llmflow
+   mkdir -p ~/bin
+   mv ~/Downloads/llmflow-macos ~/bin/llmflow
+   chmod +x ~/bin/llmflow
    ```
-2. On first launch, macOS Gatekeeper will likely block the unsigned binary:
+2. Make sure `~/bin` is on your PATH. Add this line to `~/.zshrc` (or `~/.bash_profile` for older Macs) if it isn't already:
+   ```bash
+   export PATH="$HOME/bin:$PATH"
+   ```
+   Then reload your shell: `source ~/.zshrc`
+3. On first launch, macOS Gatekeeper will likely block the unsigned binary:
    - Open *System Settings → Privacy & Security*.
    - Scroll to *Security* and click **Allow Anyway** next to `llmflow` (screenshot recommended here for docs/website).
    - Re-run `llmflow` from the terminal; when the "This app is from an unidentified developer" dialog appears, choose **Open**.
 
 ### Windows
-1. Place `llmflow-windows.exe` somewhere convenient (e.g., `C:\Tools\llmflow.exe`).
-2. Add that folder to the *System PATH* (System Properties → Environment Variables).
-3. The first launch triggers Microsoft Defender SmartScreen:
-   - Double-click the executable; when the *Windows protected your PC* dialog shows, click **More info**.
-   - Press **Run anyway** to proceed (capture this dialog in a screenshot for user docs if possible).
-4. Re-open PowerShell or Command Prompt and confirm `llmflow` runs.
+
+#### Step 1 — Download
+
+1. Go to [github.com/nida-institute/LLMFlow/releases/latest](https://github.com/nida-institute/LLMFlow/releases/latest).
+2. Under **Assets**, click `llmflow-windows.exe` to download it.
+
+#### Step 2 — Create a permanent home for the executable
+
+1. Create the folder `C:\Tools\` (or any folder you prefer — just be consistent).
+2. Move `llmflow-windows.exe` from your Downloads folder into `C:\Tools\`.
+3. Rename it to `llmflow.exe` so you can type `llmflow` instead of `llmflow-windows`.
+
+#### Step 3 — Add `C:\Tools\` to your PATH
+
+This lets you run `llmflow` from any folder in any terminal window.
+
+1. Press **Win + S**, type **"environment variables"**, and click **"Edit the system environment variables"**.
+2. Click the **Environment Variables…** button at the bottom of the dialog.
+3. In the **User variables** section (top half), find **Path** and double-click it.
+4. Click **New**, type `C:\Tools\`, then click **OK** on all three dialogs.
+5. **Close and reopen** any PowerShell or Command Prompt windows — existing ones won't pick up the change.
+
+#### Step 4 — Clear the SmartScreen warning (first run only)
+
+Because the binary is unsigned, Windows will block it on first launch:
+
+1. Open PowerShell and run `llmflow --version`.
+2. If you see a SmartScreen dialog saying **"Windows protected your PC"**:
+   - Click **More info**.
+   - Click **Run anyway**.
+3. After this one-time step, `llmflow` runs without any dialogs.
+
+**Alternative (no dialog):** Right-click `llmflow.exe` in File Explorer → **Properties** → check **Unblock** at the bottom → **OK**. Then run normally.
+
+#### Step 5 — Set your API key
+
+In PowerShell (persists for your user account):
+```powershell
+[System.Environment]::SetEnvironmentVariable("OPENAI_API_KEY", "sk-...", "User")
+```
+Close and reopen PowerShell, then confirm: `echo $env:OPENAI_API_KEY`
+
+#### Verify
+
+```powershell
+llmflow --version
+```
+
+You should see something like `llmflow 0.1.5.04`. You're ready — continue with the [Quickstart Tutorial](docs/tutorial.md).
 
 ### Linux
 1. Move the binary into `~/.local/bin` or `/usr/local/bin`:
@@ -51,7 +102,48 @@ LLMFlow publishes single-file executables for Windows, macOS, and Linux via Nuit
 
 ---
 
-## 3. Validate the Installation
+## 3. Install the `llm` Package and Models
+
+LLMFlow uses the [`llm`](https://llm.datasette.io/) package to call language models. The prebuilt binary ships with `llm` bundled, but you need to configure your API key and (optionally) install additional model plugins.
+
+### Set your OpenAI API key
+
+The simplest approach — store it once so `llm` uses it automatically:
+
+```bash
+llm keys set openai
+# Paste key here
+```
+
+Or use an environment variable (see platform-specific steps above for how to set it permanently).
+
+### Install additional model plugins (optional)
+
+To use Anthropic Claude, Google Gemini, or other providers, install the corresponding plugin:
+
+```bash
+# Anthropic Claude
+llm install llm-anthropic
+llm keys set anthropic
+
+# Google Gemini
+llm install llm-gemini
+llm keys set gemini
+```
+
+For a full list of available plugins see [llm.datasette.io/en/stable/plugins/directory.html](https://llm.datasette.io/en/stable/plugins/directory.html).
+
+### Verify available models
+
+```bash
+llm models
+```
+
+You should see `gpt-4o`, `gpt-4o-mini`, and any plugins you installed.
+
+---
+
+## 4. Validate the Installation
 
 Run the CLI from any terminal:
 
@@ -83,8 +175,9 @@ If the command is not found, double-check that the binary is executable and that
 | --- | --- | --- |
 | `zsh: permission denied` (macOS/Linux) | File not marked executable | `chmod +x /path/to/llmflow` |
 | `command not found` | PATH not updated | Add directory to PATH and reopen terminal |
-| Windows SmartScreen warning | App unsigned | Choose “More info → Run anyway” (or unblock in properties) |
-| Missing API credentials | Environment variable not set | `export OPENAI_API_KEY=...` (macOS/Linux) / `setx OPENAI_API_KEY ...` (Windows) |
+| Windows SmartScreen warning | App unsigned | Click "More info → Run anyway", or right-click exe → Properties → Unblock |
+| `llmflow` not found after PATH change (Windows) | Old terminal still open | Close and reopen PowerShell/Command Prompt |
+| Missing API credentials | Environment variable not set | `export OPENAI_API_KEY=...` (macOS/Linux) / `[System.Environment]::SetEnvironmentVariable(...)` (Windows) |
 
 Once the CLI is on your PATH, continue with the [Quickstart Tutorial](docs/tutorial.md) to scaffold and run your first pipeline.
 
