@@ -1,9 +1,24 @@
 [project]
 name = "llmflow"
-version = "0.1.5.04"
+version = "0.2.0"
 description = "Declarative pipelines for LLM-powered workflows"
-authors = [{name = "Your Name", email = "you@example.com"}]
+authors = [{name = "Jonathan Robie", email = "jonathan.robie@gmail.com"}]
 license = {text = "MIT"}
+keywords = ["llm", "ai", "pipeline", "workflow", "nlp", "openai", "anthropic", "gemini"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
   "click",
   "lxml",
@@ -24,6 +39,13 @@ dependencies = [
 ]
 readme = "README.md"
 requires-python = ">=3.8"
+
+[project.urls]
+Homepage = "https://github.com/nida-institute/LLMFlow"
+Repository = "https://github.com/nida-institute/LLMFlow"
+Documentation = "https://github.com/nida-institute/LLMFlow/blob/main/README.md"
+"Bug Tracker" = "https://github.com/nida-institute/LLMFlow/issues"
+Changelog = "https://github.com/nida-institute/LLMFlow/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/llmflow"]

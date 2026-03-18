@@ -54,6 +54,9 @@ htmlcov/
 
 # LLMFlow specific
 pseaf.txt
+scenes/
+nuitka_dist/
+nuitka_build.log
 
 # Input file backups
 inputs/**/*.bak
