@@ -31,15 +31,15 @@ ARCH="$(uname -m)"
 case "$OS" in
   Darwin)
     case "$ARCH" in
-      arm64)  ASSET="llmflow-macos-arm64" ;;
-      x86_64) ASSET="llmflow-macos-x64"   ;;
+      arm64)  ASSET="llmflow-macos" ;;
+      x86_64) ASSET="llmflow-macos" ;;
       *)      echo "❌ Unsupported macOS architecture: $ARCH" >&2; exit 1 ;;
     esac
     ;;
   Linux)
     case "$ARCH" in
-      x86_64)  ASSET="llmflow-linux-x64"  ;;
-      aarch64) ASSET="llmflow-linux-arm64" ;;
+      x86_64)  ASSET="llmflow-linux"  ;;
+      aarch64) ASSET="llmflow-linux" ;;
       *)        echo "❌ Unsupported Linux architecture: $ARCH" >&2; exit 1 ;;
     esac
     ;;

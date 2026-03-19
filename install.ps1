@@ -17,7 +17,7 @@
 $ErrorActionPreference = "Stop"
 
 $Repo        = "nida-institute/LLMFlow"
-$AssetName   = "llmflow-windows-x64.exe"
+$AssetName   = "llmflow-windows.exe"
 $InstallDir  = Join-Path $env:USERPROFILE "bin"
 $BinaryName  = "llmflow.exe"
 $ApiUrl      = "https://api.github.com/repos/$Repo/releases/latest"
