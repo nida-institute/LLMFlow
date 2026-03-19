@@ -72,6 +72,30 @@ steps:
       path: "${output_dir}/responses.md"
 """
 
+HELLO_YAML = """name: "Hello LLMFlow"
+description: |
+  Minimal starter pipeline for LLMFlow.
+  Run with: llmflow run --pipeline pipelines/hello.yaml
+variables:
+  output_dir: "output"
+
+llm_config:
+  model: "gpt-4o-mini"
+  temperature: 0.7
+  max_tokens: 500
+
+steps:
+  - name: "multilingual-greeting"
+    type: "llm"
+    prompt:
+      file: "hello.gpt"
+      inputs:
+        language_count: 5
+    outputs: greeting
+    saveas:
+      path: "${output_dir}/greeting.md"
+"""
+
 TUTORIAL_DOC = """# LLMFlow Project Tutorial
 
 This repository was initialized with `llmflow init`.
@@ -736,6 +760,7 @@ def init_project(base_dir: Path, update: bool = False) -> None:
     prompt_path = prompts_dir / "hello.gpt"
     reply_prompt_path = prompts_dir / "reply.gpt"
     pipeline_path = pipelines_dir / "hello-llmflow.yaml"
+    hello_yaml_path = pipelines_dir / "hello.yaml"
     tutorial_doc_path = docs_dir / "tutorial.md"
     language_quickref_path = docs_dir / "llmflow-language-quickref.md"
     vscode_doc_path = docs_dir / "vscode.md"
@@ -772,6 +797,15 @@ def init_project(base_dir: Path, update: bool = False) -> None:
         logger.info("Updated pipelines/hello-llmflow.yaml")
     else:
         logger.info("pipelines/hello-llmflow.yaml already exists; leaving as-is.")
+
+    if not hello_yaml_path.exists():
+        hello_yaml_path.write_text(HELLO_YAML, encoding="utf-8")
+        logger.info("Created pipelines/hello.yaml")
+    elif update and _is_generated(hello_yaml_path):
+        hello_yaml_path.write_text(HELLO_YAML, encoding="utf-8")
+        logger.info("Updated pipelines/hello.yaml")
+    else:
+        logger.info("pipelines/hello.yaml already exists; leaving as-is.")
 
     if not tutorial_doc_path.exists():
         tutorial_doc_path.write_text(TUTORIAL_DOC, encoding="utf-8")

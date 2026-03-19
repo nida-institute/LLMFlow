@@ -155,6 +155,41 @@ def extract_template_variables(template_content):
     return variables
 
 
+def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
+    """Check that every {{var}} used in a .gpt body is declared in requires: or optional:.
+
+    Returns a list of error strings (empty list means the file is clean).
+    """
+    header = parse_prompt_header(prompt_path)
+    if header is None:
+        return [
+            f"❌ {prompt_path}: No parseable frontmatter — cannot validate template variables"
+        ]
+
+    declared: Set[str] = set()
+    requires = header.get("requires") or []
+    optional = header.get("optional") or []
+    if isinstance(requires, list):
+        declared.update(requires)
+    if isinstance(optional, list):
+        declared.update(optional)
+
+    # Extract body (everything after the closing --- of the frontmatter)
+    text = Path(prompt_path).read_text(encoding="utf-8")
+    frontmatter_match = re.search(
+        r"^---[ \t]*\n.*?\n---[ \t]*\n?", text, re.DOTALL | re.MULTILINE
+    )
+    body = text[frontmatter_match.end():] if frontmatter_match else text
+
+    body_vars = extract_template_variables(body)
+    undeclared = body_vars - declared
+
+    return [
+        f"❌ {prompt_path}: uses '{{{{var}}}}' for '{var}' but '{var}' is not declared in requires: or optional:"
+        for var in sorted(undeclared)
+    ]
+
+
 def format_diff_box(step, file, declared, passed):
     declared_sorted = sorted(declared)
     passed_sorted = sorted(passed)
@@ -810,6 +845,32 @@ def lint_pipeline_full(
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     else:
         logger.info(f"✅ All {validated_count} step contracts valid")
+
+    # 2.1) .gpt body declaration validation: every {{var}} must be in requires:/optional:
+    logger.info("🔍 Validating .gpt template variable declarations...")
+    gpt_decl_errors: List[str] = []
+    pipeline_vars_for_prompts = pipeline_config.get("variables", {})
+    prompts_dir_for_decl = pipeline_vars_for_prompts.get("prompts_dir", "prompts")
+    for step in all_steps:
+        if step.get("type") != "llm":
+            continue
+        prompt_file = step.get("prompt", {}).get("file")
+        if not prompt_file:
+            continue
+        for candidate in [
+            f"{prompts_dir_for_decl}/{prompt_file}",
+            f"prompts/{prompt_file}",
+            prompt_file,
+        ]:
+            if Path(candidate).exists():
+                gpt_decl_errors.extend(validate_gpt_body_declares_all_vars(candidate))
+                break
+    if gpt_decl_errors:
+        all_errors.extend(gpt_decl_errors)
+        for err in gpt_decl_errors:
+            logger.error(err)
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
+    logger.info("✅ All .gpt template variables are declared")
 
     # 2.5) Variable reference validation (NEW: ensure all variable references can be resolved)
     logger.info("🔍 Validating variable references...")

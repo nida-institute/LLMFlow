@@ -167,3 +167,30 @@ class TestAiContextDocsCoverGptFormat:
         assert "requires" in AI_RULES_DOC, (
             "AI_RULES_DOC must reference 'requires' so the AI knows to declare prompt contracts"
         )
+
+
+class TestHelloYaml:
+    """hello.yaml must be created by llmflow init and pass full lint."""
+
+    def test_init_creates_hello_yaml(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        main(["init"])
+        assert (tmp_path / "pipelines" / "hello.yaml").exists()
+
+    def test_hello_yaml_content_has_variables_block(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        main(["init"])
+        import yaml
+
+        content = yaml.safe_load(
+            (tmp_path / "pipelines" / "hello.yaml").read_text(encoding="utf-8")
+        )
+        assert "variables" in content, "hello.yaml must have a variables: block"
+
+    def test_hello_yaml_passes_lint(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        main(["init"])
+        from llmflow.utils.linter import lint_pipeline_full
+
+        result = lint_pipeline_full(str(tmp_path / "pipelines" / "hello.yaml"))
+        assert result.valid, f"hello.yaml failed lint: {result.errors}"
