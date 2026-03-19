@@ -1,7 +1,7 @@
 # install.ps1 — LLMFlow one-line installer for Windows
 #
 # Acceptance criteria:
-#   1. Downloads llmflow-windows-x64.exe from latest GitHub release
+#   1. Downloads llmflow-windows.exe from latest GitHub release
 #   2. Places it at $env:USERPROFILE\bin\llmflow.exe (no admin rights required)
 #   3. Adds that folder to the user's PATH permanently (registry, no admin needed)
 #   4. Warns if PATH update requires a new terminal
