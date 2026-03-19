@@ -4,6 +4,63 @@
 
 ## Installation
 
+### Quick Install (no Python required)
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/nida-institute/LLMFlow/main/install.sh | bash
+
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/nida-institute/LLMFlow/main/install.ps1 | iex
+```
+
+Then configure your API key:
+
+```bash
+llmflow setup        # choose OpenAI, Anthropic, or Google Gemini
+llmflow models       # see available models and which keys are configured
+```
+
+See [INSTALL.md](INSTALL.md) for manual install steps and Gatekeeper/SmartScreen notes.
+
+---
+
+### Install via pip (for developers and power users)
+
+```bash
+pip install llmflow
+```
+
+LLMFlow uses the [`llm`](https://llm.datasette.io/) package to call language models. By default it supports OpenAI. To use other providers, install the corresponding plugin:
+
+```bash
+pip install llm-anthropic   # Anthropic Claude
+pip install llm-gemini      # Google Gemini
+pip install llm-ollama      # Local models via Ollama
+# Full plugin list: https://llm.datasette.io/en/stable/plugins/directory.html
+```
+
+Set your API key for each provider:
+
+```bash
+llm keys set openai
+llm keys set anthropic
+llm keys set gemini
+```
+
+Then use the model name directly in your pipeline YAML:
+
+```yaml
+steps:
+  - name: generate
+    type: llm
+    model: claude-3-5-sonnet-20241022   # Anthropic
+    # model: gemini-2.0-flash           # Gemini
+    # model: ollama/llama3              # Local via Ollama
+```
+
+Run `llmflow models` to see all available models and which keys you have configured.
+
 ### Install LLMFlow as a Command-Line Tool
 
 LLMFlow is designed to work across multiple independent projects. Install it once, use it everywhere.

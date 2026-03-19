@@ -99,6 +99,8 @@ def build_parser():
         help="Re-run setup to update keys or add new providers",
     )
 
+    subparsers.add_parser("models", help="List available models by provider")
+
     # Standard --version flag (e.g. used by CI smoke tests: llmflow --version)
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
@@ -196,6 +198,11 @@ def main(argv=None):
     if args.command == "setup":
         from llmflow.setup_command import run_setup
         run_setup(update=getattr(args, "update", False))
+        return
+
+    if args.command == "models":
+        from llmflow.setup_command import run_models
+        run_models()
         return
 
     if args.command == "run":

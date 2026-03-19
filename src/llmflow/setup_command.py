@@ -7,6 +7,25 @@ from llmflow.modules.logger import Logger
 
 logger = Logger()
 
+PROVIDER_MODELS = {
+    "openai": [
+        "gpt-4o",
+        "gpt-4o-mini",
+        "o3-mini",
+        "o3",
+    ],
+    "anthropic": [
+        "claude-3-5-sonnet-20241022",
+        "claude-3-5-haiku-20241022",
+        "claude-3-opus-20240229",
+    ],
+    "gemini": [
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-pro",
+    ],
+}
+
 PROVIDERS = [
     {
         "name": "OpenAI (GPT-4o, o3, ...)",
@@ -107,3 +126,31 @@ def run_setup(update=False):
             status = "  ✅ key set" if current else "  (not configured)"
             print(f"  {i}. {p['name']}{status}")
         print(f"  {len(PROVIDERS) + 1}. Done\n")
+
+
+def run_models():
+    """Print available models grouped by provider, showing which have API keys configured."""
+    try:
+        import llm
+    except ImportError:
+        print("❌ The 'llm' package is not installed. Run: pip install llm")
+        sys.exit(1)
+
+    keys_path = llm.user_dir() / "keys.json"
+    data = _load_keys(keys_path)
+
+    print("\nAvailable models by provider\n")
+
+    for provider in PROVIDERS:
+        key = provider["key"]
+        models = PROVIDER_MODELS.get(key, [])
+        has_key = bool(data.get(key))
+        status = "✅" if has_key else "(no key — run `llmflow setup`)"
+        print(f"{provider['name']}  {status}")
+        for model in models:
+            print(f"  {model}")
+        print()
+
+    print("💡 Using pip install? Any llm plugin works — use the model name directly")
+    print("   in your pipeline YAML: model: ollama/llama3")
+    print("   Plugin directory: https://llm.datasette.io/en/stable/plugins/directory.html\n")
