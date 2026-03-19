@@ -12,7 +12,7 @@
 - When making changes, verify these files exist in the current repository root
 
 **Architecture Reference:**
-- Consult `index.json` in the repository root for code architecture and module structure
+- Consult `docs/index.json` for code architecture and module structure
 - Use it to understand component relationships and dependencies before making changes
 
 ## Python Environment
