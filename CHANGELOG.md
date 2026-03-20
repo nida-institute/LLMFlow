@@ -3,6 +3,9 @@
 ## Unreleased
 - _No changes yet._
 
+## 0.2.1.01 — 2026-03-20
+- Added `type: basex` step: runs XQuery against a local BaseX database and stores the result in pipeline context. Accepts `database:` (any existing BaseX DB name), `query:` (inline XQuery string) or `query_file:` (path to `.xq` file), `params:` (dict resolved from context and substituted into the query via `{key}` placeholders), and `timeout:` (default 120 s). Built-in error handling for missing `basex` binary, non-zero exit, and timeout. Linter validates required fields and allows all basex-specific keys. (See `src/llmflow/plugins/basex.py`, `src/llmflow/runner.py`, and `tests/test_basex.py`; closes nida-institute/LLMFlow#49.)
+
 ## 0.1.5.07 — 2026-03-18
 
 ### `llmflow init` scaffolding expanded

@@ -18,6 +18,7 @@ from openai import APIError as OpenAIAPIError, APITimeoutError, RateLimitError
 from llmflow.modules.logger import Logger
 from llmflow.modules.telemetry import TelemetryCollector, generate_optimization_suggestions
 from llmflow.plugins import plugin_registry
+from llmflow.plugins.basex import run_basex
 from llmflow.plugins.loader import discover_plugins
 from llmflow.utils.io import validate_all_templates
 from llmflow.utils.linter import lint_pipeline_full
@@ -696,6 +697,8 @@ def run_step(
                 result = run_function_step(step, context, pipeline_config)
             elif step_type == "if":
                 local_after_action = run_if_step(step, context, pipeline_config)
+            elif step_type == "basex":
+                run_basex_step(step, context, pipeline_config)
             elif step_type == "save":
                 run_save_step(step, context, pipeline_config)
             elif step.get("plugin"):
@@ -818,6 +821,37 @@ def run_plugin_step(
     except Exception as e:
         logger.error(f"❌ Error in {step_type} step '{name}': {e}")
         raise
+
+
+def run_basex_step(
+    step: Dict[str, Any],
+    context: Dict[str, Any],
+    pipeline_config: Dict[str, Any] | None = None,
+) -> None:
+    """Execute a basex step: run XQuery against a local BaseX database."""
+    name = step.get("name", "unnamed")
+    logger.info(f"🗄️  Starting basex step: {name}")
+
+    # Resolve params from pipeline context
+    raw_params = step.get("params", {})
+    resolved_params = {k: resolve(v, context) for k, v in raw_params.items()}
+
+    # Get the query — inline string or from file
+    if "query" in step:
+        query = step["query"]
+    elif "query_file" in step:
+        query_file = resolve(step["query_file"], context)
+        with open(query_file, encoding="utf-8") as fh:
+            query = fh.read()
+    else:
+        raise ValueError(f"basex step '{name}' requires 'query' or 'query_file'")
+
+    timeout = step.get("timeout", 120)
+
+    result = run_basex(query, params=resolved_params or None, timeout=timeout)
+    handle_step_outputs(step, result, context)
+
+    logger.info(f"✅ Completed basex step: {name}")
 
 
 def run_function_step(

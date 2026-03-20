@@ -1,6 +1,6 @@
 [project]
 name = "llmflow"
-version = "0.2.1"
+version = "0.2.1.01"
 description = "Declarative pipelines for LLM-powered workflows"
 authors = [{name = "Jonathan Robie", email = "jonathan.robie@gmail.com"}]
 license = {text = "MIT"}
@@ -52,7 +52,7 @@ Changelog = "https://github.com/nida-institute/LLMFlow/blob/main/CHANGELOG.md"
 packages = ["src/llmflow"]
 
 [project.scripts]
-llmflow = "llmflow.cli:main"
+sp = "llmflow.cli:main"
 
 [build-system]
 requires = ["hatchling"]
