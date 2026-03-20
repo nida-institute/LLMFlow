@@ -1,6 +1,6 @@
-# ❓ Why LLMFlow
+# ❓ Why Scripture Pipelines
 
-LLMFlow is a declarative, testable pipeline engine for LLM + rule/data hybrid workflows with a focus on Bible translation, exegesis, lexicons, and multi‑language / orality tasks. It separates:
+Scripture Pipelines is a declarative, testable pipeline engine for LLM + rule/data hybrid workflows with a focus on Bible translation, exegesis, lexicons, and multi‑language / orality tasks. It separates:
 - Core orchestration (this repo)
 - Domain artifact repositories (leaders’ guides, lexicons, exegetical notes)
 - Human‑edited outputs (Git + Obsidian vaults)
@@ -17,7 +17,7 @@ LLMFlow is a declarative, testable pipeline engine for LLM + rule/data hybrid wo
 
 ## 🧩 Feature Comparison (Updated)
 
-| Area | LLMFlow | LangChain / LlamaIndex | Haystack | Custom Scripts |
+| Area | Scripture Pipelines | LangChain / LlamaIndex | Haystack | Custom Scripts |
 |------|---------|------------------------|----------|----------------|
 | Pipeline Model | Declarative YAML | Imperative chains | YAML + code | Manual |
 | Domain Extension | Pluggable functions/plugins | Possible but ad hoc | Possible | Manual |
@@ -71,7 +71,7 @@ Core engine remains clean/public; domain repos stay private or semi-open.
 2. Tools for selective regeneration and contract introspection.
 3. Diffing edited vs generated content to flag stale prompts.
 
-## ✅ When To Use LLMFlow
+## ✅ When To Use Scripture Pipelines
 Use if you need:
 - Traceable scholarly or linguistic workflows.
 - Mixed deterministic + generative steps.
@@ -91,7 +91,7 @@ Use if you need:
 4. Regenerate selectively with MCP tools (planned).
 
 ## 🎯 Summary
-LLMFlow provides a disciplined, inspectable framework for complex Bible / linguistics workflows, balancing automation with human editorial control, and preparing for richer interactive tooling via MCP and vault-aware metadata.
+Scripture Pipelines provides a disciplined, inspectable framework for complex Bible / linguistics workflows, balancing automation with human editorial control, and preparing for richer interactive tooling via MCP and vault-aware metadata.
 
 ### Linting
-First-class validation via `llmflow lint` (schema, prompt contracts, path checks).
+First-class validation via `sp lint` (schema, prompt contracts, path checks).

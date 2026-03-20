@@ -3,6 +3,9 @@
 ## Unreleased
 - _No changes yet._
 
+## 0.2.1.02 — 2026-03-20
+- Renamed product to **Scripture Pipelines** and CLI binary to `sp` throughout install scripts (`install.sh`, `install.ps1`), `README.md`, `INSTALL.md`, and all docs. Asset names updated to `sp-macos`, `sp-linux`, `sp-windows.exe`. CI workflow asset labels updated to match. `PROJECT_TODO` tutorial backlog in `cli_utils.py` expanded to 8 steps mirroring `sp init` tutorial issues; 5 new tests added to `TestProjectTodoTutorial`.
+
 ## 0.2.1.01 — 2026-03-20
 - Added `type: basex` step: runs XQuery against a local BaseX database and stores the result in pipeline context. Accepts `database:` (any existing BaseX DB name), `query:` (inline XQuery string) or `query_file:` (path to `.xq` file), `params:` (dict resolved from context and substituted into the query via `{key}` placeholders), and `timeout:` (default 120 s). Built-in error handling for missing `basex` binary, non-zero exit, and timeout. Linter validates required fields and allows all basex-specific keys. (See `src/llmflow/plugins/basex.py`, `src/llmflow/runner.py`, and `tests/test_basex.py`; closes nida-institute/LLMFlow#49.)
 

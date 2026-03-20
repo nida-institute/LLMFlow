@@ -1,6 +1,6 @@
-# ⚙️ Getting Started with LLMFlow
+# ⚙️ Getting Started with Scripture Pipelines
 
-LLMFlow is a declarative pipeline runner for LLM-assisted content generation. Install it once, use it across multiple resource repositories (lexicons, guides, exegetical notes). Resource repos contain domain pipelines, prompts, and edited outputs; this repo provides the engine.
+Scripture Pipelines is a declarative pipeline runner for LLM-assisted content generation. Install it once, use it across multiple resource repositories (lexicons, guides, exegetical notes). Resource repos contain domain pipelines, prompts, and edited outputs; this repo provides the engine.
 
 ---
 
@@ -19,8 +19,8 @@ LLMFlow is a declarative pipeline runner for LLM-assisted content generation. In
 git clone https://github.com/nida-institute/LLMFlow.git
 cd LLMFlow
 pip install -e .
-llmflow --version
-llmflow --help
+sp --version
+sp --help
 ```
 
 For contributors using Hatch:
@@ -59,10 +59,10 @@ templates/
 outputs/        # Generated + human-edited
 ```
 
-Install LLMFlow once, then inside any resource repo:
+Install Scripture Pipelines once, then inside any resource repo:
 
 ```bash
-llmflow run --pipeline pipelines/your-pipeline.yaml --var passage="Psalm 23"
+sp run --pipeline pipelines/your-pipeline.yaml --var passage="Psalm 23"
 ```
 
 ---
@@ -118,13 +118,13 @@ Linter enforces required inputs via `prompt.inputs` in the pipeline step.
 
 ```bash
 # Lint only (new command)
-llmflow lint --pipeline pipelines/sample.yaml
+sp lint --pipeline pipelines/sample.yaml
 
 # Lint with JSON output
-llmflow lint --pipeline pipelines/sample.yaml --json
+sp lint --pipeline pipelines/sample.yaml --json
 
 # Run (auto-lints unless --skip-lint)
-llmflow run --pipeline pipelines/sample.yaml --var passage="Luke 1:1-4"
+sp run --pipeline pipelines/sample.yaml --var passage="Luke 1:1-4"
 ```
 
 Add --skip-lint to bypass validation.
@@ -132,7 +132,7 @@ Add --skip-lint to bypass validation.
 List pipelines (if implemented):
 
 ```bash
-llmflow list
+sp list
 ```
 
 ---
@@ -166,9 +166,9 @@ Function step:
 
 ## 9. Multi-Repo Workflow
 
-1. Keep engine updated (`git pull` in LLMFlow).
+1. Keep engine updated (`git pull` in scripture-pipelines).
 2. Edit domain pipelines/prompts in resource repos.
-3. Generate outputs (`llmflow run ...`).
+3. Generate outputs (`sp run ...`).
 4. Human edits outputs → commit changes.
 5. Regenerate selective steps as needed.
 

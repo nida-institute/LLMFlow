@@ -1,13 +1,13 @@
-# install.ps1 — LLMFlow one-line installer for Windows
+# install.ps1 — Scripture Pipelines one-line installer for Windows
 #
 # Acceptance criteria:
-#   1. Downloads llmflow-windows.exe from latest GitHub release
-#   2. Places it at $env:USERPROFILE\bin\llmflow.exe (no admin rights required)
+#   1. Downloads sp-windows.exe from latest GitHub release
+#   2. Places it at $env:USERPROFILE\bin\sp.exe (no admin rights required) (no admin rights required)
 #   3. Adds that folder to the user's PATH permanently (registry, no admin needed)
 #   4. Warns if PATH update requires a new terminal
 #   5. Clears SmartScreen block via Unblock-File
-#   6. Prints post-install message pointing to `llmflow setup`
-#   7. Runs `llmflow --version` after install and confirms it exits 0
+#   6. Prints post-install message pointing to `sp setup`
+#   7. Runs `sp --version` after install and confirms it exits 0
 #      (catches download corruption, wrong arch, SmartScreen block, etc.)
 #   8. Fails with clear error if download fails
 #
@@ -17,14 +17,14 @@
 $ErrorActionPreference = "Stop"
 
 $Repo        = "nida-institute/LLMFlow"
-$AssetName   = "llmflow-windows.exe"
+$AssetName   = "sp-windows.exe"
 $InstallDir  = Join-Path $env:USERPROFILE "bin"
-$BinaryName  = "llmflow.exe"
+$BinaryName  = "sp.exe"
 $ApiUrl      = "https://api.github.com/repos/$Repo/releases/latest"
 
 # ── Fetch latest release info ─────────────────────────────────────────────────
 
-Write-Host "ℹ️  Fetching latest LLMFlow release..."
+Write-Host "ℹ️  Fetching latest Scripture Pipelines release..."
 
 try {
     $Release = Invoke-RestMethod -Uri $ApiUrl -UseBasicParsing
@@ -43,7 +43,7 @@ if (-not $Asset) {
 $Version     = $Release.tag_name
 $DownloadUrl = $Asset.browser_download_url
 
-Write-Host "⬇️  Downloading LLMFlow $Version ($AssetName)..."
+Write-Host "⬇️  Downloading Scripture Pipelines $Version ($AssetName)..."
 
 # ── Download ──────────────────────────────────────────────────────────────────
 
@@ -88,15 +88,15 @@ try {
     $VersionOut = & $Dest --version 2>&1
     Write-Host "✅ Verified: $VersionOut"
 } catch {
-    Write-Host "⚠️  The binary was installed but 'llmflow --version' failed."
+    Write-Host "⚠️  The binary was installed but 'sp --version' failed."
     Write-Host "   Try right-clicking $Dest → Properties → Unblock, then re-run."
     Write-Host ""
 }
 
 Write-Host ""
-Write-Host "🎉 LLMFlow is installed! Next step:"
+Write-Host "🎉 Scripture Pipelines is installed! Next step:"
 Write-Host ""
-Write-Host "   llmflow setup"
+Write-Host "   sp setup"
 Write-Host ""
 Write-Host "   This will walk you through configuring your API key for OpenAI,"
 Write-Host "   Anthropic, or Google Gemini."

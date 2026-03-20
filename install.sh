@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# install.sh — LLMFlow one-line installer for macOS and Linux
+# install.sh — Scripture Pipelines one-line installer for macOS and Linux
 #
 # Acceptance criteria:
 #   1. Detects OS and arch; selects correct binary from GitHub releases
-#   2. Downloads to ~/bin/llmflow (no admin rights required)
+#   2. Downloads to ~/bin/sp (no admin rights required)
 #   3. Makes binary executable
 #   4. Warns clearly if ~/bin is not on PATH, with exact shell fix to run
-#   5. Prints post-install message pointing to `llmflow setup`
+#   5. Prints post-install message pointing to `sp setup`
 #   6. Fails loudly with a helpful message if download fails
-#   7. Runs `llmflow --version` after install and confirms it exits 0
+#   7. Runs `sp --version` after install and confirms it exits 0
 #      (catches download corruption, wrong arch, missing Gatekeeper allow, etc.)
 #
 # Usage:
@@ -20,7 +20,7 @@ set -euo pipefail
 
 REPO="nida-institute/LLMFlow"
 INSTALL_DIR="$HOME/bin"
-BINARY_NAME="llmflow"
+BINARY_NAME="sp"
 API_URL="https://api.github.com/repos/${REPO}/releases/latest"
 
 # ── Detect OS and architecture ────────────────────────────────────────────────
@@ -31,15 +31,15 @@ ARCH="$(uname -m)"
 case "$OS" in
   Darwin)
     case "$ARCH" in
-      arm64)  ASSET="llmflow-macos" ;;
-      x86_64) ASSET="llmflow-macos" ;;
+      arm64)  ASSET="sp-macos" ;;
+      x86_64) ASSET="sp-macos" ;;
       *)      echo "❌ Unsupported macOS architecture: $ARCH" >&2; exit 1 ;;
     esac
     ;;
   Linux)
     case "$ARCH" in
-      x86_64)  ASSET="llmflow-linux"  ;;
-      aarch64) ASSET="llmflow-linux" ;;
+      x86_64)  ASSET="sp-linux"  ;;
+      aarch64) ASSET="sp-linux" ;;
       *)        echo "❌ Unsupported Linux architecture: $ARCH" >&2; exit 1 ;;
     esac
     ;;
@@ -52,7 +52,7 @@ esac
 
 # ── Resolve download URL from latest release ──────────────────────────────────
 
-echo "ℹ️  Fetching latest LLMFlow release..."
+echo "ℹ️  Fetching latest Scripture Pipelines release..."
 
 if command -v curl &>/dev/null; then
   RELEASE_JSON="$(curl -fsSL "$API_URL")"
@@ -80,7 +80,7 @@ VERSION="$(echo "$RELEASE_JSON" \
   | head -1 \
   | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')"
 
-echo "⬇️  Downloading LLMFlow ${VERSION} (${ASSET})..."
+echo "⬇️  Downloading Scripture Pipelines ${VERSION} (${ASSET})..."
 
 # ── Download ──────────────────────────────────────────────────────────────────
 
@@ -127,7 +127,7 @@ if "$DEST" --version &>/dev/null; then
   VERSION_OUT="$("$DEST" --version 2>&1)"
   echo "✅ Verified: ${VERSION_OUT}"
 else
-  echo "⚠️  The binary was installed but 'llmflow --version' failed."
+  echo "⚠️  The binary was installed but 'sp --version' failed."
   if [[ "$OS" == "Darwin" ]]; then
     echo "   This is usually a macOS Gatekeeper block."
     echo "   Go to System Settings → Privacy & Security → Allow Anyway, then re-run."
@@ -137,9 +137,9 @@ else
   echo ""
 fi
 
-echo "🎉 LLMFlow is installed! Next step:"
+echo "🎉 Scripture Pipelines is installed! Next step:"
 echo ""
-echo "   llmflow setup"
+echo "   sp setup"
 echo ""
 echo "   This will walk you through configuring your API key for OpenAI,"
 echo "   Anthropic, or Google Gemini."

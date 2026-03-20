@@ -1,6 +1,6 @@
 [project]
 name = "llmflow"
-version = "0.2.1.01"
+version = "0.2.1.02"
 description = "Declarative pipelines for LLM-powered workflows"
 authors = [{name = "Jonathan Robie", email = "jonathan.robie@gmail.com"}]
 license = {text = "MIT"}

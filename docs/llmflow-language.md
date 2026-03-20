@@ -1,6 +1,6 @@
-# 📘 LLMFlow Language Specification
+# 📘 Scripture Pipelines Language Specification
 
-An **LLMFlow** is a YAML file that describes a pipeline of steps to be executed using LLM prompts, variable substitution, iteration, and file output.
+An **Scripture Pipelines** is a YAML file that describes a pipeline of steps to be executed using LLM prompts, variable substitution, iteration, and file output.
 
 ## 🧩 Structure
 
@@ -134,7 +134,7 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
 
 ### type: `function`
 
-Calls a Python function from the LLMFlow library or custom code.
+Calls a Python function from the Scripture Pipelines library or custom code.
 
 ```yaml
 - name: parse_passage_reference
@@ -287,7 +287,7 @@ variables:
 
 2. **Via command line:**
 ```bash
-llmflow run --pipeline pipeline.yaml --var passage="Psalm 23"
+sp run --pipeline pipeline.yaml --var passage="Psalm 23"
 ```
 
 3. **From step outputs:**
@@ -451,24 +451,24 @@ steps:
 
 ### Run a pipeline
 ```bash
-llmflow run --pipeline pipelines/storyflow-psalms.yaml --var passage="Psalm 23"
+sp run --pipeline pipelines/storyflow-psalms.yaml --var passage="Psalm 23"
 ```
 
 ### Dry run (preview without execution)
 ```bash
-llmflow run --pipeline pipelines/storyflow-psalms.yaml --dry-run
+sp run --pipeline pipelines/storyflow-psalms.yaml --dry-run
 ```
 
 ### Set multiple variables
 ```bash
-llmflow run --pipeline pipelines/my-pipeline.yaml \
+sp run --pipeline pipelines/my-pipeline.yaml \
   --var passage="Mark 1:1-8" \
   --var source="WLC"
 ```
 
 ### Skip linting
 ```bash
-llmflow run --pipeline pipelines/my-pipeline.yaml --skip-lint
+sp run --pipeline pipelines/my-pipeline.yaml --skip-lint
 ```
 
 ### Rewind to a step (replay from saved artifacts)
@@ -478,7 +478,7 @@ llmflow run --pipeline pipelines/my-pipeline.yaml --skip-lint
 ```bash
 # Re-run everything after `generate_discourse_outline`, loading that step and
 # all earlier steps from their saved artifacts instead of calling the LLM.
-llmflow run --pipeline pipelines/discourse-flow.yaml \
+sp run --pipeline pipelines/discourse-flow.yaml \
   --var passage="Mark 11:12-25" \
   --rewind-to generate_discourse_outline
 ```
@@ -489,7 +489,7 @@ llmflow run --pipeline pipelines/discourse-flow.yaml \
 - The `saveas` path must be fully resolvable (no unresolved `${...}` variables).
 - Steps that use `append_to:` are not rewindable.
 
-If the saved file is missing LLMFlow raises a clear error rather than silently re-running.
+If the saved file is missing Scripture Pipelines raises a clear error rather than silently re-running.
 
 ### Stop after a step
 
@@ -498,7 +498,7 @@ If the saved file is missing LLMFlow raises a clear error rather than silently r
 ```bash
 # Replay up through enrich_passage from disk, re-run generate_discourse_outline,
 # then stop — useful to inspect the outline before continuing.
-llmflow run --pipeline pipelines/discourse-flow.yaml \
+sp run --pipeline pipelines/discourse-flow.yaml \
   --var passage="Mark 11:12-25" \
   --rewind-to enrich_passage \
   --stop-after generate_discourse_outline
@@ -506,19 +506,19 @@ llmflow run --pipeline pipelines/discourse-flow.yaml \
 
 ### Validate a pipeline
 ```bash
-llmflow lint pipelines/my-pipeline.yaml
+sp lint pipelines/my-pipeline.yaml
 ```
 
 ### Show version
 ```bash
-llmflow --version
+sp --version
 ```
 
 ---
 
 ## 🤖 LLM Configuration
 
-LLMFlow uses the [`llm` package](https://llm.datasette.io/) by Simon Willison, which supports multiple LLM providers through plugins.
+Scripture Pipelines uses the [`llm` package](https://llm.datasette.io/) by Simon Willison, which supports multiple LLM providers through plugins.
 
 ### Install LLM Package and Providers
 
@@ -569,7 +569,7 @@ The `lint` command validates:
 - Variable references
 
 ```bash
-llmflow lint pipelines/my-pipeline.yaml
+sp lint pipelines/my-pipeline.yaml
 ```
 
 Configure linting behavior in your pipeline:
@@ -649,7 +649,7 @@ In pipeline YAML files:
 
 ### Template Engine Implementation
 
-LLMFlow uses a **custom template engine** with regex-based substitution:
+Scripture Pipelines uses a **custom template engine** with regex-based substitution:
 - In prompt and template files, `{{variable}}` placeholders are
   replaced using values from the current context.
 - In pipeline YAML, `${variable}` expressions are resolved when
