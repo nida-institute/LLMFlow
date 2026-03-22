@@ -158,11 +158,19 @@ Calls a Python function from the Scripture Pipelines library or custom code.
 - `log`: Log level for this step
 
 **Common functions:**
-- `llmflow.utils.data.parse_bible_reference` - Parse Bible references
-- `llmflow.utils.io.render_markdown_template` - Render markdown templates
-- `llmflow.utils.io.save_json` - Save JSON to file
-- `llmflow.utils.data.flatten_json_to_markdown` - Convert JSON to markdown
-- `llmflow.utils.data.identity` - Pass through data unchanged
+- `llmflow.utils.data.load_json_file(file_path)` — load and parse a JSON file from disk; raises `FileNotFoundError` if missing
+- `llmflow.utils.data.load_json(file_path)` — alias for `load_json_file` in the data module
+- `llmflow.utils.io.load_json(file_path)` — load JSON; same behaviour, different module (prefer `data.load_json_file` for new pipelines)
+- `llmflow.utils.data.load_yaml(file_path)` — load and parse a YAML file from disk; safe to use in pipelines
+- `llmflow.utils.data.parse_bible_reference` — parse Bible references
+- `llmflow.utils.io.render_markdown_template` — render markdown templates
+- `llmflow.utils.io.save_json` — save JSON to file
+- `llmflow.utils.data.flatten_json_to_markdown` — convert JSON to markdown
+- `llmflow.utils.data.identity` — pass through data unchanged
+
+> ⚠️ The module prefix is always `llmflow.utils.*` — never `sp.utils.*`
+
+> ℹ️ There are no built-in loaders for plain text, XML, CSV, or USX. Use a `type: function` step with a custom plugin for those formats.
 
 **Example with template rendering:**
 ```yaml

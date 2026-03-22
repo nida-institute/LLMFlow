@@ -235,8 +235,8 @@ def resolve(value, context, max_depth=5):
             expr = match.group(1)
             resolved = get_from_context(expr, context)
             if resolved is not None:
-                # Recursive resolution if still templated
-                if isinstance(resolved, str) and (resolved.startswith("${") or resolved.startswith("{")):
+                # Recursive resolution if still templated (including mid-string ${} refs)
+                if isinstance(resolved, str) and ("${" in resolved or "{" in resolved):
                     if max_depth > 0:
                         return resolve(resolved, context, max_depth - 1)
                 return resolved
@@ -248,8 +248,8 @@ def resolve(value, context, max_depth=5):
             expr = match.group(1)
             resolved = get_from_context(expr, context)
             if resolved is not None:
-                # Recursive resolution if still templated
-                if isinstance(resolved, str) and (resolved.startswith("${") or resolved.startswith("{")):
+                # Recursive resolution if still templated (including mid-string {} refs)
+                if isinstance(resolved, str) and ("${" in resolved or "{" in resolved):
                     if max_depth > 0:
                         return resolve(resolved, context, max_depth - 1)
                 return resolved

@@ -509,6 +509,80 @@ class TestResolve:
         assert resolve("Flag is ${flag}", ctx) == "Flag is True"
         assert resolve("Off is ${off}", ctx) == "Off is False"
 
+
+class TestResolveMidStringNested:
+    """Tests for issue #63: resolve() must recursively expand ${vars} that
+    appear mid-string inside a variable's value, not just at the start."""
+
+    def test_midstring_vars_in_variable_value(self):
+        """Variable value containing ${} mid-string must be fully resolved.
+
+        Regression test for issue #63. Previously the recursion guard checked
+        resolved.startswith("${"), which missed mid-string references.
+        """
+        ctx = {
+            "book_code": "MRK",
+            "book_number": "41",
+            "scene_overlay_path": "outputs/book-context/${book_number}-${book_code}/scene-overlay.json",
+        }
+        result = resolve("${scene_overlay_path}", ctx)
+        assert result == "outputs/book-context/41-MRK/scene-overlay.json"
+
+    def test_midstring_single_var_not_at_start(self):
+        """Single ${var} in the middle of a variable value is resolved."""
+        ctx = {
+            "base": "data",
+            "path": "inputs/${base}/file.json",
+        }
+        assert resolve("${path}", ctx) == "inputs/data/file.json"
+
+    def test_midstring_var_at_end_only(self):
+        """${var} only at the end of a variable value is resolved."""
+        ctx = {
+            "ext": "json",
+            "filename": "output.${ext}",
+        }
+        assert resolve("${filename}", ctx) == "output.json"
+
+    def test_midstring_multiple_vars(self):
+        """Multiple ${vars} scattered through a variable value are all resolved."""
+        ctx = {
+            "a": "foo",
+            "b": "bar",
+            "c": "baz",
+            "template": "${a}/${b}/${c}",
+        }
+        assert resolve("${template}", ctx) == "foo/bar/baz"
+
+    def test_midstring_curly_syntax(self):
+        """Same mid-string behaviour works for {curly} exact-match syntax."""
+        ctx = {
+            "book": "MRK",
+            "num": "41",
+            "path": "outputs/{num}-{book}/file.json",
+        }
+        assert resolve("{path}", ctx) == "outputs/41-MRK/file.json"
+
+    def test_midstring_does_not_break_startswith_case(self):
+        """Existing behaviour for value starting with ${} is unchanged."""
+        ctx = {"indirect": "${direct}", "direct": "value"}
+        assert resolve("${indirect}", ctx) == "value"
+
+    def test_midstring_max_depth_respected(self):
+        """Mid-string recursion still respects max_depth guard."""
+        # a → "x${b}y" → "x${c}y" → ... circular-ish after depth
+        ctx = {
+            "a": "prefix-${b}-suffix",
+            "b": "prefix-${c}-suffix",
+            "c": "prefix-${d}-suffix",
+            "d": "prefix-${e}-suffix",
+            "e": "prefix-${f}-suffix",
+            "f": "prefix-${a}-suffix",  # circular
+        }
+        # Must not raise RecursionError; result will still contain unresolved ${} at depth limit
+        result = resolve("${a}", ctx)
+        assert isinstance(result, str)  # returns something, doesn't crash
+
     def test_float_values(self):
         """Float values in resolution."""
         ctx = {"pi": 3.14159}
