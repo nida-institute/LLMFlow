@@ -4,13 +4,18 @@ Tests cover:
 - parse_bible_reference(): All reference formats, abbreviations, edge cases
 - interleave(): Array handling, markdown output, empty cases
 - flatten_dict(): Nested structure handling, separators, edge cases
+- load_text_file(): Plain-text/Markdown file loading
+- load_csv_file(): CSV/TSV file loading
 """
 
+import csv
 import pytest
 from llmflow.utils.data import (
     parse_bible_reference,
     interleave,
     flatten_dict,
+    load_text_file,
+    load_csv_file,
 )
 
 
@@ -635,3 +640,107 @@ class TestDataUtilitiesIntegration:
             assert result["book_name"] == book
             assert result["chapter"] == 1
             assert result["start_verse"] == 1
+
+
+# ============================================================================
+# Test load_text_file()       (issue #65)
+# ============================================================================
+
+class TestLoadTextFile:
+    """Tests for load_text_file() — plain-text/Markdown file loader."""
+
+    def test_reads_plain_text(self, tmp_path):
+        """Returns the full contents of a .txt file as a string."""
+        f = tmp_path / "hello.txt"
+        f.write_text("Hello world\n", encoding="utf-8")
+        result = load_text_file(str(f))
+        assert result == "Hello world\n"
+
+    def test_reads_markdown(self, tmp_path):
+        """Returns multiline Markdown content unchanged."""
+        content = "# Title\n\nSome **bold** text.\n"
+        f = tmp_path / "doc.md"
+        f.write_text(content, encoding="utf-8")
+        result = load_text_file(str(f))
+        assert result == content
+
+    def test_returns_str(self, tmp_path):
+        """Return type is always str."""
+        f = tmp_path / "file.txt"
+        f.write_text("data", encoding="utf-8")
+        assert isinstance(load_text_file(str(f)), str)
+
+    def test_empty_file(self, tmp_path):
+        """Empty file returns empty string."""
+        f = tmp_path / "empty.txt"
+        f.write_text("", encoding="utf-8")
+        assert load_text_file(str(f)) == ""
+
+    def test_unicode_content(self, tmp_path):
+        """Unicode characters are preserved."""
+        content = "Εὐαγγέλιον — שָׁלוֹם\n"
+        f = tmp_path / "unicode.txt"
+        f.write_text(content, encoding="utf-8")
+        assert load_text_file(str(f)) == content
+
+    def test_missing_file_raises(self, tmp_path):
+        """FileNotFoundError raised for non-existent file."""
+        with pytest.raises(FileNotFoundError):
+            load_text_file(str(tmp_path / "missing.txt"))
+
+
+# ============================================================================
+# Test load_csv_file()        (issue #65)
+# ============================================================================
+
+class TestLoadCsvFile:
+    """Tests for load_csv_file() — CSV/TSV file loader."""
+
+    def test_basic_csv(self, tmp_path):
+        """Reads a CSV and returns a list of dicts."""
+        f = tmp_path / "data.csv"
+        f.write_text("name,age\nAlice,30\nBob,25\n", encoding="utf-8")
+        result = load_csv_file(str(f))
+        assert result == [{"name": "Alice", "age": "30"}, {"name": "Bob", "age": "25"}]
+
+    def test_returns_list_of_dicts(self, tmp_path):
+        """Return type is list of dicts."""
+        f = tmp_path / "data.csv"
+        f.write_text("a,b\n1,2\n", encoding="utf-8")
+        result = load_csv_file(str(f))
+        assert isinstance(result, list)
+        assert isinstance(result[0], dict)
+
+    def test_tsv_via_delimiter(self, tmp_path):
+        """Tab delimiter works for TSV files."""
+        f = tmp_path / "data.tsv"
+        f.write_text("word\tgloss\nλόγος\tword\n", encoding="utf-8")
+        result = load_csv_file(str(f), delimiter="\t")
+        assert result == [{"word": "λόγος", "gloss": "word"}]
+
+    def test_empty_csv_returns_empty_list(self, tmp_path):
+        """CSV with only a header returns empty list."""
+        f = tmp_path / "header_only.csv"
+        f.write_text("col1,col2\n", encoding="utf-8")
+        result = load_csv_file(str(f))
+        assert result == []
+
+    def test_unicode_content(self, tmp_path):
+        """Unicode values are preserved."""
+        f = tmp_path / "greek.csv"
+        f.write_text("word,meaning\nεὐαγγέλιον,good news\n", encoding="utf-8")
+        result = load_csv_file(str(f))
+        assert result[0]["word"] == "εὐαγγέλιον"
+
+    def test_multiple_rows(self, tmp_path):
+        """All rows are returned."""
+        rows = "\n".join(f"item{i},{i}" for i in range(10))
+        f = tmp_path / "big.csv"
+        f.write_text("name,value\n" + rows + "\n", encoding="utf-8")
+        result = load_csv_file(str(f))
+        assert len(result) == 10
+
+    def test_missing_file_raises(self, tmp_path):
+        """FileNotFoundError raised for non-existent file."""
+        with pytest.raises(FileNotFoundError):
+            load_csv_file(str(tmp_path / "missing.csv"))
