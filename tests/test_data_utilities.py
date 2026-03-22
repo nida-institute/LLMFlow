@@ -6,16 +6,19 @@ Tests cover:
 - flatten_dict(): Nested structure handling, separators, edge cases
 - load_text_file(): Plain-text/Markdown file loading
 - load_csv_file(): CSV/TSV file loading
+- load_xml_file(): XML/USX file loading via lxml
 """
 
 import csv
 import pytest
+from lxml import etree
 from llmflow.utils.data import (
     parse_bible_reference,
     interleave,
     flatten_dict,
     load_text_file,
     load_csv_file,
+    load_xml_file,
 )
 
 
@@ -744,3 +747,69 @@ class TestLoadCsvFile:
         """FileNotFoundError raised for non-existent file."""
         with pytest.raises(FileNotFoundError):
             load_csv_file(str(tmp_path / "missing.csv"))
+
+
+# ============================================================================
+# Test load_xml_file()        (issue #65)
+# ============================================================================
+
+class TestLoadXmlFile:
+    """Tests for load_xml_file() — XML/USX file loader via lxml."""
+
+    def test_returns_lxml_element(self, tmp_path):
+        """Returns an lxml _Element (parsed root)."""
+        f = tmp_path / "doc.xml"
+        f.write_text("<root><child/></root>", encoding="utf-8")
+        result = load_xml_file(str(f))
+        assert isinstance(result, etree._Element)
+
+    def test_root_tag(self, tmp_path):
+        """Root tag is accessible."""
+        f = tmp_path / "doc.xml"
+        f.write_text("<usx version='3.0'><book/></usx>", encoding="utf-8")
+        result = load_xml_file(str(f))
+        assert result.tag == "usx"
+
+    def test_xpath_on_result(self, tmp_path):
+        """Returned element supports XPath queries."""
+        f = tmp_path / "doc.xml"
+        f.write_text("<root><verse n='1'>text</verse><verse n='2'>more</verse></root>", encoding="utf-8")
+        root = load_xml_file(str(f))
+        verses = root.xpath("//verse")
+        assert len(verses) == 2
+        assert verses[0].get("n") == "1"
+
+    def test_attributes_accessible(self, tmp_path):
+        """Element attributes are accessible via .get()."""
+        f = tmp_path / "doc.xml"
+        f.write_text("<usx version='3.0'/>", encoding="utf-8")
+        root = load_xml_file(str(f))
+        assert root.get("version") == "3.0"
+
+    def test_namespaced_xml(self, tmp_path):
+        """XML with namespace declarations is parsed correctly."""
+        content = '<tei:TEI xmlns:tei="http://www.tei-c.org/ns/1.0"><tei:body/></tei:TEI>'
+        f = tmp_path / "tei.xml"
+        f.write_text(content, encoding="utf-8")
+        root = load_xml_file(str(f))
+        ns = {"tei": "http://www.tei-c.org/ns/1.0"}
+        assert root.xpath("tei:body", namespaces=ns) is not None
+
+    def test_unicode_content(self, tmp_path):
+        """Unicode text content is preserved."""
+        f = tmp_path / "doc.xml"
+        f.write_text("<root><w>εὐαγγέλιον</w></root>", encoding="utf-8")
+        root = load_xml_file(str(f))
+        assert root.find("w").text == "εὐαγγέλιον"
+
+    def test_malformed_xml_raises(self, tmp_path):
+        """lxml XMLSyntaxError raised for malformed XML."""
+        f = tmp_path / "bad.xml"
+        f.write_text("<root><unclosed>", encoding="utf-8")
+        with pytest.raises(etree.XMLSyntaxError):
+            load_xml_file(str(f))
+
+    def test_missing_file_raises(self, tmp_path):
+        """FileNotFoundError raised for non-existent file."""
+        with pytest.raises(FileNotFoundError):
+            load_xml_file(str(tmp_path / "missing.xml"))

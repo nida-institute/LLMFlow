@@ -164,6 +164,7 @@ Calls a Python function from the Scripture Pipelines library or custom code.
 - `llmflow.utils.data.load_yaml(file_path)` — load and parse a YAML file from disk; safe to use in pipelines
 - `llmflow.utils.data.load_text_file(file_path)` — read a plain-text or Markdown file; returns the full contents as a `str`. Useful for injecting static context into prompts.
 - `llmflow.utils.data.load_csv_file(file_path, delimiter=",")` — read a CSV or TSV (`delimiter="\t"`) file; returns a `list[dict]` compatible with `for-each`
+- `llmflow.utils.data.load_xml_file(file_path)` — parse an XML/USX/TEI file via **lxml**; returns the root `lxml.etree._Element`. Supports XPath/XSLT and full tree traversal. Raises `lxml.etree.XMLSyntaxError` on malformed input.
 - `llmflow.utils.data.parse_bible_reference` — parse Bible references
 - `llmflow.utils.io.render_markdown_template` — render markdown templates
 - `llmflow.utils.io.save_json` — save JSON to file
@@ -172,7 +173,7 @@ Calls a Python function from the Scripture Pipelines library or custom code.
 
 > ⚠️ The module prefix is always `llmflow.utils.*` — never `sp.utils.*`
 
-> ℹ️ There are no built-in loaders for XML or USX. Use a `type: function` step with a custom plugin for those formats.
+> ℹ️ All built-in loaders use **lxml** for XML/USX parsing. There is no stdlib `xml.etree` use in this engine.
 
 **Example with template rendering:**
 ```yaml

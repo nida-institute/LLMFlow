@@ -882,3 +882,34 @@ def load_csv_file(file_path, delimiter=","):
 
     logger.debug(f"Loaded {len(rows)} rows from CSV")
     return rows
+
+
+def load_xml_file(file_path):
+    """
+    Load and parse an XML or USX file using lxml, returning the root element.
+
+    The returned lxml _Element supports XPath, attribute access, and full
+    tree traversal. Use with llmflow.utils.xml.xpath_get() or directly in
+    plugin steps.
+
+    Raises lxml.etree.XMLSyntaxError for malformed XML (not caught — let it
+    surface so pipeline authors see the real parse error).
+
+    Args:
+        file_path: Path to the XML/USX/TEI file
+
+    Returns:
+        lxml.etree._Element: Parsed root element
+    """
+    from lxml import etree
+
+    logger.debug(f"Loading XML file: {file_path}")
+    path = Path(file_path)
+
+    if not path.exists():
+        raise FileNotFoundError(f"XML file not found: {file_path}")
+
+    tree = etree.parse(str(path))
+    root = tree.getroot()
+    logger.debug(f"Loaded XML: root tag <{root.tag}>")
+    return root
