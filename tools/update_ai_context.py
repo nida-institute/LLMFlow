@@ -24,6 +24,7 @@ INDEX_ENTRIES = (
     ("Philosophy & comparisons", "docs/why-llmflow.md", "../why-llmflow.md", "When/why to use LLMFlow vs other frameworks"),
     ("AI persona & tone", "docs/ai-context/rules.md", "rules.md", "Guardrails for assistant responses"),
     ("Moderation handling", "docs/moderation-handling.md", "../moderation-handling.md", "OpenAI Responses blocks, Bible-text mitigation checklist"),
+    ("Versification systems", "Copenhagen Alliance Versification spec", "https://github.com/Copenhagen-Alliance/versification-specification", "Canonical spec for mapping between verse systems (KJV, LXX, Vulgate, etc.); use for any cross-versification pipeline work"),
 )
 
 FOUNDATIONAL_DOCS = (
@@ -72,6 +73,7 @@ RULES = (
     "**When requirements conflict, ask.** Use clarifying questions rather than assuming—especially before large edits.",
     "**Cite files explicitly.** When referencing code/docs, point to `path/file` (and line numbers if known) so humans can verify quickly.",
     "**Stay within policy.** Follow repository security constraints, avoid leaking secrets, and decline harmful requests.",
+    "**Verses are milestones, not units.** In all Scripture pipeline designs, treat verse references as location markers only — never as the basis for structural or semantic decisions. Do not divide scenes, passages, or content blocks by verse count (e.g., 'group into 3-verse units'). Pericope boundaries, scene structure, and semantic cohesion must be determined by narrative/discourse analysis, not by verse numbers. For cross-versification work (mapping between KJV, LXX, Vulgate, etc.) use the Copenhagen Alliance Versification specification (see `index.md` → 'Versification systems').",
 )
 
 LAST_UPDATED_SOURCES = (
