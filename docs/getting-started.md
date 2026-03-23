@@ -125,9 +125,37 @@ sp lint --pipeline pipelines/sample.yaml --json
 
 # Run (auto-lints unless --skip-lint)
 sp run --pipeline pipelines/sample.yaml --var passage="Luke 1:1-4"
+
+# Dry run (skips all LLM calls — useful for testing variable substitution)
+sp run --pipeline pipelines/sample.yaml --var passage="Luke 1:1-4" --dry-run
+
+# Stop after a specific step (useful for debugging mid-pipeline)
+sp run --pipeline pipelines/sample.yaml --stop-after step-name
+
+# Replay from checkpoints up to a step (skips re-running earlier steps)
+sp run --pipeline pipelines/sample.yaml --rewind-to step-name
+
+# Write log to a specific file (default: llmflow.log in cwd)
+sp run --pipeline pipelines/sample.yaml --log /tmp/run.log
+
+# Verbose logging
+sp run --pipeline pipelines/sample.yaml -v
 ```
 
 Add --skip-lint to bypass validation.
+
+### `llmflow run` flag reference
+
+| Flag | Description |
+|------|-------------|
+| `--pipeline PATH` | Path to the pipeline YAML (required) |
+| `--var KEY=VALUE` | Set a pipeline variable; repeatable |
+| `--dry-run` | Parse and validate without making LLM calls |
+| `--skip-lint` | Skip linting before execution |
+| `-v` / `--verbose` | Verbose logging |
+| `--log PATH` | Write logs to this file (default: `llmflow.log` in cwd) |
+| `--rewind-to STEP` | Replay checkpointed steps up to and including STEP, then continue |
+| `--stop-after STEP` | Stop execution after STEP completes |
 
 List pipelines (if implemented):
 
