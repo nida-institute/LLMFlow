@@ -14,5 +14,6 @@ Use this map to decide which reference to consult when answering questions.
 | AI persona & tone | [docs/ai-context/rules.md](rules.md) | Guardrails for assistant responses |
 | Moderation handling | [docs/moderation-handling.md](../moderation-handling.md) | OpenAI Responses blocks, Bible-text mitigation checklist |
 | Versification systems | [Copenhagen Alliance Versification spec](https://github.com/Copenhagen-Alliance/versification-specification) | Canonical spec for mapping between verse systems (KJV, LXX, Vulgate, etc.); derived from Paratext .vrs files, which are semantically compatible; use for any cross-versification pipeline work |
+| Biblical datasets & access patterns | [docs/ai-context/data-sources.md](data-sources.md) | `sp download-data` catalog (Macula Greek/Hebrew, Berean USX), default data dir, pipeline variable patterns, `load_csv_file`/`load_xml_file` usage, versification |
 
 When an AI assistant needs more detail, direct it to the appropriate file above instead of paraphrasing from memory. This keeps answers aligned with the single source of truth.
