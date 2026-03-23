@@ -238,4 +238,4 @@ See LICENSE for full terms.
 - Introduce `for-each` for multi-scene or lexicon entries.
 - Prepare for MCP integration (context/tool exposure).
 
-​	
+​
