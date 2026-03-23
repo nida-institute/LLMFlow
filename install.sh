@@ -67,7 +67,8 @@ fi
 DOWNLOAD_URL="$(echo "$RELEASE_JSON" \
   | grep -o '"browser_download_url": *"[^"]*'"$ASSET"'[^"]*"' \
   | head -1 \
-  | sed 's/.*"browser_download_url": *"\([^"]*\)".*/\1/')"
+  | sed 's/.*"browser_download_url": *"\([^"]*\)".*/\1/' \
+  || true)"
 
 if [[ -z "$DOWNLOAD_URL" ]]; then
   echo "❌ Could not find asset '${ASSET}' in the latest release." >&2
@@ -78,7 +79,8 @@ fi
 VERSION="$(echo "$RELEASE_JSON" \
   | grep -o '"tag_name": *"[^"]*"' \
   | head -1 \
-  | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')"
+  | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/' \
+  || true)"
 
 echo "⬇️  Downloading Scripture Pipelines ${VERSION} (${ASSET})..."
 
