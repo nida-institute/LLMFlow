@@ -1,6 +1,6 @@
-# ⚙️ Getting Started with LLMFlow
+# ⚙️ Getting Started with Scripture Pipelines
 
-LLMFlow is a declarative pipeline runner for LLM-assisted content generation. Install it once, use it across multiple resource repositories (lexicons, guides, exegetical notes). Resource repos contain domain pipelines, prompts, and edited outputs; this repo provides the engine.
+Scripture Pipelines is a declarative pipeline runner for LLM-assisted content generation. Install it once, use it across multiple resource repositories (lexicons, guides, exegetical notes). Resource repos contain domain pipelines, prompts, and edited outputs; this repo provides the engine.
 
 ---
 
@@ -19,8 +19,8 @@ LLMFlow is a declarative pipeline runner for LLM-assisted content generation. In
 git clone https://github.com/nida-institute/LLMFlow.git
 cd LLMFlow
 pip install -e .
-llmflow --version
-llmflow --help
+sp --version
+sp --help
 ```
 
 For contributors using Hatch:
@@ -59,10 +59,10 @@ templates/
 outputs/        # Generated + human-edited
 ```
 
-Install LLMFlow once, then inside any resource repo:
+Install Scripture Pipelines once, then inside any resource repo:
 
 ```bash
-llmflow run --pipeline pipelines/your-pipeline.yaml --var passage="Psalm 23"
+sp run --pipeline pipelines/your-pipeline.yaml --var passage="Psalm 23"
 ```
 
 ---
@@ -118,21 +118,49 @@ Linter enforces required inputs via `prompt.inputs` in the pipeline step.
 
 ```bash
 # Lint only (new command)
-llmflow lint --pipeline pipelines/sample.yaml
+sp lint --pipeline pipelines/sample.yaml
 
 # Lint with JSON output
-llmflow lint --pipeline pipelines/sample.yaml --json
+sp lint --pipeline pipelines/sample.yaml --json
 
 # Run (auto-lints unless --skip-lint)
-llmflow run --pipeline pipelines/sample.yaml --var passage="Luke 1:1-4"
+sp run --pipeline pipelines/sample.yaml --var passage="Luke 1:1-4"
+
+# Dry run (skips all LLM calls — useful for testing variable substitution)
+sp run --pipeline pipelines/sample.yaml --var passage="Luke 1:1-4" --dry-run
+
+# Stop after a specific step (useful for debugging mid-pipeline)
+sp run --pipeline pipelines/sample.yaml --stop-after step-name
+
+# Replay from checkpoints up to a step (skips re-running earlier steps)
+sp run --pipeline pipelines/sample.yaml --rewind-to step-name
+
+# Write log to a specific file (default: llmflow.log in cwd)
+sp run --pipeline pipelines/sample.yaml --log /tmp/run.log
+
+# Verbose logging
+sp run --pipeline pipelines/sample.yaml -v
 ```
 
 Add --skip-lint to bypass validation.
 
+### `llmflow run` flag reference
+
+| Flag | Description |
+|------|-------------|
+| `--pipeline PATH` | Path to the pipeline YAML (required) |
+| `--var KEY=VALUE` | Set a pipeline variable; repeatable |
+| `--dry-run` | Parse and validate without making LLM calls |
+| `--skip-lint` | Skip linting before execution |
+| `-v` / `--verbose` | Verbose logging |
+| `--log PATH` | Write logs to this file (default: `llmflow.log` in cwd) |
+| `--rewind-to STEP` | Replay checkpointed steps up to and including STEP, then continue |
+| `--stop-after STEP` | Stop execution after STEP completes |
+
 List pipelines (if implemented):
 
 ```bash
-llmflow list
+sp list
 ```
 
 ---
@@ -166,9 +194,9 @@ Function step:
 
 ## 9. Multi-Repo Workflow
 
-1. Keep engine updated (`git pull` in LLMFlow).
+1. Keep engine updated (`git pull` in scripture-pipelines).
 2. Edit domain pipelines/prompts in resource repos.
-3. Generate outputs (`llmflow run ...`).
+3. Generate outputs (`sp run ...`).
 4. Human edits outputs → commit changes.
 5. Regenerate selective steps as needed.
 
@@ -210,4 +238,4 @@ See LICENSE for full terms.
 - Introduce `for-each` for multi-scene or lexicon entries.
 - Prepare for MCP integration (context/tool exposure).
 
-​	
+​

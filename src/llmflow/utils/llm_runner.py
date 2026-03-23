@@ -290,11 +290,15 @@ def call_llm(prompt: str, config: Dict[str, Any], output_type: str = "text"):
 
     # Handle response type
     if output_type.lower() == "json":
-        return parse_llm_json_response(response)
+        content = response["content"] if isinstance(response, dict) else response
+        parsed = parse_llm_json_response(content)
+        if isinstance(response, dict):
+            return {"content": parsed, "usage": response.get("usage", {})}
+        return parsed
     return response
 
 
-def _call_model(model, prompt: str, config: Dict[str, Any]) -> str:
+def _call_model(model, prompt: str, config: Dict[str, Any]) -> dict:
     """Internal helper to call the model."""
     model_name = config.get("model")
 
@@ -322,7 +326,23 @@ def _call_model(model, prompt: str, config: Dict[str, Any]) -> str:
     response = model.prompt(prompt, **options)
     raw_response = response.text()
     cleaned_response = clean_llm_response_text(raw_response)
-    return cleaned_response
+
+    # Capture token usage from the llm package Response object
+    try:
+        usage_obj = response.usage
+        prompt_tokens = int(usage_obj.input or 0)
+        completion_tokens = int(usage_obj.output or 0)
+    except Exception:
+        prompt_tokens, completion_tokens = 0, 0
+
+    return {
+        "content": cleaned_response,
+        "usage": {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": prompt_tokens + completion_tokens,
+        },
+    }
 
 
 # ============================================================================

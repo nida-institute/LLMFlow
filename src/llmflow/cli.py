@@ -1,5 +1,6 @@
 import sys
 import signal
+from pathlib import Path
 
 logger = None  # Initialized after Logger singleton is available
 
@@ -100,6 +101,7 @@ def build_parser():
     )
 
     subparsers.add_parser("models", help="List available models by provider")
+    subparsers.add_parser("update-ai-context", help="Regenerate docs/ai-context/ helper files for AI assistants")
 
     # Standard --version flag (e.g. used by CI smoke tests: llmflow --version)
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -203,6 +205,15 @@ def main(argv=None):
     if args.command == "models":
         from llmflow.setup_command import run_models
         run_models()
+        return
+
+    if args.command == "update-ai-context":
+        import importlib.util
+        _script = Path(__file__).resolve().parents[2] / "tools" / "update_ai_context.py"
+        spec = importlib.util.spec_from_file_location("update_ai_context", _script)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        mod.main()
         return
 
     if args.command == "run":

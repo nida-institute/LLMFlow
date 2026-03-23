@@ -12,8 +12,12 @@
 - When making changes, verify these files exist in the current repository root
 
 **Architecture Reference:**
-- Consult `index.json` in the repository root for code architecture and module structure
+- Consult `docs/index.json` for code architecture and module structure
 - Use it to understand component relationships and dependencies before making changes
+
+**AI Assistant Reference — START HERE:**
+- `docs/ai-context/index.md` maps every topic to the right file. **Read it first** before answering questions or making changes.
+- Key areas covered: CLI/YAML grammar, architecture, moderation handling, guardrails, biblical dataset catalog.
 
 ## Python Environment
 

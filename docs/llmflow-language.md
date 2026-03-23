@@ -1,6 +1,6 @@
-# 📘 LLMFlow Language Specification
+# 📘 Scripture Pipelines Language Specification
 
-An **LLMFlow** is a YAML file that describes a pipeline of steps to be executed using LLM prompts, variable substitution, iteration, and file output.
+An **Scripture Pipelines** is a YAML file that describes a pipeline of steps to be executed using LLM prompts, variable substitution, iteration, and file output.
 
 ## 🧩 Structure
 
@@ -134,7 +134,7 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
 
 ### type: `function`
 
-Calls a Python function from the LLMFlow library or custom code.
+Calls a Python function from the Scripture Pipelines library or custom code.
 
 ```yaml
 - name: parse_passage_reference
@@ -158,11 +158,22 @@ Calls a Python function from the LLMFlow library or custom code.
 - `log`: Log level for this step
 
 **Common functions:**
-- `llmflow.utils.data.parse_bible_reference` - Parse Bible references
-- `llmflow.utils.io.render_markdown_template` - Render markdown templates
-- `llmflow.utils.io.save_json` - Save JSON to file
-- `llmflow.utils.data.flatten_json_to_markdown` - Convert JSON to markdown
-- `llmflow.utils.data.identity` - Pass through data unchanged
+- `llmflow.utils.data.load_json_file(file_path)` — load and parse a JSON file from disk; raises `FileNotFoundError` if missing
+- `llmflow.utils.data.load_json(file_path)` — alias for `load_json_file` in the data module
+- `llmflow.utils.io.load_json(file_path)` — load JSON; same behaviour, different module (prefer `data.load_json_file` for new pipelines)
+- `llmflow.utils.data.load_yaml(file_path)` — load and parse a YAML file from disk; safe to use in pipelines
+- `llmflow.utils.data.load_text_file(file_path)` — read a plain-text or Markdown file; returns the full contents as a `str`. Useful for injecting static context into prompts.
+- `llmflow.utils.data.load_csv_file(file_path, delimiter=",")` — read a CSV or TSV (`delimiter="\t"`) file; returns a `list[dict]` compatible with `for-each`
+- `llmflow.utils.data.load_xml_file(file_path)` — parse an XML/USX/TEI file via **lxml**; returns the root `lxml.etree._Element`. Supports XPath/XSLT and full tree traversal. Raises `lxml.etree.XMLSyntaxError` on malformed input.
+- `llmflow.utils.data.parse_bible_reference` — parse Bible references
+- `llmflow.utils.io.render_markdown_template` — render markdown templates
+- `llmflow.utils.io.save_json` — save JSON to file
+- `llmflow.utils.data.flatten_json_to_markdown` — convert JSON to markdown
+- `llmflow.utils.data.identity` — pass through data unchanged
+
+> ⚠️ The module prefix is always `llmflow.utils.*` — never `sp.utils.*`
+
+> ℹ️ All built-in loaders use **lxml** for XML/USX parsing. There is no stdlib `xml.etree` use in this engine.
 
 **Example with template rendering:**
 ```yaml
@@ -287,7 +298,7 @@ variables:
 
 2. **Via command line:**
 ```bash
-llmflow run --pipeline pipeline.yaml --var passage="Psalm 23"
+sp run --pipeline pipeline.yaml --var passage="Psalm 23"
 ```
 
 3. **From step outputs:**
@@ -451,24 +462,34 @@ steps:
 
 ### Run a pipeline
 ```bash
-llmflow run --pipeline pipelines/storyflow-psalms.yaml --var passage="Psalm 23"
+sp run --pipeline pipelines/storyflow-psalms.yaml --var passage="Psalm 23"
 ```
 
 ### Dry run (preview without execution)
 ```bash
-llmflow run --pipeline pipelines/storyflow-psalms.yaml --dry-run
+sp run --pipeline pipelines/storyflow-psalms.yaml --dry-run
 ```
 
 ### Set multiple variables
 ```bash
-llmflow run --pipeline pipelines/my-pipeline.yaml \
+sp run --pipeline pipelines/my-pipeline.yaml \
   --var passage="Mark 1:1-8" \
   --var source="WLC"
 ```
 
 ### Skip linting
 ```bash
-llmflow run --pipeline pipelines/my-pipeline.yaml --skip-lint
+sp run --pipeline pipelines/my-pipeline.yaml --skip-lint
+```
+
+### Write logs to a specific file
+
+By default logs go to `llmflow.log` in the current directory. Use `--log` to redirect — useful when running multiple pipelines concurrently in separate terminals.
+
+```bash
+sp run --pipeline pipelines/rd-ears2hear.yaml \
+  --var passage="Psalm 23" \
+  --log outputs/debug/psalm23-run.log
 ```
 
 ### Rewind to a step (replay from saved artifacts)
@@ -478,7 +499,7 @@ llmflow run --pipeline pipelines/my-pipeline.yaml --skip-lint
 ```bash
 # Re-run everything after `generate_discourse_outline`, loading that step and
 # all earlier steps from their saved artifacts instead of calling the LLM.
-llmflow run --pipeline pipelines/discourse-flow.yaml \
+sp run --pipeline pipelines/discourse-flow.yaml \
   --var passage="Mark 11:12-25" \
   --rewind-to generate_discourse_outline
 ```
@@ -489,7 +510,7 @@ llmflow run --pipeline pipelines/discourse-flow.yaml \
 - The `saveas` path must be fully resolvable (no unresolved `${...}` variables).
 - Steps that use `append_to:` are not rewindable.
 
-If the saved file is missing LLMFlow raises a clear error rather than silently re-running.
+If the saved file is missing Scripture Pipelines raises a clear error rather than silently re-running.
 
 ### Stop after a step
 
@@ -498,7 +519,7 @@ If the saved file is missing LLMFlow raises a clear error rather than silently r
 ```bash
 # Replay up through enrich_passage from disk, re-run generate_discourse_outline,
 # then stop — useful to inspect the outline before continuing.
-llmflow run --pipeline pipelines/discourse-flow.yaml \
+sp run --pipeline pipelines/discourse-flow.yaml \
   --var passage="Mark 11:12-25" \
   --rewind-to enrich_passage \
   --stop-after generate_discourse_outline
@@ -506,19 +527,19 @@ llmflow run --pipeline pipelines/discourse-flow.yaml \
 
 ### Validate a pipeline
 ```bash
-llmflow lint pipelines/my-pipeline.yaml
+sp lint pipelines/my-pipeline.yaml
 ```
 
 ### Show version
 ```bash
-llmflow --version
+sp --version
 ```
 
 ---
 
 ## 🤖 LLM Configuration
 
-LLMFlow uses the [`llm` package](https://llm.datasette.io/) by Simon Willison, which supports multiple LLM providers through plugins.
+Scripture Pipelines uses the [`llm` package](https://llm.datasette.io/) by Simon Willison, which supports multiple LLM providers through plugins.
 
 ### Install LLM Package and Providers
 
@@ -569,7 +590,7 @@ The `lint` command validates:
 - Variable references
 
 ```bash
-llmflow lint pipelines/my-pipeline.yaml
+sp lint pipelines/my-pipeline.yaml
 ```
 
 Configure linting behavior in your pipeline:
@@ -649,7 +670,7 @@ In pipeline YAML files:
 
 ### Template Engine Implementation
 
-LLMFlow uses a **custom template engine** with regex-based substitution:
+Scripture Pipelines uses a **custom template engine** with regex-based substitution:
 - In prompt and template files, `{{variable}}` placeholders are
   replaced using values from the current context.
 - In pipeline YAML, `${variable}` expressions are resolved when

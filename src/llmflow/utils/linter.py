@@ -70,6 +70,12 @@ _EXTRA_STEP_KEYS = {
     "group_by_prefix",
     "limit",
     "variables",
+    # basex step keys
+    "database",
+    "query",
+    "query_file",
+    "params",
+    "timeout",
 }
 
 ALLOWED_STEP_KEYS = _SCHEMA_STEP_KEYS | _EXTRA_STEP_KEYS
@@ -254,6 +260,13 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
                         f"❌ Step '{step_name}': append_to: {append_to_value} requires 'outputs' to be specified"
                     )
                 continue
+
+        # Validate basex step required fields
+        if step_type == "basex":
+            if not step.get("database"):
+                errors.append(f"❌ Step '{step_name}': basex step requires 'database'")
+            if not step.get("query") and not step.get("query_file"):
+                errors.append(f"❌ Step '{step_name}': basex step requires 'query' or 'query_file'")
 
         # Only validate contracts for LLM steps
         if step_type == "llm":

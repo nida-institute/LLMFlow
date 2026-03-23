@@ -828,3 +828,88 @@ def echo_file_path(message):
     """
     print(message)
     return message
+
+
+def load_text_file(file_path):
+    """
+    Load a plain-text or Markdown file and return its contents as a string.
+
+    Useful for injecting static context (e.g. a Markdown prompt fragment,
+    a template, or a reference document) into a pipeline step.
+
+    Args:
+        file_path: Path to the text file (.txt, .md, or any plain-text format)
+
+    Returns:
+        str: Full file contents as a Unicode string
+    """
+    logger.debug(f"Loading text file: {file_path}")
+    path = Path(file_path)
+
+    if not path.exists():
+        raise FileNotFoundError(f"Text file not found: {file_path}")
+
+    content = path.read_text(encoding="utf-8")
+    logger.debug(f"Loaded text file ({len(content)} chars)")
+    return content
+
+
+def load_csv_file(file_path, delimiter=","):
+    """
+    Load a CSV (or TSV) file and return the rows as a list of dicts.
+
+    Each row is a dict keyed by the header row. Values are always strings —
+    convert them downstream if you need numbers. Compatible with `for-each`.
+
+    Args:
+        file_path: Path to the CSV/TSV file
+        delimiter: Field delimiter (default: ','; use '\\t' for TSV)
+
+    Returns:
+        list[dict]: One dict per data row; empty list if the file has no data rows
+    """
+    import csv as _csv
+
+    logger.debug(f"Loading CSV file: {file_path} (delimiter={repr(delimiter)})")
+    path = Path(file_path)
+
+    if not path.exists():
+        raise FileNotFoundError(f"CSV file not found: {file_path}")
+
+    with open(path, "r", encoding="utf-8", newline="") as f:
+        reader = _csv.DictReader(f, delimiter=delimiter)
+        rows = list(reader)
+
+    logger.debug(f"Loaded {len(rows)} rows from CSV")
+    return rows
+
+
+def load_xml_file(file_path):
+    """
+    Load and parse an XML or USX file using lxml, returning the root element.
+
+    The returned lxml _Element supports XPath, attribute access, and full
+    tree traversal. Use with llmflow.utils.xml.xpath_get() or directly in
+    plugin steps.
+
+    Raises lxml.etree.XMLSyntaxError for malformed XML (not caught — let it
+    surface so pipeline authors see the real parse error).
+
+    Args:
+        file_path: Path to the XML/USX/TEI file
+
+    Returns:
+        lxml.etree._Element: Parsed root element
+    """
+    from lxml import etree
+
+    logger.debug(f"Loading XML file: {file_path}")
+    path = Path(file_path)
+
+    if not path.exists():
+        raise FileNotFoundError(f"XML file not found: {file_path}")
+
+    tree = etree.parse(str(path))
+    root = tree.getroot()
+    logger.debug(f"Loaded XML: root tag <{root.tag}>")
+    return root

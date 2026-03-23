@@ -38,6 +38,7 @@ def execute(step_config) -> Iterator[Row]:
             - inputs: Dict with:
                 - path: Path to file (can use 'from' as alias)
                 - limit: Optional max rows to read
+                - offset: Optional number of rows to skip (default: 0)
                 - delimiter: Optional delimiter (default: tab)
 
     Yields:
@@ -58,15 +59,20 @@ def execute(step_config) -> Iterator[Row]:
         raise FileNotFoundError(f"TSV file not found: {path}")
 
     limit = config.get("limit")
+    offset = int(config.get("offset", 0))
     delimiter = config.get("delimiter", "\t")
 
     with open(path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter=delimiter)
 
+        yielded = 0
         for i, row_dict in enumerate(reader):
-            if limit and i >= limit:
+            if i < offset:
+                continue
+            if limit and yielded >= int(limit):
                 break
             yield Row(row_dict)
+            yielded += 1
 
 
 def register():

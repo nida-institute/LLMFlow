@@ -1,6 +1,6 @@
-# LLMFlow
+# Scripture Pipelines
 
-**LLMFlow** is a declarative pipeline system for building workflows powered by large language models (LLMs). It allows you to structure and automate prompts, responses, and output generation across a series of steps — with optional scene-based iteration, variable injection, and file generation.
+**Scripture Pipelines** is a declarative pipeline system for building workflows powered by large language models (LLMs). It allows you to structure and automate prompts, responses, and output generation across a series of steps — with optional scene-based iteration, variable injection, and file generation.
 
 ## Installation
 
@@ -17,8 +17,8 @@ irm https://raw.githubusercontent.com/nida-institute/LLMFlow/main/install.ps1 | 
 Then configure your API key:
 
 ```bash
-llmflow setup        # choose OpenAI, Anthropic, or Google Gemini
-llmflow models       # see available models and which keys are configured
+sp setup        # choose OpenAI, Anthropic, or Google Gemini
+sp models       # see available models and which keys are configured
 ```
 
 See [INSTALL.md](INSTALL.md) for manual install steps and Gatekeeper/SmartScreen notes.
@@ -31,7 +31,7 @@ See [INSTALL.md](INSTALL.md) for manual install steps and Gatekeeper/SmartScreen
 pip install llmflow
 ```
 
-LLMFlow uses the [`llm`](https://llm.datasette.io/) package to call language models. By default it supports OpenAI. To use other providers, install the corresponding plugin:
+Scripture Pipelines uses the [`llm`](https://llm.datasette.io/) package to call language models. By default it supports OpenAI. To use other providers, install the corresponding plugin:
 
 ```bash
 pip install llm-anthropic   # Anthropic Claude
@@ -59,16 +59,16 @@ steps:
     # model: ollama/llama3              # Local via Ollama
 ```
 
-Run `llmflow models` to see all available models and which keys you have configured.
+Run `sp models` to see all available models and which keys you have configured.
 
-### Install LLMFlow as a Command-Line Tool
+### Install Scripture Pipelines as a Command-Line Tool
 
-LLMFlow is designed to work across multiple independent projects. Install it once, use it everywhere.
+Scripture Pipelines is designed to work across multiple independent projects. Install it once, use it everywhere.
 
 #### Development Installation (Recommended)
 
 ```bash
-# Clone the LLMFlow repository
+# Clone the Scripture Pipelines repository
 git clone https://github.com/nida-institute/LLMFlow.git
 cd LLMFlow
 
@@ -76,8 +76,8 @@ cd LLMFlow
 pip install -e .
 
 # Verify installation
-llmflow --version
-llmflow --help
+sp --version
+sp --help
 ```
 
 #### Using Hatch (For Contributors)
@@ -89,26 +89,26 @@ pip install hatch
 # Enter the development environment
 hatch shell
 
-# LLMFlow is now available
-llmflow --version
+# Scripture Pipelines is now available
+sp --version
 ```
 
 ### Working with Multiple Projects
 
-Once installed, `llmflow` works seamlessly across different project repositories:
+Once installed, `sp` works seamlessly across different project repositories:
 
 ```bash
 # Lexicon project
 cd ~/github/biblical-lexicon
-llmflow run --pipeline pipelines/lexicon-generation.yaml
+sp run --pipeline pipelines/lexicon-generation.yaml
 
 # Exegetical guides project
 cd ~/github/exegetical-guides
-llmflow run --pipeline pipelines/storyflow.yaml
+sp run --pipeline pipelines/storyflow.yaml
 
 # Translation notes project
 cd ~/github/translation-notes
-llmflow run --pipeline pipelines/note-generation.yaml
+sp run --pipeline pipelines/note-generation.yaml
 ```
 
 Each project repository maintains its own:
@@ -144,8 +144,8 @@ your-project-repo/
 
 ```bash
 # Create a new project repository
-mkdir ~/github/my-new-llmflow-project
-cd ~/github/my-new-llmflow-project
+mkdir ~/github/my-new-sp-project
+cd ~/github/my-new-sp-project
 git init
 
 # Create the basic structure
@@ -167,7 +167,7 @@ __pycache__/
 
 # Logs
 *.log
-llmflow.log
+sp.log
 EOF
 
 # Create your first pipeline
@@ -183,29 +183,29 @@ steps:
 EOF
 
 # Run your pipeline
-llmflow run --pipeline pipelines/example.yaml
+sp run --pipeline pipelines/example.yaml
 ```
 
 ### Available Commands
 
 ```bash
 # Run a pipeline
-llmflow run --pipeline pipelines/your-pipeline.yaml
+sp run --pipeline pipelines/your-pipeline.yaml
 
 # Dry run (preview without execution)
-llmflow run --pipeline pipelines/your-pipeline.yaml --dry-run
+sp run --pipeline pipelines/your-pipeline.yaml --dry-run
 
 # Validate a pipeline
-llmflow lint pipelines/your-pipeline.yaml
+sp lint pipelines/your-pipeline.yaml
 
 # Set variables from command line
-llmflow run --pipeline pipelines/your-pipeline.yaml --var key=value
+sp run --pipeline pipelines/your-pipeline.yaml --var key=value
 
 # Show version
-llmflow --version
+sp --version
 
 # Get help
-llmflow --help
+sp --help
 ```
 
 ### Example Projects
@@ -262,9 +262,9 @@ Here are some example project types and their typical structures:
 
 ### Tips for Multi-Project Workflow
 
-1. **Keep LLMFlow Updated**: Periodically update your LLMFlow installation:
+1. **Keep Scripture Pipelines Updated**: Periodically update your Scripture Pipelines installation:
    ```bash
-   cd ~/github/LLMFlow
+   cd ~/github/scripture-pipelines
    git pull
    pip install -e .
    ```
@@ -287,7 +287,7 @@ Here are some example project types and their typical structures:
 
 ## 🤖 Working with AI Assistants (GitHub Copilot, Claude, ChatGPT)
 
-**Important:** When asking for help with LLMFlow pipelines, reference [`docs/GPT_CONTEXT.md`](docs/GPT_CONTEXT.md)
+**Important:** When asking for help with Scripture Pipelines pipelines, reference [`docs/GPT_CONTEXT.md`](docs/GPT_CONTEXT.md)
 
 This file contains comprehensive documentation about:
 - Pipeline structure and syntax

@@ -394,7 +394,7 @@ class TestCallModelInternal:
 
         result = _call_model(mock_model, "test prompt", config)
 
-        assert result == "cleaned response"
+        assert result["content"] == "cleaned response"
         # Check that only valid params were passed
         call_kwargs = mock_model.prompt.call_args[1]
         assert "temperature" in call_kwargs
@@ -413,7 +413,7 @@ class TestCallModelInternal:
 
         result = _call_model(mock_model, "prompt", {})
 
-        assert result == "{}"
+        assert result["content"] == "{}"
         mock_clean.assert_called_once_with("```json\n{}\n```")
 
     @patch("llmflow.utils.llm_runner.clean_llm_response_text")
@@ -459,10 +459,49 @@ class TestCallModelInternal:
 
         result = _call_model(mock_model, "prompt", {})
 
-        assert result == "response"
+        assert result["content"] == "response"
         # Should be called with no kwargs
         call_kwargs = mock_model.prompt.call_args[1]
         assert call_kwargs == {}
+
+    @patch("llmflow.utils.llm_runner.clean_llm_response_text")
+    def test_call_model_returns_usage_dict(self, mock_clean):
+        """_call_model should return a dict with content and usage keys."""
+        mock_model = Mock()
+        mock_response = Mock()
+        mock_response.text.return_value = "raw response"
+        mock_model.prompt.return_value = mock_response
+        mock_clean.return_value = "cleaned response"
+
+        # Simulate llm package Usage object with token counts
+        mock_usage = Mock()
+        mock_usage.input = 100
+        mock_usage.output = 50
+        mock_response.usage = mock_usage
+
+        result = _call_model(mock_model, "prompt", {"model": "gpt-4o"})
+
+        assert isinstance(result, dict)
+        assert result["content"] == "cleaned response"
+        assert result["usage"]["prompt_tokens"] == 100
+        assert result["usage"]["completion_tokens"] == 50
+        assert result["usage"]["total_tokens"] == 150
+
+    @patch("llmflow.utils.llm_runner.clean_llm_response_text")
+    def test_call_model_usage_falls_back_to_zero_on_error(self, mock_clean):
+        """If the llm package does not expose usage, tokens default to 0."""
+        mock_model = Mock()
+        mock_response = Mock()
+        mock_response.text.return_value = "response"
+        mock_response.usage = Mock(side_effect=Exception("no usage"))
+        mock_model.prompt.return_value = mock_response
+        mock_clean.return_value = "response"
+
+        result = _call_model(mock_model, "prompt", {})
+
+        assert result["content"] == "response"
+        assert result["usage"]["prompt_tokens"] == 0
+        assert result["usage"]["completion_tokens"] == 0
 
 
 # ============================================================================
@@ -564,14 +603,14 @@ class TestResponsesAPITimeout:
         with patch("openai.OpenAI") as mock_openai_class:
             mock_client = Mock()
             mock_openai_class.return_value = mock_client
-            
+
             # Track the timeout value passed to create()
             create_called_with_timeout = None
             def capture_create(**kwargs):
                 nonlocal create_called_with_timeout
                 create_called_with_timeout = kwargs.get("timeout")
                 return mock_response
-            
+
             mock_client.responses.create = capture_create
 
             config = {
@@ -620,14 +659,14 @@ class TestResponsesAPITimeout:
         with patch("openai.OpenAI") as mock_openai_class:
             mock_client = Mock()
             mock_openai_class.return_value = mock_client
-            
+
             # Track the timeout value passed to create()
             create_called_with_timeout = None
             def capture_create(**kwargs):
                 nonlocal create_called_with_timeout
                 create_called_with_timeout = kwargs.get("timeout")
                 return mock_response
-            
+
             mock_client.responses.create = capture_create
 
             config = {
