@@ -103,6 +103,12 @@ def build_parser():
     subparsers.add_parser("models", help="List available models by provider")
     subparsers.add_parser("update-ai-context", help="Regenerate docs/ai-context/ helper files for AI assistants")
 
+    # download-data command
+    dl_p = subparsers.add_parser("download-data", help="Download biblical reference datasets")
+    dl_p.add_argument("dataset", nargs="?", default=None, help="Dataset name (e.g. macula-greek)")
+    dl_p.add_argument("--list", action="store_true", help="List available datasets")
+    dl_p.add_argument("--dest", default=None, help="Download destination (default: ~/.sp/data/)")
+
     # Standard --version flag (e.g. used by CI smoke tests: llmflow --version)
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
@@ -214,6 +220,15 @@ def main(argv=None):
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         mod.main()
+        return
+
+    if args.command == "download-data":
+        from llmflow.download_data import run_download_data
+        run_download_data(
+            dataset=args.dataset,
+            dest=args.dest,
+            list_only=args.list,
+        )
         return
 
     if args.command == "run":
