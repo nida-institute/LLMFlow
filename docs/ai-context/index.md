@@ -8,7 +8,7 @@ Use this map to decide which reference to consult when answering questions.
 | Installation & binaries | [INSTALL.md](../../INSTALL.md) | Standalone executables, Gatekeeper/SmartScreen steps |
 | Quickstart walkthrough | [docs/tutorial.md](../tutorial.md) | `llmflow init`, greeting pipeline, multi-step example |
 | Engine setup & CLI basics | [docs/getting-started.md](../getting-started.md) | Env vars, linting, resource repo pattern |
-| YAML grammar & step types | [docs/llmflow-language.md](../llmflow-language.md) | `llm` / `function` / `for-each`, variables, `append_to` |
+| YAML grammar & step types | [docs/llmflow-language.md](../llmflow-language.md) | Full schema for every step type: `llm`, `function`, `for-each`, `if`, `save`, `basex`, `plugin`; `outputs`, `saveas`, `append_to` mechanics |
 | Architecture & modules | [docs/architecture.md](../architecture.md) | CLI, runner, linter, telemetry, plugin hooks |
 | Philosophy & comparisons | [docs/why-llmflow.md](../why-llmflow.md) | When/why to use LLMFlow vs other frameworks |
 | AI persona & tone | [docs/ai-context/rules.md](rules.md) | Guardrails for assistant responses |

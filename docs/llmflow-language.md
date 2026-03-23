@@ -284,6 +284,99 @@ The `condition:` is evaluated in the shared `run_step()` dispatcher. If false th
 
 ---
 
+### type: `save`
+
+Writes content directly to a file. No LLM call, no Python function — just a write.
+
+```yaml
+- name: write-result
+  type: save
+  content: "${my_variable}"        # required — supports ${var} resolution
+  path: "outputs/result.md"       # required — supports ${var} substitution
+```
+
+**Required Fields:**
+- `content`: The value to write. Supports `${variable}` references. If omitted, falls back to `context["content"]`.
+- `path`: Output file path. Parent directories are created automatically.
+
+**Format auto-detection:**
+- `.json` paths: Python dicts/lists are serialized with 2-space indentation; JSON strings are re-serialized for consistent formatting.
+- `.md` paths: `clean_markdown()` normalization is applied and a trailing newline is added.
+- All other extensions: written as-is.
+
+---
+
+### type: `basex`
+
+Runs an XQuery against a local BaseX database via the `basex` CLI.
+
+```yaml
+- name: query-verses
+  type: basex
+  query_file: queries/get-passage.xq  # path to .xq file
+  # query: "for $v in //verse return $v"  # alternative: inline XQuery
+  params:                               # optional — resolved and substituted into query
+    passage: "${passage}"
+    source: "${source}"
+  timeout: 120                          # optional, seconds (default: 120)
+  outputs: query_result
+  saveas: "outputs/passages/${passage}.json"
+```
+
+**Required Fields:**
+- `query_file` **or** `query` (exactly one)
+- `outputs`: Variable name to store the result
+
+**Optional Fields:**
+- `params`: Key-value pairs resolved from pipeline context, then substituted into the query via Python `str.format_map`.
+- `timeout`: Seconds before the BaseX process is killed (default 120).
+- `saveas`: File path to save the output (supports `${var}` substitution).
+
+**Prerequisites:** The `basex` executable must be on `PATH` with a running BaseX instance.
+
+---
+
+### type: `plugin` (registered step types)
+
+Built-in plugins are invoked by using their registration name as the step `type`. The step type itself _is_ the plugin name.
+
+**Built-in plugins:**
+
+| Step type | Purpose |
+|---|---|
+| `xpath` | Extract elements/text/attributes from XML files using XPath expressions |
+| `tsv` | Read TSV or CSV files row by row into the pipeline context |
+| `xslt` | Apply an XSLT stylesheet to an XML file |
+
+**`xpath` example:**
+```yaml
+- name: extract-verses
+  type: xpath
+  inputs:
+    path: "${xml_file}"
+    xpath: "//verse"
+    output_format: text        # text | xml_string | attribute
+  outputs: verse_list
+```
+
+**`tsv` example:**
+```yaml
+- name: load-terms
+  type: tsv
+  inputs:
+    path: "data/terms.tsv"
+    delimiter: "\t"            # optional, default "\t"
+    limit: 100                 # optional — stop after N rows
+    from: 10                   # optional — start at row N (0-indexed)
+  outputs: term_rows
+```
+
+**How plugin steps work:**
+- All fields on the step are resolved via `${var}` and passed as a flat config dict to the plugin function.
+- The return value is handled by the normal `outputs:` / `saveas:` / `append_to:` mechanics.
+
+---
+
 ## 🔁 Variables
 
 ### Defining Variables
@@ -326,26 +419,71 @@ sp run --pipeline pipeline.yaml --var passage="Psalm 23"
 
 ## 💾 Saving Outputs
 
-### `saveas:` field
+### `outputs:` — storing results in context
 
-Any `llm` or `function` step can save its output to a file:
+`outputs` controls what variable name(s) the step result is stored under in the pipeline context.
 
 ```yaml
-- name: save_leaders_guide
-  type: function
-  function: llmflow.utils.io.render_markdown_template
-  inputs:
-    template_path: "templates/leadersguide_template.md"
-    variables:
-      passage: "${passage}"
-  outputs: leaders_guide_markdown
-  saveas: "outputs/leaders_guide/${passage_info.filename_prefix}_leaders_guide.md"
+outputs: my_var          # string — stores result as context["my_var"]
+outputs:                 # list of one — same effect
+  - my_var
+outputs:                 # list of N — unpacks result tuple/list into N variables
+  - first_thing
+  - second_thing
 ```
 
-**Features:**
-- Automatically creates parent directories if they don't exist
-- Supports variable substitution in paths: `${variable}`
-- Works with both `llm` and `function` steps
+- A string value is always accessible as `${my_var}` in later steps.
+- If a function returns a dict, the whole dict is stored; access fields with `${my_var.key}`.
+- `outputs` is required for any step that uses `saveas:` or `append_to:`.
+
+### `saveas:` — writing results to disk
+
+Three forms are supported:
+
+**String (simplest):**
+```yaml
+saveas: "outputs/${passage}.md"   # path supports ${var} substitution
+```
+
+**Dict (with subdirectory grouping):**
+```yaml
+saveas:
+  path: "outputs/verses/${verse_id}.json"
+  group_by_prefix: 2              # integer — group files into 2-char prefix subdirectories
+  # group_by_prefix:              # or object form:
+  #   prefix_length: 3
+  #   prefix_delimiter: "-"       # split on delimiter instead of character count
+```
+`group_by_prefix` is useful when writing thousands of files to avoid filesystem limits — it automatically creates subdirectories like `AB/AB123.json`.
+
+**List (multiple output files from one step):**
+```yaml
+saveas:
+  - path: "outputs/${name}.md"
+  - path: "outputs/${name}.json"
+    content: "${json_data}"       # optional — override which context var to write
+    format: json                  # optional — json | text | auto (default: auto)
+```
+
+**Format auto-detection** (all forms):
+- `.json` extension → serialize as indented JSON
+- `.md` extension → apply `clean_markdown()` normalization + trailing newline
+- Anything else → write as-is
+
+Override with `format: json|text|auto` on the step or in a list-form entry.
+
+### `append_to:` — accumulating results across iterations
+
+Used inside `for-each` loops to build up a list across iterations:
+
+```yaml
+assemble: the result of each iteration
+append_to: all_results   # creates context["all_results"] as a growing list
+```
+
+- If the list variable doesn't exist yet, it is created automatically.
+- Can be combined with `outputs:` — the named output is appended to the list.
+- State is rolled back if a `retry` attempt fails.
 
 ---
 
