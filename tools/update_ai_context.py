@@ -73,6 +73,7 @@ RULES = (
     "**When requirements conflict, ask.** Use clarifying questions rather than assuming—especially before large edits.",
     "**Cite files explicitly.** When referencing code/docs, point to `path/file` (and line numbers if known) so humans can verify quickly.",
     "**Stay within policy.** Follow repository security constraints, avoid leaking secrets, and decline harmful requests.",
+    "**Project boards use four columns.** All GitHub project boards for this organisation must have exactly these columns in order: Backlog → Todo → Doing → Done. Do not suggest or create boards with different column names or structures.",
     "**Verses are milestones, not units.** In all Scripture pipeline designs, treat verse references as location markers only — never as the basis for structural or semantic decisions. Do not divide scenes, passages, or content blocks by verse count (e.g., 'group into 3-verse units'). Pericope boundaries, scene structure, and semantic cohesion must be determined by narrative/discourse analysis, not by verse numbers. For cross-versification work (mapping between KJV, LXX, Vulgate, etc.) use the Copenhagen Alliance Versification specification (see `index.md` → 'Versification systems'). Paratext `.vrs` files are semantically compatible with the Copenhagen spec (Copenhagen is derived from them) and can be used interchangeably for versification mapping.",
 )
 
