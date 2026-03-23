@@ -603,14 +603,14 @@ class TestResponsesAPITimeout:
         with patch("openai.OpenAI") as mock_openai_class:
             mock_client = Mock()
             mock_openai_class.return_value = mock_client
-            
+
             # Track the timeout value passed to create()
             create_called_with_timeout = None
             def capture_create(**kwargs):
                 nonlocal create_called_with_timeout
                 create_called_with_timeout = kwargs.get("timeout")
                 return mock_response
-            
+
             mock_client.responses.create = capture_create
 
             config = {
@@ -659,14 +659,14 @@ class TestResponsesAPITimeout:
         with patch("openai.OpenAI") as mock_openai_class:
             mock_client = Mock()
             mock_openai_class.return_value = mock_client
-            
+
             # Track the timeout value passed to create()
             create_called_with_timeout = None
             def capture_create(**kwargs):
                 nonlocal create_called_with_timeout
                 create_called_with_timeout = kwargs.get("timeout")
                 return mock_response
-            
+
             mock_client.responses.create = capture_create
 
             config = {

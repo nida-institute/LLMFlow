@@ -482,6 +482,16 @@ sp run --pipeline pipelines/my-pipeline.yaml \
 sp run --pipeline pipelines/my-pipeline.yaml --skip-lint
 ```
 
+### Write logs to a specific file
+
+By default logs go to `llmflow.log` in the current directory. Use `--log` to redirect — useful when running multiple pipelines concurrently in separate terminals.
+
+```bash
+sp run --pipeline pipelines/rd-ears2hear.yaml \
+  --var passage="Psalm 23" \
+  --log outputs/debug/psalm23-run.log
+```
+
 ### Rewind to a step (replay from saved artifacts)
 
 `--rewind-to <step-name>` replays the pipeline from disk instead of calling the LLM again. Every step up to and including the named step is satisfied by reading its previously saved file; every step after it executes normally. This is useful when you want to change a later step without re-running expensive upstream LLM calls.

@@ -265,8 +265,8 @@ steps:
 
 
 def test_saveas_markdown_extension(temp_output_dir):
-    """Test saving markdown content"""
-    markdown_content = "# Test Heading\n\nParagraph text."
+    """Test saving markdown content — .md files always end with a trailing newline"""
+    markdown_content = "# Test Heading\n\nParagraph text.\n"
 
     # Use YAML block scalar with |- to strip trailing newline
     pipeline_yaml = f"""
