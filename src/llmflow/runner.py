@@ -1155,8 +1155,13 @@ def save_content_to_file(content: Any, path: str, format: str = None) -> str:
         else:
             formatted_content = json.dumps(content, ensure_ascii=False, indent=2)
     else:
-        # Text mode - preserve exact content
-        formatted_content = content if isinstance(content, str) else str(content)
+        # Text mode - normalize if .md, otherwise preserve exact content
+        raw = content if isinstance(content, str) else str(content)
+        if path.endswith('.md'):
+            from llmflow.utils.markdown_cleaner import clean_markdown
+            formatted_content = clean_markdown(raw) + "\n"
+        else:
+            formatted_content = raw
 
     # Create parent directories and write
     path_obj = Path(path)

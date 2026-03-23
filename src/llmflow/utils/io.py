@@ -285,7 +285,8 @@ def save_markdown_as(text, passage, format="md", output_dir="outputs"):
 
     if format == "md":
         path = Path(output_dir) / f"{safe_passage}.md"
-        write_nfc(path, text)
+        from llmflow.utils.markdown_cleaner import clean_markdown
+        write_nfc(path, clean_markdown(text) + "\n")
         return str(path)
     elif format == "html":
         html_text = markdown.markdown(text, output_format="xhtml")

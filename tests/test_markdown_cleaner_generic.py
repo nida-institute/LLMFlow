@@ -123,3 +123,67 @@ def test_preserves_multiple_scenes_and_repeated_headings():
     # Repeated headings are allowed; ensure both remain
     assert out.count("### Step 1: Enter") == 2
     assert out.count("# Scene:") == 2
+
+
+# ============================================================================
+# save_content_to_file .md normalization tests
+# ============================================================================
+
+import tempfile, os
+from llmflow.runner import save_content_to_file
+
+
+class TestSaveContentToFileMdNormalization:
+    """save_content_to_file() must normalize content when writing .md files."""
+
+    def test_badly_spaced_llm_output_is_normalized_on_save(self, tmp_path):
+        """Heading missing blank line before it should be normalized."""
+        badly_spaced = "Intro paragraph.\n## Section\nSome text."
+        out_path = str(tmp_path / "out.md")
+        save_content_to_file(badly_spaced, out_path)
+        result = open(out_path, encoding="utf-8").read()
+        # mdformat inserts blank line before heading
+        assert "\n\n## Section" in result
+
+    def test_non_md_path_not_normalized(self, tmp_path):
+        """Text files must not be run through markdown normalization."""
+        content = "Intro paragraph.\n## Section\nSome text."
+        out_path = str(tmp_path / "out.txt")
+        save_content_to_file(content, out_path)
+        result = open(out_path, encoding="utf-8").read()
+        # Exact content preserved — no blank line injected
+        assert result == content
+
+    def test_json_path_not_normalized(self, tmp_path):
+        """JSON files must not be touched by clean_markdown."""
+        content = '{"key": "value"}'
+        out_path = str(tmp_path / "out.json")
+        save_content_to_file(content, out_path)
+        result = open(out_path, encoding="utf-8").read()
+        import json
+        assert json.loads(result) == {"key": "value"}
+
+    def test_md_save_has_trailing_newline(self, tmp_path):
+        """Saved .md files should end with a newline."""
+        out_path = str(tmp_path / "out.md")
+        save_content_to_file("# Title\n\nContent.", out_path)
+        result = open(out_path, encoding="utf-8").read()
+        assert result.endswith("\n")
+
+
+class TestSaveMarkdownAsNormalization:
+    """save_markdown_as() must normalize when format='md'."""
+
+    def test_badly_spaced_output_normalized(self, tmp_path):
+        from llmflow.utils.io import save_markdown_as
+        badly_spaced = "Intro paragraph.\n## Section\nText."
+        save_markdown_as(badly_spaced, "test-passage", format="md", output_dir=str(tmp_path))
+        result = open(tmp_path / "test_passage.md", encoding="utf-8").read()
+        assert "\n\n## Section" in result
+
+    def test_html_format_not_md_normalized(self, tmp_path):
+        from llmflow.utils.io import save_markdown_as
+        content = "# Title\n\nParagraph."
+        save_markdown_as(content, "test-passage", format="html", output_dir=str(tmp_path))
+        result = open(tmp_path / "test_passage.html", encoding="utf-8").read()
+        assert "<h1>" in result  # rendered to HTML, not md-formatted
