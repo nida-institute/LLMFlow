@@ -6,6 +6,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+# Capture the real SystemExit before test_lint_exit.py can patch builtins.SystemExit
+# (test_lint_exit.py replaces builtins.SystemExit with a TracedSystemExit subclass at
+# module load time, which breaks pytest.raises(SystemExit) for the full-suite run).
+_SystemExit = SystemExit
+
 from llmflow.cli import build_parser
 
 
@@ -83,7 +88,7 @@ def test_list_shows_catalog(capsys):
 
 
 def test_unknown_dataset_exits_with_error():
-    with pytest.raises(SystemExit) as exc:
+    with pytest.raises(_SystemExit) as exc:
         run_download_data(dataset="nonexistent-dataset")
     assert exc.value.code == 1
 
@@ -129,7 +134,7 @@ def test_download_extracts_files(tmp_path):
 
 def test_download_network_error_exits(tmp_path):
     with patch("urllib.request.urlopen", side_effect=OSError("Network error")):
-        with pytest.raises(SystemExit) as exc:
+        with pytest.raises(_SystemExit) as exc:
             run_download_data(dataset="macula-greek", dest=str(tmp_path))
     assert exc.value.code == 1
 
@@ -142,7 +147,7 @@ def test_download_cleans_up_on_extraction_failure(tmp_path):
     mock_response.__exit__ = MagicMock(return_value=False)
 
     with patch("urllib.request.urlopen", return_value=mock_response):
-        with pytest.raises(SystemExit) as exc:
+        with pytest.raises(_SystemExit) as exc:
             run_download_data(dataset="macula-greek", dest=str(tmp_path))
     assert exc.value.code == 1
     # Partial dest dir should be cleaned up
