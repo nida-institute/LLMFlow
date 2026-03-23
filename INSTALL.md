@@ -14,7 +14,7 @@ curl -fsSL https://raw.githubusercontent.com/nida-institute/LLMFlow/main/install
 irm https://raw.githubusercontent.com/nida-institute/LLMFlow/main/install.ps1 | iex
 ```
 
-After installing, run `sp setup` to configure your API key for OpenAI, Anthropic, or Google Gemini.
+After installing, run `sp --version` to confirm it worked, then `sp setup` to configure your API key for OpenAI, Anthropic, or Google Gemini. See the [Quickstart Tutorial](docs/tutorial.md) to run your first pipeline.
 
 ---
 
@@ -56,7 +56,7 @@ After installing, run `sp setup` to configure your API key for OpenAI, Anthropic
    Then reload your shell: `source ~/.zshrc`
 3. On first launch, macOS Gatekeeper will likely block the unsigned binary:
    - Open *System Settings → Privacy & Security*.
-   - Scroll to *Security* and click **Allow Anyway** next to `sp` (screenshot recommended here for docs/website).
+   - Scroll to *Security* and click **Allow Anyway** next to `sp`.
    - Re-run `sp` from the terminal; when the "This app is from an unidentified developer" dialog appears, choose **Open**.
 
 ### Windows
