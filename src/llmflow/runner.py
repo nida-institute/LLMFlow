@@ -832,23 +832,18 @@ def run_basex_step(
     name = step.get("name", "unnamed")
     logger.info(f"🗄️  Starting basex step: {name}")
 
-    # Resolve params from pipeline context
-    raw_params = step.get("params", {})
-    resolved_params = {k: resolve(v, context) for k, v in raw_params.items()}
+    # Resolve inputs from pipeline context (same pattern as function steps)
+    raw_inputs = step.get("inputs", {})
+    resolved_inputs = {k: resolve(v, context) for k, v in raw_inputs.items()} if raw_inputs else None
 
-    # Get the query — inline string or from file
-    if "query" in step:
-        query = step["query"]
-    elif "query_file" in step:
-        query_file = resolve(step["query_file"], context)
-        with open(query_file, encoding="utf-8") as fh:
-            query = fh.read()
-    else:
-        raise ValueError(f"basex step '{name}' requires 'query' or 'query_file'")
+    # Require query_file (inline query no longer supported — file path is passed directly)
+    if "query_file" not in step:
+        raise ValueError(f"basex step '{name}' requires 'query_file'")
+    query_file = resolve(step["query_file"], context)
 
     timeout = step.get("timeout", 120)
 
-    result = run_basex(query, params=resolved_params or None, timeout=timeout)
+    result = run_basex(query_file, inputs=resolved_inputs, timeout=timeout)
     handle_step_outputs(step, result, context)
 
     logger.info(f"✅ Completed basex step: {name}")
