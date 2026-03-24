@@ -1,6 +1,7 @@
 import pytest
 from pathlib import Path
 
+
 @pytest.fixture
 def temp_prompt_file(tmp_path):
     """Create a temporary prompt file for testing"""

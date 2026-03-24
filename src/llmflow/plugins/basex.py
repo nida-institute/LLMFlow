@@ -2,52 +2,52 @@
 
 import os
 import subprocess
-import tempfile
 
 from llmflow.modules.logger import Logger
 
 logger = Logger()
 
 
-def run_basex(query: str, params: dict | None = None, timeout: int = 120) -> str:
+def run_basex(query_file: str, inputs: dict | None = None, timeout: int = 120) -> str:
     """
-    Execute an XQuery string against BaseX and return stripped stdout.
+    Execute an XQuery file against BaseX and return stripped stdout.
 
-    If *params* is given, each key is substituted into the query wherever
-    ``{key}`` appears (Python str.format_map style).
+    If *inputs* is given, each key/value pair is passed to BaseX as an
+    external variable binding via the ``-b<key>=<value>`` CLI flag.  The
+    XQuery must declare the variable as external::
+
+        declare variable $lemma external;
+
+    The query file is **never** modified — no Python string substitution is
+    performed, so XQuery curly braces (computed constructors, maps, arrays)
+    are safe.
 
     Raises:
         RuntimeError: basex not found on PATH, non-zero exit, or timeout.
     """
-    if params:
-        query = query.format_map(params)
-
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".xq", delete=False, encoding="utf-8"
-    ) as fh:
-        fh.write(query)
-        qfile = fh.name
+    cmd = ["basex"]
+    if inputs:
+        for key, value in inputs.items():
+            cmd.append(f"-b{key}={value}")
+    cmd.append(query_file)
 
     try:
-        try:
-            result = subprocess.run(
-                ["basex", qfile],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-        except FileNotFoundError:
-            raise RuntimeError(
-                "basex not found on PATH — install BaseX and ensure 'basex' is executable"
-            )
-        except subprocess.TimeoutExpired:
-            raise RuntimeError(
-                f"BaseX query timed out after {timeout}s"
-            )
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except FileNotFoundError:
+        raise RuntimeError(
+            "basex not found on PATH — install BaseX and ensure 'basex' is executable"
+        )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(
+            f"BaseX query timed out after {timeout}s"
+        )
 
-        if result.returncode != 0:
-            raise RuntimeError(f"BaseX error: {result.stderr.strip()}")
+    if result.returncode != 0:
+        raise RuntimeError(f"BaseX error: {result.stderr.strip()}")
 
-        return result.stdout.strip()
-    finally:
-        os.unlink(qfile)
+    return result.stdout.strip()

@@ -156,7 +156,7 @@ jobs:
       if: runner.os != 'Windows'
       run: |
         bash install.sh
-        "$HOME/bin/llmflow" --version
+        "$HOME/bin/sp" --version
 
     - name: Verify install script (Windows)
       if: runner.os == 'Windows'
@@ -164,4 +164,4 @@ jobs:
       run: |
         Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
         PowerShell -ExecutionPolicy Bypass -File install.ps1
-        & "$env:USERPROFILE\bin\llmflow.exe" --version
+        & "$env:USERPROFILE\bin\sp.exe" --version
