@@ -14,8 +14,8 @@ sp download-data macula-greek                     # → ~/.sp/data/macula-greek/
 sp download-data macula-greek --dest ./data       # custom dest
 ```
 
-**Default location:** `~/.sp/data/<dataset-name>/`  
-**Override:** `export LLMFLOW_DATA_DIR=/path/to/data`  
+**Default location:** `~/.sp/data/<dataset-name>/`
+**Override:** `export LLMFLOW_DATA_DIR=/path/to/data`
 **Pipeline reference:** `${LLMFLOW_DATA_DIR}/macula-greek/...`
 
 ---
