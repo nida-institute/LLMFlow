@@ -1,6 +1,32 @@
 # Scripture Pipelines
 
-**Scripture Pipelines** is a declarative pipeline system for building workflows powered by large language models (LLMs). It allows you to structure and automate prompts, responses, and output generation across a series of steps — with optional scene-based iteration, variable injection, and file generation.
+**Scripture Pipelines** is a declarative pipeline system for AI-assisted biblical and linguistic scholarship. Workflows are declared in YAML pipelines that specify information flow, prompt contracts, and output structure. The engine handles execution, validation, and persistence — every intermediate result is saved to disk, every LLM step can be required to account for its sources, and the same pipeline can be rerun with a revised prompt without re-querying earlier steps.
+
+Biblical and linguistic scholarship now has more open data than it can use: word-level morphological annotations for the entire Hebrew Bible and Greek New Testament, syntactic treebanks, discourse feature datasets, lexicographic databases, documentary papyri and inscriptions. The bottleneck is not data — it is the human capacity to bring rigorous scholarly attention to bear on that data at scale. Scripture Pipelines is designed for that problem.
+
+## An Opinionated Framework: The Human Commands
+
+Scripture Pipelines is not neutral about who is in charge. The framework is built on a specific conviction: **Bible translation and biblical scholarship are best done by human beings**. This is not a modest claim about current AI limitations; it is a claim about the nature of the work. Translation creates community ownership. Biblical scholarship is the work of scholars whose training, judgment, and accountability to the academy and the church are not transferable to a language model. And beyond these specific domains: doing meaningful work together matters. The collaboration of a translation team, the exchange between a scholar and a dataset — these are not inefficiencies to be automated away.
+
+The operating model is the **James Kirk model**: Captain Kirk commands the Enterprise; the crew and the ship's computer execute. The contrasting model is HAL 9000 — the AI that locks the crew out because it has concluded that the mission matters more than the people. HAL is not a villain; it is doing exactly what it was designed to do. Stuart Russell (*Human Compatible*, 2019) calls the distinguishing property **corrigibility**: an AI that remains genuinely uncertain about human preferences and therefore defers to humans for correction. The James Kirk model is corrigibility in practice.
+
+Scripture Pipelines operationalizes this through four interlocking disciplines:
+
+1. **Test-driven development** — approximately 2:1 test-to-production ratio. Writing the failing test first forces the human to own the specification before the AI touches it. Without a precise test, a model that ignores an inconvenient requirement produces code that compiles while silently failing.
+
+2. **Explain before implementing** — every non-trivial change begins with the AI describing what it plans to do and which files it will modify, before any file is touched. Explanation commits the model to a specific interpretation that can be evaluated before any file is modified.
+
+3. **Persistent context infrastructure** — each project carries `.github/copilot-instructions.md` (the AI's constitution: architecture patterns, pitfalls, what not to change) and `docs/ai-context/` (which data sources to trust, what the pipeline language supports, what work is in progress). These are active working constraints in every session, not documentation artifacts.
+
+4. **Cross-repository choreography** — when a pipeline run reveals an error in an upstream dataset, the AI drafts a well-formed upstream issue, files it via the GitHub CLI, and records the issue number in `project/TODO.md`. The issue tracker is the communication bus. The AI is the correspondent. The human remains the architect.
+
+## The Kairos Project
+
+Scripture Pipelines is at the heart of the **[Kairos Project](https://nida.org)**, a NIDA Institute initiative to build a global community of scholars — spanning the Western academy and far beyond it — who want to serve Bible translation and the global church.
+
+Part of what that means is providing information in the most useful form for communities that traditional scholarly resources were not built for: non-Western communities, oral cultures, and people who engage Scripture outside the academy. Most of these texts were written by and for oral storytelling cultures. Today's oral storytelling communities do not need PhDs from Western academia to read them. What they need is orientation to settings and cultures that are foreign to any world we live in now — and that orientation rarely looks like a journal article.
+
+The Kairos Project takes a more inclusive approach: it trusts that readers in community can encounter the text directly and make genuine discoveries. The scholar's role is to equip that encounter, not to conduct it on the reader's behalf. It also builds resources for people who want to learn Greek or Hebrew, who want to understand what discourse analysis reveals about text structure, who want to climb into technical scholarship because the text draws them deeper. The goal is scaffolding at every level, with the ladder running in both directions: scholarly insight flows out and community questions flow back in. Everything produced is freely licensed.
 
 ## Installation
 
