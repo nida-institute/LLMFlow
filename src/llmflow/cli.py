@@ -109,6 +109,15 @@ def build_parser():
     dl_p.add_argument("--list", action="store_true", help="List available datasets")
     dl_p.add_argument("--dest", default=None, help="Download destination (default: ~/.sp/data/)")
 
+    # load-db command
+    ldb_p = subparsers.add_parser("load-db", help="Load a downloaded dataset into a database (basex, ...)")
+    ldb_p.add_argument("driver", nargs="?", default=None, help="Database driver (e.g. basex)")
+    ldb_p.add_argument("dataset", nargs="?", default=None, help="Dataset key (e.g. acai, macula-greek)")
+    ldb_p.add_argument("--name", default=None, dest="db_name", help="Override database name (default: dataset key)")
+    ldb_p.add_argument("--force", action="store_true", help="Drop and recreate database if it already exists")
+    ldb_p.add_argument("--source", default=None, help="Load from this path instead of ~/.sp/data/<dataset>/")
+    ldb_p.add_argument("--list-drivers", action="store_true", dest="list_drivers", help="List available database drivers")
+
     # Standard --version flag (e.g. used by CI smoke tests: llmflow --version)
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
@@ -228,6 +237,18 @@ def main(argv=None):
             dataset=args.dataset,
             dest=args.dest,
             list_only=args.list,
+        )
+        return
+
+    if args.command == "load-db":
+        from llmflow.load_db import run_load_db
+        run_load_db(
+            driver=args.driver,
+            dataset=args.dataset,
+            db_name=args.db_name,
+            force=args.force,
+            source=args.source,
+            list_drivers_only=args.list_drivers,
         )
         return
 

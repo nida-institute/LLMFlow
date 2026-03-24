@@ -36,6 +36,13 @@ CATALOG: dict[str, dict] = {
         "description": "Berean Standard Bible in USX format",
         "approx_size": "~15MB",
     },
+    "acai": {
+        "repo": "BibleAquifer/ACAI",
+        "branch": "main",
+        "license": "CC BY-SA 4.0",
+        "description": "ACAI biblical entity catalog — people, places, flora, fauna, deities, groups, keyterms; anchored to Macula node IDs",
+        "approx_size": "~50MB",
+    },
 }
 
 
