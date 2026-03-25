@@ -8,15 +8,11 @@ Use this map to decide which reference to consult when answering questions.
 | Installation & binaries | [INSTALL.md](../../INSTALL.md) | Standalone executables, Gatekeeper/SmartScreen steps |
 | Quickstart walkthrough | [docs/tutorial.md](../tutorial.md) | `llmflow init`, greeting pipeline, multi-step example |
 | Engine setup & CLI basics | [docs/getting-started.md](../getting-started.md) | Env vars, linting, resource repo pattern |
-| YAML grammar & step types | [docs/llmflow-language.md](../llmflow-language.md) | Full schema for every step type: `llm`, `function`, `for-each`, `if`, `save`, `basex`, `plugin`; `outputs`, `saveas`, `append_to` mechanics |
+| YAML grammar & step types | [docs/llmflow-language.md](../llmflow-language.md) | `llm` / `function` / `for-each`, variables, `append_to` |
 | Architecture & modules | [docs/architecture.md](../architecture.md) | CLI, runner, linter, telemetry, plugin hooks |
 | Philosophy & comparisons | [docs/why-llmflow.md](../why-llmflow.md) | When/why to use LLMFlow vs other frameworks |
 | AI persona & tone | [docs/ai-context/rules.md](rules.md) | Guardrails for assistant responses |
 | Moderation handling | [docs/moderation-handling.md](../moderation-handling.md) | OpenAI Responses blocks, Bible-text mitigation checklist |
 | Versification systems | [Copenhagen Alliance Versification spec](https://github.com/Copenhagen-Alliance/versification-specification) | Canonical spec for mapping between verse systems (KJV, LXX, Vulgate, etc.); derived from Paratext .vrs files, which are semantically compatible; use for any cross-versification pipeline work |
-| Biblical datasets & access patterns | [docs/ai-context/data-sources.md](data-sources.md) | `sp download-data` catalog (Macula Greek/Hebrew, Berean USX), default data dir, pipeline variable patterns, `load_csv_file`/`load_xml_file` usage, versification |
-| USFM/USX/USJ & Paratext loaders | [docs/ai-context/data-sources.md](data-sources.md) | `list_usfm_books`, `load_usfm_book`, `load_usfm_passage`, `export_usx`, `load_project_file`, `xpath_text`; Paratext project layout & metadata (Settings.xml, metadata.json); `format="usx"\|"usj"`; deuterocanonical split-text warning; multi-project comparison pattern |
-| Consumer repo layout convention | [docs/consumer-repo-layout.md](../consumer-repo-layout.md) | `project/` directory (TODO, audits, plans), distinction from `docs/`, ADR trail |
-| Audit procedures & dispatch pattern | [docs/ai-context/audits-pattern.md](audits-pattern.md) | `docs/audits/INDEX.md` dispatch table, checklist file format (20–60 lines, checkbox-only), `project/audits/` for findings, trigger phrases, STOP conditions |
 
 When an AI assistant needs more detail, direct it to the appropriate file above instead of paraphrasing from memory. This keeps answers aligned with the single source of truth.
