@@ -36,7 +36,8 @@ dependencies = [
   "pydantic",
   "saxonche",
   "jsonschema",
-  "mdformat"
+  "mdformat",
+  "usfmtc>=0.4.5",
 ]
 readme = "README.md"
 requires-python = ">=3.8"
@@ -50,6 +51,10 @@ Changelog = "https://github.com/nida-institute/LLMFlow/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/llmflow"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"docs/ai-context" = "llmflow/docs/ai-context"
+"docs/audits" = "llmflow/docs/audits"
 
 [project.scripts]
 sp = "llmflow.cli:main"

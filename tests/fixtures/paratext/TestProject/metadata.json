@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "version": "0.3.0",
+    "category": "source",
+    "generator": {
+      "softwareName": "Test",
+      "softwareVersion": "1.0"
+    }
+  },
+  "identification": {
+    "name": {
+      "en": "Test Project Full Name"
+    },
+    "abbreviation": {
+      "en": "TST"
+    }
+  },
+  "languages": [
+    {
+      "tag": "tst",
+      "name": {
+        "en": "Test Language"
+      },
+      "scriptDirection": "ltr"
+    }
+  ],
+  "type": {
+    "flavorType": {
+      "name": "scripture",
+      "flavor": {
+        "name": "textTranslation"
+      }
+    }
+  },
+  "agencies": [],
+  "ingredients": {}
+}

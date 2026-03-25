@@ -1118,6 +1118,12 @@ def save_content_to_file(content: Any, path: str, format: str = None) -> str:
     if format is None or format == 'auto':
         if path.endswith('.json'):
             format = 'json'
+        elif path.endswith('.usx'):
+            format = 'usx'
+        elif path.endswith('.usj'):
+            format = 'json'
+        elif path.endswith('.usfm'):
+            format = 'usfm'
         else:
             format = 'text'
 
@@ -1157,6 +1163,22 @@ def save_content_to_file(content: Any, path: str, format: str = None) -> str:
             formatted_content = clean_markdown(raw) + "\n"
         else:
             formatted_content = raw
+
+    # Handle scripture formats and lxml elements
+    if format == 'usx':
+        from llmflow.utils.data import serialize_usx
+        formatted_content = serialize_usx(content)
+    elif format == 'usfm':
+        from llmflow.utils.data import serialize_usfm
+        formatted_content = serialize_usfm(content)
+    elif format == 'text':
+        # If content is an lxml _Element, serialize as XML (e.g. saving to .xml)
+        try:
+            from lxml.etree import _Element, tostring
+            if isinstance(content, _Element):
+                formatted_content = tostring(content, encoding="unicode", pretty_print=True)
+        except ImportError:
+            pass
 
     # Create parent directories and write
     path_obj = Path(path)

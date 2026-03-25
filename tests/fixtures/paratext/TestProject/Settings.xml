@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScriptureText>
+  <LanguageName>Test Language</LanguageName>
+  <LanguageIsoCode>tst</LanguageIsoCode>
+  <FullName>Test Project Full Name</FullName>
+  <Abbreviation>TST</Abbreviation>
+  <Versification>4</Versification>
+  <Encoding>65001</Encoding>
+  <Copyright>© 2026 Test Organization</Copyright>
+</ScriptureText>

@@ -3,6 +3,9 @@
 
         _Last updated: 2026-03-23_
 
+> **Use this file for:** project mission, foundational doc map, `llmflow run` flag reference, runtime snapshot, design ethos. Read this first in any new session.
+> **Budget: 60 lines / 3KB.** This is the entry-point overview — keep it short and link out.
+
         LLMFlow is a declarative workflow engine for LLM-assisted scholarship and publishing. Pipelines are written in YAML, validated with strict prompt contracts, and executed via the `llmflow` CLI (standalone binaries documented in [INSTALL.md](../../INSTALL.md)).
 
         ## Essence

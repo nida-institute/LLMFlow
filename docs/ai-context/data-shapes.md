@@ -1,5 +1,8 @@
 # LLMFlow Intermediate Artifact Data Shapes
 
+> **Use this file for:** intermediate artifact data shapes — `create_json_dictionary`, step input/output contracts, consumer-project artifact schemas (pericope_payload, book_flow_json, etc.).
+> **Budget: 150 lines / 5KB.** If adding content would push past this, split and add a row to `index.md`.
+
 Reference for the major data structures that flow between pipeline steps.
 
 ---

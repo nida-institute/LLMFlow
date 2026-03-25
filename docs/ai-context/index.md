@@ -15,6 +15,8 @@ Use this map to decide which reference to consult when answering questions.
 | Moderation handling | [docs/moderation-handling.md](../moderation-handling.md) | OpenAI Responses blocks, Bible-text mitigation checklist |
 | Versification systems | [Copenhagen Alliance Versification spec](https://github.com/Copenhagen-Alliance/versification-specification) | Canonical spec for mapping between verse systems (KJV, LXX, Vulgate, etc.); derived from Paratext .vrs files, which are semantically compatible; use for any cross-versification pipeline work |
 | Biblical datasets & access patterns | [docs/ai-context/data-sources.md](data-sources.md) | `sp download-data` catalog (Macula Greek/Hebrew, Berean USX), default data dir, pipeline variable patterns, `load_csv_file`/`load_xml_file` usage, versification |
+| USFM/USX/USJ & Paratext loaders | [docs/ai-context/data-sources.md](data-sources.md) | `list_usfm_books`, `load_usfm_book`, `load_usfm_passage`, `export_usx`, `load_project_file`, `xpath_text`; Paratext project layout & metadata (Settings.xml, metadata.json); `format="usx"\|"usj"`; deuterocanonical split-text warning; multi-project comparison pattern |
 | Consumer repo layout convention | [docs/consumer-repo-layout.md](../consumer-repo-layout.md) | `project/` directory (TODO, audits, plans), distinction from `docs/`, ADR trail |
+| Audit procedures & dispatch pattern | [docs/ai-context/audits-pattern.md](audits-pattern.md) | `docs/audits/INDEX.md` dispatch table, checklist file format (20–60 lines, checkbox-only), `project/audits/` for findings, trigger phrases, STOP conditions |
 
 When an AI assistant needs more detail, direct it to the appropriate file above instead of paraphrasing from memory. This keeps answers aligned with the single source of truth.

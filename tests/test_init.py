@@ -12,6 +12,7 @@ from llmflow.cli_utils import (
     AI_OVERVIEW_DOC,
     AI_RULES_DOC,
     COPILOT_INSTRUCTIONS_DOC,
+    DOCS_AUDITS_INDEX,
     LANGUAGE_QUICKREF_DOC,
     PROJECT_AUDITS_README,
     PROJECT_TODO,
@@ -68,10 +69,12 @@ def test_init_environment_creates_files(tmp_path, caplog):
     vscode_doc_path = docs_dir / "vscode.md"
     project_todo_path = tmp_path / "project" / "TODO.md"
     project_audits_readme_path = tmp_path / "project" / "audits" / "README.md"
+    docs_audits_index_path = tmp_path / "docs" / "audits" / "INDEX.md"
 
     assert vscode_doc_path.read_text(encoding="utf-8") == VSCODE_DOC
     assert project_todo_path.read_text(encoding="utf-8") == PROJECT_TODO
     assert project_audits_readme_path.read_text(encoding="utf-8") == PROJECT_AUDITS_README
+    assert docs_audits_index_path.read_text(encoding="utf-8") == DOCS_AUDITS_INDEX
 
     # idempotency: second run should not change existing files
     init_environment(tmp_path)
@@ -153,6 +156,33 @@ class TestHelloGptContract:
             f"HELLO_REPLY_PROMPT header must declare 'greeting_markdown' in requires, got: {requires}"
         )
 
+
+def test_init_with_sync_flag_creates_ai_context_dir(tmp_path, monkeypatch, caplog):
+    """llmflow init --sync creates .github/ai-context/ directory structure."""
+    caplog.set_level(logging.INFO)
+    monkeypatch.chdir(tmp_path)
+
+    # Run init with --sync flag
+    # Note: sync_ai_context_files may warn if not in an installed package,
+    # but it should still create the directory structure
+    main(["init", "--sync"])
+
+    ai_context_dir = tmp_path / ".github" / "ai-context"
+    assert ai_context_dir.exists(), ".github/ai-context/ should be created"
+    assert ai_context_dir.is_dir(), ".github/ai-context/ should be a directory"
+
+
+def test_docs_audits_directory_created(tmp_path):
+    """init_environment creates docs/audits/ directory."""
+    init_environment(tmp_path)
+
+    docs_audits_dir = tmp_path / "docs" / "audits"
+    assert docs_audits_dir.exists()
+    assert docs_audits_dir.is_dir()
+
+    index_path = docs_audits_dir / "INDEX.md"
+    assert index_path.exists()
+    assert "Audit Dispatch" in index_path.read_text(encoding="utf-8")
 
 class TestSpCliName:
     """All generated template content must reference 'sp' as the CLI command, not 'llmflow'."""
