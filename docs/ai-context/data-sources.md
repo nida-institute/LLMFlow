@@ -127,6 +127,8 @@ Use the built-in data loaders (all in `llmflow.utils.data`):
 - `Settings.xml` (Paratext 8/9) — returns `lxml.etree._Element`, requires extraction via `xpath_text()`
 - `BiblicalTerms.xml`, `BookNames.xml`, etc. — also return `_Element`
 
+**Schema reference:** See [paratext-schemas.md](paratext-schemas.md) for complete field listings, XPath queries, and choosing between Burrito vs Settings.xml
+
 **Metadata access pattern:**
 ```yaml
 # Scripture Burrito (dict) — preferred for language info
