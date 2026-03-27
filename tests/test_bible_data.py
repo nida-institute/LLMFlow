@@ -151,7 +151,7 @@ class TestACAIEntityLoading:
         assert 'eng' in entity['localizations']
         assert entity['localizations']['eng']['preferred_label'] == 'An Angel'
 
-    def test_load_acai_entity_person(self):
+    def test_load_acai_entity_person(self, check_acai_available):
         """Test loading a person entity (if Jesus exists)."""
         entity = load_acai_entity('person:Jesus')
 
