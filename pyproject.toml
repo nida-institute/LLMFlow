@@ -44,6 +44,14 @@ dependencies = [
 readme = "README.md"
 requires-python = ">=3.8"
 
+[project.optional-dependencies]
+gui = [
+  "flask>=3.0.0",
+  "flask-socketio>=5.3.0",
+  "flask-cors>=4.0.0",
+  "python-socketio>=5.10.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/nida-institute/LLMFlow"
 Repository = "https://github.com/nida-institute/LLMFlow"
@@ -57,9 +65,11 @@ packages = ["src/llmflow"]
 [tool.hatch.build.targets.wheel.force-include]
 "docs/ai-context" = "llmflow/docs/ai-context"
 "docs/audits" = "llmflow/docs/audits"
+"gui" = "llmflow/gui"
 
 [project.scripts]
 sp = "llmflow.cli:main"
+sp-gui = "llmflow.gui_launcher:main"
 
 [build-system]
 requires = ["hatchling"]
