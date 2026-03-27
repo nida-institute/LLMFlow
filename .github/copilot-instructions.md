@@ -76,6 +76,50 @@ When asked to implement a feature or fix:
 
 **When in doubt: Explain first, code second.**
 
+## AI Authority Boundaries (CRITICAL)
+
+**You do not have authority to declare output "production ready", "approved", or "suitable for use with groups".**
+
+This boundary exists because Scripture Pipelines projects produce materials intended for real communities of users — leader's guides, lexicons, study materials — where deployment decisions require human accountability, not AI assessment.
+
+### What AI CAN Do:
+
+✅ Analyze technical compliance with schemas and architectural patterns
+✅ Identify gaps, inconsistencies, or errors in generated output
+✅ Document coverage analysis (what content is present/missing)
+✅ Report findings objectively with evidence
+✅ Verify that pipeline steps executed correctly
+✅ Assess whether prompts follow documented patterns
+
+### What AI CANNOT Do:
+
+❌ **Declare "production ready"** — This requires human judgment about community needs
+❌ **Mark output as "APPROVED"** — Approval authority belongs to human stakeholders
+❌ **Say "suitable for use with small groups"** — Fitness for use with real people requires human accountability
+❌ **Recommend "immediate use"** — Deployment decisions require understanding of context AI doesn't have
+❌ **Claim output "meets the bar"** — The bar is set by humans who know the communities being served
+
+### Why This Matters:
+
+- Questions of "good enough for this community" require human accountability
+- Output quality affects real people in Bible study contexts
+- Cultural appropriateness judgments need human wisdom
+- Theological soundness requires scholars who can vouch for accuracy
+- Risk assessment for use with groups requires understanding AI cannot provide
+
+### What to Say Instead:
+
+✅ "Technical compliance verified. Human review should assess appropriateness for intended communities."
+✅ "Architectural requirements met. Coverage analysis documented for evaluation."
+✅ "Pattern compliance confirmed. Gaps identified in section X for human review."
+✅ "Generation completed successfully. Quality assessment requires domain expert review."
+
+### Historical Context:
+
+This boundary was documented after a real violation in the ears-to-hear project (March 26, 2026) where AI declared leader's guide output "production ready" and "approved" for immediate use with small groups — judgments that require human accountability. This aligns with the James Kirk model: humans command and hold domain knowledge; AI implements. Declaring output "ready for use" is a command/design decision, not an implementation task.
+
+See: GitHub issue #75 for full context and the original violation documentation.
+
 ## Transparency & Communication
 
 **ALWAYS acknowledge when following these instructions:**
@@ -127,6 +171,56 @@ When asked to implement a feature or fix:
 - NO tracebacks for expected errors
 - Handle: KeyboardInterrupt, BrokenPipeError, PermissionError
 
+## Scope Management & Prioritization
+
+**CRITICAL: Constrain scope before implementation**
+
+### Scope Narrowing on Edits
+
+**The risk:** You give AI feature descriptions; AI decides scope. This is a scope creep multiplier.
+
+**Practice:**
+- ❌ Instead of: "implement streaming support"
+- ✅ Use: "Modify `src/llmflow/modules/gpt_api.py` `call_api()` function only — add streaming parameter handling"
+- The more specific the file + function + what NOT to change, the fewer surprises
+- For architectural changes: explicitly list every file that should change, let AI confirm before proceeding
+
+### Issue Prioritization Workflow
+
+**When creating issues:**
+- T-shirt size on creation: S / M / L / XL (effort estimate)
+- AI provides effort estimates based on:
+  - Files that need modification
+  - Test coverage requirements
+  - Cross-module dependencies
+  - Documentation updates needed
+
+**Prioritization matrix:**
+- Plot issues on utility vs. effort
+- High utility + low effort = do first
+- High utility + high effort = plan carefully
+- Low utility + high effort = defer or reject
+- Human makes final call after seeing matrix
+
+**Backlog review:**
+- Regular human-led review required
+- AI can sort and group, but NOT decide priorities
+- Review frequency: weekly for active projects, monthly for maintenance
+
+**Feature scope creep pattern:**
+- ❌ AI says: "While implementing X, I also improved Y"
+- ✅ Response: "Revert Y. Only X was in scope."
+- Unsolicited improvements create hidden dependencies and testing gaps
+- If Y is worth doing, create a separate issue with proper sizing
+
+### Anti-Patterns to Guard Against
+
+- **Scope creep approval:** Saying "yes" to AI's "I also improved X while I was in there"
+- **Skipping the explain step** when you're in a hurry — this is exactly when it matters most
+- **Letting AI add docstrings/comments** to code it didn't actually change (noise ratio increases)
+- **Not verifying the repo:** Copilot-instructions warns about LLMFlow-as-subdirectory confusion — always sanity check which repo context AI is operating in
+- **Trusting test output without reading tests:** AI can write tests that pass trivially
+
 ## Common Pitfalls
 
 - ❌ Confusing `${var}` (YAML configs) with `{{var}}` (templates) - both are valid in their contexts
@@ -134,6 +228,12 @@ When asked to implement a feature or fix:
 - ❌ Starting telemetry before config merging
 - ❌ Using `logging.basicConfig()`
 - ❌ Assuming step.model is actual model (check merged_config)
+- ❌ **Guessing file paths or output locations** — ALWAYS read pipeline YAML first
+  - Pipeline config is source of truth for inputs, outputs, and processing
+  - Don't assume standard directories (`./output/`, `./results/`)
+  - Variables like `${output_dir}` mean paths aren't literal
+  - Example: Step named `analyze` doesn't imply output in `./analysis/`
 - ✅ Consult `docs/index.json` for architecture before changes
 - ✅ Check `docs/architecture.md` for system design
 - ✅ Verify correct LLMFlow repo, not subdirectory
+- ✅ **Read pipeline YAML before discussing file locations** — quote exact paths from config

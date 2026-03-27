@@ -122,6 +122,48 @@ def build_parser():
     ldb_p.add_argument("--force", action="store_true", help="Drop and recreate database if it already exists")
     ldb_p.add_argument("--source", default=None, help="Load from this path instead of ~/.sp/data/<dataset>/")
     ldb_p.add_argument("--list-drivers", action="store_true", dest="list_drivers", help="List available database drivers")
+    ldb_p.add_argument("--register", action="store_true", help="Register database in global registry (~/.sp/)")
+
+    # registry command
+    reg_p = subparsers.add_parser("registry", help="Manage global resource registry (~/.sp/)")
+    reg_sub = reg_p.add_subparsers(dest="registry_command", required=True)
+
+    # registry list
+    reg_list = reg_sub.add_parser("list", help="List registered resources")
+    reg_list.add_argument("type", nargs="?", choices=["projects", "datasets", "databases"],
+                         help="Resource type to list (default: all)")
+    reg_list.add_argument("--json", action="store_true", help="Output as JSON")
+
+    # registry info
+    reg_info = reg_sub.add_parser("info", help="Show detailed info about a resource")
+    reg_info.add_argument("type", choices=["project", "dataset", "database"], help="Resource type")
+    reg_info.add_argument("id", help="Resource ID/name")
+
+    # registry status
+    reg_sub.add_parser("status", help="Show registry status and location")
+
+    # registry context
+    reg_sub.add_parser("context", help="Generate AI context from registry")
+
+    # context command
+    ctx_p = subparsers.add_parser("context", help="Manage AI context files (docs/ai-context/)")
+    ctx_sub = ctx_p.add_subparsers(dest="context_command", required=True)
+
+    # context list
+    ctx_sub.add_parser("list", help="List available AI context files")
+
+    # context add
+    ctx_add = ctx_sub.add_parser("add", help="Register AI context file in global registry")
+    ctx_add.add_argument("file", help="Context filename (e.g., basex-patterns.md)")
+    ctx_add.add_argument("--description", required=True, help="Brief description of content")
+    ctx_add.add_argument("--topics", required=True, help="Comma-separated topics (e.g., basex,xquery,greek)")
+    ctx_add.add_argument("--project", help="Project name (default: current directory name)")
+    ctx_add.add_argument("--path", help="Full path to file (default: docs/ai-context/<file>)")
+
+    # context search
+    ctx_search = ctx_sub.add_parser("search", help="Search AI context registry by topic")
+    ctx_search.add_argument("topics", nargs="+", help="Topics to search for (matches any)")
+    ctx_search.add_argument("--project", help="Filter by project name")
 
     # Standard --version flag (e.g. used by CI smoke tests: llmflow --version)
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -258,6 +300,160 @@ def main(argv=None):
             source=args.source,
             list_drivers_only=args.list_drivers,
         )
+        # TODO: If --register flag is set, register the database in registry
+        return
+
+    if args.command == "registry":
+        from llmflow.registry import Registry
+        registry = Registry()
+
+        if args.registry_command == "list":
+            # List registered resources
+            if args.type == "projects" or args.type is None:
+                projects = registry.projects.list()
+                if args.json:
+                    print(json.dumps({"projects": projects}, indent=2))
+                elif projects:
+                    print("Registered Projects:")
+                    for p in projects:
+                        desc = f" - {p.get('description', '')}" if p.get('description') else ""
+                        print(f"  {p['name']:20s} {p['path']}{desc}")
+                elif args.type == "projects":
+                    print("No projects registered")
+
+            if args.type == "datasets" or args.type is None:
+                datasets = registry.datasets.list()
+                if args.json:
+                    print(json.dumps({"datasets": datasets}, indent=2))
+                elif datasets:
+                    print("\nAvailable Datasets:")
+                    for ds in datasets:
+                        print(f"  {ds['id']:25s} v{ds['version']:12s} {ds['format']:6s} {ds['path']}")
+                elif args.type == "datasets":
+                    print("No datasets registered")
+
+            if args.type == "databases" or args.type is None:
+                databases = registry.databases.list()
+                if args.json:
+                    print(json.dumps({"databases": databases}, indent=2))
+                elif databases:
+                    print("\nAvailable Databases:")
+                    for db in databases:
+                        if db['type'] == 'basex':
+                            location = f"{db.get('host', 'localhost')}:{db.get('port', 1984)}"
+                            print(f"  {db['name']:20s} BaseX at {location}")
+                        elif db['type'] == 'duckdb':
+                            print(f"  {db['name']:20s} DuckDB at {db.get('path', 'unknown')}")
+                        else:
+                            print(f"  {db['name']:20s} {db['type']}")
+                elif args.type == "databases":
+                    print("No databases registered")
+
+        elif args.registry_command == "info":
+            # Show detailed info about a resource
+            if args.type == "project":
+                resource = registry.projects.get(args.id)
+                resource_type = "Project"
+            elif args.type == "dataset":
+                resource = registry.datasets.get(args.id)
+                resource_type = "Dataset"
+            elif args.type == "database":
+                resource = registry.databases.get(args.id)
+                resource_type = "Database"
+
+            if resource is None:
+                print(f"❌ {resource_type} '{args.id}' not found in registry")
+                sys.exit(1)
+
+            print(f"{resource_type}: {args.id}")
+            print("=" * 60)
+            for key, value in resource.items():
+                print(f"{key:20s}: {value}")
+
+        elif args.registry_command == "status":
+            # Show registry status
+            print(f"Registry Location: {registry.path}")
+            print(f"Projects:  {len(registry.projects.list())}")
+            print(f"Datasets:  {len(registry.datasets.list())}")
+            print(f"Databases: {len(registry.databases.list())}")
+
+        elif args.registry_command == "context":
+            # Generate AI context
+            print(registry.generate_ai_context())
+
+        return
+
+    if args.command == "context":
+        from llmflow.context import list_context_files, format_context_list
+
+        if args.context_command == "list":
+            # List AI context files in docs/ai-context/
+            cwd = Path.cwd()
+            context_files = list_context_files(cwd)
+            output = format_context_list(context_files)
+            print(output)
+
+        elif args.context_command == "add":
+            # Register AI context file in global registry
+            from llmflow.registry import Registry
+
+            registry = Registry()
+
+            # Determine project name
+            project_name = args.project
+            if not project_name:
+                project_name = Path.cwd().name
+
+            # Determine full path
+            file_path = args.path
+            if not file_path:
+                file_path = str(Path.cwd() / "docs" / "ai-context" / args.file)
+
+            # Parse topics
+            topics = [t.strip() for t in args.topics.split(",")]
+
+            # Register
+            registry.ai_context.register(
+                file=args.file,
+                project=project_name,
+                description=args.description,
+                topics=topics,
+                path=file_path
+            )
+
+            print(f"✅ Registered {args.file} in global AI context registry")
+            print(f"   Project: {project_name}")
+            print(f"   Topics: {', '.join(topics)}")
+
+        elif args.context_command == "search":
+            # Search AI context registry by topics
+            from llmflow.registry import Registry
+
+            registry = Registry()
+
+            # Search
+            results = registry.ai_context.search(
+                topics=args.topics,
+                project=args.project
+            )
+
+            if not results:
+                print("No AI context files found matching search criteria.")
+                if args.project:
+                    print(f"  Project filter: {args.project}")
+                print(f"  Topics: {', '.join(args.topics)}")
+            else:
+                print(f"Found {len(results)} AI context file(s):\n")
+                for ctx in results:
+                    topics_str = ", ".join(ctx.get("topics", []))
+                    print(f"  {ctx['file']}")
+                    print(f"    Project: {ctx.get('project', 'unknown')}")
+                    print(f"    Description: {ctx.get('description', 'No description')}")
+                    print(f"    Topics: {topics_str}")
+                    if ctx.get('path'):
+                        print(f"    Path: {ctx['path']}")
+                    print()
+
         return
 
     if args.command == "run":

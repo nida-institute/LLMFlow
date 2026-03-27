@@ -9,7 +9,7 @@ Reference for AI assistants working with Paratext project metadata. Shows what f
 
 ## Scripture Burrito (metadata.json)
 
-**Format:** JSON → loaded as `dict`  
+**Format:** JSON → loaded as `dict`
 **Spec:** https://docs.burrito.bible/en/latest/
 
 ### Common Fields
@@ -73,7 +73,7 @@ burrito["copyright"]["shortStatements"]            # list of copyright statement
 
 ## Paratext Settings.xml
 
-**Format:** XML → loaded as `lxml.etree._Element`  
+**Format:** XML → loaded as `lxml.etree._Element`
 **Schema:** Paratext-specific (no public spec)
 
 ### Common Elements
@@ -88,7 +88,7 @@ burrito["copyright"]["shortStatements"]            # list of copyright statement
   <Encoding>65001</Encoding>
   <Copyright>© 2023 Example Org</Copyright>
   <IsRTL>false</IsRTL>
-  
+
   <!-- Optional elements -->
   <BiblicalTermsListSetting>Major::BiblicalTerms.xml</BiblicalTermsListSetting>
   <TransliterationFont>Charis SIL</TransliterationFont>
@@ -108,7 +108,7 @@ xpath_text(settings, ".//LanguageIsoCode/text()")       # "ceb"
 # Extract full project name
 xpath_text(settings, ".//FullName/text()")              # "Cebuano Popular Version"
 
-# Extract abbreviation  
+# Extract abbreviation
 xpath_text(settings, ".//Abbreviation/text()")          # "CPV"
 
 # Check if RTL
