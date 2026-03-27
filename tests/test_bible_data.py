@@ -26,6 +26,17 @@ from llmflow.utils.bible_data import (
 )
 
 
+#  =============================================================================
+# Pytest Fixtures
+# =============================================================================
+
+@pytest.fixture(scope="session")
+def check_acai_available():
+    """Skip test if ACAI data is not available."""
+    if get_acai_path() is None:
+        pytest.skip("ACAI not found on this system")
+
+
 # =============================================================================
 # Registry Tests
 # =============================================================================
@@ -38,7 +49,7 @@ class TestBibleDataRegistry:
         assert registry is not None
         assert isinstance(registry, BibleDataRegistry)
 
-    def test_get_acai_path(self):
+    def test_get_acai_path(self, check_acai_available):
         """Test ACAI path resolution."""
         path = registry.get_path('acai')
         assert path is not None
@@ -100,7 +111,7 @@ class TestBibleDataRegistry:
 class TestHelperFunctions:
     """Test helper functions for convenience access."""
 
-    def test_get_acai_path(self):
+    def test_get_acai_path(self, check_acai_available):
         """Test get_acai_path() convenience function."""
         path = get_acai_path()
         assert path is not None
@@ -129,7 +140,7 @@ class TestHelperFunctions:
 class TestACAIEntityLoading:
     """Test ACAI entity loading functionality."""
 
-    def test_load_acai_entity_deity(self):
+    def test_load_acai_entity_deity(self, check_acai_available):
         """Test loading a deity entity."""
         entity = load_acai_entity('deity:Angel')
 
@@ -151,7 +162,7 @@ class TestACAIEntityLoading:
         assert entity['type'] == 'person'
         assert 'Jesus' in entity['localizations']['eng']['preferred_label']
 
-    def test_load_acai_entity_invalid_id(self):
+    def test_load_acai_entity_invalid_id(self, check_acai_available):
         """Test loading with invalid entity ID."""
         entity = load_acai_entity('invalid')
         assert entity is None
@@ -159,7 +170,7 @@ class TestACAIEntityLoading:
         entity = load_acai_entity('person:NonExistentPerson9999')
         assert entity is None
 
-    def test_load_acai_entity_all_types(self):
+    def test_load_acai_entity_all_types(self, check_acai_available):
         """Test that we can load at least one entity from each type."""
         acai_path = get_acai_path()
         entity_types = ['people', 'places', 'deities', 'groups',
@@ -199,7 +210,7 @@ class TestACAIEntityLoading:
 class TestACAIEntityDetail:
     """Test detailed entity information retrieval."""
 
-    def test_get_acai_entity_detail(self):
+    def test_get_acai_entity_detail(self, check_acai_available):
         """Test getting detailed entity information."""
         detail = get_acai_entity_detail('deity:Angel')
 
@@ -213,7 +224,7 @@ class TestACAIEntityDetail:
         assert 'references' in detail
         assert isinstance(detail['references'], list)
 
-    def test_get_acai_entity_detail_invalid(self):
+    def test_get_acai_entity_detail_invalid(self, check_acai_available):
         """Test getting detail for non-existent entity."""
         detail = get_acai_entity_detail('person:NonExistent999')
         assert detail is None
@@ -226,7 +237,7 @@ class TestACAIEntityDetail:
 class TestACAIPassageQueries:
     """Test querying ACAI entities by Bible passage."""
 
-    def test_get_entities_for_passage_basic(self):
+    def test_get_entities_for_passage_basic(self, check_acai_available):
         """Test getting entities for a passage."""
         # Note: This test depends on the reference parser working
         # May need to mock if parser not available
@@ -236,14 +247,14 @@ class TestACAIPassageQueries:
         assert isinstance(entities, list)
         # Can't assert specific count without knowing data
 
-    def test_get_entities_with_max_limit(self):
+    def test_get_entities_with_max_limit(self, check_acai_available):
         """Test limiting number of entities returned."""
         entities = get_acai_entities_for_passage('Genesis 1:1', max_entities=3)
 
         assert isinstance(entities, list)
         assert len(entities) <= 3
 
-    def test_entities_sorted_by_frequency(self):
+    def test_entities_sorted_by_frequency(self, check_acai_available):
         """Test that entities are sorted by reference count."""
         entities = get_acai_entities_for_passage('Genesis 1:1', max_entities=5)
 
@@ -357,7 +368,7 @@ class TestDuckDBIntegration:
 class TestEdgeCases:
     """Test edge cases and error handling."""
 
-    def test_load_entity_with_custom_path(self):
+    def test_load_entity_with_custom_path(self, check_acai_available):
         """Test loading entity with custom ACAI path."""
         acai_path = get_acai_path()
         entity = load_acai_entity('deity:Angel', acai_path=str(acai_path))
@@ -370,7 +381,7 @@ class TestEdgeCases:
         entity = load_acai_entity('deity:Angel', acai_path='/nonexistent/path')
         assert entity is None
 
-    def test_entity_has_required_fields(self):
+    def test_entity_has_required_fields(self, check_acai_available):
         """Test that loaded entities have all required fields."""
         entity = load_acai_entity('deity:Angel')
 
@@ -393,7 +404,7 @@ class TestEdgeCases:
 class TestIntegration:
     """Integration tests combining multiple features."""
 
-    def test_full_workflow_acai_lookup(self):
+    def test_full_workflow_acai_lookup(self, check_acai_available):
         """Test complete workflow: passage -> entities -> details."""
         # Step 1: Get entities for a passage
         entities = get_acai_entities_for_passage('Genesis 16:7', max_entities=1)
@@ -411,7 +422,7 @@ class TestIntegration:
         assert detail['id'] == entity_id
         assert 'description' in detail
 
-    def test_verify_all_entity_types_loadable(self):
+    def test_verify_all_entity_types_loadable(self, check_acai_available):
         """Verify that we can access all entity type directories."""
         acai_path = get_acai_path()
         entity_dirs = ['people', 'places', 'deities', 'groups',
