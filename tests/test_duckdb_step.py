@@ -102,7 +102,7 @@ class TestDuckDBOutputFormats:
         queries_dir = tmp_path / "queries"
         queries_dir.mkdir()
         query_file = queries_dir / "test.sql"
-        query_file.write_text("SELECT 1 as id, 'test' as name UNION SELECT 2, 'test2'")
+        query_file.write_text("SELECT 1 as id, 'test' as name UNION SELECT 2, 'test2' ORDER BY id")
 
         context = {"queries_dir": str(queries_dir)}
         step = {
