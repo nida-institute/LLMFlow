@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import ProjectList from './components/ProjectList'
 import PipelineView from './components/PipelineView'
+import ProjectView from './components/ProjectView'
 import './App.css'
 
 function App() {
@@ -47,11 +48,16 @@ function App() {
       <main className="flex-1 overflow-hidden">
         {selectedPipeline ? (
           <PipelineView pipeline={selectedPipeline} project={selectedProject} />
+        ) : selectedProject ? (
+          <ProjectView
+            project={selectedProject}
+            onSelectPipeline={(pipeline) => setSelectedPipeline(pipeline)}
+          />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             <div className="text-center">
-              <p className="text-lg">Select a pipeline to get started</p>
-              <p className="text-sm mt-2">Choose a project and pipeline from the sidebar</p>
+              <p className="text-lg">Select a project to get started</p>
+              <p className="text-sm mt-2">Choose a project from the sidebar</p>
             </div>
           </div>
         )}

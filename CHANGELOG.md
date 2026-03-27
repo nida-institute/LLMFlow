@@ -3,6 +3,26 @@
 ## Unreleased
 - _No changes yet._
 
+## 0.2.1.07 — 2026-03-27
+
+### GUI Bundling for Nuitka Distribution
+- **Restructured GUI for single-binary distribution**: React frontend now builds to static files that are bundled into the nuitka `sp` binary.
+- **New production server** (`gui/backend/server.py`): Flask server that serves bundled static React files + REST API in a single process.
+- **Build script** (`build_gui.py`): Automates `npm build` → copy to `src/llmflow/gui/static/` → ready for nuitka bundling.
+- **CLI command updates**:
+  - Added `sp gui` command with `--host`, `--port`, `--no-browser` options.
+  - GUI server auto-opens browser and provides clean shutdown on Ctrl+C.
+- **Updated `sp-gui` launcher**: Simplified to call bundled server module.
+- **Package structure**: GUI static files included via `pyproject.toml` force-include directive.
+- **Documentation**:
+  - [gui/BUILD.md](gui/BUILD.md): Complete build process documentation.
+  - [gui/README.md](gui/README.md): Updated with end-user vs developer workflows.
+  - [gui/BUNDLING-SUMMARY.md](gui/BUNDLING-SUMMARY.md): Implementation summary.
+- **Test suite** (`test_gui_bundle.py`): Verifies build, static files, imports, and CLI command.
+- **Size impact**: Adds ~10-15 MB to binary (Flask ~8MB + React static ~2-3MB). Optional feature - CLI-only users unaffected.
+- **Nuitka integration**: Documented `--include-data-dir` flags for embedding static assets.
+- **No Python/Node environment needed by end users** - just run `sp gui` from the compiled binary!
+
 ## 0.2.1.06 — 2026-03-27
 
 ### Global Registry System (Issue #78)

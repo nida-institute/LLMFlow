@@ -1,6 +1,6 @@
 [project]
 name = "llmflow"
-version = "0.2.1.06"
+version = "0.2.1.07"
 description = "Declarative pipelines for LLM-powered workflows"
 authors = [{name = "Jonathan Robie", email = "jonathan.robie@gmail.com"}]
 license = {text = "MIT"}
@@ -65,7 +65,7 @@ packages = ["src/llmflow"]
 [tool.hatch.build.targets.wheel.force-include]
 "docs/ai-context" = "llmflow/docs/ai-context"
 "docs/audits" = "llmflow/docs/audits"
-"gui" = "llmflow/gui"
+"src/llmflow/gui" = "llmflow/gui"
 
 [project.scripts]
 sp = "llmflow.cli:main"

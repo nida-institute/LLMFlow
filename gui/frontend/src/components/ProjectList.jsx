@@ -76,43 +76,17 @@ export default function ProjectList({ selectedProject, onSelectProject, onSelect
                     : 'hover:bg-muted text-foreground'
                 }`}
               >
-                {project.name}
+                <div className="font-medium">{project.name}</div>
+                {project.description && (
+                  <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                    {project.description}
+                  </div>
+                )}
               </button>
             ))}
           </div>
         )}
       </div>
-
-      {/* Pipelines Section */}
-      {selectedProject && (
-        <div className="p-2 mt-4 border-t border-border">
-          <h2 className="px-2 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Pipelines ({pipelines.length})
-          </h2>
-          {pipelines.length === 0 ? (
-            <p className="px-2 text-sm text-muted-foreground">
-              No pipelines found in this project.
-            </p>
-          ) : (
-            <div className="space-y-1">
-              {pipelines.map((pipeline) => (
-                <button
-                  key={pipeline.path}
-                  onClick={() => onSelectPipeline(pipeline)}
-                  className="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-muted text-foreground transition-colors"
-                >
-                  <div className="font-medium">{pipeline.name}.yaml</div>
-                  {pipeline.description && (
-                    <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                      {pipeline.description}
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }

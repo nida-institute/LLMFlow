@@ -2,49 +2,27 @@
 """
 GUI launcher for Scripture Pipelines.
 
-Starts the Flask backend server and optionally opens the browser.
+Starts the bundled GUI server (Flask + static React frontend).
 """
 
-import os
 import sys
-import subprocess
-import webbrowser
-import time
-from pathlib import Path
 
 
 def main():
-    # Find the GUI backend directory
-    gui_dir = Path(__file__).parent.parent / 'gui' / 'backend'
-
-    if not gui_dir.exists():
-        print("❌ GUI backend not found. Ensure llmflow[gui] is installed.")
+    """Launch the GUI server."""
+    try:
+        from llmflow.gui.server import start_server
+    except ImportError as e:
+        print("❌ GUI dependencies not installed")
+        print("   Install with: pip install llmflow[gui]")
+        print(f"   Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Failed to import GUI server: {e}")
         sys.exit(1)
 
-    # Check if Flask is installed
-    try:
-        import flask
-    except ImportError:
-        print("❌ Flask not installed. Install with:")
-        print("   pip install llmflow[gui]")
-        sys.exit(1)
-
-    print("🚀 Starting Scripture Pipelines GUI...")
-    print()
-    print("   Backend:  http://localhost:5000")
-    print("   Frontend: (run separately with 'cd gui/frontend && npm run dev')")
-    print()
-    print("   Press Ctrl+C to stop")
-    print()
-
-    # Start Flask backend
-    try:
-        subprocess.run(
-            [sys.executable, str(gui_dir / 'app.py')],
-            cwd=str(gui_dir)
-        )
-    except KeyboardInterrupt:
-        print("\n\n👋 Shutting down...")
+    # Start server with default settings
+    start_server(host='127.0.0.1', port=5000, open_browser=True)
 
 
 if __name__ == '__main__':

@@ -86,6 +86,13 @@ def build_parser():
 
     # version command
     subparsers.add_parser("version", help="Show version")
+
+    # gui command
+    gui_p = subparsers.add_parser("gui", help="Launch web-based GUI")
+    gui_p.add_argument("--host", default="127.0.0.1", help="Host address (default: 127.0.0.1)")
+    gui_p.add_argument("--port", type=int, default=5000, help="Port number (default: 5000)")
+    gui_p.add_argument("--no-browser", action="store_true", help="Don't auto-open browser")
+
     init_p = subparsers.add_parser("init", help="Create a starter LLMFlow environment")
     init_p.add_argument(
         "--update",
@@ -232,6 +239,21 @@ def main(argv=None):
 
     if args.command == "version":
         print(__version__)
+        return
+
+    if args.command == "gui":
+        try:
+            from llmflow.gui.server import start_server
+        except ImportError:
+            logger.error("❌ GUI dependencies not installed")
+            logger.error("   Install with: pip install llmflow[gui]")
+            sys.exit(1)
+
+        start_server(
+            host=args.host,
+            port=args.port,
+            open_browser=not args.no_browser
+        )
         return
 
     if args.command == "list":
