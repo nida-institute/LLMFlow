@@ -321,7 +321,8 @@ class TestDuckDBIntegrationInPipeline:
         query_file = queries_dir / "frequency.sql"
         query_file.write_text(
             "SELECT 'walk' as lemma, 'הלך' as hebrew, 1543 as frequency "
-            "UNION SELECT 'say', 'אמר', 1421"
+            "UNION SELECT 'say', 'אמר', 1421 "
+            "ORDER BY frequency DESC"
         )
 
         context = {"queries_dir": str(queries_dir)}
