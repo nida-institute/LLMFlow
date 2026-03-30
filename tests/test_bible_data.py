@@ -343,7 +343,10 @@ class TestDuckDBIntegration:
 
     def test_load_acai_to_duckdb(self):
         """Test loading ACAI entities into DuckDB."""
-        from llmflow.utils.bible_data import load_acai_to_duckdb
+        from llmflow.utils.bible_data import load_acai_to_duckdb, get_acai_path
+
+        if get_acai_path() is None:
+            pytest.skip("ACAI data not available")
 
         con = load_acai_to_duckdb(entity_types=['deities'])
         assert con is not None
