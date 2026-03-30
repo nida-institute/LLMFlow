@@ -43,4 +43,4 @@ def interpolate_template(template: str, context: dict) -> str:
         Interpolated string
     """
     from llmflow.runner import resolve  # Correct import path
-    return resolve(template, context)
+    return str(resolve(template, context))

@@ -1,3 +1,4 @@
+import ast
 import json
 import re
 import unicodedata
@@ -7,6 +8,7 @@ import markdown
 
 from llmflow.modules.logger import Logger
 from llmflow.plugins.echo import echo
+from llmflow.utils.guards import _eval_node
 
 # Use unified logger
 logger = Logger()
@@ -52,7 +54,7 @@ def read_text(path):
     except FileNotFoundError:
         raise FileNotFoundError(f"File not found: {path}")
     except UnicodeDecodeError as e:
-        raise UnicodeDecodeError(f"Could not decode file as UTF-8: {path}") from e
+        raise ValueError(f"Could not decode file as UTF-8: {path}") from e
 
 
 # --- Template rendering ---
@@ -62,7 +64,8 @@ def eval_template_expr(expr, variables):
     """Safely evaluate dot notation and subscript expressions using variables dict."""
     variables = to_attrdict(variables)  # Convert to AttrDict for dot notation support
     try:
-        return str(eval(expr, {"__builtins__": {}}, variables))
+        tree = ast.parse(expr.strip(), mode="eval")
+        return str(_eval_node(tree.body, variables))  # type: ignore[arg-type]
     except Exception:
         return f"{{{{{expr}}}}}"  # Leave as-is if evaluation fails
 
@@ -229,7 +232,7 @@ def validate_all_templates(pipeline_config):
                         )
 
                     # Check if step provides required variables
-                    template_vars = inputs.get("variables", {})
+                    template_vars = inputs.get("variables", {}) if isinstance(inputs, dict) else {}
                     if isinstance(template_vars, dict) and missing_vars:
                         provided_vars = set(template_vars.keys())
                         still_missing = set(missing_vars) - provided_vars
@@ -382,7 +385,10 @@ def extract_pipeline_variables_at_step(pipeline, target_step_name):
 
 def validate_template_structure(template_path, pipeline, step_name):
     """Check template against variables available when that step runs"""
-    template_vars = extract_template_variables(template_path)
+    # Read template content from file
+    with open(template_path, 'r', encoding='utf-8') as f:
+        template_content = f.read()
+    template_vars = extract_template_variables(template_content)
     available_vars = extract_pipeline_variables_at_step(pipeline, step_name)
 
     # Also check the specific inputs to this template step

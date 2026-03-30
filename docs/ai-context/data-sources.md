@@ -1,5 +1,8 @@
 # Biblical Data Sources & Access Patterns
 
+> **Use this file for:** `sp download-data`, dataset locations (`~/.sp/data/`), USFM/USX/Macula/Berean access patterns, `load_usfm_book`/`load_usfm_passage`/`list_usfm_books`/`export_usx`/`load_project_file`, `load_xml_file`/`load_csv_file`/`xpath_text`, Paratext project layout, Paratext metadata (Settings.xml, metadata.json), multi-project comparison, deuterocanonical split-text.
+> **Budget: 200 lines / 8KB.** If adding content would push past this, split into a new file and add a row to `index.md`.
+
 Reference for AI assistants working with Scripture Pipelines. Covers how to obtain datasets, where they live on disk, and how pipelines reference them.
 
 ---
@@ -110,6 +113,73 @@ Use the built-in data loaders (all in `llmflow.utils.data`):
 | `load_json_file(path)` | `dict` or `list` | JSON checkpoints, catalog files |
 | `load_csv_file(path, delimiter=",")` | `list[dict]` | Morphology TSV with `delimiter="\t"`, CSV word lists |
 | `load_xml_file(path)` | `lxml.etree._Element` | USX, TEI, Lowfat XML (full lxml tree) |
+| `list_usfm_books(base_dir, project_name)` | `list[str]` | Book codes in a Paratext project, canonical order |
+| `load_usfm_book(base_dir, project_name, book, format)` | `_Element` or `dict` | Single book from Paratext project; `format="usx"` or `"usj"` |
+| `load_usfm_passage(base_dir, project_name, passage, format)` | `_Element` or `dict` | Passage by reference (`"LUK"`, `"LUK 1"`); verse ranges Phase 2 |
+| `export_usx(base_dir, project_name, output_dir)` | `str` | Convert whole project to USX 3.1 files (e.g. for BaseX ingestion) |
+| `load_project_file(base_dir, project_name, file)` | `dict` or `_Element` | Load metadata files; auto-detects format (`.json`→dict, `.xml`→Element) |
+| `xpath_text(element, path)` | `str` or `None` | Extract text from XML element using XPath query |
+
+**Paratext project layout:** `<base_dir>/<project_name>/*.sfm` or `*.usfm`
+
+**Paratext metadata files:**
+- `metadata.json` (Scripture Burrito) — returns `dict`, direct access: `${burrito.languages[0].name.en}`
+- `Settings.xml` (Paratext 8/9) — returns `lxml.etree._Element`, requires extraction via `xpath_text()`
+- `BiblicalTerms.xml`, `BookNames.xml`, etc. — also return `_Element`
+
+**Schema reference:** See [paratext-schemas.md](paratext-schemas.md) for complete field listings, XPath queries, and choosing between Burrito vs Settings.xml
+
+**Metadata access pattern:**
+```yaml
+# Scripture Burrito (dict) — preferred for language info
+- name: load_metadata
+  function: load_project_file
+  inputs: {base_dir: "${PARATEXT_DIR}", project_name: "cebAPDv4", file: "metadata.json"}
+  outputs: [burrito]
+
+# Direct dict access in templates
+language: "${burrito.languages[0].name.en}"
+iso: "${burrito.languages[0].tag}"
+```
+
+```yaml
+# Paratext XML — requires extraction
+- name: load_settings
+  function: load_project_file
+  inputs: {base_dir: "${PARATEXT_DIR}", project_name: "cebAPDv4", file: "Settings.xml"}
+  outputs: [settings]
+
+- name: extract_language
+  function: xpath_text
+  inputs: {xml: "${settings}", path: ".//LanguageName/text()"}
+  outputs: [language_name]
+```
+
+**Book codes:** Always 3-letter uppercase (`"LUK"`, `"GEN"`). Project numeric prefixes are preserved in filenames but not used in API calls.
+
+**Version note:** Input files can be any USFM/USX version — `usfmtc` handles older versions gracefully. Output is always USX/USJ 3.1.
+
+**Deuterocanonical split-text warning:** Some texts appear as separate books in some traditions (e.g. `BEL`, `SUS`) and as chapters within a canonical book in others (Daniel 14, Daniel 13). Pipelines searching for deuterocanonical content should check multiple book codes. See `project/plans/usfm-support.md` for details.
+
+**Multi-project comparison pattern:**
+```yaml
+variables:
+  paratext_dir: "${PARATEXT_DIR}"   # set once
+  book: "LUK"
+  chapter: "1"
+
+steps:
+  - name: load_proj_a
+    type: function
+    function: load_usfm_passage
+    inputs:
+      base_dir: "${paratext_dir}"
+      project_name: "ProjectA"
+      passage: "${book} ${chapter}"
+      format: "usj"
+    outputs:
+      - text_a
+```
 
 ```yaml
 - name: load_morphology

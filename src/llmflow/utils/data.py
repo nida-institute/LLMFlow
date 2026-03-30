@@ -901,7 +901,7 @@ def load_xml_file(file_path):
     Returns:
         lxml.etree._Element: Parsed root element
     """
-    from lxml import etree
+    from lxml import etree  # type: ignore[attr-defined]
 
     logger.debug(f"Loading XML file: {file_path}")
     path = Path(file_path)
@@ -913,3 +913,526 @@ def load_xml_file(file_path):
     root = tree.getroot()
     logger.debug(f"Loaded XML: root tag <{root.tag}>")
     return root
+
+
+# ---------------------------------------------------------------------------
+# USFM / USX / USJ loaders (Paratext project support)
+# ---------------------------------------------------------------------------
+
+# Canonical USFM book order keyed by 3-letter code.
+# Numbers are LLMFlow-internal sort keys only — never exposed to callers.
+# Source: USFM 3.x canonical book list (Protestant + deuterocanonical).
+_USFM_BOOK_ORDER = {
+    "GEN": 1, "EXO": 2, "LEV": 3, "NUM": 4, "DEU": 5,
+    "JOS": 6, "JDG": 7, "RUT": 8, "1SA": 9, "2SA": 10,
+    "1KI": 11, "2KI": 12, "1CH": 13, "2CH": 14, "EZR": 15,
+    "NEH": 16, "EST": 17, "JOB": 18, "PSA": 19, "PRO": 20,
+    "ECC": 21, "SNG": 22, "ISA": 23, "JER": 24, "LAM": 25,
+    "EZK": 26, "DAN": 27, "HOS": 28, "JOL": 29, "AMO": 30,
+    "OBA": 31, "JON": 32, "MIC": 33, "NAM": 34, "HAB": 35,
+    "ZEP": 36, "HAG": 37, "ZEC": 38, "MAL": 39,
+    # Deuterocanonical / apocryphal
+    "TOB": 40, "JDT": 41, "ESG": 42, "WIS": 43, "SIR": 44,
+    "BAR": 45, "LJE": 46, "S3Y": 47, "SUS": 48, "BEL": 49,
+    "1MA": 50, "2MA": 51, "3MA": 52, "4MA": 53, "1ES": 54,
+    "2ES": 55, "MAN": 56, "PS2": 57, "ODA": 58, "PSS": 59,
+    "EZA": 60,
+    # NT
+    "MAT": 61, "MRK": 62, "LUK": 63, "JHN": 64, "ACT": 65,
+    "ROM": 66, "1CO": 67, "2CO": 68, "GAL": 69, "EPH": 70,
+    "PHP": 71, "COL": 72, "1TH": 73, "2TH": 74, "1TI": 75,
+    "2TI": 76, "TIT": 77, "PHM": 78, "HEB": 79, "JAS": 80,
+    "1PE": 81, "2PE": 82, "1JN": 83, "2JN": 84, "3JN": 85,
+    "JUD": 86, "REV": 87,
+}
+
+
+def _usfm_book_sort_key(code: str) -> int:
+    return _USFM_BOOK_ORDER.get(code.upper(), 9999)
+
+
+def _scan_usfm_project(base_dir: str, project_name: str):
+    """
+    Scan a Paratext project directory for USFM files.
+
+    Returns list of (book_code, file_path) tuples.
+    Raises FileNotFoundError if the project directory does not exist.
+    """
+    project_dir = Path(base_dir) / project_name
+    if not project_dir.exists():
+        raise FileNotFoundError(
+            f"Paratext project directory not found: {project_dir}"
+        )
+
+    from usfmtc import readFile
+
+    results = []
+    for f in sorted(project_dir.iterdir()):
+        if f.suffix.lower() in (".sfm", ".usfm"):
+            try:
+                usx = readFile(str(f))
+                if usx is None:
+                    continue
+                code = usx.book
+                if code:
+                    results.append((code.upper(), f, usx))
+            except Exception as exc:
+                logger.warning(f"⚠️  Skipping {f.name}: {exc}")
+    return results
+
+
+def _usx_to_element(usx_obj):
+    """Convert a usfmtc USX object to an lxml _Element."""
+    from lxml import etree  # type: ignore[attr-defined]
+    xml_str = usx_obj.outUsx()
+    if xml_str is None:
+        raise ValueError("usfmtc returned no USX output")
+    if isinstance(xml_str, str):
+        xml_str = xml_str.encode("utf-8")
+    return etree.fromstring(xml_str)
+
+
+def _usx_to_usj(usx_obj) -> dict:
+    """Convert a usfmtc USX object to a USJ dict."""
+    return usx_obj.outUsj()
+
+
+def _format_result(usx_obj, format: str):
+    fmt = format.lower()
+    if fmt == "usx":
+        return _usx_to_element(usx_obj)
+    elif fmt == "usj":
+        return _usx_to_usj(usx_obj)
+    else:
+        raise ValueError(
+            f"Invalid format '{format}': must be 'usx' or 'usj'"
+        )
+
+
+def list_usfm_books(base_dir: str, project_name: str) -> list:
+    """
+    List book codes found in a Paratext project directory.
+
+    Returns book codes sorted in canonical USFM order (GEN → REV,
+    deuterocanonicals after MAL, unknown codes at the end).
+    Book codes are always 3-letter uppercase strings (e.g. "LUK", "GEN").
+
+    Args:
+        base_dir: Parent directory containing Paratext projects.
+        project_name: Name of the Paratext project subdirectory.
+
+    Returns:
+        Sorted list of 3-letter USFM book codes present in the project.
+
+    Raises:
+        FileNotFoundError: If the project directory does not exist.
+    """
+    entries = _scan_usfm_project(base_dir, project_name)
+    codes = [code for code, _, _ in entries]
+    return sorted(codes, key=_usfm_book_sort_key)
+
+
+def load_usfm_book(base_dir: str, project_name: str, book: str, format: str):
+    """
+    Load a single book from a Paratext project.
+
+    Args:
+        base_dir: Parent directory containing Paratext projects.
+        project_name: Name of the Paratext project subdirectory.
+        book: 3-letter USFM book code (e.g. "LUK").
+        format: "usx" returns lxml _Element; "usj" returns dict.
+
+    Returns:
+        lxml _Element (usx) or dict (usj).
+
+    Raises:
+        FileNotFoundError: If the project directory does not exist.
+        ValueError: If the book is not found in the project, or format is invalid.
+    """
+    entries = _scan_usfm_project(base_dir, project_name)
+    book_upper = book.upper()
+    for code, _, usx_obj in entries:
+        if code == book_upper:
+            logger.debug(f"Loading USFM book {book_upper} as {format}")
+            return _format_result(usx_obj, format)
+    raise ValueError(
+        f"Book '{book_upper}' not found in project '{project_name}' "
+        f"under '{base_dir}'"
+    )
+
+
+def _parse_passage(passage: str):
+    """
+    Parse a passage string into (book, chapter_or_None).
+
+    Supported Phase 1 formats:
+        "LUK"     → ("LUK", None)
+        "LUK 1"   → ("LUK", 1)
+        "LUK 1:1-10" → raises NotImplementedError
+
+    Returns (book_code, chapter_int_or_None).
+    """
+    parts = passage.strip().split()
+    if not parts:
+        raise ValueError(f"Empty passage string")
+
+    book = parts[0].upper()
+
+    if len(parts) == 1:
+        return book, None
+
+    chapter_part = parts[1]
+    if ":" in chapter_part:
+        raise NotImplementedError(
+            "Verse range selection is not yet supported. "
+            "Use 'BOOK C' for a whole chapter (e.g. 'LUK 1')."
+        )
+
+    try:
+        chapter = int(chapter_part)
+    except ValueError:
+        raise ValueError(f"Cannot parse chapter from passage: '{passage}'")
+
+    return book, chapter
+
+
+def _extract_chapter_usj(usj: dict, chapter: int) -> dict:
+    """
+    Extract a single chapter from a USJ dict by chapter number.
+
+    Returns a new USJ dict whose content contains only the nodes
+    belonging to the requested chapter.
+    """
+    content = usj.get("content", [])
+    in_chapter = False
+    chapter_content = []
+
+    for item in content:
+        if not isinstance(item, dict):
+            if in_chapter:
+                chapter_content.append(item)
+            continue
+
+        marker = item.get("type") or item.get("marker")
+
+        if marker == "chapter":
+            num = item.get("number") or item.get("sid", "").split(" ")[-1]
+            try:
+                this_chapter = int(str(num).split(":")[0])
+            except (ValueError, TypeError):
+                this_chapter = None
+
+            if this_chapter == chapter:
+                in_chapter = True
+                chapter_content.append(item)
+            elif in_chapter:
+                # Hit the next chapter — stop
+                break
+        else:
+            if in_chapter:
+                chapter_content.append(item)
+
+    return {
+        "type": "USJ",
+        "version": usj.get("version", "3.1"),
+        "content": chapter_content,
+    }
+
+
+def load_usfm_passage(base_dir: str, project_name: str, passage: str, format: str):
+    """
+    Load a passage from a Paratext project by reference string.
+
+    Phase 1 supported formats:
+        "LUK"    — whole book
+        "LUK 1"  — chapter 1
+
+    Phase 2 (not yet supported):
+        "LUK 1:1-10" — raises NotImplementedError
+
+    Args:
+        base_dir: Parent directory containing Paratext projects.
+        project_name: Name of the Paratext project subdirectory.
+        passage: Passage reference string.
+        format: "usx" returns lxml _Element; "usj" returns dict.
+
+    Returns:
+        lxml _Element (usx) or dict (usj) containing the requested content.
+
+    Raises:
+        FileNotFoundError: If the project directory does not exist.
+        ValueError: If the book is not found or the passage string is invalid.
+        NotImplementedError: If a verse range is requested (Phase 2).
+    """
+    book, chapter = _parse_passage(passage)
+
+    if chapter is None:
+        return load_usfm_book(base_dir, project_name, book, format)
+
+    # Chapter slice: load as USJ, extract, convert if needed
+    usj = load_usfm_book(base_dir, project_name, book, format="usj")
+    chapter_usj = _extract_chapter_usj(usj, chapter)
+
+    if format.lower() == "usj":
+        return chapter_usj
+
+    # Convert extracted USJ back to USX element
+    from usfmtc import USX as _USX
+    usx_obj = _USX.fromUsj(chapter_usj)
+    return _usx_to_element(usx_obj)
+
+
+def export_usx(base_dir: str, project_name: str, output_dir: str) -> str:
+    """
+    Export all books in a Paratext project to USX 3.1 files.
+
+    Output filenames preserve the project's original numeric prefix
+    (e.g. "42LUK.sfm" → "42LUK.usx") for round-trip compatibility.
+
+    Args:
+        base_dir: Parent directory containing Paratext projects.
+        project_name: Name of the Paratext project subdirectory.
+        output_dir: Directory to write .usx files into (created if needed).
+
+    Returns:
+        output_dir as a string.
+
+    Raises:
+        FileNotFoundError: If the project directory does not exist.
+    """
+    entries = _scan_usfm_project(base_dir, project_name)
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+
+    for code, src_path, usx_obj in entries:
+        # Preserve the project's original filename prefix, change extension to .usx
+        stem = src_path.stem  # e.g. "42LUK"
+        out_path = out / f"{stem}.usx"
+        logger.debug(f"Exporting {code} → {out_path}")
+        xml_str = usx_obj.outUsx()
+        if xml_str is not None:
+            if isinstance(xml_str, str):
+                xml_str = xml_str.encode("utf-8")
+            out_path.write_bytes(xml_str)
+
+    logger.info(f"✅ Exported {len(entries)} book(s) to {output_dir}")
+    return output_dir
+
+
+def load_usfm_project(base_dir: str, project_name: str, format: str = "usx") -> dict:
+    """
+    Load all books from a Paratext project eagerly.
+
+    Args:
+        base_dir: Parent directory containing Paratext projects.
+        project_name: Name of the Paratext project subdirectory.
+        format: "usx" returns lxml _Element values; "usj" returns dict values.
+
+    Returns:
+        Dict mapping 3-letter USFM book codes to parsed content
+        (lxml _Element for "usx", dict for "usj").
+
+    Raises:
+        FileNotFoundError: If the project directory does not exist.
+        ValueError: If format is invalid.
+    """
+    entries = _scan_usfm_project(base_dir, project_name)
+    return {code: _format_result(usx_obj, format) for code, _, usx_obj in entries}
+
+
+def serialize_usx(content) -> str | bool | None:
+    """
+    Serialize scripture content to USX XML string.
+
+    Args:
+        content: lxml _Element (USX) or dict (USJ).
+
+    Returns:
+        USX XML as a unicode string.
+    """
+    from lxml.etree import _Element, tostring
+    if isinstance(content, _Element):
+        return tostring(content, encoding="unicode", pretty_print=True)
+    # USJ dict path
+    import json
+    from usfmtc import USX as _USX
+    usx_obj = _USX.fromUsj(json.dumps(content))
+    return usx_obj.outUsx()
+
+
+def serialize_usfm(content) -> str | bool | None:
+    """
+    Serialize scripture content to USFM text.
+
+    Args:
+        content: lxml _Element (USX) or dict (USJ).
+
+    Returns:
+        USFM as a unicode string.
+    """
+    from usfmtc import USX as _USX
+    from lxml.etree import _Element, tostring
+    if isinstance(content, _Element):
+        xml_str = tostring(content, encoding="unicode")
+        usx_obj = _USX.fromUsx(xml_str)
+        if usx_obj is None:
+            return None
+        return usx_obj.outUsfm()
+    # USJ dict path
+    import json
+    usx_obj = _USX.fromUsj(json.dumps(content))
+    return usx_obj.outUsfm()
+
+
+def get_paratext_metadata(base_dir: str, project_name: str) -> dict:
+    """
+    Read Paratext project metadata from Settings.xml.
+
+    Extracts key project information including language name, ISO code,
+    full project name, and other metadata useful for translation workflows.
+
+    Args:
+        base_dir: Parent directory containing Paratext projects.
+        project_name: Name of the Paratext project subdirectory.
+
+    Returns:
+        Dict with metadata fields:
+            - language_name: Full language name (e.g. "Cebuano")
+            - language_iso: ISO 639-3 code (e.g. "ceb")
+            - full_name: Full project name
+            - Additional fields as found in Settings.xml
+
+        Returns empty dict if Settings.xml not found or cannot be parsed.
+
+    Example:
+        >>> meta = get_paratext_metadata("/path/to/paratext", "cebAPDv4")
+        >>> meta['language_name']
+        'Cebuano'
+        >>> meta['language_iso']
+        'ceb'
+    """
+    from lxml import etree  # type: ignore[attr-defined]
+
+    project_dir = Path(base_dir) / project_name
+    settings_path = project_dir / "Settings.xml"
+
+    if not settings_path.exists():
+        logger.warning(f"⚠️  Settings.xml not found in {project_dir}")
+        return {}
+
+    try:
+        tree = etree.parse(str(settings_path))
+        root = tree.getroot()
+
+        metadata = {}
+
+        # Map Paratext XML elements to metadata keys
+        field_mappings = {
+            'LanguageName': 'language_name',
+            'LanguageIsoCode': 'language_iso',
+            'FullName': 'full_name',
+            'Abbreviation': 'abbreviation',
+            'Versification': 'versification',
+            'Copyright': 'copyright',
+        }
+
+        for xml_field, key in field_mappings.items():
+            elem = root.find(xml_field)
+            if elem is not None and elem.text:
+                metadata[key] = elem.text.strip()
+
+        logger.debug(f"Loaded metadata for {project_name}: {metadata.get('language_name', 'unknown')}")
+        return metadata
+
+    except Exception as exc:
+        logger.warning(f"⚠️  Could not parse Settings.xml for {project_name}: {exc}")
+        return {}
+
+
+def load_project_file(base_dir: str, project_name: str, file: str):
+    """
+    Load a metadata file from a Paratext project directory.
+
+    Auto-detects format by file extension:
+    - .json → returns dict (parsed JSON)
+    - .xml → returns lxml.etree._Element (parsed XML)
+
+    Args:
+        base_dir: Paratext projects base directory
+        project_name: Project subdirectory name
+        file: Filename to load (e.g., "Settings.xml", "metadata.json")
+
+    Returns:
+        dict for JSON files, lxml.etree._Element for XML files
+
+    Raises:
+        FileNotFoundError: If project directory or file doesn't exist
+        ValueError: If file extension is not .json or .xml
+
+    Example:
+        >>> settings = load_project_file("/paratext", "cebAPDv4", "Settings.xml")
+        >>> lang = settings.find('.//LanguageName').text
+
+        >>> burrito = load_project_file("/paratext", "cebAPDv4", "metadata.json")
+        >>> lang = burrito['languages'][0]['name']['en']
+    """
+    import json
+    from lxml import etree  # type: ignore[attr-defined]
+
+    project_dir = Path(base_dir) / project_name
+    file_path = project_dir / file
+
+    # Check project directory exists
+    if not project_dir.exists():
+        raise FileNotFoundError(f"Project directory not found: {project_dir}")
+
+    # Check file exists
+    if not file_path.exists():
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    # Auto-detect format by extension
+    ext = file_path.suffix.lower()
+
+    if ext == '.json':
+        # Parse and return JSON as dict
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+    elif ext == '.xml':
+        # Parse and return XML as lxml Element
+        tree = etree.parse(str(file_path))
+        return tree.getroot()
+
+    else:
+        raise ValueError(
+            f"Unsupported file extension '{ext}'. "
+            f"Only .json and .xml files are supported."
+        )
+
+
+def xpath_text(element, path: str):
+    """
+    Extract text content from an XML element using XPath.
+
+    Args:
+        element: lxml.etree._Element to query
+        path: XPath query string (e.g., ".//LanguageName/text()")
+
+    Returns:
+        str: Text content of first matching node, or None if not found
+
+    Example:
+        >>> settings = load_project_file("/paratext", "project", "Settings.xml")
+        >>> lang = xpath_text(settings, ".//LanguageName/text()")
+        'Cebuano'
+        >>> iso = xpath_text(settings, ".//LanguageIsoCode/text()")
+        'ceb'
+    """
+    result = element.xpath(path)
+
+    if result:
+        # XPath with /text() returns list of strings
+        # Return first match
+        return result[0] if isinstance(result, list) else result
+
+    return None

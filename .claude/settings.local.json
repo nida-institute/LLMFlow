@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /Users/jonathan/github/nida-institute/LLMFlow/*.toml /Users/jonathan/github/nida-institute/LLMFlow/*.py)",
+      "Bash(find . -name \"*.py\" -type f -exec grep -l \"TypedDict\\\\|dataclass\\\\|@property\\\\|Protocol\" {})",
+      "Bash(wc -l /Users/jonathan/github/nida-institute/LLMFlow/src/llmflow/**/*.py)",
+      "Bash(python3:*)",
+      "Bash(pip list:*)",
+      "Bash(gh api:*)",
+      "Bash(gh issue:*)",
+      "Bash(find /Users/jonathan/github/nida-institute/LLMFlow -path */gui/frontend/src/*.jsx -o -path */gui/frontend/src/*.js -o -path */gui/frontend/src/*.tsx)",
+      "Bash(grep -l \"runner\" /Users/jonathan/github/nida-institute/LLMFlow/tests/test_*.py)",
+      "Bash(grep:*)",
+      "Bash(ls -la /Users/jonathan/github/nida-institute/LLMFlow/tests/test_data* /Users/jonathan/github/nida-institute/LLMFlow/tests/test_io* /Users/jonathan/github/nida-institute/LLMFlow/tests/test_cli*)",
+      "Bash(hatch run:*)",
+      "Bash(ls tests/test_io* tests/test_plugin_load* tests/test_cli_util* tests/test_mcp_unit* tests/test_xml_entry*)",
+      "Bash(sort -t% -k1 -n)",
+      "Bash(sed -i '' 's/result\\\\[\"\"entryKey\"\"\\\\]/result[\"\"lemma\"\"]/g' /Users/jonathan/github/nida-institute/LLMFlow/tests/test_xml_plugin.py)",
+      "Bash(__NEW_LINE_45209778e274cb8c__ sed:*)",
+      "Bash(__NEW_LINE_45209778e274cb8c__ echo:*)"
+    ]
+  }
+}

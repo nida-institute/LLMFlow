@@ -165,6 +165,12 @@ Calls a Python function from the Scripture Pipelines library or custom code.
 - `llmflow.utils.data.load_text_file(file_path)` — read a plain-text or Markdown file; returns the full contents as a `str`. Useful for injecting static context into prompts.
 - `llmflow.utils.data.load_csv_file(file_path, delimiter=",")` — read a CSV or TSV (`delimiter="\t"`) file; returns a `list[dict]` compatible with `for-each`
 - `llmflow.utils.data.load_xml_file(file_path)` — parse an XML/USX/TEI file via **lxml**; returns the root `lxml.etree._Element`. Supports XPath/XSLT and full tree traversal. Raises `lxml.etree.XMLSyntaxError` on malformed input.
+- `llmflow.utils.data.list_usfm_books(base_dir, project_name)` — list book codes in a Paratext project directory, in canonical USFM order (GEN → REV). Returns `list[str]`.
+- `llmflow.utils.data.load_usfm_book(base_dir, project_name, book, format)` — load a single book from a Paratext project. `format="usx"` returns `lxml.etree._Element`; `format="usj"` returns `dict`. Reads USFM (`.sfm`/`.usfm`) files via `usfmtc`; always writes USX/USJ 3.1.
+- `llmflow.utils.data.load_usfm_passage(base_dir, project_name, passage, format)` — load a passage by reference string: `"LUK"` (whole book) or `"LUK 1"` (chapter). Verse ranges (`"LUK 1:1-10"`) raise `NotImplementedError` (Phase 2). Same format options as `load_usfm_book`.
+- `llmflow.utils.data.export_usx(base_dir, project_name, output_dir)` — convert all books in a Paratext project to USX 3.1 files in `output_dir`, preserving project numeric filename prefixes. Returns `output_dir` string.
+- `llmflow.utils.data.load_project_file(base_dir, project_name, file)` — load Paratext project metadata files. Auto-detects format: `.json` returns `dict` (Scripture Burrito), `.xml` returns `lxml.etree._Element` (Paratext XML). Supports `metadata.json`, `Settings.xml`, `BiblicalTerms.xml`, etc.
+- `llmflow.utils.data.xpath_text(element, path)` — extract text from XML element using XPath query. Returns first match or `None` if not found.
 - `llmflow.utils.data.parse_bible_reference` — parse Bible references
 - `llmflow.utils.io.render_markdown_template` — render markdown templates
 - `llmflow.utils.io.save_json` — save JSON to file

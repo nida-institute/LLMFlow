@@ -104,6 +104,7 @@ class TestMCPClient:
             print(f"✅ Passage text (first 150 chars): {result[:150]}...")
 
     @pytest.mark.asyncio
+    @pytest.mark.skip(reason="Requires live MCP server - add mocking or run manually")
     async def test_get_word_info(self):
         """Test word alignment lookup."""
         async with MCPClient(MCP_SERVER_URL, ['get_word_info']) as client:

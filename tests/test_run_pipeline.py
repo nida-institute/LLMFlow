@@ -1,9 +1,11 @@
-from unittest.mock import patch
+from unittest.mock import patch, call
 
 import pytest
 import yaml
 
+import llmflow.runner as runner_module
 from llmflow.runner import run_pipeline
+from llmflow.exceptions import StepRetryError
 
 
 class TestRunPipeline:
@@ -253,3 +255,52 @@ class TestRunPipeline:
         assert result["initial"] == "value"
         assert result["step1_result"] == "value_step1"
         assert result["step2_result"] == "value_step1_step2"
+
+    def test_written_files_reset_between_runs(self, simple_pipeline):
+        """WRITTEN_FILES must be cleared at the start of each run_pipeline call."""
+        # Manually inject a stale entry from a "previous" run
+        runner_module.WRITTEN_FILES.append("/stale/from/previous/run.txt")
+
+        run_pipeline(simple_pipeline, skip_lint=True)
+
+        assert "/stale/from/previous/run.txt" not in runner_module.WRITTEN_FILES
+
+    @patch("llmflow.runner.validate_all_templates")
+    @patch("llmflow.runner.lint_pipeline_full")
+    def test_llm_retry_respects_step_max_attempts(self, mock_lint, mock_validate, tmp_path):
+        """LLM error retry must use max_attempts from step retry config, not hardcoded 3."""
+        import tempfile
+        mock_lint.return_value = None
+        mock_validate.return_value = None
+
+        prompt_file = tmp_path / "test.gpt"
+        prompt_file.write_text("---\nprompt:\n  requires: []\n---\nHello")
+
+        pipeline = {
+            "name": "retry-config-test",
+            "steps": [
+                {
+                    "name": "llm_step",
+                    "type": "llm",
+                    "prompt": {"file": str(prompt_file)},
+                    "outputs": "result",
+                    "retry": {"max_attempts": 1, "delay_seconds": 0},
+                }
+            ],
+        }
+
+        call_count = {"n": 0}
+
+        def failing_llm(*args, **kwargs):
+            call_count["n"] += 1
+            raise RuntimeError("simulated LLM error")
+
+        with patch("llmflow.runner.call_llm", side_effect=failing_llm):
+            with pytest.raises(StepRetryError):
+                run_pipeline(pipeline, skip_lint=True)
+
+        # With max_attempts=1 the LLM should only be called once
+        assert call_count["n"] == 1, (
+            f"Expected 1 attempt but got {call_count['n']}. "
+            "LLM retry is ignoring step retry config."
+        )

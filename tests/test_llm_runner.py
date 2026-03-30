@@ -477,7 +477,7 @@ class TestCallModelInternal:
         mock_usage = Mock()
         mock_usage.input = 100
         mock_usage.output = 50
-        mock_response.usage = mock_usage
+        mock_response.usage = Mock(return_value=mock_usage)
 
         result = _call_model(mock_model, "prompt", {"model": "gpt-4o"})
 

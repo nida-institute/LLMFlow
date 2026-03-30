@@ -677,3 +677,55 @@ class TestHandleStepOutputs:
 
         # Verify context was updated
         assert context["content"] == "Hello World"
+
+
+# ---------------------------------------------------------------------------
+# Scripture format extensions (.usx, .xml, .usj, .usfm)
+# ---------------------------------------------------------------------------
+
+class TestSaveAsScriptureFormats:
+    """Test save_content_to_file with scripture format extensions."""
+
+    FIXTURES = Path(__file__).parent / "fixtures" / "usfm"
+    PROJECT = "TestProject"
+
+    def _load_luke_usx(self):
+        from llmflow.utils.data import load_usfm_book
+        return load_usfm_book(str(self.FIXTURES), self.PROJECT, "LUK", format="usx")
+
+    def _load_luke_usj(self):
+        from llmflow.utils.data import load_usfm_book
+        return load_usfm_book(str(self.FIXTURES), self.PROJECT, "LUK", format="usj")
+
+    def test_usx_element_saves_as_usx(self, tmp_path):
+        from llmflow.runner import save_content_to_file
+        element = self._load_luke_usx()
+        out = tmp_path / "luke.usx"
+        save_content_to_file(element, str(out))
+        content = out.read_text(encoding="utf-8")
+        assert "<usx" in content
+
+    def test_usx_element_saves_as_xml(self, tmp_path):
+        from lxml import etree
+        from llmflow.runner import save_content_to_file
+        element = self._load_luke_usx()
+        out = tmp_path / "luke.xml"
+        save_content_to_file(element, str(out))
+        tree = etree.parse(str(out))
+        assert tree.getroot() is not None
+
+    def test_usj_dict_saves_as_usj(self, tmp_path):
+        from llmflow.runner import save_content_to_file
+        usj = self._load_luke_usj()
+        out = tmp_path / "luke.usj"
+        save_content_to_file(usj, str(out))
+        loaded = json.loads(out.read_text(encoding="utf-8"))
+        assert isinstance(loaded, dict)
+
+    def test_usx_element_saves_as_usfm(self, tmp_path):
+        from llmflow.runner import save_content_to_file
+        element = self._load_luke_usx()
+        out = tmp_path / "luke.usfm"
+        save_content_to_file(element, str(out))
+        content = out.read_text(encoding="utf-8")
+        assert "\\id LUK" in content

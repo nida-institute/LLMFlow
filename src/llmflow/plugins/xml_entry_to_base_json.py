@@ -447,6 +447,8 @@ def run(**kwargs) -> dict:
     entry_xml = kwargs.get('entry_xml')
     logger.debug(f"  entry_xml length: {len(entry_xml) if entry_xml else 0} chars")
 
+    if entry_xml is None:
+        raise ValueError("entry_xml is required but was not provided")
     result = xml_entry_to_base_json(entry_xml)
     logger.debug(f"Returning dict with {len(result.get('segments', []))} segments")
     return result

@@ -145,7 +145,7 @@ class StepRewindManager:
 
             group_cfg = saveas_config.get("group_by_prefix")
             if group_cfg:
-                filename = Path(path).name
+                filename = Path(str(path)).name
                 if isinstance(group_cfg, int):
                     prefix_dir = get_prefix_directory(filename, prefix_length=group_cfg)
                 else:
@@ -154,7 +154,7 @@ class StepRewindManager:
                         prefix_length=group_cfg.get("prefix_length"),
                         prefix_delimiter=group_cfg.get("prefix_delimiter"),
                     )
-                parent = Path(path).parent
+                parent = Path(str(path)).parent
                 path = str((parent / prefix_dir / filename))
 
             paths.append(str(path))
@@ -162,7 +162,7 @@ class StepRewindManager:
 
         raise StepRewindError(
             f"Unsupported saveas configuration for step '{step.get('name', 'unnamed')}'",
-            step_name=step.get("name"),
+            step_name=step.get("name") or "",
             context=context,
         )
 
@@ -171,7 +171,7 @@ class StepRewindManager:
         if "${" in path_str or "{" in path_str:
             raise StepRewindError(
                 f"Saveas path for step '{step.get('name', 'unnamed')}' contains unresolved variables: {original}",
-                step_name=step.get("name"),
+                step_name=step.get("name") or "",
             )
 
 

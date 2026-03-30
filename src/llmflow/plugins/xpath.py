@@ -1,6 +1,6 @@
 """XPath plugin for extracting data from XML files."""
 
-from lxml import etree
+from lxml import etree  # type: ignore[attr-defined]
 from llmflow.modules.logger import Logger
 
 logger = Logger()

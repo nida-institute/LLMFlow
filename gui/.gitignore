@@ -1,0 +1,8 @@
+# GUI Development Files
+gui/frontend/node_modules/
+gui/frontend/dist/
+gui/frontend/.vite/
+gui/frontend/package-lock.json
+gui/frontend/yarn.lock
+gui/backend/__pycache__/
+gui/backend/*.pyc

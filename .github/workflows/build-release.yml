@@ -73,6 +73,15 @@ jobs:
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
 
+    - name: Setup Node.js for GUI build
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Build GUI frontend
+      run: |
+        python build_gui.py
+
     - name: Build with Nuitka (Unix)
       if: runner.os != 'Windows'
       run: |
@@ -85,6 +94,7 @@ jobs:
           --include-package=llm_gemini \
           --include-data-dir=prompts=prompts \
           --include-data-dir=templates=templates \
+          --include-data-dir=src/llmflow/gui/static=llmflow/gui/static \
           --output-dir=nuitka_dist \
           --output-filename=${{ matrix.artifact_name }} \
           src/llmflow/cli.py
@@ -92,7 +102,7 @@ jobs:
     - name: Build with Nuitka (Windows)
       if: runner.os == 'Windows'
       run: |
-        python -m nuitka --standalone --onefile --assume-yes-for-downloads --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=templates=templates --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
+        python -m nuitka --standalone --onefile --assume-yes-for-downloads --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=templates=templates --include-data-dir=src/llmflow/gui/static=llmflow/gui/static --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
 
     - name: Smoke test binary (Unix)
       if: runner.os != 'Windows'

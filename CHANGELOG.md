@@ -3,6 +3,194 @@
 ## Unreleased
 - _No changes yet._
 
+## 0.2.1.08 — 2026-03-30
+
+### Bug fixes
+
+- **Telemetry was silently reporting $0.00 / 0 tokens** on every pipeline run.
+  Root cause: `response.usage` in `llm_runner.py` was being read as a property but
+  the `llm` package exposes it as a method; changed to `response.usage()`.
+- **Registry YAML wrote ASCII-escaped Unicode** (`\u05e9` instead of `שׁ`) when
+  storing project descriptions containing Hebrew or Greek. Fixed all four
+  `yaml.safe_dump` call sites in `registry.py` with `allow_unicode=True` and
+  `encoding='utf-8'`.
+- **DuckDB `acai_entities` table failed to create** because `references` is a SQL
+  reserved word. Column now quoted as `"references"` in `bible_data.py`.
+- **DuckDB integration tests were unconditionally skipped** (`skipif(True, ...)`).
+  Skip condition replaced with `importlib.util.find_spec("duckdb") is None` so they
+  run automatically when DuckDB is installed.
+
+### Type safety — Pyright now reports 0 errors (was 149 across 18 files)
+
+Key fixes across the codebase:
+- `modules/logger.py`: added `ClassVar[Optional["Logger"]]` annotation to `_instance`
+  and explicit `-> "Logger"` return type on `__new__` so callers see a non-optional type.
+- `cli.py`: moved `Logger` import and initialization to module top level, eliminating
+  the `logger: None | Logger` union that propagated 22 errors through the module.
+- `runner.py`: `resolve()` return values cast to `str` at call sites; `run_llm_step`
+  return type widened to `Any` (was `str`, which broke JSON step results);
+  `apply_output_template` defined (was called but missing).
+- `gui/server.py`: `sys._MEIPASS` accessed via `getattr` instead of direct attribute
+  (not in type stubs); `app.static_folder` captured in a typed local variable to
+  survive closure narrowing; `room=` → `to=` (Flask-SocketIO API).
+- `utils/io.py`: `raise UnicodeDecodeError(msg)` → `raise ValueError(msg)`
+  (constructor requires 5 positional arguments).
+- `utils/guards.py`: keyword dict comprehension filtered with `if kw.arg is not None`
+  to eliminate `str | None` key type.
+- Additional fixes in `exceptions.py`, `bible_data.py`, `cli_utils.py`, `linter.py`,
+  `rewind.py`, `xml.py`, `xpath.py`, `data.py`, `pipeline_schema.py`, `llm_runner.py`.
+
+### Test coverage
+
+- **Unicode output** (`tests/test_unicode_output.py`, 8 tests): verifies that
+  `save_content_to_file` in JSON and text formats, and `ProjectRegistry.register()`,
+  write literal Unicode rather than `\uXXXX` escape sequences. Sentinel string is
+  `שָׁלוֹם` (shalom with niqquud) plus `בְּרֵאשִׁ֖ית בָּרָ֣א אֱלֹהִ֑ים` (Genesis 1:1
+  with niqquud and cantillation marks — tifha, munah, atnah).
+- **Hebrew collation — DuckDB** (2 tests added to `TestDuckDBIntegration`):
+  - `COLLATE he` sorts `גָּדוֹל / אֱלֹהִים / בָּרָא` into correct aleph-bet order
+    despite attached niqquud.
+  - `שָׁלוֹם` (with niqquud) and `שלום` (bare) both sort before `תּוֹרָה`, confirming
+    the base consonant — not the niqquud — is the primary sort key.
+- **Hebrew collation — BaseX** (2 tests added to `TestBasexIntegration`, run with
+  `BASEX_INTEGRATION_TESTS=1`):
+  - `fn:sort` with `UCA?lang=he` collation produces aleph-bet order for niqquud-bearing words.
+  - `fn:compare("שָׁלוֹם", "שלום", "UCA?lang=he;strength=primary")` returns `0`,
+    confirming niqquud are transparent at primary collation strength (essential for
+    searching pointed text without knowing whether sources include niqquud).
+- `pytest.ini`: fixed section header (`[tool:pytest]` → `[pytest]`); registered
+  `duckdb` mark to silence `PytestUnknownMarkWarning`.
+
+### GUI executor refactor
+
+- Extracted `PipelineExecutor` class into a standalone module
+  (`src/llmflow/gui/executor.py`) with a parallel copy in `gui/backend/executor.py`.
+  Separates testable execution logic from Flask/SocketIO wiring.
+- New test files: `tests/test_gui_executor.py` (418 lines),
+  `tests/test_gui_server_security.py` (178 lines).
+
+## 0.2.1.07 — 2026-03-27
+
+### GUI Bundling for Nuitka Distribution
+- **Restructured GUI for single-binary distribution**: React frontend now builds to static files that are bundled into the nuitka `sp` binary.
+- **New production server** (`gui/backend/server.py`): Flask server that serves bundled static React files + REST API in a single process.
+- **Build script** (`build_gui.py`): Automates `npm build` → copy to `src/llmflow/gui/static/` → ready for nuitka bundling.
+- **CLI command updates**:
+  - Added `sp gui` command with `--host`, `--port`, `--no-browser` options.
+  - GUI server auto-opens browser and provides clean shutdown on Ctrl+C.
+- **Updated `sp-gui` launcher**: Simplified to call bundled server module.
+- **Package structure**: GUI static files included via `pyproject.toml` force-include directive.
+- **Documentation**:
+  - [gui/BUILD.md](gui/BUILD.md): Complete build process documentation.
+  - [gui/README.md](gui/README.md): Updated with end-user vs developer workflows.
+  - [gui/BUNDLING-SUMMARY.md](gui/BUNDLING-SUMMARY.md): Implementation summary.
+- **Test suite** (`test_gui_bundle.py`): Verifies build, static files, imports, and CLI command.
+- **Size impact**: Adds ~10-15 MB to binary (Flask ~8MB + React static ~2-3MB). Optional feature - CLI-only users unaffected.
+- **Nuitka integration**: Documented `--include-data-dir` flags for embedding static assets.
+- **No Python/Node environment needed by end users** - just run `sp gui` from the compiled binary!
+
+## 0.2.1.06 — 2026-03-27
+
+### Global Registry System (Issue #78)
+- Added `~/.sp/` global registry for tracking projects, datasets, and databases across the filesystem.
+- Implemented `Registry` class with three sub-registries: `ProjectRegistry`, `DatasetRegistry`, `DatabaseRegistry`.
+- Added `AIContextRegistry` for tracking AI context files with topics and searchable metadata.
+- CLI commands: `sp registry list/info/status/context` for managing global resources.
+- Auto-discovery script: `discover_and_register.py` successfully registered 12 projects and 24 datasets from local directories.
+- Registry respects `SP_REGISTRY_PATH` environment variable (defaults to `~/.sp/`).
+- YAML-based storage for human-readable configuration and easy Git tracking.
+- 40 comprehensive tests added in `tests/test_registry.py`; all tests passing.
+- Closes issue #78.
+
+### AI Context Discoverability (Issue #79)
+**Phase 1: Comprehensive AI Context Index**
+- Enhanced `sp init` to create comprehensive `docs/ai-context/index.md` (100+ lines) with:
+  - Explicit "Check this FIRST" instruction for AI assistants.
+  - Complete list of core files and suggested context files (basex-patterns.md, duckdb-patterns.md, etc.).
+  - Usage examples for both AI assistants and project maintainers.
+  - Integration guidance for registry system.
+- Updated `.github/copilot-instructions.md` template to emphasize checking index.md as second read (after TODO.md).
+- Templates marked with `<!-- Generated by sp init -->` for `--update` support.
+
+**Phase 2: CLI Discovery Commands**
+- Added `sp context list` command: scans `docs/ai-context/` and displays files with auto-extracted descriptions.
+- Implemented context file discovery in `src/llmflow/context.py` (~165 lines):
+  - `list_context_files()` - directory scanning and metadata extraction.
+  - `extract_description()` - intelligent markdown parsing for descriptions.
+  - `format_context_list()` - formatted terminal output.
+  - `generate_context_inventory()` - prepared for future AI prompt injection.
+- 14 comprehensive tests in `tests/test_context.py`; all tests passing.
+
+**Phase 3: Registry Integration with Topics**
+- Extended `AIContextRegistry` with searchable topic-based metadata.
+- Added `sp context add <file> --description "..." --topics "basex,xquery,greek"` - register context files with rich metadata.
+- Added `sp context search <topics>` - find relevant context across all projects by topic.
+- Context files stored in `~/.sp/ai-context/*.yaml` with structured metadata (file, project, description, topics, path, created timestamp).
+- Cross-project search enables discovering patterns from any registered project.
+- 10 AIContextRegistry tests added to `tests/test_registry.py`.
+- Closes issue #79.
+
+### DuckDB Analytics Step Type
+- Added `type: duckdb` step: query CSV/Parquet/JSON files with SQL and return results in multiple formats.
+- Supports `query:` (inline SQL with `${variable}` substitution) or `query_file:` (path to `.sql` file).
+- Output formats: `records` (list of dicts), `dict` (single record), `json` (JSON string), `dataframe` (pandas DataFrame).
+- Variable substitution in queries: `SELECT * FROM '${input_file}' WHERE book = '${book}'`.
+- Added dependency: `duckdb>=1.0.0` and `pandas>=1.3.0` in `pyproject.toml`.
+- 18 comprehensive tests in `tests/test_duckdb_step.py` covering query execution, formats, errors, and integration.
+- Design document: `docs/duckdb-analytics-design.md` with rationale and examples.
+- Use case document: `docs/xquery-greek-analytics.md` with 10 Greek NT analysis patterns using XQuery+DuckDB.
+
+### Bible Data Access Utilities
+- Added `src/llmflow/utils/bible_data.py` with `BibleDataRegistry` for discovering biblical datasets.
+- Maps resource IDs (acai, macula-hebrew, macula-greek, sblgnt) to filesystem paths.
+- High-level APIs: `load_acai_entity()`, `get_entities_for_passage()`, `parse_reference_to_verse_range()`.
+- Supports multiple organizations: checks `~/github/BibleAquifer/` and `~/github/Clear/` automatically.
+- Custom base path support with proper isolation (fixes test_custom_base_path).
+- XQuery integration: `to_basex_verse_range()` converts human references to BaseX verse IDs.
+- DuckDB integration helpers included for loading biblical datasets into DuckDB.
+- 27 tests in `tests/test_bible_data.py`; all tests passing.
+
+### Collaboration Principles Documentation
+- Added `docs/collaboration-principles.md`: structured framework for AI-human collaboration on Scripture Pipelines.
+- Documents five key principles: Common Language, Defined Authority, Testable Claims, Incremental Progress, Explicit Context.
+- Includes anti-patterns, implementation guidelines, and measurement criteria.
+- Provides practical examples of effective collaboration patterns.
+
+### Test Suite
+- **1593 tests passing** (81 new tests added across registry, context, duckdb, and bible_data modules).
+- Zero test regressions - all existing functionality preserved.
+- Comprehensive TDD workflow: tests written first, implementation followed, all tests passing.
+
+## 0.2.1.05 — 2026-03-25
+
+### Paratext project metadata access
+- Added `load_project_file(base_dir, project_name, file)` function to load Paratext project metadata files (Scripture Burrito `metadata.json`, Paratext `Settings.xml`, `BiblicalTerms.xml`, etc.). Auto-detects format by extension: `.json` → dict, `.xml` → lxml Element.
+- Added `xpath_text(element, path)` helper function for extracting text values from XML elements via XPath queries.
+- Scripture Burrito metadata supports direct dict access in templates: `${burrito.languages[0].name.en}`, `${burrito.identification.name.en}`.
+- Paratext XML requires extraction via `xpath_text()` before passing to LLM templates (cannot serialize `_Element` objects directly).
+- 9 tests added in `tests/test_paratext_metadata.py`; all 1225 tests passing.
+- **Design rationale (eager evaluation):** USFM files are parsed upfront to protect against network mount disconnects during long-running LLM steps. Once `load_usfm_book(format="usj")` returns a dict, the pipeline is independent of filesystem I/O.
+- Created example repository: https://github.com/nida-institute/paratext-pipelines with backtranslation and multi-project comparison pipelines.
+- Closes issue #73.
+
+### Audit checklists in `sp init`
+- Added `docs/audits/` directory created by `sp init` with audit procedure checklists (version-controlled).
+- Added `docs/audits/INDEX.md` dispatch table mapping artifact types to checklist files.
+- Added `docs/audits/audit-passage.md` (40-line checklist for passage outputs) and `docs/audits/audit-leadersguide.md` (45-line checklist for leader's guides).
+- All checklists follow pattern: 20-60 lines, checkbox format only, STOP conditions in bold, no prose.
+- Templates marked with `<!-- Generated by sp init -->` for `--update` support.
+- `project/audits/` directory remains for audit findings (gitignored, not version-controlled).
+- 3 tests added in `tests/test_init.py`.
+- Implementation complete for issue #72 (documentation pending).
+
+### AI context documentation
+- Added `docs/ai-context/paratext-schemas.md` with comprehensive schema reference for Scripture Burrito and Paratext XML metadata files.
+- Documents Scripture Burrito structure: `languages`, `identification`, `agencies`, `copyright` fields with access paths.
+- Documents Paratext Settings.xml elements: `LanguageName`, `LanguageIsoCode`, `Versification`, `IsRTL`, etc. with XPath queries.
+- Provides guidance on choosing between Scripture Burrito vs Settings.xml for different metadata needs.
+- Includes structure overview for `BiblicalTerms.xml` and `BookNames.xml`.
+- Updated `docs/ai-context/data-sources.md` to reference the new schema file.
+
 ## 0.2.1.02 — 2026-03-20
 - Renamed product to **Scripture Pipelines** and CLI binary to `sp` throughout install scripts (`install.sh`, `install.ps1`), `README.md`, `INSTALL.md`, and all docs. Asset names updated to `sp-macos`, `sp-linux`, `sp-windows.exe`. CI workflow asset labels updated to match. `PROJECT_TODO` tutorial backlog in `cli_utils.py` expanded to 8 steps mirroring `sp init` tutorial issues; 5 new tests added to `TestProjectTodoTutorial`.
 
