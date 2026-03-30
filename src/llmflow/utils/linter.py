@@ -761,7 +761,7 @@ def _resolve_save_paths_for_lint(step: dict, context: dict) -> List[str]:
 
         group_cfg = saveas_config.get("group_by_prefix")
         if group_cfg:
-            filename = Path(path).name
+            filename = Path(str(path)).name
             if isinstance(group_cfg, int):
                 prefix_dir = get_prefix_directory(filename, prefix_length=group_cfg)
             else:
@@ -770,14 +770,14 @@ def _resolve_save_paths_for_lint(step: dict, context: dict) -> List[str]:
                     prefix_length=group_cfg.get("prefix_length"),
                     prefix_delimiter=group_cfg.get("prefix_delimiter"),
                 )
-            parent = Path(path).parent
+            parent = Path(str(path)).parent
             path = str(parent / prefix_dir / filename)
 
         return [str(path)]
 
     raise StepRewindError(
         f"Unsupported saveas configuration for step '{step.get('name', 'unnamed')}'",
-        step_name=step.get("name"),
+        step_name=step.get("name") or "",
     )
 
 
@@ -786,7 +786,7 @@ def _ensure_path_resolved_for_lint(resolved_value: Any, original: Any, step: dic
     if "${" in path_str or "{" in path_str:
         raise StepRewindError(
             f"Saveas path for step '{step.get('name', 'unnamed')}' contains unresolved variables: {original}",
-            step_name=step.get("name"),
+            step_name=step.get("name") or "",
         )
 
 
@@ -1027,7 +1027,8 @@ def _lint_conditional_rules(step, errors, key: str):
         if not isinstance(r, dict):
             errors.append(f"Step '{step.get('name','unnamed')}': each '{key}' rule must be an object")
             continue
-        if "if" not in r or not isinstance(r.get("if"), str) or not r.get("if").strip():
+        if_val = r.get("if")
+        if "if" not in r or not isinstance(if_val, str) or not if_val.strip():
             errors.append(f"Step '{step.get('name','unnamed')}': '{key}' rule must include non-empty 'if' expression")
         for k in r.keys():
             if k not in {"if", "message"}:

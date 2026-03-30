@@ -8,6 +8,7 @@ Tests cover:
 - Error handling and edge cases
 """
 
+import importlib.util
 import json
 import pytest
 from pathlib import Path
@@ -303,13 +304,9 @@ class TestReferenceParsing:
 # DuckDB Integration Tests
 # =============================================================================
 
-@pytest.mark.skipif(True, reason="DuckDB tests require duckdb package")
+@pytest.mark.skipif(importlib.util.find_spec("duckdb") is None, reason="duckdb package not installed")
 class TestDuckDBIntegration:
-    """Test DuckDB database integration.
-
-    These tests are skipped by default to avoid requiring DuckDB installation.
-    Run with: pytest -m duckdb
-    """
+    """Test DuckDB database integration."""
 
     pytestmark = pytest.mark.duckdb
 
@@ -359,6 +356,55 @@ class TestDuckDBIntegration:
         """).fetchone()
 
         assert result[0] > 0
+
+    def test_hebrew_icu_sort_aleph_bet_order_with_niqquud(self):
+        """Hebrew words with niqquud sort in aleph-bet order under ICU 'he' collation.
+
+        This is a hard test: niqquud (vowel points) are Unicode combining characters
+        that immediately follow the base consonant. A naive byte sort could be disrupted
+        by them, but ICU collation must produce correct aleph-bet ordering.
+        """
+        from llmflow.utils.bible_data import create_duckdb_connection
+
+        con = create_duckdb_connection(':memory:')
+        # Three words with full niqquud, starting with aleph (א), bet (ב), gimel (ג)
+        # Deliberately inserted in gimel→aleph→bet order to prove sorting works
+        result = con.execute("""
+            SELECT word FROM (VALUES
+                ('גָּדוֹל'),
+                ('אֱלֹהִים'),
+                ('בָּרָא')
+            ) t(word)
+            ORDER BY word COLLATE he
+        """).fetchall()
+        words = [r[0] for r in result]
+        assert words[0][0] == 'א', f"Aleph (א) should sort first, got: {words}"
+        assert words[1][0] == 'ב', f"Bet (ב) should sort second, got: {words}"
+        assert words[2][0] == 'ג', f"Gimel (ג) should sort third, got: {words}"
+
+    def test_hebrew_niqquud_does_not_override_consonant_order(self):
+        """Niqquud must not displace a word from its consonant-based sort position.
+
+        שָׁלוֹם (shin+niqquud) and שלום (shin bare) both start with shin (ש).
+        תּוֹרָה (tav+niqquud) starts with tav (ת), which follows shin in the aleph-bet.
+        Under ICU Hebrew collation, both shin-words must sort before the tav-word.
+        """
+        from llmflow.utils.bible_data import create_duckdb_connection
+
+        con = create_duckdb_connection(':memory:')
+        result = con.execute("""
+            SELECT label FROM (VALUES
+                ('שָׁלוֹם', 'shalom_niqquud'),
+                ('שלום',    'shalom_bare'),
+                ('תּוֹרָה',  'torah_niqquud')
+            ) t(word, label)
+            ORDER BY word COLLATE he
+        """).fetchall()
+        labels = [r[0] for r in result]
+        # Both shin-words (שׁ) come before the tav-word (ת)
+        assert labels[2] == 'torah_niqquud', f"Torah (tav) should sort last: {labels}"
+        assert set(labels[:2]) == {'shalom_niqquud', 'shalom_bare'}, \
+            f"Both shalom variants should sort first: {labels}"
 
 
 # =============================================================================

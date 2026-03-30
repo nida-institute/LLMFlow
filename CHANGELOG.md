@@ -3,6 +3,72 @@
 ## Unreleased
 - _No changes yet._
 
+## 0.2.1.08 — 2026-03-30
+
+### Bug fixes
+
+- **Telemetry was silently reporting $0.00 / 0 tokens** on every pipeline run.
+  Root cause: `response.usage` in `llm_runner.py` was being read as a property but
+  the `llm` package exposes it as a method; changed to `response.usage()`.
+- **Registry YAML wrote ASCII-escaped Unicode** (`\u05e9` instead of `שׁ`) when
+  storing project descriptions containing Hebrew or Greek. Fixed all four
+  `yaml.safe_dump` call sites in `registry.py` with `allow_unicode=True` and
+  `encoding='utf-8'`.
+- **DuckDB `acai_entities` table failed to create** because `references` is a SQL
+  reserved word. Column now quoted as `"references"` in `bible_data.py`.
+- **DuckDB integration tests were unconditionally skipped** (`skipif(True, ...)`).
+  Skip condition replaced with `importlib.util.find_spec("duckdb") is None` so they
+  run automatically when DuckDB is installed.
+
+### Type safety — Pyright now reports 0 errors (was 149 across 18 files)
+
+Key fixes across the codebase:
+- `modules/logger.py`: added `ClassVar[Optional["Logger"]]` annotation to `_instance`
+  and explicit `-> "Logger"` return type on `__new__` so callers see a non-optional type.
+- `cli.py`: moved `Logger` import and initialization to module top level, eliminating
+  the `logger: None | Logger` union that propagated 22 errors through the module.
+- `runner.py`: `resolve()` return values cast to `str` at call sites; `run_llm_step`
+  return type widened to `Any` (was `str`, which broke JSON step results);
+  `apply_output_template` defined (was called but missing).
+- `gui/server.py`: `sys._MEIPASS` accessed via `getattr` instead of direct attribute
+  (not in type stubs); `app.static_folder` captured in a typed local variable to
+  survive closure narrowing; `room=` → `to=` (Flask-SocketIO API).
+- `utils/io.py`: `raise UnicodeDecodeError(msg)` → `raise ValueError(msg)`
+  (constructor requires 5 positional arguments).
+- `utils/guards.py`: keyword dict comprehension filtered with `if kw.arg is not None`
+  to eliminate `str | None` key type.
+- Additional fixes in `exceptions.py`, `bible_data.py`, `cli_utils.py`, `linter.py`,
+  `rewind.py`, `xml.py`, `xpath.py`, `data.py`, `pipeline_schema.py`, `llm_runner.py`.
+
+### Test coverage
+
+- **Unicode output** (`tests/test_unicode_output.py`, 8 tests): verifies that
+  `save_content_to_file` in JSON and text formats, and `ProjectRegistry.register()`,
+  write literal Unicode rather than `\uXXXX` escape sequences. Sentinel string is
+  `שָׁלוֹם` (shalom with niqquud) plus `בְּרֵאשִׁ֖ית בָּרָ֣א אֱלֹהִ֑ים` (Genesis 1:1
+  with niqquud and cantillation marks — tifha, munah, atnah).
+- **Hebrew collation — DuckDB** (2 tests added to `TestDuckDBIntegration`):
+  - `COLLATE he` sorts `גָּדוֹל / אֱלֹהִים / בָּרָא` into correct aleph-bet order
+    despite attached niqquud.
+  - `שָׁלוֹם` (with niqquud) and `שלום` (bare) both sort before `תּוֹרָה`, confirming
+    the base consonant — not the niqquud — is the primary sort key.
+- **Hebrew collation — BaseX** (2 tests added to `TestBasexIntegration`, run with
+  `BASEX_INTEGRATION_TESTS=1`):
+  - `fn:sort` with `UCA?lang=he` collation produces aleph-bet order for niqquud-bearing words.
+  - `fn:compare("שָׁלוֹם", "שלום", "UCA?lang=he;strength=primary")` returns `0`,
+    confirming niqquud are transparent at primary collation strength (essential for
+    searching pointed text without knowing whether sources include niqquud).
+- `pytest.ini`: fixed section header (`[tool:pytest]` → `[pytest]`); registered
+  `duckdb` mark to silence `PytestUnknownMarkWarning`.
+
+### GUI executor refactor
+
+- Extracted `PipelineExecutor` class into a standalone module
+  (`src/llmflow/gui/executor.py`) with a parallel copy in `gui/backend/executor.py`.
+  Separates testable execution logic from Flask/SocketIO wiring.
+- New test files: `tests/test_gui_executor.py` (418 lines),
+  `tests/test_gui_server_security.py` (178 lines).
+
 ## 0.2.1.07 — 2026-03-27
 
 ### GUI Bundling for Nuitka Distribution

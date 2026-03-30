@@ -6,16 +6,37 @@ Flask server that serves bundled static frontend and provides REST API.
 This version is designed to be bundled with nuitka.
 """
 
+import logging
 import os
 import sys
 import json
 import subprocess
 import threading
 import webbrowser
+import uuid
+from datetime import datetime
 from pathlib import Path
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room
+
+logger = logging.getLogger(__name__)
+
+# Allowed origins for CORS — localhost only; this server is designed for local use
+_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
+
+_PIPELINE_EXTENSIONS = {".yaml", ".yml"}
+
+# Import testable execution logic
+try:
+    from .executor import PipelineExecutor
+except ImportError:
+    from executor import PipelineExecutor
 
 
 def create_app():
@@ -35,8 +56,8 @@ def create_app():
                 static_folder=str(static_folder),
                 static_url_path='')
 
-    CORS(app)
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+    CORS(app, origins=_CORS_ORIGINS)
+    socketio = SocketIO(app, cors_allowed_origins=_CORS_ORIGINS, async_mode='threading')
 
     # =============================================================================
     # Static File Serving
@@ -141,22 +162,28 @@ def create_app():
         try:
             import yaml
 
-            data = request.json
-            pipeline_path = data.get('pipeline_path')
+            data = request.get_json(silent=True)
+            if not data or not isinstance(data, dict):
+                return jsonify({'error': 'JSON body required'}), 400
 
+            pipeline_path = data.get('pipeline_path')
             if not pipeline_path:
                 return jsonify({'error': 'pipeline_path required'}), 400
 
-            if not Path(pipeline_path).exists():
+            path = Path(pipeline_path).resolve()
+            if path.suffix not in _PIPELINE_EXTENSIONS:
+                return jsonify({'error': 'Invalid pipeline file'}), 400
+            if not path.is_file():
                 return jsonify({'error': 'Pipeline file not found'}), 404
 
-            with open(pipeline_path, 'r') as f:
+            with open(path, 'r') as f:
                 config = yaml.safe_load(f)
 
             return jsonify(config)
 
         except Exception as e:
-            return jsonify({'error': str(e)}), 500
+            logger.error("Error loading pipeline config: %s", e)
+            return jsonify({'error': 'Failed to load pipeline configuration'}), 500
 
 
     # =============================================================================
@@ -174,6 +201,10 @@ def create_app():
 
             if not pipeline_path:
                 return jsonify({'error': 'pipeline_path required'}), 400
+
+            pipeline_resolved = Path(pipeline_path).resolve()
+            if pipeline_resolved.suffix not in _PIPELINE_EXTENSIONS:
+                return jsonify({'error': 'Invalid pipeline file'}), 400
 
             # Determine working directory and pipeline path
             if project_path and Path(project_path).exists():
@@ -201,10 +232,6 @@ def create_app():
             for key, value in variables.items():
                 cmd.extend(['--var', f'{key}={value}'])
 
-            # Log execution details for debugging
-            print(f"DEBUG: Executing from cwd={cwd}")
-            print(f"DEBUG: Command: {' '.join(cmd)}")
-
             # Execute
             result = subprocess.run(
                 cmd,
@@ -231,6 +258,8 @@ def create_app():
     @socketio.on('execute_pipeline')
     def handle_execute_pipeline(data):
         """Execute pipeline with real-time output streaming via WebSocket."""
+        execution_id = data.get('execution_id')
+
         try:
             pipeline_path = data.get('pipeline_path')
             variables = data.get('variables', {})
@@ -240,94 +269,43 @@ def create_app():
                 emit('error', {'message': 'pipeline_path required'})
                 return
 
-            emit('status', {'message': 'Starting pipeline...', 'stage': 'init'})
+            if Path(pipeline_path).resolve().suffix not in _PIPELINE_EXTENSIONS:
+                emit('error', {'message': 'Invalid pipeline file'})
+                return
 
-            # Determine working directory and pipeline path
-            if project_path and Path(project_path).exists():
-                cwd = project_path
-                pipeline_file = Path(pipeline_path)
-                if pipeline_file.is_absolute():
-                    try:
-                        pipeline_rel = pipeline_file.relative_to(project_path)
-                        pipeline_arg = str(pipeline_rel)
-                    except ValueError:
-                        pipeline_arg = str(pipeline_path)
-                else:
-                    pipeline_arg = str(pipeline_path)
-            else:
-                cwd = None
-                pipeline_arg = str(pipeline_path)
+            if not execution_id:
+                emit('error', {'message': 'execution_id required'})
+                return
 
-            # Build command
-            cmd = ['sp', 'run', '--pipeline', pipeline_arg]
-            for key, value in variables.items():
-                cmd.extend(['--var', f'{key}={value}'])
+            # Join this execution's room
+            join_room(execution_id)
 
-            # Execute with streaming output
-            import os
-            import time
-            import select
-            import sys
-            env = os.environ.copy()
-            env['PYTHONUNBUFFERED'] = '1'
+            # Create emit callback that routes to the execution's room
+            def emit_to_room(event_type, data):
+                emit(event_type, data, room=execution_id)
+                socketio.sleep(0)  # Yield to process other events
 
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=0,
-                cwd=cwd,
-                env=env
+            # Execute pipeline using testable executor
+            executor = PipelineExecutor(
+                pipeline_path=pipeline_path,
+                project_path=project_path,
+                variables=variables,
+                execution_id=execution_id,
+                emit_callback=emit_to_room
             )
 
-            # Stream output with throttling and heartbeat
-            buffer = []
-            last_emit = time.time()
-            last_heartbeat = time.time()
-            EMIT_INTERVAL = 0.5  # Send batches every 0.5 second
-            HEARTBEAT_INTERVAL = 2.0  # Show "still running" every 2 seconds
-            CHECK_INTERVAL = 0.2  # Check for output every 0.2 seconds
-
-            while True:
-                now = time.time()
-
-                # Check if there's data to read (non-blocking)
-                ready = select.select([process.stdout], [], [], CHECK_INTERVAL)[0]
-                if ready:
-                    line = process.stdout.readline()
-                    if line:
-                        buffer.append(line.rstrip())
-                        # Reset heartbeat timer when we get output
-                        last_heartbeat = now
-
-                # Check if process finished
-                if process.poll() is not None:
-                    break
-
-                # Emit buffer if interval passed or buffer is large
-                if buffer and ((now - last_emit >= EMIT_INTERVAL) or len(buffer) >= 30):
-                    emit('output_batch', {'lines': buffer})
-                    buffer = []
-                    last_emit = now
-                    last_heartbeat = now
-
-                # Send heartbeat if no activity for a while
-                if now - last_heartbeat >= HEARTBEAT_INTERVAL:
-                    emit('heartbeat', {'message': '⏳ Pipeline is running...'})
-                    last_heartbeat = now
-                    socketio.sleep(0)  # Yield to process other events
-
-            process.wait()
+            result = executor.execute()
 
             # Send completion
             emit('complete', {
-                'success': process.returncode == 0,
-                'exit_code': process.returncode
-            })
+                'success': result['success'],
+                'exit_code': result['exit_code'],
+                'created_files': result['created_files'],
+                'telemetry': result['telemetry']
+            }, room=execution_id)
 
         except Exception as e:
-            emit('error', {'message': str(e)})
+            emit('error', {'message': str(e)}, room=execution_id if execution_id else None)
 
 
     @socketio.on('connect')

@@ -1,6 +1,6 @@
 # src/llmflow/utils/xml.py
 
-from lxml import etree
+from lxml import etree  # type: ignore[attr-defined]
 
 
 def xpath_get(xml, xpath, namespaces=None):

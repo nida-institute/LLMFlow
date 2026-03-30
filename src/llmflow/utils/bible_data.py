@@ -109,11 +109,11 @@ registry = BibleDataRegistry()
 # ACAI - Entity Annotation (People, Places, Deities, etc.)
 # =============================================================================
 
-def get_acai_path() -> Path:
+def get_acai_path() -> Optional[Path]:
     """Get path to ACAI repository for direct data access.
 
     Returns:
-        Path to ACAI root directory
+        Path to ACAI root directory, or None if not found
 
     Use this to:
     - Load JSON entities directly
@@ -161,12 +161,12 @@ def load_acai_entity(entity_id: str, acai_path: Optional[str] = None) -> Optiona
     if not entity_dir:
         return None
 
-    if acai_path is None:
-        acai_path = get_acai_path()
-    else:
-        acai_path = Path(acai_path)
+    resolved_path: Optional[Path] = get_acai_path() if acai_path is None else Path(acai_path)
 
-    json_path = acai_path / entity_dir / 'json' / f'{entity_name}.json'
+    if resolved_path is None:
+        return None
+
+    json_path = resolved_path / entity_dir / 'json' / f'{entity_name}.json'
 
     if not json_path.exists():
         return None
@@ -195,10 +195,7 @@ def get_acai_entities_for_passage(
         >>> [e['label'] for e in entities[:3]]
         ['Jesus', 'Jerusalem', 'Temple']
     """
-    if acai_path is None:
-        acai_path = get_acai_path()
-    else:
-        acai_path = Path(acai_path)
+    resolved_path: Optional[Path] = get_acai_path() if acai_path is None else Path(acai_path)
 
     # Parse reference to verse range
     start_verse, end_verse = _parse_reference_to_verse_range(reference)
@@ -209,7 +206,9 @@ def get_acai_entities_for_passage(
 
     # Scan all entity types
     for entity_dir in ['people', 'places', 'deities', 'groups', 'fauna', 'flora', 'realia', 'keyterms']:
-        json_dir = acai_path / entity_dir / 'json'
+        if resolved_path is None:
+            continue
+        json_dir = resolved_path / entity_dir / 'json'
         if not json_dir.exists():
             continue
 
@@ -277,12 +276,12 @@ def get_acai_entity_detail(entity_id: str, acai_path: Optional[str] = None) -> O
 # MACULA HEBREW - Morphology & Syntax
 # =============================================================================
 
-def get_macula_hebrew_path() -> Path:
+def get_macula_hebrew_path() -> Optional[Path]:
     """Get path to Macula Hebrew for direct TSV/XML access."""
     return registry.get_path('macula-hebrew')
 
 
-def get_macula_greek_path() -> Path:
+def get_macula_greek_path() -> Optional[Path]:
     """Get path to Macula Greek for direct TSV/XML access."""
     return registry.get_path('macula-greek')
 
@@ -344,6 +343,8 @@ def query_macula_hebrew(book: str, query: Optional[str] = None):
         raise ImportError("DuckDB not installed. Run: pip install duckdb")
 
     macula_path = get_macula_hebrew_path()
+    if macula_path is None:
+        raise FileNotFoundError("Macula Hebrew path not found")
     tsv_file = macula_path / 'tsv' / f'{book}.tsv'
 
     if not tsv_file.exists():
@@ -375,6 +376,8 @@ def query_macula_greek(book: str, query: Optional[str] = None):
         raise ImportError("DuckDB not installed. Run: pip install duckdb")
 
     macula_path = get_macula_greek_path()
+    if macula_path is None:
+        raise FileNotFoundError("Macula Greek path not found")
     tsv_file = macula_path / 'tsv' / f'{book}.tsv'
 
     if not tsv_file.exists():
@@ -409,7 +412,7 @@ def create_duckdb_connection(db_path: Optional[str] = ':memory:'):
     except ImportError:
         raise ImportError("DuckDB not installed. Run: pip install duckdb")
 
-    con = duckdb.connect(db_path)
+    con = duckdb.connect(db_path if db_path is not None else ':memory:')
     # Enable ICU extension for proper Unicode collation
     con.execute("INSTALL icu")
     con.execute("LOAD icu")
@@ -460,9 +463,12 @@ def load_acai_to_duckdb(con=None, entity_types: Optional[List[str]] = None):
             preferred_label VARCHAR,
             description VARCHAR,
             reference_count INTEGER,
-            references VARCHAR[]
+            "references" VARCHAR[]
         )
     """)
+
+    if acai_path is None:
+        return con
 
     # Load entities from each type
     for entity_type in entity_types:
@@ -524,7 +530,7 @@ def create_icu_collator(locale: str = 'en'):
         >>> # Query: SELECT * FROM words ORDER BY sort_key
     """
     try:
-        import icu
+        import icu  # type: ignore[import-untyped]
     except ImportError:
         raise ImportError("PyICU not installed. Run: pip install pyicu")
 
@@ -639,13 +645,15 @@ def example_usage():
 
     # Get detailed info about a specific entity
     jesus = get_acai_entity_detail('person:Jesus')
-    print(f"{jesus['label']}: {jesus['description']}")
+    if jesus is not None:
+        print(f"{jesus['label']}: {jesus['description']}")
 
 
     # =============================================================================
     # Example 2: Direct file access - Load and explore JSON
     # =============================================================================
     acai_path = get_acai_path()
+    assert acai_path is not None
 
     # Load any entity directly
     angel_file = acai_path / 'deities' / 'json' / 'Angel.json'

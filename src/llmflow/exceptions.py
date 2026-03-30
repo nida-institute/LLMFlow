@@ -1,5 +1,8 @@
 """Custom exceptions for LLMFlow pipeline execution."""
 
+from typing import Optional
+
+
 class LLMFlowError(Exception):
     """Base exception for all LLMFlow errors."""
     pass
@@ -8,7 +11,7 @@ class LLMFlowError(Exception):
 class PipelineExecutionError(LLMFlowError):
     """Error during pipeline execution."""
 
-    def __init__(self, message: str, step_name: str = None, context: dict = None, original_error: Exception = None):
+    def __init__(self, message: str, step_name: Optional[str] = None, context: Optional[dict] = None, original_error: Optional[Exception] = None):
         self.step_name = step_name
         self.context = context
         self.original_error = original_error
@@ -34,7 +37,7 @@ class PipelineExecutionError(LLMFlowError):
 class StepExecutionError(PipelineExecutionError):
     """Error executing a specific step."""
 
-    def __init__(self, message: str, step_name: str, step_type: str, context: dict = None, original_error: Exception = None):
+    def __init__(self, message: str, step_name: str, step_type: str, context: Optional[dict] = None, original_error: Optional[Exception] = None):
         self.step_type = step_type
         super().__init__(message, step_name, context, original_error)
 
@@ -48,7 +51,7 @@ class StepExecutionError(PipelineExecutionError):
 class ForEachIterationError(PipelineExecutionError):
     """Error during for-each loop iteration."""
 
-    def __init__(self, message: str, step_name: str, iteration_index: int, item_value: any, context: dict = None, original_error: Exception = None):
+    def __init__(self, message: str, step_name: str, iteration_index: int, item_value: object, context: Optional[dict] = None, original_error: Optional[Exception] = None):
         self.iteration_index = iteration_index
         self.item_value = item_value
         super().__init__(message, step_name, context, original_error)
@@ -93,7 +96,7 @@ class StepRewindError(PipelineExecutionError):
 class VariableResolutionError(LLMFlowError):
     """Error resolving a variable expression."""
 
-    def __init__(self, message: str, expression: str, context: dict = None, original_error: Exception = None):
+    def __init__(self, message: str, expression: str, context: Optional[dict] = None, original_error: Optional[Exception] = None):
         self.expression = expression
         self.context = context
         self.original_error = original_error
@@ -116,7 +119,7 @@ class VariableResolutionError(LLMFlowError):
 class LLMProviderError(LLMFlowError):
     """Error calling LLM provider."""
 
-    def __init__(self, message: str, provider: str, model: str, original_error: Exception = None):
+    def __init__(self, message: str, provider: str, model: str, original_error: Optional[Exception] = None):
         self.provider = provider
         self.model = model
         self.original_error = original_error
@@ -169,7 +172,7 @@ class ModerationError(LLMProviderError):
 class PluginError(LLMFlowError):
     """Error executing a plugin."""
 
-    def __init__(self, message: str, plugin_name: str, original_error: Exception = None):
+    def __init__(self, message: str, plugin_name: str, original_error: Optional[Exception] = None):
         self.plugin_name = plugin_name
         self.original_error = original_error
         super().__init__(message)

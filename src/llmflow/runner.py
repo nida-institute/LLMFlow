@@ -34,7 +34,7 @@ from llmflow.exceptions import (
     StepRewindError,
 )
 from llmflow.modules.mcp import init_mcp_client
-from llmflow.utils.guards import build_step_eval_ctx, enforce_require, collect_warnings
+from llmflow.utils.guards import build_step_eval_ctx, enforce_require, collect_warnings, _safe_eval
 from llmflow.utils.io import sanitize_filename
 from llmflow.utils.rewind import StepRewindManager
 from datetime import datetime
@@ -208,7 +208,7 @@ def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
                 # Try Row object __getitem__
                 elif hasattr(result, '__getitem__'):
                     try:
-                        result = result[bracket_key]
+                        result = result[bracket_key]  # type: ignore[index]
                     except (KeyError, TypeError):
                         return None
                 # Try attribute access as fallback
@@ -322,7 +322,7 @@ def render_prompt(
     logger.debug(f"Rendered prompt length: {len(rendered_prompt)} chars")
     logger.debug(f"Rendered prompt preview (after substitution): {rendered_prompt[:300]}...")
 
-    return rendered_prompt
+    return str(rendered_prompt)
 
 
 def handle_step_outputs(step, result, context, base_dir="."):
@@ -379,27 +379,6 @@ def handle_step_outputs(step, result, context, base_dir="."):
 
     context["_last_saved_files"] = saved_paths
 
-
-def _evaluate_retry_condition(condition_expr, context):
-    if not condition_expr:
-        return False
-
-    try:
-        resolved = resolve(condition_expr, context)
-    except Exception as exc:
-        logger.warning(f"Retry condition resolution failed: {condition_expr} - {exc}")
-        return False
-
-    if isinstance(resolved, bool):
-        return resolved
-    if isinstance(resolved, (int, float)):
-        return bool(resolved)
-
-    try:
-        return bool(eval(str(resolved)))
-    except Exception as exc:
-        logger.warning(f"Retry condition eval failed: {condition_expr} - {exc}")
-        return False
 
 
 def _snapshot_retry_targets(step, context):
@@ -498,7 +477,7 @@ def _evaluate_condition_expression(condition_expr, context, *, label="condition"
         return False
 
     try:
-        return bool(eval(expr_str, {}, _build_eval_locals(context)))
+        return _safe_eval(expr_str, _build_eval_locals(context))
     except Exception as exc:
         logger.warning(f"{label} eval failed: {expr_str} - {exc}")
         return False
@@ -508,7 +487,7 @@ def _evaluate_retry_condition(condition_expr, context):
     return _evaluate_condition_expression(condition_expr, context, label="retry condition")
 
 
-def _coerce_retry_number(value, default, context, cast_type=int):
+def _coerce_retry_number(value, default, context, cast_type: type = int):
     if value is None:
         return default
 
@@ -518,7 +497,7 @@ def _coerce_retry_number(value, default, context, cast_type=int):
         resolved = value
 
     try:
-        return cast_type(resolved)
+        return cast_type(resolved)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return default
 
@@ -608,7 +587,7 @@ def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> List[st
         path = resolve(saveas_config, context)
         content = get_content()
         fmt = step.get("format", "auto")
-        saved_path = save_content_to_file(content, path, fmt)
+        saved_path = save_content_to_file(content, str(path), fmt)
         _record_written_file(saved_path)
         saved_paths.append(saved_path)
         return saved_paths
@@ -625,7 +604,7 @@ def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> List[st
 
         if group_cfg:
             from pathlib import Path as _P
-            fname = _P(path).name
+            fname = _P(str(path)).name
             if isinstance(group_cfg, int):
                 prefix_dir = get_prefix_directory(fname, prefix_length=group_cfg)
             else:
@@ -634,9 +613,9 @@ def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> List[st
                     prefix_length=group_cfg.get("prefix_length"),
                     prefix_delimiter=group_cfg.get("prefix_delimiter"),
                 )
-            path = str(_P(path).parent / prefix_dir / fname)
+            path = str(_P(str(path)).parent / prefix_dir / fname)
 
-        saved_path = save_content_to_file(content, path, fmt)
+        saved_path = save_content_to_file(content, str(path), fmt)
         _record_written_file(saved_path)
         saved_paths.append(saved_path)
         return saved_paths
@@ -648,7 +627,7 @@ def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> List[st
                 content_spec = item.get("content")
                 content = resolve(content_spec, context) if content_spec else get_content()
                 fmt = item.get("format", "auto")
-                saved_path = save_content_to_file(content, path, fmt)
+                saved_path = save_content_to_file(content, str(path), fmt)
                 _record_written_file(saved_path)
                 saved_paths.append(saved_path)
         return saved_paths
@@ -689,9 +668,9 @@ def run_step(
             local_after_action = None
 
             if step_type == "for-each":
-                local_after_action = run_for_each_step(step, context, pipeline_config)
+                local_after_action = run_for_each_step(step, context, pipeline_config or {})
             elif step_type == "llm":
-                result = run_llm_step(step, context, pipeline_config)
+                result = run_llm_step(step, context, pipeline_config or {})
                 handle_step_outputs(step, result, context)
             elif step_type == "function":
                 result = run_function_step(step, context, pipeline_config)
@@ -755,11 +734,11 @@ def run_step(
                     scene = context.get("scene")
                     if isinstance(scene, dict):
                         context_info["scene_citation"] = scene.get("Citation", "unknown")
-                enforce_require(eval_ctx, step.get("require"), step_name=step.get("name"), context_info=context_info)
+                enforce_require(eval_ctx, step.get("require") or [], step_name=step.get("name"), context_info=context_info)
 
             # Non-blocking warnings: collect and attach to context
             if "warn" in step and step.get("warn"):
-                msgs = collect_warnings(eval_ctx, step.get("warn"))
+                msgs = collect_warnings(eval_ctx, step.get("warn") or [])
                 if msgs:
                     # initialize warnings sink once
                     if "_warnings" not in context or context["_warnings"] is None:
@@ -800,6 +779,9 @@ def run_plugin_step(
     step_type = step.get("type")
 
     logger.info(f"🔌 Starting plugin step: {name}")
+
+    if step_type is None:
+        raise ValueError(f"Plugin step '{name}' has no type")
 
     try:
         plugin_func = plugin_registry[step_type]
@@ -845,7 +827,7 @@ def run_basex_step(
 
     timeout = step.get("timeout", 120)
 
-    result = run_basex(query_file, inputs=resolved_inputs, timeout=timeout)
+    result = run_basex(str(query_file), inputs=resolved_inputs, timeout=timeout)
     handle_step_outputs(step, result, context)
 
     logger.info(f"✅ Completed basex step: {name}")
@@ -954,7 +936,7 @@ def run_duckdb_step(
         start_time = time.time()
 
         conn = duckdb.connect(":memory:")
-        result_df = conn.execute(resolved_query).fetchdf()
+        result_df = conn.execute(str(resolved_query)).fetchdf()
         conn.close()
 
         execution_time = time.time() - start_time
@@ -996,7 +978,15 @@ def run_duckdb_step(
     return result
 
 
-def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> str:
+def apply_output_template(content: Any, template_path: Optional[str], context: Dict[str, Any]) -> str:
+    """Apply an output template to format LLM response content."""
+    if not template_path:
+        return str(content) if content is not None else ""
+    from llmflow.utils.io import render_markdown_template
+    return render_markdown_template(template_path, {**context, "content": content}, context)
+
+
+def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> Any:
     """Execute an LLM step and return its result"""
     name = step.get("name", "unnamed_llm_step")
 
@@ -1079,9 +1069,10 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
     mcp_client = init_mcp_client(step, pipeline_config)
 
     try:
-        # Retry configuration
-        max_retries = 3
-        retry_delay = 2
+        # Retry configuration — read from step config with fallback to defaults
+        _llm_retry_cfg = step.get("retry", {}) if isinstance(step.get("retry"), dict) else {}
+        max_retries = _llm_retry_cfg.get("max_attempts", 3)
+        retry_delay = _llm_retry_cfg.get("delay_seconds", 2)
 
         response = None
         for attempt in range(max_retries):
@@ -1214,13 +1205,13 @@ def run_save_step(
     content_value = step.get("content")
     content = resolve(content_value, context) if content_value else context.get("content", "")
 
-    saved_path = save_content_to_file(content, path)
+    saved_path = save_content_to_file(content, str(path))
     _record_written_file(saved_path)
 
     logger.info(f"✅ Completed save step: {name}")
 
 
-def save_content_to_file(content: Any, path: str, format: str = None) -> str:
+def save_content_to_file(content: Any, path: str, format: Optional[str] = None) -> str:
     """Save content to file with optional format specification."""
     import json
     from pathlib import Path
@@ -1296,7 +1287,7 @@ def save_content_to_file(content: Any, path: str, format: str = None) -> str:
     path_obj.parent.mkdir(parents=True, exist_ok=True)
 
     with open(path, 'w', encoding='utf-8') as f:
-        f.write(formatted_content)
+        f.write(str(formatted_content))
 
     return str(path_obj.absolute())
 
@@ -1460,6 +1451,10 @@ def run_pipeline(
     from pydantic import ValidationError
     from llmflow.pipeline_schema import PipelineConfig  # FIX: Correct module name
 
+    # Reset per-run state
+    global WRITTEN_FILES
+    WRITTEN_FILES = []
+
     # Reset logger singleton for new run - ensures log file is overwritten, not appended
     Logger.reset(log_file=log_file)
     # Force recreation of singleton by calling Logger() again
@@ -1503,11 +1498,11 @@ def run_pipeline(
         except yaml.YAMLError as e:
             logger.error(f"❌ YAML syntax error in {pipeline_file}:")
             if hasattr(e, 'problem_mark'):
-                mark = e.problem_mark
+                mark = e.problem_mark  # type: ignore[attr-defined]
                 logger.error(f"   Line {mark.line + 1}, Column {mark.column + 1}")
-                logger.error(f"   {e.problem}")
+                logger.error(f"   {e.problem}")  # type: ignore[attr-defined]
                 if hasattr(e, 'context'):
-                    logger.error(f"   Context: {e.context}")
+                    logger.error(f"   Context: {e.context}")  # type: ignore[attr-defined]
             else:
                 logger.error(f"   {str(e)}")
             raise SystemExit(1)

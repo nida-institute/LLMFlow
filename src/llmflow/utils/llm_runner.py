@@ -329,7 +329,7 @@ def _call_model(model, prompt: str, config: Dict[str, Any]) -> dict:
 
     # Capture token usage from the llm package Response object
     try:
-        usage_obj = response.usage
+        usage_obj = response.usage()
         prompt_tokens = int(usage_obj.input or 0)
         completion_tokens = int(usage_obj.output or 0)
     except Exception:
@@ -358,7 +358,7 @@ def run_llm_with_mcp_tools(
     step: Optional[Dict[str, Any]] = None,
     context: Optional[Dict[str, Any]] = None,
     pipeline_config: Optional[Dict[str, Any]] = None
-) -> str:
+) -> Dict[str, Any]:
     """Execute LLM call with MCP tool support."""
     import asyncio
     return asyncio.run(_run_llm_with_mcp_tools_async(
@@ -375,7 +375,7 @@ async def _run_llm_with_mcp_tools_async(
     step: Optional[Dict[str, Any]] = None,
     context: Optional[Dict[str, Any]] = None,
     pipeline_config: Optional[Dict[str, Any]] = None
-) -> str:
+) -> Dict[str, Any]:
     """Execute LLM with MCP tools using OpenAI API.
 
     Routes to Responses API for GPT-5/o1 (better reasoning),
@@ -404,7 +404,7 @@ async def _run_with_responses_api(
     step: Optional[Dict[str, Any]] = None,
     context: Optional[Dict[str, Any]] = None,
     pipeline_config: Optional[Dict[str, Any]] = None
-) -> str:
+) -> Dict[str, Any]:
     """Execute LLM using Responses API (for GPT-5, O1)."""
     from llmflow.runner import build_debug_filename, save_content_to_file
     import json
@@ -535,8 +535,9 @@ async def _run_with_responses_api(
                                 # content is ALWAYS an array of ResponseOutputText objects
                                 if isinstance(item.content, list):
                                     for content_item in item.content:
-                                        if hasattr(content_item, 'text'):
-                                            output_text += content_item.text
+                                        text = getattr(content_item, 'text', None)
+                                        if text is not None:
+                                            output_text += text
                                 else:
                                     # Fallback for unexpected structure
                                     output_text += str(item.content)
@@ -579,8 +580,9 @@ async def _run_with_responses_api(
                             # content is ALWAYS an array of ResponseOutputText objects
                             if isinstance(item.content, list):
                                 for content_item in item.content:
-                                    if hasattr(content_item, 'text'):
-                                        output_text += content_item.text
+                                    text = getattr(content_item, 'text', None)
+                                    if text is not None:
+                                        output_text += text
                             else:
                                 output_text += str(item.content)
 
@@ -685,7 +687,7 @@ async def _run_with_chat_completions(
     mcp_client,
     output_type: str = "text",
     step_name: str = "unknown"
-) -> str:
+) -> Dict[str, Any]:
     """Execute LLM using Chat Completions API (for GPT-4, GPT-3.5)."""
     import json
     from openai import AsyncOpenAI
@@ -717,7 +719,7 @@ async def _run_with_chat_completions(
         logger.debug(f"   Tools: {[t['function']['name'] for t in openai_tools]}")
 
         # Build initial messages
-        messages = [{"role": "user", "content": prompt}]
+        messages: list[dict[str, Any]] = [{"role": "user", "content": prompt}]
 
         # Build API call parameters with model-aware defaults
         model_name = config.get("model", "gpt-4o")
@@ -758,6 +760,7 @@ async def _run_with_chat_completions(
         total_completion_tokens = 0
         total_tokens = 0
 
+        message = None
         for iteration in range(max_iterations):
             logger.debug(f"🔄 MCP iteration {iteration + 1}/{max_iterations}")
 
@@ -872,7 +875,7 @@ async def _run_with_chat_completions(
 
         # If we hit max iterations without finishing
         logger.debug(f"⚠️  Max MCP iterations ({max_iterations}) reached")
-        final_content = message.content or "Error: Maximum tool calling iterations exceeded"
+        final_content = message.content if message is not None else "" or "Error: Maximum tool calling iterations exceeded"
 
         # Parse JSON if requested
         if output_type.lower() == "json":

@@ -2,19 +2,19 @@ import sys
 import signal
 from pathlib import Path
 
-logger = None  # Initialized after Logger singleton is available
+from llmflow.modules.logger import Logger
+
+# Following the Logger Pattern guideline: use the shared Logger()
+# singleton so CLI messages go to both console and llmflow.log.
+logger = Logger()
 
 
 def _cli_sigint_handler(signum, frame):
     """Handle Ctrl+C at the CLI process level."""
     msg1 = "\n⚠️  Execution interrupted by user (Ctrl+C)"
     msg2 = "   Pipeline stopped."
-    if logger is not None:
-        logger.info(msg1)
-        logger.info(msg2)
-    else:
-        sys.stderr.write(f"{msg1}\n{msg2}\n")
-        sys.stderr.flush()
+    logger.info(msg1)
+    logger.info(msg2)
     sys.exit(130)
 
 
@@ -25,12 +25,6 @@ import argparse
 import json
 import os
 from pathlib import Path
-
-from llmflow.modules.logger import Logger
-
-# Following the Logger Pattern guideline: use the shared Logger()
-# singleton so CLI messages go to both console and llmflow.log.
-logger = Logger()
 
 
 try:
@@ -298,6 +292,8 @@ def main(argv=None):
         import importlib.util
         _script = Path(__file__).resolve().parents[2] / "tools" / "update_ai_context.py"
         spec = importlib.util.spec_from_file_location("update_ai_context", _script)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Cannot load module from {_script}")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         mod.main()
@@ -373,6 +369,8 @@ def main(argv=None):
 
         elif args.registry_command == "info":
             # Show detailed info about a resource
+            resource = None
+            resource_type = None
             if args.type == "project":
                 resource = registry.projects.get(args.id)
                 resource_type = "Project"

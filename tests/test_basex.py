@@ -223,3 +223,50 @@ class TestBasexIntegration:
         result = run_basex(str(qfile))
         assert "<w " in result
         assert 'lemma="λέγω"' in result
+
+    def test_hebrew_uca_sort_aleph_bet_order_with_niqquud(self, tmp_path):
+        """XQuery fn:sort with UCA Hebrew collation must produce aleph-bet order for words with niqquud.
+
+        This is a hard test: niqquud (vowel points) are Unicode combining characters.
+        The UCA collation must treat the base consonant as the primary sort key so that
+        אֱלֹהִים (aleph) < בָּרָא (bet) < גָּדוֹל (gimel) regardless of attached niqquud.
+        Words are inserted in gimel→aleph→bet order to prove sorting is active.
+        """
+        from llmflow.plugins.basex import run_basex
+        qfile = tmp_path / "hebrew_sort.xq"
+        qfile.write_text(
+            'let $words := ("גָּדוֹל", "אֱלֹהִים", "בָּרָא")\n'
+            'let $sorted := fn:sort($words, "http://www.w3.org/2013/collation/UCA?lang=he")\n'
+            'return string-join($sorted, ",")',
+            encoding='utf-8'
+        )
+        result = run_basex(str(qfile))
+        words = result.split(',')
+        assert len(words) == 3, f"Expected 3 words, got: {words}"
+        assert words[0][0] == 'א', f"Aleph (א) should sort first, got: {words}"
+        assert words[1][0] == 'ב', f"Bet (ב) should sort second, got: {words}"
+        assert words[2][0] == 'ג', f"Gimel (ג) should sort third, got: {words}"
+
+    def test_hebrew_niqquud_transparent_at_primary_strength(self, tmp_path):
+        """UCA primary strength must treat שָׁלוֹם (with niqquud) equal to שלום (bare consonants).
+
+        Niqquud are secondary-weight differences in ICU/UCA. At primary strength only
+        base consonants are compared, so a fully-pointed word must compare equal (0)
+        to its unpointed form. This is the key requirement for searching Hebrew text
+        without knowing whether niqquud are present in a source.
+        """
+        from llmflow.plugins.basex import run_basex
+        qfile = tmp_path / "niqquud_compare.xq"
+        qfile.write_text(
+            'fn:compare(\n'
+            '  "שָׁלוֹם",\n'
+            '  "שלום",\n'
+            '  "http://www.w3.org/2013/collation/UCA?lang=he;strength=primary"\n'
+            ')',
+            encoding='utf-8'
+        )
+        result = run_basex(str(qfile))
+        assert result.strip() == '0', (
+            f"שָׁלוֹם and שלום should compare equal at primary strength (got {result!r}). "
+            "Niqquud must be transparent at primary collation weight."
+        )

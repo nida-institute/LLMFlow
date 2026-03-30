@@ -901,7 +901,7 @@ def load_xml_file(file_path):
     Returns:
         lxml.etree._Element: Parsed root element
     """
-    from lxml import etree
+    from lxml import etree  # type: ignore[attr-defined]
 
     logger.debug(f"Loading XML file: {file_path}")
     path = Path(file_path)
@@ -971,6 +971,8 @@ def _scan_usfm_project(base_dir: str, project_name: str):
         if f.suffix.lower() in (".sfm", ".usfm"):
             try:
                 usx = readFile(str(f))
+                if usx is None:
+                    continue
                 code = usx.book
                 if code:
                     results.append((code.upper(), f, usx))
@@ -981,7 +983,7 @@ def _scan_usfm_project(base_dir: str, project_name: str):
 
 def _usx_to_element(usx_obj):
     """Convert a usfmtc USX object to an lxml _Element."""
-    from lxml import etree
+    from lxml import etree  # type: ignore[attr-defined]
     xml_str = usx_obj.outUsx()
     if xml_str is None:
         raise ValueError("usfmtc returned no USX output")
@@ -1238,7 +1240,7 @@ def load_usfm_project(base_dir: str, project_name: str, format: str = "usx") -> 
     return {code: _format_result(usx_obj, format) for code, _, usx_obj in entries}
 
 
-def serialize_usx(content) -> str:
+def serialize_usx(content) -> str | bool | None:
     """
     Serialize scripture content to USX XML string.
 
@@ -1258,7 +1260,7 @@ def serialize_usx(content) -> str:
     return usx_obj.outUsx()
 
 
-def serialize_usfm(content) -> str:
+def serialize_usfm(content) -> str | bool | None:
     """
     Serialize scripture content to USFM text.
 
@@ -1273,6 +1275,8 @@ def serialize_usfm(content) -> str:
     if isinstance(content, _Element):
         xml_str = tostring(content, encoding="unicode")
         usx_obj = _USX.fromUsx(xml_str)
+        if usx_obj is None:
+            return None
         return usx_obj.outUsfm()
     # USJ dict path
     import json
@@ -1307,7 +1311,7 @@ def get_paratext_metadata(base_dir: str, project_name: str) -> dict:
         >>> meta['language_iso']
         'ceb'
     """
-    from lxml import etree
+    from lxml import etree  # type: ignore[attr-defined]
 
     project_dir = Path(base_dir) / project_name
     settings_path = project_dir / "Settings.xml"
@@ -1373,7 +1377,7 @@ def load_project_file(base_dir: str, project_name: str, file: str):
         >>> lang = burrito['languages'][0]['name']['en']
     """
     import json
-    from lxml import etree
+    from lxml import etree  # type: ignore[attr-defined]
 
     project_dir = Path(base_dir) / project_name
     file_path = project_dir / file

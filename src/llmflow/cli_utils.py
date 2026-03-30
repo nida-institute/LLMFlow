@@ -690,6 +690,19 @@ This is an LLMFlow consumer project. It does NOT contain the LLMFlow engine sour
 - Generated outputs live in `output/`
 - The LLMFlow engine is installed separately: https://github.com/nida-institute/LLMFlow
 
+## Global Skills
+
+Workflow skills are in `~/.sp/skills/`. Each skill is a `SKILL.md` file with step-by-step instructions.
+
+| Task | Skill |
+|------|-------|
+| Audit a pipeline output file | `~/.sp/skills/audit-output/SKILL.md` |
+| Audit a `.gpt` prompt file | `~/.sp/skills/audit-prompts/SKILL.md` |
+| Audit pipeline YAML or plugin code | `~/.sp/skills/audit-code/SKILL.md` |
+
+Project-specific audit checklists (which vary by project) are in `docs/audits/`.
+Audit results go in `project/audits/`.
+
 ## Workflow
 
 **Always explain before implementing** — describe what files you will change and why before making changes.
@@ -1210,7 +1223,7 @@ def sync_ai_context_files(base_dir: Path) -> None:
         ai_context_source = docs_root.joinpath("ai-context")
         if ai_context_source.is_dir():
             for item in ai_context_source.iterdir():
-                if item.is_file() and item.suffix == ".md":
+                if item.is_file() and Path(str(item)).suffix == ".md":
                     target_file = target_dir / item.name
                     # Read and write to handle package resources properly
                     content = item.read_text(encoding="utf-8")
@@ -1224,7 +1237,7 @@ def sync_ai_context_files(base_dir: Path) -> None:
 
         if audits_source.is_dir():
             for item in audits_source.iterdir():
-                if item.is_file() and item.suffix == ".md":
+                if item.is_file() and Path(str(item)).suffix == ".md":
                     target_file = audits_target / item.name
                     content = item.read_text(encoding="utf-8")
                     target_file.write_text(content, encoding="utf-8")

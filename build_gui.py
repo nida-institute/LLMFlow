@@ -90,6 +90,15 @@ def main():
     else:
         print(f"⚠️  Warning: server.py not found at {server_src}")
 
+    # Copy executor.py to package
+    executor_src = script_dir / "gui" / "backend" / "executor.py"
+    executor_dst = package_gui_dir / "executor.py"
+    if executor_src.exists():
+        shutil.copy2(executor_src, executor_dst)
+        print(f"✅ Executor copied to {executor_dst}")
+    else:
+        print(f"⚠️  Warning: executor.py not found at {executor_src}")
+
     # Create __init__.py if it doesn't exist
     init_file = package_gui_dir / "__init__.py"
     if not init_file.exists():

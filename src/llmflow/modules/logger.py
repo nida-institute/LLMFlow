@@ -1,18 +1,19 @@
 import logging
 import sys
+from typing import ClassVar, Optional
 
 
 class Logger:
     """Singleton logger that writes to console (INFO+) and file (DEBUG+)."""
 
-    _instance = None
+    _instance: ClassVar[Optional["Logger"]] = None
     _initialized = False
     _log_file = 'llmflow.log'  # Default log file location
 
-    def __new__(cls, log_file=None):
+    def __new__(cls, log_file=None) -> "Logger":
         if cls._instance is None:
             cls._instance = super(Logger, cls).__new__(cls)
-        return cls._instance
+        return cls._instance  # type: ignore[return-value]
 
     def __init__(self, log_file=None):
         # Only initialize once per singleton instance

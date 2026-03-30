@@ -87,6 +87,9 @@ export default function PipelineView({ pipeline, project }) {
     setRunning(true)
     setOutput([])
 
+    // Generate unique execution ID
+    const executionId = `exec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
     // Connect to WebSocket
     const socket = io()
     socketRef.current = socket
@@ -105,10 +108,25 @@ export default function PipelineView({ pipeline, project }) {
     })
 
     socket.on('complete', (data) => {
-      setOutput(prev => [...prev, {
+      const completionItems = [{
         type: data.exit_code === 0 ? 'success' : 'error',
         text: data.exit_code === 0 ? '✅ Pipeline completed successfully' : '❌ Pipeline failed'
-      }])
+      }]
+
+      // Add created files section
+      if (data.created_files && data.created_files.length > 0) {
+        completionItems.push({ type: 'section_header', text: '\n📄 Created Files:' })
+        data.created_files.forEach(file => {
+          completionItems.push({ type: 'file_link', text: file })
+        })
+      }
+
+      // Add telemetry report
+      if (data.telemetry) {
+        completionItems.push({ type: 'telemetry', text: data.telemetry })
+      }
+
+      setOutput(prev => [...prev, ...completionItems])
       setRunning(false)
       socket.disconnect()
     })
@@ -119,8 +137,9 @@ export default function PipelineView({ pipeline, project }) {
       socket.disconnect()
     })
 
-    // Emit execution request
+    // Emit execution request with unique ID
     socket.emit('execute_pipeline', {
+      execution_id: executionId,
       pipeline_path: pipeline.full_path,
       project_path: project.path,
       variables
@@ -221,6 +240,32 @@ export default function PipelineView({ pipeline, project }) {
                 return (
                   <div key={idx} className="text-red-400 font-semibold text-lg mt-4 mb-2">
                     {item.text}
+                  </div>
+                )
+              } else if (item.type === 'section_header') {
+                return (
+                  <div key={idx} className="text-yellow-300 font-semibold text-base mt-4 mb-1">
+                    {item.text}
+                  </div>
+                )
+              } else if (item.type === 'file_link') {
+                return (
+                  <div key={idx} className="ml-4 font-mono text-xs">
+                    <a
+                      href={`file://${item.text}`}
+                      className="text-blue-400 hover:text-blue-300 hover:underline"
+                      title={`Click to open: ${item.text}`}
+                    >
+                      {item.text}
+                    </a>
+                  </div>
+                )
+              } else if (item.type === 'telemetry') {
+                return (
+                  <div key={idx} className="mt-4 pt-4 border-t border-gray-700">
+                    <pre className="text-xs font-mono whitespace-pre-wrap text-gray-300">
+                      {item.text}
+                    </pre>
                   </div>
                 )
               } else {

@@ -230,13 +230,12 @@ Stats: {{stats.views}} views
         result = render_template(template, variables)
         assert result == "Upper: ALICE, Lower: alice"
 
-    def test_render_with_len_blocked(self):
-        """Test that len() is blocked for security."""
+    def test_render_with_len_in_template(self):
+        """Test that len() works in templates (it is a safe builtin)."""
         template = "Count: {{len(items)}}"
         variables = {"items": [1, 2, 3, 4, 5]}
         result = render_template(template, variables)
-        # len() is blocked because __builtins__ is empty for security
-        assert result == "Count: {{len(items)}}"
+        assert result == "Count: 5"
 
     def test_render_malformed_expression(self):
         """Test that malformed expressions are left unchanged."""
