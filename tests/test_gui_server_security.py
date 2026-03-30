@@ -10,6 +10,8 @@ import pytest
 import sys
 from pathlib import Path
 
+pytest.importorskip("flask", reason="GUI tests require: pip install llmflow[gui]")
+
 # Import from the development backend
 sys.path.insert(0, str(Path(__file__).parent.parent / 'gui' / 'backend'))
 from server import create_app
