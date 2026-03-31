@@ -413,6 +413,44 @@ def validate_template_structure(template_path, pipeline, step_name):
         "interleave_issues": [],  # ✅ Add this
     }
 
+def resolve_prompt_path(prompt_file: str, prompts_dir: str) -> Path:
+    """Resolve a prompt file path without double-prefixing.
+
+    Resolution order:
+    1. Absolute path → return as-is
+    2. Path exists relative to cwd → return as-is (handles already-prefixed paths
+       like ``prompts/foo.gpt`` so they don't become ``prompts/prompts/foo.gpt``)
+    3. ``prompts_dir / path`` → return if it exists
+    4. Raise FileNotFoundError listing what was tried
+
+    Args:
+        prompt_file: The prompt file path from the pipeline config.
+        prompts_dir: The prompts directory (from context or pipeline variables).
+
+    Returns:
+        Resolved :class:`Path` to the prompt file.
+
+    Raises:
+        FileNotFoundError: If the file cannot be found, naming the paths tried.
+    """
+    p = Path(prompt_file)
+
+    if p.is_absolute():
+        return p
+
+    if p.exists():
+        return p
+
+    candidate = Path(prompts_dir) / p
+    if candidate.exists():
+        return candidate
+
+    tried = [str(p), str(candidate)]
+    raise FileNotFoundError(
+        f"Prompt file not found: {prompt_file!r}. Tried: {tried}"
+    )
+
+
 class AttrDict(dict):
     """A dict that supports attribute access (dot notation)."""
 

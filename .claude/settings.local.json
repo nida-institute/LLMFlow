@@ -17,7 +17,12 @@
       "Bash(sort -t% -k1 -n)",
       "Bash(sed -i '' 's/result\\\\[\"\"entryKey\"\"\\\\]/result[\"\"lemma\"\"]/g' /Users/jonathan/github/nida-institute/LLMFlow/tests/test_xml_plugin.py)",
       "Bash(__NEW_LINE_45209778e274cb8c__ sed:*)",
-      "Bash(__NEW_LINE_45209778e274cb8c__ echo:*)"
+      "Bash(__NEW_LINE_45209778e274cb8c__ echo:*)",
+      "Bash(grep -r Scriptura /Users/jonathan/github/nida-institute/ --include=*.md --include=*.yaml --include=*.py)",
+      "Bash(find /Users/jonathan/github/nida-institute/discourse-flow-hebrew -type f -name *19* -o -type d -name *19*)",
+      "Bash(ls:*)",
+      "WebSearch",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d[''''title'''']\\); print\\(d[''''state'''']\\); print\\(d[''''body'''']\\)\")"
     ]
   }
 }

@@ -490,9 +490,12 @@ def main(argv=None):
                         rewind_to=args.rewind_to,
                     )
                 except FileNotFoundError as e:
-                    logger.error(f"❌ Pipeline file not found: {args.pipeline}")
-                    logger.error(f"   Current directory: {os.getcwd()}")
-                    logger.error("   💡 Tip: Make sure you're running from the correct directory")
+                    if not Path(args.pipeline).exists():
+                        logger.error(f"❌ Pipeline file not found: {args.pipeline}")
+                        logger.error(f"   Current directory: {os.getcwd()}")
+                        logger.error("   💡 Tip: Make sure you're running from the correct directory")
+                    else:
+                        logger.error(f"❌ {e}")
                     sys.exit(1)
 
                 if not result.valid:
@@ -512,9 +515,14 @@ def main(argv=None):
                     stop_after=args.stop_after,
                 )
             except FileNotFoundError as e:
-                logger.error(f"❌ Pipeline file not found: {args.pipeline}")
-                logger.error(f"   Current directory: {os.getcwd()}")
-                logger.error("   💡 Tip: Make sure you're running from the correct directory")
+                # Distinguish between a missing pipeline file and a missing
+                # resource (prompt, data file) referenced inside the pipeline.
+                if not Path(args.pipeline).exists():
+                    logger.error(f"❌ Pipeline file not found: {args.pipeline}")
+                    logger.error(f"   Current directory: {os.getcwd()}")
+                    logger.error("   💡 Tip: Make sure you're running from the correct directory")
+                else:
+                    logger.error(f"❌ {e}")
                 sys.exit(1)
         except KeyboardInterrupt:
             logger.info("\n⚠️  Execution interrupted by user (Ctrl+C)")

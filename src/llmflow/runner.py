@@ -304,10 +304,9 @@ def render_prompt(
             f"Prompt config must be string or dict, got {type(resolved_prompt)}"
         )
 
-    prompts_dir = Path(context.get("prompts_dir", "prompts"))
-    full_prompt_path = (
-        prompt_path if prompt_path.is_absolute() else prompts_dir / prompt_path
-    )
+    from llmflow.utils.io import resolve_prompt_path
+    prompts_dir = str(context.get("prompts_dir", "prompts"))
+    full_prompt_path = resolve_prompt_path(str(prompt_path), prompts_dir)
 
     logger.debug(f"Loading prompt from: {full_prompt_path}")
     rendered_prompt = full_prompt_path.read_text(encoding="utf-8")

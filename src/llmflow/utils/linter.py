@@ -287,20 +287,11 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
                 variables = pipeline_root.get("variables", {})
                 prompts_dir = variables.get("prompts_dir", "prompts")
 
-            # Try multiple paths
-            prompt_path = None
-            possible_paths = [
-                f"{prompts_dir}/{prompt_file}",
-                f"prompts/{prompt_file}",
-                prompt_file,
-            ]
-
-            for possible_path in possible_paths:
-                if Path(possible_path).exists():
-                    prompt_path = possible_path
-                    break
-
-            if not prompt_path:
+            # Resolve prompt path using shared utility (same logic as runner)
+            from llmflow.utils.io import resolve_prompt_path
+            try:
+                prompt_path = str(resolve_prompt_path(prompt_file, prompts_dir))
+            except FileNotFoundError:
                 errors.append(
                     f"❌ Step '{step_name}': Prompt file not found: {prompt_file}"
                 )
@@ -870,14 +861,12 @@ def lint_pipeline_full(
         prompt_file = step.get("prompt", {}).get("file")
         if not prompt_file:
             continue
-        for candidate in [
-            f"{prompts_dir_for_decl}/{prompt_file}",
-            f"prompts/{prompt_file}",
-            prompt_file,
-        ]:
-            if Path(candidate).exists():
-                gpt_decl_errors.extend(validate_gpt_body_declares_all_vars(candidate))
-                break
+        from llmflow.utils.io import resolve_prompt_path
+        try:
+            resolved = resolve_prompt_path(prompt_file, prompts_dir_for_decl)
+            gpt_decl_errors.extend(validate_gpt_body_declares_all_vars(str(resolved)))
+        except FileNotFoundError:
+            pass  # Already reported by contract validation above
     if gpt_decl_errors:
         all_errors.extend(gpt_decl_errors)
         for err in gpt_decl_errors:
