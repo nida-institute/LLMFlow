@@ -1,7 +1,37 @@
 # Changelog
 
 ## Unreleased
-- _No changes yet._
+
+### New Features
+
+- **Global Prompt Organization Convention** — `sp init` now automatically installs a
+  standard organization pattern for `.gpt` prompt files to `~/.sp/conventions/`.
+  The convention enforces verifiable transformations (explicit input → output mapping),
+  co-located knowledge (rules/examples/data sources grouped by task), consistent heading
+  hierarchy, and flexible quality controls with domain-specific naming (GUARDRAILS,
+  EVIDENCE DOCUMENTATION REQUIREMENTS, etc.). Projects can override with local
+  `docs/prompt-organization-convention.md`. (Issue #93)
+
+- **Audit Prompts Skill** — VS Code Copilot skill installed to `~/.sp/skills/audit-prompts/`
+  by `sp init`. Audits `.gpt` files for convention compliance, sprawl detection, and
+  three CRITICAL checks: (1) input data grounding (verifies every output field has
+  documented input source to prevent hallucination), (2) example diversity (ensures
+  examples generalize across passages, not hardcoded to single case), (3) AI-generated
+  examples (compares to last commit, flags ANY new examples — #1 source of problems).
+  Read-only skill that reports findings with line numbers without modifying files.
+  (Issue #93)
+
+- **Automatic editable install in hatch environment** — Added `post-install-commands`
+  to `pyproject.toml` so `hatch shell` or `hatch run` automatically installs the package
+  in editable mode. The `sp` command is now immediately available for development work
+  without manual `pip install -e .` step. (Issue #94)
+
+### Documentation
+
+- Added `docs/global-conventions.md` — comprehensive guide to the prompt organization
+  convention and audit skill, including usage examples, best practices, complexity
+  categories, project-specific overrides, and critical checks explanation.
+- Updated `README.md` — added "Global Conventions & Skills" section with quick usage.
 
 ## 0.2.1.08 — 2026-03-30
 

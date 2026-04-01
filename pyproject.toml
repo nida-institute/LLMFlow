@@ -1,6 +1,6 @@
 [project]
 name = "llmflow"
-version = "0.2.1.07"
+version = "0.2.1.08"
 description = "Declarative pipelines for LLM-powered workflows"
 authors = [{name = "Jonathan Robie", email = "jonathan.robie@gmail.com"}]
 license = {text = "MIT"}
@@ -64,6 +64,7 @@ packages = ["src/llmflow"]
 "docs/ai-context" = "llmflow/docs/ai-context"
 "docs/audits" = "llmflow/docs/audits"
 "src/llmflow/gui" = "llmflow/gui"
+"src/llmflow/templates" = "llmflow/templates"
 
 [project.scripts]
 sp = "llmflow.cli:main"
@@ -78,6 +79,9 @@ dependencies = [
   "pytest",
   "pytest-asyncio",
   "pytest-mock"
+]
+post-install-commands = [
+  "pip install -e ."
 ]
 
 [tool.ruff]

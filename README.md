@@ -234,6 +234,33 @@ sp --version
 sp --help
 ```
 
+### Global Conventions & Skills
+
+LLMFlow provides globally-shared resources that improve prompt engineering quality and AI assistant effectiveness:
+
+**Prompt Organization Convention** (`~/.sp/conventions/`)
+- Standard structure for `.gpt` prompt files
+- Enforces verifiable input → output transformations
+- Co-locates rules, examples, and data sources
+- Provides length guidelines and complexity categories
+
+**Audit Prompts Skill** (`~/.sp/skills/audit-prompts/`)
+- VS Code Copilot skill for auditing `.gpt` files
+- Checks convention compliance, sprawl detection
+- **Critical:** Verifies input data grounding (prevents hallucination)
+- **Critical:** Flags AI-generated examples (biggest source of drift)
+
+These are automatically installed when you run `sp init`. See [Global Conventions & Skills](docs/global-conventions.md) for complete documentation.
+
+**Quick usage:**
+```bash
+# Initialize a project (installs global resources)
+sp init
+
+# Audit a prompt file (in VS Code with Copilot)
+@audit-prompts Check prompts/my-prompt.gpt
+```
+
 ### Example Projects
 
 Here are some example project types and their typical structures:
