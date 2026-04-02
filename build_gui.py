@@ -33,17 +33,18 @@ def main():
         print(f"❌ Frontend directory not found: {frontend_dir}")
         sys.exit(1)
 
-    # Check if node_modules exists
+    # Check if node_modules exists - use npm ci in CI for clean install
     if not (frontend_dir / "node_modules").exists():
-        print("\n📦 Installing npm dependencies...")
+        npm_cmd = "ci" if os.getenv("CI") else "install"
+        print(f"\n📦 Installing npm dependencies (npm {npm_cmd})...")
         result = subprocess.run(
-            ["npm", "install"],
+            ["npm", npm_cmd],
             cwd=frontend_dir,
             capture_output=True,
             text=True
         )
         if result.returncode != 0:
-            print(f"❌ npm install failed:")
+            print(f"❌ npm {npm_cmd} failed:")
             print(result.stderr)
             sys.exit(1)
         print("✅ npm dependencies installed")

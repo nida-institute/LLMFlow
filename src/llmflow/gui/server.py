@@ -7,6 +7,7 @@ This version is designed to be bundled with nuitka.
 """
 
 import logging
+import os
 import sys
 import json
 import subprocess
@@ -23,10 +24,8 @@ logger = logging.getLogger(__name__)
 
 # Allowed origins for CORS — localhost only; this server is designed for local use
 _CORS_ORIGINS = [
-    "http://localhost:5000",
     "http://localhost:5173",
     "http://localhost:3000",
-    "http://127.0.0.1:5000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
 ]
@@ -34,7 +33,10 @@ _CORS_ORIGINS = [
 _PIPELINE_EXTENSIONS = {".yaml", ".yml"}
 
 # Import testable execution logic
-from .executor import PipelineExecutor
+try:
+    from .executor import PipelineExecutor
+except ImportError:
+    from executor import PipelineExecutor
 
 
 def create_app():
@@ -43,7 +45,7 @@ def create_app():
     # Get static files directory (bundled with package)
     if getattr(sys, 'frozen', False):
         # Running in nuitka bundle
-        base_path = Path(getattr(sys, '_MEIPASS', str(Path(__file__).parent)))
+        base_path = Path(sys._MEIPASS)
     else:
         # Running in development
         base_path = Path(__file__).parent
@@ -53,8 +55,6 @@ def create_app():
     app = Flask(__name__,
                 static_folder=str(static_folder),
                 static_url_path='')
-    assert app.static_folder is not None, "Flask static_folder must be set"
-    _static_folder: str = app.static_folder
 
     CORS(app, origins=_CORS_ORIGINS)
     socketio = SocketIO(app, cors_allowed_origins=_CORS_ORIGINS, async_mode='threading')
@@ -66,16 +66,16 @@ def create_app():
     @app.route('/')
     def serve_index():
         """Serve the React app index.html."""
-        return send_from_directory(_static_folder, 'index.html')
+        return send_from_directory(app.static_folder, 'index.html')
 
     @app.route('/<path:path>')
     def serve_static(path):
         """Serve static files (JS, CSS, etc.)."""
-        if (Path(_static_folder) / path).exists():
-            return send_from_directory(_static_folder, path)
+        if (Path(app.static_folder) / path).exists():
+            return send_from_directory(app.static_folder, path)
         else:
             # For client-side routing, return index.html
-            return send_from_directory(_static_folder, 'index.html')
+            return send_from_directory(app.static_folder, 'index.html')
 
     # =============================================================================
     # Registry API - Project Discovery
@@ -282,7 +282,7 @@ def create_app():
 
             # Create emit callback that routes to the execution's room
             def emit_to_room(event_type, data):
-                emit(event_type, data, to=execution_id)
+                emit(event_type, data, room=execution_id)
                 socketio.sleep(0)  # Yield to process other events
 
             # Execute pipeline using testable executor
@@ -302,10 +302,10 @@ def create_app():
                 'exit_code': result['exit_code'],
                 'created_files': result['created_files'],
                 'telemetry': result['telemetry']
-            }, to=execution_id)
+            }, room=execution_id)
 
         except Exception as e:
-            emit('error', {'message': str(e)}, to=execution_id if execution_id else None)
+            emit('error', {'message': str(e)}, room=execution_id if execution_id else None)
 
 
     @socketio.on('connect')
