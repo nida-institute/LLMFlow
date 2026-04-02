@@ -1,17 +1,20 @@
 ---
 name: audit-prompts
 description: |
-  **WORKFLOW SKILL** — Audit LLMFlow prompt files (.gpt) for organization, sprawl, convention compliance, and CRITICAL: input data grounding, example diversity, AI-generated examples, and JSON output format.
+  **WORKFLOW SKILL** — Audit LLMFlow prompt files (.gpt) AND pipeline files (.yaml) for organization, sprawl, convention compliance, and CRITICAL: input data grounding, example diversity, AI-generated examples, JSON output format, and structured outputs usage.
   USE FOR: checking prompt structure; identifying sprawl (line count, header count); validating section hierarchy;
   comparing against prompt-organization-convention.md; finding scattered examples; detecting inconsistent heading levels;
+  auditing pipelines for missing response_format on JSON steps.
   CRITICAL CHECKS: (1) verifying every output field has documented input data source (no making things up);
   (2) ensuring examples generalize across passages (not hardcoded to single case);
   (3) detecting ANY new examples since last commit (#1 source of problems - AI creates examples that don't match intent);
-  (4) validating JSON output format mechanics (code fences, formatting rules, escaping examples, consistency).
+  (4) validating JSON output format mechanics (code fences, formatting rules, escaping examples, consistency);
+  (5) detecting JSON steps without response_format (guarantees valid JSON, eliminates 40-60% failure rate).
   DO NOT USE FOR: testing prompt output quality; debugging LLM responses; modifying prompt content (use other tools).
   INVOKES: file_search, read_file, grep_search for pattern analysis; git show for version comparison; reports findings with specific line numbers.
 applyTo:
   - "**/*.gpt"
+  - "**/*.yaml"
 toolRestrictions:
   forbidden:
     - replace_string_in_file
@@ -34,6 +37,7 @@ Audit LLMFlow `.gpt` prompt files for:
 7. **🚨 Example diversity (CRITICAL)** — ensuring examples generalize across passages (not hardcoded to single case)
 8. **🚨 AI-generated examples (CRITICAL - #1 SOURCE OF PROBLEMS)** — detecting ANY new examples since last commit (AI creates examples that don't match user intent)
 9. **🚨 JSON output format (CRITICAL - for JSON prompts)** — code fences, formatting rules, escaping guidance, consistency (prevents intermittent parse failures)
+10. **🚨 Structured outputs usage (CRITICAL - for pipelines)** — detecting JSON steps without `response_format` (guarantees valid JSON, eliminates 40-60% failure rate)
 
 ## Core Principle: No LLM-Generated Training Data
 
@@ -443,7 +447,149 @@ An audit with this check would have flagged:
 Risk Level: HIGH (intermittent JSON parse failures likely)
 ```
 
-### Step 9: Generate Report
+### Step 9: Check Pipeline Structured Outputs Usage (CRITICAL - for Pipeline YAML Files)
+
+**Purpose:** Detect JSON-producing steps without `response_format`, which causes 40-60% intermittent failure rates. Using `response_format` with `json_schema` guarantees 100% valid JSON from the LLM.
+
+**When to run this check:**
+- User asks to audit a pipeline file (`.yaml`)
+- User mentions JSON parse failures or reliability issues
+- Audit is run on a directory containing both prompts and pipelines
+
+**Skip if:** Auditing only `.gpt` files, no pipeline context
+
+#### Check 1: Find JSON-Producing Steps
+
+**Detection:**
+```bash
+# Find all LLM steps with output_type: json
+grep -n "output_type: json" [pipeline].yaml
+```
+
+**For each match**, extract the step name and check if `response_format` is present in that step's config.
+
+#### Check 2: Verify response_format Usage
+
+For each JSON step found in Check 1:
+
+**Check A: Has response_format parameter?**
+```bash
+# Get line number of output_type: json
+json_line=$(grep -n "output_type: json" [pipeline].yaml | cut -d: -f1 | head -1)
+
+# Check if response_format appears within next 20 lines (same step)
+awk "NR==$json_line,NR==$json_line+20" [pipeline].yaml | grep -q "response_format:"
+```
+
+**Check B: Uses json_schema mode (not just json_object)?**
+```bash
+# If response_format found, verify it uses json_schema (structured mode)
+awk "NR==$json_line,NR==$json_line+30" [pipeline].yaml | grep -A 2 "response_format:" | grep -q "type: json_schema"
+```
+
+**Check C: Model supports structured outputs?**
+```bash
+# Extract model from step or global llm_config
+model=$(awk "NR==$json_line,NR==$json_line+20" [pipeline].yaml | grep "model:" | head -1 | awk '{print $2}')
+
+# Verify model is gpt-4o-2024-08-06 or later (not gpt-4.1)
+echo "$model" | grep -qE "gpt-4o-2024-08-06|gpt-4o-mini-2024"
+```
+
+#### What to Report
+
+**For steps WITHOUT response_format:**
+```markdown
+🚨 **MISSING STRUCTURED OUTPUTS**
+
+**Step:** `segment_chunk` (line 45)
+**Problem:** Uses `output_type: json` without `response_format`
+**Risk:** 40-60% intermittent JSON parse failures (missing commas, unescaped quotes)
+**Impact:** Wasted retries (3 attempts × cost), unpredictable failures
+
+**Recommended fix:**
+```yaml
+- name: segment_chunk
+  type: llm
+  model: gpt-4o-2024-08-06  # MUST be 2024-08-06 or later
+  output_type: json
+  response_format:
+    type: json_schema
+    json_schema:
+      name: book_segmentation
+      strict: true
+      schema:
+        type: object
+        properties:
+          book: {type: string}
+          pericopes:
+            type: array
+            items:
+              type: object
+              properties:
+                title: {type: string}
+                passage: {type: string}
+              required: ["title", "passage"]
+              additionalProperties: false
+        required: ["book", "pericopes"]
+        additionalProperties: false
+```
+
+**Benefits:**
+- ✅ 100% valid JSON (no parse errors)
+- ✅ No retry waste
+- ✅ Guaranteed schema compliance
+- ✅ Eliminates manual JSON formatting rules in prompts
+```
+
+**For steps WITH response_format but using json_object mode:**
+```markdown
+⚠️  **BASIC JSON MODE (Not Structured)**
+
+**Step:** `analyze_text` (line 123)
+**Current:** Uses `response_format: {type: json_object}`
+**Problem:** Forces JSON output but NO schema enforcement
+**Risk:** LLM can add unexpected fields, miss required fields
+
+**Recommendation:** Upgrade to `json_schema` mode for production use
+```
+
+**For steps WITH json_schema but incorrect model:**
+```markdown
+❌ **WRONG MODEL FOR STRUCTURED OUTPUTS**
+
+**Step:** `extract_data` (line 200)
+**Model:** `gpt-4.1`
+**Problem:** GPT-4.1 uses Responses API (different structured output mechanism)
+**Fix:** Change to `gpt-4o-2024-08-06` or later
+```
+
+#### Summary Stats
+
+Report project-wide JSON reliability status:
+
+```markdown
+**Pipeline JSON Reliability Audit**
+
+**JSON-producing steps:** 5
+**Using structured outputs (`json_schema`):** 1 (20%)
+**Using basic JSON mode (`json_object`):** 1 (20%)
+**NO `response_format` (legacy/unreliable):** 3 (60%)
+
+**Steps needing upgrade:**
+1. Line 45: `segment_chunk` — add `response_format` + schema
+2. Line 89: `generate_details` — add `response_format` + schema
+3. Line 134: `create_summary` — add `response_format` + schema
+
+**Risk Level:** HIGH
+- 3 of 5 JSON steps rely on prompt-based formatting (40-60% failure rate observed)
+- Estimated retry waste: ~$150-200 per failed run (from issue #95)
+- Recommendation: Implement structured outputs on all JSON steps
+
+**Documentation:** See docs/llmflow-language.md "Structured JSON Output" section
+```
+
+### Step 10: Generate Report
 
 Provide:
 
@@ -478,6 +624,13 @@ Provide:
 - Explicit JSON formatting rules present/missing
 - Incorrect escaping examples (apostrophe escaping)
 - Consistency across multiple JSON prompts in project
+- Risk Level: Low / Medium / High / CRITICAL
+
+**Pipeline Structured Outputs:** (CRITICAL - for pipeline YAML files)
+- JSON steps without `response_format` (legacy/unreliable approach)
+- JSON steps using `json_object` vs `json_schema` mode
+- Model compatibility (requires gpt-4o-2024-08-06+, not gpt-4.1)
+- Project-wide adoption stats (% using structured outputs)
 - Risk Level: Low / Medium / High / CRITICAL
 
 **Specific Findings:**

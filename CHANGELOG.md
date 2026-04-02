@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+## 0.2.1.11 — 2026-04-02
+
+### New Features
+
+- **Structured Outputs Documentation** — Comprehensive documentation for `response_format` with `json_schema` mode guarantees 100% valid JSON from LLM responses. Added to `docs/llmflow-language.md` with full examples showing schema definition, model requirements, and migration path. Eliminates 40-60% intermittent JSON parse failure rate observed in production. (Issue #95)
+
+- **AI Context for JSON Reliability** — Created `docs/ai-context/json-reliability.md` as mandatory reading for AI assistants working with JSON pipelines. Documents the problem (missing commas, unescaped quotes, variable error positions), solution (structured outputs), migration path, and common pitfalls. Referenced prominently in `docs/ai-context/index.md`.
+
+- **JSON Schema Example Pipeline** — Added `pipelines/json-schema-example.yaml` demonstrating three production-ready patterns: (1) nested arrays with complex objects, (2) multi-level required fields, (3) strict mode with `additionalProperties: false`. Includes inline documentation of all schema features.
+
+### Changed
+
+- **audit-prompts Skill Now Audits Pipelines** — Extended `/audit-prompts` skill to check pipeline YAML files for missing `response_format` on JSON steps. New Step 9 detects: (1) JSON steps without `response_format` (legacy/unreliable), (2) steps using `json_object` vs `json_schema` mode, (3) model compatibility (gpt-4o-2024-08-06+ required), (4) project-wide adoption stats. Reports risk level and provides migration code snippets. Skill now applies to `**/*.gpt` AND `**/*.yaml` files.
+
+- **Documented response_format in Language Spec** — Added `response_format` to optional fields for `type: llm` steps in `docs/llmflow-language.md` with cross-reference to new "Structured JSON Output" section. Section includes comparison table (with vs without structured outputs), model requirements, and Gemini alternative syntax.
+
+### Documentation
+
+- **Structured JSON Output section in llmflow-language.md** — 80+ line section with: (1) complete yaml example, (2) results comparison table, (3) key requirements (model, strict mode, additionalProperties), (4) when to use which mode, (5) Gemini alternative. Positioned immediately after `type: llm` field documentation for visibility.
+
+- **Issue #95 comment** — Posted comprehensive solution guide to https://github.com/nida-institute/LLMFlow/issues/95 with migration instructions for discourse-flow project, cost/benefit analysis, and testing checklist.
+
+### Bug Fixes
+
+None (documentation and tooling release only).
+
 ## 0.2.1.10 — 2026-04-02
 
 ### New Features

@@ -114,6 +114,7 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
 - `model`: Override the pipeline-level model for this specific step.
 - `max_tokens`, `temperature`, `timeout_seconds`: Per-step LLM overrides when a step has different needs than the global defaults.
 - `output_type: json` - Parse LLM response as JSON
+- `response_format`: **Structured output specification (GPT-4 family only)** — guarantees valid JSON conforming to a schema. See "Structured JSON Output" section below.
 - `log`: Log level for this step (`debug`, `info`, `warning`, `error`)
 - `saveas`: File path to save the output
 - `append_to`: List variable name to append result to (used in `for-each`)
@@ -129,6 +130,95 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
       source: "${source}"
   outputs: scene_list
   log: debug
+```
+
+#### Structured JSON Output (Recommended for Production)
+
+**CRITICAL:** For pipelines that produce JSON, use `response_format` with a JSON schema to guarantee valid output. This eliminates 40-60% failure rates caused by LLM-generated malformed JSON (missing commas, unescaped quotes, trailing commas).
+
+**OpenAI GPT-4 family** (gpt-4o, gpt-4o-mini, gpt-4.1, gpt-4.1-mini) supports structured outputs via `response_format`:
+
+```yaml
+- name: analyze_discourse
+  type: llm
+  model: gpt-4o-2024-08-06  # Requires 2024-08-06 or later
+  output_type: json
+  response_format:
+    type: json_schema
+    json_schema:
+      name: discourse_analysis
+      strict: true
+      schema:
+        type: object
+        properties:
+          book:
+            type: string
+            description: "Book name (e.g., 'Mark')"
+          pericopes:
+            type: array
+            items:
+              type: object
+              properties:
+                title:
+                  type: string
+                passage:
+                  type: string
+                theme:
+                  type: string
+              required: ["title", "passage", "theme"]
+              additionalProperties: false
+        required: ["book", "pericopes"]
+        additionalProperties: false
+  prompt:
+    file: analyze.gpt
+    inputs:
+      book_text: "${text}"
+  outputs: analysis
+```
+
+**Why this matters:**
+
+| Without `response_format` | With `json_schema` |
+|---|---|
+| ❌ 40-60% failure rate (intermittent) | ✅ 100% valid JSON |
+| ❌ Wasted retries (3 attempts × cost) | ✅ No retries needed |
+| ❌ Unpredictable errors at different positions | ✅ Guaranteed schema compliance |
+| ❌ Manual JSON formatting rules in prompts | ✅ Schema enforced by API |
+
+**Key requirements:**
+- **Model:** Must use `gpt-4o-2024-08-06` or later (not `gpt-4.1` — uses different API)
+- **`strict: true`** (recommended): Enables strict schema adherence
+- **`additionalProperties: false`**: Prevents LLM from adding unexpected fields
+- **All required fields documented**: Use `description` fields to guide LLM
+
+**Basic JSON mode (less reliable):**
+
+For simple cases where you don't need schema validation:
+
+```yaml
+response_format:
+  type: json_object  # Forces JSON output, but no schema enforcement
+```
+
+**When to use which:**
+- ✅ **Use `json_schema`**: Production pipelines, complex nested structures, critical data extraction
+- ⚠️ **Use `json_object`**: Quick prototypes, simple flat objects, non-critical output
+- ❌ **Use neither**: Text/markdown output only, human-readable responses
+
+**Alternative: Gemini models**
+
+Gemini 1.5+ uses different parameters for structured output:
+
+```yaml
+model: gemini-2.0-flash
+response_mime_type: "application/json"
+response_schema:
+  type: object
+  properties:
+    # ... schema definition
+```
+
+See `pipelines/json-response-openai.yaml` for working examples.
 
 ---
 

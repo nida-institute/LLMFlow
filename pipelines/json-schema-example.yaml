@@ -1,0 +1,257 @@
+name: "JSON Schema Example - Book Segmentation"
+description: |
+  Demonstrates structured outputs with response_format using json_schema mode.
+  This example shows how to guarantee 100% valid JSON from LLM responses.
+
+  Run from repo root:
+    sp run --pipeline pipelines/json-schema-example.yaml --var book="Philemon"
+
+documentation:
+  purpose: "Example of production-ready JSON output with schema validation"
+  key_features:
+    - "Uses gpt-4o-2024-08-06 for structured outputs support"
+    - "Defines complete JSON schema with strict mode"
+    - "Eliminates 40-60% JSON parse failure rate"
+    - "No retry waste, guaranteed schema compliance"
+
+variables:
+  book: "Mark"  # Can be overridden with --var book="..."
+  output_dir: "outputs/json-schema-example"
+
+llm_config:
+  model: gpt-4o-2024-08-06  # CRITICAL: Must be 2024-08-06 or later for json_schema support
+  temperature: 0.3
+  max_tokens: 4096
+
+steps:
+  # ============================================================================
+  # Example 1: Book Segmentation with Structured Outputs
+  # ============================================================================
+  - name: segment_book
+    type: llm
+    model: gpt-4o-2024-08-06  # Can override global model
+    output_type: json  # Parse response as JSON
+
+    # CRITICAL: response_format with json_schema guarantees valid JSON
+    response_format:
+      type: json_schema
+      json_schema:
+        name: book_segmentation  # Unique identifier for this schema
+        strict: true             # Enable strict schema adherence
+        schema:
+          type: object
+          properties:
+            book:
+              type: string
+              description: "Name of the book being segmented (e.g., 'Mark', 'Philemon')"
+
+            segmentation_rationale:
+              type: string
+              description: "Brief explanation of the segmentation approach used"
+
+            pericopes:
+              type: array
+              description: "List of narrative/discourse units in the book"
+              items:
+                type: object
+                properties:
+                  title:
+                    type: string
+                    description: "Descriptive title for this pericope"
+
+                  passage:
+                    type: string
+                    description: "Scripture reference (e.g., 'Mark 1:1-8')"
+
+                  start_verse:
+                    type: string
+                    description: "Starting verse reference"
+
+                  end_verse:
+                    type: string
+                    description: "Ending verse reference"
+
+                  theme:
+                    type: string
+                    description: "Main theme or topic of this section"
+
+                  pericope_type:
+                    type: string
+                    description: "Genre/type: narrative, teaching, confrontation, parable, etc."
+                    enum: ["narrative", "teaching", "confrontation", "parable", "apocalyptic", "letter", "other"]
+
+                required: ["title", "passage", "theme"]
+                additionalProperties: false  # Prevent LLM from adding unexpected fields
+
+            total_pericopes:
+              type: integer
+              description: "Total count of pericopes identified"
+
+          required: ["book", "pericopes", "total_pericopes"]
+          additionalProperties: false
+
+    prompt:
+      template: |
+        Segment the book of {{book}} into distinct pericopes (narrative or discourse units).
+
+        For each pericope, identify:
+        - A descriptive title
+        - The passage reference
+        - The main theme
+        - The type (narrative, teaching, confrontation, etc.)
+
+        Provide a brief rationale for your segmentation approach.
+
+        Focus on natural breaks in the narrative or discourse flow.
+      inputs:
+        book: "${book}"
+
+    outputs: segmentation
+
+    saveas:
+      path: "${output_dir}/${book}_segmentation.json"
+      format: json
+
+  # ============================================================================
+  # Example 2: Pericope Analysis (demonstrates nested arrays)
+  # ============================================================================
+  - name: analyze_first_pericope
+    type: llm
+    output_type: json
+
+    response_format:
+      type: json_schema
+      json_schema:
+        name: pericope_analysis
+        strict: true
+        schema:
+          type: object
+          properties:
+            pericope_title:
+              type: string
+
+            literary_features:
+              type: array
+              items:
+                type: object
+                properties:
+                  feature_name:
+                    type: string
+                    description: "Name of the literary device or pattern"
+
+                  evidence:
+                    type: string
+                    description: "Textual evidence for this feature"
+
+                  significance:
+                    type: string
+                    description: "Why this feature matters for interpretation"
+
+                required: ["feature_name", "evidence"]
+                additionalProperties: false
+
+            key_questions:
+              type: array
+              description: "Interpretive questions this passage raises"
+              items:
+                type: string
+
+            applications:
+              type: array
+              description: "Possible applications for modern readers"
+              items:
+                type: string
+
+          required: ["pericope_title", "literary_features", "key_questions"]
+          additionalProperties: false
+
+    prompt:
+      template: |
+        Analyze this pericope from {{book}}:
+
+        Title: {{title}}
+        Passage: {{passage}}
+        Theme: {{theme}}
+
+        Identify:
+        1. Literary features (devices, patterns, structure)
+        2. Key interpretive questions
+        3. Possible applications for modern readers
+
+        Be specific and evidence-based.
+      inputs:
+        book: "${book}"
+        title: "${segmentation.pericopes[0].title}"
+        passage: "${segmentation.pericopes[0].passage}"
+        theme: "${segmentation.pericopes[0].theme}"
+
+    outputs: analysis
+
+    saveas:
+      path: "${output_dir}/${book}_first_pericope_analysis.json"
+
+  # ============================================================================
+  # Example 3: Summary Report (demonstrates simple flat structure)
+  # ============================================================================
+  - name: generate_summary
+    type: llm
+    output_type: json
+
+    response_format:
+      type: json_schema
+      json_schema:
+        name: summary_report
+        strict: true
+        schema:
+          type: object
+          properties:
+            book:
+              type: string
+
+            total_pericopes:
+              type: integer
+
+            dominant_themes:
+              type: array
+              description: "Most common themes across pericopes"
+              items:
+                type: string
+
+            genre_distribution:
+              type: object
+              description: "Count of each pericope type"
+              properties:
+                narrative: {type: integer}
+                teaching: {type: integer}
+                confrontation: {type: integer}
+                parable: {type: integer}
+                other: {type: integer}
+              required: ["narrative", "teaching", "confrontation", "parable", "other"]
+              additionalProperties: false
+
+            summary:
+              type: string
+              description: "Brief overview of the book's structure and themes"
+
+          required: ["book", "total_pericopes", "dominant_themes", "summary"]
+          additionalProperties: false
+
+    prompt:
+      template: |
+        Based on the segmentation of {{book}}, generate a summary report.
+
+        Segmentation data:
+        {{segmentation_json}}
+
+        Provide:
+        1. Dominant themes across all pericopes
+        2. Distribution of pericope types
+        3. A brief structural and thematic overview
+      inputs:
+        book: "${book}"
+        segmentation_json: "${segmentation}"  # Auto-serialized to JSON string
+
+    outputs: summary
+
+    saveas:
+      path: "${output_dir}/${book}_summary.json"
