@@ -12,6 +12,7 @@ Use this map to decide which reference to consult when answering questions.
 | Architecture & modules | [docs/architecture.md](../architecture.md) | CLI, runner, linter, telemetry, plugin hooks |
 | Philosophy & comparisons | [docs/why-llmflow.md](../why-llmflow.md) | When/why to use LLMFlow vs other frameworks |
 | AI persona & tone | [docs/ai-context/rules.md](rules.md) | Guardrails for assistant responses |
+| GitHub issue & commit workflow | [docs/ai-context/github-workflow.md](github-workflow.md) | Issue references, version numbering, CHANGELOG updates, gh CLI usage |
 | Moderation handling | [docs/moderation-handling.md](../moderation-handling.md) | OpenAI Responses blocks, Bible-text mitigation checklist |
 | Versification systems | [Copenhagen Alliance Versification spec](https://github.com/Copenhagen-Alliance/versification-specification) | Canonical spec for mapping between verse systems (KJV, LXX, Vulgate, etc.); derived from Paratext .vrs files, which are semantically compatible; use for any cross-versification pipeline work |
 
