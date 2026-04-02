@@ -281,6 +281,17 @@ def call_llm(prompt: str, config: Dict[str, Any], output_type: str = "text"):
     if not is_valid:
         raise ValueError(f"Invalid LLM config: {errors}")
 
+    # CRITICAL: If response_format is present, use direct OpenAI client
+    # The llm package may not pass this parameter through correctly
+    if "response_format" in config:
+        model_name = config.get("model", "gpt-4o")
+        # Only use direct client for OpenAI models
+        if any(pattern in model_name for pattern in MODEL_FAMILIES["gpt-4"] + MODEL_FAMILIES["gpt-5"]):
+            logger.debug("Using direct OpenAI client for response_format support")
+            return _call_openai_with_response_format(prompt, config, output_type)
+        else:
+            logger.warning(f"⚠️  response_format specified but model {model_name} may not support it")
+
     # Get model
     model_name = config.get("model", "gpt-4o")
     model = get_model(model_name)
@@ -343,6 +354,73 @@ def _call_model(model, prompt: str, config: Dict[str, Any]) -> dict:
             "total_tokens": prompt_tokens + completion_tokens,
         },
     }
+
+
+def _call_openai_with_response_format(prompt: str, config: Dict[str, Any], output_type: str = "text") -> dict:
+    """Call OpenAI API directly when response_format is specified.
+
+    The llm package may not pass response_format through correctly,
+    so we use the OpenAI client directly to ensure structured outputs work.
+    """
+    from openai import OpenAI
+
+    client = OpenAI()  # Uses OPENAI_API_KEY from environment
+
+    model_name = config.get("model", "gpt-4o-2024-08-06")
+
+    # Build API parameters
+    api_params = {
+        "model": model_name,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+
+    # Add temperature (default 0.7)
+    api_params["temperature"] = config.get("temperature", 0.7)
+
+    # Add token limit
+    if "max_completion_tokens" in config:
+        api_params["max_completion_tokens"] = config["max_completion_tokens"]
+    elif "max_tokens" in config:
+        api_params["max_tokens"] = config["max_tokens"]
+
+    # Add other OpenAI-specific parameters
+    for param in ["top_p", "frequency_penalty", "presence_penalty", "seed", "stop"]:
+        if param in config:
+            api_params[param] = config[param]
+
+    # CRITICAL: Add response_format
+    if "response_format" in config:
+        api_params["response_format"] = config["response_format"]
+        logger.debug(f"Using response_format: {config['response_format'].get('type', 'unknown')}")
+
+    # Call OpenAI API
+    try:
+        response = client.chat.completions.create(**api_params)
+    except Exception as e:
+        logger.error(f"❌ OpenAI API call failed: {e}")
+        raise
+
+    # Extract content
+    content = response.choices[0].message.content or ""
+
+    # Get token usage
+    usage = {
+        "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+        "completion_tokens": response.usage.completion_tokens if response.usage else 0,
+        "total_tokens": response.usage.total_tokens if response.usage else 0,
+    }
+
+    # Parse JSON if requested
+    if output_type.lower() == "json":
+        try:
+            parsed_content = parse_llm_json_response(content)
+            return {"content": parsed_content, "usage": usage}
+        except Exception as e:
+            logger.error(f"❌ JSON parsing failed even with response_format: {e}")
+            logger.error(f"   Content: {content[:500]}")
+            raise
+
+    return {"content": content, "usage": usage}
 
 
 # ============================================================================

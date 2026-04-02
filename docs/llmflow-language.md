@@ -136,6 +136,8 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
 
 **CRITICAL:** For pipelines that produce JSON, use `response_format` with a JSON schema to guarantee valid output. This eliminates 40-60% failure rates caused by LLM-generated malformed JSON (missing commas, unescaped quotes, trailing commas).
 
+**LLMFlow automatically uses OpenAI's client directly when `response_format` is present**, ensuring 100% compatibility with structured outputs.
+
 **OpenAI GPT-4 family** (gpt-4o, gpt-4o-mini, gpt-4.1, gpt-4.1-mini) supports structured outputs via `response_format`:
 
 ```yaml

@@ -9,7 +9,6 @@ Use this map to decide which reference to consult when answering questions.
 | Quickstart walkthrough | [docs/tutorial.md](../tutorial.md) | `llmflow init`, greeting pipeline, multi-step example |
 | Engine setup & CLI basics | [docs/getting-started.md](../getting-started.md) | Env vars, linting, resource repo pattern |
 | YAML grammar & step types | [docs/llmflow-language.md](../llmflow-language.md) | `llm` / `function` / `for-each`, variables, `append_to` |
-| **JSON reliability & structured outputs** | [docs/ai-context/json-reliability.md](json-reliability.md) | **CRITICAL:** `response_format` with `json_schema` guarantees 100% valid JSON, eliminates 40-60% failure rate. Use for ALL production JSON steps. |
 | Architecture & modules | [docs/architecture.md](../architecture.md) | CLI, runner, linter, telemetry, plugin hooks |
 | Philosophy & comparisons | [docs/why-llmflow.md](../why-llmflow.md) | When/why to use LLMFlow vs other frameworks |
 | AI persona & tone | [docs/ai-context/rules.md](rules.md) | Guardrails for assistant responses |

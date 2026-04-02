@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+## 0.2.1.12 — 2026-04-02
+
+### New Features
+
+- **Direct OpenAI Client for Structured Outputs** — LLMFlow now automatically uses OpenAI's client directly when `response_format` is present in step config, bypassing Simon Willison's `llm` package (which may not pass the parameter through). This ensures 100% compatibility with OpenAI's structured outputs feature (`json_schema` mode). No configuration changes needed — works transparently for all pipelines using `response_format`.
+
+### Changed
+
+- **call_llm() detects response_format** — When `response_format` is in config and model is from OpenAI families (gpt-4, gpt-5), automatically routes to `_call_openai_with_response_format()` which uses OpenAI client directly. Falls back to `llm` package for other models/parameters.
+
+### Test Coverage
+
+- **Integration tests for response_format** — Added `tests/test_response_format_integration.py` with 7 tests covering:
+  - Basic json_object mode
+  - json_schema with simple schema (strict mode, additionalProperties: false)
+  - Nested arrays and objects (book segmentation pattern)
+  - Prevention of hallucinated fields (strict mode enforcement)
+  - Reliability testing (10 iterations, 100% success rate expected)
+  - Edge cases: strings with quotes, apostrophes, both
+- Tests are SKIPPED unless `OPENAI_API_KEY` is set (to avoid charges during normal test runs).
+- Run with: `OPENAI_API_KEY=your-key pytest tests/test_response_format_integration.py -v`
+
+### Documentation
+
+- Updated `docs/llmflow-language.md` — Added note that LLMFlow automatically uses OpenAI client when response_format is present (removes uncertainty about `llm` package support).
+
 ## 0.2.1.11 — 2026-04-02
 
 ### New Features
