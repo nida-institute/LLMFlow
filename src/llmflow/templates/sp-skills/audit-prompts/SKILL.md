@@ -1,12 +1,13 @@
 ---
 name: audit-prompts
 description: |
-  **WORKFLOW SKILL** — Audit LLMFlow prompt files (.gpt) for organization, sprawl, convention compliance, and CRITICAL: input data grounding, example diversity, and AI-generated examples.
+  **WORKFLOW SKILL** — Audit LLMFlow prompt files (.gpt) for organization, sprawl, convention compliance, and CRITICAL: input data grounding, example diversity, AI-generated examples, and JSON output format.
   USE FOR: checking prompt structure; identifying sprawl (line count, header count); validating section hierarchy;
   comparing against prompt-organization-convention.md; finding scattered examples; detecting inconsistent heading levels;
   CRITICAL CHECKS: (1) verifying every output field has documented input data source (no making things up);
   (2) ensuring examples generalize across passages (not hardcoded to single case);
-  (3) detecting ANY new examples since last commit (#1 source of problems - AI creates examples that don't match intent).
+  (3) detecting ANY new examples since last commit (#1 source of problems - AI creates examples that don't match intent);
+  (4) validating JSON output format mechanics (code fences, formatting rules, escaping examples, consistency).
   DO NOT USE FOR: testing prompt output quality; debugging LLM responses; modifying prompt content (use other tools).
   INVOKES: file_search, read_file, grep_search for pattern analysis; git show for version comparison; reports findings with specific line numbers.
 applyTo:
@@ -32,6 +33,7 @@ Audit LLMFlow `.gpt` prompt files for:
 6. **🚨 Input data grounding (CRITICAL)** — verifying every output field has documented input source (prevents "making things up")
 7. **🚨 Example diversity (CRITICAL)** — ensuring examples generalize across passages (not hardcoded to single case)
 8. **🚨 AI-generated examples (CRITICAL - #1 SOURCE OF PROBLEMS)** — detecting ANY new examples since last commit (AI creates examples that don't match user intent)
+9. **🚨 JSON output format (CRITICAL - for JSON prompts)** — code fences, formatting rules, escaping guidance, consistency (prevents intermittent parse failures)
 
 ## Core Principle: No LLM-Generated Training Data
 
@@ -300,7 +302,148 @@ grep -n "John [0-9]" [prompt].gpt
 - Status (new/replaced TODO/modified)
 - Warning that user must verify
 
-### Step 8: Generate Report
+### Step 8: Check JSON Output Format (CRITICAL - for JSON Prompts Only)
+
+**Purpose:** Verify prompts that produce JSON have explicit formatting rules to prevent intermittent parse errors (delimiter issues, unescaped quotes, malformed structure).
+
+**When to run this check:**
+- Prompt frontmatter has `format: json`, OR
+- OUTPUT SCHEMA section contains JSON structure (detect via `{` or `[` after header), OR
+- Pipeline config specifies `output_type: json` for this step
+
+**Skip if:** Prompt produces plain text, markdown, or other non-JSON formats
+
+#### Check 1: Code Fences in OUTPUT SCHEMA ❌
+
+**Problem:** Code fences (` ```json ``` `) confuse the LLM into treating output as markdown-embedded JSON rather than pure JSON.
+
+**Detection:**
+```bash
+# Find OUTPUT SCHEMA section, check next 100 lines for code fences
+awk '/^# OUTPUT SCHEMA/,/^# [A-Z]/' [prompt].gpt | grep -n '```json'
+```
+
+**Red flag:** Any ` ```json ``` ` wrapper in OUTPUT SCHEMA section
+**Fix recommendation:** Remove fences from OUTPUT SCHEMA; examples can keep them
+
+#### Check 2: Explicit JSON Formatting Rules ✅
+
+**Problem:** Missing formatting guidance leads to intermittent parse failures (unescaped quotes, trailing commas, delimiter errors).
+
+**Detection:**
+```bash
+# Look for formatting requirements near OUTPUT SCHEMA
+grep -A 30 "^# OUTPUT SCHEMA" [prompt].gpt | \
+  grep -c "CRITICAL.*JSON\|JSON Formatting Requirements\|Return valid JSON"
+```
+
+**Must include:**
+- "Return valid JSON only. No markdown, no code fences, no commentary"
+- Escape double quotes inside strings: `\"He said \\\"yes\\\"\"`
+- Apostrophes in strings need no escaping: `\"Jesus' disciples\"`
+- Commas between array elements and object properties
+- No trailing commas
+- No comments
+
+**Red flag:** No formatting rules section before/after OUTPUT SCHEMA
+**Yellow flag:** Formatting rules present but incomplete (missing escaping guidance)
+
+**Standard template to recommend:**
+```markdown
+CRITICAL: Return valid JSON only. No markdown, no code fences, no commentary.
+
+JSON Formatting Requirements:
+- Use double quotes for all keys and string values
+- Escape double quotes inside strings: "He said \\"yes\\""
+- Apostrophes in strings need no escaping: "Jesus' disciples"
+- Commas between array elements and object properties
+- No trailing commas
+- No comments
+```
+
+#### Check 3: Incorrect Escaping Examples ❌
+
+**Problem:** Examples showing apostrophe escaping (wrong in double-quoted JSON strings) teach the LLM incorrect patterns.
+
+**Detection:**
+```bash
+# Look for incorrect apostrophe escaping in examples
+grep -n "\\\\\\\\'\\|\\\\\"" [prompt].gpt | \
+  grep -v "He said\\\\\|she said\\\\\|they said"
+# Matches patterns like "Jesus\\'" or "John\\'s"
+```
+
+**Wrong:** `"Jesus\\' instructions"` or `"John\\'s identity"`
+**Right:** `"Jesus' disciples"` and `"John\\\"s identity"` (only inner quotes need escaping)
+
+**Red flag:** Examples showing apostrophe escaping in JSON strings
+**Fix recommendation:** Replace with correct examples showing only double-quote escaping
+
+#### Check 4: Consistency Across JSON Prompts
+
+**Problem:** If project has multiple JSON-producing prompts, formatting guidance should be word-for-word identical to avoid confusion.
+
+**Detection:**
+```bash
+# Extract formatting rules from all .gpt files in project
+for f in prompts/*.gpt; do
+  if grep -q "^# OUTPUT SCHEMA" "$f" && grep -q "{\\|\\[" "$f"; then
+    echo "=== $f ==="
+    awk '/JSON Formatting Requirements/,/^$/' "$f" || \
+    awk '/CRITICAL.*Return valid JSON/,/^$/' "$f"
+  fi
+done
+```
+
+**Check:**
+1. Count JSON-producing prompts in project
+2. Extract formatting rules from each
+3. Compare for consistency
+
+**Red flag:** Different wording, different rules, or some prompts missing rules entirely
+**Yellow flag:** Rules present but vary slightly in coverage
+
+**What to report:**
+```markdown
+**JSON Prompts in this project:**
+- segment-book.gpt: ❌ No formatting rules (4 code fences detected)
+- segments.gpt: ⚠️  Has formatting rules BUT 4 code fences in OUTPUT SCHEMA
+- subdivide-pericope.gpt: ❌ No formatting rules
+- generate-context.gpt: ✅ Complete formatting rules, no code fences
+- summarize.gpt: ❌ No formatting rules
+
+**Consistency:** 1 of 5 prompts has correct guidance
+**Risk:** HIGH (4 prompts missing critical formatting rules)
+```
+
+#### Real-World Impact Example
+
+**Observed failures** (from discourse-flow):
+```
+Mark segmentation: JSON parse failed: Expecting ',' delimiter at position 9450
+John segment generation: JSON parse failed: Expecting ',' delimiter at position 2722
+6 other books succeeded with identical prompts (intermittent failures)
+```
+
+**Root causes found:**
+- All 5 prompts had ` ```json ``` ` code fences in OUTPUT SCHEMA
+- Only 1 of 5 had formatting rules (and example was wrong)
+- Intermittent because LLM sometimes follows fences literally, sometimes ignores them
+
+**After fixes:**
+- Removed all code fences from OUTPUT SCHEMA sections
+- Added identical formatting rules to all 5 prompts
+- Mark and John runs succeeded on retry
+
+An audit with this check would have flagged:
+```
+⚠️  segment-book.gpt: 4 code fences, 0 formatting rules
+⚠️  segments.gpt: 4 code fences, incorrect apostrophe example
+⚠️  5 of 5 JSON prompts inconsistent
+Risk Level: HIGH (intermittent JSON parse failures likely)
+```
+
+### Step 9: Generate Report
 
 Provide:
 
@@ -329,6 +472,13 @@ Provide:
 - List ANY new or modified examples with line numbers
 - Flag replaced TODOs or new example blocks
 - User MUST review all detected changes
+
+**JSON Output Format:** (CRITICAL - for JSON prompts only)
+- Code fences in OUTPUT SCHEMA sections
+- Explicit JSON formatting rules present/missing
+- Incorrect escaping examples (apostrophe escaping)
+- Consistency across multiple JSON prompts in project
+- Risk Level: Low / Medium / High / CRITICAL
 
 **Specific Findings:**
 - List issues with line numbers
@@ -410,6 +560,46 @@ Provide:
 
 **Summary:** 2 new example blocks detected totaling 12 example items
 **Risk Level:** HIGH - one example contradicts core prompt principles
+
+**JSON Output Format:** (segment-book.gpt produces JSON)
+⚠️  **Code fences in OUTPUT SCHEMA (lines 42, 98, 105, 112)**
+```
+Found 4 instances of ```json``` wrapper in OUTPUT SCHEMA section:
+- Line 42: ```json wrapped around full schema
+- Lines 98, 105, 112: individual field schemas wrapped
+```
+**Problem:** Confuses LLM into markdown mode → intermittent JSON parse failures
+**Recommendation:** Remove all code fences from OUTPUT SCHEMA section
+
+❌ **No JSON formatting rules**
+```
+OUTPUT SCHEMA section (lines 32-115) has no CRITICAL formatting guidance
+Missing required rules:
+- "Return valid JSON only. No markdown, no code fences"
+- Escape double quotes: "He said \\"yes\\""
+- Apostrophes need no escaping: "Jesus' disciples"
+- No trailing commas
+```
+**Risk:** Intermittent delimiter errors, unescaped quotes, malformed JSON
+**Observed:** Mark segmentation failed with "Expecting ',' delimiter at position 9450"
+
+⚠️  **Inconsistent with other JSON prompts in project**
+```
+JSON prompts in discourse-flow:
+- segment-book.gpt: ❌ No formatting rules (4 code fences)
+- segments.gpt: ⚠️  Has rules BUT 4 code fences remain
+- subdivide-pericope.gpt: ❌ No formatting rules
+- generate-details.gpt: ❌ No formatting rules
+- context-summary.gpt: ❌ No formatting rules
+```
+**Consistency:** 0 of 5 prompts have correct guidance (1 has partial rules)
+**Recommendation:** Add identical JSON Formatting Requirements section to all 5 prompts
+
+**Risk Level:** HIGH
+- Intermittent parse failures observed in production (Mark, John)
+- 4 of 5 prompts completely missing formatting guidance
+- Code fences present in all OUTPUT SCHEMA sections
+- Risk of wasted compute on retry attempts (3x before failure)
 
 **Sprawl Indicators:**
 - Yellow flag: Near 500-line threshold

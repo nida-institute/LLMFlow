@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 0.2.1.10 — 2026-04-02
+
+### New Features
+
+- **JSON Output Format Validation in audit-prompts skill** — Added Step 8 to check JSON-producing
+  prompts for common formatting issues that cause intermittent parse failures. Detects: (1) code
+  fences in OUTPUT SCHEMA sections (confuses LLM into markdown mode), (2) missing JSON formatting
+  rules (escaping guidance, structural requirements), (3) incorrect escaping examples (apostrophe
+  escaping that's wrong in JSON), (4) inconsistency across multiple JSON prompts in same project.
+  Reports risk level and provides specific line numbers with fix recommendations. Based on real
+  production failures in discourse-flow where 2 of 8 books failed with delimiter/comma errors due
+  to missing formatting guidance. (Issue #94)
+
 ## 0.2.1.09 — 2026-04-02
 
 ### Changed
