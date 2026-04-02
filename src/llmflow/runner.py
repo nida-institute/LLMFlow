@@ -311,9 +311,75 @@ def render_prompt(
     logger.debug(f"Loading prompt from: {full_prompt_path}")
     rendered_prompt = full_prompt_path.read_text(encoding="utf-8")
 
-    # FIRST: Handle {{variable}} syntax (double braces) - your existing prompts
-    for key, val in context.items():
-        rendered_prompt = rendered_prompt.replace(f"{{{{{key}}}}}", str(val))
+    # ENFORCE PROMPT CONTRACT: Validate that all {{variable}} references are declared
+    from llmflow.utils.linter import parse_prompt_header, extract_template_variables
+    import re
+
+    header = parse_prompt_header(str(full_prompt_path))
+    if header is not None:
+        # Get declared variables (requires + optional)
+        declared = set()
+        requires = header.get("requires") or []
+        optional = header.get("optional") or []
+        if isinstance(requires, list):
+            declared.update(requires)
+        if isinstance(optional, list):
+            declared.update(optional)
+
+        # Extract body (everything after frontmatter)
+        frontmatter_match = re.search(
+            r"^---[ \t]*\n.*?\n---[ \t]*\n?", rendered_prompt, re.DOTALL | re.MULTILINE
+        )
+        if not frontmatter_match:
+            # Try HTML comment style
+            frontmatter_match = re.search(r"<!--(.*?)-->", rendered_prompt, re.DOTALL)
+
+        body = rendered_prompt[frontmatter_match.end():] if frontmatter_match else rendered_prompt
+        body_vars = extract_template_variables(body)
+
+        # Check for undeclared variables
+        undeclared = body_vars - declared
+        if undeclared:
+            undeclared_list = sorted(undeclared)
+            raise ValueError(
+                f"❌ Prompt contract violation in {full_prompt_path.name}:\n"
+                f"   Variables used in prompt body but not declared in header:\n"
+                f"   {', '.join(undeclared_list)}\n\n"
+                f"   Add these to 'requires:' or 'optional:' in the prompt header."
+            )
+
+        # Check that required variables are present in context
+        missing_required = []
+        for var in requires:
+            if var not in context:
+                missing_required.append(var)
+
+        if missing_required:
+            raise ValueError(
+                f"❌ Prompt contract violation in {full_prompt_path.name}:\n"
+                f"   Required variables missing from context:\n"
+                f"   {', '.join(sorted(missing_required))}\n\n"
+                f"   These must be provided via prompt.inputs or earlier pipeline steps."
+            )
+
+    # FIRST: Handle {{variable}} syntax (double braces) - only for declared variables
+    # Only substitute variables that are declared in the prompt contract
+    if header is not None:
+        declared = set()
+        requires = header.get("requires") or []
+        optional = header.get("optional") or []
+        if isinstance(requires, list):
+            declared.update(requires)
+        if isinstance(optional, list):
+            declared.update(optional)
+
+        for key in declared:
+            if key in context:
+                rendered_prompt = rendered_prompt.replace(f"{{{{{key}}}}}", str(context[key]))
+    else:
+        # Fallback for prompts without headers (backward compatibility)
+        for key, val in context.items():
+            rendered_prompt = rendered_prompt.replace(f"{{{{{key}}}}}", str(val))
 
     # THEN: Use resolve() for ${var} and {var} syntax (handles dot notation)
     rendered_prompt = resolve(rendered_prompt, context)
