@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "properties": {
+    "book": {
+      "type": "string",
+      "description": "Book name (e.g., 'Mark')"
+    },
+    "pericopes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "passage": {
+            "type": "string"
+          },
+          "theme": {
+            "type": "string"
+          }
+        },
+        "required": ["title", "passage", "theme"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["book", "pericopes"],
+  "additionalProperties": false
+}

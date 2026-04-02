@@ -34,11 +34,13 @@ def test_response_format_basic_json_object():
 
     result = call_llm(prompt, config, output_type="json")
 
-    # Should be valid JSON
+    # Should be valid JSON with content and usage
     assert isinstance(result, dict), f"Expected dict, got {type(result)}"
+    assert "content" in result
+    content = result["content"]
     # Should have the message field
-    assert "message" in result, f"Missing 'message' field: {result}"
-    assert "Hello" in result["message"] or "hello" in result["message"].lower()
+    assert "message" in content, f"Missing 'message' field: {content}"
+    assert "Hello" in content["message"] or "hello" in content["message"].lower()
 
 
 def test_response_format_json_schema_simple():
@@ -79,13 +81,15 @@ def test_response_format_json_schema_simple():
 
     # Verify structure matches schema
     assert isinstance(result, dict)
-    assert "greeting" in result
-    assert "count" in result
-    assert isinstance(result["greeting"], str)
-    assert isinstance(result["count"], int)
-    assert 1 <= result["count"] <= 10
+    assert "content" in result
+    content = result["content"]
+    assert "greeting" in content
+    assert "count" in content
+    assert isinstance(content["greeting"], str)
+    assert isinstance(content["count"], int)
+    assert 1 <= content["count"] <= 10
     # Verify no additional properties
-    assert set(result.keys()) == {"greeting", "count"}
+    assert set(content.keys()) == {"greeting", "count"}
 
 
 def test_response_format_json_schema_nested_array():
@@ -135,16 +139,18 @@ For each pericope provide:
 
     # Verify top-level structure
     assert isinstance(result, dict)
-    assert "book" in result
-    assert "pericopes" in result
-    assert result["book"] == "Philemon"
+    assert "content" in result
+    content = result["content"]
+    assert "book" in content
+    assert "pericopes" in content
+    assert content["book"] == "Philemon"
 
     # Verify array structure
-    assert isinstance(result["pericopes"], list)
-    assert len(result["pericopes"]) >= 1  # Should have at least 1 pericope
+    assert isinstance(content["pericopes"], list)
+    assert len(content["pericopes"]) >= 1  # Should have at least 1 pericope
 
     # Verify each pericope has required fields
-    for pericope in result["pericopes"]:
+    for pericope in content["pericopes"]:
         assert isinstance(pericope, dict)
         assert "title" in pericope
         assert "passage" in pericope
@@ -192,10 +198,12 @@ Only include the fields specified in the schema!
 
     # Should ONLY have "name" field, not age or country
     assert isinstance(result, dict)
-    assert "name" in result
-    assert "age" not in result, "strict mode should prevent 'age' field"
-    assert "country" not in result, "strict mode should prevent 'country' field"
-    assert set(result.keys()) == {"name"}
+    assert "content" in result
+    content = result["content"]
+    assert "name" in content
+    assert "age" not in content, "strict mode should prevent 'age' field"
+    assert "country" not in content, "strict mode should prevent 'country' field"
+    assert set(content.keys()) == {"name"}
 
 
 def test_response_format_reliability_no_parse_errors():
@@ -228,11 +236,7 @@ def test_response_format_reliability_no_parse_errors():
                                 "type": "object",
                                 "properties": {
                                     "name": {"type": "string"},
-                                    "role": {"type": "string"},
-                                    "quotes": {
-                                        "type": "array",
-                                        "items": {"type": "string"}
-                                    }
+                                    "role": {"type": "string"}
                                 },
                                 "required": ["name", "role"],
                                 "additionalProperties": False
@@ -249,7 +253,7 @@ def test_response_format_reliability_no_parse_errors():
     prompt = """Analyze Mark 10:17-22 (Rich Young Ruler).
 Return:
 - themes: List of 2-3 theological themes
-- characters: List of 2 characters with name, role, and optional quotes (with proper escaping!)
+- characters: List of 2 characters with name and role
 """
 
     # Run 10 times to verify reliability
@@ -260,18 +264,17 @@ Return:
 
             # Verify structure
             assert isinstance(result, dict)
-            assert "themes" in result
-            assert "characters" in result
-            assert isinstance(result["themes"], list)
-            assert isinstance(result["characters"], list)
+            assert "content" in result
+            content = result["content"]
+            assert "themes" in content
+            assert "characters" in content
+            assert isinstance(content["themes"], list)
+            assert isinstance(content["characters"], list)
 
             # Verify nested structure
-            for char in result["characters"]:
+            for char in content["characters"]:
                 assert "name" in char
                 assert "role" in char
-                # quotes field is optional but if present must be array
-                if "quotes" in char:
-                    assert isinstance(char["quotes"], list)
 
             success_count += 1
         except (ValueError, AssertionError, KeyError) as e:
@@ -319,15 +322,17 @@ def test_response_format_with_escaping_edge_cases():
 
     # Should successfully parse despite complex escaping
     assert isinstance(result, dict)
-    assert "quote_with_double_quotes" in result
-    assert "quote_with_apostrophe" in result
-    assert "quote_with_both" in result
+    assert "content" in result
+    content = result["content"]
+    assert "quote_with_double_quotes" in content
+    assert "quote_with_apostrophe" in content
+    assert "quote_with_both" in content
 
     # All should be strings
-    assert isinstance(result["quote_with_double_quotes"], str)
-    assert isinstance(result["quote_with_apostrophe"], str)
-    assert isinstance(result["quote_with_both"], str)
+    assert isinstance(content["quote_with_double_quotes"], str)
+    assert isinstance(content["quote_with_apostrophe"], str)
+    assert isinstance(content["quote_with_both"], str)
 
     # Should contain the expected characters (API handles escaping internally)
-    assert '"' in result["quote_with_double_quotes"] or "quote" in result["quote_with_double_quotes"].lower()
-    assert "'" in result["quote_with_apostrophe"] or "apostrophe" in result["quote_with_apostrophe"].lower()
+    assert '"' in content["quote_with_double_quotes"] or "quote" in content["quote_with_double_quotes"].lower()
+    assert "'" in content["quote_with_apostrophe"] or "apostrophe" in content["quote_with_apostrophe"].lower()

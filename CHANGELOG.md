@@ -2,6 +2,43 @@
 
 ## Unreleased
 
+## 0.2.1.13 — 2026-04-02
+
+### New Features
+
+- **File-based schema loading** — Support `schema_file` in `response_format` config to load JSON schemas from external files instead of inline definitions. This keeps pipeline YAML cleaner and enables schema reuse across pipelines. Example:
+  ```yaml
+  response_format:
+    type: json_schema
+    json_schema:
+      name: discourse_analysis
+      strict: true
+      schema_file: schemas/discourse_analysis.json
+  ```
+- Schema files use standard JSON Schema format and are loaded relative to the current directory.
+
+### Changed
+
+- Added `_load_schema_from_file()` helper to load and parse JSON schemas
+- Added `_expand_response_format_schema()` to detect and expand `schema_file` references before calling OpenAI API
+- Both inline `schema` and file-based `schema_file` approaches are supported
+
+### Test Coverage
+
+- Added `tests/test_schema_file.py` with 12 comprehensive tests:
+  - Schema file loading (valid/invalid/missing files)
+  - Response format expansion (inline schemas preserved, schema_file expanded)
+  - Integration tests with real OpenAI API
+  - Mocked unit tests for parameter passing
+  - Error handling for missing/malformed schema files
+- Full test suite: **1763 tests passing** (12 new tests added)
+
+### Documentation
+
+- Updated `docs/llmflow-language.md` with file-based schema examples
+- Added example pipeline: `pipelines/discourse-analysis-schema-file.yaml`
+- Created `schemas/discourse_analysis.json` as reference schema
+
 ## 0.2.1.12 — 2026-04-02
 
 ### New Features

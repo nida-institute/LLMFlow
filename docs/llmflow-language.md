@@ -140,6 +140,8 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
 
 **OpenAI GPT-4 family** (gpt-4o, gpt-4o-mini, gpt-4.1, gpt-4.1-mini) supports structured outputs via `response_format`:
 
+**Inline schema** (schema defined in pipeline YAML):
+
 ```yaml
 - name: analyze_discourse
   type: llm
@@ -176,6 +178,46 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
     inputs:
       book_text: "${text}"
   outputs: analysis
+```
+
+**File-based schema** (recommended for reusability):
+
+```yaml
+- name: analyze_discourse
+  type: llm
+  model: gpt-4o-2024-08-06
+  output_type: json
+  response_format:
+    type: json_schema
+    json_schema:
+      name: discourse_analysis
+      strict: true
+      schema_file: schemas/discourse_analysis.json  # Path relative to current directory
+  prompt:
+    file: analyze.gpt
+    inputs:
+      book_text: "${text}"
+  outputs: analysis
+```
+
+Using `schema_file` keeps pipelines clean and allows schema reuse across multiple pipelines. The schema file should contain a standard JSON Schema object:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "book": {
+      "type": "string",
+      "description": "Book name"
+    },
+    "pericopes": {
+      "type": "array",
+      "items": { ... }
+    }
+  },
+  "required": ["book", "pericopes"],
+  "additionalProperties": false
+}
 ```
 
 **Why this matters:**

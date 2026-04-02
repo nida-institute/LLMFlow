@@ -356,11 +356,70 @@ def _call_model(model, prompt: str, config: Dict[str, Any]) -> dict:
     }
 
 
+def _load_schema_from_file(schema_file: str) -> dict:
+    """Load JSON schema from a file path.
+
+    Args:
+        schema_file: Path to JSON schema file (relative to current directory)
+
+    Returns:
+        Parsed JSON schema as dict
+
+    Raises:
+        FileNotFoundError: If schema file doesn't exist
+        json.JSONDecodeError: If schema file is invalid JSON
+    """
+    import json
+    from pathlib import Path
+
+    schema_path = Path(schema_file)
+    if not schema_path.exists():
+        raise FileNotFoundError(f"Schema file not found: {schema_file}")
+
+    with schema_path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _expand_response_format_schema(response_format: dict) -> dict:
+    """Expand response_format config by loading schema from file if schema_file is present.
+
+    Args:
+        response_format: The response_format config dict (may be modified)
+
+    Returns:
+        Expanded response_format dict with schema loaded from file
+    """
+    # Make a copy to avoid modifying the original
+    expanded = response_format.copy()
+
+    # Check if json_schema.schema_file is present
+    if "json_schema" in expanded:
+        json_schema = expanded["json_schema"]
+        if isinstance(json_schema, dict) and "schema_file" in json_schema:
+            schema_file = json_schema["schema_file"]
+            logger.info(f"📄 Loading schema from file: {schema_file}")
+
+            # Load schema from file
+            schema = _load_schema_from_file(schema_file)
+
+            # Replace schema_file with loaded schema
+            json_schema = json_schema.copy()
+            del json_schema["schema_file"]
+            json_schema["schema"] = schema
+            expanded["json_schema"] = json_schema
+
+            logger.debug(f"✅ Schema loaded: {len(str(schema))} chars")
+
+    return expanded
+
+
 def _call_openai_with_response_format(prompt: str, config: Dict[str, Any], output_type: str = "text") -> dict:
     """Call OpenAI API directly when response_format is specified.
 
     The llm package may not pass response_format through correctly,
     so we use the OpenAI client directly to ensure structured outputs work.
+
+    Supports both inline schemas and file-based schemas via schema_file.
     """
     from openai import OpenAI
 
@@ -388,10 +447,11 @@ def _call_openai_with_response_format(prompt: str, config: Dict[str, Any], outpu
         if param in config:
             api_params[param] = config[param]
 
-    # CRITICAL: Add response_format
+    # CRITICAL: Add response_format (expand schema_file if present)
     if "response_format" in config:
-        api_params["response_format"] = config["response_format"]
-        logger.debug(f"Using response_format: {config['response_format'].get('type', 'unknown')}")
+        response_format = _expand_response_format_schema(config["response_format"])
+        api_params["response_format"] = response_format
+        logger.debug(f"Using response_format: {response_format.get('type', 'unknown')}")
 
     # Call OpenAI API
     try:
