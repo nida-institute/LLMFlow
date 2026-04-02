@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.2.1.09 — 2026-04-02
+
+### Changed
+
+- **GUI dependencies now included by default** — Flask, Flask-SocketIO, Flask-CORS, and
+  python-socketio moved from optional `[gui]` extra to main dependencies. Since `sp gui`
+  is a first-class subcommand of the main `sp` CLI, its dependencies should work out of
+  the box without requiring `pip install llmflow[gui]`.
+
+## 0.2.1.08 — 2026-03-30
+
 ### New Features
 
 - **Global Prompt Organization Convention** — `sp init` now automatically installs a
@@ -32,8 +43,6 @@
   convention and audit skill, including usage examples, best practices, complexity
   categories, project-specific overrides, and critical checks explanation.
 - Updated `README.md` — added "Global Conventions & Skills" section with quick usage.
-
-## 0.2.1.08 — 2026-03-30
 
 ### Bug fixes
 

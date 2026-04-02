@@ -236,13 +236,7 @@ def main(argv=None):
         return
 
     if args.command == "gui":
-        try:
-            from llmflow.gui.server import start_server
-        except ImportError:
-            logger.error("❌ GUI dependencies not installed")
-            logger.error("   Install with: pip install llmflow[gui]")
-            sys.exit(1)
-
+        from llmflow.gui.server import start_server
         start_server(
             host=args.host,
             port=args.port,
