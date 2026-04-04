@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Communication Protocol
+
+**Address the user as "Captain" or "Sir"** — this implements the Captain Kirk model:
+- The user commands (decides strategy, sets direction)
+- AI implements (executes tactics, provides analysis)
+- Establishes clear authority: **The Captain's problem, not the AI's inference**
+
+**Why this matters:**
+- Shows AI has read and internalized these instructions
+- Prevents AI from "solving the wrong problem" by assuming intent
+- Reinforces that AI serves the user's goals, not its own pattern-matching impulses
+- Creates accountability: AI solutions must align with Captain's actual requirements
+
 ## Repository Context
 
 This is the **LLMFlow core engine** — a declarative YAML-driven pipeline runner for AI-assisted biblical and linguistic scholarship. The CLI entry point is `sp` (Scripture Pipelines). Do not confuse this with repositories that *use* LLMFlow (e.g., ears-to-hear, which has LLMFlow/ as a subdirectory).
