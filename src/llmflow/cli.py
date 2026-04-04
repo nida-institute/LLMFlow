@@ -84,7 +84,7 @@ def build_parser():
     # gui command
     gui_p = subparsers.add_parser("gui", help="Launch web-based GUI")
     gui_p.add_argument("--host", default="127.0.0.1", help="Host address (default: 127.0.0.1)")
-    gui_p.add_argument("--port", type=int, default=5000, help="Port number (default: 5000)")
+    gui_p.add_argument("--port", type=int, default=5050, help="Port number (default: 5050)")
     gui_p.add_argument("--no-browser", action="store_true", help="Don't auto-open browser")
 
     init_p = subparsers.add_parser("init", help="Create a starter LLMFlow environment")
