@@ -6,16 +6,15 @@ Flask server that serves bundled static frontend and provides REST API.
 This version is designed to be bundled with nuitka.
 """
 
-import logging
-import os
-import sys
 import json
+import logging
+import platform
 import subprocess
+import sys
 import threading
 import webbrowser
-import uuid
-from datetime import datetime
 from pathlib import Path
+
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room
@@ -252,6 +251,47 @@ def create_app():
 
 
     # =============================================================================
+    # File System Operations
+    # =============================================================================
+
+    @app.route('/api/open-folder', methods=['POST'])
+    def open_folder():
+        """Open a folder in the system file manager."""
+        data = request.json
+        folder_path = data.get('path')
+
+        if not folder_path:
+            return jsonify({'error': 'path is required'}), 400
+
+        try:
+            # Resolve to absolute path
+            abs_path = Path(folder_path).resolve()
+
+            # Verify it exists and is a directory
+            if not abs_path.exists():
+                return jsonify({'error': f'Path does not exist: {abs_path}'}), 404
+
+            if not abs_path.is_dir():
+                return jsonify({'error': f'Path is not a directory: {abs_path}'}), 400
+
+            # Open with platform-specific command
+            system = platform.system()
+            if system == 'Darwin':  # macOS
+                subprocess.run(['open', str(abs_path)], check=True)
+            elif system == 'Windows':
+                subprocess.run(['explorer', str(abs_path)], check=True)
+            else:  # Linux and others
+                subprocess.run(['xdg-open', str(abs_path)], check=True)
+
+            return jsonify({'success': True, 'path': str(abs_path)})
+
+        except subprocess.CalledProcessError as e:
+            return jsonify({'error': f'Failed to open folder: {e}'}), 500
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+
+    # =============================================================================
     # WebSocket - Real-time Pipeline Execution
     # =============================================================================
 
@@ -301,7 +341,8 @@ def create_app():
                 'success': result['success'],
                 'exit_code': result['exit_code'],
                 'created_files': result['created_files'],
-                'telemetry': result['telemetry']
+                'telemetry': result['telemetry'],
+                'output_dir': result.get('output_dir')
             }, room=execution_id)
 
         except Exception as e:
@@ -322,12 +363,12 @@ def start_server(host='127.0.0.1', port=5000, open_browser=True):
     app, socketio = create_app()
 
     url = f"http://{host}:{port}"
-    print(f"\n")
+    print("\n")
     print(f"{'='*60}")
-    print(f"Scripture Pipelines GUI")
+    print("Scripture Pipelines GUI")
     print(f"{'='*60}")
     print(f"\n  🌐 Server running at: {url}")
-    print(f"\n  Press Ctrl+C to stop the server")
+    print("\n  Press Ctrl+C to stop the server")
     print(f"{'='*60}\n")
 
     if open_browser:

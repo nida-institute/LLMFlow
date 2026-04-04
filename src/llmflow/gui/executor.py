@@ -7,12 +7,12 @@ making it testable without Flask/SocketIO dependencies.
 
 import os
 import re
+import select
 import subprocess
 import time
-import select
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, List, Tuple, Optional, Callable
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 _VALID_VAR_KEY = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
 
@@ -214,6 +214,7 @@ class PipelineExecutor:
                 'exit_code': int,
                 'created_files': List[str],
                 'telemetry': Optional[str],
+                'output_dir': Optional[str],
                 'output_lines': List[str]  # For testing
             }
         """
@@ -250,5 +251,6 @@ class PipelineExecutor:
             'exit_code': exit_code,
             'created_files': created_files,
             'telemetry': telemetry_report,
+            'output_dir': cwd,
             'output_lines': self.output_lines  # For testing
         }

@@ -22,7 +22,27 @@ jobs:
     - name: Install hatch
       run: pip install hatch
 
-    - name: Run tests
+    - name: Setup Node.js for GUI tests
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: gui/frontend/package-lock.json
+
+    - name: Install frontend dependencies
+      run: |
+        cd gui/frontend
+        npm ci
+
+    - name: Run frontend tests
+      run: |
+        cd gui/frontend
+        npm test -- --run
+
+    - name: Build GUI (verify build works)
+      run: python build_gui.py
+
+    - name: Run backend tests
       run: hatch run pytest tests/ -q --tb=short
       env:
         # Integration tests requiring real API keys are skipped when these are absent
