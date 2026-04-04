@@ -13,7 +13,7 @@ interface ContentAppProps {
 function ContentApp({ project, embedded = false }: ContentAppProps) {
   const [view, setView] = useState<'dashboard' | 'status' | 'diff'>('dashboard');
   const [config, setConfig] = useState<ContentConfig | null>(null);
-  const [selectedFile, setSelectedFile] = useState<ContentFile | null>(null);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Always use relative URLs - frontend is served by Flask backend
@@ -49,8 +49,8 @@ function ContentApp({ project, embedded = false }: ContentAppProps) {
     }
   };
 
-  const handleFileSelect = (file: ContentFile) => {
-    setSelectedFile(file);
+  const handleFileSelect = (filePath: string) => {
+    setSelectedFile(filePath);
     setView('status');
   };
 

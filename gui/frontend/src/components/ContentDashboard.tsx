@@ -4,7 +4,7 @@ import { ContentConfig, Project, ContentFile, Stage } from '../types';
 
 interface ContentDashboardProps {
   config: ContentConfig;
-  onFileSelect: (file: ContentFile) => void;
+  onFileSelect: (filePath: string) => void;
   onViewChange?: (view: string) => void;
   project: Project;
 }

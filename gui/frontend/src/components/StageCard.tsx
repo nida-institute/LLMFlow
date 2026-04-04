@@ -6,7 +6,7 @@ interface StageCardProps {
   stage: Stage;
   files: ContentFile[];
   nextStage?: Stage | null;
-  onFileSelect: (file: ContentFile) => void;
+  onFileSelect: (filePath: string) => void;
   onTransition: (filePath: string, fromStage: string, toStage: string) => void;
 }
 
@@ -92,7 +92,7 @@ function StageCard({ stage, files, nextStage, onFileSelect, onTransition }: Stag
               <div
                 key={file.path}
                 className="px-4 py-3 hover:bg-muted cursor-pointer"
-                onClick={() => onFileSelect(file)}
+                onClick={() => onFileSelect(file.path)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
