@@ -35,7 +35,7 @@ _PIPELINE_EXTENSIONS = {".yaml", ".yml"}
 try:
     from .executor import PipelineExecutor
 except ImportError:
-    from executor import PipelineExecutor  # type: ignore[import-not-found]
+    from executor import PipelineExecutor  # pyright: ignore[reportMissingImports]
 
 
 def create_app():
