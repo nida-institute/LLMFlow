@@ -39,6 +39,11 @@ jobs:
         cd gui/frontend
         npm test -- --run
 
+    - name: Type-check frontend
+      run: |
+        cd gui/frontend
+        npx tsc --noEmit
+
     - name: Build GUI (verify build works)
       run: python build_gui.py
 

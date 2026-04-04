@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
+import { buildFileTree } from '../utils/fileTree';
+import FileTreeNode from './FileTreeNode';
 
 function StageCard({ stage, files, nextStage, onFileSelect, onTransition }) {
   const [selectedFiles, setSelectedFiles] = useState(new Set());
+  const [viewMode, setViewMode] = useState('tree'); // 'tree' or 'flat'
+
+  // Build tree structure from files
+  const fileTree = buildFileTree(files);
 
   const handleFileToggle = (file) => {
     const newSelected = new Set(selectedFiles);
