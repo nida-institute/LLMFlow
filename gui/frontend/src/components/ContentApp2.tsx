@@ -3,7 +3,7 @@ import ContentDashboard from './ContentDashboard';
 import FileStatus from './FileStatus';
 import DiffViewer from './DiffViewer';
 import GitPanel from './GitPanel';
-import { ContentConfig, ContentFile, Project } from '../types';
+import { ContentConfig, Project } from '../types';
 
 const API_BASE = 'http://localhost:5051/api';
 
@@ -16,7 +16,7 @@ const DEFAULT_PROJECT: Project = {
 function ContentApp() {
   const [view, setView] = useState<'dashboard' | 'status' | 'diff'>('dashboard');
   const [config, setConfig] = useState<ContentConfig | null>(null);
-  const [selectedFile, setSelectedFile] = useState<ContentFile | null>(null);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,8 +38,8 @@ function ContentApp() {
     }
   };
 
-  const handleFileSelect = (file: ContentFile) => {
-    setSelectedFile(file);
+  const handleFileSelect = (filePath: string) => {
+    setSelectedFile(filePath);
     setView('status');
   };
 

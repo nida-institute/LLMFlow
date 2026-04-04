@@ -3,7 +3,7 @@ import ContentDashboard from './ContentDashboard';
 import FileStatus from './FileStatus';
 import DiffViewer from './DiffViewer';
 import GitPanel from './GitPanel';
-import { Project, ContentConfig, ContentFile } from '../types';
+import { Project, ContentConfig } from '../types';
 
 interface ContentAppProps {
   project: Project;
