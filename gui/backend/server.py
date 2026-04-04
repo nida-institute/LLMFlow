@@ -564,7 +564,7 @@ def create_app():
     return app, socketio
 
 
-def find_free_port(start_port=5000, max_attempts=100):
+def find_free_port(start_port=5050, max_attempts=100):
     """Find an available port starting from start_port."""
     for port in range(start_port, start_port + max_attempts):
         try:

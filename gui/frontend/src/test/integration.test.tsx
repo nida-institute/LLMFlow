@@ -10,7 +10,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 describe.skipIf(!!process.env.CI)('GUI Integration - What Actually Loads', () => {
   // Server process would be managed here for future integration tests
-  const BASE_URL = 'http://localhost:5000';
+  const BASE_URL = 'http://localhost:5050';
 
   beforeAll(async () => {
     // TODO: Start the server programmatically
@@ -121,7 +121,7 @@ describe.skipIf(!!process.env.CI)('GUI Integration - What Actually Loads', () =>
 });
 
 describe.skipIf(!!process.env.CI)('Static File Serving', () => {
-  const BASE_URL = 'http://localhost:5000';
+  const BASE_URL = 'http://localhost:5050';
 
   it('verifies static folder is correctly configured', async () => {
     // Try to access a known static file pattern

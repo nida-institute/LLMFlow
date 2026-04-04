@@ -138,7 +138,7 @@ def main():
         print("   1. cd gui/backend")
         print("   2. Copy static files: cp -r ../../src/llmflow/gui/static .")
         print("   3. Run: hatch run python server.py")
-        print("   4. Open: http://localhost:5000")
+        print("   4. Open: http://localhost:5050")
     else:
         print("❌ Some checks failed")
         print("\n💡 Try running: python build_gui.py")
