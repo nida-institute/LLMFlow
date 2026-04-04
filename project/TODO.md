@@ -7,6 +7,13 @@
 
 ## 🔥 Active
 
+### 🔥 Monday priorities
+- [ ] **Fix GUI Content Lifecycle** — Content Lifecycle page displays blank, needs debugging
+- [ ] **Publish v0.2.1.14 to PyPI** — Built and tagged, needs PyPI credentials
+  - Reset password at https://pypi.org/account/reset-password/ (jonathan.robie@gmail.com)
+  - Create API token scoped to `llmflow` project
+  - Run: `hatch publish` (username: `__token__`, password: token)
+
 ### 🎓 Workshop readiness (main next goal)
 - [ ] Build Mac + Windows installers via GitHub Actions CI → #32
   - PyInstaller spec already exists (`llmflow.spec`)
