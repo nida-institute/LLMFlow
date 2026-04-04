@@ -210,7 +210,8 @@ def get_content_config():
                     config_path = candidate
                     break
 
-        config = get_content_stages_config(config_path)
+        # Force reload if we have a custom path to avoid caching wrong config
+        config = get_content_stages_config(config_path, reload=(config_path is not None))
 
         return jsonify({
             'success': True,
