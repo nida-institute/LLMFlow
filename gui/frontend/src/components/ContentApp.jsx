@@ -6,7 +6,7 @@ import GitPanel from './GitPanel';
 
 const API_BASE = 'http://localhost:5051/api';
 
-function ContentApp() {
+function ContentApp({ project, embedded = false }) {
   const [view, setView] = useState('dashboard');
   const [config, setConfig] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -14,11 +14,16 @@ function ContentApp() {
 
   useEffect(() => {
     loadConfig();
-  }, []);
+  }, [project]);
 
   const loadConfig = async () => {
     try {
-      const response = await fetch(`${API_BASE}/content/config`);
+      // If project is provided, pass project path to API
+      const url = project
+        ? `${API_BASE}/content/config?project_path=${encodeURIComponent(project.path)}`
+        : `${API_BASE}/content/config`;
+
+      const response = await fetch(url);
       const data = await response.json();
       if (data.success) {
         setConfig(data);
@@ -54,12 +59,40 @@ function ContentApp() {
 
   if (!config) {
     return (
-      <div className="flex h-screen bg-background items-center justify-center">
+      <div className={`flex items-center justify-center ${embedded ? 'py-12' : 'h-screen bg-background'}`}>
         <div className="text-muted-foreground">Loading configuration...</div>
       </div>
     );
   }
 
+  // Embedded mode: simpler layout without full-screen sidebar
+  if (embedded) {
+    return (
+      <div className="h-full flex flex-col bg-background">
+        {/* Compact header */}
+        <div className="px-6 py-4 border-b border-border bg-secondary">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Content Lifecycle</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                {config.stages.map(s => s.name).join(' → ')}
+              </p>
+            </div>
+            <GitPanel />
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 overflow-auto">
+          {view === 'dashboard' && <ContentDashboard config={config} onFileSelect={handleFileSelect} />}
+          {view === 'status' && selectedFile && <FileStatus file={selectedFile} config={config} onBack={() => setView('dashboard')} />}
+          {view === 'diff' && selectedFile && <DiffViewer file={selectedFile} config={config} onBack={() => setView('status')} />}
+        </div>
+      </div>
+    );
+  }
+
+  // Standalone mode: full layout with sidebar
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Sidebar */}
