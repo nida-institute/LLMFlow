@@ -1,5 +1,6 @@
 {
   "include": ["src", "tests"],
+  "exclude": ["src/llmflow/gui"],
   "pythonVersion": "3.13",
   "typeCheckingMode": "standard"
 }
