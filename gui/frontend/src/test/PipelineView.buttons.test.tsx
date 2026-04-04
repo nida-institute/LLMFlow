@@ -75,7 +75,7 @@ describe('PipelineView - Button Integration', () => {
         emit: vi.fn(),
         disconnect: vi.fn(),
       }
-      
+
       // Reset and configure the mock for this test
       vi.mocked(io).mockClear()
       vi.mocked(io).mockReturnValue(mockSocket as any)
@@ -220,8 +220,12 @@ describe('PipelineView - Button Integration', () => {
       )
 
       await waitFor(() => {
-        expect(screen.getByText(mockProject.name)).toBeInTheDocument()
-        expect(screen.getByText(mockPipeline.name)).toBeInTheDocument()
+        // Elements may appear in both breadcrumb and UI, use getAllByText
+        const projectElements = screen.getAllByText(mockProject.name)
+        expect(projectElements.length).toBeGreaterThan(0)
+
+        const pipelineElements = screen.getAllByText(mockPipeline.name)
+        expect(pipelineElements.length).toBeGreaterThan(0)
       })
     })
 
