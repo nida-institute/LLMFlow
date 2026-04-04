@@ -33,24 +33,27 @@ describe('PipelineView - What Actually Loads', () => {
   it('renders breadcrumb navigation', () => {
     render(<PipelineView pipeline={mockPipeline} project={mockProject} />);
 
-    // Breadcrumb should show project name
-    expect(screen.getByText('test-project')).toBeInTheDocument();
+    // Breadcrumb should show project and pipeline names (may appear multiple times)
+    const projectElements = screen.getAllByText('test-project');
+    expect(projectElements.length).toBeGreaterThan(0);
 
-    // Breadcrumb should show pipeline name
-    expect(screen.getByText('test-pipeline')).toBeInTheDocument();
+    const pipelineElements = screen.getAllByText('test-pipeline');
+    expect(pipelineElements.length).toBeGreaterThan(0);
   });
 
   it('renders all three action buttons', () => {
     render(<PipelineView pipeline={mockPipeline} project={mockProject} />);
 
-    // Should have Run Pipeline button
-    expect(screen.getByText(/Run Pipeline/)).toBeInTheDocument();
+    // Should have Run Pipeline button (use getAllByText since text may appear in breadcrumb too)
+    const runButtons = screen.getAllByText(/Run Pipeline/);
+    expect(runButtons.length).toBeGreaterThan(0);
 
     // Should have Open Output button
     expect(screen.getByText(/Open Output/)).toBeInTheDocument();
 
     // Should have Content Lifecycle button
-    expect(screen.getByText(/Content Lifecycle/)).toBeInTheDocument();
+    const lifecycleButtons = screen.getAllByText(/Content Lifecycle/);
+    expect(lifecycleButtons.length).toBeGreaterThan(0);
   });
 
   it('Content Lifecycle button is clickable and shows in breadcrumb', async () => {

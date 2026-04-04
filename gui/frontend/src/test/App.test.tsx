@@ -55,7 +55,9 @@ describe('App Component - Actual Rendering', () => {
 
     // Should have actual content, not just empty divs
     expect(container.textContent).not.toBe('');
-    expect(container.querySelector('#root')).toBeTruthy();
+    // Check that container itself exists (not looking for #root which is outside test scope)
+    expect(container).toBeTruthy();
+    expect(container.firstChild).toBeTruthy();
   });
 
   it('renders sidebar', async () => {

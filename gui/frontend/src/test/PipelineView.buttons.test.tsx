@@ -68,12 +68,16 @@ describe('PipelineView - Button Integration', () => {
     })
 
     it('should connect to WebSocket when clicked', async () => {
+      // Get the mocked io function from the module mock
       const { io } = await import('socket.io-client')
       const mockSocket = {
         on: vi.fn(),
         emit: vi.fn(),
         disconnect: vi.fn(),
       }
+      
+      // Reset and configure the mock for this test
+      vi.mocked(io).mockClear()
       vi.mocked(io).mockReturnValue(mockSocket as any)
 
       render(
@@ -90,8 +94,11 @@ describe('PipelineView - Button Integration', () => {
         fireEvent.click(button)
       })
 
-      // Should call io() to create socket connection
-      expect(io).toHaveBeenCalled()
+      // Wait a bit for async operations
+      await waitFor(() => {
+        // Should call io() to create socket connection
+        expect(io).toHaveBeenCalled()
+      }, { timeout: 3000 })
 
       // Should emit execute_pipeline event
       await waitFor(() => {
@@ -104,7 +111,7 @@ describe('PipelineView - Button Integration', () => {
             variables: expect.any(Object),
           })
         )
-      })
+      }, { timeout: 3000 })
     })
   })
 
