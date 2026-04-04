@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 0.2.1.14 — 2026-04-04
+
+### Fixed
+
+- **Telemetry token tracking** — Fixed `response.usage` property access error. Changed to `response.usage()` method call for OpenAI response objects. Token counts and costs now record correctly in telemetry.
+- **Registry Unicode handling** — Added `allow_unicode=True` to `yaml.safe_dump()` calls in registry module. Hebrew and Greek text now stored correctly instead of escaped as `\uXXXX` sequences.
+- **DuckDB reserved word conflict** — Quoted `references` column name in `acai_entities` table to avoid SQL reserved word collision.
+- **Pyright type coverage** — Fixed 149 type errors across 18 files (Logger, cli.py, runner.py, gui/server.py, and 13 others). Full type coverage now 100%.
+
+### Test Coverage
+
+- **Unicode output tests** — Added 8 comprehensive tests in `tests/test_unicode_output.py` covering registry, YAML, JSON, and CSV output with Hebrew and Greek text.
+- **Hebrew collation tests** — Added DuckDB and BaseX collation tests with niqquud and cantillation marks verifying correct alphabetical sorting.
+- **GUI security tests** — Added executor and server security tests.
+- **Full test suite** — All 1763+ tests passing, including integration tests for BaseX and DuckDB.
+
 ## 0.2.1.13 — 2026-04-02
 
 ### New Features
