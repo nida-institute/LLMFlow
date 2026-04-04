@@ -22,7 +22,12 @@ describe('PipelineView - What Actually Loads', () => {
   };
 
   beforeEach(() => {
-    global.fetch = vi.fn();
+    global.fetch = vi.fn(() =>
+      Promise.resolve({
+        json: () => Promise.resolve({ vars: {} }),
+        ok: true
+      }) as any
+    );
   });
 
   it('renders breadcrumb navigation', () => {
