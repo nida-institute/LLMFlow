@@ -59,8 +59,6 @@ packages = ["src/llmflow"]
 [tool.hatch.build.targets.wheel.force-include]
 "docs/ai-context" = "llmflow/docs/ai-context"
 "docs/audits" = "llmflow/docs/audits"
-"src/llmflow/gui" = "llmflow/gui"
-"src/llmflow/templates" = "llmflow/templates"
 
 [project.scripts]
 sp = "llmflow.cli:main"

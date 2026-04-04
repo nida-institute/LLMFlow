@@ -1,0 +1,7 @@
+# Temporary files - not tracked in git
+*.pyc
+__pycache__/
+*.log
+
+# Keep release tracking files
+!release-*.md

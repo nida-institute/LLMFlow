@@ -241,3 +241,56 @@ See: GitHub issue #75 for full context and the original violation documentation.
 - ✅ Check `docs/architecture.md` for system design
 - ✅ Verify correct LLMFlow repo, not subdirectory
 - ✅ **Read pipeline YAML before discussing file locations** — quote exact paths from config
+
+## File Organization
+
+**tmp/ Directory — Temporary and Design Files**
+
+ALWAYS use `tmp/` for temporary files, design docs, and release tracking. NEVER clutter the repository root.
+
+**What goes in tmp/:**
+- ✅ Design documents (design-*.md)
+- ✅ Release tracking (release-*.md, release-notes-*.md)
+- ✅ Temporary Python scripts (*.py for one-off tasks)
+- ✅ Issue drafts before posting to GitHub
+- ✅ Status/summary files during active work
+- ✅ Test data that's not part of the test suite
+
+**What NEVER goes in tmp/:**
+- ❌ Source code (use src/llmflow/)
+- ❌ Tests (use tests/)
+- ❌ Documentation (use docs/)
+- ❌ Configuration (use root or .github/)
+
+**File naming conventions:**
+```
+tmp/design-{feature}.md       # Design docs (keep until implemented)
+tmp/release-{version}.md      # Release tracking (delete after release)
+tmp/release-notes-{version}.md # GitHub release body (delete after release)
+tmp/issue-{number}-{topic}.md # Issue drafts (delete after posting to GitHub)
+tmp/{task}-script.py          # Temporary scripts (delete when done)
+```
+
+**Cleanup rules:**
+1. **After creating GitHub issue:** Delete tmp/issue-*.md draft
+2. **After release published:** Delete tmp/release-*.md tracking files
+3. **After feature implemented:** Move design docs to docs/ or delete
+4. **After script runs:** Delete temporary Python scripts
+5. **After session ends:** Review tmp/ and clean up obsolete files
+
+**Design docs → GitHub Issues:**
+- If design doc represents a feature request or improvement, create a GitHub issue
+- Reference the tmp/ file in the issue body, then delete tmp/ file
+- Keep only docs for features actively being developed
+
+**Example cleanup session:**
+```bash
+# After release 0.2.1.14 published:
+rm tmp/release-0.2.1.14.md tmp/release-notes-0.2.1.14.md
+
+# After posting Issue #111:
+rm tmp/issue-111-feature-request.md
+
+# After one-off script completes:
+rm tmp/fix_imports.py
+```

@@ -161,3 +161,23 @@ This boundary was documented after a real violation (GitHub issue #75, March 202
 - Using `logging.basicConfig()`
 - Assuming `step.model` is the final model — always check `merged_config`
 - Making changes without verifying you're in the core engine repo, not a consumer repo
+
+## File Organization
+
+**tmp/ Directory — Temporary and Design Files**
+
+ALWAYS use `tmp/` for temporary files, design docs, and release tracking. NEVER clutter the repository root.
+
+**What goes in tmp/:**
+- Design documents (design-*.md)
+- Release tracking (release-*.md)
+- Temporary Python scripts
+- Issue drafts before posting to GitHub
+
+**Cleanup rules:**
+1. Delete tmp/issue-*.md after creating GitHub issue
+2. Delete tmp/release-*.md after release published
+3. Move design docs to docs/ or create GitHub issues
+4. Delete temporary scripts after use
+
+See .github/copilot-instructions.md for detailed conventions.
