@@ -47,7 +47,15 @@ function App() {
       {/* Main Content */}
       <main className="flex-1 overflow-hidden">
         {selectedPipeline ? (
-          <PipelineView pipeline={selectedPipeline} project={selectedProject} />
+          <PipelineView
+            pipeline={selectedPipeline}
+            project={selectedProject}
+            onBackToProject={() => setSelectedPipeline(null)}
+            onBackToProjectList={() => {
+              setSelectedPipeline(null)
+              setSelectedProject(null)
+            }}
+          />
         ) : selectedProject ? (
           <ProjectView
             project={selectedProject}

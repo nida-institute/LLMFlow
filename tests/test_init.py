@@ -367,3 +367,63 @@ class TestHelloYaml:
 
         result = lint_pipeline_full(str(tmp_path / "pipelines" / "hello.yaml"))
         assert result.valid, f"hello.yaml failed lint: {result.errors}"
+
+
+class TestAiContextConsistency:
+    """AI context files must be consistent and up-to-date."""
+
+    def test_ai_index_references_existing_templates(self):
+        """AI_INDEX_DOC must reference actual template constants that exist."""
+        # Check that AI_INDEX_DOC mentions the key templates
+        assert "TUTORIAL_DOC" in AI_INDEX_DOC or "tutorial.md" in AI_INDEX_DOC, (
+            "AI_INDEX_DOC should reference tutorial documentation"
+        )
+        assert "LANGUAGE_QUICKREF" in AI_INDEX_DOC or "llmflow-language-quickref.md" in AI_INDEX_DOC, (
+            "AI_INDEX_DOC should reference language quickref"
+        )
+
+    def test_copilot_instructions_has_read_index_first(self):
+        """COPILOT_INSTRUCTIONS_DOC must emphasize reading index first"""
+        assert "Read Index First" in COPILOT_INSTRUCTIONS_DOC or "index.md" in COPILOT_INSTRUCTIONS_DOC, (
+            "COPILOT_INSTRUCTIONS_DOC must tell AI to read index.md first"
+        )
+
+    def test_variable_syntax_consistency(self):
+        """All docs must consistently document ${var} for YAML, {{var}} for templates."""
+        # AI_INDEX_DOC should mention both syntaxes
+        has_dollar_brace = "${" in AI_INDEX_DOC
+        has_double_brace = "{{" in AI_INDEX_DOC
+
+        assert has_dollar_brace or has_double_brace, (
+            "AI_INDEX_DOC should document variable syntax (${var} or {{var}})"
+        )
+
+    def test_logger_pattern_documented(self):
+        """Logger singleton pattern must be documented for AI."""
+        # Check that one of the docs mentions the Logger pattern
+        mentions_logger = (
+            "Logger()" in COPILOT_INSTRUCTIONS_DOC or
+            "Logger()" in AI_RULES_DOC or
+            "Logger()" in AI_INDEX_DOC or
+            "logger" in AI_OVERVIEW_DOC.lower()
+        )
+        assert mentions_logger, (
+            "AI context should document Logger singleton pattern"
+        )
+
+    def test_cli_command_name_consistency(self):
+        """All generated docs must reference 'sp' not 'llmflow' for CLI."""
+        # This is already tested in TestSpCliName, but let's verify AI context too
+        assert "sp run" in AI_INDEX_DOC or "sp run" in TUTORIAL_DOC, (
+            "AI context must use 'sp' as CLI command name, not 'llmflow'"
+        )
+        assert "llmflow run" not in TUTORIAL_DOC and "llmflow run" not in AI_INDEX_DOC, (
+            "AI context must not reference old 'llmflow' command name"
+        )
+
+    def test_ai_index_has_global_context_section(self):
+        """AI_INDEX_DOC must reference global ~/.sp/ context."""
+        has_global = "~/.sp/" in AI_INDEX_DOC or "Global Context" in AI_INDEX_DOC
+        assert has_global, (
+            "AI_INDEX_DOC should include section on global ~/.sp/ context files"
+        )

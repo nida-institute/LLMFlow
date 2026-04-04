@@ -85,7 +85,7 @@ function StageCard({ stage, files, nextStage, onFileSelect, onTransition }) {
               <div
                 key={file.path}
                 className="px-4 py-3 hover:bg-muted cursor-pointer"
-                onClick={() => onFileSelect(file.path.replace(/\.[^/.]+$/, ''))}
+                onClick={() => onFileSelect(file.path)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">

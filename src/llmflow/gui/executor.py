@@ -104,7 +104,7 @@ class PipelineExecutor:
 
             # Non-blocking read
             ready = select.select([process.stdout], [], [], CHECK_INTERVAL)[0]
-            if ready:
+            if ready and process.stdout:
                 line = process.stdout.readline()
                 if line:
                     stripped = line.rstrip()

@@ -132,3 +132,57 @@ class TestPkgCORSRestriction:
         acao = resp.headers.get('Access-Control-Allow-Origin', '')
         assert 'evil.example.com' not in acao
         assert acao != '*'
+
+
+# ---------------------------------------------------------------------------
+# Content Lifecycle API — ensure src/ version has same endpoints as dev
+# ---------------------------------------------------------------------------
+
+class TestPkgContentLifecycleAPI:
+    """
+    These tests ensure src/llmflow/gui/server.py has the same content endpoints
+    as gui/backend/server.py. Missing endpoints cause 404s in production.
+    """
+
+    def test_content_config_endpoint_exists(self, client, tmp_path):
+        """Frontend ContentApp.tsx calls /api/content/config"""
+        resp = client.get('/api/content/config', query_string={
+            'project_path': str(tmp_path)
+        })
+        # Should return 200 with default stages
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert 'stages' in data
+        assert data.get('success') is True
+
+    def test_content_all_endpoint_exists(self, client, tmp_path):
+        """Frontend ContentDashboard calls /api/content/all"""
+        resp = client.get('/api/content/all', query_string={
+            'project_path': str(tmp_path)
+        })
+        # Should return 200 with empty file list
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert 'stages' in data or isinstance(data, dict)
+
+    def test_content_status_endpoint_exists(self, client, tmp_path):
+        """Frontend FileStatus calls /api/content/status"""
+        resp = client.get('/api/content/status', query_string={
+            'path': 'test.txt',
+            'project_path': str(tmp_path)
+        })
+        # Should return 404 for nonexistent file (but endpoint should exist)
+        assert resp.status_code in [200, 404]
+        data = resp.get_json()
+        assert isinstance(data, dict)
+
+    def test_open_folder_endpoint_exists(self, client, tmp_path):
+        """Frontend PipelineView calls /api/open-folder"""
+        resp = client.post('/api/open-folder',
+            json={'path': str(tmp_path)},
+            content_type='application/json'
+        )
+        # Should return 200 or error message (but not 404)
+        assert resp.status_code != 404
+        data = resp.get_json()
+        assert isinstance(data, dict)

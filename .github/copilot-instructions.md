@@ -17,7 +17,11 @@
 
 **AI Assistant Reference — START HERE:**
 - `docs/ai-context/index.md` maps every topic to the right file. **Read it first** before answering questions or making changes.
-- Key areas covered: CLI/YAML grammar, architecture, moderation handling, guardrails, biblical dataset catalog.
+- **BEFORE implementing new functionality:** Check index.md to verify we don't already have tested code for it.
+  - Example: Don't create custom biblical reference parsing - use `llmflow.utils.data.parse_bible_reference()`
+  - Example: Don't implement new YAML step types - check if `for-each`, `append_to`, or plugins already handle it
+  - Example: Don't modify GUI code without reading gui-architecture.md (dual-location pitfalls)
+- Key areas covered: CLI/YAML grammar, architecture, GUI dual-server, moderation handling, guardrails, biblical datasets.
 
 ## Python Environment
 

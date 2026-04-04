@@ -198,6 +198,7 @@ if function_call_item:
     print("SECOND API CALL - With tool results")
     print("=" * 80)
 
+    response2 = None  # Initialize before try block
     try:
         response2 = client.responses.create(
             model="gpt-5",
@@ -253,7 +254,7 @@ print("\n" + "=" * 80)
 print("VERIFYING ACTUAL RESPONSE2 CONTENT EXTRACTION")
 print("=" * 80)
 
-if 'response2' in locals():
+if 'response2' in locals() and response2 is not None:
     # Extract text from response2 the same way llm_runner.py does
     final_output = ""
     for item in response2.output:

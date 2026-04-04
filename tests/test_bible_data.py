@@ -69,6 +69,8 @@ class TestBibleDataRegistry:
         if path is None:
             pytest.skip("Macula Hebrew not found on this system")
 
+        # Type assertion for pyright
+        assert path is not None
         assert path.exists()
         assert path.name == 'macula-hebrew'
 
@@ -79,6 +81,8 @@ class TestBibleDataRegistry:
         if path is None:
             pytest.skip("Macula Greek not found on this system")
 
+        # Type assertion for pyright
+        assert path is not None
         assert path.exists()
         assert path.name == 'macula-greek'
 

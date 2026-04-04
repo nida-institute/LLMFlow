@@ -1,5 +1,6 @@
 import ast
 import operator
+from collections.abc import Mapping, Sequence
 from typing import Any, Dict, List, Optional, cast
 
 SAFE_BUILTINS = {
@@ -44,7 +45,7 @@ _UNARY_OPS = {
 }
 
 
-def _eval_node(node, ctx: dict):
+def _eval_node(node, ctx: Mapping[str, Any]):
     """Recursively evaluate an AST node against ctx without using eval()."""
 
     if isinstance(node, ast.Constant):
@@ -154,17 +155,20 @@ def _eval_node(node, ctx: dict):
     raise ValueError(f"Expression type '{type(node).__name__}' is not allowed in pipeline conditions")
 
 
-def _safe_eval(expr: str, ctx: Dict[str, object]) -> bool:
-    if not isinstance(expr, str) or not expr.strip():
+def _safe_eval(expr: str, ctx: Mapping[str, Any]) -> bool:
+    if not isinstance(expr, str):
+        raise ValueError("Guard expression must be a string")
+    expr_stripped = expr.strip()
+    if not expr_stripped:
         raise ValueError("Guard expression must be a non-empty string")
     try:
-        tree = ast.parse(expr.strip(), mode="eval")
+        tree = ast.parse(expr_stripped, mode="eval")
     except SyntaxError as exc:
         raise ValueError(f"Invalid expression syntax: {exc}") from exc
     return bool(_eval_node(tree.body, ctx))
 
 
-def build_step_eval_ctx(step: dict, context: Dict[str, object]) -> Dict[str, object]:
+def build_step_eval_ctx(step: dict, context: Mapping[str, Any]) -> Dict[str, object]:
     eval_ctx: Dict[str, object] = {}
 
     # Handle None context gracefully
@@ -192,7 +196,7 @@ def build_step_eval_ctx(step: dict, context: Dict[str, object]) -> Dict[str, obj
     eval_ctx.update(context or {})
     return eval_ctx
 
-def enforce_require(eval_ctx: Dict[str, object], rules: List[Dict[str, object]], step_name: Optional[str] = None, context_info: Optional[Dict[str, object]] = None):
+def enforce_require(eval_ctx: Mapping[str, Any], rules: Sequence[Mapping[str, Any]], step_name: Optional[str] = None, context_info: Optional[Mapping[str, Any]] = None):
     for rule in rules or []:
         expr = rule.get("if")
         msg = rule.get("message", "Require condition failed")
@@ -224,7 +228,7 @@ def enforce_require(eval_ctx: Dict[str, object], rules: List[Dict[str, object]],
 
             raise ValueError("\n".join(error_parts))
 
-def collect_warnings(eval_ctx: Dict[str, object], rules: List[Dict[str, object]]) -> List[str]:
+def collect_warnings(eval_ctx: Mapping[str, Any], rules: Sequence[Mapping[str, Any]]) -> List[str]:
     messages: List[str] = []
     for rule in rules or []:
         expr = rule.get("if")

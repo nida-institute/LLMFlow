@@ -18,9 +18,9 @@ class MCPClient:
     def __init__(self, server_url: str, tools: Optional[List[str]] = None):
         self.server_url = server_url
         self.requested_tools = tools or []
-        self._session: Optional[ClientSession] = None
+        self._session: Optional[Any] = None  # ClientSession
         self._tool_definitions: Optional[List[Dict[str, Any]]] = None
-        self._http_client: Optional[httpx.AsyncClient] = None
+        self._http_client: Optional[Any] = None  # httpx.AsyncClient
         self._is_initialized = False
         self._message_id = 0
 
@@ -100,14 +100,15 @@ class MCPClient:
             logger.debug(f"✅ MCP session initialized: {init_result}")
 
             # Send initialized notification (no response expected)
-            await self._http_client.post(
-                self.server_url,
-                json={
-                    "jsonrpc": "2.0",
-                    "method": "notifications/initialized"
-                },
-                headers={
-                    "Content-Type": "application/json",
+            if self._http_client:
+                await self._http_client.post(
+                    self.server_url,
+                    json={
+                        "jsonrpc": "2.0",
+                        "method": "notifications/initialized"
+                    },
+                    headers={
+                        "Content-Type": "application/json",
                 }
             )
 

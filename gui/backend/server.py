@@ -6,28 +6,27 @@ Flask server that serves bundled static frontend and provides REST API.
 This version is designed to be bundled with nuitka.
 """
 
-import logging
-import os
-import sys
 import json
+import logging
+import platform
+import socket
 import subprocess
+import sys
 import threading
 import webbrowser
-import uuid
-from datetime import datetime
 from pathlib import Path
+
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room
 
 logger = logging.getLogger(__name__)
 
-# Allowed origins for CORS — localhost only; this server is designed for local use
+# CORS configuration — localhost only; this server is designed for local use
+# Use regex patterns to accept any port on localhost (for dynamic port selection)
 _CORS_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:3000",
+    r"http://localhost:\d+",   # Any port on localhost
+    r"http://127\.0\.0\.1:\d+", # Any port on 127.0.0.1
 ]
 
 _PIPELINE_EXTENSIONS = {".yaml", ".yml"}
@@ -45,7 +44,7 @@ def create_app():
     # Get static files directory (bundled with package)
     if getattr(sys, 'frozen', False):
         # Running in nuitka bundle
-        base_path = Path(sys._MEIPASS)
+        base_path = Path(getattr(sys, '_MEIPASS', __file__))
     else:
         # Running in development
         base_path = Path(__file__).parent
@@ -56,8 +55,15 @@ def create_app():
                 static_folder=str(static_folder),
                 static_url_path='')
 
-    CORS(app, origins=_CORS_ORIGINS)
-    socketio = SocketIO(app, cors_allowed_origins=_CORS_ORIGINS, async_mode='threading')
+    # CORS: Accept any localhost port (for dynamic port selection)
+    CORS(app, origins=_CORS_ORIGINS, supports_credentials=True)
+
+    # SocketIO CORS: Use '*' for local-only server (safe since we bind to localhost)
+    socketio = SocketIO(
+        app,
+        cors_allowed_origins='*',  # Local development only - server binds to 127.0.0.1
+        async_mode='threading'
+    )
 
     # =============================================================================
     # Static File Serving
@@ -66,16 +72,43 @@ def create_app():
     @app.route('/')
     def serve_index():
         """Serve the React app index.html."""
+        if app.static_folder is None:
+            return "Static folder not configured", 500
         return send_from_directory(app.static_folder, 'index.html')
 
     @app.route('/<path:path>')
     def serve_static(path):
         """Serve static files (JS, CSS, etc.)."""
+        if app.static_folder is None:
+            return "Static folder not configured", 500
         if (Path(app.static_folder) / path).exists():
             return send_from_directory(app.static_folder, path)
         else:
             # For client-side routing, return index.html
             return send_from_directory(app.static_folder, 'index.html')
+
+    # =============================================================================
+    # Health Check
+    # =============================================================================
+
+    @app.route('/api/health', methods=['GET'])
+    def health_check():
+        """Check if sp CLI is available."""
+        try:
+            result = subprocess.run(
+                ['sp', '--version'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            sp_available = result.returncode == 0
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            sp_available = False
+
+        return jsonify({
+            'sp_cli_available': sp_available,
+            'status': 'ok'
+        })
 
     # =============================================================================
     # Registry API - Project Discovery
@@ -251,6 +284,219 @@ def create_app():
             return jsonify({'error': str(e)}), 500
 
 
+    @app.route('/api/content/config', methods=['GET'])
+    def get_content_config():
+        """Get content lifecycle configuration for a project."""
+        project_path = request.args.get('project_path')
+
+        if not project_path:
+            return jsonify({'error': 'project_path parameter required'}), 400
+
+        try:
+            project_path_obj = Path(project_path)
+
+            # Look for content lifecycle config in common locations
+            possible_configs = [
+                project_path_obj / 'content-lifecycle.yaml',
+                project_path_obj / 'LLMFlow' / 'content-lifecycle.yaml',
+                project_path_obj / 'config' / 'content-lifecycle.yaml',
+            ]
+
+            for config_path in possible_configs:
+                if config_path.exists():
+                    # TODO: Parse YAML and return actual stages
+                    # For now, return a valid but minimal response
+                    return jsonify({
+                        'success': True,
+                        'config_path': str(config_path),
+                        'stages': [
+                            {'name': 'draft', 'label': 'Draft'},
+                            {'name': 'review', 'label': 'Review'},
+                            {'name': 'approved', 'label': 'Approved'},
+                        ],
+                        'project_path': str(project_path)
+                    })
+
+            # No config found - return default stages
+            return jsonify({
+                'success': True,
+                'config_path': None,
+                'stages': [
+                    {'name': 'draft', 'label': 'Draft'},
+                    {'name': 'review', 'label': 'Review'},
+                    {'name': 'approved', 'label': 'Approved'},
+                ],
+                'project_path': str(project_path),
+                'message': 'Using default stages (no config file found)'
+            })
+
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+
+    @app.route('/api/content/all', methods=['GET'])
+    def get_content_all():
+        """Get all files across all content lifecycle stages."""
+        project_path = request.args.get('project_path')
+
+        try:
+            stages_data = {
+                'draft': [],
+                'review': [],
+                'approved': []
+            }
+
+            if project_path:
+                project_path_obj = Path(project_path)
+
+                # Look for output directories
+                output_dirs = [
+                    project_path_obj / 'outputs',
+                    project_path_obj / 'output',
+                    project_path_obj / 'results',
+                    project_path_obj / 'artifacts',
+                ]
+
+                # Find all files in output directories
+                for output_dir in output_dirs:
+                    if output_dir.exists() and output_dir.is_dir():
+                        # Recursively find all files
+                        for file_path in output_dir.rglob('*'):
+                            if file_path.is_file():
+                                # Get relative path from project root
+                                try:
+                                    rel_path = file_path.relative_to(project_path_obj)
+
+                                    # Determine stage based on directory structure or file naming
+                                    # For now, put everything in draft
+                                    # TODO: Implement actual stage detection
+                                    stages_data['draft'].append({
+                                        'path': str(rel_path),
+                                        'name': file_path.name,
+                                        'size': file_path.stat().st_size,
+                                        'modified': file_path.stat().st_mtime
+                                    })
+                                except ValueError:
+                                    # File is outside project root, skip
+                                    continue
+
+            return jsonify({
+                'success': True,
+                'stages': stages_data,
+                'total_files': sum(len(files) for files in stages_data.values())
+            })
+
+        except Exception as e:
+            logger.error("Error loading content files: %s", e)
+            return jsonify({
+                'success': False,
+                'error': str(e),
+                'stages': {
+                    'draft': [],
+                    'review': [],
+                    'approved': []
+                }
+            }), 500
+
+
+    @app.route('/api/content/status', methods=['GET'])
+    def get_content_status():
+        """Get detailed status for a specific file."""
+        file_path = request.args.get('path')
+        project_path = request.args.get('project_path')
+
+        if not file_path:
+            return jsonify({'error': 'path parameter required'}), 400
+
+        try:
+            # If project_path provided, resolve relative to it
+            if project_path:
+                full_path = Path(project_path) / file_path
+            else:
+                full_path = Path(file_path)
+
+            if not full_path.exists():
+                return jsonify({
+                    'success': False,
+                    'error': 'File not found'
+                }), 404
+
+            # Get file info
+            stat = full_path.stat()
+
+            return jsonify({
+                'success': True,
+                'path': file_path,
+                'full_path': str(full_path),
+                'name': full_path.name,
+                'size': stat.st_size,
+                'modified': stat.st_mtime,
+                'current_stage': 'draft',  # TODO: Determine actual stage
+                'history': [],  # TODO: Get transition history
+                'metadata': {}  # TODO: Read file metadata
+            })
+
+        except Exception as e:
+            logger.error("Error loading file status: %s", e)
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+
+    @app.route('/api/content/transition', methods=['POST'])
+    def content_transition():
+        """Transition a file from one stage to another."""
+        data = request.json
+
+        # TODO: Implement actual file transition logic
+        return jsonify({
+            'success': False,
+            'error': 'Content lifecycle transitions not yet implemented'
+        }), 501
+
+
+    # =============================================================================
+    # File System Operations
+    # =============================================================================
+
+    @app.route('/api/open-folder', methods=['POST'])
+    def open_folder():
+        """Open a folder in the system file manager."""
+        data = request.json
+        folder_path = data.get('path')
+
+        if not folder_path:
+            return jsonify({'error': 'path is required'}), 400
+
+        try:
+            # Resolve to absolute path
+            abs_path = Path(folder_path).resolve()
+
+            # Verify it exists and is a directory
+            if not abs_path.exists():
+                return jsonify({'error': f'Path does not exist: {abs_path}'}), 404
+
+            if not abs_path.is_dir():
+                return jsonify({'error': f'Path is not a directory: {abs_path}'}), 400
+
+            # Open with platform-specific command
+            system = platform.system()
+            if system == 'Darwin':  # macOS
+                subprocess.run(['open', str(abs_path)], check=True)
+            elif system == 'Windows':
+                subprocess.run(['explorer', str(abs_path)], check=True)
+            else:  # Linux and others
+                subprocess.run(['xdg-open', str(abs_path)], check=True)
+
+            return jsonify({'success': True, 'path': str(abs_path)})
+
+        except subprocess.CalledProcessError as e:
+            return jsonify({'error': f'Failed to open folder: {e}'}), 500
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+
     # =============================================================================
     # WebSocket - Real-time Pipeline Execution
     # =============================================================================
@@ -282,7 +528,7 @@ def create_app():
 
             # Create emit callback that routes to the execution's room
             def emit_to_room(event_type, data):
-                emit(event_type, data, room=execution_id)
+                emit(event_type, data, to=execution_id)
                 socketio.sleep(0)  # Yield to process other events
 
             # Execute pipeline using testable executor
@@ -301,11 +547,12 @@ def create_app():
                 'success': result['success'],
                 'exit_code': result['exit_code'],
                 'created_files': result['created_files'],
-                'telemetry': result['telemetry']
-            }, room=execution_id)
+                'telemetry': result['telemetry'],
+                'output_dir': result.get('output_dir')
+            }, to=execution_id)
 
         except Exception as e:
-            emit('error', {'message': str(e)}, room=execution_id if execution_id else None)
+            emit('error', {'message': str(e)}, to=execution_id if execution_id else None)
 
 
     @socketio.on('connect')
@@ -317,17 +564,33 @@ def create_app():
     return app, socketio
 
 
-def start_server(host='127.0.0.1', port=5000, open_browser=True):
+def find_free_port(start_port=5000, max_attempts=100):
+    """Find an available port starting from start_port."""
+    for port in range(start_port, start_port + max_attempts):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('127.0.0.1', port))
+                return port
+        except OSError:
+            continue
+    raise RuntimeError(f"Could not find a free port in range {start_port}-{start_port + max_attempts}")
+
+
+def start_server(host='127.0.0.1', port=None, open_browser=True):
     """Start the GUI server and optionally open browser."""
     app, socketio = create_app()
 
+    # Find a free port if not specified
+    if port is None:
+        port = find_free_port()
+
     url = f"http://{host}:{port}"
-    print(f"\n")
+    print("\n")
     print(f"{'='*60}")
-    print(f"Scripture Pipelines GUI")
+    print("Scripture Pipelines GUI")
     print(f"{'='*60}")
     print(f"\n  🌐 Server running at: {url}")
-    print(f"\n  Press Ctrl+C to stop the server")
+    print("\n  Press Ctrl+C to stop the server")
     print(f"{'='*60}\n")
 
     if open_browser:

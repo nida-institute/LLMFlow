@@ -12,39 +12,122 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 import time
+import json
+import urllib.request
+import urllib.error
+from pathlib import Path
 
 from llmflow.modules.logger import Logger
 
 logger = Logger()
 
 
-# Model pricing in USD per 1M tokens (by family)
-MODEL_PRICING = {
-    "gpt-5": {"input": 15.00, "output": 60.00},
-    "o1": {"input": 15.00, "output": 60.00},
-    "gpt-4o": {"input": 2.50, "output": 10.00},
-    "gpt-4o-mini": {"input": 0.15, "output": 0.60},
-    "gpt-4.1": {"input": 2.00, "output": 8.00},
-    "gpt-4.1-mini": {"input": 0.40, "output": 1.60},
-    "gpt-4.1-nano": {"input": 0.10, "output": 0.40},
-    "gpt-4-turbo": {"input": 10.00, "output": 30.00},
-    "gpt-4": {"input": 30.00, "output": 60.00},
-    "gpt-3.5-turbo": {"input": 0.50, "output": 1.50},
-}
+# ============================================================================
+# Model Metadata Loading
+# ============================================================================
 
-# Model family patterns for cost mapping
-MODEL_FAMILIES = {
-    "gpt-5": ["gpt-5", "o3-mini", "o3", "o4"],
-    "o1": ["o1"],
-    "gpt-4o-mini": ["gpt-4o-mini"],
-    "gpt-4o": ["gpt-4o"],
-    "gpt-4.1-nano": ["gpt-4.1-nano"],  # must precede gpt-4.1-mini and gpt-4.1
-    "gpt-4.1-mini": ["gpt-4.1-mini"],  # must precede gpt-4.1
-    "gpt-4.1": ["gpt-4.1"],
-    "gpt-4-turbo": ["gpt-4-turbo"],
-    "gpt-4": ["gpt-4"],
-    "gpt-3.5-turbo": ["gpt-3.5"],
-}
+_models_cache: Optional[Dict[str, Any]] = None
+
+
+def _load_models_data() -> Dict[str, Any]:
+    """Load model metadata from data/models.json.
+
+    Returns:
+        Dict with keys: metadata_version, last_updated, models, model_patterns
+    """
+    global _models_cache
+
+    if _models_cache is not None:
+        return _models_cache
+
+    # Find models.json relative to this file
+    # __file__ = src/llmflow/modules/telemetry.py
+    # .parent.parent.parent.parent = repo root
+    models_file = Path(__file__).parent.parent.parent.parent / "data" / "models.json"
+
+    if not models_file.exists():
+        logger.warning(f"⚠️  Model metadata file not found: {models_file}")
+        logger.warning("    Falling back to empty model data. Cost calculation unavailable.")
+        _models_cache = {
+            "metadata_version": "0.0",
+            "last_updated": "unknown",
+            "models": {},
+            "model_patterns": {},
+        }
+        return _models_cache
+
+    try:
+        with open(models_file, "r", encoding="utf-8") as f:
+            data: Dict[str, Any] = json.load(f)
+            _models_cache = data
+        return _models_cache
+    except Exception as e:
+        logger.warning(f"⚠️  Failed to load model metadata from {models_file}: {e}")
+        logger.warning("    Falling back to empty model data. Cost calculation unavailable.")
+        _models_cache = {
+            "metadata_version": "0.0",
+            "last_updated": "unknown",
+            "models": {},
+            "model_patterns": {},
+        }
+        return _models_cache
+
+
+def _get_model_metadata_dict() -> Dict[str, Dict[str, Any]]:
+    """Get MODEL_METADATA dict from models.json.
+
+    Converts from JSON format (input_price_per_1m, max_context_tokens, supports_json_schema)
+    to internal format (input, max_context, json_schema).
+
+    Returns:
+        Dict mapping model family keys to metadata dicts
+    """
+    data = _load_models_data()
+    models = data.get("models", {})
+
+    # Convert JSON format to internal format
+    metadata = {}
+    for key, model in models.items():
+        metadata[key] = {
+            "input": model.get("input_price_per_1m", 0.0),
+            "output": model.get("output_price_per_1m", 0.0),
+            "max_context": model.get("max_context_tokens", 0),
+            "max_output": model.get("max_output_tokens", 0),
+            "json_schema": model.get("supports_json_schema", False),
+        }
+
+    return metadata
+
+
+def _get_model_pricing_dict() -> Dict[str, Dict[str, float]]:
+    """Get MODEL_PRICING dict (legacy format)."""
+    metadata = _get_model_metadata_dict()
+    return {k: {"input": v["input"], "output": v["output"]} for k, v in metadata.items()}
+
+
+def _get_model_families_dict() -> Dict[str, List[str]]:
+    """Get MODEL_FAMILIES dict from models.json."""
+    data = _load_models_data()
+    return data.get("model_patterns", {})
+
+
+# Lazy-loaded module-level variables for backward compatibility
+MODEL_METADATA = _get_model_metadata_dict()
+MODEL_PRICING = _get_model_pricing_dict()
+MODEL_FAMILIES = _get_model_families_dict()
+
+
+def get_model_data_version() -> tuple[str, str]:
+    """Get model data version and last updated date.
+
+    Returns:
+        Tuple of (version, last_updated_date) e.g. ("1.0", "2026-04-02")
+    """
+    data = _load_models_data()
+    return (
+        data.get("metadata_version", "unknown"),
+        data.get("last_updated", "unknown"),
+    )
 
 
 def get_pricing_family(model: str) -> Optional[str]:
@@ -66,6 +149,100 @@ def get_pricing_family(model: str) -> Optional[str]:
             return family
 
     return None
+
+
+def get_model_metadata(model: str) -> Optional[Dict[str, Any]]:
+    """Get comprehensive metadata for a model.
+
+    Args:
+        model: Model name (e.g., "gpt-4o", "claude-3.5-sonnet", "gemini-2.5-pro")
+
+    Returns:
+        Dict with keys: input, output, max_context, max_output, json_schema
+        Returns None if model is unknown
+    """
+    family = get_pricing_family(model)
+    if family and family in MODEL_METADATA:
+        return MODEL_METADATA[family]
+    return None
+
+
+def get_model_max_tokens(model: str) -> Optional[int]:
+    """Get max context window for a model.
+
+    Args:
+        model: Model name
+
+    Returns:
+        Max context tokens or None if unknown
+    """
+    metadata = get_model_metadata(model)
+    return metadata["max_context"] if metadata else None
+
+
+def supports_json_schema(model: str) -> bool:
+    """Check if a model supports JSON schema / structured output.
+
+    Args:
+        model: Model name
+
+    Returns:
+        True if model supports JSON schema (response_format or response_schema)
+    """
+    metadata = get_model_metadata(model)
+    return metadata["json_schema"] if metadata else False
+
+
+def update_models_from_github(target_path: Optional[Path] = None) -> bool:
+    """Update models.json from GitHub main branch.
+
+    Args:
+        target_path: Path to save models.json (default: data/models.json in package)
+
+    Returns:
+        True if update successful, False otherwise
+    """
+    url = "https://raw.githubusercontent.com/nida-institute/LLMFlow/main/data/models.json"
+
+    if target_path is None:
+        # __file__ = src/llmflow/modules/telemetry.py
+        # .parent.parent.parent.parent = repo root
+        target_path = Path(__file__).parent.parent.parent.parent / "data" / "models.json"
+
+    try:
+        logger.info(f"📡 Fetching latest model metadata from GitHub...")
+        with urllib.request.urlopen(url, timeout=10) as response:
+            data = json.loads(response.read().decode('utf-8'))
+
+        # Validate basic structure
+        required_keys = {"metadata_version", "last_updated", "models", "model_patterns"}
+        if not all(k in data for k in required_keys):
+            logger.error("❌ Invalid model metadata format from GitHub")
+            return False
+
+        # Write to file
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(target_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            f.write('\n')  # Add trailing newline
+
+        logger.info(f"✅ Updated model metadata to version {data['metadata_version']}")
+        logger.info(f"   Last updated: {data['last_updated']}")
+        logger.info(f"   Models: {len(data['models'])}")
+
+        # Clear cache to force reload
+        global _models_cache
+        _models_cache = None
+
+        return True
+
+    except urllib.error.URLError as e:
+        logger.error(f"❌ Failed to fetch from GitHub: {e}")
+        logger.error("   Check your internet connection or try again later.")
+        return False
+    except Exception as e:
+        logger.error(f"❌ Failed to update model metadata: {e}")
+        return False
 
 
 def calculate_cost(model: str, prompt_tokens: int, completion_tokens: int) -> float:
@@ -391,6 +568,12 @@ class TelemetryCollector:
             if total_truncations > 0:
                 lines.append(f"  Truncations: {total_truncations} (saved tokens)")
             lines.append("")
+
+        # Add footer note about updating model metadata
+        version, last_updated = get_model_data_version()
+        lines.append(f"ℹ️  Model data version {version} (updated {last_updated})")
+        lines.append("   To ensure pricing/limits are current: sp registry update-models")
+        lines.append("")
 
         return "\n".join(lines)
 

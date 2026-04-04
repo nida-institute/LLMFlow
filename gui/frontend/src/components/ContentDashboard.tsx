@@ -1,21 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import StageCard from './StageCard';
 
-const API_BASE = 'http://localhost:5051/api';
+function ContentDashboard({ config, onFileSelect, onViewChange, project }) {
+  // Always use relative URLs - frontend is served by Flask backend
+  const API_BASE = '/api';
 
-function ContentDashboard({ config, onFileSelect, onViewChange }) {
   const [stageData, setStageData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     loadAllStages();
-  }, [config]);
+  }, [config, project]);
 
   const loadAllStages = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE}/content/all`);
+
+      // Include project_path if available
+      const url = project?.path
+        ? `${API_BASE}/content/all?project_path=${encodeURIComponent(project.path)}`
+        : `${API_BASE}/content/all`;
+
+      const response = await fetch(url);
       const data = await response.json();
 
       if (data.success) {
@@ -98,7 +105,7 @@ function ContentDashboard({ config, onFileSelect, onViewChange }) {
             stage={stage}
             files={stageData[stage.name] || []}
             nextStage={config.stages[index + 1]}
-            onFileSelect={onFileSelect}
+            onFileSelect={(file) => onFileSelect({ file, project })}
             onTransition={handleTransition}
           />
         ))}

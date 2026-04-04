@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE = 'http://localhost:5051/api';
+const API_BASE = '/api';
 
-function FileStatus({ file, config, onBack, onViewDiff }) {
+function FileStatus({ file, config, project, onBack, onViewDiff }) {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,7 +14,8 @@ function FileStatus({ file, config, onBack, onViewDiff }) {
   const loadStatus = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE}/content/status?path=${encodeURIComponent(file)}`);
+      const projectParam = project ? `&project_path=${encodeURIComponent(project.path)}` : '';
+      const response = await fetch(`${API_BASE}/content/status?path=${encodeURIComponent(file)}${projectParam}`);
       const data = await response.json();
 
       if (data.success) {

@@ -8,9 +8,11 @@ This is the **LLMFlow core engine** — a declarative YAML-driven pipeline runne
 
 Key indicators you're in the correct repo: `src/llmflow/cli.py`, `src/llmflow/runner.py`, and `pyproject.toml` defining the `llmflow` package.
 
-Before making changes, consult:
-- `docs/ai-context/index.md` — maps every topic to the right file
-- `docs/index.json` — code architecture and module structure
+**Before making changes:**
+1. **Check `docs/ai-context/index.md` FIRST** — maps every topic to the right file, prevents duplicating existing tested code
+   - Example: Biblical reference parsing already exists at `llmflow.utils.data.parse_bible_reference()`
+   - Example: GUI has dual-location setup (gui/backend vs src/llmflow/gui) - see gui-architecture.md
+2. Consult `docs/index.json` — code architecture and module structure
 
 ## Commands
 

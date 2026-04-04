@@ -10,8 +10,8 @@ function ContentApp({ project, embedded = false }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [error, setError] = useState(null);
 
-  // Use relative URLs when embedded (uses Vite proxy), absolute when standalone
-  const API_BASE = embedded ? '/api' : 'http://localhost:5051/api';
+  // Always use relative URLs - frontend is served by Flask backend
+  const API_BASE = '/api';
 
   useEffect(() => {
     loadConfig();
@@ -91,8 +91,8 @@ function ContentApp({ project, embedded = false }) {
 
         {/* Main content */}
         <div className="flex-1 overflow-auto">
-          {view === 'dashboard' && <ContentDashboard config={config} onFileSelect={handleFileSelect} />}
-          {view === 'status' && selectedFile && <FileStatus file={selectedFile} config={config} onBack={() => setView('dashboard')} />}
+          {view === 'dashboard' && <ContentDashboard config={config} onFileSelect={handleFileSelect} project={project} />}
+          {view === 'status' && selectedFile && <FileStatus file={selectedFile} config={config} project={project} onBack={() => setView('dashboard')} />}
           {view === 'diff' && selectedFile && <DiffViewer file={selectedFile} config={config} onBack={() => setView('status')} />}
         </div>
       </div>
@@ -144,7 +144,7 @@ function ContentApp({ project, embedded = false }) {
 
       <main className="flex-1 overflow-hidden bg-background">
         {view === 'dashboard' && <ContentDashboard config={config} onFileSelect={handleFileSelect} />}
-        {view === 'status' && selectedFile && <FileStatus file={selectedFile} config={config} onBack={() => setView('dashboard')} />}
+        {view === 'status' && selectedFile && <FileStatus file={selectedFile} config={config} project={project} onBack={() => setView('dashboard')} />}
         {view === 'diff' && selectedFile && <DiffViewer file={selectedFile} config={config} onBack={() => setView('status')} />}
       </main>
     </div>

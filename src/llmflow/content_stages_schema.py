@@ -31,58 +31,58 @@ class StageConfig(BaseModel):
 
     # File management
     file_permissions: str = Field(
-        "644", description="Unix permissions in octal format (e.g., '644', '444')"
+        default="644", description="Unix permissions in octal format (e.g., '644', '444')"
     )
     auto_create_metadata: bool = Field(
-        False, description="Create .metadata.json on file creation"
+        default=False, description="Create .metadata.json on file creation"
     )
     metadata_schema: Optional[str] = Field(
-        None, description="Path to JSON schema for metadata validation"
+        default=None, description="Path to JSON schema for metadata validation"
     )
     metadata_fields: Optional[List[str]] = Field(
-        None, description="Required metadata fields"
+        default=None, description="Required metadata fields"
     )
 
     # Version control
-    git_tracked: bool = Field(True, description="Include files in git commits")
-    auto_commit: bool = Field(False, description="Auto-commit on file creation")
+    git_tracked: bool = Field(default=True, description="Include files in git commits")
+    auto_commit: bool = Field(default=False, description="Auto-commit on file creation")
     commit_message_template: Optional[str] = Field(
-        None, description="Template for auto-commit messages"
+        default=None, description="Template for auto-commit messages"
     )
-    create_git_tag: bool = Field(False, description="Create git tag on file creation")
+    create_git_tag: bool = Field(default=False, description="Create git tag on file creation")
     git_tag_template: Optional[str] = Field(
-        None, description="Template for git tag names"
+        default=None, description="Template for git tag names"
     )
 
     # Content validation
     require_schema_validation: bool = Field(
-        False, description="Validate content against schema on write"
+        default=False, description="Validate content against schema on write"
     )
     validation_schemas: Optional[Dict[str, str]] = Field(
-        None, description="Schema paths by file extension"
+        default=None, description="Schema paths by file extension"
     )
     allowed_formats: Optional[List[str]] = Field(
-        None, description="Allowed file extensions (e.g., ['json', 'md'])"
+        default=None, description="Allowed file extensions (e.g., ['json', 'md'])"
     )
 
     # Visual indicators
     readme_template: Optional[str] = Field(
-        None, description="Template for auto-generated README"
+        default=None, description="Template for auto-generated README"
     )
-    status_emoji: Optional[str] = Field(None, description="Emoji for status display")
+    status_emoji: Optional[str] = Field(default=None, description="Emoji for status display")
 
     # Warnings
-    warn_on_stale: bool = Field(False, description="Warn about old unchanged files")
+    warn_on_stale: bool = Field(default=False, description="Warn about old unchanged files")
     stale_threshold_days: Optional[int] = Field(
-        None, description="Days before file considered stale"
+        default=None, description="Days before file considered stale"
     )
 
     # Archive behavior
     create_archive_copy: bool = Field(
-        False, description="Create timestamped backup copies"
+        default=False, description="Create timestamped backup copies"
     )
     archive_path_template: Optional[str] = Field(
-        None, description="Path template for archives"
+        default=None, description="Path template for archives"
     )
 
     @field_validator("file_permissions")
@@ -108,7 +108,7 @@ class RequirementConfig(BaseModel):
     # Optional fields depending on type
     fields: Optional[List[str]] = None
     stages: Optional[List[str]] = None
-    schema: Optional[str] = None
+    validation_schema: Optional[str] = None  # Renamed from 'schema' to avoid BaseModel.schema() conflict
     schemas: Optional[Dict[str, str]] = None
     files: Optional[List[str]] = None
     stage: Optional[str] = None
@@ -139,50 +139,50 @@ class TransitionConfig(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     # Identity
-    from_stage: str = Field(..., alias="from", description="Source stage name")
-    to_stage: str = Field(..., alias="to", description="Destination stage name")
+    from_stage: str = Field(description="Source stage name", alias="from")
+    to_stage: str = Field(description="Destination stage name", alias="to")
 
     # File operations
     action: Literal["copy", "move", "symlink"] = Field(
-        "copy", description="File operation type"
+        default="copy", description="File operation type"
     )
     source_file_permissions: Optional[str] = Field(
-        None, description="Permissions for source after transition"
+        default=None, description="Permissions for source after transition"
     )
     destination_file_permissions: Optional[str] = Field(
-        None, description="Permissions for destination"
+        default=None, description="Permissions for destination"
     )
-    preserve_timestamps: bool = Field(True, description="Keep original file timestamps")
+    preserve_timestamps: bool = Field(default=True, description="Keep original file timestamps")
 
     # Metadata operations
-    copy_metadata: bool = Field(False, description="Copy metadata from source")
+    copy_metadata: bool = Field(default=False, description="Copy metadata from source")
     metadata_fields_to_set: Optional[Dict[str, str]] = Field(
-        None, description="Metadata fields to set/update"
+        default=None, description="Metadata fields to set/update"
     )
     merge_metadata_from_source: bool = Field(
-        False, description="Merge source metadata into destination"
+        default=False, description="Merge source metadata into destination"
     )
 
     # Content transformation
     bidirectional_sync: bool = Field(
-        False, description="Sync Markdown edits back to JSON"
+        default=False, description="Sync Markdown edits back to JSON"
     )
     regenerate_derivatives: bool = Field(
-        False, description="Generate derivative formats"
+        default=False, description="Generate derivative formats"
     )
     derivative_formats: Optional[List[str]] = Field(
-        None, description="Formats to generate (e.g., ['html', 'docx'])"
+        default=None, description="Formats to generate (e.g., ['html', 'docx'])"
     )
 
     # Git operations
-    git_add_source: bool = Field(False, description="Stage source files in git")
-    git_add_destination: bool = Field(True, description="Stage destination files in git")
+    git_add_source: bool = Field(default=False, description="Stage source files in git")
+    git_add_destination: bool = Field(default=True, description="Stage destination files in git")
     git_remove_source: bool = Field(
-        False, description="Remove source from git (for move)"
+        default=False, description="Remove source from git (for move)"
     )
-    auto_commit: bool = Field(False, description="Auto-commit after transition")
+    auto_commit: bool = Field(default=False, description="Auto-commit after transition")
     commit_message_template: Optional[str] = Field(
-        None, description="Template for commit message"
+        default=None, description="Template for commit message"
     )
 
     # Validation
@@ -196,9 +196,9 @@ class TransitionConfig(BaseModel):
     )
 
     # Notifications
-    notify: bool = Field(False, description="Send notification on completion")
+    notify: bool = Field(default=False, description="Send notification on completion")
     notification_template: Optional[str] = Field(
-        None, description="Template for notification message"
+        default=None, description="Template for notification message"
     )
 
     @field_validator("source_file_permissions", "destination_file_permissions")
@@ -356,50 +356,50 @@ DEFAULT_CONTENT_STAGES = ContentStagesConfig(
         ),
     ],
     transitions=[
-        TransitionConfig(
-            from_stage="generated",
-            to_stage="editing",
-            action="copy",
-            source_file_permissions="444",
-            destination_file_permissions="644",
-            preserve_timestamps=True,
-            copy_metadata=False,
-            metadata_fields_to_set={
+        TransitionConfig(**{
+            "from": "generated",
+            "to": "editing",
+            "action": "copy",
+            "source_file_permissions": "444",
+            "destination_file_permissions": "644",
+            "preserve_timestamps": True,
+            "copy_metadata": False,
+            "metadata_fields_to_set": {
                 "source_stage": "generated",
                 "source_path": "generated/{path}",
                 "transitioned_at": "{timestamp}",
                 "transitioned_by": "{user}",
             },
-            git_add_source=False,
-            git_add_destination=True,
-            auto_commit=False,
-            requirements=[],
-        ),
-        TransitionConfig(
-            from_stage="editing",
-            to_stage="published",
-            action="move",
-            destination_file_permissions="444",
-            preserve_timestamps=False,
-            copy_metadata=True,
-            metadata_fields_to_set={
+            "git_add_source": False,
+            "git_add_destination": True,
+            "auto_commit": False,
+            "requirements": [],
+        }),
+        TransitionConfig(**{
+            "from": "editing",
+            "to": "published",
+            "action": "move",
+            "destination_file_permissions": "444",
+            "preserve_timestamps": False,
+            "copy_metadata": True,
+            "metadata_fields_to_set": {
                 "published_at": "{timestamp}",
                 "published_by": "{user}",
                 "source_stage": "editing",
             },
-            merge_metadata_from_source=True,
-            bidirectional_sync=True,
-            regenerate_derivatives=True,
-            derivative_formats=["html", "docx"],
-            git_add_destination=True,
-            git_remove_source=True,
-            auto_commit=True,
-            commit_message_template=(
+            "merge_metadata_from_source": True,
+            "bidirectional_sync": True,
+            "regenerate_derivatives": True,
+            "derivative_formats": ["html", "docx"],
+            "git_add_destination": True,
+            "git_remove_source": True,
+            "auto_commit": True,
+            "commit_message_template": (
                 "chore: publish {path}\n\n"
                 "Editor: {metadata.editor}\n"
                 "Last modified: {metadata.last_modified}\n"
             ),
-            requirements=[
+            "requirements": [
                 RequirementConfig(
                     type="git_committed",
                     message="All edits must be committed before publishing",
@@ -420,7 +420,7 @@ DEFAULT_CONTENT_STAGES = ContentStagesConfig(
                     message="Cannot publish with uncommitted edits",
                 ),
             ],
-            post_transition=[
+            "post_transition": [
                 PostTransitionAction(
                     action="create_archive_copy",
                     path_template="published/archive/{path}/{timestamp}",
@@ -429,6 +429,6 @@ DEFAULT_CONTENT_STAGES = ContentStagesConfig(
                     action="regenerate_index", index_file="published/index.json"
                 ),
             ],
-        ),
+        }),
     ],
 )

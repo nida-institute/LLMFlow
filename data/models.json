@@ -1,0 +1,242 @@
+{
+  "metadata_version": "1.0",
+  "last_updated": "2026-04-02",
+  "models": {
+    "gpt-5": {
+      "provider": "openai",
+      "family": "gpt-5-reasoning",
+      "input_price_per_1m": 15.00,
+      "output_price_per_1m": 60.00,
+      "max_context_tokens": 200000,
+      "max_output_tokens": 100000,
+      "supports_json_schema": true,
+      "notes": "GPT-5 reasoning models with extended thinking"
+    },
+    "o1": {
+      "provider": "openai",
+      "family": "o1-reasoning",
+      "input_price_per_1m": 15.00,
+      "output_price_per_1m": 60.00,
+      "max_context_tokens": 200000,
+      "max_output_tokens": 100000,
+      "supports_json_schema": false,
+      "notes": "o1 series doesn't support structured outputs"
+    },
+    "gpt-4.1": {
+      "provider": "openai",
+      "family": "gpt-4.1",
+      "input_price_per_1m": 2.00,
+      "output_price_per_1m": 8.00,
+      "max_context_tokens": 128000,
+      "max_output_tokens": 16384,
+      "supports_json_schema": true
+    },
+    "gpt-4.1-mini": {
+      "provider": "openai",
+      "family": "gpt-4.1",
+      "input_price_per_1m": 0.40,
+      "output_price_per_1m": 1.60,
+      "max_context_tokens": 128000,
+      "max_output_tokens": 16384,
+      "supports_json_schema": true
+    },
+    "gpt-4.1-nano": {
+      "provider": "openai",
+      "family": "gpt-4.1",
+      "input_price_per_1m": 0.10,
+      "output_price_per_1m": 0.40,
+      "max_context_tokens": 128000,
+      "max_output_tokens": 16384,
+      "supports_json_schema": true
+    },
+    "gpt-4o": {
+      "provider": "openai",
+      "family": "gpt-4o",
+      "input_price_per_1m": 2.50,
+      "output_price_per_1m": 10.00,
+      "max_context_tokens": 128000,
+      "max_output_tokens": 16384,
+      "supports_json_schema": true
+    },
+    "gpt-4o-mini": {
+      "provider": "openai",
+      "family": "gpt-4o",
+      "input_price_per_1m": 0.15,
+      "output_price_per_1m": 0.60,
+      "max_context_tokens": 128000,
+      "max_output_tokens": 16384,
+      "supports_json_schema": true
+    },
+    "gpt-4-turbo": {
+      "provider": "openai",
+      "family": "gpt-4-legacy",
+      "input_price_per_1m": 10.00,
+      "output_price_per_1m": 30.00,
+      "max_context_tokens": 128000,
+      "max_output_tokens": 4096,
+      "supports_json_schema": true
+    },
+    "gpt-4": {
+      "provider": "openai",
+      "family": "gpt-4-legacy",
+      "input_price_per_1m": 30.00,
+      "output_price_per_1m": 60.00,
+      "max_context_tokens": 8192,
+      "max_output_tokens": 4096,
+      "supports_json_schema": false
+    },
+    "gpt-3.5-turbo": {
+      "provider": "openai",
+      "family": "gpt-3.5",
+      "input_price_per_1m": 0.50,
+      "output_price_per_1m": 1.50,
+      "max_context_tokens": 16385,
+      "max_output_tokens": 4096,
+      "supports_json_schema": false
+    },
+    "claude-4-opus": {
+      "provider": "anthropic",
+      "family": "claude-4",
+      "input_price_per_1m": 15.00,
+      "output_price_per_1m": 75.00,
+      "max_context_tokens": 200000,
+      "max_output_tokens": 16384,
+      "supports_json_schema": false,
+      "notes": "Claude uses prompt engineering for JSON, not strict schema enforcement"
+    },
+    "claude-4-sonnet": {
+      "provider": "anthropic",
+      "family": "claude-4",
+      "input_price_per_1m": 3.00,
+      "output_price_per_1m": 15.00,
+      "max_context_tokens": 200000,
+      "max_output_tokens": 16384,
+      "supports_json_schema": false
+    },
+    "claude-4-haiku": {
+      "provider": "anthropic",
+      "family": "claude-4",
+      "input_price_per_1m": 0.25,
+      "output_price_per_1m": 1.25,
+      "max_context_tokens": 200000,
+      "max_output_tokens": 16384,
+      "supports_json_schema": false
+    },
+    "claude-3.5-opus": {
+      "provider": "anthropic",
+      "family": "claude-3.5",
+      "input_price_per_1m": 15.00,
+      "output_price_per_1m": 75.00,
+      "max_context_tokens": 200000,
+      "max_output_tokens": 8192,
+      "supports_json_schema": false
+    },
+    "claude-3.5-sonnet": {
+      "provider": "anthropic",
+      "family": "claude-3.5",
+      "input_price_per_1m": 3.00,
+      "output_price_per_1m": 15.00,
+      "max_context_tokens": 200000,
+      "max_output_tokens": 8192,
+      "supports_json_schema": false
+    },
+    "claude-3.5-haiku": {
+      "provider": "anthropic",
+      "family": "claude-3.5",
+      "input_price_per_1m": 1.00,
+      "output_price_per_1m": 5.00,
+      "max_context_tokens": 200000,
+      "max_output_tokens": 8192,
+      "supports_json_schema": false
+    },
+    "claude-3-opus": {
+      "provider": "anthropic",
+      "family": "claude-3",
+      "input_price_per_1m": 15.00,
+      "output_price_per_1m": 75.00,
+      "max_context_tokens": 200000,
+      "max_output_tokens": 4096,
+      "supports_json_schema": false
+    },
+    "claude-3-sonnet": {
+      "provider": "anthropic",
+      "family": "claude-3",
+      "input_price_per_1m": 3.00,
+      "output_price_per_1m": 15.00,
+      "max_context_tokens": 200000,
+      "max_output_tokens": 4096,
+      "supports_json_schema": false
+    },
+    "claude-3-haiku": {
+      "provider": "anthropic",
+      "family": "claude-3",
+      "input_price_per_1m": 0.25,
+      "output_price_per_1m": 1.25,
+      "max_context_tokens": 200000,
+      "max_output_tokens": 4096,
+      "supports_json_schema": false
+    },
+    "gemini-2.5-pro": {
+      "provider": "google",
+      "family": "gemini-2.5",
+      "input_price_per_1m": 1.25,
+      "output_price_per_1m": 5.00,
+      "max_context_tokens": 2000000,
+      "max_output_tokens": 8192,
+      "supports_json_schema": true,
+      "notes": "Uses response_schema parameter for structured output"
+    },
+    "gemini-2.5-flash": {
+      "provider": "google",
+      "family": "gemini-2.5",
+      "input_price_per_1m": 0.075,
+      "output_price_per_1m": 0.30,
+      "max_context_tokens": 1000000,
+      "max_output_tokens": 8192,
+      "supports_json_schema": true
+    },
+    "gemini-1.5-pro": {
+      "provider": "google",
+      "family": "gemini-1.5",
+      "input_price_per_1m": 1.25,
+      "output_price_per_1m": 5.00,
+      "max_context_tokens": 2000000,
+      "max_output_tokens": 8192,
+      "supports_json_schema": true
+    },
+    "gemini-1.5-flash": {
+      "provider": "google",
+      "family": "gemini-1.5",
+      "input_price_per_1m": 0.075,
+      "output_price_per_1m": 0.30,
+      "max_context_tokens": 1000000,
+      "max_output_tokens": 8192,
+      "supports_json_schema": true
+    }
+  },
+  "model_patterns": {
+    "gpt-5": ["gpt-5", "o3-mini", "o3", "o4"],
+    "o1": ["o1"],
+    "gpt-4.1-nano": ["gpt-4.1-nano"],
+    "gpt-4.1-mini": ["gpt-4.1-mini"],
+    "gpt-4.1": ["gpt-4.1"],
+    "gpt-4o-mini": ["gpt-4o-mini"],
+    "gpt-4o": ["gpt-4o"],
+    "gpt-4-turbo": ["gpt-4-turbo"],
+    "gpt-4": ["gpt-4"],
+    "gpt-3.5-turbo": ["gpt-3.5"],
+    "claude-4-opus": ["claude-4-opus"],
+    "claude-4-sonnet": ["claude-4-sonnet"],
+    "claude-4-haiku": ["claude-4-haiku"],
+    "claude-3.5-opus": ["claude-3.5-opus"],
+    "claude-3.5-sonnet": ["claude-3.5-sonnet"],
+    "claude-3.5-haiku": ["claude-3.5-haiku"],
+    "claude-3-opus": ["claude-3-opus"],
+    "claude-3-sonnet": ["claude-3-sonnet"],
+    "claude-3-haiku": ["claude-3-haiku"],
+    "gemini-2.5-pro": ["gemini-2.5-pro"],
+    "gemini-2.5-flash": ["gemini-2.5-flash"],
+    "gemini-1.5-pro": ["gemini-1.5-pro"],
+    "gemini-1.5-flash": ["gemini-1.5-flash"]
+  }
+}

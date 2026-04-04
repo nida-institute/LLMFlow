@@ -47,6 +47,9 @@ jobs:
     - name: Build GUI (verify build works)
       run: python build_gui.py
 
+    - name: Type-check Python with Pyright
+      run: hatch run pytest tests/test_types.py -v
+
     - name: Run backend tests
       run: hatch run pytest tests/ -q --tb=short
       env:

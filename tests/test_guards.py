@@ -403,12 +403,12 @@ class TestGuardEdgeCases:
 
     def test_non_string_expression_raises_error(self):
         """Test that non-string expression raises ValueError"""
-        with pytest.raises(ValueError, match="non-empty string"):
+        with pytest.raises(ValueError, match="must be a string"):
             _safe_eval(123, {"x": 1})
 
     def test_none_expression_raises_error(self):
         """Test that None expression raises ValueError"""
-        with pytest.raises(ValueError, match="non-empty string"):
+        with pytest.raises(ValueError, match="must be a string"):
             _safe_eval(None, {"x": 1})
 
     def test_dangerous_builtins_blocked(self):

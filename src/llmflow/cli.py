@@ -146,6 +146,9 @@ def build_parser():
     # registry context
     reg_sub.add_parser("context", help="Generate AI context from registry")
 
+    # registry update-models
+    reg_sub.add_parser("update-models", help="Update model pricing/limits from GitHub")
+
     # context command
     ctx_p = subparsers.add_parser("context", help="Manage AI context files (docs/ai-context/)")
     ctx_sub = ctx_p.add_subparsers(dest="context_command", required=True)
@@ -165,6 +168,51 @@ def build_parser():
     ctx_search = ctx_sub.add_parser("search", help="Search AI context registry by topic")
     ctx_search.add_argument("topics", nargs="+", help="Topics to search for (matches any)")
     ctx_search.add_argument("--project", help="Filter by project name")
+
+    # content command (with subcommands)
+    content_p = subparsers.add_parser("content", help="Manage content lifecycle")
+    content_sub = content_p.add_subparsers(dest="content_command", required=True)
+
+    # content status
+    status_p = content_sub.add_parser("status", help="Show content status across stages")
+    status_p.add_argument("path", help="Content path (without extension)")
+    status_p.add_argument("--config", help="Path to content-stages.yaml (default: ./config/content-stages.yaml)")
+    status_p.add_argument("--content-root", help="Content root directory (default: ./content)")
+    status_p.add_argument("--json", action="store_true", help="Output result as JSON")
+
+    # content list
+    list_c = content_sub.add_parser("list", help="List all files in a stage")
+    list_c.add_argument("stage", help="Stage name")
+    list_c.add_argument("--config", help="Path to content-stages.yaml (default: ./config/content-stages.yaml)")
+    list_c.add_argument("--content-root", help="Content root directory (default: ./content)")
+    list_c.add_argument("--json", action="store_true", help="Output result as JSON")
+    list_c.add_argument("--with-metadata", action="store_true", help="Include metadata for each file")
+
+    # content diff
+    diff_p = content_sub.add_parser("diff", help="Compare content versions across stages")
+    diff_p.add_argument("path", help="Content path (without extension)")
+    diff_p.add_argument("--from-stage", required=True, help="Source stage name")
+    diff_p.add_argument("--to-stage", required=True, help="Destination stage name")
+    diff_p.add_argument("--config", help="Path to content-stages.yaml (default: ./config/content-stages.yaml)")
+    diff_p.add_argument("--content-root", help="Content root directory (default: ./content)")
+
+    # content gui
+    gui_c = content_sub.add_parser("gui", help="Launch web-based content management GUI")
+    gui_c.add_argument("--host", default="127.0.0.1", help="Host address (default: 127.0.0.1)")
+    gui_c.add_argument("--port", type=int, default=5051, help="Port number (default: 5051)")
+    gui_c.add_argument("--no-browser", action="store_true", help="Don't auto-open browser")
+    gui_c.add_argument("--content-root", help="Content root directory (default: ./content)")
+    gui_c.add_argument("--config", help="Path to content-stages.yaml (default: ./config/content-stages.yaml)")
+
+    # transition command (legacy - kept for backwards compatibility)
+    trans_p = subparsers.add_parser("transition", help="Transition content between lifecycle stages")
+    trans_p.add_argument("from_stage", metavar="from", help="Source stage name")
+    trans_p.add_argument("to_stage", metavar="to", help="Destination stage name")
+    trans_p.add_argument("path", help="Content path (without extension)")
+    trans_p.add_argument("--config", help="Path to content-stages.yaml (default: ./config/content-stages.yaml)")
+    trans_p.add_argument("--content-root", help="Content root directory (default: ./content)")
+    trans_p.add_argument("--dry-run", action="store_true", help="Validate without making changes")
+    trans_p.add_argument("--json", action="store_true", help="Output result as JSON")
 
     # Standard --version flag (e.g. used by CI smoke tests: llmflow --version)
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -395,6 +443,13 @@ def main(argv=None):
             # Generate AI context
             print(registry.generate_ai_context())
 
+        elif args.registry_command == "update-models":
+            # Update model metadata from GitHub
+            from llmflow.modules.telemetry import update_models_from_github
+
+            success = update_models_from_github()
+            sys.exit(0 if success else 1)
+
         return
 
     if args.command == "context":
@@ -467,6 +522,110 @@ def main(argv=None):
                     if ctx.get('path'):
                         print(f"    Path: {ctx['path']}")
                     print()
+
+        return
+
+    if args.command == "content":
+        config_path = Path(args.config) if args.config else None
+        content_root = Path(args.content_root) if args.content_root else None
+
+        if args.content_command == "status":
+            from llmflow.utils.content_status import get_content_status, format_status
+
+            result = get_content_status(
+                path=args.path,
+                content_root=content_root,
+                config_path=config_path,
+            )
+
+            print(format_status(result, json_output=args.json))
+
+            if not result["success"]:
+                sys.exit(1)
+
+        elif args.content_command == "list":
+            from llmflow.utils.content_list import list_content, format_content_list
+
+            result = list_content(
+                stage=args.stage,
+                content_root=content_root,
+                config_path=config_path,
+                with_metadata=args.with_metadata,
+            )
+
+            print(format_content_list(result, json_output=args.json))
+
+            if not result["success"]:
+                sys.exit(1)
+
+        elif args.content_command == "diff":
+            from llmflow.utils.content_diff import diff_content
+
+            result = diff_content(
+                path=args.path,
+                from_stage=args.from_stage,
+                to_stage=args.to_stage,
+                content_root=content_root,
+                config_path=config_path,
+            )
+
+            # diff_content outputs directly
+            if not result["success"]:
+                logger.error(f"❌ Diff failed: {result.get('error', 'Unknown error')}")
+                sys.exit(1)
+
+        elif args.content_command == "gui":
+            from gui.backend.content_app import start_content_gui
+
+            start_content_gui(
+                host=args.host,
+                port=args.port,
+                open_browser=not args.no_browser
+            )
+
+        return
+
+    if args.command == "transition":
+        from llmflow.utils.content_transition import transition_content
+
+        # Determine config and content root paths
+        config_path = Path(args.config) if args.config else None
+        content_root = Path(args.content_root) if args.content_root else None
+
+        # Execute transition
+        result = transition_content(
+            from_stage=args.from_stage,
+            to_stage=args.to_stage,
+            path=args.path,
+            config_path=config_path,
+            content_root=content_root,
+            dry_run=args.dry_run,
+        )
+
+        # Output result
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            if result["success"]:
+                output = result.get("result", {})
+                action = output.get("action", "transitioned")
+                from_stage = output.get("from", args.from_stage)
+                to_stage = output.get("to", args.to_stage)
+                source = output.get("source", "")
+                dest = output.get("destination", "")
+
+                logger.info(f"✅ Content {action}: {from_stage} → {to_stage}")
+                if source:
+                    logger.info(f"   Source: {source}")
+                if dest:
+                    logger.info(f"   Destination: {dest}")
+
+                if args.dry_run:
+                    logger.info("   (Dry run - no changes made)")
+            else:
+                error = result.get("error", "Unknown error")
+                logger.error(f"❌ Transition failed: {error}")
+                sys.exit(1)
 
         return
 

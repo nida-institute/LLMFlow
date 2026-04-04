@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { io } from 'socket.io-client'
+import ContentApp from './ContentApp'
 
-export default function PipelineView({ pipeline, project }) {
+export default function PipelineView({ pipeline, project, onBackToProject, onBackToProjectList }) {
+  const [showContentLifecycle, setShowContentLifecycle] = useState(false)
   const [config, setConfig] = useState(null)
   const [variables, setVariables] = useState({})
   const [output, setOutput] = useState([])
@@ -181,8 +183,39 @@ export default function PipelineView({ pipeline, project }) {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <header className="p-6 border-b border-border bg-background">
+      {/* Breadcrumb Navigation */}
+      <div className="px-6 py-3 border-b border-border bg-muted/50 flex items-center gap-2 text-sm">
+        <button
+          onClick={onBackToProject}
+          className="text-muted-foreground hover:text-foreground hover:underline"
+        >
+          {project.name}
+        </button>
+        <span className="text-muted-foreground">›</span>
+        <button
+          onClick={() => setShowContentLifecycle(false)}
+          className={showContentLifecycle ? 'text-muted-foreground hover:text-foreground hover:underline' : 'text-foreground font-medium'}
+        >
+          {pipeline.name}
+        </button>
+        {showContentLifecycle && (
+          <>
+            <span className="text-muted-foreground">›</span>
+            <span className="text-foreground font-medium">Content Lifecycle</span>
+          </>
+        )}
+      </div>
+
+      {showContentLifecycle ? (
+        /* Content Lifecycle View */
+        <div className="flex-1 overflow-auto">
+          <ContentApp project={project} embedded={true} />
+        </div>
+      ) : (
+        /* Pipeline View */
+        <>
+          {/* Header */}
+          <header className="p-6 border-b border-border bg-background">
         <h2 className="text-2xl font-semibold text-foreground">
           {pipeline.name}
         </h2>
@@ -246,15 +279,26 @@ export default function PipelineView({ pipeline, project }) {
             {running ? 'Running...' : 'Run Pipeline'}
           </button>
 
-          {outputDir && !running && (
-            <button
-              onClick={handleOpenOutputFolder}
-              className="px-6 py-2 rounded-md font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border"
-              title={`Open ${outputDir} in file manager`}
-            >
-              📁 Open Output Folder
-            </button>
-          )}
+          <button
+            onClick={handleOpenOutputFolder}
+            disabled={!outputDir || running}
+            className={`px-6 py-2 rounded-md font-medium transition-colors border ${
+              !outputDir || running
+                ? 'bg-muted text-muted-foreground border-muted cursor-not-allowed'
+                : 'bg-background text-foreground hover:bg-muted border-border'
+            }`}
+            title={outputDir ? `Open ${outputDir} in file manager` : 'Run pipeline to generate output'}
+          >
+            📁 Open Output
+          </button>
+
+          <button
+            onClick={() => setShowContentLifecycle(true)}
+            className="px-6 py-2 rounded-md font-medium transition-colors border bg-background text-foreground hover:bg-muted border-border"
+            title="Manage content through lifecycle stages"
+          >
+            📋 Content Lifecycle
+          </button>
         </div>
       </div>
 
@@ -321,6 +365,8 @@ export default function PipelineView({ pipeline, project }) {
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   )
 }

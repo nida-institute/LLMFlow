@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE = 'http://localhost:5051/api';
+const API_BASE = '/api';
 
 function GitPanel() {
   const [isOpen, setIsOpen] = useState(false);
