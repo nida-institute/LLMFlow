@@ -415,10 +415,12 @@ def create_app():
             else:
                 full_path = Path(file_path)
 
+            logger.info(f"Content status check: file_path={file_path}, project_path={project_path}, full_path={full_path}, exists={full_path.exists()}")
+
             if not full_path.exists():
                 return jsonify({
                     'success': False,
-                    'error': 'File not found'
+                    'error': f'File not found: {full_path}'
                 }), 404
 
             # Get file info
