@@ -5,11 +5,12 @@ Scripture Pipelines GUI Backend
 Flask server providing REST API and WebSocket for pipeline execution.
 """
 
-import os
 import json
+import os
 import subprocess
-import yaml
 from pathlib import Path
+
+import yaml
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
@@ -183,6 +184,61 @@ def handle_execute_pipeline(data):
 
 
 # =============================================================================
+# Content Lifecycle API
+# =============================================================================
+
+@app.route('/api/content/config', methods=['GET'])
+def get_content_config():
+    """Get content lifecycle configuration for a project."""
+    try:
+        from llmflow.utils.content_stages_loader import get_content_stages_config
+
+        project_path = request.args.get('project_path', None)
+        config_path = None
+
+        if project_path:
+            # Look for config in project directory
+            project_dir = Path(project_path)
+            # Try these locations in order:
+            candidates = [
+                project_dir / 'config' / 'content-stages.yaml',
+                project_dir / 'content-stages.yaml',
+                project_dir / '.sp' / 'content-stages.yaml',
+            ]
+            for candidate in candidates:
+                if candidate.exists():
+                    config_path = candidate
+                    break
+
+        config = get_content_stages_config(config_path)
+
+        return jsonify({
+            'success': True,
+            'stages': [
+                {
+                    'name': stage.name,
+                    'protected': stage.protected,
+                    'immutable': stage.immutable,
+                    'file_permissions': stage.file_permissions,
+                    'git_tracked': stage.git_tracked,
+                    'auto_create_metadata': stage.auto_create_metadata,
+                }
+                for stage in config.stages
+            ],
+            'transitions': [
+                {
+                    'from': trans.from_stage,
+                    'to': trans.to_stage,
+                    'action': trans.action,
+                }
+                for trans in config.transitions
+            ],
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# =============================================================================
 # Health Check
 # =============================================================================
 
@@ -208,6 +264,6 @@ def health_check():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print(f"🚀 Scripture Pipelines GUI Backend")
+    print("🚀 Scripture Pipelines GUI Backend")
     print(f"📡 Starting server on http://localhost:{port}")
     socketio.run(app, host='0.0.0.0', port=port, debug=True)

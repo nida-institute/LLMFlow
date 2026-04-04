@@ -4,13 +4,14 @@ import FileStatus from './FileStatus';
 import DiffViewer from './DiffViewer';
 import GitPanel from './GitPanel';
 
-const API_BASE = 'http://localhost:5051/api';
-
 function ContentApp({ project, embedded = false }) {
   const [view, setView] = useState('dashboard');
   const [config, setConfig] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [error, setError] = useState(null);
+
+  // Use relative URLs when embedded (uses Vite proxy), absolute when standalone
+  const API_BASE = embedded ? '/api' : 'http://localhost:5051/api';
 
   useEffect(() => {
     loadConfig();
@@ -24,6 +25,12 @@ function ContentApp({ project, embedded = false }) {
         : `${API_BASE}/content/config`;
 
       const response = await fetch(url);
+
+      // Check if response is ok
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
       if (data.success) {
         setConfig(data);
