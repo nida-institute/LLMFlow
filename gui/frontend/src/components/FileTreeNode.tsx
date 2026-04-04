@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FileTreeNode as TreeNodeType, countFiles } from '../utils/fileTree';
 
 interface FileTreeNodeProps {

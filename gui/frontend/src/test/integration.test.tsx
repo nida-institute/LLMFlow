@@ -9,7 +9,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
  */
 
 describe.skipIf(!!process.env.CI)('GUI Integration - What Actually Loads', () => {
-  let serverProcess: any = null;
+  // Server process would be managed here for future integration tests
   const BASE_URL = 'http://localhost:5000';
 
   beforeAll(async () => {

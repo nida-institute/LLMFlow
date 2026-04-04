@@ -2,19 +2,19 @@ import { useState, useEffect } from 'react'
 import ProjectList from './components/ProjectList'
 import PipelineView from './components/PipelineView'
 import ProjectView from './components/ProjectView'
-import './App.css'
+import type { Project, Pipeline, HealthStatus } from './types'
 
 function App() {
-  const [selectedProject, setSelectedProject] = useState(null)
-  const [selectedPipeline, setSelectedPipeline] = useState(null)
-  const [health, setHealth] = useState(null)
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  const [selectedPipeline, setSelectedPipeline] = useState<Pipeline | null>(null)
+  const [health, setHealth] = useState<HealthStatus | null>(null)
 
   useEffect(() => {
     // Check backend health
     fetch('/api/health')
       .then(res => res.json())
-      .then(data => setHealth(data))
-      .catch(err => console.error('Health check failed:', err))
+      .then((data: HealthStatus) => setHealth(data))
+      .catch((err: unknown) => console.error('Health check failed:', err))
   }, [])
 
   return (
@@ -34,11 +34,11 @@ function App() {
 
         <ProjectList
           selectedProject={selectedProject}
-          onSelectProject={(project) => {
+          onSelectProject={(project: Project) => {
             setSelectedProject(project)
             setSelectedPipeline(null)
           }}
-          onSelectPipeline={(pipeline) => {
+          onSelectPipeline={(pipeline: Pipeline) => {
             setSelectedPipeline(pipeline)
           }}
         />
@@ -46,7 +46,7 @@ function App() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-hidden">
-        {selectedPipeline ? (
+        {selectedPipeline && selectedProject ? (
           <PipelineView
             pipeline={selectedPipeline}
             project={selectedProject}
@@ -59,7 +59,7 @@ function App() {
         ) : selectedProject ? (
           <ProjectView
             project={selectedProject}
-            onSelectPipeline={(pipeline) => setSelectedPipeline(pipeline)}
+            onSelectPipeline={(pipeline: Pipeline) => setSelectedPipeline(pipeline)}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">

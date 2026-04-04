@@ -1,13 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import StageCard from './StageCard';
+import { ContentConfig, Project, ContentFile, Stage } from '../types';
 
-function ContentDashboard({ config, onFileSelect, onViewChange, project }) {
+interface ContentDashboardProps {
+  config: ContentConfig;
+  onFileSelect: (file: ContentFile) => void;
+  onViewChange?: (view: string) => void;
+  project: Project;
+}
+
+function ContentDashboard({ config, onFileSelect, project }: ContentDashboardProps) {
   // Always use relative URLs - frontend is served by Flask backend
   const API_BASE = '/api';
 
-  const [stageData, setStageData] = useState({});
+  const [stageData, setStageData] = useState<Record<string, ContentFile[]>>({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadAllStages();
@@ -31,13 +39,14 @@ function ContentDashboard({ config, onFileSelect, onViewChange, project }) {
         setError(data.error);
       }
     } catch (err) {
-      setError(`Failed to load stages: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to load stages: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTransition = async (file, fromStage, toStage) => {
+  const handleTransition = async (file: string, fromStage: string, toStage: string) => {
     try {
       const response = await fetch(`${API_BASE}/content/transition`, {
         method: 'POST',
@@ -59,7 +68,8 @@ function ContentDashboard({ config, onFileSelect, onViewChange, project }) {
         alert(`Transition failed: ${result.error}`);
       }
     } catch (err) {
-      alert(`Transition failed: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      alert(`Transition failed: ${errorMessage}`);
     }
   };
 
@@ -99,13 +109,13 @@ function ContentDashboard({ config, onFileSelect, onViewChange, project }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {config.stages.map((stage, index) => (
+        {config.stages.map((stage: Stage, index: number) => (
           <StageCard
             key={stage.name}
             stage={stage}
             files={stageData[stage.name] || []}
             nextStage={config.stages[index + 1]}
-            onFileSelect={(file) => onFileSelect({ file, project })}
+            onFileSelect={onFileSelect}
             onTransition={handleTransition}
           />
         ))}

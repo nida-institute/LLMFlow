@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { ContentConfig, ContentFile } from '../types';
 
 const API_BASE = '/api';
 
-function DiffViewer({ file, config, onBack }) {
+interface DiffViewerProps {
+  file: ContentFile | string;
+  config: ContentConfig;
+  onBack: () => void;
+}
+
+function DiffViewer({ file, config, onBack }: DiffViewerProps) {
   const [fromStage, setFromStage] = useState('');
   const [toStage, setToStage] = useState('');
-  const [diff, setDiff] = useState(null);
+  const [diff, setDiff] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Set default stages if available
@@ -20,12 +27,14 @@ function DiffViewer({ file, config, onBack }) {
   const loadDiff = async () => {
     if (!fromStage || !toStage) return;
 
+    const filePath = typeof file === 'string' ? file : file.path;
+
     try {
       setLoading(true);
       setError(null);
 
       const response = await fetch(
-        `${API_BASE}/content/diff?path=${encodeURIComponent(file)}&from_stage=${encodeURIComponent(fromStage)}&to_stage=${encodeURIComponent(toStage)}`
+        `${API_BASE}/content/diff?path=${encodeURIComponent(filePath)}&from_stage=${encodeURIComponent(fromStage)}&to_stage=${encodeURIComponent(toStage)}`
       );
       const data = await response.json();
 
@@ -35,13 +44,14 @@ function DiffViewer({ file, config, onBack }) {
         setError(data.error);
       }
     } catch (err) {
-      setError(`Failed to load diff: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to load diff: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const renderDiffLine = (line) => {
+  const renderDiffLine = (line: string) => {
     if (line.startsWith('+++') || line.startsWith('---')) {
       return <div className="text-gray-600 font-semibold">{line}</div>;
     }
@@ -67,7 +77,9 @@ function DiffViewer({ file, config, onBack }) {
         >
           ← Back
         </button>
-        <h2 className="text-xl font-semibold text-foreground">Compare Versions: {file}</h2>
+        <h2 className="text-xl font-semibold text-foreground">
+          Compare Versions: {typeof file === 'string' ? file : file.path}
+        </h2>
       </div>
 
       {/* Controls */}
@@ -146,7 +158,7 @@ function DiffViewer({ file, config, onBack }) {
               </p>
             </div>
             <div className="max-h-[600px] overflow-y-auto">
-              {diff.diff_lines.map((line, index) => (
+              {diff.diff_lines.map((line: string, index: number) => (
                 <div key={index}>{renderDiffLine(line)}</div>
               ))}
             </div>

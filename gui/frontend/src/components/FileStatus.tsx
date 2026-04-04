@@ -1,21 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { ContentConfig, ContentFile, Project } from '../types';
 
 const API_BASE = '/api';
 
-function FileStatus({ file, config, project, onBack, onViewDiff }) {
-  const [status, setStatus] = useState(null);
+interface FileStatusProps {
+  file: ContentFile | string;
+  config: ContentConfig;
+  project: Project;
+  onBack: () => void;
+  onViewDiff?: () => void;
+}
+
+function FileStatus({ file, config: _config, project, onBack }: FileStatusProps) {
+  const [status, setStatus] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadStatus();
   }, [file]);
 
   const loadStatus = async () => {
+    const filePath = typeof file === 'string' ? file : file.path;
     try {
       setLoading(true);
       const projectParam = project ? `&project_path=${encodeURIComponent(project.path)}` : '';
-      const response = await fetch(`${API_BASE}/content/status?path=${encodeURIComponent(file)}${projectParam}`);
+      const response = await fetch(`${API_BASE}/content/status?path=${encodeURIComponent(filePath)}${projectParam}`);
       const data = await response.json();
 
       if (data.success) {
@@ -24,13 +34,15 @@ function FileStatus({ file, config, project, onBack, onViewDiff }) {
         setError(data.error);
       }
     } catch (err) {
-      setError(`Failed to load status: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to load status: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTransition = async (fromStage, toStage) => {
+  const handleTransition = async (fromStage: string, toStage: string) => {
+    const filePath = typeof file === 'string' ? file : file.path;
     try {
       const response = await fetch(`${API_BASE}/content/transition`, {
         method: 'POST',
@@ -38,7 +50,7 @@ function FileStatus({ file, config, project, onBack, onViewDiff }) {
         body: JSON.stringify({
           from_stage: fromStage,
           to_stage: toStage,
-          path: file,
+          path: filePath,
         }),
       });
 
@@ -51,7 +63,8 @@ function FileStatus({ file, config, project, onBack, onViewDiff }) {
         alert(`Transition failed: ${result.error}`);
       }
     } catch (err) {
-      alert(`Transition failed: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      alert(`Transition failed: ${errorMessage}`);
     }
   };
 
@@ -106,7 +119,7 @@ function FileStatus({ file, config, project, onBack, onViewDiff }) {
       <div className="px-6 py-4">
         <h3 className="text-lg font-semibold text-foreground mb-4">Stage Status</h3>
         <div className="space-y-4">
-          {status.stages.map((stageInfo) => (
+          {status.stages.map((stageInfo: any) => (
             <div
               key={stageInfo.name}
               className={`border rounded-lg p-4 ${
@@ -139,7 +152,7 @@ function FileStatus({ file, config, project, onBack, onViewDiff }) {
                           <p className="font-medium text-foreground">Metadata:</p>
                           {Object.entries(stageInfo.metadata).map(([key, value]) => (
                             <p key={key} className="text-xs">
-                              {key}: {value}
+                              {key}: {String(value)}
                             </p>
                           ))}
                         </div>
@@ -160,7 +173,7 @@ function FileStatus({ file, config, project, onBack, onViewDiff }) {
         <div className="px-6 py-4 border-t border-border bg-secondary">
           <h3 className="text-lg font-semibold text-foreground mb-3">Next Actions</h3>
           <div className="space-y-2">
-            {status.next_actions.map((action, index) => (
+            {status.next_actions.map((action: any, index: number) => (
               <div key={index} className="flex items-center justify-between bg-background rounded p-3 border border-border">
                 <div>
                   <p className="font-medium text-foreground">

@@ -10,18 +10,19 @@ describe('App Component - Actual Rendering', () => {
     vi.clearAllMocks();
 
     // Mock health check
-    global.fetch.mockImplementation((url) => {
-      if (url.includes('/api/health')) {
+    (global.fetch as any) = vi.fn((url: string | URL | Request) => {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr.includes('/api/health')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ status: 'ok', sp_cli_available: true }),
-        });
+        } as Response);
       }
-      if (url.includes('/api/projects')) {
+      if (urlStr.includes('/api/projects')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ projects: [] }),
-        });
+        } as Response);
       }
       return Promise.reject(new Error('Unknown URL'));
     });

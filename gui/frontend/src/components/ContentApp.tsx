@@ -3,12 +3,18 @@ import ContentDashboard from './ContentDashboard';
 import FileStatus from './FileStatus';
 import DiffViewer from './DiffViewer';
 import GitPanel from './GitPanel';
+import { Project, ContentConfig, ContentFile } from '../types';
 
-function ContentApp({ project, embedded = false }) {
-  const [view, setView] = useState('dashboard');
-  const [config, setConfig] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [error, setError] = useState(null);
+interface ContentAppProps {
+  project: Project;
+  embedded?: boolean;
+}
+
+function ContentApp({ project, embedded = false }: ContentAppProps) {
+  const [view, setView] = useState<'dashboard' | 'status' | 'diff'>('dashboard');
+  const [config, setConfig] = useState<ContentConfig | null>(null);
+  const [selectedFile, setSelectedFile] = useState<ContentFile | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Always use relative URLs - frontend is served by Flask backend
   const API_BASE = '/api';
@@ -38,11 +44,12 @@ function ContentApp({ project, embedded = false }) {
         setError(data.error);
       }
     } catch (err) {
-      setError(`Failed to load configuration: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to load configuration: ${errorMessage}`);
     }
   };
 
-  const handleFileSelect = (file) => {
+  const handleFileSelect = (file: ContentFile) => {
     setSelectedFile(file);
     setView('status');
   };
@@ -143,7 +150,7 @@ function ContentApp({ project, embedded = false }) {
       </aside>
 
       <main className="flex-1 overflow-hidden bg-background">
-        {view === 'dashboard' && <ContentDashboard config={config} onFileSelect={handleFileSelect} />}
+        {view === 'dashboard' && <ContentDashboard config={config} onFileSelect={handleFileSelect} project={project} />}
         {view === 'status' && selectedFile && <FileStatus file={selectedFile} config={config} project={project} onBack={() => setView('dashboard')} />}
         {view === 'diff' && selectedFile && <DiffViewer file={selectedFile} config={config} onBack={() => setView('status')} />}
       </main>

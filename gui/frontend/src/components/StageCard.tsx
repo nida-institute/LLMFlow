@@ -1,15 +1,22 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { buildFileTree } from '../utils/fileTree';
-import FileTreeNode from './FileTreeNode';
+import { Stage, ContentFile } from '../types';
 
-function StageCard({ stage, files, nextStage, onFileSelect, onTransition }) {
-  const [selectedFiles, setSelectedFiles] = useState(new Set());
-  const [viewMode, setViewMode] = useState('tree'); // 'tree' or 'flat'
+interface StageCardProps {
+  stage: Stage;
+  files: ContentFile[];
+  nextStage?: Stage | null;
+  onFileSelect: (file: ContentFile) => void;
+  onTransition: (filePath: string, fromStage: string, toStage: string) => void;
+}
 
-  // Build tree structure from files
-  const fileTree = buildFileTree(files);
+function StageCard({ stage, files, nextStage, onFileSelect, onTransition }: StageCardProps) {
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
 
-  const handleFileToggle = (file) => {
+  // Build tree structure from files (convert ContentFile to FileInfo for tree)
+  buildFileTree(files.map(f => ({ ...f, size: f.size ?? 0, modified: f.modified ?? '' })));
+
+  const handleFileToggle = (file: ContentFile) => {
     const newSelected = new Set(selectedFiles);
     if (newSelected.has(file.path)) {
       newSelected.delete(file.path);
@@ -48,7 +55,7 @@ function StageCard({ stage, files, nextStage, onFileSelect, onTransition }) {
     return 'bg-accent/10 border-accent';
   };
 
-  const formatFileSize = (bytes) => {
+  const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -85,7 +92,7 @@ function StageCard({ stage, files, nextStage, onFileSelect, onTransition }) {
               <div
                 key={file.path}
                 className="px-4 py-3 hover:bg-muted cursor-pointer"
-                onClick={() => onFileSelect(file.path)}
+                onClick={() => onFileSelect(file)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
@@ -104,10 +111,10 @@ function StageCard({ stage, files, nextStage, onFileSelect, onTransition }) {
                           {file.path}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {formatFileSize(file.size)} · Modified{' '}
-                          {new Date(file.modified).toLocaleDateString()}
+                          {formatFileSize(file.size ?? 0)} · Modified{' '}
+                          {new Date(file.modified ?? Date.now()).toLocaleDateString()}
                         </p>
-                        {file.metadata && file.metadata.editor && (
+                        {file.metadata && typeof file.metadata.editor === 'string' && (
                           <p className="text-xs text-muted-foreground">
                             Editor: {file.metadata.editor}
                           </p>

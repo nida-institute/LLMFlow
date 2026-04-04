@@ -1,17 +1,25 @@
 import { useState, useEffect, useRef } from 'react'
-import { io } from 'socket.io-client'
+import { io, Socket } from 'socket.io-client'
 import ContentApp from './ContentApp'
+import { Pipeline, Project, PipelineConfig, OutputLine } from '../types'
 
-export default function PipelineView({ pipeline, project, onBackToProject, onBackToProjectList }) {
+interface PipelineViewProps {
+  pipeline: Pipeline;
+  project: Project;
+  onBackToProject: () => void;
+  onBackToProjectList: () => void;
+}
+
+export default function PipelineView({ pipeline, project, onBackToProject }: PipelineViewProps) {
   const [showContentLifecycle, setShowContentLifecycle] = useState(false)
-  const [config, setConfig] = useState(null)
-  const [variables, setVariables] = useState({})
-  const [output, setOutput] = useState([])
+  const [config, setConfig] = useState<PipelineConfig | null>(null)
+  const [variables, setVariables] = useState<Record<string, string>>({})
+  const [output, setOutput] = useState<OutputLine[]>([])
   const [running, setRunning] = useState(false)
   const [loadingConfig, setLoadingConfig] = useState(true)
-  const [outputDir, setOutputDir] = useState(null)
-  const socketRef = useRef(null)
-  const outputEndRef = useRef(null)
+  const [outputDir, setOutputDir] = useState<string | null>(null)
+  const socketRef = useRef<Socket | null>(null)
+  const outputEndRef = useRef<HTMLDivElement | null>(null)
 
   // Auto-scroll to bottom when output changes
   useEffect(() => {
@@ -59,7 +67,7 @@ export default function PipelineView({ pipeline, project, onBackToProject, onBac
     }
   }, [])
 
-  const renderLine = (text, idx) => {
+  const renderLine = (text: string, idx: number) => {
     // Detect file paths and make them clickable
     const filePathRegex = /([\w\-./]+\.(yaml|yml|txt|md|json|xml|csv|tsv|gpt))/g
     const parts = text.split(filePathRegex)
@@ -99,21 +107,21 @@ export default function PipelineView({ pipeline, project, onBackToProject, onBac
     socketRef.current = socket
 
     // Listen for events
-    socket.on('status', (data) => {
-      setOutput(prev => [...prev, { type: 'status', text: data.message }])
+    socket.on('status', (data: { message: string }) => {
+      setOutput(prev => [...prev, { type: 'status' as const, text: data.message }])
     })
 
-    socket.on('heartbeat', (data) => {
-      setOutput(prev => [...prev, { type: 'heartbeat', text: data.message }])
+    socket.on('heartbeat', (data: { message: string }) => {
+      setOutput(prev => [...prev, { type: 'heartbeat' as const, text: data.message }])
     })
 
-    socket.on('output_batch', (data) => {
-      setOutput(prev => [...prev, ...data.lines.map(line => ({ type: 'stdout', text: line }))])
+    socket.on('output_batch', (data: { lines: string[] }) => {
+      setOutput(prev => [...prev, ...data.lines.map((line: string) => ({ type: 'stdout' as const, text: line }))])
     })
 
-    socket.on('complete', (data) => {
-      const completionItems = [{
-        type: data.exit_code === 0 ? 'success' : 'error',
+    socket.on('complete', (data: { exit_code: number; output_dir?: string; created_files?: string[]; telemetry?: string }) => {
+      const completionItems: OutputLine[] = [{
+        type: data.exit_code === 0 ? 'success' as const : 'error' as const,
         text: data.exit_code === 0 ? '✅ Pipeline completed successfully' : '❌ Pipeline failed'
       }]
 
@@ -124,15 +132,15 @@ export default function PipelineView({ pipeline, project, onBackToProject, onBac
 
       // Add created files section
       if (data.created_files && data.created_files.length > 0) {
-        completionItems.push({ type: 'section_header', text: '\n📄 Created Files:' })
-        data.created_files.forEach(file => {
-          completionItems.push({ type: 'file_link', text: file })
+        completionItems.push({ type: 'section_header' as const, text: '\n📄 Created Files:' })
+        data.created_files.forEach((file: string) => {
+          completionItems.push({ type: 'file_link' as const, text: file })
         })
       }
 
       // Add telemetry report
       if (data.telemetry) {
-        completionItems.push({ type: 'telemetry', text: data.telemetry })
+        completionItems.push({ type: 'telemetry' as const, text: data.telemetry })
       }
 
       setOutput(prev => [...prev, ...completionItems])
@@ -140,8 +148,8 @@ export default function PipelineView({ pipeline, project, onBackToProject, onBac
       socket.disconnect()
     })
 
-    socket.on('error', (data) => {
-      setOutput(prev => [...prev, { type: 'error', text: `Error: ${data.message}` }])
+    socket.on('error', (data: { message: string }) => {
+      setOutput(prev => [...prev, { type: 'error' as const, text: `Error: ${data.message}` }])
       setRunning(false)
       socket.disconnect()
     })
@@ -169,14 +177,15 @@ export default function PipelineView({ pipeline, project, onBackToProject, onBac
 
       if (!response.ok) {
         setOutput(prev => [...prev, {
-          type: 'error',
+          type: 'error' as const,
           text: `Failed to open folder: ${data.error}`
         }])
       }
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setOutput(prev => [...prev, {
-        type: 'error',
-        text: `Failed to open folder: ${err.message}`
+        type: 'error' as const,
+        text: `Failed to open folder: ${errorMessage}`
       }])
     }
   }
@@ -243,7 +252,9 @@ export default function PipelineView({ pipeline, project, onBackToProject, onBac
             </p>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
-              {Object.entries(varsSection).map(([key, defaultValue]) => (
+              {Object.entries(varsSection).map(([key, defaultValue]) => {
+                const defaultStr = defaultValue !== null && defaultValue !== undefined ? String(defaultValue) : '';
+                return (
                 <div key={key}>
                   <label className="block text-sm font-medium mb-1 text-foreground">
                     {key}
@@ -253,15 +264,15 @@ export default function PipelineView({ pipeline, project, onBackToProject, onBac
                     value={variables[key] || ''}
                     onChange={(e) => setVariables({ ...variables, [key]: e.target.value })}
                     className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
-                    placeholder={defaultValue ? `Default: ${defaultValue}` : `Enter ${key}`}
+                    placeholder={defaultStr ? `Default: ${defaultStr}` : `Enter ${key}`}
                   />
-                  {defaultValue && (
+                  {defaultStr && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Default: {defaultValue}
+                      Default: {defaultStr}
                     </p>
                   )}
                 </div>
-              ))}
+              )})}
             </div>
           )
         })()}

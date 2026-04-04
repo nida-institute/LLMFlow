@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react'
+import { Project, Pipeline } from '../types'
 
-export default function ProjectView({ project, onSelectPipeline }) {
-  const [pipelines, setPipelines] = useState([])
+interface ProjectViewProps {
+  project: Project;
+  onSelectPipeline: (pipeline: Pipeline) => void;
+}
+
+export default function ProjectView({ project, onSelectPipeline }: ProjectViewProps) {
+  const [pipelines, setPipelines] = useState<Pipeline[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (project) {

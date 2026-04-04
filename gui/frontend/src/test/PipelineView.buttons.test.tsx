@@ -23,6 +23,7 @@ vi.mock('socket.io-client', () => ({
 describe('PipelineView - Button Integration', () => {
   const mockPipeline = {
     name: 'test-pipeline',
+    path: 'pipelines/pipeline.yaml',
     full_path: '/test/pipeline.yaml',
     file: 'pipeline.yaml',
   }
@@ -36,18 +37,12 @@ describe('PipelineView - Button Integration', () => {
     vi.clearAllMocks()
 
     // Mock fetch for config endpoint
-    global.fetch = vi.fn((url) => {
-      if (url === '/api/pipeline/config') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ vars: {} }),
-        })
-      }
+    global.fetch = vi.fn((_url: string | URL | Request) => {
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({}),
-      })
-    })
+        json: () => Promise.resolve({ vars: {} }),
+      } as Response)
+    }) as any
   })
 
   describe('Run Pipeline Button', () => {
@@ -134,19 +129,13 @@ describe('PipelineView - Button Integration', () => {
     })
 
     it('should call /api/open-folder when clicked (if enabled)', async () => {
-      const mockFetch = vi.fn((url, options) => {
-        if (url === '/api/open-folder') {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ success: true }),
-          })
-        }
+      const mockFetch = vi.fn((_url: string | URL | Request, _options?: any) => {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ vars: {} }),
-        })
+          json: () => Promise.resolve({ success: true }),
+        } as Response)
       })
-      global.fetch = mockFetch
+      global.fetch = mockFetch as any
 
       render(
         <PipelineView

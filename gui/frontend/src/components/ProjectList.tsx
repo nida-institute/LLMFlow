@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react'
+import { Project, Pipeline } from '../types'
 
-export default function ProjectList({ selectedProject, onSelectProject, onSelectPipeline }) {
-  const [projects, setProjects] = useState([])
-  const [pipelines, setPipelines] = useState([])
+interface ProjectListProps {
+  selectedProject: Project | null;
+  onSelectProject: (project: Project) => void;
+  onSelectPipeline: (pipeline: Pipeline) => void;
+}
+
+export default function ProjectList({ selectedProject, onSelectProject }: ProjectListProps) {
+  const [projects, setProjects] = useState<Project[]>([])
+  const [_pipelines, setPipelines] = useState<Pipeline[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     // Load projects from registry

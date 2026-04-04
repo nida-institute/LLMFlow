@@ -31,7 +31,7 @@ describe('PipelineView - What Actually Loads', () => {
   });
 
   it('renders breadcrumb navigation', () => {
-    render(<PipelineView pipeline={mockPipeline} project={mockProject} />);
+    render(<PipelineView pipeline={mockPipeline} project={mockProject} onBackToProject={() => {}} onBackToProjectList={() => {}} />);
 
     // Breadcrumb should show project and pipeline names (may appear multiple times)
     const projectElements = screen.getAllByText('test-project');
@@ -42,7 +42,7 @@ describe('PipelineView - What Actually Loads', () => {
   });
 
   it('renders all three action buttons', () => {
-    render(<PipelineView pipeline={mockPipeline} project={mockProject} />);
+    render(<PipelineView pipeline={mockPipeline} project={mockProject} onBackToProject={() => {}} onBackToProjectList={() => {}} />);
 
     // Should have Run Pipeline button (use getAllByText since text may appear in breadcrumb too)
     const runButtons = screen.getAllByText(/Run Pipeline/);
@@ -57,7 +57,7 @@ describe('PipelineView - What Actually Loads', () => {
   });
 
   it('Content Lifecycle button is clickable and shows in breadcrumb', async () => {
-    render(<PipelineView pipeline={mockPipeline} project={mockProject} />);
+    render(<PipelineView pipeline={mockPipeline} project={mockProject} onBackToProject={() => {}} onBackToProjectList={() => {}} />);
 
     const lifecycleButtons = screen.getAllByText(/Content Lifecycle/);
     expect(lifecycleButtons.length).toBeGreaterThan(0);
@@ -74,7 +74,7 @@ describe('PipelineView - What Actually Loads', () => {
   });
 
   it('breadcrumb navigation works - clicking pipeline name goes back', async () => {
-    render(<PipelineView pipeline={mockPipeline} project={mockProject} />);
+    render(<PipelineView pipeline={mockPipeline} project={mockProject} onBackToProject={() => {}} onBackToProjectList={() => {}} />);
 
     // Click Content Lifecycle
     const lifecycleButtons = screen.getAllByText(/Content Lifecycle/);
@@ -99,7 +99,7 @@ describe('PipelineView - What Actually Loads', () => {
 
   // Skip in CI - path display format varies by environment
   it.skipIf(!!process.env.CI)('displays pipeline header with name and path', () => {
-    render(<PipelineView pipeline={mockPipeline} project={mockProject} />);
+    render(<PipelineView pipeline={mockPipeline} project={mockProject} onBackToProject={() => {}} onBackToProjectList={() => {}} />);
 
     // Header should show pipeline name
     const headers = screen.getAllByText('test-pipeline');
@@ -110,23 +110,23 @@ describe('PipelineView - What Actually Loads', () => {
   });
 
   it('Configuration section loads', () => {
-    global.fetch.mockResolvedValueOnce({
+    (global.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ vars: {} })
     });
 
-    render(<PipelineView pipeline={mockPipeline} project={mockProject} />);
+    render(<PipelineView pipeline={mockPipeline} project={mockProject} onBackToProject={() => {}} onBackToProjectList={() => {}} />);
 
     expect(screen.getByText(/Configuration/)).toBeInTheDocument();
   });
 
   it('Output section is present', () => {
-    global.fetch.mockResolvedValueOnce({
+    (global.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ vars: {} })
     });
 
-    render(<PipelineView pipeline={mockPipeline} project={mockProject} />);
+    render(<PipelineView pipeline={mockPipeline} project={mockProject} onBackToProject={() => {}} onBackToProjectList={() => {}} />);
 
     // "Output" may appear in multiple places (section header, button text, etc.)
     const outputElements = screen.getAllByText(/Output/);
@@ -134,7 +134,7 @@ describe('PipelineView - What Actually Loads', () => {
   });
 
   it('Open Output button is disabled before pipeline runs', () => {
-    render(<PipelineView pipeline={mockPipeline} project={mockProject} />);
+    render(<PipelineView pipeline={mockPipeline} project={mockProject} onBackToProject={() => {}} onBackToProjectList={() => {}} />);
 
     const openOutputButton = screen.getByText(/Open Output/);
     expect(openOutputButton).toBeDisabled();
@@ -142,12 +142,12 @@ describe('PipelineView - What Actually Loads', () => {
 
   // Skip in CI - button state depends on component initialization timing
   it.skipIf(!!process.env.CI)('Run Pipeline button is enabled', () => {
-    global.fetch.mockResolvedValueOnce({
+    (global.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ vars: {} })
     });
 
-    render(<PipelineView pipeline={mockPipeline} project={mockProject} />);
+    render(<PipelineView pipeline={mockPipeline} project={mockProject} onBackToProject={() => {}} onBackToProjectList={() => {}} />);
 
     // "Run Pipeline" may appear in breadcrumb too, so use getAllByText
     const runButtons = screen.getAllByText(/Run Pipeline/);
@@ -169,7 +169,7 @@ describe('PipelineView - Content Lifecycle Integration', () => {
   };
 
   it('switches view when Content Lifecycle button clicked', async () => {
-    render(<PipelineView pipeline={mockPipeline} project={mockProject} />);
+    render(<PipelineView pipeline={mockPipeline} project={mockProject} onBackToProject={() => {}} onBackToProjectList={() => {}} />);
 
     // Initially in pipeline view - Configuration visible
     expect(screen.queryByText(/Configuration/)).toBeInTheDocument();

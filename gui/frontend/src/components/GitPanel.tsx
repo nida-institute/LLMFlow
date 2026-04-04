@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { GitStatus } from '../types';
 
 const API_BASE = '/api';
 
 function GitPanel() {
   const [isOpen, setIsOpen] = useState(false);
-  const [gitStatus, setGitStatus] = useState(null);
+  const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
   const [commitMessage, setCommitMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null);
+  const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -52,7 +53,8 @@ function GitPanel() {
         setMessage({ type: 'error', text: result.error });
       }
     } catch (err) {
-      setMessage({ type: 'error', text: `Commit failed: ${err.message}` });
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setMessage({ type: 'error', text: `Commit failed: ${errorMsg}` });
     } finally {
       setLoading(false);
     }
@@ -73,7 +75,8 @@ function GitPanel() {
         setMessage({ type: 'error', text: result.error });
       }
     } catch (err) {
-      setMessage({ type: 'error', text: `Push failed: ${err.message}` });
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setMessage({ type: 'error', text: `Push failed: ${errorMsg}` });
     } finally {
       setLoading(false);
     }
@@ -95,13 +98,14 @@ function GitPanel() {
         setMessage({ type: 'error', text: result.error });
       }
     } catch (err) {
-      setMessage({ type: 'error', text: `Pull failed: ${err.message}` });
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setMessage({ type: 'error', text: `Pull failed: ${errorMsg}` });
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: string): string => {
     if (status === 'M') return '📝';
     if (status === 'A') return '➕';
     if (status === 'D') return '🗑️';
@@ -184,7 +188,7 @@ function GitPanel() {
                     value={commitMessage}
                     onChange={(e) => setCommitMessage(e.target.value)}
                     className="w-full px-3 py-2 border border-input rounded bg-background text-foreground focus:ring-accent focus:border-accent"
-                    rows="3"
+                    rows={3}
                     placeholder="Enter commit message..."
                   />
                   <button
