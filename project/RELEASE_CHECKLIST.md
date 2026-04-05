@@ -2,6 +2,10 @@
 
 Follow this checklist when preparing a new release.
 
+**For AI assistance:** Invoke the `/release` skill which provides guided automation and mandatory verification.
+
+**CRITICAL:** Never claim "build succeeded" without running verification commands. See Section 8 for mandatory checks.
+
 ---
 
 ## Pre-Release Validation
@@ -53,21 +57,81 @@ Follow this checklist when preparing a new release.
 - [ ] Resolve any merge conflicts
 - [ ] `git push origin main`
 
-### 7. Tagging
-- [ ] Create annotated tag: `git tag -a v0.2.1.05 -m "Release 0.2.1.05"`
-  - Use version from pyproject.toml
-  - Format: `v` + version number
-- [ ] Push tag: `git push origin v0.2.1.05`
-- [ ] Verify tag appears on GitHub
+### 7. Tagging **[CRITICAL - CHECK FOR EXISTING TAGS]**
 
-### 8. CI Build
+```bash
+# Get version from pyproject.toml
+VERSION=$(grep 'version = ' pyproject.toml | cut -d'"' -f2)
+
+# CHECK if tag already exists (prevents orphaned tags from failed releases)
+git tag --list "v$VERSION"
+git ls-remote --tags origin "v$VERSION"
+
+# If tag exists, DELETE IT FIRST:
+git tag -d "v$VERSION"
+git push origin --delete "v$VERSION"
+
+# Create new annotated tag
+git tag -a "v$VERSION" -m "Release $VERSION"
+
+# Push tag to trigger build
+git push origin "v$VERSION"
+```
+
+**CHECKLIST:**
+- [ ] Checked for existing tag with same version number
+- [ ] Deleted old tag if it existed (locally and remotely)
+- [ ] Created annotated tag: `git tag -a v$VERSION -m "Release $VERSION"`
+  - Use exact version from pyproject.toml
+  - Format: `v` + version number (e.g., v0.2.1.15)
+- [ ] Pushed tag: `git push origin v$VERSION`
+- [ ] Verified tag appears on GitHub: https://github.com/nida-institute/LLMFlow/tags
+
+### 8. CI Build **[CRITICAL - MANDATORY VERIFICATION]**
+
+**🚨 DO NOT SKIP THESE VERIFICATION COMMANDS 🚨**
+
+```bash
+# Wait for workflow to start (30 seconds after tag push)
+sleep 30
+
+# Check if workflow was triggered
+gh run list --workflow=build-release.yml --limit 1
+
+# Get the run ID and URL
+RUN_ID=$(gh run list --workflow=build-release.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+echo "Build URL: https://github.com/nida-institute/LLMFlow/actions/runs/$RUN_ID"
+
+# Monitor until complete (takes ~3-5 minutes)
+gh run watch $RUN_ID
+
+# VERIFY ALL PLATFORMS SUCCEEDED (all must show "success")
+gh run view $RUN_ID --json jobs --jq '.jobs[] | "\(.name): \(.conclusion)"'
+```
+
+**CHECKLIST (do not proceed unless ALL are checked):**
 - [ ] GitHub Actions "Build and Release Executables" workflow triggered automatically
-- [ ] All three builds succeed (Linux, macOS, Windows)
+- [ ] Verified run URL in browser shows ALL green checkmarks
+- [ ] Command output shows "success" for: Create Draft Release, Build on Linux, Build on macOS, Build on Windows
 - [ ] Draft release created automatically
-- [ ] Binaries attached to release:
+- [ ] Binaries attached to release (visible in GitHub UI):
   - `sp-linux`
   - `sp-macos`
   - `sp-windows.exe`
+- [ ] Binary sizes reasonable (~50-70MB each)
+
+**IF ANY BUILD FAILED:**
+```bash
+# Get error logs
+gh run view $RUN_ID --log-failed
+
+# Delete failed release and tag
+gh release delete "v$VERSION" --yes
+git tag -d "v$VERSION"
+git push origin --delete "v$VERSION"
+
+# Fix the issue, then start checklist over from step 1
+```
 
 ### 9. Release Notes
 - [ ] Open draft release on GitHub
