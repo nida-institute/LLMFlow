@@ -101,18 +101,30 @@ git push origin "v$VERSION"
 
 ### 6. **CRITICAL: Wait and Verify Build**
 
+**🚨 IMMEDIATELY after tag push: Show the user the build URL 🚨**
+
 ```bash
 # Wait 30 seconds for workflow to start
 sleep 30
 
-# Check if workflow was triggered
-gh run list --workflow=build-release.yml --limit 1
-
-# Get the run ID
+# Get the run ID and URL
 RUN_ID=$(gh run list --workflow=build-release.yml --limit 1 --json databaseId --jq '.[0].databaseId')
-echo "Monitoring run: $RUN_ID"
-echo "URL: https://github.com/nida-institute/LLMFlow/actions/runs/$RUN_ID"
 
+# DISPLAY THIS URL TO USER IMMEDIATELY (do not wait for build completion)
+echo "Build URL: https://github.com/nida-institute/LLMFlow/actions/runs/$RUN_ID"
+```
+
+**At this point, tell the user:**
+```
+Tag v$VERSION pushed. Build triggered:
+https://github.com/nida-institute/LLMFlow/actions/runs/$RUN_ID
+
+Monitoring build progress (takes ~3-5 minutes)...
+```
+
+**Then continue monitoring:**
+
+```bash
 # Monitor until complete (builds take ~3-5 minutes)
 gh run watch $RUN_ID
 
@@ -261,18 +273,34 @@ gh run list --workflow=build-release.yml --limit 1
 
 When executing a release, the AI **MUST** provide:
 
-1. **GitHub Actions workflow URL** - Direct link to the build run
+1. **GitHub Actions workflow URL (ALWAYS)** - Direct clickable link to the build run
+   - Format: `https://github.com/nida-institute/LLMFlow/actions/runs/<RUN_ID>`
+   - Show this IMMEDIATELY after tag push, before making any claims about status
+   - User must be able to click and verify independently
 2. **Status output** - Copy of `gh run view` showing all jobs succeeded
 3. **Binary verification** - Proof that artifacts exist (file sizes, checksums)
 4. **User-actionable next steps** - Clear instructions for what to do next
+
+**CRITICAL RULE: Show the build URL FIRST, status claims SECOND**
+
+The user must see the link and be able to verify the build themselves. Never claim success without providing the URL for independent verification.
 
 **NEVER say:**
 - ❌ "Build succeeded" without proof
 - ❌ "All platforms passed" without showing command output
 - ❌ "Release is ready" without verifying binaries exist
+- ❌ "Build is running" without providing the URL
 
 **ALWAYS say:**
-- ✅ "Build workflow triggered: [URL]"
-- ✅ "Verification pending - monitoring run [ID]"
+- ✅ "Build workflow triggered: https://github.com/nida-institute/LLMFlow/actions/runs/12345678"
+- ✅ "Verification pending - monitoring run 12345678"
 - ✅ "All platforms verified successful: [status output]"
 - ✅ "Binaries available: [artifact list with sizes]"
+
+**Example correct response:**
+```
+Tag v0.2.1.15 pushed. Build triggered:
+https://github.com/nida-institute/LLMFlow/actions/runs/23989036595
+
+Monitoring build progress...
+```
