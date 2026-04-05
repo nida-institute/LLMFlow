@@ -38,10 +38,11 @@ def main():
         npm_cmd = "ci" if os.getenv("CI") else "install"
         print(f"\n[INSTALL] Installing npm dependencies (npm {npm_cmd})...")
         result = subprocess.run(
-            ["npm", npm_cmd],
+            f"npm {npm_cmd}",
             cwd=frontend_dir,
             capture_output=True,
-            text=True
+            text=True,
+            shell=True
         )
         if result.returncode != 0:
             print(f"[ERROR] npm {npm_cmd} failed:")
@@ -52,10 +53,11 @@ def main():
     # Build frontend
     print("\n[BUILD] Building React frontend (production)...")
     result = subprocess.run(
-        ["npm", "run", "build"],
+        "npm run build",
         cwd=frontend_dir,
         capture_output=True,
-        text=True
+        text=True,
+        shell=True
     )
     if result.returncode != 0:
         print(f"[ERROR] npm build failed:")
