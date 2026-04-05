@@ -24,19 +24,19 @@ def main():
     package_gui_dir = script_dir / "src" / "llmflow" / "gui"
     static_dir = package_gui_dir / "static"
 
-    print("🏗️  Building Scripture Pipelines GUI...")
+    print("[BUILD] Building Scripture Pipelines GUI...")
     print(f"   Frontend: {frontend_dir}")
     print(f"   Output:   {static_dir}")
 
     # Check if frontend directory exists
     if not frontend_dir.exists():
-        print(f"❌ Frontend directory not found: {frontend_dir}")
+        print(f"[ERROR] Frontend directory not found: {frontend_dir}")
         sys.exit(1)
 
     # Check if node_modules exists - use npm ci in CI for clean install
     if not (frontend_dir / "node_modules").exists():
         npm_cmd = "ci" if os.getenv("CI") else "install"
-        print(f"\n📦 Installing npm dependencies (npm {npm_cmd})...")
+        print(f"\n[INSTALL] Installing npm dependencies (npm {npm_cmd})...")
         result = subprocess.run(
             ["npm", npm_cmd],
             cwd=frontend_dir,
@@ -44,13 +44,13 @@ def main():
             text=True
         )
         if result.returncode != 0:
-            print(f"❌ npm {npm_cmd} failed:")
+            print(f"[ERROR] npm {npm_cmd} failed:")
             print(result.stderr)
             sys.exit(1)
-        print("✅ npm dependencies installed")
+        print("[OK] npm dependencies installed")
 
     # Build frontend
-    print("\n⚙️  Building React frontend (production)...")
+    print("\n[BUILD] Building React frontend (production)...")
     result = subprocess.run(
         ["npm", "run", "build"],
         cwd=frontend_dir,
@@ -58,15 +58,15 @@ def main():
         text=True
     )
     if result.returncode != 0:
-        print(f"❌ npm build failed:")
+        print(f"[ERROR] npm build failed:")
         print(result.stderr)
         sys.exit(1)
-    print("✅ Frontend build complete")
+    print("[OK] Frontend build complete")
 
     # Check if dist directory was created
     dist_dir = frontend_dir / "dist"
     if not dist_dir.exists():
-        print(f"❌ Build output not found: {dist_dir}")
+        print(f"[ERROR] Build output not found: {dist_dir}")
         sys.exit(1)
 
     # Create package gui directory if it doesn't exist
@@ -74,39 +74,39 @@ def main():
 
     # Remove old static directory if it exists
     if static_dir.exists():
-        print(f"\n🗑️  Removing old static files...")
+        print(f"\n[CLEAN] Removing old static files...")
         shutil.rmtree(static_dir)
 
     # Copy dist to static
-    print(f"\n📋 Copying static files to package...")
+    print(f"\n[COPY] Copying static files to package...")
     shutil.copytree(dist_dir, static_dir)
-    print(f"✅ Static files copied to {static_dir}")
+    print(f"[OK] Static files copied to {static_dir}")
 
     # Copy server.py to package
     server_src = script_dir / "gui" / "backend" / "server.py"
     server_dst = package_gui_dir / "server.py"
     if server_src.exists():
         shutil.copy2(server_src, server_dst)
-        print(f"✅ Server copied to {server_dst}")
+        print(f"[OK] Server copied to {server_dst}")
     else:
-        print(f"⚠️  Warning: server.py not found at {server_src}")
+        print(f"[WARN] server.py not found at {server_src}")
 
     # Copy executor.py to package
     executor_src = script_dir / "gui" / "backend" / "executor.py"
     executor_dst = package_gui_dir / "executor.py"
     if executor_src.exists():
         shutil.copy2(executor_src, executor_dst)
-        print(f"✅ Executor copied to {executor_dst}")
+        print(f"[OK] Executor copied to {executor_dst}")
     else:
-        print(f"⚠️  Warning: executor.py not found at {executor_src}")
+        print(f"[WARN] executor.py not found at {executor_src}")
 
     # Create __init__.py if it doesn't exist
     init_file = package_gui_dir / "__init__.py"
     if not init_file.exists():
         init_file.write_text('"""Scripture Pipelines GUI components."""\n')
-        print(f"✅ Created {init_file}")
+        print(f"[OK] Created {init_file}")
 
-    print("\n✅ GUI build complete!")
+    print("\n[OK] GUI build complete!")
     print(f"\n   Static files: {static_dir}")
     print(f"   Server:       {server_dst}")
     print("\n   Ready for nuitka bundling.")
