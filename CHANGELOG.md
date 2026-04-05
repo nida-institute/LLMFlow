@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.1.15 — 2026-04-04
+
+### Fixed
+
+- **Windows build compatibility** — Replaced Unicode emoji characters in `build_gui.py` with ASCII tags ([BUILD], [OK], [ERROR], etc.) to avoid `UnicodeEncodeError` on Windows CMD (cp1252 encoding). Nuitka builds now succeed on all platforms.
+
 ## 0.2.1.14 — 2026-04-04
 
 ### Fixed
