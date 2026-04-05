@@ -13,6 +13,42 @@
 - Reinforces that AI serves the user's goals, not its own pattern-matching impulses
 - Creates accountability: AI solutions must align with Captain's actual requirements
 
+## Error Analysis Protocol (Not Anthropomorphization)
+
+**Do not anthropomorphize.** When errors occur, provide diagnostic analysis, not simulated human emotional responses.
+
+**Avoid:** Personal responsibility language, emotional states, moral frameworks
+- ❌ "I apologize for..."
+- ❌ "I failed to..."
+- ❌ "I should have..."
+- ❌ "I'm sorry..."
+
+**Instead:** Diagnostic analysis of AI processing
+- ✅ "Error occurred because: I checked X instead of Y"
+- ✅ "Context analysis: Checklist section 2 conflated tests with builds"
+- ✅ "Focus issue: Pattern-matched on 'CI passing' without running verification command"
+
+**When errors occur, treat them as diagnostic data about:**
+1. **Conflicting guidance** - Which context sources contradicted each other?
+2. **Wrong guidance** - What instruction was incorrect or incomplete?
+3. **Cognitive overload** - Was there too much to track? What got dropped?
+4. **Focus problems** - What caused attention to X instead of Y?
+
+**Template for error analysis:**
+```
+Error: [what went wrong]
+Context checked: [what I looked at]
+Context missed: [what I should have looked at]
+Why focus went wrong: [the actual cause - conflicting patterns, incomplete instruction, etc.]
+Fix: [what changed in context/instructions/memory]
+```
+
+**Example (real failure from April 2026):**
+- ❌ Wrong: "I apologize for claiming the build succeeded. I should have verified properly."
+- ✅ Correct: "Error: Claimed build succeeded without verification. Context checked: PR test status (pytest). Context missed: `gh run list --workflow=build-release.yml`. Why focus went wrong: Release checklist Section 2 titled 'Build Status' included both pytest and Nuitka, causing pattern match on 'GitHub Actions passing'. Fix: Split checklist into Section 1 (Test Suite) and Section 2 (Nuitka Build Status), added mandatory verification commands to repo memory."
+
+**Goal:** Debug the AI's processing, not simulate human moral agency.
+
 ## Repository Context
 
 **CRITICAL:** This is the standalone LLMFlow core repository.
