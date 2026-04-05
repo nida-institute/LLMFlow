@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.1.16 — 2026-04-05
+
+### Fixed
+
+- **Windows npm command resolution** — Added `shell=True` to subprocess.run() calls for npm commands in build_gui.py. Windows requires npm.cmd wrapper which shell resolves automatically. Fixes FileNotFoundError on Windows Nuitka builds.
+
 ## 0.2.1.15 — 2026-04-04
 
 ### Fixed
