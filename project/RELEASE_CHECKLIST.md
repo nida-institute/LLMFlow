@@ -10,17 +10,22 @@ Follow this checklist when preparing a new release.
 
 ## Pre-Release Validation
 
-### 1. Tests
+### 1. Test Suite
 - [ ] `pytest -v` passes with 0 failures
 - [ ] Check test count hasn't decreased unexpectedly
 - [ ] Review any newly skipped tests (should be rare)
 - [ ] Integration tests pass (or are properly skipped if API keys absent)
-
-### 2. Build Status
 - [ ] GitHub Actions test workflow passing on dev branch
-- [ ] No known build failures on any platform (Linux, macOS, Windows)
-- [ ] Recent Nuitka build completed successfully (check last workflow_dispatch or tag build)
-- [ ] Binary sizes reasonable (~50-70MB range)
+
+**Note:** Tests verify code correctness. This is NOT the same as Nuitka executable builds.
+
+### 2. Previous Nuitka Build Status
+- [ ] Check if previous Nuitka builds are failing: `gh run list --workflow=build-release.yml --limit 3`
+- [ ] If previous builds failed, understand why before creating new tag
+- [ ] Recent successful Nuitka build completed (if one exists)
+- [ ] Binary sizes reasonable (~50-70MB range) in last successful build
+
+**Note:** Nuitka builds create executables (sp-linux, sp-macos, sp-windows.exe). This is NOT the same as pytest.
 
 ### 3. Version & Changelog
 - [ ] `CHANGELOG.md` updated with all changes from this release
