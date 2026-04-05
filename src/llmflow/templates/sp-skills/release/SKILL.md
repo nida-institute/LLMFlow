@@ -240,6 +240,57 @@ git push origin --delete "v$VERSION"
 - **Prevention:** Test with `act` (GitHub Actions local runner) before tagging
 - **Fix:** Check workflow logs, update CI configuration
 
+### 4. **Critical Distinction: Two Separate Build Systems**
+
+**THE PROBLEM:** AI confuses PR test status with Nuitka build status and claims "build succeeded" when only tests passed.
+
+**Two completely separate workflows:**
+
+| Workflow | Triggers On | What It Does | How to Verify |
+|----------|------------|--------------|---------------|
+| **Tests** (`tests.yml`) | Push to any branch | Runs pytest, checks code quality | `gh pr view <PR#> --json statusCheckRollup` |
+| **Nuitka Builds** (`build-release.yml`) | Push to version tag | Builds executables for Mac/Linux/Windows | `gh run list --workflow=build-release.yml` |
+
+**What tests passing means:**
+- ✅ Code works
+- ✅ PyPI packages can be built (`hatch build`)
+- ❌ **DOES NOT MEAN** executables were built
+- ❌ **DOES NOT MEAN** Nuitka succeeded
+
+**What Nuitka builds passing means:**
+- ✅ Executables built for all 3 platforms
+- ✅ `sp-linux`, `sp-macos`, `sp-windows.exe` exist
+- ✅ Users can download and run standalone binaries
+
+**VERIFICATION REQUIREMENT:**
+
+To claim "build succeeded", you MUST run and show output from:
+```bash
+gh run view $RUN_ID --json jobs --jq '.jobs[] | "\(.name): \(.conclusion)"'
+```
+
+And ALL FOUR must show "success":
+```
+Create Draft Release: success
+Build on Linux: success
+Build on macOS: success
+Build on Windows: success
+```
+
+**NEVER say "build succeeded" based on:**
+- ❌ PR CI tests passing
+- ❌ `hatch build` completing locally
+- ❌ Tag pushed successfully
+- ❌ Time elapsed since tag push
+- ❌ Assumptions or inference
+
+**Historical failures from this confusion:**
+- Week of March 27-April 4, 2026: All Nuitka builds failed (Unicode error)
+- AI repeatedly claimed "build succeeded" based on PR tests passing
+- User received failure emails, AI dismissed them without checking
+- Public embarrassment: GitHub releases page showed week of failures
+- **Fix:** Check workflow logs, update CI configuration
+
 ### 4. **Claiming Success Without Verification**
 - **Symptom:** AI says "build succeeded" but user gets failure emails
 - **Cause:** AI didn't actually check `gh run list` output
