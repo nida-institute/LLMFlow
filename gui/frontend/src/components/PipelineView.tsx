@@ -49,24 +49,10 @@ export default function PipelineView({ pipeline, project, onBackToProject }: Pip
             }
 
             // Set output directory from pipeline configuration
+            // Always use the displayed output_dir setting, whether it exists or not
             const outputDirFromConfig = varsSection.output_dir || 'output'  // default to 'output' if not specified
             const fullOutputPath = `${project.path}/${outputDirFromConfig}`
-
-            // Check if directory exists
-            fetch('/api/check-path', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ path: fullOutputPath })
-            })
-              .then(res => res.json())
-              .then(pathData => {
-                if (pathData.exists && pathData.is_dir) {
-                  setOutputDir(fullOutputPath)
-                } else {
-                  setOutputDir(null)
-                }
-              })
-              .catch(() => setOutputDir(null))
+            setOutputDir(fullOutputPath)
           }
           setLoadingConfig(false)
         })
