@@ -55,6 +55,16 @@ $Dest = Join-Path $InstallDir $BinaryName
 
 try {
     Invoke-WebRequest -Uri $DownloadUrl -OutFile $Dest -UseBasicParsing
+
+    # Verify download succeeded
+    if (-not (Test-Path $Dest)) {
+        Write-Error "❌ Download completed but file not found at $Dest"
+        exit 1
+    }
+
+    $FileSize = (Get-Item $Dest).Length
+    Write-Host "✅ Downloaded $([math]::Round($FileSize/1MB, 2)) MB to $Dest"
+
 } catch {
     Write-Error "❌ Download failed: $_"
     exit 1
@@ -62,8 +72,6 @@ try {
 
 # Clear SmartScreen "blocked" flag so Windows doesn't prompt on first run
 Unblock-File -Path $Dest
-
-Write-Host "✅ Installed to $Dest"
 
 # ── Add to user PATH (no admin required) ─────────────────────────────────────
 
