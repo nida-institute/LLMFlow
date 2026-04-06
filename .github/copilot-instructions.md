@@ -286,10 +286,23 @@ See: GitHub issue #75 for full context and the original violation documentation.
   - Don't assume standard directories (`./output/`, `./results/`)
   - Variables like `${output_dir}` mean paths aren't literal
   - Example: Step named `analyze` doesn't imply output in `./analysis/`
+- ❌ **Claiming "ready to publish to PyPI" based on successful `hatch build`**
+  - Building packages creates local wheel/tarball (works anywhere)
+  - Publishing to PyPI requires project registration + credentials (separate step)
+  - NEVER assume PyPI readiness without verifying project exists at https://pypi.org/project/llmflow/
+  - First-time publication requires account setup, not just build artifacts
+  - See `/memories/repo/pypi-status.md` for verification commands
+- ❌ **Claiming "build succeeded" without verifying ALL workflow jobs**
+  - Individual compilation jobs (Build on windows-latest) ≠ entire release workflow
+  - Verification jobs (Verify install script) are part of release success criteria
+  - ANY job failure = release failed, even if binaries compiled
+  - Use `gh run view <ID> --json jobs` to verify ALL jobs show "success"
 - ✅ Consult `docs/index.json` for architecture before changes
 - ✅ Check `docs/architecture.md` for system design
 - ✅ Verify correct LLMFlow repo, not subdirectory
 - ✅ **Read pipeline YAML before discussing file locations** — quote exact paths from config
+- ✅ **Verify PyPI project existence before claiming publication readiness**
+- ✅ **Check ALL workflow jobs, not just build compilation steps**
 
 ## File Organization
 

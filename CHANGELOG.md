@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.1.18 — 2026-04-06
+
+### Fixed
+
+- **Windows install script diagnostics** — Added file size verification and existence checks after download in install.ps1. Changed workflow verification to run install script directly in pwsh instead of spawning subprocess. Improves error reporting for Windows installation issues.
+
 ## 0.2.1.17 — 2026-04-05
 
 ### Fixed

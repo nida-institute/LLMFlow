@@ -28,7 +28,7 @@ export default function PipelineView({ pipeline, project, onBackToProject }: Pip
 
   useEffect(() => {
     // Load pipeline config to get variables
-    if (pipeline && pipeline.full_path) {
+    if (pipeline && pipeline.full_path && project) {
       setLoadingConfig(true)
       fetch('/api/pipeline/config', {
         method: 'POST',
@@ -47,6 +47,26 @@ export default function PipelineView({ pipeline, project, onBackToProject }: Pip
             if (varsSection && Object.keys(varsSection).length > 0) {
               setVariables(varsSection)
             }
+
+            // Set output directory from pipeline configuration
+            const outputDirFromConfig = varsSection.output_dir || 'output'  // default to 'output' if not specified
+            const fullOutputPath = `${project.path}/${outputDirFromConfig}`
+
+            // Check if directory exists
+            fetch('/api/check-path', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: fullOutputPath })
+            })
+              .then(res => res.json())
+              .then(pathData => {
+                if (pathData.exists && pathData.is_dir) {
+                  setOutputDir(fullOutputPath)
+                } else {
+                  setOutputDir(null)
+                }
+              })
+              .catch(() => setOutputDir(null))
           }
           setLoadingConfig(false)
         })
@@ -56,7 +76,7 @@ export default function PipelineView({ pipeline, project, onBackToProject }: Pip
           setLoadingConfig(false)
         })
     }
-  }, [pipeline])
+  }, [pipeline, project])
 
   // Cleanup socket on unmount
   useEffect(() => {

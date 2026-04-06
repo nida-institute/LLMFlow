@@ -179,19 +179,22 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-        PowerShell -ExecutionPolicy Bypass -File install.ps1
+        # Run install script directly in this shell
+        & .\install.ps1
 
-        # Diagnostics: Check if binary actually exists and has content
+        # Verify binary exists and is runnable
         $binaryPath = "$env:USERPROFILE\bin\sp.exe"
+        Write-Host "`n=== Verification ==="
         Write-Host "Checking binary at: $binaryPath"
 
         if (Test-Path $binaryPath) {
           $fileInfo = Get-Item $binaryPath
-          Write-Host "Binary exists. Size: $($fileInfo.Length) bytes"
+          Write-Host "✅ Binary exists. Size: $($fileInfo.Length) bytes"
           Write-Host "File attributes: $($fileInfo.Attributes)"
         } else {
-          Write-Error "Binary not found at expected path!"
+          Write-Error "❌ Binary not found at expected path!"
+          Write-Host "Directory contents:"
+          Get-ChildItem "$env:USERPROFILE\bin" -ErrorAction SilentlyContinue
           exit 1
         }
 

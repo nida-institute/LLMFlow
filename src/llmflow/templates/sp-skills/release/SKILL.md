@@ -172,11 +172,63 @@ gh release edit "v$VERSION" --draft=false --notes "$(cat tmp/release-notes-$VERS
 - [ ] Note breaking changes prominently
 - [ ] Publish release (remove draft status)
 
+### 8. PyPI Publication (Optional)
+
+**🚨 CRITICAL: Verify PyPI registration status BEFORE claiming "ready to publish" 🚨**
+
+```bash
+# Check if project exists on PyPI
+curl -s https://pypi.org/pypi/llmflow/json | jq -r '.info.version' 2>/dev/null || echo "NOT REGISTERED"
+```
+
+**If output is "NOT REGISTERED":**
+- This is a FIRST-TIME publication
+- Requires PyPI account with 2FA enabled
+- Requires API token with CREATE project permissions
+- Package name must be available (not claimed by another project)
+- See `/memories/repo/pypi-status.md` for full first-time setup
+
+**If output shows a version number:**
+- Project already exists on PyPI
+- This will be an UPDATE to existing project
+- Requires API token with upload permissions for llmflow specifically
+
+**Build packages:**
+```bash
+# Clean previous builds
+rm -rf dist/
+
+# Build wheel and tarball
+hatch build
+```
+
+**Verify package contents:**
+```bash
+# Check what's in the wheel
+unzip -l dist/llmflow-$VERSION-py3-none-any.whl
+
+# Verify critical includes:
+# - llmflow/ package
+# - prompts/ data
+# - templates/ data
+# - gui/static/ frontend assets
+```
+
+**Publish (ONLY if verified registered or have first-time credentials):**
+```bash
+hatch publish
+```
+
+**NEVER claim "ready to publish to PyPI" based solely on successful `hatch build`.**
+- Building creates local packages (works anywhere)
+- Publishing uploads to PyPI (requires registration + credentials)
+- These are separate steps with separate requirements
+
 ---
 
 ## Post-Release Validation
 
-### 8. Download and Test Binaries
+### 9. Download and Test Binaries
 
 ```bash
 # Download all three platform binaries
