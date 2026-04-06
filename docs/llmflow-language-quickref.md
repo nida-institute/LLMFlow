@@ -49,7 +49,13 @@ step outputs:
 - `${greeting}` – value produced by a previous step.
 - `${scene.WLC}` – field access on an object.
 - `${scene_list[0]}` – first element of a list.
+- `${scene_list[-1]}` – last element (negative indexing).
+- `${scene_list[-3:]}` – last 3 elements (Python slice syntax).
+- `${scene_list[:5]}` – first 5 elements.
+- `${scene_list[2:8]}` – elements 2 through 7.
+- `${scene_list[::2]}` – every 2nd element.
 - `${scene_list[*].Title}` – extract one field from every item; returns a flat list.
+- `${pericope_results[-3:][*].analysis}` – slice then extract field from each item.
 
 In prompt and template files (`*.gpt`, `*.md`), use `{{var}}`:
 

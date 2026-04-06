@@ -284,3 +284,204 @@ class TestGetFromContext:
 
         result = get_from_context("row['lemma']", context)
         assert result == "ὁ"
+
+
+class TestSliceNotation:
+    """Test Python slice notation in variable references"""
+
+    def test_basic_slice_last_n(self):
+        """Test ${list[-3:]} - get last 3 items"""
+        context = {
+            "my_list": ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
+        }
+
+        result = resolve("${my_list[-3:]}", context)
+        assert result == ["h", "i", "j"]
+
+        result = resolve("${my_list[-1:]}", context)
+        assert result == ["j"]
+
+        result = resolve("${my_list[-5:]}", context)
+        assert result == ["f", "g", "h", "i", "j"]
+
+    def test_basic_slice_first_n(self):
+        """Test ${list[:n]} - get first n items"""
+        context = {
+            "my_list": ["a", "b", "c", "d", "e", "f"]
+        }
+
+        result = resolve("${my_list[:2]}", context)
+        assert result == ["a", "b"]
+
+        result = resolve("${my_list[:1]}", context)
+        assert result == ["a"]
+
+        result = resolve("${my_list[:5]}", context)
+        assert result == ["a", "b", "c", "d", "e"]
+
+    def test_slice_middle_range(self):
+        """Test ${list[start:stop]} - get items from start to stop"""
+        context = {
+            "my_list": ["a", "b", "c", "d", "e", "f", "g", "h"]
+        }
+
+        result = resolve("${my_list[2:5]}", context)
+        assert result == ["c", "d", "e"]
+
+        result = resolve("${my_list[0:3]}", context)
+        assert result == ["a", "b", "c"]
+
+        result = resolve("${my_list[3:7]}", context)
+        assert result == ["d", "e", "f", "g"]
+
+    def test_slice_negative_indices(self):
+        """Test ${list[start:stop]} with negative indices"""
+        context = {
+            "my_list": ["a", "b", "c", "d", "e", "f"]
+        }
+
+        result = resolve("${my_list[-5:-2]}", context)
+        assert result == ["b", "c", "d"]
+
+        result = resolve("${my_list[-3:-1]}", context)
+        assert result == ["d", "e"]
+
+    def test_slice_with_step(self):
+        """Test ${list[start:stop:step]} - with step parameter"""
+        context = {
+            "my_list": ["a", "b", "c", "d", "e", "f", "g", "h"]
+        }
+
+        # Every other item
+        result = resolve("${my_list[::2]}", context)
+        assert result == ["a", "c", "e", "g"]
+
+        # Every third item starting from index 1
+        result = resolve("${my_list[1::3]}", context)
+        assert result == ["b", "e", "h"]
+
+        # Range with step
+        result = resolve("${my_list[1:7:2]}", context)
+        assert result == ["b", "d", "f"]
+
+    def test_slice_edge_cases(self):
+        """Test edge cases: empty lists, out of bounds, etc."""
+        context = {
+            "empty": [],
+            "small": ["a", "b"],
+            "items": ["x", "y", "z"]
+        }
+
+        # Empty list
+        result = resolve("${empty[-3:]}", context)
+        assert result == []
+
+        # Slice beyond list bounds (Python semantics: no error)
+        result = resolve("${small[-10:]}", context)
+        assert result == ["a", "b"]
+
+        result = resolve("${items[:100]}", context)
+        assert result == ["x", "y", "z"]
+
+        # Entire list
+        result = resolve("${items[:]}", context)
+        assert result == ["x", "y", "z"]
+
+        # Empty slice
+        result = resolve("${items[5:10]}", context)
+        assert result == []
+
+    def test_slice_non_list_values(self):
+        """Test slice notation on non-list values"""
+        context = {
+            "string": "hello",
+            "number": 42,
+            "dict": {"key": "value"}
+        }
+
+        # Slice on string should work (Python slices strings)
+        result = resolve("${string[-3:]}", context)
+        assert result == "llo"
+
+        result = resolve("${string[:2]}", context)
+        assert result == "he"
+
+        # Slice on non-sequence types should return None or original
+        result = resolve("${number[-3:]}", context)
+        assert result == "${number[-3:]}"  # Can't slice int
+
+        result = resolve("${dict[:2]}", context)
+        assert result == "${dict[:2]}"  # Can't slice dict
+
+    def test_slice_combined_with_wildcard(self):
+        """Test ${list[-3:][*].field} - slice then wildcard extraction"""
+        context = {
+            "pericope_results": [
+                {"id": 1, "analysis": "analysis 1", "title": "Title 1"},
+                {"id": 2, "analysis": "analysis 2", "title": "Title 2"},
+                {"id": 3, "analysis": "analysis 3", "title": "Title 3"},
+                {"id": 4, "analysis": "analysis 4", "title": "Title 4"},
+                {"id": 5, "analysis": "analysis 5", "title": "Title 5"},
+            ]
+        }
+
+        # Get last 3 analyses (the actual use case from issue #116)
+        result = resolve("${pericope_results[-3:][*].analysis}", context)
+        assert result == ["analysis 3", "analysis 4", "analysis 5"]
+
+        # Get first 2 titles
+        result = resolve("${pericope_results[:2][*].title}", context)
+        assert result == ["Title 1", "Title 2"]
+
+        # Get middle range IDs
+        result = resolve("${pericope_results[1:4][*].id}", context)
+        assert result == [2, 3, 4]
+
+    def test_slice_in_string_substitution(self):
+        """Test slice notation in string substitution (not exact match)"""
+        context = {
+            "items": ["apple", "banana", "cherry"]
+        }
+
+        # In mid-string substitution
+        result = resolve("Last item is ${items[-1:]}", context)
+        assert result == "Last item is ['cherry']"
+
+    def test_slice_with_nested_objects(self):
+        """Test slicing nested objects then accessing fields"""
+        context = {
+            "data": {
+                "records": [
+                    {"name": "Alice", "age": 30},
+                    {"name": "Bob", "age": 25},
+                    {"name": "Charlie", "age": 35},
+                    {"name": "Diana", "age": 28},
+                ]
+            }
+        }
+
+        # Slice nested list
+        result = resolve("${data.records[-2:]}", context)
+        assert result == [
+            {"name": "Charlie", "age": 35},
+            {"name": "Diana", "age": 28},
+        ]
+
+        # Slice then access first item
+        result = resolve("${data.records[:2][0]}", context)
+        assert result == {"name": "Alice", "age": 30}
+
+    def test_get_from_context_slice(self):
+        """Test get_from_context directly with slice notation"""
+        context = {
+            "items": ["a", "b", "c", "d", "e"]
+        }
+
+        result = get_from_context("items[-3:]", context)
+        assert result == ["c", "d", "e"]
+
+        result = get_from_context("items[:2]", context)
+        assert result == ["a", "b"]
+
+        result = get_from_context("items[1:4]", context)
+        assert result == ["b", "c", "d"]
