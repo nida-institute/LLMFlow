@@ -196,7 +196,7 @@ def create_app():
 
     @app.route('/api/pipeline/config', methods=['POST'])
     def get_pipeline_config():
-        """Load pipeline YAML configuration."""
+        """Load pipeline YAML configuration with computed paths and normalized structure."""
         try:
             import yaml
 
@@ -205,6 +205,8 @@ def create_app():
                 return jsonify({'error': 'JSON body required'}), 400
 
             pipeline_path = data.get('pipeline_path')
+            project_path = data.get('project_path')
+
             if not pipeline_path:
                 return jsonify({'error': 'pipeline_path required'}), 400
 
@@ -217,7 +219,32 @@ def create_app():
             with open(path, 'r') as f:
                 config = yaml.safe_load(f)
 
-            return jsonify(config)
+            # Normalize variables: support both 'vars' and 'variables', prefer 'vars'
+            vars_section = config.get('vars') or config.get('variables') or {}
+
+            # Apply defaults
+            output_dir_relative = vars_section.get('output_dir', 'output')
+
+            # Compute full output directory path
+            output_dir_full = None
+            if project_path:
+                project_resolved = Path(project_path).resolve()
+                output_dir_full = str(project_resolved / output_dir_relative)
+
+            # Return normalized config with computed values
+            response = {
+                **config,
+                'vars': vars_section,  # Normalized to 'vars'
+                '_computed': {
+                    'output_dir': output_dir_full,
+                    'output_dir_relative': output_dir_relative
+                }
+            }
+
+            # Remove 'variables' if it exists to avoid confusion
+            response.pop('variables', None)
+
+            return jsonify(response)
 
         except Exception as e:
             logger.error("Error loading pipeline config: %s", e)
@@ -521,7 +548,13 @@ def create_app():
     @socketio.on('execute_pipeline')
     def handle_execute_pipeline(data):
         """Execute pipeline with real-time output streaming via WebSocket."""
+        import time
+        import random
+
+        # Generate execution ID on backend if not provided
         execution_id = data.get('execution_id')
+        if not execution_id:
+            execution_id = f"exec-{int(time.time() * 1000)}-{random.randint(1000, 9999)}"
 
         try:
             pipeline_path = data.get('pipeline_path')
@@ -536,12 +569,11 @@ def create_app():
                 emit('error', {'message': 'Invalid pipeline file'})
                 return
 
-            if not execution_id:
-                emit('error', {'message': 'execution_id required'})
-                return
-
             # Join this execution's room
             join_room(execution_id)
+
+            # Send execution ID back to client
+            emit('execution_started', {'execution_id': execution_id}, to=execution_id)
 
             # Create emit callback that routes to the execution's room
             def emit_to_room(event_type, data):

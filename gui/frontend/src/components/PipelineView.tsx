@@ -27,13 +27,16 @@ export default function PipelineView({ pipeline, project, onBackToProject }: Pip
   }, [output])
 
   useEffect(() => {
-    // Load pipeline config to get variables
+    // Load pipeline config to get variables and computed paths
     if (pipeline && pipeline.full_path && project) {
       setLoadingConfig(true)
       fetch('/api/pipeline/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pipeline_path: pipeline.full_path })
+        body: JSON.stringify({
+          pipeline_path: pipeline.full_path,
+          project_path: project.path
+        })
       })
         .then(res => res.json())
         .then(data => {
@@ -42,17 +45,17 @@ export default function PipelineView({ pipeline, project, onBackToProject }: Pip
             setConfig({})
           } else {
             setConfig(data)
-            // Initialize variables with defaults from vars or variables section
-            const varsSection = data.vars || data.variables || {}
-            if (varsSection && Object.keys(varsSection).length > 0) {
+
+            // Use normalized vars from backend
+            const varsSection = data.vars || {}
+            if (Object.keys(varsSection).length > 0) {
               setVariables(varsSection)
             }
 
-            // Set output directory from pipeline configuration
-            // Always use the displayed output_dir setting, whether it exists or not
-            const outputDirFromConfig = varsSection.output_dir || 'output'  // default to 'output' if not specified
-            const fullOutputPath = `${project.path}/${outputDirFromConfig}`
-            setOutputDir(fullOutputPath)
+            // Use backend-computed output directory (fully resolved path)
+            if (data._computed && data._computed.output_dir) {
+              setOutputDir(data._computed.output_dir)
+            }
           }
           setLoadingConfig(false)
         })
@@ -105,12 +108,14 @@ export default function PipelineView({ pipeline, project, onBackToProject }: Pip
     setOutput([])
     setOutputDir(null)  // Clear previous output directory
 
-    // Generate unique execution ID
-    const executionId = `exec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-
     // Connect to WebSocket
     const socket = io()
     socketRef.current = socket
+
+    // Listen for execution ID from backend
+    socket.on('execution_started', (data: { execution_id: string }) => {
+      console.log('Execution started with ID:', data.execution_id)
+    })
 
     // Listen for events
     socket.on('status', (data: { message: string }) => {
@@ -160,9 +165,8 @@ export default function PipelineView({ pipeline, project, onBackToProject }: Pip
       socket.disconnect()
     })
 
-    // Emit execution request with unique ID
+    // Emit execution request (backend generates execution_id)
     socket.emit('execute_pipeline', {
-      execution_id: executionId,
       pipeline_path: pipeline.full_path,
       project_path: project.path,
       variables
