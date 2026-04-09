@@ -837,6 +837,8 @@ def run_step(
 
             if step_type == "for-each":
                 local_after_action = run_for_each_step(step, context, pipeline_config or {})
+            elif step_type == "window":
+                local_after_action = run_window_step(step, context, pipeline_config or {})
             elif step_type == "llm":
                 result = run_llm_step(step, context, pipeline_config or {})
                 handle_step_outputs(step, result, context)
@@ -1575,6 +1577,201 @@ def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_co
                 context[output_var] = iteration_context[output_var]
 
     return None  # No exit, normal completion
+
+
+def _build_windows_fixed(items: list, size: int, stride: int, include_partial: bool) -> list[list]:
+    """Generate fixed-size windows (tumbling when stride==size, sliding when stride<size)."""
+    windows = []
+    i = 0
+    while i < len(items):
+        window = items[i:i + size]
+        if len(window) == size or include_partial:
+            windows.append(window)
+        i += stride
+    return windows
+
+
+def _eval_window_condition(expr: str, item: Any, context: dict) -> bool:
+    """
+    Evaluate a window start_when/end_when condition with item in scope.
+
+    Strips the ${...} wrapper if present and calls _safe_eval directly,
+    bypassing resolve() which would incorrectly evaluate boolean expressions
+    (e.g. resolve('${item.marker == "s"}') returns "s", not True/False).
+    """
+    stripped = expr.strip()
+    if stripped.startswith("${") and stripped.endswith("}"):
+        stripped = stripped[2:-1]
+    eval_locals = _build_eval_locals({**context, "item": item})
+    try:
+        return bool(_safe_eval(stripped, eval_locals))
+    except Exception as exc:
+        logger.warning(f"window condition eval failed: {stripped} - {exc}")
+        return False
+
+
+def _build_windows_condition(items: list, start_when: str, end_when: str | None, context: dict) -> list[list]:
+    """
+    Generate condition-based tumbling windows.
+
+    A new window opens when start_when is true for an item.
+    If end_when is provided, the window closes (inclusively) when end_when is true.
+    If end_when is absent, the window closes when the next start_when fires.
+    Items before the first start_when and after the last closed window are dropped.
+    """
+    windows = []
+    current: list | None = None
+
+    for item in items:
+        is_start = _eval_window_condition(start_when, item, context)
+
+        if end_when:
+            is_end = _eval_window_condition(end_when, item, context)
+
+            # A new start closes any open window (without the new item), then opens a fresh one
+            if is_start and current is not None:
+                windows.append(current)
+                current = None
+
+            if is_start:
+                current = [item]
+            elif current is not None:
+                current.append(item)
+
+            # Close the window if end fires (works even when start+end are the same item)
+            if is_end and current is not None:
+                windows.append(current)
+                current = None
+        else:
+            # No end_when: window runs until next start_when
+            if is_start:
+                if current is not None:
+                    windows.append(current)
+                current = [item]
+            elif current is not None:
+                current.append(item)
+
+    # Without end_when: last open window is closed by end-of-sequence and included.
+    # With end_when: an unclosed window (end_when never fired) is dropped.
+    if current is not None and end_when is None:
+        windows.append(current)
+    return windows
+
+
+def run_window_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> str | None:
+    """Execute a window step — iterate over windows of the input list."""
+    input_data = resolve(step.get("input", []), context)
+    if not isinstance(input_data, list):
+        raise ValueError(
+            f"Window step '{step.get('name', 'unnamed')}': input must resolve to a list, "
+            f"got {type(input_data).__name__}"
+        )
+
+    item_var = step.get("item_var", "window")
+    steps = step.get("steps", [])
+    size = step.get("size")
+    stride = step.get("stride", size)  # default stride == size (tumbling)
+    include_partial = step.get("include_partial", True)
+    start_when = step.get("start_when")
+    end_when = step.get("end_when")
+
+    # Build window list
+    if start_when:
+        windows = _build_windows_condition(input_data, start_when, end_when, context)
+    else:
+        if not isinstance(size, int):
+            raise ValueError(
+                f"Window step '{step.get('name', 'unnamed')}': 'size' must be a positive integer"
+            )
+        if not isinstance(stride, int):
+            raise ValueError(
+                f"Window step '{step.get('name', 'unnamed')}': 'stride' must be a positive integer"
+            )
+        windows = _build_windows_fixed(input_data, size, stride, include_partial)
+
+    if not windows:
+        logger.info(f"⏭️  Window step '{step.get('name', 'unnamed')}': no windows generated, skipping")
+        return None
+
+    # Reuse for-each machinery — windows become the items
+    # Collect propagation targets
+    def collect_outputs(steps_list):
+        append_targets = set()
+        output_vars = set()
+        for s in steps_list:
+            if "append_to" in s:
+                append_targets.add(s["append_to"])
+            if "outputs" in s:
+                ov = s["outputs"]
+                if isinstance(ov, str):
+                    output_vars.add(ov)
+                elif isinstance(ov, list):
+                    output_vars.update(ov)
+            if "steps" in s:
+                na, no = collect_outputs(s["steps"])
+                append_targets.update(na)
+                output_vars.update(no)
+        return append_targets, output_vars
+
+    append_to_targets, output_vars = collect_outputs(steps)
+
+    for index, window in enumerate(windows, start=1):
+        iteration_context = deepcopy(context)
+        iteration_context[item_var] = window
+        iteration_context["_window_index"] = index
+        iteration_context["window_num"] = index   # condition-friendly alias (no leading _)
+        iteration_context["_window_first"] = window[0] if window else None
+        iteration_context["_window_last"] = window[-1] if window else None
+
+        # Maintain the for-each stack for debug filenames
+        parent_stack = iteration_context.get("_for_each_stack") or []
+        stack = [dict(frame) for frame in parent_stack] if parent_stack else []
+        new_frame = {
+            "level": len(stack) + 1,
+            "variable": item_var,
+            "value": f"window_{index}",
+            "label": f"window_{index}",
+            "index": index,
+        }
+        stack.append(new_frame)
+        iteration_context["_for_each_stack"] = stack
+        iteration_context["_for_each_meta"] = new_frame
+
+        for nested_step in steps:
+            after_action = run_step(nested_step, iteration_context, pipeline_config)
+
+            if after_action == "exit":
+                logger.info("🛑 'after: exit' in window iteration - exiting pipeline")
+                for target in append_to_targets:
+                    if target in iteration_context and isinstance(iteration_context[target], list):
+                        if target not in context:
+                            context[target] = iteration_context[target][:]
+                        else:
+                            orig = len(context[target])
+                            context[target].extend(iteration_context[target][orig:])
+                for output_var in output_vars:
+                    if output_var in iteration_context:
+                        context[output_var] = iteration_context[output_var]
+                return "exit"
+
+            elif after_action == "continue":
+                logger.info("⏭️  'after: continue' in window iteration - next window")
+                break
+
+        # Normal propagation
+        for target in append_to_targets:
+            if target in iteration_context and isinstance(iteration_context[target], list):
+                if target not in context:
+                    context[target] = iteration_context[target][:]
+                else:
+                    orig = len(context[target])
+                    context[target].extend(iteration_context[target][orig:])
+
+        for output_var in output_vars:
+            if output_var in iteration_context:
+                context[output_var] = iteration_context[output_var]
+
+    return None
 
 
 def run_if_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> str | None:

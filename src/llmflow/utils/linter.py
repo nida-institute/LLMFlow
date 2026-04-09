@@ -76,6 +76,12 @@ _EXTRA_STEP_KEYS = {
     "query_file",
     "params",
     "timeout",
+    # window step keys
+    "size",
+    "stride",
+    "include_partial",
+    "start_when",
+    "end_when",
 }
 
 ALLOWED_STEP_KEYS = _SCHEMA_STEP_KEYS | _EXTRA_STEP_KEYS
@@ -1023,6 +1029,54 @@ def _lint_conditional_rules(step, errors, key: str):
             if k not in {"if", "message"}:
                 errors.append(f"Step '{step.get('name','unnamed')}': unknown '{key}' key '{k}'")
 
+def _lint_window_step(step: dict, errors: list) -> None:
+    """Validate window step configuration."""
+    name = step.get("name", "<unnamed>")
+    has_size = "size" in step
+    has_start_when = "start_when" in step
+
+    if not has_size and not has_start_when:
+        errors.append(
+            f"Window step '{name}': must specify either 'size' (fixed windows) "
+            f"or 'start_when' (condition-based windows)"
+        )
+        return
+
+    if has_size and has_start_when:
+        errors.append(
+            f"Window step '{name}': 'size' and 'start_when' are mutually exclusive"
+        )
+        return
+
+    if has_size:
+        size = step["size"]
+        if not isinstance(size, int) or size < 1:
+            errors.append(f"Window step '{name}': 'size' must be a positive integer")
+
+        if "stride" in step:
+            stride = step["stride"]
+            if not isinstance(stride, int) or stride < 1:
+                errors.append(f"Window step '{name}': 'stride' must be a positive integer")
+
+        if "end_when" in step:
+            errors.append(
+                f"Window step '{name}': 'end_when' is only valid with 'start_when', not 'size'"
+            )
+
+    if has_start_when:
+        if "stride" in step:
+            errors.append(
+                f"Window step '{name}': 'stride' is only valid with 'size', not 'start_when'"
+            )
+        if "include_partial" in step:
+            errors.append(
+                f"Window step '{name}': 'include_partial' is only valid with 'size', not 'start_when'"
+            )
+
+    if "steps" not in step or not step["steps"]:
+        errors.append(f"Window step '{name}': must have a non-empty 'steps' list")
+
+
 def lint_pipeline_steps(steps):
     errors = []
     for step in steps:
@@ -1036,4 +1090,6 @@ def lint_pipeline_steps(steps):
                 errors.append(message)
         _lint_conditional_rules(step, errors, "require")
         _lint_conditional_rules(step, errors, "warn")
+        if step.get("type") == "window":
+            _lint_window_step(step, errors)
     return errors
