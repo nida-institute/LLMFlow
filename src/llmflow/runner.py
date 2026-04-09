@@ -4,6 +4,7 @@ import json
 import os
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -1475,108 +1476,202 @@ def resolve_template(template: str, context: Dict[str, Any]) -> str:
     return resolved
 
 
+def _collect_loop_outputs(steps_list: list) -> tuple[set, set]:
+    """Recursively collect append_to targets and output variable names from a steps list."""
+    append_targets: set = set()
+    output_vars: set = set()
+    for s in steps_list:
+        if "append_to" in s:
+            append_targets.add(s["append_to"])
+        if "outputs" in s:
+            ov = s["outputs"]
+            if isinstance(ov, str):
+                output_vars.add(ov)
+            elif isinstance(ov, list):
+                output_vars.update(ov)
+        if "steps" in s:
+            na, no = _collect_loop_outputs(s["steps"])
+            append_targets.update(na)
+            output_vars.update(no)
+    return append_targets, output_vars
+
+
+def _setup_iteration_context(
+    index: int,
+    item: Any,
+    context: Dict[str, Any],
+    item_var: str,
+    step_name: str,
+    debug_label_template: str | None,
+) -> Dict[str, Any]:
+    """Build the isolated context for one for-each iteration."""
+    iteration_context = deepcopy(context)
+    iteration_context[item_var] = item
+    iteration_context["_for_each_index"] = index
+
+    parent_stack = iteration_context.get("_for_each_stack") or []
+    stack = [dict(frame) for frame in parent_stack] if parent_stack else []
+
+    label_fragment = None
+    if debug_label_template:
+        try:
+            resolved_label = resolve(debug_label_template, iteration_context)
+            if resolved_label is not None:
+                label_fragment = _format_iteration_fragment(resolved_label)
+        except Exception as exc:
+            logger.debug(f"debug_label resolution failed in for-each '{step_name}': {exc}")
+
+    value_fragment = _format_iteration_fragment(item)
+    new_frame = {
+        "level": len(stack) + 1,
+        "variable": item_var,
+        "value": value_fragment,
+        "label": label_fragment or "",
+        "index": index,
+    }
+    stack.append(new_frame)
+    iteration_context["_for_each_stack"] = stack
+    iteration_context["_for_each_meta"] = new_frame
+    return iteration_context
+
+
+def _run_iteration_steps(
+    iteration_context: Dict[str, Any],
+    steps: list,
+    pipeline_config: Dict[str, Any],
+) -> str | None:
+    """Execute the nested steps for one iteration. Returns after_action or None."""
+    for nested_step in steps:
+        after_action = run_step(nested_step, iteration_context, pipeline_config)
+        if after_action in ("exit", "continue"):
+            return after_action
+    return None
+
+
+def _propagate_iteration_results(
+    iteration_context: Dict[str, Any],
+    context: Dict[str, Any],
+    append_targets: set,
+    output_vars: set,
+    baseline_lengths: Dict[str, int],
+) -> None:
+    """Propagate one iteration's results back to the parent context.
+
+    baseline_lengths maps each append_to target to the length of the parent list
+    at the start of this iteration — only items added by this iteration are propagated.
+    """
+    for target in append_targets:
+        if target in iteration_context and isinstance(iteration_context[target], list):
+            baseline = baseline_lengths.get(target, 0)
+            new_items = iteration_context[target][baseline:]
+            if target not in context:
+                context[target] = list(new_items)
+            else:
+                context[target].extend(new_items)
+
+    for var in output_vars:
+        if var in iteration_context:
+            context[var] = iteration_context[var]
+
+
 def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> str | None:
-    """Execute a for-each loop step"""
-    input_data = resolve(step.get("input", []), context)
+    """Execute a for-each loop step, sequentially or in parallel."""
+    _input_raw = resolve(step.get("input", []), context)
+    input_data: list = _input_raw if isinstance(_input_raw, list) else list(_input_raw)
     item_var = step.get("item_var", "item")
     steps = step.get("steps", [])
     debug_label_template = step.get("debug_label")
+    step_name = step.get("name", "unnamed")
+    parallel = step.get("parallel", 1)
 
-    # Collect all append_to targets AND regular outputs
-    def collect_outputs(steps_list):
-        append_targets = set()
-        output_vars = set()
-        for step in steps_list:
-            if "append_to" in step:
-                append_targets.add(step["append_to"])
-            if "outputs" in step:
-                outputs = step["outputs"]
-                if isinstance(outputs, str):
-                    output_vars.add(outputs)
-                elif isinstance(outputs, list):
-                    output_vars.update(outputs)
-            if "steps" in step:
-                nested_append, nested_output = collect_outputs(step["steps"])
-                append_targets.update(nested_append)
-                output_vars.update(nested_output)
-        return append_targets, output_vars
+    append_to_targets, output_vars = _collect_loop_outputs(steps)
 
-    append_to_targets, output_vars = collect_outputs(steps)
+    if parallel and isinstance(parallel, int) and parallel > 1:
+        return _run_for_each_parallel(
+            input_data, item_var, steps, debug_label_template, step_name,
+            parallel, append_to_targets, output_vars, context, pipeline_config,
+        )
 
+    # ── Sequential path ────────────────────────────────────────────────────
     for index, item in enumerate(input_data, start=1):
-        iteration_context = deepcopy(context)
-        iteration_context[item_var] = item
+        # Baseline captured per-iteration: parent list grows as iterations complete
+        baseline_lengths = {t: len(context[t]) for t in append_to_targets if t in context}
 
-        parent_stack = iteration_context.get("_for_each_stack") or []
-        stack = [dict(frame) for frame in parent_stack] if parent_stack else []
+        iteration_context = _setup_iteration_context(
+            index, item, context, item_var, step_name, debug_label_template
+        )
+        after_action = _run_iteration_steps(iteration_context, steps, pipeline_config)
 
-        label_fragment = None
-        if debug_label_template:
-            try:
-                resolved_label = resolve(debug_label_template, iteration_context)
-                if resolved_label is not None:
-                    label_fragment = _format_iteration_fragment(resolved_label)
-            except Exception as exc:
-                logger.debug(
-                    f"debug_label resolution failed in for-each '{step.get('name', 'unnamed')}': {exc}"
-                )
+        if after_action == "exit":
+            logger.info("🛑 'after: exit' in for-each iteration - exiting pipeline")
+            _propagate_iteration_results(
+                iteration_context, context, append_to_targets, output_vars, baseline_lengths
+            )
+            return "exit"
 
-        value_fragment = _format_iteration_fragment(item)
-        new_frame = {
-            "level": len(stack) + 1,
-            "variable": item_var,
-            "value": value_fragment,
-            "label": label_fragment or "",
-            "index": index,
+        _propagate_iteration_results(
+            iteration_context, context, append_to_targets, output_vars, baseline_lengths
+        )
+
+        if after_action == "continue":
+            continue
+
+    return None
+
+
+def _run_for_each_parallel(
+    input_data: list,
+    item_var: str,
+    steps: list,
+    debug_label_template: str | None,
+    step_name: str,
+    parallel: int,
+    append_to_targets: set,
+    output_vars: set,
+    context: Dict[str, Any],
+    pipeline_config: Dict[str, Any],
+) -> str | None:
+    """Parallel execution of for-each iterations with ordered result propagation.
+
+    Each iteration runs in a thread with an isolated deepcopy of the parent context.
+    Results are collected indexed by input position, then propagated in input order —
+    producing identical output to sequential execution.
+
+    The baseline_lengths for all iterations is captured once before any thread starts,
+    since all iterations see the same parent context snapshot (no cross-iteration state).
+    """
+    # Baseline is constant for all parallel iterations (all start from same parent snapshot)
+    baseline_lengths = {t: len(context[t]) for t in append_to_targets if t in context}
+
+    def run_one(index: int, item: Any) -> tuple[int, Dict[str, Any], str | None]:
+        iter_ctx = _setup_iteration_context(
+            index, item, context, item_var, step_name, debug_label_template
+        )
+        after_action = _run_iteration_steps(iter_ctx, steps, pipeline_config)
+        return index, iter_ctx, after_action
+
+    results: Dict[int, tuple[Dict[str, Any], str | None]] = {}
+
+    with ThreadPoolExecutor(max_workers=parallel) as executor:
+        futures = {
+            executor.submit(run_one, i, item): i
+            for i, item in enumerate(input_data, start=1)
         }
-        stack.append(new_frame)
-        iteration_context["_for_each_stack"] = stack
-        iteration_context["_for_each_meta"] = new_frame
+        for future in as_completed(futures):
+            index, iter_ctx, after_action = future.result()  # raises on thread exception
+            results[index] = (iter_ctx, after_action)
 
-        for step in steps:
-            after_action = run_step(step, iteration_context, pipeline_config)
+    # Propagate in input order — restores identical ordering to sequential execution
+    for index in sorted(results):
+        iter_ctx, after_action = results[index]
+        _propagate_iteration_results(
+            iter_ctx, context, append_to_targets, output_vars, baseline_lengths
+        )
+        if after_action == "exit":
+            logger.info(f"🛑 'after: exit' in parallel for-each iteration {index} - exiting pipeline")
+            return "exit"
 
-            if after_action == "exit":
-                logger.info("🛑 'after: exit' in for-each iteration - exiting entire pipeline")
-
-                # Propagate BOTH append_to AND regular outputs before exiting
-                for target in append_to_targets:
-                    if target in iteration_context and isinstance(iteration_context[target], list):
-                        if target not in context:
-                            context[target] = iteration_context[target][:]
-                        else:
-                            original_length = len(context[target])
-                            new_items = iteration_context[target][original_length:]
-                            context[target].extend(new_items)
-
-                # FIX: Also propagate regular outputs before exiting
-                for output_var in output_vars:
-                    if output_var in iteration_context:
-                        context[output_var] = iteration_context[output_var]
-                        logger.debug(f"Propagated output '{output_var}' before exit")
-
-                return "exit"  # Propagate exit to parent
-
-            elif after_action == "continue":
-                logger.info("⏭️  'after: continue' in for-each iteration - skipping to next iteration")
-                break  # Break out of steps loop, continue with next item
-
-        # Normal propagation (no exit)
-        for target in append_to_targets:
-            if target in iteration_context and isinstance(iteration_context[target], list):
-                if target not in context:
-                    context[target] = iteration_context[target][:]
-                else:
-                    original_length = len(context[target])
-                    new_items = iteration_context[target][original_length:]
-                    context[target].extend(new_items)
-
-        # Propagate regular outputs — last-iteration wins, matching Python for-loop semantics
-        for output_var in output_vars:
-            if output_var in iteration_context:
-                context[output_var] = iteration_context[output_var]
-
-    return None  # No exit, normal completion
+    return None
 
 
 def _build_windows_fixed(items: list, size: int, stride: int, include_partial: bool) -> list[list]:

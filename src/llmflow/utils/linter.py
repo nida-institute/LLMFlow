@@ -76,6 +76,8 @@ _EXTRA_STEP_KEYS = {
     "query_file",
     "params",
     "timeout",
+    # for-each parallel key
+    "parallel",
     # window step keys
     "size",
     "stride",
@@ -1124,6 +1126,64 @@ def _lint_window_step(step: dict, errors: list) -> None:
         errors.append(f"Window step '{name}': must have a non-empty 'steps' list")
 
 
+def _collect_var_refs(obj, refs: set | None = None) -> set:
+    """Recursively collect root variable names from all ${...} references in a config object."""
+    if refs is None:
+        refs = set()
+    if isinstance(obj, str):
+        for m in re.findall(r'\$\{([^}]+)\}', obj):
+            root = re.split(r'[.\[]', m.strip())[0]
+            refs.add(root)
+    elif isinstance(obj, dict):
+        for v in obj.values():
+            _collect_var_refs(v, refs)
+    elif isinstance(obj, list):
+        for item in obj:
+            _collect_var_refs(item, refs)
+    return refs
+
+
+def _collect_loop_append_targets(steps_list: list) -> set:
+    """Recursively collect all append_to targets declared in a steps list."""
+    targets: set = set()
+    for s in steps_list:
+        if "append_to" in s:
+            targets.add(s["append_to"])
+        if "steps" in s and isinstance(s["steps"], list):
+            targets.update(_collect_loop_append_targets(s["steps"]))
+    return targets
+
+
+def _lint_for_each_parallel(step: dict, errors: list) -> None:
+    """Error when parallel: is set and a step reads an append_to target from the same loop.
+
+    In parallel mode every iteration starts from the same parent context snapshot —
+    append_to lists populated by other iterations are not visible during execution.
+    Reading such a variable within the loop produces an empty list (or the pre-loop
+    value) instead of the accumulated results, silently corrupting output.
+    """
+    parallel = step.get("parallel")
+    if not isinstance(parallel, int) or parallel <= 1:
+        return
+
+    name = step.get("name", "<unnamed>")
+    inner_steps = step.get("steps", [])
+    append_targets = _collect_loop_append_targets(inner_steps)
+    if not append_targets:
+        return
+
+    refs = _collect_var_refs(inner_steps)
+    cross = append_targets & refs
+    for target in sorted(cross):
+        errors.append(
+            f"Step '{name}': parallel: {parallel} is set but '${{{target}}}' is "
+            f"referenced within the loop — in parallel mode, append_to results are "
+            f"not visible to concurrent iterations (each iteration starts from the "
+            f"parent context snapshot). Remove the cross-iteration reference or use "
+            f"parallel: 1."
+        )
+
+
 def lint_pipeline_steps(steps):
     errors = []
     for step in steps:
@@ -1139,4 +1199,6 @@ def lint_pipeline_steps(steps):
         _lint_conditional_rules(step, errors, "warn")
         if step.get("type") == "window":
             _lint_window_step(step, errors)
+        if step.get("type") == "for-each":
+            _lint_for_each_parallel(step, errors)
     return errors
