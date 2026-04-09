@@ -37,6 +37,11 @@ try:
 except ImportError:
     from executor import PipelineExecutor  # pyright: ignore[reportMissingImports]
 
+# Import content lifecycle utilities
+from llmflow.utils.content_status import get_content_status as get_content_status_util
+from llmflow.utils.content_stages_loader import get_content_stages_config
+from llmflow.utils.content_list import list_content
+
 
 def create_app():
     """Create and configure the Flask application."""
@@ -191,7 +196,7 @@ def create_app():
 
     @app.route('/api/pipeline/config', methods=['POST'])
     def get_pipeline_config():
-        """Load pipeline YAML configuration."""
+        """Load pipeline YAML configuration with computed paths and normalized structure."""
         try:
             import yaml
 
@@ -200,6 +205,8 @@ def create_app():
                 return jsonify({'error': 'JSON body required'}), 400
 
             pipeline_path = data.get('pipeline_path')
+            project_path = data.get('project_path')
+
             if not pipeline_path:
                 return jsonify({'error': 'pipeline_path required'}), 400
 
@@ -212,7 +219,32 @@ def create_app():
             with open(path, 'r') as f:
                 config = yaml.safe_load(f)
 
-            return jsonify(config)
+            # Normalize variables: support both 'vars' and 'variables', prefer 'vars'
+            vars_section = config.get('vars') or config.get('variables') or {}
+
+            # Apply defaults
+            output_dir_relative = vars_section.get('output_dir', 'output')
+
+            # Compute full output directory path
+            output_dir_full = None
+            if project_path:
+                project_resolved = Path(project_path).resolve()
+                output_dir_full = str(project_resolved / output_dir_relative)
+
+            # Return normalized config with computed values
+            response = {
+                **config,
+                'vars': vars_section,  # Normalized to 'vars'
+                '_computed': {
+                    'output_dir': output_dir_full,
+                    'output_dir_relative': output_dir_relative
+                }
+            }
+
+            # Remove 'variables' if it exists to avoid confusion
+            response.pop('variables', None)
+
+            return jsonify(response)
 
         except Exception as e:
             logger.error("Error loading pipeline config: %s", e)
@@ -295,42 +327,52 @@ def create_app():
         try:
             project_path_obj = Path(project_path)
 
-            # Look for content lifecycle config in common locations
+            # Look for content-stages.yaml in project directory
             possible_configs = [
-                project_path_obj / 'content-lifecycle.yaml',
-                project_path_obj / 'LLMFlow' / 'content-lifecycle.yaml',
-                project_path_obj / 'config' / 'content-lifecycle.yaml',
+                project_path_obj / 'content-stages.yaml',
+                project_path_obj / 'config' / 'content-stages.yaml',
             ]
 
-            for config_path in possible_configs:
-                if config_path.exists():
-                    # TODO: Parse YAML and return actual stages
-                    # For now, return a valid but minimal response
-                    return jsonify({
-                        'success': True,
-                        'config_path': str(config_path),
-                        'stages': [
-                            {'name': 'draft', 'label': 'Draft'},
-                            {'name': 'review', 'label': 'Review'},
-                            {'name': 'approved', 'label': 'Approved'},
-                        ],
-                        'project_path': str(project_path)
-                    })
+            config_path = None
+            for candidate in possible_configs:
+                if candidate.exists():
+                    config_path = candidate
+                    break
 
-            # No config found - return default stages
+            # Use the proper config loader
+            config = get_content_stages_config(config_path)
+
+            # Convert to JSON-serializable format
+            stages_data = [
+                {
+                    'name': stage.name,
+                    'label': stage.description or stage.name.title(),  # Use description as label, or fallback to capitalized name
+                    'protected': stage.protected,
+                    'immutable': stage.immutable,
+                    'file_permissions': stage.file_permissions,
+                }
+                for stage in config.stages
+            ]
+
+            transitions_data = [
+                {
+                    'from_stage': t.from_stage,
+                    'to_stage': t.to_stage,
+                    'action': t.action,
+                }
+                for t in config.transitions
+            ]
+
             return jsonify({
                 'success': True,
-                'config_path': None,
-                'stages': [
-                    {'name': 'draft', 'label': 'Draft'},
-                    {'name': 'review', 'label': 'Review'},
-                    {'name': 'approved', 'label': 'Approved'},
-                ],
-                'project_path': str(project_path),
-                'message': 'Using default stages (no config file found)'
+                'config_path': str(config_path) if config_path else None,
+                'stages': stages_data,
+                'transitions': transitions_data,
+                'project_path': str(project_path)
             })
 
         except Exception as e:
+            logger.error("Error loading content config: %s", e)
             return jsonify({'error': str(e)}), 500
 
 
@@ -340,62 +382,40 @@ def create_app():
         project_path = request.args.get('project_path')
 
         try:
-            stages_data = {
-                'draft': [],
-                'review': [],
-                'approved': []
-            }
-
+            # Determine content root from project path
             if project_path:
-                project_path_obj = Path(project_path)
+                content_root = Path(project_path) / 'content'
+            else:
+                content_root = Path.cwd() / 'content'
 
-                # Look for output directories
-                output_dirs = [
-                    project_path_obj / 'outputs',
-                    project_path_obj / 'output',
-                    project_path_obj / 'results',
-                    project_path_obj / 'artifacts',
-                ]
+            # Load configuration
+            config = get_content_stages_config(None)  # Will use default content-stages.yaml
 
-                # Find all files in output directories
-                for output_dir in output_dirs:
-                    if output_dir.exists() and output_dir.is_dir():
-                        # Recursively find all files
-                        for file_path in output_dir.rglob('*'):
-                            if file_path.is_file():
-                                # Get relative path from project root
-                                try:
-                                    rel_path = file_path.relative_to(project_path_obj)
-
-                                    # Determine stage based on directory structure or file naming
-                                    # For now, put everything in draft
-                                    # TODO: Implement actual stage detection
-                                    stages_data['draft'].append({
-                                        'path': str(rel_path),
-                                        'name': file_path.name,
-                                        'size': file_path.stat().st_size,
-                                        'modified': file_path.stat().st_mtime
-                                    })
-                                except ValueError:
-                                    # File is outside project root, skip
-                                    continue
+            # List files in each stage
+            all_files = {}
+            for stage in config.stages:
+                result = list_content(
+                    stage=stage.name,
+                    content_root=content_root,
+                    config_path=None,
+                    with_metadata=True
+                )
+                if result['success']:
+                    all_files[stage.name] = result['files']
+                else:
+                    # If listing fails, return empty list for that stage
+                    all_files[stage.name] = []
 
             return jsonify({
                 'success': True,
-                'stages': stages_data,
-                'total_files': sum(len(files) for files in stages_data.values())
+                'stages': all_files
             })
 
         except Exception as e:
             logger.error("Error loading content files: %s", e)
             return jsonify({
                 'success': False,
-                'error': str(e),
-                'stages': {
-                    'draft': [],
-                    'review': [],
-                    'approved': []
-                }
+                'error': str(e)
             }), 500
 
 
@@ -405,41 +425,34 @@ def create_app():
         file_path = request.args.get('path')
         project_path = request.args.get('project_path')
 
+        logger.info(f"Content status request: file_path={file_path}, project_path={project_path}")
+
         if not file_path:
             return jsonify({'error': 'path parameter required'}), 400
 
         try:
-            # If project_path provided, resolve relative to it
+            # Determine content root from project path
             if project_path:
-                full_path = Path(project_path) / file_path
+                content_root = Path(project_path) / 'content'
             else:
-                full_path = Path(file_path)
+                content_root = Path.cwd() / 'content'
 
-            logger.info(f"Content status check: file_path={file_path}, project_path={project_path}, full_path={full_path}, exists={full_path.exists()}")
+            logger.info(f"Content root: {content_root}, exists={content_root.exists()}")
 
-            if not full_path.exists():
-                return jsonify({
-                    'success': False,
-                    'error': f'File not found: {full_path}'
-                }), 404
+            # Use the proper content status implementation
+            result = get_content_status_util(
+                path=file_path,
+                content_root=content_root,
+                config_path=None  # Will use default content-stages.yaml in project
+            )
 
-            # Get file info
-            stat = full_path.stat()
+            logger.info(f"Content status result: success={result.get('success')}, error={result.get('error')}")
+            logger.info(f"Stages found: {len(result.get('stages', []))}")
 
-            return jsonify({
-                'success': True,
-                'path': file_path,
-                'full_path': str(full_path),
-                'name': full_path.name,
-                'size': stat.st_size,
-                'modified': stat.st_mtime,
-                'current_stage': 'draft',  # TODO: Determine actual stage
-                'history': [],  # TODO: Get transition history
-                'metadata': {}  # TODO: Read file metadata
-            })
+            return jsonify(result)
 
         except Exception as e:
-            logger.error("Error loading file status: %s", e)
+            logger.error(f"Error loading file status: {e}", exc_info=True)
             return jsonify({
                 'success': False,
                 'error': str(e)
@@ -499,6 +512,35 @@ def create_app():
             return jsonify({'error': str(e)}), 500
 
 
+    @app.route('/api/check-path', methods=['POST'])
+    def check_path():
+        """Check if a path exists and whether it's a file or directory."""
+        data = request.json
+        path_to_check = data.get('path')
+
+        if not path_to_check:
+            return jsonify({'error': 'path is required'}), 400
+
+        try:
+            abs_path = Path(path_to_check).resolve()
+
+            return jsonify({
+                'exists': abs_path.exists(),
+                'is_file': abs_path.is_file() if abs_path.exists() else False,
+                'is_dir': abs_path.is_dir() if abs_path.exists() else False,
+                'path': str(abs_path)
+            })
+
+        except Exception as e:
+            logger.error("Error checking path: %s", e)
+            return jsonify({
+                'exists': False,
+                'is_file': False,
+                'is_dir': False,
+                'error': str(e)
+            })
+
+
     # =============================================================================
     # WebSocket - Real-time Pipeline Execution
     # =============================================================================
@@ -506,7 +548,13 @@ def create_app():
     @socketio.on('execute_pipeline')
     def handle_execute_pipeline(data):
         """Execute pipeline with real-time output streaming via WebSocket."""
+        import time
+        import random
+
+        # Generate execution ID on backend if not provided
         execution_id = data.get('execution_id')
+        if not execution_id:
+            execution_id = f"exec-{int(time.time() * 1000)}-{random.randint(1000, 9999)}"
 
         try:
             pipeline_path = data.get('pipeline_path')
@@ -521,12 +569,11 @@ def create_app():
                 emit('error', {'message': 'Invalid pipeline file'})
                 return
 
-            if not execution_id:
-                emit('error', {'message': 'execution_id required'})
-                return
-
             # Join this execution's room
             join_room(execution_id)
+
+            # Send execution ID back to client
+            emit('execution_started', {'execution_id': execution_id}, to=execution_id)
 
             # Create emit callback that routes to the execution's room
             def emit_to_room(event_type, data):
@@ -545,12 +592,15 @@ def create_app():
             result = executor.execute()
 
             # Send completion
+            output_dir = result.get('output_dir')
+            logger.info(f"Pipeline complete. output_dir={output_dir}, created_files={result['created_files']}")
+
             emit('complete', {
                 'success': result['success'],
                 'exit_code': result['exit_code'],
                 'created_files': result['created_files'],
                 'telemetry': result['telemetry'],
-                'output_dir': result.get('output_dir')
+                'output_dir': output_dir
             }, to=execution_id)
 
         except Exception as e:

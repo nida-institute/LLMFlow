@@ -109,7 +109,7 @@ jobs:
     - name: Build with Nuitka (Windows)
       if: runner.os == 'Windows'
       run: |
-        python -m nuitka --standalone --onefile --assume-yes-for-downloads --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=templates=templates --include-data-dir=src/llmflow/gui/static=llmflow/gui/static --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
+        python -m nuitka --standalone --onefile --assume-yes-for-downloads --windows-dependency-tool=pefile --enable-plugin=dll-files --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=templates=templates --include-data-dir=src/llmflow/gui/static=llmflow/gui/static --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
 
     - name: Smoke test binary (Unix)
       if: runner.os != 'Windows'
@@ -179,6 +179,44 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-        PowerShell -ExecutionPolicy Bypass -File install.ps1
-        & "$env:USERPROFILE\bin\sp.exe" --version
+        # Run install script directly in this shell
+        & .\install.ps1
+
+        # Verify binary exists and is runnable
+        $binaryPath = "$env:USERPROFILE\bin\sp.exe"
+        Write-Host "`n=== Verification ==="
+        Write-Host "Checking binary at: $binaryPath"
+
+        if (Test-Path $binaryPath) {
+          $fileInfo = Get-Item $binaryPath
+          Write-Host "✅ Binary exists. Size: $($fileInfo.Length) bytes"
+          Write-Host "File attributes: $($fileInfo.Attributes)"
+        } else {
+          Write-Error "❌ Binary not found at expected path!"
+          Write-Host "Directory contents:"
+          Get-ChildItem "$env:USERPROFILE\bin" -ErrorAction SilentlyContinue
+          exit 1
+        }
+
+        # Try to execute with explicit full path and capture detailed error
+        try {
+          $output = & $binaryPath --version 2>&1
+          Write-Host "Success: $output"
+        } catch {
+          Write-Host "Execution failed with error:"
+          Write-Host $_.Exception.Message
+          Write-Host "Error details: $_"
+          Write-Host "Trying alternate execution method..."
+
+          # Try with Start-Process for more error details
+          try {
+            $proc = Start-Process -FilePath $binaryPath -ArgumentList "--version" -Wait -NoNewWindow -PassThru -RedirectStandardOutput "$env:TEMP\sp_out.txt" -RedirectStandardError "$env:TEMP\sp_err.txt"
+            Write-Host "Exit code: $($proc.ExitCode)"
+            if (Test-Path "$env:TEMP\sp_out.txt") { Get-Content "$env:TEMP\sp_out.txt" }
+            if (Test-Path "$env:TEMP\sp_err.txt") { Get-Content "$env:TEMP\sp_err.txt" }
+          } catch {
+            Write-Error "Start-Process also failed: $_"
+            Write-Host "This suggests missing runtime dependencies (VC++ redistributable, .NET, etc.)"
+            exit 1
+          }
+        }

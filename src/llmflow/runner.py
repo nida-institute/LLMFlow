@@ -44,6 +44,9 @@ discover_plugins()
 # Single unified logger instance
 logger = Logger()
 
+# Sentinel for "key not found" in get_from_context — distinguishes missing keys from None values.
+_MISSING = object()
+
 def build_debug_filename(step: Dict[str, Any], context: Dict[str, Any], request_or_response: str) -> str:
     """Build a debug filename from passage (or timestamp), prompt file, and request/response type.
 
@@ -149,7 +152,7 @@ def _record_written_file(path):
 def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
     """
     Resolve dot notation and list indices from context.
-    Supports: foo.bar, foo[0], foo[key], foo['key'], Row objects with attributes/getitem.
+    Supports: foo.bar, foo[0], foo[key], foo['key'], foo[-3:], foo[:5][*].field
     """
     import re
 
@@ -157,67 +160,166 @@ def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
     result = ctx
 
     for i, part in enumerate(parts):
-        # Handle list index: foo[0] OR dict key: foo[key] OR foo['key']
-        m = re.match(r"^([a-zA-Z0-9_]+)(\[([^\]]+)\])?$", part)
+        # Extract key and all bracket operations: foo[0][*]['key']
+        # Match: identifier followed by zero or more bracket operations
+        m = re.match(r"^([a-zA-Z0-9_]+)(.*)$", part)
         if not m:
-            return None
+            return _MISSING
 
         key = m.group(1)
-        bracket_content = m.group(3)
+        bracket_section = m.group(2)
 
         # Get key from dict or object attribute
         if isinstance(result, dict):
-            result = result.get(key)
+            result = result.get(key, _MISSING)
+            if result is _MISSING:
+                return _MISSING
         elif hasattr(result, key):
             try:
                 result = getattr(result, key)
             except AttributeError:
-                return None
+                return _MISSING
         else:
-            return None
+            return _MISSING
 
-        # Handle bracket access
-        if bracket_content is not None:
-            # Wildcard: map remaining path over every item in the list
-            if bracket_content == "*":
-                if not isinstance(result, list):
-                    return None
-                remaining = parts[i + 1:]
-                if remaining:
-                    sub_expr = ".".join(remaining)
-                    return [get_from_context(sub_expr, item) for item in result]
-                return list(result)
+        # Process all bracket operations in sequence
+        if bracket_section:
+            # Extract all bracket contents: [content1], [content2], etc.
+            bracket_matches = re.findall(r"\[([^\]]+)\]", bracket_section)
 
-            # Try numeric index first
-            try:
-                idx = int(bracket_content)
-                if isinstance(result, list):
-                    if len(result) == 0 or idx >= len(result):
-                        return None
-                    result = result[idx]
+            for bracket_idx, bracket_content in enumerate(bracket_matches):
+                # Wildcard: map remaining path over every item in the list
+                if bracket_content == "*":
+                    if not isinstance(result, list):
+                        return _MISSING
+
+                    # Check if there are more bracket operations after wildcard
+                    remaining_brackets = bracket_matches[bracket_idx + 1:]
+                    remaining_parts = parts[i + 1:]
+
+                    if remaining_brackets or remaining_parts:
+                        # Complex case: apply remaining brackets to each item first
+                        results = []
+                        for item in result:
+                            temp_result = item
+                            # Apply remaining brackets to this item
+                            for rb in remaining_brackets:
+                                temp_result = _apply_single_bracket(
+                                    temp_result, rb, i, parts, bracket_idx
+                                )
+                                if temp_result is _MISSING:
+                                    results.append(None)
+                                    break
+                            else:
+                                # Then apply remaining parts
+                                if remaining_parts:
+                                    sub_expr = ".".join(remaining_parts)
+                                    temp_result = (
+                                        get_from_context(sub_expr, temp_result)
+                                        if temp_result is not _MISSING
+                                        else None
+                                    )
+                                    # [*] fills missing fields with None, not _MISSING
+                                    if temp_result is _MISSING:
+                                        temp_result = None
+                                results.append(temp_result)
+                        return results
+                    else:
+                        # No remaining operations, just return the list
+                        return list(result)
+
+                # Slice notation: check for colon (e.g., [-3:], [:5], [1:4], [::2])
+                elif ":" in bracket_content:
+                    result = _apply_slice(result, bracket_content)
+                    if result is _MISSING:
+                        return _MISSING
+
+                # Numeric index or dict/object key
                 else:
-                    return None
-            except ValueError:
-                # Not a number - treat as dict/object key
-                # Remove quotes if present: 'key' or "key" -> key
-                bracket_key = bracket_content.strip().strip("'\"")
-
-                # Try dict access
-                if isinstance(result, dict):
-                    result = result.get(bracket_key)
-                # Try Row object __getitem__
-                elif hasattr(result, '__getitem__'):
-                    try:
-                        result = result[bracket_key]  # type: ignore[index]
-                    except (KeyError, TypeError):
-                        return None
-                # Try attribute access as fallback
-                elif hasattr(result, bracket_key):
-                    result = getattr(result, bracket_key)
-                else:
-                    return None
+                    result = _apply_index_or_key(result, bracket_content)
+                    if result is _MISSING:
+                        return _MISSING
 
     return result
+
+
+def _apply_slice(result: Any, bracket_content: str) -> Any:
+    """Apply slice notation to result."""
+    # Parse slice notation: [start:stop] or [start:stop:step]
+    slice_parts = bracket_content.split(":")
+
+    # Handle up to 3 parts: start, stop, step
+    start = None
+    stop = None
+    step = None
+
+    if len(slice_parts) >= 1 and slice_parts[0].strip():
+        try:
+            start = int(slice_parts[0].strip())
+        except ValueError:
+            return _MISSING
+
+    if len(slice_parts) >= 2 and slice_parts[1].strip():
+        try:
+            stop = int(slice_parts[1].strip())
+        except ValueError:
+            return _MISSING
+
+    if len(slice_parts) >= 3 and slice_parts[2].strip():
+        try:
+            step = int(slice_parts[2].strip())
+        except ValueError:
+            return _MISSING
+
+    # Apply slice to list or string (sequences)
+    if isinstance(result, (list, str)):
+        try:
+            return result[slice(start, stop, step)]
+        except (IndexError, TypeError):
+            return _MISSING
+    else:
+        # Can't slice non-sequence types — leave template string intact
+        return _MISSING
+
+
+def _apply_index_or_key(result: Any, bracket_content: str) -> Any:
+    """Apply numeric index or dict/object key access."""
+    # Try numeric index first
+    try:
+        idx = int(bracket_content)
+        if isinstance(result, list):
+            if len(result) == 0 or idx >= len(result) or (idx < 0 and abs(idx) > len(result)):
+                return _MISSING
+            return result[idx]
+        else:
+            return _MISSING
+    except ValueError:
+        # Not a number - treat as dict/object key
+        # Remove quotes if present: 'key' or "key" -> key
+        bracket_key = bracket_content.strip().strip("'\"")
+
+        # Try dict access
+        if isinstance(result, dict):
+            return result.get(bracket_key, _MISSING)
+        # Try Row object __getitem__
+        elif hasattr(result, '__getitem__'):
+            try:
+                return result[bracket_key]  # type: ignore[index]
+            except (KeyError, TypeError):
+                return _MISSING
+        # Try attribute access as fallback
+        elif hasattr(result, bracket_key):
+            return getattr(result, bracket_key)
+        else:
+            return _MISSING
+
+
+def _apply_single_bracket(result: Any, bracket_content: str, part_idx: int, parts: list, bracket_idx: int) -> Any:
+    """Helper to apply a single bracket operation (for wildcard processing)."""
+    if ":" in bracket_content:
+        return _apply_slice(result, bracket_content)
+    else:
+        return _apply_index_or_key(result, bracket_content)
 
 
 def resolve(value, context, max_depth=5):
@@ -234,7 +336,7 @@ def resolve(value, context, max_depth=5):
         if match:
             expr = match.group(1)
             resolved = get_from_context(expr, context)
-            if resolved is not None:
+            if resolved is not _MISSING:
                 # Recursive resolution if still templated (including mid-string ${} refs)
                 if isinstance(resolved, str) and ("${" in resolved or "{" in resolved):
                     if max_depth > 0:
@@ -247,7 +349,7 @@ def resolve(value, context, max_depth=5):
         if match:
             expr = match.group(1)
             resolved = get_from_context(expr, context)
-            if resolved is not None:
+            if resolved is not _MISSING:
                 # Recursive resolution if still templated (including mid-string {} refs)
                 if isinstance(resolved, str) and ("${" in resolved or "{" in resolved):
                     if max_depth > 0:
@@ -259,7 +361,7 @@ def resolve(value, context, max_depth=5):
         def replace_var(match):
             expr = match.group(1)
             resolved = get_from_context(expr, context)
-            return str(resolved) if resolved is not None else match.group(0)
+            return str(resolved) if resolved is not _MISSING else match.group(0)
 
         value = re.sub(r"\$\{([^\}]+)\}", replace_var, value)
         value = re.sub(r"\{([^\}]+)\}", replace_var, value)
@@ -490,7 +592,8 @@ def _restore_retry_targets(context, snapshot):
 
 def _build_eval_locals(context):
     def ctx_lookup(expr):
-        return get_from_context(expr, context)
+        result = get_from_context(expr, context)
+        return None if result is _MISSING else result
 
     eval_locals = {"context": context, "ctx": ctx_lookup}
     for key, value in context.items():
@@ -1465,6 +1568,11 @@ def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_co
                     original_length = len(context[target])
                     new_items = iteration_context[target][original_length:]
                     context[target].extend(new_items)
+
+        # Propagate regular outputs — last-iteration wins, matching Python for-loop semantics
+        for output_var in output_vars:
+            if output_var in iteration_context:
+                context[output_var] = iteration_context[output_var]
 
     return None  # No exit, normal completion
 

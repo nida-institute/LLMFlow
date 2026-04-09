@@ -143,11 +143,15 @@ def test_content_status_requires_project_path_parameter(client, temp_project):
     Bug: Frontend wasn't passing project_path, causing 404.
     This test verifies endpoint needs it and works with it.
     """
-    # Create a test file
-    test_file = Path(temp_project['outputs']) / 'test.txt'
+    # Create a test file in the content/generated stage directory
+    # (content lifecycle looks in content/<stage>/, not outputs/)
+    generated_dir = Path(temp_project['path']) / 'content' / 'generated'
+    generated_dir.mkdir(parents=True)
+    test_file = generated_dir / 'test.txt'
     test_file.write_text('test content')
 
-    relative_path = str(test_file.relative_to(temp_project['path']))
+    # Path is relative to content root, just the filename
+    relative_path = 'test'
 
     # Test WITH project_path (should work)
     response = client.get('/api/content/status', query_string={
@@ -182,10 +186,12 @@ def test_content_all_returns_actual_files(client, temp_project):
     Bug: Endpoint returned empty stages even when files existed.
     This test verifies it actually discovers files.
     """
-    # Create some test files in outputs
-    outputs_dir = Path(temp_project['outputs'])
-    (outputs_dir / 'file1.txt').write_text('content1')
-    (outputs_dir / 'file2.md').write_text('# Test')
+    # Create test files in the content/generated stage directory
+    # (content lifecycle uses content/<stage>/, not outputs/)
+    generated_dir = Path(temp_project['path']) / 'content' / 'generated'
+    generated_dir.mkdir(parents=True)
+    (generated_dir / 'file1.txt').write_text('content1')
+    (generated_dir / 'file2.md').write_text('# Test')
 
     response = client.get('/api/content/all', query_string={
         'project_path': temp_project['path']

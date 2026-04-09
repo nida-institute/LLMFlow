@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## 0.2.1.18 — 2026-04-06
+
+### Fixed
+
+- **Windows install script diagnostics** — Added file size verification and existence checks after download in install.ps1. Changed workflow verification to run install script directly in pwsh instead of spawning subprocess. Improves error reporting for Windows installation issues.
+
+## 0.2.1.17 — 2026-04-05
+
+### Fixed
+
+- **Windows binary runtime dependencies** — Bundle Visual C++ runtime DLLs (vcruntime140.dll, msvcp140.dll) directly into the Windows executable using Nuitka's `--windows-dependency-tool=pefile` flag. Eliminates runtime dependency errors on systems without VC++ redistributables installed. Windows binary is now fully standalone.
+
+## 0.2.1.16 — 2026-04-05
+
+### Fixed
+
+- **Windows npm command resolution** — Added `shell=True` to subprocess.run() calls for npm commands in build_gui.py. Windows requires npm.cmd wrapper which shell resolves automatically. Fixes FileNotFoundError on Windows Nuitka builds.
+
 ## 0.2.1.15 — 2026-04-04
 
 ### Fixed

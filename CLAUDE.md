@@ -174,6 +174,8 @@ This boundary was documented after a real violation (GitHub issue #75, March 202
 - Using `logging.basicConfig()`
 - Assuming `step.model` is the final model — always check `merged_config`
 - Making changes without verifying you're in the core engine repo, not a consumer repo
+- **Claiming "ready to publish to PyPI" based on `hatch build` success** — building locally ≠ PyPI registration; verify project exists at https://pypi.org/project/llmflow/ first
+- **Claiming "build succeeded" without checking ALL workflow jobs** — compilation success ≠ release success; verify install script and all verification jobs passed
 
 ## File Organization
 

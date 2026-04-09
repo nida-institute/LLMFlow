@@ -246,11 +246,22 @@ class PipelineExecutor:
             log_path = Path(cwd) / log_filename
             created_files, telemetry_report = self._parse_log_file(log_path)
 
+        # Determine output directory from created files
+        output_dir = cwd
+        if created_files and cwd:
+            # Extract directory from first created file
+            first_file = Path(cwd) / created_files[0]
+            if first_file.exists():
+                output_dir = str(first_file.parent)
+            else:
+                # File path might be absolute or project-relative
+                output_dir = str(Path(created_files[0]).parent if Path(created_files[0]).is_absolute() else Path(cwd) / Path(created_files[0]).parent)
+
         return {
             'success': exit_code == 0,
             'exit_code': exit_code,
             'created_files': created_files,
             'telemetry': telemetry_report,
-            'output_dir': cwd,
+            'output_dir': output_dir,
             'output_lines': self.output_lines  # For testing
         }
