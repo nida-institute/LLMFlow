@@ -86,6 +86,72 @@ class TestLoadProjectFile:
             test_file.unlink()
 
 
+class TestLoadProjectFileOptional:
+    """Tests for load_project_file() with required=False."""
+
+    def test_optional_missing_json_returns_none(self):
+        """required=False returns None for absent JSON file."""
+        result = load_project_file(
+            base_dir=str(FIXTURES_DIR),
+            project_name="TestProject",
+            file="absent.json",
+            required=False
+        )
+        assert result is None
+
+    def test_optional_missing_xml_returns_none(self):
+        """required=False returns None for absent XML file."""
+        result = load_project_file(
+            base_dir=str(FIXTURES_DIR),
+            project_name="TestProject",
+            file="absent.xml",
+            required=False
+        )
+        assert result is None
+
+    def test_optional_present_json_still_loads(self):
+        """required=False still loads the file when it exists."""
+        result = load_project_file(
+            base_dir=str(FIXTURES_DIR),
+            project_name="TestProject",
+            file="metadata.json",
+            required=False
+        )
+        assert isinstance(result, dict)
+        assert result["languages"][0]["tag"] == "tst"
+
+    def test_optional_present_xml_still_loads(self):
+        """required=False still loads the file when it exists."""
+        result = load_project_file(
+            base_dir=str(FIXTURES_DIR),
+            project_name="TestProject",
+            file="Settings.xml",
+            required=False
+        )
+        from lxml import etree
+        assert isinstance(result, etree._Element)
+
+    def test_optional_missing_project_dir_still_raises(self):
+        """required=False does not suppress a missing project directory."""
+        with pytest.raises(FileNotFoundError) as exc_info:
+            load_project_file(
+                base_dir=str(FIXTURES_DIR),
+                project_name="NoSuchProject",
+                file="metadata.json",
+                required=False
+            )
+        assert "NoSuchProject" in str(exc_info.value)
+
+    def test_default_required_true_raises_for_missing(self):
+        """Default behavior (required=True) is unchanged."""
+        with pytest.raises(FileNotFoundError):
+            load_project_file(
+                base_dir=str(FIXTURES_DIR),
+                project_name="TestProject",
+                file="absent.json"
+            )
+
+
 class TestXPathText:
     """Tests for xpath_text() helper function."""
 
