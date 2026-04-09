@@ -319,7 +319,7 @@ def create_app():
             stages_data = [
                 {
                     'name': stage.name,
-                    'label': stage.label,
+                    'label': stage.description or stage.name,
                     'protected': stage.protected,
                     'immutable': stage.immutable,
                     'file_permissions': stage.file_permissions,

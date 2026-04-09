@@ -44,6 +44,9 @@ discover_plugins()
 # Single unified logger instance
 logger = Logger()
 
+# Sentinel for "key not found" in get_from_context — distinguishes missing keys from None values.
+_MISSING = object()
+
 def build_debug_filename(step: Dict[str, Any], context: Dict[str, Any], request_or_response: str) -> str:
     """Build a debug filename from passage (or timestamp), prompt file, and request/response type.
 
@@ -161,21 +164,23 @@ def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
         # Match: identifier followed by zero or more bracket operations
         m = re.match(r"^([a-zA-Z0-9_]+)(.*)$", part)
         if not m:
-            return None
+            return _MISSING
 
         key = m.group(1)
         bracket_section = m.group(2)
 
         # Get key from dict or object attribute
         if isinstance(result, dict):
-            result = result.get(key)
+            result = result.get(key, _MISSING)
+            if result is _MISSING:
+                return _MISSING
         elif hasattr(result, key):
             try:
                 result = getattr(result, key)
             except AttributeError:
-                return None
+                return _MISSING
         else:
-            return None
+            return _MISSING
 
         # Process all bracket operations in sequence
         if bracket_section:
@@ -328,7 +333,7 @@ def resolve(value, context, max_depth=5):
         if match:
             expr = match.group(1)
             resolved = get_from_context(expr, context)
-            if resolved is not None:
+            if resolved is not _MISSING:
                 # Recursive resolution if still templated (including mid-string ${} refs)
                 if isinstance(resolved, str) and ("${" in resolved or "{" in resolved):
                     if max_depth > 0:
@@ -341,7 +346,7 @@ def resolve(value, context, max_depth=5):
         if match:
             expr = match.group(1)
             resolved = get_from_context(expr, context)
-            if resolved is not None:
+            if resolved is not _MISSING:
                 # Recursive resolution if still templated (including mid-string {} refs)
                 if isinstance(resolved, str) and ("${" in resolved or "{" in resolved):
                     if max_depth > 0:
@@ -353,7 +358,7 @@ def resolve(value, context, max_depth=5):
         def replace_var(match):
             expr = match.group(1)
             resolved = get_from_context(expr, context)
-            return str(resolved) if resolved is not None else match.group(0)
+            return str(resolved) if resolved is not _MISSING else match.group(0)
 
         value = re.sub(r"\$\{([^\}]+)\}", replace_var, value)
         value = re.sub(r"\{([^\}]+)\}", replace_var, value)
@@ -584,7 +589,8 @@ def _restore_retry_targets(context, snapshot):
 
 def _build_eval_locals(context):
     def ctx_lookup(expr):
-        return get_from_context(expr, context)
+        result = get_from_context(expr, context)
+        return None if result is _MISSING else result
 
     eval_locals = {"context": context, "ctx": ctx_lookup}
     for key, value in context.items():
