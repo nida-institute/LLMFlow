@@ -83,14 +83,14 @@ class TestGetFromContext:
         assert get_from_context("items[2]", ctx) == "c"
 
     def test_list_index_out_of_bounds(self):
-        """Out of bounds index returns None."""
+        """Out of bounds index returns _MISSING sentinel."""
         ctx = {"items": ["a", "b"]}
-        assert get_from_context("items[5]", ctx) is None
+        assert get_from_context("items[5]", ctx) is _MISSING
 
     def test_list_index_empty_list(self):
-        """Indexing empty list returns None."""
+        """Indexing empty list returns _MISSING sentinel."""
         ctx = {"items": []}
-        assert get_from_context("items[0]", ctx) is None
+        assert get_from_context("items[0]", ctx) is _MISSING
 
     def test_list_index_negative_supported(self):
         """Negative indices ARE supported."""
@@ -118,9 +118,9 @@ class TestGetFromContext:
         assert get_from_context("data['my key']", ctx) == "value"
 
     def test_dict_key_missing(self):
-        """Missing dict key returns None."""
+        """Missing dict key returns _MISSING sentinel."""
         ctx = {"data": {"key": "value"}}
-        assert get_from_context("data[missing]", ctx) is None
+        assert get_from_context("data[missing]", ctx) is _MISSING
 
     # ===== Combined Access =====
 
@@ -182,13 +182,12 @@ class TestGetFromContext:
     # ===== Edge Cases =====
 
     def test_numeric_string_key(self):
-        """Dict key that looks like a number."""
+        """Dict key that looks like a number — known limitation."""
         ctx = {"data": {"123": "value"}}
-        # Implementation tries int first, so this might not work as expected
-        # This is a known limitation
+        # Implementation tries int first; dict[123] (int) fails, returns _MISSING.
+        # Use data['123'] quoted-key syntax to access string keys that look numeric.
         result = get_from_context("data[123]", ctx)
-        # Since data is a dict and 123 is parsed as int, this fails
-        assert result is None
+        assert result is _MISSING
 
     def test_empty_brackets(self):
         """Empty brackets are treated as no bracket operation — returns the full value."""

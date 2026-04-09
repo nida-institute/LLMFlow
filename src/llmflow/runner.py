@@ -191,7 +191,7 @@ def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
                 # Wildcard: map remaining path over every item in the list
                 if bracket_content == "*":
                     if not isinstance(result, list):
-                        return None
+                        return _MISSING
 
                     # Check if there are more bracket operations after wildcard
                     remaining_brackets = bracket_matches[bracket_idx + 1:]
@@ -207,7 +207,7 @@ def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
                                 temp_result = _apply_single_bracket(
                                     temp_result, rb, i, parts, bracket_idx
                                 )
-                                if temp_result is None:
+                                if temp_result is _MISSING:
                                     results.append(None)
                                     break
                             else:
@@ -216,7 +216,7 @@ def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
                                     sub_expr = ".".join(remaining_parts)
                                     temp_result = (
                                         get_from_context(sub_expr, temp_result)
-                                        if temp_result is not None
+                                        if temp_result is not _MISSING
                                         else None
                                     )
                                     # [*] fills missing fields with None, not _MISSING
@@ -231,14 +231,14 @@ def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
                 # Slice notation: check for colon (e.g., [-3:], [:5], [1:4], [::2])
                 elif ":" in bracket_content:
                     result = _apply_slice(result, bracket_content)
-                    if result is None:
-                        return None
+                    if result is _MISSING:
+                        return _MISSING
 
                 # Numeric index or dict/object key
                 else:
                     result = _apply_index_or_key(result, bracket_content)
-                    if result is None:
-                        return None
+                    if result is _MISSING:
+                        return _MISSING
 
     return result
 
@@ -257,29 +257,29 @@ def _apply_slice(result: Any, bracket_content: str) -> Any:
         try:
             start = int(slice_parts[0].strip())
         except ValueError:
-            return None
+            return _MISSING
 
     if len(slice_parts) >= 2 and slice_parts[1].strip():
         try:
             stop = int(slice_parts[1].strip())
         except ValueError:
-            return None
+            return _MISSING
 
     if len(slice_parts) >= 3 and slice_parts[2].strip():
         try:
             step = int(slice_parts[2].strip())
         except ValueError:
-            return None
+            return _MISSING
 
     # Apply slice to list or string (sequences)
     if isinstance(result, (list, str)):
         try:
             return result[slice(start, stop, step)]
         except (IndexError, TypeError):
-            return None
+            return _MISSING
     else:
-        # Can't slice non-sequence types
-        return None
+        # Can't slice non-sequence types — leave template string intact
+        return _MISSING
 
 
 def _apply_index_or_key(result: Any, bracket_content: str) -> Any:
@@ -289,10 +289,10 @@ def _apply_index_or_key(result: Any, bracket_content: str) -> Any:
         idx = int(bracket_content)
         if isinstance(result, list):
             if len(result) == 0 or idx >= len(result) or (idx < 0 and abs(idx) > len(result)):
-                return None
+                return _MISSING
             return result[idx]
         else:
-            return None
+            return _MISSING
     except ValueError:
         # Not a number - treat as dict/object key
         # Remove quotes if present: 'key' or "key" -> key
@@ -300,18 +300,18 @@ def _apply_index_or_key(result: Any, bracket_content: str) -> Any:
 
         # Try dict access
         if isinstance(result, dict):
-            return result.get(bracket_key)
+            return result.get(bracket_key, _MISSING)
         # Try Row object __getitem__
         elif hasattr(result, '__getitem__'):
             try:
                 return result[bracket_key]  # type: ignore[index]
             except (KeyError, TypeError):
-                return None
+                return _MISSING
         # Try attribute access as fallback
         elif hasattr(result, bracket_key):
             return getattr(result, bracket_key)
         else:
-            return None
+            return _MISSING
 
 
 def _apply_single_bracket(result: Any, bracket_content: str, part_idx: int, parts: list, bracket_idx: int) -> Any:

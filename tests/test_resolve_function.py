@@ -190,13 +190,11 @@ class TestResolveFunction:
             "data": {"key": None}
         }
 
-        # When a value is None, resolve returns the original template string
-        # (because None is falsy in the resolution logic)
+        # None is a legitimate value — resolve returns None, not the template string
         result = resolve("${data.key}", context)
-        # Current behavior: returns unresolved template when value is None
-        assert result == "${data.key}"
+        assert result is None
 
-        # For a missing key entirely:
+        # For a missing key, the template string is preserved
         context2 = {"data": {}}
         result2 = resolve("${data.missing}", context2)
         assert result2 == "${data.missing}"
