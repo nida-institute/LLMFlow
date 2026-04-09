@@ -1,5 +1,5 @@
 [project]
-name = "llmflow"
+name = "scripture-pipelines"
 version = "0.2.1.18"
 description = "Declarative pipelines for LLM-powered workflows"
 authors = [{name = "Jonathan Robie", email = "jonathan.robie@gmail.com"}]

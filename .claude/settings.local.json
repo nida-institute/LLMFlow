@@ -22,7 +22,17 @@
       "Bash(find /Users/jonathan/github/nida-institute/discourse-flow-hebrew -type f -name *19* -o -type d -name *19*)",
       "Bash(ls:*)",
       "WebSearch",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d[''''title'''']\\); print\\(d[''''state'''']\\); print\\(d[''''body'''']\\)\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d[''''title'''']\\); print\\(d[''''state'''']\\); print\\(d[''''body'''']\\)\")",
+      "Bash(curl -s https://pypi.org/pypi/llmflow/json)",
+      "Bash(hatch build:*)",
+      "Bash(curl -s https://pypi.org/pypi/llm-flow/json)",
+      "Bash(git stash:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+"Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(git branch:*)"
     ]
   }
 }
