@@ -1,6 +1,6 @@
 """Comprehensive tests for variable resolution (resolve and get_from_context)."""
 import pytest
-from llmflow.runner import resolve, get_from_context
+from llmflow.runner import resolve, get_from_context, _MISSING
 
 
 class MockRow:
@@ -39,13 +39,13 @@ class TestGetFromContext:
         assert get_from_context("value", ctx) is None
 
     def test_missing_key(self):
-        """Missing key returns None."""
+        """Missing key returns _MISSING sentinel (not None)."""
         ctx = {"name": "John"}
-        assert get_from_context("missing", ctx) is None
+        assert get_from_context("missing", ctx) is _MISSING
 
     def test_empty_context(self):
-        """Empty context returns None."""
-        assert get_from_context("anything", {}) is None
+        """Empty context returns _MISSING sentinel (not None)."""
+        assert get_from_context("anything", {}) is _MISSING
 
     # ===== Dot Notation =====
 
@@ -61,14 +61,14 @@ class TestGetFromContext:
         assert get_from_context("data.user.profile.city", ctx) == "NYC"
 
     def test_dot_notation_missing_intermediate(self):
-        """Missing intermediate key returns None."""
+        """Missing intermediate key returns _MISSING sentinel."""
         ctx = {"user": {"name": "John"}}
-        assert get_from_context("user.profile.city", ctx) is None
+        assert get_from_context("user.profile.city", ctx) is _MISSING
 
     def test_dot_notation_none_intermediate(self):
-        """None intermediate value returns None."""
+        """None intermediate value returns _MISSING (can't traverse into None)."""
         ctx = {"user": None}
-        assert get_from_context("user.name", ctx) is None
+        assert get_from_context("user.name", ctx) is _MISSING
 
     # ===== List Indexing =====
 
@@ -167,10 +167,10 @@ class TestGetFromContext:
         assert get_from_context("row['city']", ctx) == "NYC"
 
     def test_row_missing_attribute(self):
-        """Missing Row attribute returns None."""
+        """Missing Row attribute returns _MISSING sentinel."""
         row = MockRow(name="Charlie")
         ctx = {"row": row}
-        assert get_from_context("row.missing", ctx) is None
+        assert get_from_context("row.missing", ctx) is _MISSING
 
     def test_list_of_rows(self):
         """Access list of Row objects."""
@@ -191,11 +191,11 @@ class TestGetFromContext:
         assert result is None
 
     def test_empty_brackets(self):
-        """Empty brackets return None."""
+        """Empty brackets are treated as no bracket operation — returns the full value."""
         ctx = {"data": [1, 2, 3]}
-        # Invalid syntax - implementation regex won't match
+        # [] has no content matching [^\]]+, so findall returns nothing — no bracket op applied
         result = get_from_context("data[]", ctx)
-        assert result is None
+        assert result == [1, 2, 3]
 
     def test_special_characters_in_key(self):
         """Keys with underscores and numbers."""
@@ -405,18 +405,15 @@ class TestResolve:
     # ===== None Handling =====
 
     def test_none_value_in_context(self):
-        """None value in context returns placeholder (not resolved)."""
+        """None value in context resolves to None (not the placeholder string)."""
         ctx = {"value": None}
-        # get_from_context returns None, so resolve condition 'resolved is not None' fails
-        # and the placeholder is left unchanged
-        assert resolve("${value}", ctx) == "${value}"
+        assert resolve("${value}", ctx) is None
 
     def test_none_value_in_string(self):
-        """None value in string leaves placeholder unchanged."""
+        """None value interpolated into a string becomes 'None'."""
         ctx = {"value": None}
         result = resolve("Value is ${value}", ctx)
-        # Since get_from_context returns None, the condition fails and placeholder stays
-        assert result == "Value is ${value}"
+        assert result == "Value is None"
 
     def test_resolve_none_directly(self):
         """Resolving None returns None."""
@@ -465,10 +462,9 @@ class TestResolve:
         assert resolve("${level1.level2.level3.level4.value}", ctx) == "deep"
 
     def test_list_in_list_access(self):
-        """Nested list access."""
+        """Nested list access via chained brackets."""
         ctx = {"matrix": [[1, 2], [3, 4]]}
-        assert resolve("${matrix[0][0]}", ctx) == "${matrix[0][0]}"  # Single bracket level only
-        # Need to do it in two steps
+        assert resolve("${matrix[0][0]}", ctx) == 1
         assert resolve("${matrix[0]}", ctx) == [1, 2]
 
     # ===== Edge Cases =====

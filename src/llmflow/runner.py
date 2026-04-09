@@ -219,6 +219,9 @@ def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
                                         if temp_result is not None
                                         else None
                                     )
+                                    # [*] fills missing fields with None, not _MISSING
+                                    if temp_result is _MISSING:
+                                        temp_result = None
                                 results.append(temp_result)
                         return results
                     else:
@@ -1565,6 +1568,11 @@ def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_co
                     original_length = len(context[target])
                     new_items = iteration_context[target][original_length:]
                     context[target].extend(new_items)
+
+        # Propagate regular outputs — last-iteration wins, matching Python for-loop semantics
+        for output_var in output_vars:
+            if output_var in iteration_context:
+                context[output_var] = iteration_context[output_var]
 
     return None  # No exit, normal completion
 
