@@ -1658,12 +1658,87 @@ def _build_windows_condition(items: list, start_when: str, end_when: str | None,
     return windows
 
 
+def _build_windows_token(
+    items: list,
+    size_by_tokens: int,
+    stride_by_tokens: int,
+    model: str,
+    include_partial: bool,
+) -> list[list]:
+    """Token-aware sliding windows using tiktoken.
+
+    Each window accumulates items until adding the next would exceed size_by_tokens.
+    The next window begins at the start of the overlap suffix: the largest suffix of
+    the current window whose total token count <= stride_by_tokens.  This implements
+    token-level sliding overlap (stride_by_tokens=0 => tumbling / no overlap).
+
+    Items are serialised as JSON (dicts/lists) or str() for token counting, matching
+    what the LLM prompt will receive.
+    """
+    try:
+        import tiktoken  # noqa: PLC0415
+    except ImportError:
+        raise ImportError(
+            "tiktoken is required for token-based windowing. "
+            "Install with: pip install tiktoken"
+        ) from None
+
+    try:
+        enc = tiktoken.encoding_for_model(model)
+    except KeyError:
+        enc = tiktoken.get_encoding("cl100k_base")
+
+    def count_tokens(item: Any) -> int:
+        text = json.dumps(item, ensure_ascii=False) if isinstance(item, (dict, list)) else str(item)
+        return len(enc.encode(text))
+
+    counts = [count_tokens(item) for item in items]
+    n = len(items)
+    windows: list[list] = []
+    start = 0
+
+    while start < n:
+        # Greedily accumulate items until adding the next would overflow.
+        # Always include at least one item even if it alone exceeds size_by_tokens.
+        total = 0
+        end = start
+        while end < n:
+            if total + counts[end] > size_by_tokens and end > start:
+                break
+            total += counts[end]
+            end += 1
+
+        # is_partial: window ended because we ran out of items (not overflow)
+        is_partial = end == n
+        if not is_partial or include_partial:
+            windows.append(items[start:end])
+
+        if stride_by_tokens <= 0:
+            start = end  # tumbling: no overlap
+        else:
+            # Find the largest suffix [k:end] with total tokens <= stride_by_tokens
+            overlap_tokens = 0
+            k = end
+            while k > start:
+                if overlap_tokens + counts[k - 1] <= stride_by_tokens:
+                    overlap_tokens += counts[k - 1]
+                    k -= 1
+                else:
+                    break
+            # Always advance at least 1 item to prevent infinite loop when the
+            # overlap covers the entire window (stride_by_tokens >= window tokens).
+            start = max(k, start + 1)
+
+    return windows
+
+
 def run_window_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> str | None:
     """Execute a window step — iterate over windows of the input list."""
-    input_data = resolve(step.get("input", []), context)
+    step_name = step.get("name", "unnamed")
+    input_data = resolve(step.get("input", step.get("over", [])), context)
     if not isinstance(input_data, list):
         raise ValueError(
-            f"Window step '{step.get('name', 'unnamed')}': input must resolve to a list, "
+            f"Window step '{step_name}': input must resolve to a list, "
             f"got {type(input_data).__name__}"
         )
 
@@ -1674,18 +1749,32 @@ def run_window_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_conf
     include_partial = step.get("include_partial", True)
     start_when = step.get("start_when")
     end_when = step.get("end_when")
+    size_by_tokens = step.get("size_by_tokens")
+    stride_by_tokens = step.get("stride_by_tokens", 0)
+    _model_raw = resolve(step.get("model", "gpt-4o"), context)
+    model: str = str(_model_raw) if not isinstance(_model_raw, str) else _model_raw
 
     # Build window list
     if start_when:
         windows = _build_windows_condition(input_data, start_when, end_when, context)
+    elif size_by_tokens is not None:
+        if not isinstance(size_by_tokens, int) or size_by_tokens < 1:
+            raise ValueError(
+                f"Window step '{step_name}': 'size_by_tokens' must be a positive integer"
+            )
+        if not isinstance(stride_by_tokens, int) or stride_by_tokens < 0:
+            raise ValueError(
+                f"Window step '{step_name}': 'stride_by_tokens' must be a non-negative integer"
+            )
+        windows = _build_windows_token(input_data, size_by_tokens, stride_by_tokens, model, include_partial)
     else:
         if not isinstance(size, int):
             raise ValueError(
-                f"Window step '{step.get('name', 'unnamed')}': 'size' must be a positive integer"
+                f"Window step '{step_name}': 'size' must be a positive integer"
             )
         if not isinstance(stride, int):
             raise ValueError(
-                f"Window step '{step.get('name', 'unnamed')}': 'stride' must be a positive integer"
+                f"Window step '{step_name}': 'stride' must be a positive integer"
             )
         windows = _build_windows_fixed(input_data, size, stride, include_partial)
 
@@ -1770,6 +1859,13 @@ def run_window_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_conf
         for output_var in output_vars:
             if output_var in iteration_context:
                 context[output_var] = iteration_context[output_var]
+
+    # Optional merge step: runs once after all windows complete with the full context
+    merge_config = step.get("merge")
+    if merge_config:
+        logger.info(f"🔀 Window step '{step_name}': running merge")
+        merge_result = run_function_step(merge_config, context, pipeline_config)
+        handle_step_outputs(merge_config, merge_result, context)
 
     return None
 

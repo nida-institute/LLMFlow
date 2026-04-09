@@ -82,6 +82,11 @@ _EXTRA_STEP_KEYS = {
     "include_partial",
     "start_when",
     "end_when",
+    "size_by_tokens",
+    "stride_by_tokens",
+    "merge",
+    "item_var",
+    "over",
 }
 
 ALLOWED_STEP_KEYS = _SCHEMA_STEP_KEYS | _EXTRA_STEP_KEYS
@@ -1033,18 +1038,21 @@ def _lint_window_step(step: dict, errors: list) -> None:
     """Validate window step configuration."""
     name = step.get("name", "<unnamed>")
     has_size = "size" in step
+    has_size_by_tokens = "size_by_tokens" in step
     has_start_when = "start_when" in step
 
-    if not has_size and not has_start_when:
+    mode_count = sum([has_size, has_size_by_tokens, has_start_when])
+
+    if mode_count == 0:
         errors.append(
-            f"Window step '{name}': must specify either 'size' (fixed windows) "
-            f"or 'start_when' (condition-based windows)"
+            f"Window step '{name}': must specify one of 'size' (fixed), "
+            f"'size_by_tokens' (token-aware), or 'start_when' (condition-based)"
         )
         return
 
-    if has_size and has_start_when:
+    if mode_count > 1:
         errors.append(
-            f"Window step '{name}': 'size' and 'start_when' are mutually exclusive"
+            f"Window step '{name}': 'size', 'size_by_tokens', and 'start_when' are mutually exclusive"
         )
         return
 
@@ -1063,6 +1071,33 @@ def _lint_window_step(step: dict, errors: list) -> None:
                 f"Window step '{name}': 'end_when' is only valid with 'start_when', not 'size'"
             )
 
+        if "stride_by_tokens" in step:
+            errors.append(
+                f"Window step '{name}': 'stride_by_tokens' is only valid with 'size_by_tokens'"
+            )
+
+    if has_size_by_tokens:
+        sbt = step["size_by_tokens"]
+        if not isinstance(sbt, int) or sbt < 1:
+            errors.append(f"Window step '{name}': 'size_by_tokens' must be a positive integer")
+
+        if "stride_by_tokens" in step:
+            s = step["stride_by_tokens"]
+            if not isinstance(s, int) or s < 0:
+                errors.append(
+                    f"Window step '{name}': 'stride_by_tokens' must be a non-negative integer"
+                )
+
+        if "stride" in step:
+            errors.append(
+                f"Window step '{name}': use 'stride_by_tokens' (not 'stride') with 'size_by_tokens'"
+            )
+
+        if "end_when" in step or "start_when" in step:
+            errors.append(
+                f"Window step '{name}': 'start_when'/'end_when' cannot be used with 'size_by_tokens'"
+            )
+
     if has_start_when:
         if "stride" in step:
             errors.append(
@@ -1070,8 +1105,20 @@ def _lint_window_step(step: dict, errors: list) -> None:
             )
         if "include_partial" in step:
             errors.append(
-                f"Window step '{name}': 'include_partial' is only valid with 'size', not 'start_when'"
+                f"Window step '{name}': 'include_partial' is only valid with 'size' or 'size_by_tokens', not 'start_when'"
             )
+        if "stride_by_tokens" in step:
+            errors.append(
+                f"Window step '{name}': 'stride_by_tokens' is only valid with 'size_by_tokens'"
+            )
+
+    # Validate merge block
+    if "merge" in step:
+        merge = step["merge"]
+        if not isinstance(merge, dict):
+            errors.append(f"Window step '{name}': 'merge' must be a dict")
+        elif "function" not in merge:
+            errors.append(f"Window step '{name}': 'merge' must have a 'function' key")
 
     if "steps" not in step or not step["steps"]:
         errors.append(f"Window step '{name}': must have a non-empty 'steps' list")

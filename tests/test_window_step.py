@@ -12,6 +12,7 @@ from llmflow.runner import (
     run_window_step,
     _build_windows_fixed,
     _build_windows_condition,
+    _build_windows_token,
 )
 from llmflow.utils.linter import _lint_window_step
 
@@ -841,3 +842,448 @@ class TestWindowOutputPropagation:
         run_window_step(step, context, {})
 
         assert context["all"] == [1, 2, 3]
+
+
+# ---------------------------------------------------------------------------
+# _build_windows_token
+# ---------------------------------------------------------------------------
+
+class TestBuildWindowsToken:
+    """Tests for token-aware windowing.
+
+    Uses a model that tiktoken supports (gpt-4o).  Each item is a short string
+    so we can reason about exact token counts.  A single ASCII word is typically
+    1 token in the cl100k / o200k encoding families.
+    """
+
+    MODEL = "gpt-4o"
+
+    def _words(self, n: int) -> list[str]:
+        """Return n single-token words."""
+        return [f"word{i}" for i in range(n)]
+
+    def test_tumbling_no_overlap(self):
+        """stride_by_tokens=0: non-overlapping windows."""
+        import tiktoken
+        enc = tiktoken.encoding_for_model(self.MODEL)
+        # Each "word0".."word2" is 1 token; 3-token windows
+        items = self._words(6)
+        tok_per_item = len(enc.encode(items[0]))  # typically 2 tokens: "word" + digit
+        size = tok_per_item * 3
+        windows = _build_windows_token(items, size_by_tokens=size, stride_by_tokens=0,
+                                       model=self.MODEL, include_partial=True)
+        assert len(windows) == 2
+        assert windows[0] == items[:3]
+        assert windows[1] == items[3:]
+
+    def test_sliding_overlap(self):
+        """stride_by_tokens > 0: last N token's-worth of items carry forward."""
+        import tiktoken
+        enc = tiktoken.encoding_for_model(self.MODEL)
+        items = self._words(6)
+        tok_per_item = len(enc.encode(items[0]))
+        size = tok_per_item * 3
+        stride = tok_per_item * 1  # 1 item of overlap
+        windows = _build_windows_token(items, size_by_tokens=size, stride_by_tokens=stride,
+                                       model=self.MODEL, include_partial=True)
+        # First window: items[0:3]; overlap = items[2]; next starts at items[2]
+        assert windows[0] == items[:3]
+        assert windows[1][0] == items[2]
+
+    def test_include_partial_true(self):
+        """Final short window is included when include_partial=True."""
+        import tiktoken
+        enc = tiktoken.encoding_for_model(self.MODEL)
+        items = self._words(5)
+        tok_per_item = len(enc.encode(items[0]))
+        size = tok_per_item * 3
+        windows = _build_windows_token(items, size_by_tokens=size, stride_by_tokens=0,
+                                       model=self.MODEL, include_partial=True)
+        # 5 items, 3 per window → [0-2], [3-4] (partial)
+        assert len(windows) == 2
+        assert len(windows[-1]) < 3
+
+    def test_include_partial_false(self):
+        """Final short window is dropped when include_partial=False."""
+        import tiktoken
+        enc = tiktoken.encoding_for_model(self.MODEL)
+        items = self._words(5)
+        tok_per_item = len(enc.encode(items[0]))
+        size = tok_per_item * 3
+        windows = _build_windows_token(items, size_by_tokens=size, stride_by_tokens=0,
+                                       model=self.MODEL, include_partial=False)
+        assert len(windows) == 1
+        assert windows[0] == items[:3]
+
+    def test_empty_input(self):
+        windows = _build_windows_token([], size_by_tokens=1000, stride_by_tokens=0,
+                                       model=self.MODEL, include_partial=True)
+        assert windows == []
+
+    def test_single_item_larger_than_size(self):
+        """An item exceeding size_by_tokens is included as a window of one."""
+        windows = _build_windows_token(
+            ["hello world " * 100],  # ~100+ tokens
+            size_by_tokens=1,
+            stride_by_tokens=0,
+            model=self.MODEL,
+            include_partial=True,
+        )
+        assert len(windows) == 1
+        assert len(windows[0]) == 1
+
+    def test_dict_items_serialised_as_json(self):
+        """Dict items are JSON-serialised for token counting."""
+        items = [{"verse": f"v{i}", "text": "lorem ipsum"} for i in range(4)]
+        windows = _build_windows_token(items, size_by_tokens=5000, stride_by_tokens=0,
+                                       model=self.MODEL, include_partial=True)
+        assert len(windows) >= 1
+        assert all(isinstance(item, dict) for w in windows for item in w)
+
+    def test_unknown_model_falls_back_to_cl100k(self):
+        """Unknown model name falls back to cl100k_base without error."""
+        items = self._words(4)
+        windows = _build_windows_token(items, size_by_tokens=1000, stride_by_tokens=0,
+                                       model="nonexistent-model-xyz", include_partial=True)
+        assert len(windows) == 1  # all fit in 1000 tokens
+
+    def test_no_infinite_loop_large_stride(self):
+        """stride_by_tokens >= window tokens still advances at least 1 item."""
+        import tiktoken
+        enc = tiktoken.encoding_for_model(self.MODEL)
+        items = self._words(4)
+        tok_per_item = len(enc.encode(items[0]))
+        size = tok_per_item * 2
+        stride = tok_per_item * 100  # larger than entire sequence
+        windows = _build_windows_token(items, size_by_tokens=size, stride_by_tokens=stride,
+                                       model=self.MODEL, include_partial=True)
+        # Should terminate; each window advances at least 1 item
+        assert len(windows) >= 1
+
+
+# ---------------------------------------------------------------------------
+# Token window via run_window_step
+# ---------------------------------------------------------------------------
+
+class TestRunWindowStepToken:
+
+    def test_token_mode_produces_windows(self):
+        """run_window_step with size_by_tokens dispatches to token mode."""
+        import sys, types
+        mod = types.ModuleType("__tok_test_mod1")
+        mod.get_len = lambda items: len(items)
+        sys.modules["__tok_test_mod1"] = mod
+        try:
+            context: dict = {"verses": [f"verse {i}" for i in range(6)]}
+            step = {
+                "name": "tw",
+                "type": "window",
+                "input": "${verses}",
+                "item_var": "chunk",
+                "size_by_tokens": 5000,
+                "stride_by_tokens": 0,
+                "model": "gpt-4o",
+                "include_partial": True,
+                "steps": [
+                    {
+                        "name": "collect",
+                        "type": "function",
+                        "function": "__tok_test_mod1.get_len",
+                        "inputs": {"items": "${chunk}"},
+                        "outputs": "chunk_len",
+                        "append_to": "lens",
+                    }
+                ],
+            }
+            run_window_step(step, context, {})
+            assert "lens" in context
+            assert all(isinstance(x, int) for x in context["lens"])
+        finally:
+            sys.modules.pop("__tok_test_mod1", None)
+
+    def test_token_mode_item_var_in_context(self):
+        """item_var is exposed as the window list inside nested steps."""
+        captured = []
+
+        def _capture(**kwargs):
+            captured.append(kwargs.get("items"))
+            return None
+
+        import sys
+        import types
+        mod = types.ModuleType("_test_capture_mod")
+        mod.capture = _capture
+        sys.modules["_test_capture_mod"] = mod
+
+        context: dict = {"items": ["a", "b", "c", "d"]}
+        step = {
+            "name": "tw",
+            "type": "window",
+            "input": "${items}",
+            "item_var": "my_chunk",
+            "size_by_tokens": 5000,
+            "stride_by_tokens": 0,
+            "model": "gpt-4o",
+            "steps": [
+                {
+                    "name": "cap",
+                    "type": "function",
+                    "function": "_test_capture_mod.capture",
+                    "inputs": {"items": "${my_chunk}"},
+                }
+            ],
+        }
+        run_window_step(step, context, {})
+        assert len(captured) >= 1
+        assert all(isinstance(c, list) for c in captured)
+
+        del sys.modules["_test_capture_mod"]
+
+    def test_size_by_tokens_invalid_raises(self):
+        context: dict = {"v": ["x"]}
+        step = {
+            "name": "bad",
+            "type": "window",
+            "input": "${v}",
+            "size_by_tokens": -1,
+            "steps": [{}],
+        }
+        with pytest.raises(ValueError, match="size_by_tokens"):
+            run_window_step(step, context, {})
+
+    def test_over_alias_for_input(self):
+        """'over' is accepted as an alias for 'input'."""
+        import sys, types
+        mod = types.ModuleType("__over_alias_mod")
+        mod.get_len = lambda items: len(items)
+        sys.modules["__over_alias_mod"] = mod
+        try:
+            context: dict = {"items": [1, 2, 3]}
+            step = {
+                "name": "w",
+                "type": "window",
+                "over": "${items}",   # alias
+                "size": 2,
+                "include_partial": True,
+                "steps": [
+                    {
+                        "name": "noop",
+                        "type": "function",
+                        "function": "__over_alias_mod.get_len",
+                        "inputs": {"items": "${window}"},
+                        "outputs": "wlen",
+                        "append_to": "lens",
+                    }
+                ],
+            }
+            run_window_step(step, context, {})
+            assert "lens" in context
+        finally:
+            sys.modules.pop("__over_alias_mod", None)
+
+
+# ---------------------------------------------------------------------------
+# merge: block
+# ---------------------------------------------------------------------------
+
+class TestWindowMerge:
+
+    def _make_merge_fn(self, sys_mod_name="__merge_test_mod"):
+        """Register a merge function and return its full dotted name."""
+        import sys
+        import types
+        mod = types.ModuleType(sys_mod_name)
+
+        def merge_fn(items, label="merged"):
+            return {"merged": items, "label": label}
+
+        mod.merge_fn = merge_fn
+        sys.modules[sys_mod_name] = mod
+        return f"{sys_mod_name}.merge_fn", sys_mod_name
+
+    def test_merge_called_after_windows(self):
+        import sys, types
+        fn_path, mod_name = self._make_merge_fn("__merge_test_1")
+        # Register a helper that returns the window as a list
+        helper_mod = types.ModuleType("__merge_helper_1")
+        helper_mod.pass_through = lambda items: items
+        sys.modules["__merge_helper_1"] = helper_mod
+        try:
+            context: dict = {"items": [1, 2, 3, 4], "lbl": "test"}
+            step = {
+                "name": "w",
+                "type": "window",
+                "input": "${items}",
+                "size": 2,
+                "include_partial": True,
+                "steps": [
+                    {
+                        "name": "collect",
+                        "type": "function",
+                        "function": "__merge_helper_1.pass_through",
+                        "inputs": {"items": "${window}"},
+                        "outputs": "window_out",
+                        "append_to": "collected",
+                    }
+                ],
+                "merge": {
+                    "name": "merge_step",
+                    "function": fn_path,
+                    "inputs": {"items": "${collected}", "label": "${lbl}"},
+                    "outputs": "final",
+                },
+            }
+            run_window_step(step, context, {})
+            assert "final" in context
+            assert context["final"]["label"] == "test"
+        finally:
+            sys.modules.pop(mod_name, None)
+            sys.modules.pop("__merge_helper_1", None)
+
+    def test_merge_receives_full_accumulated_results(self):
+        import sys
+        import types
+        mod = types.ModuleType("__merge_test_2")
+        received = {}
+
+        def merge_fn(items):
+            received["items"] = items
+            return {"count": len(items)}
+
+        mod.merge_fn = merge_fn
+        sys.modules["__merge_test_2"] = mod
+
+        helper = types.ModuleType("__merge_helper_2")
+        helper.get_len = lambda items: len(items)
+        sys.modules["__merge_helper_2"] = helper
+
+        try:
+            context: dict = {"items": list(range(6))}
+            step = {
+                "name": "w",
+                "type": "window",
+                "input": "${items}",
+                "size": 2,
+                "include_partial": True,
+                "steps": [
+                    {
+                        "name": "noop",
+                        "type": "function",
+                        "function": "__merge_helper_2.get_len",
+                        "inputs": {"items": "${window}"},
+                        "outputs": "wl",
+                        "append_to": "wlens",
+                    }
+                ],
+                "merge": {
+                    "name": "merge",
+                    "function": "__merge_test_2.merge_fn",
+                    "inputs": {"items": "${wlens}"},
+                    "outputs": "summary",
+                },
+            }
+            run_window_step(step, context, {})
+            # 6 items / size 2 → 3 windows
+            assert received["items"] == [2, 2, 2]
+            assert context["summary"]["count"] == 3
+        finally:
+            sys.modules.pop("__merge_test_2", None)
+            sys.modules.pop("__merge_helper_2", None)
+
+
+# ---------------------------------------------------------------------------
+# Linter: size_by_tokens and merge
+# ---------------------------------------------------------------------------
+
+class TestLintWindowStepToken:
+
+    def _lint(self, step):
+        errors = []
+        _lint_window_step(step, errors)
+        return errors
+
+    def test_valid_size_by_tokens(self):
+        errors = self._lint({
+            "name": "w", "type": "window",
+            "size_by_tokens": 25000,
+            "model": "gpt-4o",
+            "steps": [{}],
+        })
+        assert errors == []
+
+    def test_valid_size_by_tokens_with_stride(self):
+        errors = self._lint({
+            "name": "w", "type": "window",
+            "size_by_tokens": 25000,
+            "stride_by_tokens": 5000,
+            "model": "gpt-4o",
+            "steps": [{}],
+        })
+        assert errors == []
+
+    def test_size_and_size_by_tokens_mutually_exclusive(self):
+        errors = self._lint({
+            "name": "w", "type": "window",
+            "size": 3, "size_by_tokens": 1000,
+            "steps": [{}],
+        })
+        assert any("mutually exclusive" in e for e in errors)
+
+    def test_size_by_tokens_and_start_when_mutually_exclusive(self):
+        errors = self._lint({
+            "name": "w", "type": "window",
+            "size_by_tokens": 1000, "start_when": "${x}",
+            "steps": [{}],
+        })
+        assert any("mutually exclusive" in e for e in errors)
+
+    def test_bad_size_by_tokens_type(self):
+        errors = self._lint({
+            "name": "w", "type": "window",
+            "size_by_tokens": "big",
+            "steps": [{}],
+        })
+        assert any("size_by_tokens" in e for e in errors)
+
+    def test_bad_stride_by_tokens_negative(self):
+        errors = self._lint({
+            "name": "w", "type": "window",
+            "size_by_tokens": 1000, "stride_by_tokens": -1,
+            "steps": [{}],
+        })
+        assert any("stride_by_tokens" in e for e in errors)
+
+    def test_stride_with_size_by_tokens_wrong_key(self):
+        errors = self._lint({
+            "name": "w", "type": "window",
+            "size_by_tokens": 1000, "stride": 2,
+            "steps": [{}],
+        })
+        assert any("stride_by_tokens" in e for e in errors)
+
+    def test_valid_merge_block(self):
+        errors = self._lint({
+            "name": "w", "type": "window",
+            "size": 3,
+            "steps": [{}],
+            "merge": {"function": "my.module.fn", "inputs": {}, "outputs": "result"},
+        })
+        assert errors == []
+
+    def test_merge_not_dict_raises(self):
+        errors = self._lint({
+            "name": "w", "type": "window",
+            "size": 3,
+            "steps": [{}],
+            "merge": "just_a_string",
+        })
+        assert any("merge" in e for e in errors)
+
+    def test_merge_missing_function_key(self):
+        errors = self._lint({
+            "name": "w", "type": "window",
+            "size": 3,
+            "steps": [{}],
+            "merge": {"inputs": {}, "outputs": "result"},
+        })
+        assert any("merge" in e and "function" in e for e in errors)
