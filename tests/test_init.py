@@ -427,3 +427,54 @@ class TestAiContextConsistency:
         assert has_global, (
             "AI_INDEX_DOC should include section on global ~/.sp/ context files"
         )
+
+    def test_ai_rules_has_design_authority(self):
+        """AI_RULES_DOC must include design authority guardrails."""
+        assert "design document" in AI_RULES_DOC.lower(), (
+            "AI_RULES_DOC must state that design documents are the authoritative specification"
+        )
+        assert "going rogue" in AI_RULES_DOC.lower(), (
+            "AI_RULES_DOC must warn against implementing without known requirements"
+        )
+
+
+def test_init_registers_project_in_registry(tmp_path, monkeypatch):
+    """sp init must register the project in ~/.sp/projects/ and index ai-context files."""
+    sp_dir = tmp_path / ".sp"
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+    project_dir = tmp_path / "my-project"
+    project_dir.mkdir()
+
+    from llmflow.cli_utils import init_project
+    init_project(project_dir)
+
+    # Project should be registered
+    from llmflow.registry import Registry
+    registry = Registry(sp_dir)
+    project = registry.projects.get("my-project")
+    assert project is not None, "Project should be registered in ~/.sp/projects/"
+    assert project["name"] == "my-project"
+    assert project["path"] == str(project_dir.resolve())
+
+    # ai-context files should be indexed
+    ai_contexts = registry.ai_context.list()
+    indexed_files = {ctx["file"] for ctx in ai_contexts}
+    assert "overview.md" in indexed_files, "overview.md should be indexed in ~/.sp/ai-context/"
+    assert "rules.md" in indexed_files, "rules.md should be indexed in ~/.sp/ai-context/"
+    assert "index.md" in indexed_files, "index.md should be indexed in ~/.sp/ai-context/"
+    for ctx in ai_contexts:
+        assert ctx["project"] == "my-project"
+        assert "ai-context" in ctx["topics"]
+
+
+def test_init_register_is_idempotent(tmp_path, monkeypatch):
+    """Running sp init twice must not raise errors for already-registered entries."""
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    project_dir = tmp_path / "my-project"
+    project_dir.mkdir()
+
+    from llmflow.cli_utils import init_project
+    init_project(project_dir)
+    # Second run must not raise
+    init_project(project_dir)
