@@ -1014,6 +1014,11 @@ Don't read everything upfront. Use this index to find what you need for each spe
 
 ## Global Context (~/.sp/)
 
+### User Instructions (machine-level, apply to all projects)
+- **~/.sp/user-context/*.md** — Read these at the start of every session. They contain
+  machine-level instructions that apply to all pipeline projects on this computer
+  (filesystem access, personal workflow preferences, machine-specific paths).
+
 ### Conventions (shared across all projects)
 - **~/.sp/conventions/llmflow-prompt-organization.md** - Standard 8-section structure for .gpt files
   - Input data grounding requirements
@@ -1165,6 +1170,10 @@ The index tells you:
 **Navigation is more important than memorization.** Use the index efficiently instead of reading everything upfront.
 
 ## Session Start — Read These FIRST
+
+**0. Read `~/.sp/user-context/*.md`** (if the directory exists)
+   - Machine-level instructions that apply to all pipeline projects on this computer
+   - Filesystem access, personal workflow preferences, machine-specific paths
 
 **1. Read `docs/ai-context/index.md`**
    - Your complete navigation map
