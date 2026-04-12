@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 import yaml
 from pydantic import ValidationError
+from llmflow.yaml_loader import LLMFlowLoader as _LLMFlowLoader
 from llmflow.pipeline_schema import PipelineConfig, PIPELINE_SCHEMA
 from llmflow.exceptions import StepRewindError
 from llmflow.utils.llm_runner import validate_model_parameter, get_model_family
@@ -76,8 +77,10 @@ _EXTRA_STEP_KEYS = {
     "query_file",
     "params",
     "timeout",
-    # for-each parallel key
+    # for-each keys
     "parallel",
+    "group-by",
+    "order-by",
     # window step keys
     "size",
     "stride",
@@ -357,7 +360,7 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
 
 def lint_pipeline_contracts(pipeline_path):
     """Validate that all pipeline steps match their prompt contracts"""
-    pipeline = yaml.safe_load(Path(pipeline_path).read_text())
+    pipeline = yaml.load(Path(pipeline_path).read_text(), Loader=_LLMFlowLoader)
     pipeline_root = pipeline.get("pipeline", pipeline)
 
     # ✅ CHECK IF LINTER IS DISABLED
@@ -806,7 +809,7 @@ def lint_pipeline_full(
 
     # Load pipeline first
     try:
-        pipeline = yaml.safe_load(Path(pipeline_path).read_text())
+        pipeline = yaml.load(Path(pipeline_path).read_text(), Loader=_LLMFlowLoader)
     except FileNotFoundError:
         # Re-raise to let cli.py handle with better error message
         raise
@@ -1184,6 +1187,38 @@ def _lint_for_each_parallel(step: dict, errors: list) -> None:
         )
 
 
+def _lint_for_each_group_by(step: dict, errors: list) -> None:
+    """Validate group-by and order-by on for-each steps."""
+    group_by = step.get("group-by")
+    order_by = step.get("order-by")
+    name = step.get("name", "<unnamed>")
+
+    if group_by is not None:
+        # group-by expression must reference ${item.*} to be meaningful
+        if isinstance(group_by, str) and not re.search(r"\$\{item\b", group_by):
+            errors.append(
+                f"Step '{name}': group-by expression '{group_by}' does not reference "
+                f"'item' — use ${{item.field}} to group by an attribute of each item."
+            )
+
+    if order_by is not None:
+        # Collect all direction values from dict and list forms
+        directions: list = []
+        if isinstance(order_by, dict):
+            directions.append(order_by.get("direction", "ascending"))
+        elif isinstance(order_by, list):
+            for entry in order_by:
+                if isinstance(entry, dict):
+                    directions.append(entry.get("direction", "ascending"))
+        valid = {"ascending", "descending"}
+        for d in directions:
+            if d not in valid:
+                errors.append(
+                    f"Step '{name}': order-by direction '{d}' is invalid — "
+                    f"use 'ascending' or 'descending'."
+                )
+
+
 def lint_pipeline_steps(steps):
     errors = []
     for step in steps:
@@ -1201,4 +1236,5 @@ def lint_pipeline_steps(steps):
             _lint_window_step(step, errors)
         if step.get("type") == "for-each":
             _lint_for_each_parallel(step, errors)
+            _lint_for_each_group_by(step, errors)
     return errors
