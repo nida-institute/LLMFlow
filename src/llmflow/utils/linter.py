@@ -1,3 +1,4 @@
+import ast
 from dataclasses import dataclass
 from typing import Any, List, Set
 import re
@@ -14,23 +15,26 @@ from llmflow.utils.llm_runner import validate_model_parameter, get_model_family
 from llmflow.utils.get_prefix_directory import get_prefix_directory
 
 
+def _identifiers_in_expr(expr: str) -> Set[str]:
+    """Return all variable names in a Python expression, excluding keywords and builtins."""
+    try:
+        tree = ast.parse(expr, mode='eval')
+        return {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
+    except SyntaxError:
+        return set()
+
+
 def extract_variable_references(text: str) -> Set[str]:
     """Extract all variable references from a string (${var} or {{var}} syntax)"""
     variables = set()
 
     # Extract ${...} patterns
     for match in re.finditer(r'\$\{([^\}]+)\}', text):
-        var = match.group(1).strip()
-        # Extract root variable (before . or [)
-        root = re.split(r'[.\[]', var)[0]
-        variables.add(root)
+        variables.update(_identifiers_in_expr(match.group(1).strip()))
 
     # Extract {{...}} patterns
     for match in re.finditer(r'\{\{([^\}]+)\}\}', text):
-        var = match.group(1).strip()
-        # Extract root variable (before . or [)
-        root = re.split(r'[.\[]', var)[0]
-        variables.add(root)
+        variables.update(_identifiers_in_expr(match.group(1).strip()))
 
     return variables
 
