@@ -478,3 +478,64 @@ def test_init_register_is_idempotent(tmp_path, monkeypatch):
     init_project(project_dir)
     # Second run must not raise
     init_project(project_dir)
+
+
+def test_generate_ai_context_includes_user_context(tmp_path):
+    """generate_ai_context() must prepend ~/.sp/user-context/*.md files."""
+    from llmflow.registry import Registry
+
+    sp_dir = tmp_path / ".sp"
+    user_ctx_dir = sp_dir / "user-context"
+    user_ctx_dir.mkdir(parents=True)
+    (user_ctx_dir / "machine.md").write_text("Machine-level instructions here.", encoding="utf-8")
+    (user_ctx_dir / "workflow.md").write_text("Workflow preferences here.", encoding="utf-8")
+
+    registry = Registry(sp_dir)
+    context = registry.generate_ai_context()
+
+    assert "Machine-level instructions here." in context
+    assert "Workflow preferences here." in context
+
+
+def test_generate_ai_context_without_user_context_dir(tmp_path):
+    """generate_ai_context() must work normally when ~/.sp/user-context/ does not exist."""
+    from llmflow.registry import Registry
+
+    sp_dir = tmp_path / ".sp"
+    sp_dir.mkdir()
+
+    registry = Registry(sp_dir)
+    context = registry.generate_ai_context()
+
+    assert "Scripture Pipeline Registry" in context
+
+
+def test_generate_ai_context_ignores_missing_user_context_files(tmp_path):
+    """generate_ai_context() must not raise if user-context dir exists but is empty."""
+    from llmflow.registry import Registry
+
+    sp_dir = tmp_path / ".sp"
+    user_ctx_dir = sp_dir / "user-context"
+    user_ctx_dir.mkdir(parents=True)
+    # No .md files in the directory
+
+    registry = Registry(sp_dir)
+    context = registry.generate_ai_context()
+
+    assert "Scripture Pipeline Registry" in context
+
+
+def test_ai_index_doc_mentions_user_context():
+    """AI_INDEX_DOC must document ~/.sp/user-context/ so AI tools know to read it."""
+    from llmflow.cli_utils import AI_INDEX_DOC
+    assert "user-context" in AI_INDEX_DOC, (
+        "AI_INDEX_DOC must mention ~/.sp/user-context/ so AI tools read machine-level instructions"
+    )
+
+
+def test_copilot_instructions_mentions_user_context():
+    """COPILOT_INSTRUCTIONS_DOC must instruct AI to read ~/.sp/user-context/ at session start."""
+    from llmflow.cli_utils import COPILOT_INSTRUCTIONS_DOC
+    assert "user-context" in COPILOT_INSTRUCTIONS_DOC, (
+        "COPILOT_INSTRUCTIONS_DOC must include user-context step so Copilot reads machine instructions"
+    )
