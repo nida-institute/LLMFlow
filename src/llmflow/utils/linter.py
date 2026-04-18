@@ -623,6 +623,16 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
         if append_to:
             declared_outputs.add(append_to)
 
+        # !window_advance: the inner step's outputs become available to subsequent
+        # steps in the same window iteration (e.g. the cursor variable).
+        if step.get("_tag") == "window_advance":
+            inner = step.get("step", {})
+            inner_outs = inner.get("outputs")
+            if isinstance(inner_outs, str):
+                declared_outputs.add(inner_outs)
+            elif isinstance(inner_outs, list):
+                declared_outputs.update(inner_outs)
+
 
 def _validate_all_variable_references(all_steps, pipeline_vars, errors):
     """Validate that all variable references in step configurations can be resolved
