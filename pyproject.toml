@@ -42,6 +42,7 @@ dependencies = [
   "flask-socketio>=5.3.0",
   "flask-cors>=4.0.0",
   "python-socketio>=5.10.0",
+  "tiktoken>=0.7.0",
 ]
 readme = "README.md"
 requires-python = ">=3.8"
@@ -59,6 +60,7 @@ packages = ["src/llmflow"]
 [tool.hatch.build.targets.wheel.force-include]
 "docs/ai-context" = "llmflow/docs/ai-context"
 "docs/audits" = "llmflow/docs/audits"
+"data/models.json" = "llmflow/data/models.json"
 
 [project.scripts]
 sp = "llmflow.cli:main"

@@ -4,6 +4,7 @@ import json
 import os
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -43,6 +44,10 @@ discover_plugins()
 
 # Single unified logger instance
 logger = Logger()
+
+# Shared YAML loader that recognises LLMFlow tags such as !window_advance.
+# Defined in yaml_loader.py to avoid circular imports with linter.py.
+from llmflow.yaml_loader import LLMFlowLoader as _LLMFlowLoader  # noqa: E402
 
 # Sentinel for "key not found" in get_from_context — distinguishes missing keys from None values.
 _MISSING = object()
@@ -611,44 +616,43 @@ def _evaluate_condition_expression(condition_expr, context, *, label="condition"
     if isinstance(condition_expr, (int, float)):
         return bool(condition_expr)
 
-    expression = condition_expr
-    expr_str = None
-
-    if isinstance(expression, str):
-        stripped = expression.strip()
+    if isinstance(condition_expr, str):
+        stripped = condition_expr.strip()
+        # ${...} — evaluate the inner expression via AST, bypassing resolve().
+        # resolve() looks up the leading identifier in context and discards any
+        # trailing operators (e.g. "is None", "is not None"), so
+        # "${x is None}" would silently return the raw value of x rather than
+        # the result of the comparison.  _safe_eval handles the full expression
+        # correctly because it puts all context variables in scope as locals.
         if stripped.startswith("${") and stripped.endswith("}"):
             expr_str = stripped[2:-1]
-        else:
-            expr_str = stripped
+            try:
+                return _safe_eval(expr_str, _build_eval_locals(context))
+            except Exception as exc:
+                logger.warning(f"{label} eval failed: {expr_str} - {exc}")
+                return False
 
-    try:
-        resolved = resolve(expression, context)
-    except Exception as exc:
-        logger.warning(f"{label} resolution failed: {expression} - {exc}")
-        resolved = expression
+        # Plain (non-${}) string — try resolve() first, then eval.
+        try:
+            resolved = resolve(condition_expr, context)
+        except Exception as exc:
+            logger.warning(f"{label} resolution failed: {condition_expr} - {exc}")
+            resolved = condition_expr
 
-    if isinstance(resolved, bool):
-        return resolved
-    if isinstance(resolved, (int, float)):
-        return bool(resolved)
+        if isinstance(resolved, bool):
+            return resolved
+        if isinstance(resolved, (int, float)):
+            return bool(resolved)
+        expr_str = resolved if isinstance(resolved, str) else str(resolved)
+        if not expr_str:
+            return False
+        try:
+            return _safe_eval(expr_str, _build_eval_locals(context))
+        except Exception as exc:
+            logger.warning(f"{label} eval failed: {expr_str} - {exc}")
+            return False
 
-    if isinstance(resolved, str):
-        stripped = resolved.strip()
-        if stripped.startswith("${") and stripped.endswith("}"):
-            expr_str = stripped[2:-1]
-        else:
-            expr_str = stripped
-    else:
-        expr_str = str(resolved)
-
-    if not expr_str:
-        return False
-
-    try:
-        return _safe_eval(expr_str, _build_eval_locals(context))
-    except Exception as exc:
-        logger.warning(f"{label} eval failed: {expr_str} - {exc}")
-        return False
+    return bool(condition_expr)
 
 
 def _evaluate_retry_condition(condition_expr, context):
@@ -835,8 +839,12 @@ def run_step(
         def _execute_once():
             local_after_action = None
 
-            if step_type == "for-each":
+            if step.get("_tag") == "window_advance":
+                run_window_advance_step(step, context, pipeline_config or {})
+            elif step_type == "for-each":
                 local_after_action = run_for_each_step(step, context, pipeline_config or {})
+            elif step_type == "window":
+                local_after_action = run_window_step(step, context, pipeline_config or {})
             elif step_type == "llm":
                 result = run_llm_step(step, context, pipeline_config or {})
                 handle_step_outputs(step, result, context)
@@ -1275,14 +1283,18 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
 
             except Exception as e:
                 # Catch ANY exception from LLM call
+                err_type = type(e).__name__
+                err_msg = str(e)[:200]
                 if attempt < max_retries - 1:
                     wait_time = retry_delay * (2 ** attempt)  # 2s, 4s, 8s
-                    logger.warning(f"⚠️  LLM error (attempt {attempt + 1}/{max_retries}): {type(e).__name__}: {str(e)[:100]}")
+                    logger.warning(f"⚠️  LLM error (attempt {attempt + 1}/{max_retries}): {err_type}: {err_msg}")
+                    logger.warning(f"    Step: '{name}', model: {merged_config.get('model')}")
                     logger.warning(f"    Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                 else:
                     logger.error(f"❌ LLM call failed after {max_retries} attempts")
-                    logger.error(f"    Final error: {type(e).__name__}: {e}")
+                    logger.error(f"    Step: '{name}', model: {merged_config.get('model')}")
+                    logger.error(f"    Final error ({err_type}): {err_msg}")
                     raise  # Re-raise after all retries exhausted
 
         # Extract content and token usage from response
@@ -1473,108 +1485,803 @@ def resolve_template(template: str, context: Dict[str, Any]) -> str:
     return resolved
 
 
+def _collect_loop_outputs(steps_list: list) -> tuple[set, set]:
+    """Recursively collect append_to targets and output variable names from a steps list."""
+    append_targets: set = set()
+    output_vars: set = set()
+    for s in steps_list:
+        if "append_to" in s:
+            append_targets.add(s["append_to"])
+        if "outputs" in s:
+            ov = s["outputs"]
+            if isinstance(ov, str):
+                output_vars.add(ov)
+            elif isinstance(ov, list):
+                output_vars.update(ov)
+        if "steps" in s:
+            na, no = _collect_loop_outputs(s["steps"])
+            append_targets.update(na)
+            output_vars.update(no)
+    return append_targets, output_vars
+
+
+class _AttrNamespace:
+    """Wrap a dict for attribute-style access inside eval() sort-key expressions.
+
+    Allows ``${len(group.items)}`` to be evaluated as Python without requiring
+    the caller to manually translate dot-notation to dict-key access.
+    """
+
+    def __init__(self, d: dict) -> None:
+        object.__setattr__(self, "_d", d)
+
+    def __getattr__(self, name: str) -> Any:
+        d = object.__getattribute__(self, "_d")
+        if name in d:
+            v = d[name]
+            return _AttrNamespace(v) if isinstance(v, dict) else v
+        raise AttributeError(name)
+
+
+def _eval_key_expr(expr_str: str, ctx: Dict[str, Any]) -> Any:
+    """Evaluate a ``${...}`` sort/group key expression against a context dict.
+
+    Supports simple dot-notation (via ``resolve``) and expressions with safe
+    builtins such as ``len()`` for computed sort keys.
+    """
+    import re
+
+    m = re.match(r"^\$\{([^\}]+)\}$", expr_str)
+    if not m:
+        return resolve(expr_str, ctx)
+    inner = m.group(1)
+    # Fast path: simple dot-notation handled by the existing resolver
+    result = get_from_context(inner, ctx)
+    if result is not _MISSING:
+        return result
+    # Slow path: eval with safe builtins + namespace wrapper for dict values
+    safe_builtins = {"len": len, "str": str, "int": int, "float": float, "bool": bool}
+    eval_ns = {k: (_AttrNamespace(v) if isinstance(v, dict) else v) for k, v in ctx.items()}
+    try:
+        return eval(inner, {"__builtins__": safe_builtins}, eval_ns)  # noqa: S307
+    except Exception:
+        return expr_str
+
+
+def _parse_order_by(order_by: Any) -> tuple[str, str]:
+    """Parse an order-by value to ``(key_expr, direction)``.
+
+    Accepts:
+    - ``str``: ``"${item.field}"`` → ascending
+    - ``dict``: ``{key: "${item.field}", direction: "descending"}``
+    - ``list`` of dicts: multi-key sort; first entry governs primary key
+    """
+    if isinstance(order_by, str):
+        return order_by, "ascending"
+    if isinstance(order_by, dict):
+        return order_by.get("key", "${item}"), order_by.get("direction", "ascending")
+    if isinstance(order_by, list) and order_by:
+        first = order_by[0]
+        return first.get("key", "${item}"), first.get("direction", "ascending")
+    return "${item}", "ascending"
+
+
+def _group_items(items: list, key_expr: str, context: Dict[str, Any]) -> list:
+    """Group items by evaluating *key_expr* for each item.
+
+    Returns a list of ``{key, items}`` dicts in first-appearance order of the key.
+    Within each group, items preserve their original input order.
+    """
+    groups: dict = {}
+    order: list = []
+    for item in items:
+        key = _eval_key_expr(key_expr, {**context, "item": item})
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(item)
+    return [{"key": k, "items": groups[k]} for k in order]
+
+
+def _sort_groups(
+    groups: list,
+    order_expr: str,
+    context: Dict[str, Any],
+    direction: str = "ascending",
+) -> list:
+    """Sort *groups* by evaluating *order_expr* for each group.
+
+    Returns a new sorted list; equal keys preserve original order (stable sort).
+    """
+
+    def sort_key(group: dict) -> Any:
+        return _eval_key_expr(order_expr, {**context, "group": group})
+
+    return sorted(groups, key=sort_key, reverse=(direction == "descending"))
+
+
+def _setup_iteration_context(
+    index: int,
+    item: Any,
+    context: Dict[str, Any],
+    item_var: str,
+    step_name: str,
+    debug_label_template: str | None,
+) -> Dict[str, Any]:
+    """Build the isolated context for one for-each iteration."""
+    iteration_context = deepcopy(context)
+    iteration_context[item_var] = item
+    iteration_context["_for_each_index"] = index
+
+    parent_stack = iteration_context.get("_for_each_stack") or []
+    stack = [dict(frame) for frame in parent_stack] if parent_stack else []
+
+    label_fragment = None
+    if debug_label_template:
+        try:
+            resolved_label = resolve(debug_label_template, iteration_context)
+            if resolved_label is not None:
+                label_fragment = _format_iteration_fragment(resolved_label)
+        except Exception as exc:
+            logger.debug(f"debug_label resolution failed in for-each '{step_name}': {exc}")
+
+    value_fragment = _format_iteration_fragment(item)
+    new_frame = {
+        "level": len(stack) + 1,
+        "variable": item_var,
+        "value": value_fragment,
+        "label": label_fragment or "",
+        "index": index,
+    }
+    stack.append(new_frame)
+    iteration_context["_for_each_stack"] = stack
+    iteration_context["_for_each_meta"] = new_frame
+    return iteration_context
+
+
+def _run_iteration_steps(
+    iteration_context: Dict[str, Any],
+    steps: list,
+    pipeline_config: Dict[str, Any],
+) -> str | None:
+    """Execute the nested steps for one iteration. Returns after_action or None."""
+    for nested_step in steps:
+        after_action = run_step(nested_step, iteration_context, pipeline_config)
+        if after_action in ("exit", "continue"):
+            return after_action
+    return None
+
+
+def _propagate_iteration_results(
+    iteration_context: Dict[str, Any],
+    context: Dict[str, Any],
+    append_targets: set,
+    output_vars: set,
+    baseline_lengths: Dict[str, int],
+) -> None:
+    """Propagate one iteration's results back to the parent context.
+
+    baseline_lengths maps each append_to target to the length of the parent list
+    at the start of this iteration — only items added by this iteration are propagated.
+    """
+    for target in append_targets:
+        if target in iteration_context and isinstance(iteration_context[target], list):
+            baseline = baseline_lengths.get(target, 0)
+            new_items = iteration_context[target][baseline:]
+            if target not in context:
+                context[target] = list(new_items)
+            else:
+                context[target].extend(new_items)
+
+    for var in output_vars:
+        if var in iteration_context:
+            context[var] = iteration_context[var]
+
+
 def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> str | None:
-    """Execute a for-each loop step"""
-    input_data = resolve(step.get("input", []), context)
+    """Execute a for-each loop step, sequentially or in parallel."""
+    _input_raw = resolve(step.get("input", []), context)
+    input_data: list = _input_raw if isinstance(_input_raw, list) else list(_input_raw)
     item_var = step.get("item_var", "item")
     steps = step.get("steps", [])
     debug_label_template = step.get("debug_label")
+    step_name = step.get("name", "unnamed")
+    parallel = step.get("parallel", 1)
+    group_by_expr = step.get("group-by")
+    order_by = step.get("order-by")
 
-    # Collect all append_to targets AND regular outputs
-    def collect_outputs(steps_list):
-        append_targets = set()
-        output_vars = set()
-        for step in steps_list:
-            if "append_to" in step:
-                append_targets.add(step["append_to"])
-            if "outputs" in step:
-                outputs = step["outputs"]
-                if isinstance(outputs, str):
-                    output_vars.add(outputs)
-                elif isinstance(outputs, list):
-                    output_vars.update(outputs)
-            if "steps" in step:
-                nested_append, nested_output = collect_outputs(step["steps"])
-                append_targets.update(nested_append)
-                output_vars.update(nested_output)
-        return append_targets, output_vars
+    # ── group-by: transform input into [{key, items}] groups ───────────────
+    if group_by_expr:
+        input_data = _group_items(input_data, group_by_expr, context)
+        if order_by:
+            order_expr, direction = _parse_order_by(order_by)
+            input_data = _sort_groups(input_data, order_expr, context, direction)
+    elif order_by:
+        # order-by without group-by: sort raw items before iterating
+        order_expr, direction = _parse_order_by(order_by)
+        input_data = sorted(
+            input_data,
+            key=lambda item: _eval_key_expr(order_expr, {**context, "item": item}),
+            reverse=(direction == "descending"),
+        )
 
-    append_to_targets, output_vars = collect_outputs(steps)
+    append_to_targets, output_vars = _collect_loop_outputs(steps)
 
+    if parallel and isinstance(parallel, int) and parallel > 1:
+        return _run_for_each_parallel(
+            input_data, item_var, steps, debug_label_template, step_name,
+            parallel, append_to_targets, output_vars, context, pipeline_config,
+        )
+
+    # ── Sequential path ────────────────────────────────────────────────────
     for index, item in enumerate(input_data, start=1):
+        # Baseline captured per-iteration: parent list grows as iterations complete
+        baseline_lengths = {t: len(context[t]) for t in append_to_targets if t in context}
+
+        iteration_context = _setup_iteration_context(
+            index, item, context, item_var, step_name, debug_label_template
+        )
+        after_action = _run_iteration_steps(iteration_context, steps, pipeline_config)
+
+        if after_action == "exit":
+            logger.info("🛑 'after: exit' in for-each iteration - exiting pipeline")
+            _propagate_iteration_results(
+                iteration_context, context, append_to_targets, output_vars, baseline_lengths
+            )
+            return "exit"
+
+        _propagate_iteration_results(
+            iteration_context, context, append_to_targets, output_vars, baseline_lengths
+        )
+
+        if after_action == "continue":
+            continue
+
+    return None
+
+
+def _run_for_each_parallel(
+    input_data: list,
+    item_var: str,
+    steps: list,
+    debug_label_template: str | None,
+    step_name: str,
+    parallel: int,
+    append_to_targets: set,
+    output_vars: set,
+    context: Dict[str, Any],
+    pipeline_config: Dict[str, Any],
+) -> str | None:
+    """Parallel execution of for-each iterations with ordered result propagation.
+
+    Each iteration runs in a thread with an isolated deepcopy of the parent context.
+    Results are collected indexed by input position, then propagated in input order —
+    producing identical output to sequential execution.
+
+    The baseline_lengths for all iterations is captured once before any thread starts,
+    since all iterations see the same parent context snapshot (no cross-iteration state).
+    """
+    # Baseline is constant for all parallel iterations (all start from same parent snapshot)
+    baseline_lengths = {t: len(context[t]) for t in append_to_targets if t in context}
+
+    def run_one(index: int, item: Any) -> tuple[int, Dict[str, Any], str | None]:
+        iter_ctx = _setup_iteration_context(
+            index, item, context, item_var, step_name, debug_label_template
+        )
+        after_action = _run_iteration_steps(iter_ctx, steps, pipeline_config)
+        return index, iter_ctx, after_action
+
+    results: Dict[int, tuple[Dict[str, Any], str | None]] = {}
+
+    with ThreadPoolExecutor(max_workers=parallel) as executor:
+        futures = {
+            executor.submit(run_one, i, item): i
+            for i, item in enumerate(input_data, start=1)
+        }
+        for future in as_completed(futures):
+            index, iter_ctx, after_action = future.result()  # raises on thread exception
+            results[index] = (iter_ctx, after_action)
+
+    # Propagate in input order — restores identical ordering to sequential execution
+    for index in sorted(results):
+        iter_ctx, after_action = results[index]
+        _propagate_iteration_results(
+            iter_ctx, context, append_to_targets, output_vars, baseline_lengths
+        )
+        if after_action == "exit":
+            logger.info(f"🛑 'after: exit' in parallel for-each iteration {index} - exiting pipeline")
+            return "exit"
+
+    return None
+
+
+def _build_windows_fixed(items: list, size: int, stride: int, include_partial: bool) -> list[list]:
+    """Generate fixed-size windows (tumbling when stride==size, sliding when stride<size)."""
+    windows = []
+    i = 0
+    while i < len(items):
+        window = items[i:i + size]
+        if len(window) == size or include_partial:
+            windows.append(window)
+        i += stride
+    return windows
+
+
+def _eval_window_condition(expr: str, item: Any, context: dict) -> bool:
+    """
+    Evaluate a window start_when/end_when condition with item in scope.
+
+    Strips the ${...} wrapper if present and calls _safe_eval directly,
+    bypassing resolve() which would incorrectly evaluate boolean expressions
+    (e.g. resolve('${item.marker == "s"}') returns "s", not True/False).
+    """
+    stripped = expr.strip()
+    if stripped.startswith("${") and stripped.endswith("}"):
+        stripped = stripped[2:-1]
+    eval_locals = _build_eval_locals({**context, "item": item})
+    try:
+        return bool(_safe_eval(stripped, eval_locals))
+    except Exception as exc:
+        logger.warning(f"window condition eval failed: {stripped} - {exc}")
+        return False
+
+
+def _build_windows_condition(items: list, start_when: str, end_when: str | None, context: dict) -> list[list]:
+    """
+    Generate condition-based tumbling windows.
+
+    A new window opens when start_when is true for an item.
+    If end_when is provided, the window closes (inclusively) when end_when is true.
+    If end_when is absent, the window closes when the next start_when fires.
+    Items before the first start_when and after the last closed window are dropped.
+    """
+    windows = []
+    current: list | None = None
+
+    for item in items:
+        is_start = _eval_window_condition(start_when, item, context)
+
+        if end_when:
+            is_end = _eval_window_condition(end_when, item, context)
+
+            # A new start closes any open window (without the new item), then opens a fresh one
+            if is_start and current is not None:
+                windows.append(current)
+                current = None
+
+            if is_start:
+                current = [item]
+            elif current is not None:
+                current.append(item)
+
+            # Close the window if end fires (works even when start+end are the same item)
+            if is_end and current is not None:
+                windows.append(current)
+                current = None
+        else:
+            # No end_when: window runs until next start_when
+            if is_start:
+                if current is not None:
+                    windows.append(current)
+                current = [item]
+            elif current is not None:
+                current.append(item)
+
+    # Without end_when: last open window is closed by end-of-sequence and included.
+    # With end_when: an unclosed window (end_when never fired) is dropped.
+    if current is not None and end_when is None:
+        windows.append(current)
+    return windows
+
+
+def _build_windows_token(
+    items: list,
+    size_by_tokens: int,
+    stride_by_tokens: int,
+    model: str,
+    include_partial: bool,
+) -> list[list]:
+    """Token-aware sliding windows using tiktoken.
+
+    Each window accumulates items until adding the next would exceed size_by_tokens.
+    The next window begins at the start of the overlap suffix: the largest suffix of
+    the current window whose total token count <= stride_by_tokens.  This implements
+    token-level sliding overlap (stride_by_tokens=0 => tumbling / no overlap).
+
+    Items are serialised as JSON (dicts/lists) or str() for token counting, matching
+    what the LLM prompt will receive.
+    """
+    try:
+        import tiktoken  # noqa: PLC0415
+    except ImportError:
+        raise ImportError(
+            "tiktoken is required for token-based windowing. "
+            "Install with: pip install tiktoken"
+        ) from None
+
+    try:
+        enc = tiktoken.encoding_for_model(model)
+    except KeyError:
+        enc = tiktoken.get_encoding("cl100k_base")
+
+    def count_tokens(item: Any) -> int:
+        text = json.dumps(item, ensure_ascii=False) if isinstance(item, (dict, list)) else str(item)
+        return len(enc.encode(text))
+
+    counts = [count_tokens(item) for item in items]
+    n = len(items)
+    windows: list[list] = []
+    start = 0
+
+    while start < n:
+        # Greedily accumulate items until adding the next would overflow.
+        # Always include at least one item even if it alone exceeds size_by_tokens.
+        total = 0
+        end = start
+        while end < n:
+            if total + counts[end] > size_by_tokens and end > start:
+                break
+            total += counts[end]
+            end += 1
+
+        # is_partial: window ended because we ran out of items (not overflow)
+        is_partial = end == n
+        if not is_partial or include_partial:
+            windows.append(items[start:end])
+
+        if stride_by_tokens <= 0:
+            start = end  # tumbling: no overlap
+        else:
+            # Find the largest suffix [k:end] with total tokens <= stride_by_tokens
+            overlap_tokens = 0
+            k = end
+            while k > start:
+                if overlap_tokens + counts[k - 1] <= stride_by_tokens:
+                    overlap_tokens += counts[k - 1]
+                    k -= 1
+                else:
+                    break
+            # Always advance at least 1 item to prevent infinite loop when the
+            # overlap covers the entire window (stride_by_tokens >= window tokens).
+            start = max(k, start + 1)
+
+    return windows
+
+
+def _slice_window_from_pos(items: list, start: int, size_by_tokens: int, model: str) -> list:
+    """Slice items[start:] accumulating up to size_by_tokens tokens.
+
+    Mirrors the greedy accumulation logic in _build_windows_token but for a
+    single window starting at a known cursor position.  Always includes at
+    least one item even if it alone exceeds the token budget.
+    """
+    try:
+        import tiktoken  # noqa: PLC0415
+    except ImportError:
+        raise ImportError(
+            "tiktoken is required for token-based windowing. "
+            "Install with: pip install tiktoken"
+        ) from None
+
+    try:
+        enc = tiktoken.encoding_for_model(model)
+    except KeyError:
+        enc = tiktoken.get_encoding("cl100k_base")
+
+    def count_tokens(item: Any) -> int:
+        text = json.dumps(item, ensure_ascii=False) if isinstance(item, (dict, list)) else str(item)
+        return len(enc.encode(text))
+
+    total = 0
+    end = start
+    n = len(items)
+    while end < n:
+        tok = count_tokens(items[end])
+        if total + tok > size_by_tokens and end > start:
+            break
+        total += tok
+        end += 1
+
+    return items[start:end] if end > start else []
+
+
+def _propagate_window_outputs(
+    context: Dict[str, Any],
+    iteration_context: Dict[str, Any],
+    append_to_targets: set,
+    output_vars: set,
+) -> None:
+    """Copy per-iteration results back to the parent context."""
+    for target in append_to_targets:
+        if target in iteration_context and isinstance(iteration_context[target], list):
+            if target not in context:
+                context[target] = iteration_context[target][:]
+            else:
+                orig = len(context[target])
+                context[target].extend(iteration_context[target][orig:])
+    for output_var in output_vars:
+        if output_var in iteration_context:
+            context[output_var] = iteration_context[output_var]
+
+
+def run_window_advance_step(
+    step: Dict[str, Any],
+    context: Dict[str, Any],
+    pipeline_config: Dict[str, Any],
+) -> None:
+    """Execute a !window_advance step inside a window step.
+
+    Runs the inner ``step`` normally so its outputs enter the pipeline scope,
+    then reads the named ``cursor`` variable and writes it to ``_window_cursor``
+    so the window runner knows where to start the next iteration.
+
+    Setting ``_window_cursor`` to ``None`` (or not setting the cursor variable at
+    all) signals the window runner to stop iterating.
+    """
+    step_name = step.get("name", "unnamed")
+    inner_step = step.get("step")
+    cursor_var = step.get("cursor")
+
+    if not inner_step:
+        raise ValueError(f"!window_advance step '{step_name}': requires a 'step' key")
+    if not cursor_var:
+        raise ValueError(f"!window_advance step '{step_name}': requires a 'cursor' key")
+
+    # Run the inner step — its outputs land in context normally
+    run_step(inner_step, context, pipeline_config)
+
+    # Communicate cursor to the window runner via a reserved context key
+    cursor_value = context.get(cursor_var)
+    context["_window_cursor"] = cursor_value
+    logger.info(f"🪟  window_advance '{step_name}': cursor → {cursor_value!r}")
+
+
+def _run_window_dynamic(
+    step: Dict[str, Any],
+    input_data: list,
+    steps: list,
+    item_var: str,
+    size_by_tokens: int | None,
+    size: Any,
+    model: str,
+    include_partial: bool,
+    append_to_targets: set,
+    output_vars: set,
+    context: Dict[str, Any],
+    pipeline_config: Dict[str, Any],
+) -> str | None:
+    """Dynamic windowing: cursor is determined each iteration by a !window_advance step.
+
+    Instead of pre-computing all windows, slices from the current cursor position
+    each iteration and asks the !window_advance step where to start the next one.
+    """
+    step_name = step.get("name", "unnamed")
+    start = 0
+    index = 0
+    n = len(input_data)
+
+    while start < n:
+        index += 1
+
+        # Slice the current window
+        if size_by_tokens is not None:
+            window = _slice_window_from_pos(input_data, start, size_by_tokens, model)
+        else:
+            # Fixed-size mode: slice size items from start
+            window = input_data[start:start + size]
+
+        if not window:
+            break
+
+        # Build iteration context
         iteration_context = deepcopy(context)
-        iteration_context[item_var] = item
+        iteration_context[item_var] = window
+        iteration_context["_window_index"] = index
+        iteration_context["window_num"] = index
+        iteration_context["_window_first"] = window[0] if window else None
+        iteration_context["_window_last"] = window[-1] if window else None
+        iteration_context["_window_cursor"] = None  # reset each iteration
 
         parent_stack = iteration_context.get("_for_each_stack") or []
         stack = [dict(frame) for frame in parent_stack] if parent_stack else []
-
-        label_fragment = None
-        if debug_label_template:
-            try:
-                resolved_label = resolve(debug_label_template, iteration_context)
-                if resolved_label is not None:
-                    label_fragment = _format_iteration_fragment(resolved_label)
-            except Exception as exc:
-                logger.debug(
-                    f"debug_label resolution failed in for-each '{step.get('name', 'unnamed')}': {exc}"
-                )
-
-        value_fragment = _format_iteration_fragment(item)
         new_frame = {
             "level": len(stack) + 1,
             "variable": item_var,
-            "value": value_fragment,
-            "label": label_fragment or "",
+            "value": f"window_{index}",
+            "label": f"window_{index}",
             "index": index,
         }
         stack.append(new_frame)
         iteration_context["_for_each_stack"] = stack
         iteration_context["_for_each_meta"] = new_frame
 
-        for step in steps:
-            after_action = run_step(step, iteration_context, pipeline_config)
+        logger.info(f"🪟  Window step '{step_name}': dynamic window {index}, start={start}")
+
+        # Run nested steps
+        for nested_step in steps:
+            after_action = run_step(nested_step, iteration_context, pipeline_config)
+            if after_action == "exit":
+                _propagate_window_outputs(context, iteration_context, append_to_targets, output_vars)
+                return "exit"
+            elif after_action == "continue":
+                break
+
+        _propagate_window_outputs(context, iteration_context, append_to_targets, output_vars)
+
+        # Read cursor set by !window_advance
+        cursor = iteration_context.get("_window_cursor")
+        if cursor is None:
+            logger.info(f"🪟  Window step '{step_name}': cursor is null — stopping after window {index}")
+            break
+
+        if not isinstance(cursor, int) or cursor < 0:
+            raise ValueError(
+                f"Window step '{step_name}': !window_advance cursor must be a "
+                f"non-negative integer or null, got {cursor!r}"
+            )
+        if cursor <= start:
+            raise ValueError(
+                f"Window step '{step_name}': !window_advance cursor {cursor} does not "
+                f"advance beyond current start {start} — infinite loop prevented"
+            )
+
+        start = cursor
+
+    return None
+
+
+def run_window_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any]) -> str | None:
+    """Execute a window step — iterate over windows of the input list."""
+    step_name = step.get("name", "unnamed")
+    input_data = resolve(step.get("input", step.get("over", [])), context)
+    if not isinstance(input_data, list):
+        raise ValueError(
+            f"Window step '{step_name}': input must resolve to a list, "
+            f"got {type(input_data).__name__}"
+        )
+
+    item_var = step.get("item_var", "window")
+    steps = step.get("steps", [])
+    size = step.get("size")
+    stride = step.get("stride", size)  # default stride == size (tumbling)
+    include_partial = step.get("include_partial", True)
+    start_when = step.get("start_when")
+    end_when = step.get("end_when")
+    size_by_tokens = step.get("size_by_tokens")
+    stride_by_tokens = step.get("stride_by_tokens", 0)
+    _model_raw = resolve(step.get("model", "gpt-4o"), context)
+    model: str = str(_model_raw) if not isinstance(_model_raw, str) else _model_raw
+
+    # Build window list
+    if start_when:
+        windows = _build_windows_condition(input_data, start_when, end_when, context)
+    elif size_by_tokens is not None:
+        if not isinstance(size_by_tokens, int) or size_by_tokens < 1:
+            raise ValueError(
+                f"Window step '{step_name}': 'size_by_tokens' must be a positive integer"
+            )
+        if not isinstance(stride_by_tokens, int) or stride_by_tokens < 0:
+            raise ValueError(
+                f"Window step '{step_name}': 'stride_by_tokens' must be a non-negative integer"
+            )
+        windows = _build_windows_token(input_data, size_by_tokens, stride_by_tokens, model, include_partial)
+    else:
+        if not isinstance(size, int):
+            raise ValueError(
+                f"Window step '{step_name}': 'size' must be a positive integer"
+            )
+        if not isinstance(stride, int):
+            raise ValueError(
+                f"Window step '{step_name}': 'stride' must be a positive integer"
+            )
+        windows = _build_windows_fixed(input_data, size, stride, include_partial)
+
+    if not windows:
+        logger.info(f"⏭️  Window step '{step.get('name', 'unnamed')}': no windows generated, skipping")
+        return None
+
+    # Collect propagation targets (outputs and append_to) from all nested steps,
+    # including inside !window_advance inner steps.
+    def collect_outputs(steps_list):
+        append_targets = set()
+        output_vars = set()
+        for s in steps_list:
+            if "append_to" in s:
+                append_targets.add(s["append_to"])
+            if "outputs" in s:
+                ov = s["outputs"]
+                if isinstance(ov, str):
+                    output_vars.add(ov)
+                elif isinstance(ov, list):
+                    output_vars.update(ov)
+            if "steps" in s:
+                na, no = collect_outputs(s["steps"])
+                append_targets.update(na)
+                output_vars.update(no)
+            # !window_advance: recurse into the wrapped inner step
+            if s.get("_tag") == "window_advance" and "step" in s:
+                na, no = collect_outputs([s["step"]])
+                append_targets.update(na)
+                output_vars.update(no)
+        return append_targets, output_vars
+
+    append_to_targets, output_vars = collect_outputs(steps)
+
+    # Dynamic mode: triggered when a !window_advance step is present in steps.
+    # Instead of pre-computing windows, the cursor is set each iteration by the
+    # !window_advance step.
+    has_advance = any(s.get("_tag") == "window_advance" for s in steps)
+    if has_advance:
+        return _run_window_dynamic(
+            step, input_data, steps, item_var,
+            size_by_tokens, size, model, include_partial,
+            append_to_targets, output_vars, context, pipeline_config,
+        )
+
+    for index, window in enumerate(windows, start=1):
+        iteration_context = deepcopy(context)
+        iteration_context[item_var] = window
+        iteration_context["_window_index"] = index
+        iteration_context["window_num"] = index   # condition-friendly alias (no leading _)
+        iteration_context["_window_first"] = window[0] if window else None
+        iteration_context["_window_last"] = window[-1] if window else None
+
+        # Maintain the for-each stack for debug filenames
+        parent_stack = iteration_context.get("_for_each_stack") or []
+        stack = [dict(frame) for frame in parent_stack] if parent_stack else []
+        new_frame = {
+            "level": len(stack) + 1,
+            "variable": item_var,
+            "value": f"window_{index}",
+            "label": f"window_{index}",
+            "index": index,
+        }
+        stack.append(new_frame)
+        iteration_context["_for_each_stack"] = stack
+        iteration_context["_for_each_meta"] = new_frame
+
+        for nested_step in steps:
+            after_action = run_step(nested_step, iteration_context, pipeline_config)
 
             if after_action == "exit":
-                logger.info("🛑 'after: exit' in for-each iteration - exiting entire pipeline")
-
-                # Propagate BOTH append_to AND regular outputs before exiting
+                logger.info("🛑 'after: exit' in window iteration - exiting pipeline")
                 for target in append_to_targets:
                     if target in iteration_context and isinstance(iteration_context[target], list):
                         if target not in context:
                             context[target] = iteration_context[target][:]
                         else:
-                            original_length = len(context[target])
-                            new_items = iteration_context[target][original_length:]
-                            context[target].extend(new_items)
-
-                # FIX: Also propagate regular outputs before exiting
+                            orig = len(context[target])
+                            context[target].extend(iteration_context[target][orig:])
                 for output_var in output_vars:
                     if output_var in iteration_context:
                         context[output_var] = iteration_context[output_var]
-                        logger.debug(f"Propagated output '{output_var}' before exit")
-
-                return "exit"  # Propagate exit to parent
+                return "exit"
 
             elif after_action == "continue":
-                logger.info("⏭️  'after: continue' in for-each iteration - skipping to next iteration")
-                break  # Break out of steps loop, continue with next item
+                logger.info("⏭️  'after: continue' in window iteration - next window")
+                break
 
-        # Normal propagation (no exit)
+        # Normal propagation
         for target in append_to_targets:
             if target in iteration_context and isinstance(iteration_context[target], list):
                 if target not in context:
                     context[target] = iteration_context[target][:]
                 else:
-                    original_length = len(context[target])
-                    new_items = iteration_context[target][original_length:]
-                    context[target].extend(new_items)
+                    orig = len(context[target])
+                    context[target].extend(iteration_context[target][orig:])
 
-        # Propagate regular outputs — last-iteration wins, matching Python for-loop semantics
         for output_var in output_vars:
             if output_var in iteration_context:
                 context[output_var] = iteration_context[output_var]
 
-    return None  # No exit, normal completion
+    # Optional merge step: runs once after all windows complete with the full context
+    merge_config = step.get("merge")
+    if merge_config:
+        logger.info(f"🔀 Window step '{step_name}': running merge")
+        merge_result = run_function_step(merge_config, context, pipeline_config)
+        handle_step_outputs(merge_config, merge_result, context)
+
+    return None
 
 
 def run_if_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> str | None:
@@ -1667,7 +2374,7 @@ def run_pipeline(
         # Load and parse YAML with error handling
         try:
             with open(pipeline_path, "r") as f:
-                pipeline_config = yaml.safe_load(f)
+                pipeline_config = yaml.load(f, Loader=_LLMFlowLoader)
         except yaml.YAMLError as e:
             logger.error(f"❌ YAML syntax error in {pipeline_file}:")
             if hasattr(e, 'problem_mark'):
