@@ -30,7 +30,11 @@
       "Read(//Users/jonathan/.sp/**)",
       "Read(//Users/jonathan/.sp/skills/**)",
       "Bash(git checkout:*)",
-      "Bash(git merge feat/group-by --no-ff -m ':*)"
+      "Bash(git merge feat/group-by --no-ff -m ':*)",
+      "Bash(git pull:*)",
+      "Bash(git branch:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git reset:*)"
     ]
   }
 }
