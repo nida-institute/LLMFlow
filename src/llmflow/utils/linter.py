@@ -588,8 +588,7 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
 
                 # Check each referenced variable
                 for var in referenced_vars:
-                    # Extract root variable (before . or [)
-                    root_var = re.split(r'[.\[]', var)[0]
+                    root_var = var  # already a root identifier from _identifiers_in_expr
 
                     if root_var not in available:
                         # Show helpful error message with available variables
@@ -1138,9 +1137,7 @@ def _collect_var_refs(obj, refs: set | None = None) -> set:
     if refs is None:
         refs = set()
     if isinstance(obj, str):
-        for m in re.findall(r'\$\{([^}]+)\}', obj):
-            root = re.split(r'[.\[]', m.strip())[0]
-            refs.add(root)
+        refs.update(extract_variable_references(obj))
     elif isinstance(obj, dict):
         for v in obj.values():
             _collect_var_refs(v, refs)
