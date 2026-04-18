@@ -843,6 +843,136 @@ class TestWindowOutputPropagation:
 
         assert context["all"] == [1, 2, 3]
 
+    def test_outputs_visible_in_next_iteration(self):
+        """A value written via outputs in iteration N is readable in iteration N+1.
+
+        This guarantees the deepcopy(context) + write-back pattern works correctly
+        for cross-iteration state. If the write-back were missing or the deepcopy
+        were taken from the wrong snapshot, the seen_count would not grow.
+        """
+        context = {"items": list(range(6)), "seen_count": 0}
+
+        step = {
+            "name": "w",
+            "type": "window",
+            "input": "${items}",
+            "item_var": "batch",
+            "size": 2,
+            "steps": [
+                {
+                    # Read seen_count from previous iteration, increment, write back
+                    "name": "increment",
+                    "type": "function",
+                    "function": "llmflow.utils.data.identity",
+                    "inputs": {"value": "${seen_count}"},
+                    "outputs": "_prev_count",
+                },
+                {
+                    "name": "store_count",
+                    "type": "function",
+                    "function": "tests.test_helpers.add_one",
+                    "inputs": {"value": "${_prev_count}"},
+                    "outputs": "seen_count",
+                },
+            ],
+        }
+
+        from llmflow.runner import run_window_step
+        run_window_step(step, context, {})
+
+        # 3 windows → seen_count incremented 3 times: 0 → 1 → 2 → 3
+        assert context["seen_count"] == 3
+
+    def test_append_to_list_readable_in_next_iteration(self):
+        """Values accumulated via append_to are visible to subsequent iterations.
+
+        This is the prior_pericopes pattern: each iteration appends a summary,
+        and the next iteration reads the growing list (e.g. ${prior[-10:]}).
+        """
+        context = {"items": ["a", "b", "c", "d"], "prior": []}
+
+        step = {
+            "name": "w",
+            "type": "window",
+            "input": "${items}",
+            "item_var": "batch",
+            "size": 1,
+            "steps": [
+                {
+                    # Each iteration appends the current item to prior
+                    "name": "accumulate",
+                    "type": "function",
+                    "function": "llmflow.utils.data.identity",
+                    "inputs": {"value": "${batch[0]}"},
+                    "append_to": "prior",
+                },
+                {
+                    # Reads the prior list accumulated so far (including this iteration)
+                    "name": "snapshot_prior",
+                    "type": "function",
+                    "function": "llmflow.utils.data.identity",
+                    "inputs": {"value": "${prior}"},
+                    "append_to": "prior_snapshots",
+                },
+            ],
+        }
+
+        from llmflow.runner import run_window_step
+        run_window_step(step, context, {})
+
+        # After iteration 1: prior = ["a"], snapshot = ["a"]
+        # After iteration 2: prior = ["a","b"], snapshot = ["a","b"]
+        # After iteration 3: prior = ["a","b","c"], snapshot = ["a","b","c"]
+        # After iteration 4: prior = ["a","b","c","d"]
+        assert context["prior"] == ["a", "b", "c", "d"]
+        assert context["prior_snapshots"][0] == ["a"]
+        assert context["prior_snapshots"][1] == ["a", "b"]
+        assert context["prior_snapshots"][2] == ["a", "b", "c"]
+        assert context["prior_snapshots"][3] == ["a", "b", "c", "d"]
+
+    def test_tail_slice_of_accumulated_list_in_next_iteration(self):
+        """${prior[-3:]} inside a window reads only the last N items accumulated so far.
+
+        This is the prior_pericopes[-10:] pattern from discourse-flow: the LLM
+        receives only recent context, not the full history.
+        """
+        context = {"items": list(range(5)), "prior": []}
+
+        step = {
+            "name": "w",
+            "type": "window",
+            "input": "${items}",
+            "item_var": "batch",
+            "size": 1,
+            "steps": [
+                {
+                    "name": "accumulate",
+                    "type": "function",
+                    "function": "llmflow.utils.data.identity",
+                    "inputs": {"value": "${batch[0]}"},
+                    "append_to": "prior",
+                },
+                {
+                    # Reads the last 3 items only
+                    "name": "snapshot_tail",
+                    "type": "function",
+                    "function": "llmflow.utils.data.identity",
+                    "inputs": {"value": "${prior[-3:]}"},
+                    "append_to": "tail_snapshots",
+                },
+            ],
+        }
+
+        from llmflow.runner import run_window_step
+        run_window_step(step, context, {})
+
+        # Tail of prior after each iteration:
+        assert context["tail_snapshots"][0] == [0]           # prior=[0],     last 3=[0]
+        assert context["tail_snapshots"][1] == [0, 1]        # prior=[0,1],   last 3=[0,1]
+        assert context["tail_snapshots"][2] == [0, 1, 2]     # prior=[0,1,2], last 3=[0,1,2]
+        assert context["tail_snapshots"][3] == [1, 2, 3]     # prior=[0..3],  last 3=[1,2,3]
+        assert context["tail_snapshots"][4] == [2, 3, 4]     # prior=[0..4],  last 3=[2,3,4]
+
 
 # ---------------------------------------------------------------------------
 # _build_windows_token

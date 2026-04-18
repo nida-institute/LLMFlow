@@ -49,3 +49,8 @@ def save_text(path: str, content: str):
 def make_prefix(name: str) -> dict:
     """Return a dict with a 'prefix' key — simulates a cheap parse/setup step."""
     return {"prefix": name.lower().replace(" ", "_")}
+
+
+def add_one(value: int) -> int:
+    """Return value + 1. Used in cross-iteration state tests."""
+    return value + 1

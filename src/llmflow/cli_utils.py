@@ -245,7 +245,13 @@ step outputs:
 - `${greeting}` – value produced by a previous step.
 - `${scene.WLC}` – field access on an object.
 - `${scene_list[0]}` – first element of a list.
+- `${scene_list[-1]}` – last element of a list.
+- `${scene_list[-1].field}` – field on the last element.
+- `${scene_list[0].field}` – field on the first element.
+- `${scene_list[:-1]}` – every element except the last.
+- `${scene_list[-10:]}` – last 10 elements (returns all if fewer than 10).
 - `${scene_list[*].Title}` – extract one field from every item; returns a flat list.
+- `${scene_list[-3:][*].Title}` – field from each of the last 3 items.
 
 In prompt and template files (`*.gpt`, `*.md`), use `{{var}}`:
 
@@ -380,6 +386,48 @@ steps on each slice. Useful when a list is too large to process at once.
 - `!window_advance` — when present, switches to dynamic (cursor-driven) mode.
   The inner `step` runs each iteration; if its `cursor` variable is `null`
   the loop stops after the current window.
+
+### Cross-iteration state in `for-each` and `window`
+
+Each iteration starts from a **fresh copy of the outer context**. Variables set
+inside an iteration are not automatically visible to the next one — unless they
+are propagated out via `outputs` or `append_to`.
+
+**`outputs` (last-iteration-wins):** the final value written by each iteration
+replaces the outer variable. Each subsequent iteration sees the updated value.
+
+**`append_to` (accumulating list):** each iteration appends to a list in the
+outer context. Subsequent iterations see the growing list — including the items
+appended by earlier iterations. This enables "rolling context" patterns:
+
+```yaml
+- name: analyze_pericopes
+  type: for-each
+  input: "${leaf_pericopes}"
+  item_var: pericope
+  steps:
+    - name: analyze
+      type: llm
+      prompt:
+        file: analyze.gpt
+        inputs:
+          passage: "${pericope.canonical_reference}"
+          # Only pass the last 10 summaries — prior_pericopes grows each iteration
+          prior_context: "${prior_pericopes[-10:]}"
+      outputs: pericope_analysis
+
+    - name: summarize
+      type: function
+      function: llmflow.utils.data.pick_fields
+      inputs:
+        obj: "${pericope_analysis}"
+        fields: ["title", "themes"]
+      outputs: summary
+      append_to: prior_pericopes   # visible to next iteration
+```
+
+The slice `${prior_pericopes[-10:]}` always returns the last 10 items,
+or all items if fewer than 10 have accumulated so far.
 
 ### type: `save`
 
