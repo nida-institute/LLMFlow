@@ -616,44 +616,43 @@ def _evaluate_condition_expression(condition_expr, context, *, label="condition"
     if isinstance(condition_expr, (int, float)):
         return bool(condition_expr)
 
-    expression = condition_expr
-    expr_str = None
-
-    if isinstance(expression, str):
-        stripped = expression.strip()
+    if isinstance(condition_expr, str):
+        stripped = condition_expr.strip()
+        # ${...} — evaluate the inner expression via AST, bypassing resolve().
+        # resolve() looks up the leading identifier in context and discards any
+        # trailing operators (e.g. "is None", "is not None"), so
+        # "${x is None}" would silently return the raw value of x rather than
+        # the result of the comparison.  _safe_eval handles the full expression
+        # correctly because it puts all context variables in scope as locals.
         if stripped.startswith("${") and stripped.endswith("}"):
             expr_str = stripped[2:-1]
-        else:
-            expr_str = stripped
+            try:
+                return _safe_eval(expr_str, _build_eval_locals(context))
+            except Exception as exc:
+                logger.warning(f"{label} eval failed: {expr_str} - {exc}")
+                return False
 
-    try:
-        resolved = resolve(expression, context)
-    except Exception as exc:
-        logger.warning(f"{label} resolution failed: {expression} - {exc}")
-        resolved = expression
+        # Plain (non-${}) string — try resolve() first, then eval.
+        try:
+            resolved = resolve(condition_expr, context)
+        except Exception as exc:
+            logger.warning(f"{label} resolution failed: {condition_expr} - {exc}")
+            resolved = condition_expr
 
-    if isinstance(resolved, bool):
-        return resolved
-    if isinstance(resolved, (int, float)):
-        return bool(resolved)
+        if isinstance(resolved, bool):
+            return resolved
+        if isinstance(resolved, (int, float)):
+            return bool(resolved)
+        expr_str = resolved if isinstance(resolved, str) else str(resolved)
+        if not expr_str:
+            return False
+        try:
+            return _safe_eval(expr_str, _build_eval_locals(context))
+        except Exception as exc:
+            logger.warning(f"{label} eval failed: {expr_str} - {exc}")
+            return False
 
-    if isinstance(resolved, str):
-        stripped = resolved.strip()
-        if stripped.startswith("${") and stripped.endswith("}"):
-            expr_str = stripped[2:-1]
-        else:
-            expr_str = stripped
-    else:
-        expr_str = str(resolved)
-
-    if not expr_str:
-        return False
-
-    try:
-        return _safe_eval(expr_str, _build_eval_locals(context))
-    except Exception as exc:
-        logger.warning(f"{label} eval failed: {expr_str} - {exc}")
-        return False
+    return bool(condition_expr)
 
 
 def _evaluate_retry_condition(condition_expr, context):
