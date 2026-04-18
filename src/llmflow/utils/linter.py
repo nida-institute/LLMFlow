@@ -1,3 +1,4 @@
+import ast
 from dataclasses import dataclass
 from typing import Any, List, Set
 import re
@@ -7,10 +8,20 @@ from pathlib import Path
 import click
 import yaml
 from pydantic import ValidationError
+from llmflow.yaml_loader import LLMFlowLoader as _LLMFlowLoader
 from llmflow.pipeline_schema import PipelineConfig, PIPELINE_SCHEMA
 from llmflow.exceptions import StepRewindError
 from llmflow.utils.llm_runner import validate_model_parameter, get_model_family
 from llmflow.utils.get_prefix_directory import get_prefix_directory
+
+
+def _identifiers_in_expr(expr: str) -> Set[str]:
+    """Return all variable names in a Python expression, excluding keywords and builtins."""
+    try:
+        tree = ast.parse(expr, mode='eval')
+        return {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
+    except SyntaxError:
+        return set()
 
 
 def extract_variable_references(text: str) -> Set[str]:
@@ -19,17 +30,11 @@ def extract_variable_references(text: str) -> Set[str]:
 
     # Extract ${...} patterns
     for match in re.finditer(r'\$\{([^\}]+)\}', text):
-        var = match.group(1).strip()
-        # Extract root variable (before . or [)
-        root = re.split(r'[.\[]', var)[0]
-        variables.add(root)
+        variables.update(_identifiers_in_expr(match.group(1).strip()))
 
     # Extract {{...}} patterns
     for match in re.finditer(r'\{\{([^\}]+)\}\}', text):
-        var = match.group(1).strip()
-        # Extract root variable (before . or [)
-        root = re.split(r'[.\[]', var)[0]
-        variables.add(root)
+        variables.update(_identifiers_in_expr(match.group(1).strip()))
 
     return variables
 
@@ -76,6 +81,21 @@ _EXTRA_STEP_KEYS = {
     "query_file",
     "params",
     "timeout",
+    # for-each keys
+    "parallel",
+    "group-by",
+    "order-by",
+    # window step keys
+    "size",
+    "stride",
+    "include_partial",
+    "start_when",
+    "end_when",
+    "size_by_tokens",
+    "stride_by_tokens",
+    "merge",
+    "item_var",
+    "over",
 }
 
 ALLOWED_STEP_KEYS = _SCHEMA_STEP_KEYS | _EXTRA_STEP_KEYS
@@ -344,7 +364,7 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
 
 def lint_pipeline_contracts(pipeline_path):
     """Validate that all pipeline steps match their prompt contracts"""
-    pipeline = yaml.safe_load(Path(pipeline_path).read_text())
+    pipeline = yaml.load(Path(pipeline_path).read_text(), Loader=_LLMFlowLoader)
     pipeline_root = pipeline.get("pipeline", pipeline)
 
     # ✅ CHECK IF LINTER IS DISABLED
@@ -568,8 +588,7 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
 
                 # Check each referenced variable
                 for var in referenced_vars:
-                    # Extract root variable (before . or [)
-                    root_var = re.split(r'[.\[]', var)[0]
+                    root_var = var  # already a root identifier from _identifiers_in_expr
 
                     if root_var not in available:
                         # Show helpful error message with available variables
@@ -603,6 +622,16 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
         append_to = step.get("append_to")
         if append_to:
             declared_outputs.add(append_to)
+
+        # !window_advance: the inner step's outputs become available to subsequent
+        # steps in the same window iteration (e.g. the cursor variable).
+        if step.get("_tag") == "window_advance":
+            inner = step.get("step", {})
+            inner_outs = inner.get("outputs")
+            if isinstance(inner_outs, str):
+                declared_outputs.add(inner_outs)
+            elif isinstance(inner_outs, list):
+                declared_outputs.update(inner_outs)
 
 
 def _validate_all_variable_references(all_steps, pipeline_vars, errors):
@@ -793,7 +822,7 @@ def lint_pipeline_full(
 
     # Load pipeline first
     try:
-        pipeline = yaml.safe_load(Path(pipeline_path).read_text())
+        pipeline = yaml.load(Path(pipeline_path).read_text(), Loader=_LLMFlowLoader)
     except FileNotFoundError:
         # Re-raise to let cli.py handle with better error message
         raise
@@ -1023,6 +1052,184 @@ def _lint_conditional_rules(step, errors, key: str):
             if k not in {"if", "message"}:
                 errors.append(f"Step '{step.get('name','unnamed')}': unknown '{key}' key '{k}'")
 
+def _lint_window_step(step: dict, errors: list) -> None:
+    """Validate window step configuration."""
+    name = step.get("name", "<unnamed>")
+    has_size = "size" in step
+    has_size_by_tokens = "size_by_tokens" in step
+    has_start_when = "start_when" in step
+
+    mode_count = sum([has_size, has_size_by_tokens, has_start_when])
+
+    if mode_count == 0:
+        errors.append(
+            f"Window step '{name}': must specify one of 'size' (fixed), "
+            f"'size_by_tokens' (token-aware), or 'start_when' (condition-based)"
+        )
+        return
+
+    if mode_count > 1:
+        errors.append(
+            f"Window step '{name}': 'size', 'size_by_tokens', and 'start_when' are mutually exclusive"
+        )
+        return
+
+    if has_size:
+        size = step["size"]
+        if not isinstance(size, int) or size < 1:
+            errors.append(f"Window step '{name}': 'size' must be a positive integer")
+
+        if "stride" in step:
+            stride = step["stride"]
+            if not isinstance(stride, int) or stride < 1:
+                errors.append(f"Window step '{name}': 'stride' must be a positive integer")
+
+        if "end_when" in step:
+            errors.append(
+                f"Window step '{name}': 'end_when' is only valid with 'start_when', not 'size'"
+            )
+
+        if "stride_by_tokens" in step:
+            errors.append(
+                f"Window step '{name}': 'stride_by_tokens' is only valid with 'size_by_tokens'"
+            )
+
+    if has_size_by_tokens:
+        sbt = step["size_by_tokens"]
+        if not isinstance(sbt, int) or sbt < 1:
+            errors.append(f"Window step '{name}': 'size_by_tokens' must be a positive integer")
+
+        if "stride_by_tokens" in step:
+            s = step["stride_by_tokens"]
+            if not isinstance(s, int) or s < 0:
+                errors.append(
+                    f"Window step '{name}': 'stride_by_tokens' must be a non-negative integer"
+                )
+
+        if "stride" in step:
+            errors.append(
+                f"Window step '{name}': use 'stride_by_tokens' (not 'stride') with 'size_by_tokens'"
+            )
+
+        if "end_when" in step or "start_when" in step:
+            errors.append(
+                f"Window step '{name}': 'start_when'/'end_when' cannot be used with 'size_by_tokens'"
+            )
+
+    if has_start_when:
+        if "stride" in step:
+            errors.append(
+                f"Window step '{name}': 'stride' is only valid with 'size', not 'start_when'"
+            )
+        if "include_partial" in step:
+            errors.append(
+                f"Window step '{name}': 'include_partial' is only valid with 'size' or 'size_by_tokens', not 'start_when'"
+            )
+        if "stride_by_tokens" in step:
+            errors.append(
+                f"Window step '{name}': 'stride_by_tokens' is only valid with 'size_by_tokens'"
+            )
+
+    # Validate merge block
+    if "merge" in step:
+        merge = step["merge"]
+        if not isinstance(merge, dict):
+            errors.append(f"Window step '{name}': 'merge' must be a dict")
+        elif "function" not in merge:
+            errors.append(f"Window step '{name}': 'merge' must have a 'function' key")
+
+    if "steps" not in step or not step["steps"]:
+        errors.append(f"Window step '{name}': must have a non-empty 'steps' list")
+
+
+def _collect_var_refs(obj, refs: set | None = None) -> set:
+    """Recursively collect root variable names from all ${...} references in a config object."""
+    if refs is None:
+        refs = set()
+    if isinstance(obj, str):
+        refs.update(extract_variable_references(obj))
+    elif isinstance(obj, dict):
+        for v in obj.values():
+            _collect_var_refs(v, refs)
+    elif isinstance(obj, list):
+        for item in obj:
+            _collect_var_refs(item, refs)
+    return refs
+
+
+def _collect_loop_append_targets(steps_list: list) -> set:
+    """Recursively collect all append_to targets declared in a steps list."""
+    targets: set = set()
+    for s in steps_list:
+        if "append_to" in s:
+            targets.add(s["append_to"])
+        if "steps" in s and isinstance(s["steps"], list):
+            targets.update(_collect_loop_append_targets(s["steps"]))
+    return targets
+
+
+def _lint_for_each_parallel(step: dict, errors: list) -> None:
+    """Error when parallel: is set and a step reads an append_to target from the same loop.
+
+    In parallel mode every iteration starts from the same parent context snapshot —
+    append_to lists populated by other iterations are not visible during execution.
+    Reading such a variable within the loop produces an empty list (or the pre-loop
+    value) instead of the accumulated results, silently corrupting output.
+    """
+    parallel = step.get("parallel")
+    if not isinstance(parallel, int) or parallel <= 1:
+        return
+
+    name = step.get("name", "<unnamed>")
+    inner_steps = step.get("steps", [])
+    append_targets = _collect_loop_append_targets(inner_steps)
+    if not append_targets:
+        return
+
+    refs = _collect_var_refs(inner_steps)
+    cross = append_targets & refs
+    for target in sorted(cross):
+        errors.append(
+            f"Step '{name}': parallel: {parallel} is set but '${{{target}}}' is "
+            f"referenced within the loop — in parallel mode, append_to results are "
+            f"not visible to concurrent iterations (each iteration starts from the "
+            f"parent context snapshot). Remove the cross-iteration reference or use "
+            f"parallel: 1."
+        )
+
+
+def _lint_for_each_group_by(step: dict, errors: list) -> None:
+    """Validate group-by and order-by on for-each steps."""
+    group_by = step.get("group-by")
+    order_by = step.get("order-by")
+    name = step.get("name", "<unnamed>")
+
+    if group_by is not None:
+        # group-by expression must reference ${item.*} to be meaningful
+        if isinstance(group_by, str) and not re.search(r"\$\{item\b", group_by):
+            errors.append(
+                f"Step '{name}': group-by expression '{group_by}' does not reference "
+                f"'item' — use ${{item.field}} to group by an attribute of each item."
+            )
+
+    if order_by is not None:
+        # Collect all direction values from dict and list forms
+        directions: list = []
+        if isinstance(order_by, dict):
+            directions.append(order_by.get("direction", "ascending"))
+        elif isinstance(order_by, list):
+            for entry in order_by:
+                if isinstance(entry, dict):
+                    directions.append(entry.get("direction", "ascending"))
+        valid = {"ascending", "descending"}
+        for d in directions:
+            if d not in valid:
+                errors.append(
+                    f"Step '{name}': order-by direction '{d}' is invalid — "
+                    f"use 'ascending' or 'descending'."
+                )
+
+
 def lint_pipeline_steps(steps):
     errors = []
     for step in steps:
@@ -1036,4 +1243,9 @@ def lint_pipeline_steps(steps):
                 errors.append(message)
         _lint_conditional_rules(step, errors, "require")
         _lint_conditional_rules(step, errors, "warn")
+        if step.get("type") == "window":
+            _lint_window_step(step, errors)
+        if step.get("type") == "for-each":
+            _lint_for_each_parallel(step, errors)
+            _lint_for_each_group_by(step, errors)
     return errors

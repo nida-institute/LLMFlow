@@ -1,6 +1,6 @@
 """Tests for condition field on various step types."""
 import pytest
-from src.llmflow.runner import run_step
+from src.llmflow.runner import run_step, _evaluate_condition_expression
 
 def test_llm_step_with_condition_true():
     """Test that LLM step executes when condition is true."""
@@ -79,3 +79,57 @@ def test_xpath_step_with_condition_false():
 
     assert result is None
     assert "nodes" not in context
+
+# ---------------------------------------------------------------------------
+# is None / is not None expressions (regression for runtime bug where
+# get_from_context silently stripped operators, always returning the raw value)
+# ---------------------------------------------------------------------------
+
+def test_is_none_condition_when_none():
+    """`${x is None}` must be True when x is None."""
+    assert _evaluate_condition_expression("${x is None}", {"x": None}) is True
+
+
+def test_is_none_condition_when_not_none():
+    """`${x is None}` must be False when x has a value."""
+    assert _evaluate_condition_expression("${x is None}", {"x": 42}) is False
+
+
+def test_is_not_none_condition_when_none():
+    """`${x is not None}` must be False when x is None."""
+    assert _evaluate_condition_expression("${x is not None}", {"x": None}) is False
+
+
+def test_is_not_none_condition_when_not_none():
+    """`${x is not None}` must be True when x has a value."""
+    assert _evaluate_condition_expression("${x is not None}", {"x": 42}) is True
+
+
+def test_is_none_step_skipped_when_var_not_none():
+    """`condition: '${cursor is None}'` skips a function step when cursor has a value."""
+    step = {
+        "name": "final_only",
+        "type": "function",
+        "condition": "${cursor is None}",
+        "function": "llmflow.utils.data.identity",
+        "inputs": {"value": "done"},
+        "outputs": "final_result",
+    }
+    context = {"cursor": 10}
+    run_step(step, context, {})
+    assert "final_result" not in context
+
+
+def test_is_none_step_runs_when_var_is_none():
+    """`condition: '${cursor is None}'` runs a function step when cursor is None."""
+    step = {
+        "name": "final_only",
+        "type": "function",
+        "condition": "${cursor is None}",
+        "function": "llmflow.utils.data.identity",
+        "inputs": {"value": "done"},
+        "outputs": "final_result",
+    }
+    context = {"cursor": None}
+    run_step(step, context, {})
+    assert context["final_result"] == "done"

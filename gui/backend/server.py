@@ -319,7 +319,7 @@ def create_app():
             stages_data = [
                 {
                     'name': stage.name,
-                    'label': stage.label,
+                    'label': stage.description or stage.name,
                     'protected': stage.protected,
                     'immutable': stage.immutable,
                     'file_permissions': stage.file_permissions,
@@ -421,6 +421,21 @@ def create_app():
 
             logger.info(f"Content status result: success={result.get('success')}, error={result.get('error')}")
             logger.info(f"Stages found: {len(result.get('stages', []))}")
+
+            if not result.get('success'):
+                return jsonify(result), 500
+
+            # Add current_stage alias for frontend compatibility
+            result['current_stage'] = result.get('authoritative_stage')
+
+            # 404 when file exists in no stage
+            if result['current_stage'] is None:
+                return jsonify({
+                    'success': False,
+                    'error': f"File not found in any content stage: {file_path}",
+                    'path': file_path,
+                    'stages': result.get('stages', []),
+                }), 404
 
             return jsonify(result)
 

@@ -547,13 +547,16 @@ sp run --pipeline pipeline.yaml --var passage="Psalm 23"
 **In YAML:**
 - Simple: `"${passage}"`
 - Nested object: `"${scene.WLC}"` or `"${scene.Citation}"`
-- Array indexing: `"${scene_list[0]}"`
-- Array mapping: `"${scene_list[*].Title}"` — extracts all `Title` fields as a flat list, one entry per item.
+- Array indexing: `"${scene_list[0]}"` — single item by index (supports negative: `"${scene_list[-1]}"`)
+- Array slicing: `"${scene_list[-3:]}"` — last 3 items, `"${scene_list[:5]}"` — first 5,  `"${items[2:8]}"` — range, `"${items[::2]}"` — every 2nd item
+- Array mapping: `"${scene_list[*].Title}"` — extracts all `Title` fields as a flat list, one entry per item
+- Combined operations: `"${pericope_results[-3:][*].analysis}"` — slice then extract field
 
 **In prompt / template files (`.gpt`, `.md`):**
 - Use `{{var}}` for substitution
 - Access nested fields with dot notation: `{{scene.WLC}}`
 - Index into lists: `{{items[0]}}`
+- Slice notation: `{{items[-3:]}}`
 
 ---
 
@@ -943,8 +946,10 @@ In pipeline YAML files:
 
 - **Simple reference**: `"${variable}"`
 - **Nested object**: `"${scene.WLC}"`, `"${scene.Citation}"`
-- **Array access**: `"${scene_list[0]}"`
+- **Array access**: `"${scene_list[0]}"` — single item (supports negative: `[-1]` for last)
+- **Array slicing**: `"${scene_list[-3:]}"`, `"${items[:5]}"`, `"${items[2:8]}"`, `"${items[::2]}"` — Python slice syntax
 - **Array mapping**: `"${scene_list[*].Title}"` — extracts all `Title` fields as a flat list
+- **Combined**: `"${results[-5:][*].analysis}"` — slice then extract field from each item
 
 ### Template Engine Implementation
 
@@ -953,7 +958,7 @@ Scripture Pipelines uses a **custom template engine** with regex-based substitut
   replaced using values from the current context.
 - In pipeline YAML, `${variable}` expressions are resolved when
   constructing step inputs and file paths.
-- Dot notation (`scene.WLC`) and simple indexing (`items[0]`) are
+- Dot notation (`scene.WLC`), indexing (`items[0]`), and slicing (`items[-3:]`) are
   supported in both forms.
 
 **Summary of syntax by context:**

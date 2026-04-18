@@ -22,7 +22,15 @@
       "Bash(find /Users/jonathan/github/nida-institute/discourse-flow-hebrew -type f -name *19* -o -type d -name *19*)",
       "Bash(ls:*)",
       "WebSearch",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d[''''title'''']\\); print\\(d[''''state'''']\\); print\\(d[''''body'''']\\)\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d[''''title'''']\\); print\\(d[''''state'''']\\); print\\(d[''''body'''']\\)\")",
+      "Bash(git push:*)",
+      "Bash(gh repo:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Read(//Users/jonathan/.sp/**)",
+      "Read(//Users/jonathan/.sp/skills/**)",
+      "Bash(git checkout:*)",
+      "Bash(git merge feat/group-by --no-ff -m ':*)"
     ]
   }
 }

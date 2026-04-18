@@ -390,3 +390,95 @@ class TestLintPipelineFull:
             assert result.valid or len(result.errors) == 0
         finally:
             Path(pipeline_path).unlink()
+
+
+def test_window_advance_inner_outputs_in_scope():
+    """Variables produced by !window_advance inner step are available to later steps in the window."""
+    from llmflow.utils.linter import _validate_variable_references_recursive
+
+    steps = [
+        {
+            "name": "segment",
+            "type": "window",
+            "input": "${content}",
+            "item_var": "window_content",
+            "size": 10,
+            "steps": [
+                {
+                    "name": "process",
+                    "type": "function",
+                    "function": "llmflow.utils.data.identity",
+                    "inputs": {"value": "${window_content}"},
+                    "outputs": "window_result",
+                },
+                {
+                    "_tag": "window_advance",
+                    "name": "advance",
+                    "cursor": "next_start",
+                    "step": {
+                        "name": "find_next",
+                        "type": "function",
+                        "function": "tests.test_helpers.cursor_pop",
+                        "inputs": {},
+                        "outputs": "next_start",
+                    },
+                },
+                {
+                    "name": "store_non_final",
+                    "type": "function",
+                    "condition": "${next_start is not None}",  # must see next_start
+                    "function": "llmflow.utils.data.identity",
+                    "inputs": {"value": "${window_result}"},
+                    "outputs": "stored",
+                    "append_to": "all_results",
+                },
+            ],
+        }
+    ]
+
+    pipeline_vars = {"content": []}
+    errors = []
+    _validate_variable_references_recursive(steps, pipeline_vars, set(), errors)
+    assert errors == [], f"Unexpected linter errors: {errors}"
+
+
+def test_window_advance_is_none_condition_no_error():
+    """${cursor is None} condition in a window step does not raise a linter error."""
+    from llmflow.utils.linter import _validate_variable_references_recursive
+
+    steps = [
+        {
+            "name": "segment",
+            "type": "window",
+            "input": "${content}",
+            "item_var": "window_content",
+            "size": 10,
+            "steps": [
+                {
+                    "_tag": "window_advance",
+                    "name": "advance",
+                    "cursor": "cursor",
+                    "step": {
+                        "name": "find_next",
+                        "type": "function",
+                        "function": "tests.test_helpers.cursor_pop",
+                        "inputs": {},
+                        "outputs": "cursor",
+                    },
+                },
+                {
+                    "name": "final_only",
+                    "type": "function",
+                    "condition": "${cursor is None}",
+                    "function": "llmflow.utils.data.identity",
+                    "inputs": {"value": "done"},
+                    "outputs": "final",
+                },
+            ],
+        }
+    ]
+
+    pipeline_vars = {"content": []}
+    errors = []
+    _validate_variable_references_recursive(steps, pipeline_vars, set(), errors)
+    assert errors == [], f"Unexpected linter errors: {errors}"
