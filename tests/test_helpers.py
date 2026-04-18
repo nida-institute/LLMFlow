@@ -3,6 +3,31 @@
 from pathlib import Path
 
 
+# ---------------------------------------------------------------------------
+# Cursor sequence helpers for testing !window_advance
+# ---------------------------------------------------------------------------
+
+_cursor_seq: list = []
+
+
+def set_cursor_seq(values):
+    """Set up the cursor sequence for !window_advance tests."""
+    global _cursor_seq
+    _cursor_seq = list(values)
+
+
+def cursor_pop(**_):
+    """Pop next cursor value from the module-level sequence. Returns None when empty.
+
+    Use as the inner step function in !window_advance tests:
+        function: tests.test_helpers.cursor_pop
+    """
+    global _cursor_seq
+    if _cursor_seq:
+        return _cursor_seq.pop(0)
+    return None
+
+
 def mock_function(a, p):
     """Mock function for testing - concatenates parameters with underscore"""
     return f"{a}_{p}"

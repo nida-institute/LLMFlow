@@ -947,6 +947,47 @@ class TestBuildWindowsToken:
                                        model="nonexistent-model-xyz", include_partial=True)
         assert len(windows) == 1  # all fit in 1000 tokens
 
+    def test_implicit_sliding_when_stride_omitted(self):
+        """Omitting stride_by_tokens defaults to implicit sliding (size//10 overlap), not tumbling.
+
+        With 10 items of 1 token each and size=3:
+        - implicit overlap = 3//10 = 0, but floor of 1 item is applied → overlap ≥ 1 token
+        Use a larger size so the 10% overlap is measurable.
+        """
+        import tiktoken
+        enc = tiktoken.encoding_for_model(self.MODEL)
+        # Use 20 items; each ~2 tokens. size = 6 tokens (3 items).
+        # Explicit stride=0 (tumbling): windows [0-2], [3-5], [6-8], [9-11], ...
+        # Implicit sliding (overlap = size//10 = 0 → at least 1 token → 1 item overlap):
+        # windows[0] and windows[1] share at least one item.
+        items = self._words(20)
+        tok_per_item = len(enc.encode(items[0]))
+        size = tok_per_item * 10  # 10-item windows
+        # Tumbling: no overlap
+        tumbling = _build_windows_token(items, size_by_tokens=size, stride_by_tokens=0,
+                                        model=self.MODEL, include_partial=True)
+        # Implicit sliding: overlap = size // 10 = 1 item's worth of tokens
+        implicit = _build_windows_token(items, size_by_tokens=size, stride_by_tokens=size // 10,
+                                        model=self.MODEL, include_partial=True)
+        # Tumbling windows do not overlap
+        assert tumbling[1][0] == items[10], "tumbling: second window starts after first ends"
+        # Implicit sliding windows do overlap
+        assert implicit[1][0] != items[10], "implicit sliding: second window starts before tumbling restart"
+        assert implicit[0][-1] in implicit[1], "implicit sliding: last item of window 0 appears in window 1"
+
+    def test_explicit_zero_stride_still_tumbles(self):
+        """Explicit stride_by_tokens=0 still produces tumbling windows (no overlap)."""
+        import tiktoken
+        enc = tiktoken.encoding_for_model(self.MODEL)
+        items = self._words(6)
+        tok_per_item = len(enc.encode(items[0]))
+        size = tok_per_item * 3
+        windows = _build_windows_token(items, size_by_tokens=size, stride_by_tokens=0,
+                                       model=self.MODEL, include_partial=True)
+        assert len(windows) == 2
+        assert windows[0] == items[:3]
+        assert windows[1] == items[3:], "explicit stride=0 must tumble"
+
     def test_no_infinite_loop_large_stride(self):
         """stride_by_tokens >= window tokens still advances at least 1 item."""
         import tiktoken
