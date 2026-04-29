@@ -34,7 +34,26 @@
       "Bash(git pull:*)",
       "Bash(git branch:*)",
       "Bash(git cherry-pick:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git stash:*)",
+      "Bash(python tools/update_ai_context.py)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(python tools/index_signatures.py)",
+      "Bash(echo \"GIT_EXIT: $?\")",
+      "Bash(git fetch:*)",
+      "Read(//Users/jonathan/.claude/**)",
+      "Read(//Users/jonathan/github/nida-institute/**)",
+      "Read(//Users/jonathan/github/**)",
+      "Bash(cat requirements*.txt)",
+      "WebFetch(domain:platform.openai.com)",
+      "WebFetch(domain:openai.com)",
+      "WebFetch(domain:developers.openai.com)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git -C /Users/jonathan/github/nida-institute/LLMFlow add .claude/settings.local.json)",
+      "Bash(git -C /Users/jonathan/github/nida-institute/LLMFlow commit -m ' *)"
     ]
   }
 }
