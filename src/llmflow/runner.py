@@ -1607,11 +1607,18 @@ def _setup_iteration_context(
     item_var: str,
     step_name: str,
     debug_label_template: str | None,
+    total: int = 0,
 ) -> Dict[str, Any]:
     """Build the isolated context for one for-each iteration."""
     iteration_context = deepcopy(context)
     iteration_context[item_var] = item
     iteration_context["_for_each_index"] = index
+    iteration_context["loop"] = {
+        "index": index,
+        "total": total,
+        "first": index == 1,
+        "last": index == total,
+    }
 
     parent_stack = iteration_context.get("_for_each_stack") or []
     stack = [dict(frame) for frame in parent_stack] if parent_stack else []
@@ -1719,7 +1726,8 @@ def run_for_each_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_co
         baseline_lengths = {t: len(context[t]) for t in append_to_targets if t in context}
 
         iteration_context = _setup_iteration_context(
-            index, item, context, item_var, step_name, debug_label_template
+            index, item, context, item_var, step_name, debug_label_template,
+            total=len(input_data),
         )
         after_action = _run_iteration_steps(iteration_context, steps, pipeline_config)
 
@@ -1766,7 +1774,8 @@ def _run_for_each_parallel(
 
     def run_one(index: int, item: Any) -> tuple[int, Dict[str, Any], str | None]:
         iter_ctx = _setup_iteration_context(
-            index, item, context, item_var, step_name, debug_label_template
+            index, item, context, item_var, step_name, debug_label_template,
+            total=len(input_data),
         )
         after_action = _run_iteration_steps(iter_ctx, steps, pipeline_config)
         return index, iter_ctx, after_action
@@ -2334,6 +2343,14 @@ def run_pipeline(
     # Reset per-run state
     global WRITTEN_FILES
     WRITTEN_FILES = []
+
+    # Clear debug directory so it only contains output from this run
+    if not dry_run:
+        import shutil
+        debug_dir = Path(os.getcwd()) / "outputs" / "debug"
+        if debug_dir.exists():
+            shutil.rmtree(debug_dir)
+        debug_dir.mkdir(parents=True, exist_ok=True)
 
     # Reset logger singleton for new run - ensures log file is overwritten, not appended
     Logger.reset(log_file=log_file)
