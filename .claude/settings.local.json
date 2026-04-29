@@ -51,9 +51,7 @@
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
-      "Bash(git show:*)",
-      "Bash(git -C /Users/jonathan/github/nida-institute/LLMFlow add .claude/settings.local.json)",
-      "Bash(git -C /Users/jonathan/github/nida-institute/LLMFlow commit -m ' *)"
+      "Bash(git show:*)"
     ]
   }
 }
