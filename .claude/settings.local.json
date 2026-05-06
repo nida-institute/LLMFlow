@@ -51,7 +51,26 @@
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(xargs cat *)",
+      "WebFetch(domain:simonwillison.net)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:llm.datasette.io)",
+      "Bash(pip index *)",
+      "Bash(pip install *)",
+      "Bash(tmp/spike-venv/bin/pip install *)",
+      "Bash(tmp/spike-venv/bin/python *)",
+      "WebFetch(domain:collinwilkins.com)",
+      "WebFetch(domain:www.nytimes.com)",
+      "Bash(curl -s \"https://memory-alpha.fandom.com/wiki/Computer_error\")",
+      "WebFetch(domain:www.startrek.com)",
+      "WebFetch(domain:chakoteya.net)",
+      "WebFetch(domain:memory-alpha.fandom.com)",
+      "WebFetch(domain:www.ex-astris-scientia.org)",
+      "WebFetch(domain:explaining-errors-in-star-trek.fandom.com)",
+      "WebFetch(domain:reactormag.com)",
+      "Bash(pandoc *)"
     ]
   }
 }

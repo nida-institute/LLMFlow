@@ -232,6 +232,54 @@ class TestValidateAllVariableReferences:
         # The parent level won't have errors about items since it exists in pipeline_vars
         assert len(errors) == 0
 
+    def test_for_each_loop_index_available(self):
+        """_for_each_index is available inside for-each substeps (saveas, inputs, etc.)"""
+        steps = [
+            {
+                "name": "outer",
+                "type": "for-each",
+                "input": "${sections}",
+                "item_var": "section",
+                "steps": [
+                    {
+                        "name": "generate",
+                        "type": "llm",
+                        "saveas": "output/${_for_each_index}_${section}.txt",
+                        "inputs": {"text": "${section}"},
+                        "outputs": "result",
+                    }
+                ],
+            }
+        ]
+        pipeline_vars = {"sections": []}
+        errors = []
+        _validate_all_variable_references(steps, pipeline_vars, errors)
+        assert errors == [], f"Unexpected errors: {errors}"
+
+    def test_for_each_loop_variable_available(self):
+        """loop (and thus loop.index etc.) is available inside for-each substeps"""
+        steps = [
+            {
+                "name": "outer",
+                "type": "for-each",
+                "input": "${items}",
+                "item_var": "item",
+                "steps": [
+                    {
+                        "name": "inner",
+                        "type": "function",
+                        "function": "some.fn",
+                        "inputs": {"idx": "${loop.index}", "total": "${loop.total}"},
+                        "outputs": "result",
+                    }
+                ],
+            }
+        ]
+        pipeline_vars = {"items": []}
+        errors = []
+        _validate_all_variable_references(steps, pipeline_vars, errors)
+        assert errors == [], f"Unexpected errors: {errors}"
+
     def test_multiple_fields_checked(self):
         """Test that multiple fields are checked for variables"""
         steps = [

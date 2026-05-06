@@ -136,6 +136,7 @@ Loops over a list variable and runs nested steps for each item.
 
 - `input` points to a list value.
 - `item_var` is the name used to refer to each element.
+- `${loop.index}`, `${loop.total}`, `${loop.first}`, `${loop.last}` are available inside every iteration.
 - Use `append_to` in nested steps to build a list across iterations.
 
 ### type: `save`

@@ -15,6 +15,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Reinforces that AI serves the user's goals, not its own pattern-matching impulses
 - Creates accountability: AI solutions must align with Captain's actual requirements
 
+## GitHub Authority Boundary — HARD STOP
+
+**Never take any of the following actions without an explicit, specific instruction from the user in the current conversation:**
+
+- Merge or apply a pull request
+- Approve a pull request
+- Assign an issue or task to any person
+- Add or remove collaborators or team members
+- Change issue or PR labels, milestones, or project board columns on behalf of others
+- Comment on an existing issue or PR (unless the user has just asked you to do so)
+- Push to any shared or protected branch
+- Close an issue you did not just create in this same conversation turn
+
+**Why this is a hard boundary, not a soft guideline:**
+An AI acting on a user's GitHub account can affect other people's work, professional reputation, and team coordination without their knowledge. Applying PRs, assigning tasks to colleagues, or commenting in the user's name are actions the user must consciously authorise every time. Prior context, workflow patterns, or "it seemed logical" are not authorisation.
+
+**When in doubt, describe the action and ask.** The cost of one confirmation question is zero. The cost of an unauthorised action affecting colleagues is not.
+
+This boundary was added after a real incident in which an AI agent applied PRs and assigned tasks to team members without being asked (April 2026).
+
+---
+
 ## Repository Context
 
 This is the **LLMFlow core engine** — a declarative YAML-driven pipeline runner for AI-assisted biblical and linguistic scholarship. The CLI entry point is `sp` (Scripture Pipelines). Do not confuse this with repositories that *use* LLMFlow (e.g., ears-to-hear, which has LLMFlow/ as a subdirectory).

@@ -51,3 +51,7 @@ When asked to record a quality audit → write to `project/audits/<passage>-<dat
 When asked where to put a TODO → `project/TODO.md` (one file, not scattered).
 
 Do **not** put in-progress notes in `docs/` — that directory is for stable reference.
+
+### DO NOT modify the LLMFlow dependency in `pyproject.toml`
+
+Consumer repos reference LLMFlow as a local editable install so that changes to the LLMFlow dev tree flow through immediately. **Never reformat, simplify, or otherwise touch this line**, even when editing `pyproject.toml` for other reasons. Reverting it to a non-editable reference causes silent stale-install bugs that are hard to diagnose (e.g. `response_format` crashes, missing features). This rule exists because AI agents have repeatedly broken this — April 2026.

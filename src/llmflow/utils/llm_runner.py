@@ -91,7 +91,7 @@ def get_model(model_name: str):
 
 # Model family patterns for detection
 MODEL_FAMILIES = {
-    "gpt-5": ["gpt-5", "o3-mini", "o3", "o4"],
+    "gpt-5": ["gpt-5", "gpt-5.5", "o3-mini", "o3", "o4"],
     "o1": ["o1"],
     "gpt-4": ["gpt-4", "gpt-3.5"],  # ← gpt-3.5 uses same params as gpt-4
     "claude": ["claude-3", "claude-4"],

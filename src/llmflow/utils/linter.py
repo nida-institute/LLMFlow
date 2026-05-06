@@ -567,6 +567,10 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
         if item_var:
             current_item_vars.add(item_var)
 
+        # for-each injects loop context variables into nested steps
+        if step_type == "for-each":
+            current_item_vars.update({"_for_each_index", "_for_each_meta", "_for_each_stack", "loop"})
+
         available = _build_available_context(
             pipeline_vars,
             declared_outputs,
