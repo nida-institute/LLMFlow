@@ -438,6 +438,17 @@ class Registry:
         """
         lines = ["Scripture Pipeline Registry", "=" * 40, ""]
 
+        # User context (~/.sp/user-context/*.md) — machine-level instructions
+        user_context_dir = self.path / "user-context"
+        if user_context_dir.exists():
+            md_files = sorted(user_context_dir.glob("*.md"))
+            for md_file in md_files:
+                try:
+                    lines.append(md_file.read_text(encoding="utf-8"))
+                    lines.append("")
+                except OSError:
+                    pass
+
         # Projects
         projects = self.projects.list()
         if projects:

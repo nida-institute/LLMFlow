@@ -27,7 +27,7 @@ To get effective help from GPT when creating or debugging pipelines:
 4. **Describe what you want to achieve** in plain language
 5. **Share this context file** so GPT understands LLMFlow
 
-**Quick Command:** Run `llmflow context` to generate this file automatically.
+**Quick Command:** Run `sp context` to generate this file automatically.
 
 ## Documentation Resources
 
@@ -51,8 +51,8 @@ description: |
   What this pipeline does and why.
 
   Examples:
-    llmflow run --pipeline pipelines/my-pipeline.yaml --var input="value"
-    llmflow run --pipeline pipelines/my-pipeline.yaml --var file="data.txt"
+    sp run --pipeline pipelines/my-pipeline.yaml --var input="value"
+    sp run --pipeline pipelines/my-pipeline.yaml --var file="data.txt"
 
   Outputs:
     - Results are saved to outputs/
@@ -297,7 +297,7 @@ steps:
 
 ### Command-Line Variables
 ```bash
-llmflow run --pipeline my-pipeline.yaml --var passage="Psalm 23"
+sp run --pipeline my-pipeline.yaml --var passage="Psalm 23"
 ```
 
 ```yaml
@@ -625,26 +625,26 @@ pip install -e .
 
 ```bash
 # Run a pipeline
-llmflow run --pipeline pipelines/my-pipeline.yaml
+sp run --pipeline pipelines/my-pipeline.yaml
 
 # With custom variables
-llmflow run --pipeline pipelines/my-pipeline.yaml --var input="text"
+sp run --pipeline pipelines/my-pipeline.yaml --var input="text"
 
 # Verbose output
-llmflow run --pipeline pipelines/my-pipeline.yaml --verbose
+sp run --pipeline pipelines/my-pipeline.yaml --verbose
 
 # Dry run (validate without executing)
-llmflow run --pipeline pipelines/my-pipeline.yaml --dry-run
+sp run --pipeline pipelines/my-pipeline.yaml --dry-run
 ```
 
 ### Validation
 
 ```bash
 # Lint pipeline before running
-llmflow lint pipelines/my-pipeline.yaml
+sp lint pipelines/my-pipeline.yaml
 
 # Show pipeline info
-llmflow info pipelines/my-pipeline.yaml
+sp info pipelines/my-pipeline.yaml
 ```
 
 ---
@@ -660,7 +660,7 @@ description: |
   Summarize input text using GPT-4.
 
   Usage:
-    llmflow run --pipeline pipelines/summarize.yaml --var input="Long text..."
+    sp run --pipeline pipelines/summarize.yaml --var input="Long text..."
 
 variables:
   prompts_dir: prompts
@@ -687,7 +687,7 @@ description: |
   Process lexicon entries from TSV and expand with LLM.
 
   Usage:
-    llmflow run --pipeline pipelines/lexicon.yaml
+    sp run --pipeline pipelines/lexicon.yaml
 
 variables:
   prompts_dir: prompts
@@ -854,8 +854,8 @@ A: Prompts use `{{variable}}` syntax similar to Jinja2, but it's a simpler syste
 ## Getting More Help
 
 - Check the log file: `llmflow.log`
-- Run with verbose: `llmflow run --pipeline ... --verbose`
-- Validate first: `llmflow lint pipelines/my-pipeline.yaml`
+- Run with verbose: `sp run --pipeline ... --verbose`
+- Validate first: `sp lint pipelines/my-pipeline.yaml`
 - Share complete error messages and log with GPT
 - Include your pipeline YAML when asking for help
 

@@ -12,6 +12,21 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures" / "usfm"
 PROJECT = "TestProject"
 
 
+def _collect_verse_numbers(usj: dict) -> list[int]:
+    """Walk a USJ dict and return verse numbers in order of appearance."""
+    numbers = []
+    for item in usj.get("content", []):
+        if isinstance(item, dict) and "content" in item:
+            for sub in item["content"]:
+                if isinstance(sub, dict) and sub.get("type") == "verse":
+                    raw = sub.get("number", "")
+                    try:
+                        numbers.append(int(str(raw).split("-")[0]))
+                    except (ValueError, TypeError):
+                        pass
+    return numbers
+
+
 # ---------------------------------------------------------------------------
 # list_usfm_books
 # ---------------------------------------------------------------------------
@@ -123,10 +138,63 @@ def test_load_usfm_passage_chapter_excludes_other_chapters():
     assert chapter_markers == [] or all(int(n) == 1 for n in chapter_markers if n)
 
 
-def test_load_usfm_passage_verse_range_raises_not_implemented():
+def test_load_usfm_passage_single_verse_usj():
     from llmflow.utils.data import load_usfm_passage
-    with pytest.raises(NotImplementedError):
-        load_usfm_passage(str(FIXTURES_DIR), PROJECT, "LUK 1:1-3", format="usj")
+    result = load_usfm_passage(str(FIXTURES_DIR), PROJECT, "LUK 1:2", format="usj")
+    assert isinstance(result, dict)
+    assert result.get("type") == "USJ"
+    # Only verse 2 content should be present
+    verse_numbers = _collect_verse_numbers(result)
+    assert verse_numbers == [2], f"Expected [2], got {verse_numbers}"
+
+
+def test_load_usfm_passage_verse_range_usj():
+    from llmflow.utils.data import load_usfm_passage
+    result = load_usfm_passage(str(FIXTURES_DIR), PROJECT, "LUK 1:2-4", format="usj")
+    assert isinstance(result, dict)
+    assert result.get("type") == "USJ"
+    verse_numbers = _collect_verse_numbers(result)
+    assert verse_numbers == [2, 3, 4], f"Expected [2, 3, 4], got {verse_numbers}"
+
+
+def test_load_usfm_passage_verse_range_first_verse_usj():
+    from llmflow.utils.data import load_usfm_passage
+    result = load_usfm_passage(str(FIXTURES_DIR), PROJECT, "LUK 1:1-2", format="usj")
+    verse_numbers = _collect_verse_numbers(result)
+    assert verse_numbers == [1, 2]
+
+
+def test_load_usfm_passage_verse_range_all_usj():
+    from llmflow.utils.data import load_usfm_passage
+    result = load_usfm_passage(str(FIXTURES_DIR), PROJECT, "LUK 1:1-5", format="usj")
+    verse_numbers = _collect_verse_numbers(result)
+    assert verse_numbers == [1, 2, 3, 4, 5]
+
+
+def test_load_usfm_passage_verse_range_chapter2_usj():
+    from llmflow.utils.data import load_usfm_passage
+    result = load_usfm_passage(str(FIXTURES_DIR), PROJECT, "LUK 2:2-3", format="usj")
+    verse_numbers = _collect_verse_numbers(result)
+    assert verse_numbers == [2, 3]
+
+
+def test_load_usfm_passage_verse_range_usx():
+    from llmflow.utils.data import load_usfm_passage
+    from lxml.etree import _Element
+    result = load_usfm_passage(str(FIXTURES_DIR), PROJECT, "LUK 1:2-4", format="usx")
+    assert isinstance(result, _Element)
+    # Verify verse markers are present in the XML
+    verses = result.findall(".//{http://usfm.bible/usx/v3.0}verse") or result.findall(".//verse")
+    verse_nums = [v.get("number") for v in verses if v.get("number")]
+    assert "2" in verse_nums
+    assert "4" in verse_nums
+    assert "1" not in verse_nums
+
+
+def test_load_usfm_passage_verse_range_bad_order_raises():
+    from llmflow.utils.data import load_usfm_passage
+    with pytest.raises(ValueError, match="greater than"):
+        load_usfm_passage(str(FIXTURES_DIR), PROJECT, "LUK 1:5-2", format="usj")
 
 
 def test_load_usfm_passage_bad_book_raises_value_error():

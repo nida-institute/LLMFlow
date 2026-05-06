@@ -14,7 +14,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-_VALID_VAR_KEY = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+def _is_valid_var_key(key: str) -> bool:
+    return key.isidentifier()
 
 
 class PipelineExecutor:
@@ -75,7 +76,7 @@ class PipelineExecutor:
         """Build sp run command with arguments."""
         cmd = ['sp', 'run', '--pipeline', pipeline_arg, '--log', log_filename]
         for key, value in self.variables.items():
-            if not _VALID_VAR_KEY.match(str(key)):
+            if not _is_valid_var_key(str(key)):
                 raise ValueError(f"Invalid variable name '{key}': must be a valid identifier")
             cmd.extend(['--var', f'{key}={value}'])
         return cmd

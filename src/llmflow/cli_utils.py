@@ -1,7 +1,10 @@
 """CLI utility functions for LLMFlow project initialization."""
 import logging
+import re
 from pathlib import Path
 from typing import Optional
+
+import click
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +224,7 @@ linter_config:
 
 steps:
   - name: first-step
-    type: llm | function | for-each | save
+    type: llm | function | for-each | window | save | if
     # ...
 ```
 
@@ -242,7 +245,13 @@ step outputs:
 - `${greeting}` – value produced by a previous step.
 - `${scene.WLC}` – field access on an object.
 - `${scene_list[0]}` – first element of a list.
+- `${scene_list[-1]}` – last element of a list.
+- `${scene_list[-1].field}` – field on the last element.
+- `${scene_list[0].field}` – field on the first element.
+- `${scene_list[:-1]}` – every element except the last.
+- `${scene_list[-10:]}` – last 10 elements (returns all if fewer than 10).
 - `${scene_list[*].Title}` – extract one field from every item; returns a flat list.
+- `${scene_list[-3:][*].Title}` – field from each of the last 3 items.
 
 In prompt and template files (`*.gpt`, `*.md`), use `{{var}}`:
 
@@ -310,6 +319,9 @@ Loops over a list variable and runs nested steps for each item.
   type: for-each
   input: "${items}"
   item_var: item
+  parallel: 4                      # optional: run up to 4 iterations concurrently
+  group_by: "${item.category}"     # optional: group results by this field
+  order_by: "${item.sequence}"     # optional: sort results within groups
   steps:
     - name: handle-item
       type: llm
@@ -324,6 +336,98 @@ Loops over a list variable and runs nested steps for each item.
 - `input` points to a list value.
 - `item_var` is the name used to refer to each element.
 - Use `append_to` in nested steps to build a list across iterations.
+- `parallel: N` runs N iterations concurrently; results are collected in
+  input order regardless. Omit for sequential execution (default).
+- `group_by` and `order_by` accept `${expr}` expressions evaluated against
+  each item. `group_by` groups `append_to` results by the expression value;
+  `order_by` sorts within each group.
+
+### type: `window`
+
+Slides over a list in overlapping or tumbling windows, running nested
+steps on each slice. Useful when a list is too large to process at once.
+
+```yaml
+- name: segment_by_windows
+  type: window
+  input: "${content_list}"
+  item_var: window_content
+  size: 50                   # fixed: 50 items per window
+  # or: size_by_tokens: 4000 # token-aware: ~4000 tokens per window
+  include_partial: true      # include the last partial window
+  steps:
+    - name: process_window
+      type: llm
+      prompt:
+        file: "process.gpt"
+        inputs:
+          chunk: "${window_content}"
+      outputs: window_result
+      append_to: all_results
+
+    # Optional: dynamic cursor — tell the engine where the next window starts.
+    # Without this, windows advance by the full size (tumbling / non-overlapping).
+    - !window_advance
+      name: advance_cursor
+      cursor: next_start      # variable that holds the next start position
+      step:
+        name: compute_next
+        type: function
+        function: plugins.windowing.content_index_of_sid
+        inputs:
+          verse_sid: "${window_result.pericopes[-1].opening_verse_sid}"
+          content: "${content_list}"
+        outputs: next_start
+```
+
+- `size` — fixed item count per window.
+- `size_by_tokens` — token-aware; requires `model` key (inherits from `llm_config`).
+- `include_partial: true` — process the final window even if it is shorter than `size`.
+- `!window_advance` — when present, switches to dynamic (cursor-driven) mode.
+  The inner `step` runs each iteration; if its `cursor` variable is `null`
+  the loop stops after the current window.
+
+### Cross-iteration state in `for-each` and `window`
+
+Each iteration starts from a **fresh copy of the outer context**. Variables set
+inside an iteration are not automatically visible to the next one — unless they
+are propagated out via `outputs` or `append_to`.
+
+**`outputs` (last-iteration-wins):** the final value written by each iteration
+replaces the outer variable. Each subsequent iteration sees the updated value.
+
+**`append_to` (accumulating list):** each iteration appends to a list in the
+outer context. Subsequent iterations see the growing list — including the items
+appended by earlier iterations. This enables "rolling context" patterns:
+
+```yaml
+- name: analyze_pericopes
+  type: for-each
+  input: "${leaf_pericopes}"
+  item_var: pericope
+  steps:
+    - name: analyze
+      type: llm
+      prompt:
+        file: analyze.gpt
+        inputs:
+          passage: "${pericope.canonical_reference}"
+          # Only pass the last 10 summaries — prior_pericopes grows each iteration
+          prior_context: "${prior_pericopes[-10:]}"
+      outputs: pericope_analysis
+
+    - name: summarize
+      type: function
+      function: llmflow.utils.data.pick_fields
+      inputs:
+        obj: "${pericope_analysis}"
+        fields: ["title", "themes"]
+      outputs: summary
+      append_to: prior_pericopes   # visible to next iteration
+```
+
+The slice `${prior_pericopes[-10:]}` always returns the last 10 items,
+or all items if fewer than 10 have accumulated so far.
 
 ### type: `save`
 
@@ -470,6 +574,235 @@ def _is_generated(path: Path) -> bool:
         return False
 
 
+LLMFLOW_BLOCK_BEGIN = "<!-- BEGIN llmflow-init: {name} -->"
+LLMFLOW_BLOCK_END = "<!-- END llmflow-init: {name} -->"
+
+
+def _upsert_delimited_block(path: Path, block_name: str, content: str) -> str:
+    """Append or replace a named llmflow-init block in a file.
+
+    If the file does not exist, creates it with just the block.
+    If the file exists but has no matching block, appends the block.
+    If the file exists and has a matching block, replaces only that block.
+
+    Returns "created", "appended", or "updated".
+    """
+    begin = LLMFLOW_BLOCK_BEGIN.format(name=block_name)
+    end = LLMFLOW_BLOCK_END.format(name=block_name)
+    block = f"{begin}\n{content}\n{end}\n"
+
+    if not path.exists():
+        path.write_text(block, encoding="utf-8")
+        return "created"
+
+    existing = path.read_text(encoding="utf-8")
+    pattern = re.compile(
+        re.escape(begin) + r".*?" + re.escape(end) + r"\n?",
+        re.DOTALL,
+    )
+    if pattern.search(existing):
+        updated = pattern.sub(block, existing)
+        path.write_text(updated, encoding="utf-8")
+        return "updated"
+    else:
+        sep = "\n" if existing.endswith("\n") else "\n\n"
+        path.write_text(existing + sep + block, encoding="utf-8")
+        return "appended"
+
+
+# ---------------------------------------------------------------------------
+# AI assistant configuration content blocks
+# ---------------------------------------------------------------------------
+
+CLAUDE_MD_LLMFLOW_BLOCK = """\
+## LLMFlow Project
+
+This project uses the LLMFlow declarative pipeline engine (`sp` CLI).
+
+### Communication protocol
+
+Address the user as "Captain" or "Sir" — the Captain commands (sets direction),
+the AI implements (executes and provides analysis).
+
+### Session start
+
+1. Read `docs/ai-context/index.md` — your navigation map for this project.
+2. Check `project/TODO.md` — active work and what NOT to touch.
+3. Load only context relevant to the current task.
+
+### Repository layout
+
+- `pipelines/` — YAML pipeline definitions
+- `prompts/` — prompt templates (`.gpt` files) used by `llm` steps
+- `output/` — generated artifacts written by `saveas`
+- `docs/ai-context/` — AI-facing documentation (read index.md first)
+
+### Workflow guidelines
+
+- **Explain before implementing** — describe files you will change and why; wait for approval.
+- **Test-driven** — write a failing test first for bugs and features.
+- **Scope discipline** — do not improve code outside the requested scope.
+
+### Pipeline CLI
+
+```bash
+sp run --pipeline pipelines/my-pipeline.yaml --var key=value
+sp lint --pipeline pipelines/my-pipeline.yaml
+sp run --pipeline pipelines/my-pipeline.yaml --dry-run
+```
+
+### AI authority boundaries
+
+Do not declare output "production ready", "approved", or "suitable for use with groups".
+
+- OK: "Technical compliance verified. Human review should assess appropriateness."
+- OK: "Generation completed. Quality assessment requires domain expert review."
+- NOT OK: "Production ready" / "Approved" / "Suitable for immediate use"
+"""
+
+CURSORRULES_LLMFLOW_BLOCK = """\
+## LLMFlow project rules
+
+This project uses the LLMFlow pipeline engine (`sp` CLI).
+
+- Always read `docs/ai-context/index.md` before starting a task.
+- Pipeline YAML lives in `pipelines/`; prompt templates in `prompts/`.
+- Use `sp lint --pipeline <file>` to validate before running.
+- Do not declare outputs "production ready" — that requires human review.
+- Explain before implementing: describe changes and wait for approval.
+"""
+
+WINDSURFRULES_LLMFLOW_BLOCK = CURSORRULES_LLMFLOW_BLOCK
+
+
+def _install_claude_skills(claude_home: Optional[Path] = None,
+                            sp_home: Optional[Path] = None) -> list[str]:
+    """Install skills from ~/.sp/skills/ into ~/.claude/skills/.
+
+    Returns a list of installed skill names.
+    """
+    if claude_home is None:
+        claude_home = Path.home() / ".claude"
+    if sp_home is None:
+        sp_home = Path.home() / ".sp"
+
+    sp_skills_dir = sp_home / "skills"
+    claude_skills_dir = claude_home / "skills"
+
+    if not sp_skills_dir.exists():
+        return []
+
+    installed = []
+    for skill_dir in sorted(sp_skills_dir.iterdir()):
+        if not skill_dir.is_dir():
+            continue
+        skill_file = skill_dir / "SKILL.md"
+        if not skill_file.exists():
+            continue
+        target_dir = claude_skills_dir / skill_dir.name
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target = target_dir / "SKILL.md"
+        target.write_text(skill_file.read_text(encoding="utf-8"), encoding="utf-8")
+        installed.append(skill_dir.name)
+
+    return installed
+
+
+def _configure_copilot(base_dir: Path, update: bool) -> None:
+    """Configure GitHub Copilot instructions file."""
+    github_dir = base_dir / ".github"
+    github_dir.mkdir(exist_ok=True)
+    path = github_dir / "copilot-instructions.md"
+
+    if not path.exists():
+        path.write_text(COPILOT_INSTRUCTIONS_DOC, encoding="utf-8")
+        click.echo(f"  Created .github/copilot-instructions.md")
+    elif update and _is_generated(path):
+        path.write_text(COPILOT_INSTRUCTIONS_DOC, encoding="utf-8")
+        click.echo(f"  Updated .github/copilot-instructions.md")
+    else:
+        click.echo(f"  .github/copilot-instructions.md already exists; leaving as-is.")
+
+
+def _configure_claude_code(base_dir: Path, update: bool) -> None:
+    """Configure Claude Code: CLAUDE.md (project) and skills (machine-scoped)."""
+    # Project-scoped: CLAUDE.md
+    claude_md = base_dir / "CLAUDE.md"
+    action = _upsert_delimited_block(claude_md, "workflow", CLAUDE_MD_LLMFLOW_BLOCK)
+    click.echo(f"  {action.capitalize()} CLAUDE.md (llmflow-init block)")
+
+    # Machine-scoped: skills → ~/.claude/skills/
+    sp_home = Path.home() / ".sp"
+    sp_skills_dir = sp_home / "skills"
+    if not sp_skills_dir.exists() or not any(sp_skills_dir.iterdir()):
+        click.echo("  No skills found in ~/.sp/skills/ — skipping skill installation.")
+        return
+
+    skill_names = [d.name for d in sorted(sp_skills_dir.iterdir()) if d.is_dir()]
+    claude_home = Path.home() / ".claude"
+    click.echo(f"\n  Machine-scoped (affects ALL Claude Code sessions on this machine):")
+    for name in skill_names:
+        click.echo(f"    ~/.claude/skills/{name}/SKILL.md")
+    click.echo()
+
+    if click.confirm("  Install Claude Code skills?", default=False):
+        installed = _install_claude_skills(claude_home=claude_home, sp_home=sp_home)
+        for name in installed:
+            click.echo(f"  Installed ~/.claude/skills/{name}/SKILL.md")
+    else:
+        click.echo("  Skipped skill installation.")
+
+
+def _configure_cursor(base_dir: Path, update: bool) -> None:
+    """Configure Cursor via .cursorrules."""
+    path = base_dir / ".cursorrules"
+    action = _upsert_delimited_block(path, "workflow", CURSORRULES_LLMFLOW_BLOCK)
+    click.echo(f"  {action.capitalize()} .cursorrules (llmflow-init block)")
+
+
+def _configure_windsurf(base_dir: Path, update: bool) -> None:
+    """Configure Windsurf via .windsurfrules."""
+    path = base_dir / ".windsurfrules"
+    action = _upsert_delimited_block(path, "workflow", WINDSURFRULES_LLMFLOW_BLOCK)
+    click.echo(f"  {action.capitalize()} .windsurfrules (llmflow-init block)")
+
+
+def _configure_ai_assistants(base_dir: Path, update: bool = False) -> None:
+    """Interactive: select AI assistants and configure each with consent for machine-scoped actions.
+
+    Skips silently when stdin is not a TTY (CI, piped usage, pytest).
+    """
+    import sys
+    if not sys.stdin.isatty():
+        return
+
+    click.echo("\nSetting up AI assistant configuration.")
+    click.echo("Which AI assistant(s) will you use with this project?\n")
+
+    use_copilot = click.confirm("  GitHub Copilot", default=True)
+    use_claude = click.confirm("  Claude Code", default=False)
+    use_cursor = click.confirm("  Cursor", default=False)
+    use_windsurf = click.confirm("  Windsurf", default=False)
+
+    if not any([use_copilot, use_claude, use_cursor, use_windsurf]):
+        click.echo("\nNo AI assistants selected.")
+        return
+
+    click.echo()
+    if use_copilot:
+        click.echo("GitHub Copilot:")
+        _configure_copilot(base_dir, update)
+    if use_claude:
+        click.echo("Claude Code:")
+        _configure_claude_code(base_dir, update)
+    if use_cursor:
+        click.echo("Cursor:")
+        _configure_cursor(base_dir, update)
+    if use_windsurf:
+        click.echo("Windsurf:")
+        _configure_windsurf(base_dir, update)
+
+
 AI_OVERVIEW_DOC = """<!-- Generated by sp init -->
 # LLMFlow — Repo Overview for AI Assistants
 
@@ -545,6 +878,19 @@ LLMFlow-based project.
    request), draft the title and body and show it to the human.
    Only run `gh issue create --body-file f.md` after explicit
    approval. Never create issues silently.
+10. **Design documents are the authoritative specification.** Docstrings,
+    inline comments, and LLM-generated rationale have no design authority.
+    They are implementation artifacts and are frequently wrong, stale, or
+    rationalized post-hoc. When code and design documents conflict, the
+    design document wins — always.
+11. **Nothing is intentional unless the human says it is.** Do not infer
+    intent from code behavior, docstrings, or prior AI choices. If
+    behavior is not specified in a design document, ask.
+12. **Agree on requirements before implementing.** If you do not know which
+    design document contains the requirements for something you are about
+    to implement, stop — you are going rogue. The workflow is:
+    agree on requirements → agree on approach → write tests → implement.
+    Never skip or reorder these steps.
 """
 
 GITHUB_WORKFLOW_DOC = """<!-- Generated by sp init -->
@@ -716,6 +1062,11 @@ Don't read everything upfront. Use this index to find what you need for each spe
 
 ## Global Context (~/.sp/)
 
+### User Instructions (machine-level, apply to all projects)
+- **~/.sp/user-context/*.md** — Read these at the start of every session. They contain
+  machine-level instructions that apply to all pipeline projects on this computer
+  (filesystem access, personal workflow preferences, machine-specific paths).
+
 ### Conventions (shared across all projects)
 - **~/.sp/conventions/llmflow-prompt-organization.md** - Standard 8-section structure for .gpt files
   - Input data grounding requirements
@@ -867,6 +1218,10 @@ The index tells you:
 **Navigation is more important than memorization.** Use the index efficiently instead of reading everything upfront.
 
 ## Session Start — Read These FIRST
+
+**0. Read `~/.sp/user-context/*.md`** (if the directory exists)
+   - Machine-level instructions that apply to all pipeline projects on this computer
+   - Filesystem access, personal workflow preferences, machine-specific paths
 
 **1. Read `docs/ai-context/index.md`**
    - Your complete navigation map
@@ -1275,7 +1630,6 @@ def init_project(base_dir: Path, update: bool = False) -> None:
     project_dir = base_dir / "project"
     audits_dir = project_dir / "audits"
     vscode_dir = base_dir / ".vscode"
-    github_dir = base_dir / ".github"
 
     prompts_dir.mkdir(parents=True, exist_ok=True)
     pipelines_dir.mkdir(parents=True, exist_ok=True)
@@ -1286,7 +1640,6 @@ def init_project(base_dir: Path, update: bool = False) -> None:
     project_dir.mkdir(parents=True, exist_ok=True)
     audits_dir.mkdir(parents=True, exist_ok=True)
     vscode_dir.mkdir(parents=True, exist_ok=True)
-    github_dir.mkdir(parents=True, exist_ok=True)
 
     prompt_path = prompts_dir / "hello.gpt"
     reply_prompt_path = prompts_dir / "reply.gpt"
@@ -1304,7 +1657,6 @@ def init_project(base_dir: Path, update: bool = False) -> None:
     audit_leadersguide_path = docs_audits_dir / "audit-leadersguide.md"
     project_todo_path = project_dir / "TODO.md"
     project_audits_readme_path = audits_dir / "README.md"
-    copilot_instructions_path = github_dir / "copilot-instructions.md"
 
     if not prompt_path.exists():
         prompt_path.write_text(HELLO_PROMPT, encoding="utf-8")
@@ -1421,15 +1773,6 @@ def init_project(base_dir: Path, update: bool = False) -> None:
     else:
         logger.info("project/audits/README.md already exists; leaving as-is.")
 
-    if not copilot_instructions_path.exists():
-        copilot_instructions_path.write_text(COPILOT_INSTRUCTIONS_DOC, encoding="utf-8")
-        logger.info("Created .github/copilot-instructions.md")
-    elif update and _is_generated(copilot_instructions_path):
-        copilot_instructions_path.write_text(COPILOT_INSTRUCTIONS_DOC, encoding="utf-8")
-        logger.info("Updated .github/copilot-instructions.md")
-    else:
-        logger.info(".github/copilot-instructions.md already exists; leaving as-is.")
-
     if not docs_audits_index_path.exists():
         docs_audits_index_path.write_text(DOCS_AUDITS_INDEX, encoding="utf-8")
         logger.info("Created docs/audits/INDEX.md")
@@ -1459,14 +1802,79 @@ def init_project(base_dir: Path, update: bool = False) -> None:
 
     logger.info("Output directory ready at ./output")
 
-    # Install global conventions and skills to ~/.sp/ (Issue #93)
-    logger.info("Installing global conventions and skills to ~/.sp/...")
+    # Install global conventions to ~/.sp/ (non-interactive, no machine-scoped UI needed)
     try:
         install_global_conventions(force=update)
         install_global_skills(force=update)
     except Exception as e:
-        logger.warning(f"Could not install global resources: {e}")
-        logger.warning("This is not critical - you can install them manually later.")
+        logger.warning(f"Could not install global resources to ~/.sp/: {e}")
+
+    # Interactive: AI assistant configuration (project-scoped + machine-scoped with consent)
+    _configure_ai_assistants(base_dir, update=update)
+
+    # Register project and index ai-context files in ~/.sp/ (Issue #132)
+    _register_in_global_registry(base_dir)
+
+
+def _register_in_global_registry(base_dir: Path) -> None:
+    """Register the project and its ai-context files in ~/.sp/ (Issue #132).
+
+    Idempotent — skips entries that are already registered.
+    """
+    import re
+
+    try:
+        from llmflow.registry import Registry
+
+        registry_dir = Path.home() / ".sp"
+        registry = Registry(registry_dir)
+
+        project_name = base_dir.name
+        project_path = str(base_dir.resolve())
+
+        # Register the project
+        if registry.projects.get(project_name) is None:
+            registry.projects.register(name=project_name, path=project_path)
+            logger.info(f"Registered project '{project_name}' in ~/.sp/projects/")
+        else:
+            logger.info(f"Project '{project_name}' already registered in ~/.sp/")
+
+        # Index docs/ai-context/*.md files
+        ai_context_dir = base_dir / "docs" / "ai-context"
+        if ai_context_dir.exists():
+            for md_file in sorted(ai_context_dir.glob("*.md")):
+                file_key = md_file.name
+                if registry.ai_context.get(file_key) is not None:
+                    continue  # already indexed
+
+                # Extract description from first ATX heading in the file
+                description = f"AI context: {md_file.stem}"
+                try:
+                    content = md_file.read_text(encoding="utf-8")
+                    for line in content.splitlines():
+                        stripped = line.strip()
+                        if stripped.startswith("#"):
+                            description = re.sub(r"^#+\s*", "", stripped)
+                            break
+                except OSError:
+                    pass
+
+                # Derive topics from filename parts
+                topics = [p for p in re.split(r"[-_.]", md_file.stem) if p]
+                topics.append("ai-context")
+
+                registry.ai_context.register(
+                    file=file_key,
+                    project=project_name,
+                    description=description,
+                    topics=topics,
+                    path=str(md_file.resolve()),
+                )
+                logger.info(f"Indexed {file_key} in ~/.sp/ai-context/")
+
+    except Exception as e:
+        logger.warning(f"Could not register in global registry: {e}")
+        logger.warning("This is not critical - registry can be updated manually.")
 
 
 def list_pipelines(directory: str) -> list[str]:

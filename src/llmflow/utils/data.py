@@ -1063,37 +1063,58 @@ def load_usfm_book(base_dir: str, project_name: str, book: str, format: str):
 
 def _parse_passage(passage: str):
     """
-    Parse a passage string into (book, chapter_or_None).
+    Parse a passage string into (book, chapter, start_verse, end_verse).
 
-    Supported Phase 1 formats:
-        "LUK"     → ("LUK", None)
-        "LUK 1"   → ("LUK", 1)
-        "LUK 1:1-10" → raises NotImplementedError
+    Supported formats:
+        "LUK"        → ("LUK", None, None, None)   whole book
+        "LUK 1"      → ("LUK", 1,    None, None)   whole chapter
+        "LUK 1:3"    → ("LUK", 1,    3,    3)       single verse
+        "LUK 1:1-10" → ("LUK", 1,    1,    10)      verse range (inclusive)
 
-    Returns (book_code, chapter_int_or_None).
+    Returns (book_code, chapter_or_None, start_verse_or_None, end_verse_or_None).
     """
     parts = passage.strip().split()
     if not parts:
-        raise ValueError(f"Empty passage string")
+        raise ValueError("Empty passage string")
 
     book = parts[0].upper()
 
     if len(parts) == 1:
-        return book, None
+        return book, None, None, None
 
     chapter_part = parts[1]
-    if ":" in chapter_part:
-        raise NotImplementedError(
-            "Verse range selection is not yet supported. "
-            "Use 'BOOK C' for a whole chapter (e.g. 'LUK 1')."
-        )
+    if ":" not in chapter_part:
+        try:
+            chapter = int(chapter_part)
+        except ValueError:
+            raise ValueError(f"Cannot parse chapter from passage: '{passage}'")
+        return book, chapter, None, None
 
+    # Verse reference: "1:3" or "1:1-10"
+    ch_str, verse_str = chapter_part.split(":", 1)
     try:
-        chapter = int(chapter_part)
+        chapter = int(ch_str)
     except ValueError:
         raise ValueError(f"Cannot parse chapter from passage: '{passage}'")
 
-    return book, chapter
+    if "-" in verse_str:
+        v_start_str, v_end_str = verse_str.split("-", 1)
+    else:
+        v_start_str = v_end_str = verse_str
+
+    try:
+        start_verse = int(v_start_str)
+        end_verse = int(v_end_str)
+    except ValueError:
+        raise ValueError(f"Cannot parse verse range from passage: '{passage}'")
+
+    if start_verse > end_verse:
+        raise ValueError(
+            f"Start verse {start_verse} is greater than end verse {end_verse} "
+            f"in passage: '{passage}'"
+        )
+
+    return book, chapter, start_verse, end_verse
 
 
 def _extract_chapter_usj(usj: dict, chapter: int) -> dict:
@@ -1139,16 +1160,92 @@ def _extract_chapter_usj(usj: dict, chapter: int) -> dict:
     }
 
 
+def _verse_number(item) -> int | None:
+    """Extract a verse number from a USJ verse marker dict, or None."""
+    if not isinstance(item, dict):
+        return None
+    if item.get("type") == "verse" or item.get("marker") == "v":
+        raw = item.get("number") or item.get("sid", "").split(":")[-1].split("-")[0]
+        try:
+            return int(str(raw).split("-")[0])
+        except (ValueError, TypeError):
+            return None
+    return None
+
+
+def _filter_para_content(content: list, start_verse: int, end_verse: int) -> list:
+    """
+    Filter a para's content list to items belonging to verses [start_verse, end_verse].
+
+    Verse markers reset the current verse number; text/inline nodes following a
+    verse marker belong to that verse.  Items before any verse marker (e.g. a
+    leading section-head) are excluded.
+    """
+    current_verse = None
+    result = []
+    for item in content:
+        v = _verse_number(item)
+        if v is not None:
+            current_verse = v
+        if current_verse is not None and start_verse <= current_verse <= end_verse:
+            result.append(item)
+        elif current_verse is not None and current_verse > end_verse:
+            break
+    return result
+
+
+def _extract_verse_range_usj(chapter_usj: dict, start_verse: int, end_verse: int) -> dict:
+    """
+    Extract verses [start_verse, end_verse] (inclusive) from a single-chapter USJ dict.
+
+    The chapter marker and any pre-verse paragraph-level nodes (headings, etc.) that
+    appear before the first requested verse are preserved.  Para nodes whose filtered
+    content is empty are dropped.
+    """
+    content = chapter_usj.get("content", [])
+    result_content = []
+    found_any_verse = False
+
+    for item in content:
+        if not isinstance(item, dict):
+            # Raw string at chapter level — keep if before verses start
+            if not found_any_verse:
+                result_content.append(item)
+            continue
+
+        marker = item.get("type") or item.get("marker")
+
+        if marker == "chapter":
+            result_content.append(item)
+            continue
+
+        # Para-level node: filter its content array
+        if "content" in item:
+            filtered = _filter_para_content(item["content"], start_verse, end_verse)
+            if filtered:
+                found_any_verse = True
+                result_content.append({**item, "content": filtered})
+        else:
+            # Para node with no content (empty para marker): keep if before verses
+            if not found_any_verse:
+                result_content.append(item)
+
+    return {
+        "type": "USJ",
+        "version": chapter_usj.get("version", "3.1"),
+        "content": result_content,
+    }
+
+
 def load_usfm_passage(base_dir: str, project_name: str, passage: str, format: str):
     """
     Load a passage from a Paratext project by reference string.
 
-    Phase 1 supported formats:
-        "LUK"    — whole book
-        "LUK 1"  — chapter 1
-
-    Phase 2 (not yet supported):
-        "LUK 1:1-10" — raises NotImplementedError
+    Supported formats:
+        "LUK"        — whole book
+        "LUK 1"      — whole chapter 1
+        "LUK 1:3"    — single verse
+        "LUK 1:1-10" — verse range (inclusive)
 
     Args:
         base_dir: Parent directory containing Paratext projects.
@@ -1162,23 +1259,27 @@ def load_usfm_passage(base_dir: str, project_name: str, passage: str, format: st
     Raises:
         FileNotFoundError: If the project directory does not exist.
         ValueError: If the book is not found or the passage string is invalid.
-        NotImplementedError: If a verse range is requested (Phase 2).
     """
-    book, chapter = _parse_passage(passage)
+    book, chapter, start_verse, end_verse = _parse_passage(passage)
 
     if chapter is None:
         return load_usfm_book(base_dir, project_name, book, format)
 
-    # Chapter slice: load as USJ, extract, convert if needed
+    # Load the full book as USJ, extract the chapter
     usj = load_usfm_book(base_dir, project_name, book, format="usj")
     chapter_usj = _extract_chapter_usj(usj, chapter)
+
+    # Further filter to verse range if requested
+    if start_verse is not None and end_verse is not None:
+        chapter_usj = _extract_verse_range_usj(chapter_usj, start_verse, end_verse)
 
     if format.lower() == "usj":
         return chapter_usj
 
     # Convert extracted USJ back to USX element
+    import json
     from usfmtc import USX as _USX
-    usx_obj = _USX.fromUsj(chapter_usj)
+    usx_obj = _USX.fromUsj(json.dumps(chapter_usj))
     return _usx_to_element(usx_obj)
 
 
@@ -1349,7 +1450,7 @@ def get_paratext_metadata(base_dir: str, project_name: str) -> dict:
         return {}
 
 
-def load_project_file(base_dir: str, project_name: str, file: str):
+def load_project_file(base_dir: str, project_name: str, file: str, required: bool = True):
     """
     Load a metadata file from a Paratext project directory.
 
@@ -1361,12 +1462,16 @@ def load_project_file(base_dir: str, project_name: str, file: str):
         base_dir: Paratext projects base directory
         project_name: Project subdirectory name
         file: Filename to load (e.g., "Settings.xml", "metadata.json")
+        required: If False, return None when the file is absent instead of raising.
+                  The project directory itself must still exist.
 
     Returns:
-        dict for JSON files, lxml.etree._Element for XML files
+        dict for JSON files, lxml.etree._Element for XML files, or None if
+        required=False and the file does not exist.
 
     Raises:
-        FileNotFoundError: If project directory or file doesn't exist
+        FileNotFoundError: If project directory doesn't exist, or file doesn't
+                           exist when required=True (default).
         ValueError: If file extension is not .json or .xml
 
     Example:
@@ -1375,6 +1480,9 @@ def load_project_file(base_dir: str, project_name: str, file: str):
 
         >>> burrito = load_project_file("/paratext", "cebAPDv4", "metadata.json")
         >>> lang = burrito['languages'][0]['name']['en']
+
+        >>> meta = load_project_file("/paratext", "proj", "metadata.json", required=False)
+        >>> lang_tag = meta['languages'][0]['tag'] if meta else None
     """
     import json
     from lxml import etree  # type: ignore[attr-defined]
@@ -1388,6 +1496,8 @@ def load_project_file(base_dir: str, project_name: str, file: str):
 
     # Check file exists
     if not file_path.exists():
+        if not required:
+            return None
         raise FileNotFoundError(f"File not found: {file_path}")
 
     # Auto-detect format by extension

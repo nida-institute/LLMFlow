@@ -427,3 +427,115 @@ class TestAiContextConsistency:
         assert has_global, (
             "AI_INDEX_DOC should include section on global ~/.sp/ context files"
         )
+
+    def test_ai_rules_has_design_authority(self):
+        """AI_RULES_DOC must include design authority guardrails."""
+        assert "design document" in AI_RULES_DOC.lower(), (
+            "AI_RULES_DOC must state that design documents are the authoritative specification"
+        )
+        assert "going rogue" in AI_RULES_DOC.lower(), (
+            "AI_RULES_DOC must warn against implementing without known requirements"
+        )
+
+
+def test_init_registers_project_in_registry(tmp_path, monkeypatch):
+    """sp init must register the project in ~/.sp/projects/ and index ai-context files."""
+    sp_dir = tmp_path / ".sp"
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+    project_dir = tmp_path / "my-project"
+    project_dir.mkdir()
+
+    from llmflow.cli_utils import init_project
+    init_project(project_dir)
+
+    # Project should be registered
+    from llmflow.registry import Registry
+    registry = Registry(sp_dir)
+    project = registry.projects.get("my-project")
+    assert project is not None, "Project should be registered in ~/.sp/projects/"
+    assert project["name"] == "my-project"
+    assert project["path"] == str(project_dir.resolve())
+
+    # ai-context files should be indexed
+    ai_contexts = registry.ai_context.list()
+    indexed_files = {ctx["file"] for ctx in ai_contexts}
+    assert "overview.md" in indexed_files, "overview.md should be indexed in ~/.sp/ai-context/"
+    assert "rules.md" in indexed_files, "rules.md should be indexed in ~/.sp/ai-context/"
+    assert "index.md" in indexed_files, "index.md should be indexed in ~/.sp/ai-context/"
+    for ctx in ai_contexts:
+        assert ctx["project"] == "my-project"
+        assert "ai-context" in ctx["topics"]
+
+
+def test_init_register_is_idempotent(tmp_path, monkeypatch):
+    """Running sp init twice must not raise errors for already-registered entries."""
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    project_dir = tmp_path / "my-project"
+    project_dir.mkdir()
+
+    from llmflow.cli_utils import init_project
+    init_project(project_dir)
+    # Second run must not raise
+    init_project(project_dir)
+
+
+def test_generate_ai_context_includes_user_context(tmp_path):
+    """generate_ai_context() must prepend ~/.sp/user-context/*.md files."""
+    from llmflow.registry import Registry
+
+    sp_dir = tmp_path / ".sp"
+    user_ctx_dir = sp_dir / "user-context"
+    user_ctx_dir.mkdir(parents=True)
+    (user_ctx_dir / "machine.md").write_text("Machine-level instructions here.", encoding="utf-8")
+    (user_ctx_dir / "workflow.md").write_text("Workflow preferences here.", encoding="utf-8")
+
+    registry = Registry(sp_dir)
+    context = registry.generate_ai_context()
+
+    assert "Machine-level instructions here." in context
+    assert "Workflow preferences here." in context
+
+
+def test_generate_ai_context_without_user_context_dir(tmp_path):
+    """generate_ai_context() must work normally when ~/.sp/user-context/ does not exist."""
+    from llmflow.registry import Registry
+
+    sp_dir = tmp_path / ".sp"
+    sp_dir.mkdir()
+
+    registry = Registry(sp_dir)
+    context = registry.generate_ai_context()
+
+    assert "Scripture Pipeline Registry" in context
+
+
+def test_generate_ai_context_ignores_missing_user_context_files(tmp_path):
+    """generate_ai_context() must not raise if user-context dir exists but is empty."""
+    from llmflow.registry import Registry
+
+    sp_dir = tmp_path / ".sp"
+    user_ctx_dir = sp_dir / "user-context"
+    user_ctx_dir.mkdir(parents=True)
+    # No .md files in the directory
+
+    registry = Registry(sp_dir)
+    context = registry.generate_ai_context()
+
+    assert "Scripture Pipeline Registry" in context
+
+
+def test_ai_index_doc_mentions_user_context():
+    """AI_INDEX_DOC must document ~/.sp/user-context/ so AI tools know to read it."""
+    from llmflow.cli_utils import AI_INDEX_DOC
+    assert "user-context" in AI_INDEX_DOC, (
+        "AI_INDEX_DOC must mention ~/.sp/user-context/ so AI tools read machine-level instructions"
+    )
+
+
+def test_copilot_instructions_mentions_user_context():
+    """COPILOT_INSTRUCTIONS_DOC must instruct AI to read ~/.sp/user-context/ at session start."""
+    from llmflow.cli_utils import COPILOT_INSTRUCTIONS_DOC
+    assert "user-context" in COPILOT_INSTRUCTIONS_DOC, (
+        "COPILOT_INSTRUCTIONS_DOC must include user-context step so Copilot reads machine instructions"
+    )

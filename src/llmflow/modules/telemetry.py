@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 import time
 import json
+import importlib.resources
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -29,6 +30,20 @@ logger = Logger()
 _models_cache: Optional[Dict[str, Any]] = None
 
 
+def _find_models_file() -> Path:
+    """Locate models.json whether running from an installed wheel or a dev checkout."""
+    # Installed wheel: data/models.json is bundled under llmflow/data/ via force-include
+    try:
+        ref = importlib.resources.files("llmflow").joinpath("data/models.json")
+        path = Path(str(ref))
+        if path.exists():
+            return path
+    except Exception:
+        pass
+    # Editable / dev install: file lives at repo root data/models.json
+    return Path(__file__).parent.parent.parent.parent / "data" / "models.json"
+
+
 def _load_models_data() -> Dict[str, Any]:
     """Load model metadata from data/models.json.
 
@@ -40,10 +55,9 @@ def _load_models_data() -> Dict[str, Any]:
     if _models_cache is not None:
         return _models_cache
 
-    # Find models.json relative to this file
-    # __file__ = src/llmflow/modules/telemetry.py
-    # .parent.parent.parent.parent = repo root
-    models_file = Path(__file__).parent.parent.parent.parent / "data" / "models.json"
+    # Find models.json — try package resources first (installed wheel),
+    # fall back to repo-root path (editable/dev install).
+    models_file = _find_models_file()
 
     if not models_file.exists():
         logger.warning(f"⚠️  Model metadata file not found: {models_file}")

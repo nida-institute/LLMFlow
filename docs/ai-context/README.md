@@ -17,6 +17,6 @@ This folder provides the "pinned context" we share with GPT/Claude when they hel
   2. Update `index.md` table if files were renamed/added.
   3. Confirm `rules.md` still matches current working agreements (logger usage, telemetry order, etc.).
   4. Update the "Last updated" date in `overview.md`.
-- Optionally run `llmflow context` to regenerate additional context packs if the CLI gains that command.
+- Optionally run `sp context` to regenerate additional context packs if the CLI gains that command.
 
 Keeping this bundle current ensures AI helpers follow the same conventions as the engineering team.

@@ -144,7 +144,7 @@ sp run --pipeline pipelines/sample.yaml -v
 
 Add --skip-lint to bypass validation.
 
-### `llmflow run` flag reference
+### `sp run` flag reference
 
 | Flag | Description |
 |------|-------------|

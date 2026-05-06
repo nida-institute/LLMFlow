@@ -377,6 +377,32 @@ Within `for-each` loops, use `append_to` to accumulate results across iterations
       append_to: all_analyses  # Creates list: [analysis1, analysis2, ...]
 ```
 
+**Loop context variable:**
+
+Every iteration injects a `loop` dict into the step context:
+
+| Variable | Type | Value |
+|---|---|---|
+| `${loop.index}` | int | 1-based position in the list |
+| `${loop.total}` | int | total number of items |
+| `${loop.first}` | bool | `true` on the first iteration |
+| `${loop.last}` | bool | `true` on the last iteration |
+
+```yaml
+- name: process_each_scene
+  type: for-each
+  input: "${scene_list}"
+  item_var: scene
+  steps:
+    - name: log_progress
+      type: function
+      function: builtins.print
+      inputs:
+        text: "Scene ${loop.index} of ${loop.total}"
+```
+
+For nested `for-each` loops, the inner loop's `loop` variable shadows the outer one — consistent with how `item_var` works.
+
 **Important notes:**
 - Each iteration has its own isolated context
 - Variables from outer scope are accessible via `${var}`

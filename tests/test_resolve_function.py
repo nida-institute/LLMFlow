@@ -483,3 +483,57 @@ class TestSliceNotation:
 
         result = get_from_context("items[1:4]", context)
         assert result == ["b", "c", "d"]
+
+    def test_all_but_last_slice(self):
+        """${list[:-1]} returns all items except the last — used for pericopes[:-1]."""
+        context = {
+            "pericopes": [
+                {"ref": "1:1", "title": "Opening"},
+                {"ref": "1:2", "title": "Middle"},
+                {"ref": "1:3", "title": "Closing"},
+            ]
+        }
+        result = resolve("${pericopes[:-1]}", context)
+        assert result == [
+            {"ref": "1:1", "title": "Opening"},
+            {"ref": "1:2", "title": "Middle"},
+        ]
+
+    def test_last_item_attribute_access(self):
+        """${list[-1].field} returns a field of the last item — used for pericopes[-1].opening_verse_sid."""
+        context = {
+            "pericopes": [
+                {"opening_verse_sid": "MAT 1:1", "closing_verse_sid": "MAT 1:17"},
+                {"opening_verse_sid": "MAT 1:18", "closing_verse_sid": "MAT 2:12"},
+                {"opening_verse_sid": "MAT 2:13", "closing_verse_sid": "MAT 2:23"},
+            ]
+        }
+        result = resolve("${pericopes[-1].opening_verse_sid}", context)
+        assert result == "MAT 2:13"
+
+        result = resolve("${pericopes[-1].closing_verse_sid}", context)
+        assert result == "MAT 2:23"
+
+    def test_first_item_attribute_access(self):
+        """${list[0].field} returns a field of the first item — used for pericopes[0].opening_verse."""
+        context = {
+            "pericopes": [
+                {"opening_verse": "1:1", "title": "Birth narrative"},
+                {"opening_verse": "1:18", "title": "Genealogy"},
+            ]
+        }
+        result = resolve("${pericopes[0].opening_verse}", context)
+        assert result == "1:1"
+
+    def test_tail_slice_on_growing_list(self):
+        """${list[-10:]} with fewer than 10 items returns all items — the prior_pericopes[-10:] pattern."""
+        context = {"prior": [{"ref": f"1:{i}"} for i in range(1, 5)]}  # only 4 items
+        result = resolve("${prior[-10:]}", context)
+        assert result == context["prior"]
+
+        # With more than 10 items, only last 10 returned
+        context["prior"] = [{"ref": f"1:{i}"} for i in range(1, 15)]  # 14 items
+        result = resolve("${prior[-10:]}", context)
+        assert len(result) == 10
+        assert result[0]["ref"] == "1:5"
+        assert result[-1]["ref"] == "1:14"

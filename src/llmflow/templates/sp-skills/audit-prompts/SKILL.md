@@ -5,7 +5,8 @@ description: |
   USE FOR: checking prompt structure; identifying sprawl (line count, header count); validating section hierarchy;
   comparing against prompt-organization-convention.md; finding scattered examples; detecting inconsistent heading levels;
   auditing pipelines for missing response_format on JSON steps.
-  CRITICAL CHECKS: (1) verifying every output field has documented input data source (no making things up);
+  CRITICAL CHECKS: (0) guardrail integrity — detect removed/weakened MANDATORY/MUST/REQUIRED constraints since last commit (silent failure mode that causes known bad outputs);
+  (1) verifying every output field has documented input data source (no making things up);
   (2) ensuring examples generalize across passages (not hardcoded to single case);
   (3) detecting ANY new examples since last commit (#1 source of problems - AI creates examples that don't match intent);
   (4) validating JSON output format mechanics (code fences, formatting rules, escaping examples, consistency);
@@ -35,9 +36,10 @@ Audit LLMFlow `.gpt` prompt files for:
 5. **TODOs** — tracking placeholder sections
 6. **🚨 Input data grounding (CRITICAL)** — verifying every output field has documented input source (prevents "making things up")
 7. **🚨 Example diversity (CRITICAL)** — ensuring examples generalize across passages (not hardcoded to single case)
-8. **🚨 AI-generated examples (CRITICAL - #1 SOURCE OF PROBLEMS)** — detecting ANY new examples since last commit (AI creates examples that don't match user intent)
-9. **🚨 JSON output format (CRITICAL - for JSON prompts)** — code fences, formatting rules, escaping guidance, consistency (prevents intermittent parse failures)
-10. **🚨 Structured outputs usage (CRITICAL - for pipelines)** — detecting JSON steps without `response_format` (guarantees valid JSON, eliminates 40-60% failure rate)
+8. **🚨 Guardrail integrity (CRITICAL)** — detecting removed or weakened MANDATORY/MUST/REQUIRED constraints since last commit (the silent failure mode — removed guardrails cause known bad output patterns without obvious signal)
+9. **🚨 AI-generated examples (CRITICAL - #1 SOURCE OF PROBLEMS)** — detecting ANY new examples since last commit (AI creates examples that don't match user intent)
+10. **🚨 JSON output format (CRITICAL - for JSON prompts)** — code fences, formatting rules, escaping guidance, consistency (prevents intermittent parse failures)
+11. **🚨 Structured outputs usage (CRITICAL - for pipelines)** — detecting JSON steps without `response_format` (guarantees valid JSON, eliminates 40-60% failure rate)
 
 ## Core Principle: No LLM-Generated Training Data
 
@@ -238,6 +240,74 @@ grep -n "John [0-9]" [prompt].gpt
 - Count of distinct passages used
 - Assessment: Good diversity / Limited diversity / Single-passage examples
 - Recommend adding examples from different passage types
+
+### Step 6.5: Guardrail Integrity Check (CRITICAL)
+
+**Purpose:** Detect removed or weakened guardrails — the silent failure mode where a critical constraint disappears without touching the examples.
+
+**What counts as a guardrail:**
+- Sections titled GUARDRAILS, CRITICAL REMINDERS, Critical Blockers
+- Any paragraph containing: MANDATORY, MUST, REQUIRED, "Do not", "Never", "FORBIDDEN"
+- Coverage rules like "every scene must have at least N questions"
+- Output requirements list items with mandatory language
+
+**Process:**
+
+1. **Get last committed version:**
+   ```bash
+   git show HEAD:prompts/[prompt].gpt > /tmp/last-committed.gpt
+   # or: git show main:prompts/[prompt].gpt > /tmp/last-committed.gpt
+   ```
+
+2. **Extract guardrail content from both versions:**
+   ```bash
+   # All lines with mandatory/prohibition language
+   grep -n "MANDATORY\|MUST\|REQUIRED\|FORBIDDEN\|Do not\|Never\|must have\|must include\|every scene\|at least" [prompt].gpt > /tmp/current-guardrails.txt
+   grep -n "MANDATORY\|MUST\|REQUIRED\|FORBIDDEN\|Do not\|Never\|must have\|must include\|every scene\|at least" /tmp/last-committed.gpt > /tmp/committed-guardrails.txt
+   ```
+
+3. **Diff section content:**
+   ```bash
+   # Check specific guardrail sections
+   awk '/^# GUARDRAILS/,/^# [A-Z]/' [prompt].gpt > /tmp/current-guardrail-section.txt
+   awk '/^# GUARDRAILS/,/^# [A-Z]/' /tmp/last-committed.gpt > /tmp/committed-guardrail-section.txt
+   diff /tmp/committed-guardrail-section.txt /tmp/current-guardrail-section.txt
+
+   # Same for CRITICAL REMINDERS
+   awk '/^# CRITICAL REMINDERS/,/^# [A-Z]/' [prompt].gpt > /tmp/current-reminders.txt
+   awk '/^# CRITICAL REMINDERS/,/^# [A-Z]/' /tmp/last-committed.gpt > /tmp/committed-reminders.txt
+   diff /tmp/committed-reminders.txt /tmp/current-reminders.txt
+   ```
+
+4. **Flag any removal or softening:**
+   - Line present in committed version, absent in current = REMOVED guardrail
+   - "MUST" changed to "should" = WEAKENED guardrail
+   - "REQUIRED" removed = WEAKENED guardrail
+   - Count of numbered reminders decreased = item removed
+
+**What to report:**
+```markdown
+## 🚨 GUARDRAIL INTEGRITY CHECK
+
+**GUARDRAILS section:** [Unchanged | Changed — see below]
+**CRITICAL REMINDERS section:** [Unchanged | Changed — see below]
+
+### Removed guardrails:
+🚨 **Line 47 (committed) — REMOVED in current version:**
+> "every scene in `{{passage_ref}}` must have at least 1 Imagine question"
+**Risk:** Model treats Imagine generation as optional. Confirmed output impact: Mark 13 _hearts.json had 0 Imagine items.
+
+### Weakened guardrails:
+⚠️  **Line 89 — language softened:**
+> Committed: "Output MUST include coverage for all scenes"
+> Current: "Output should include coverage for all scenes"
+**Risk:** "Should" is advisory; model may skip scenes under token pressure.
+
+### Added guardrails:
+✅ Line 612: New reminder — "every scene must have at least 2 questions" (appears intentional addition)
+```
+
+**Critical rule:** A removed guardrail is always CRITICAL severity — these are the constraints that prevent known failure modes. If guardrail was removed AND bad output was observed, report the confirmed causal link.
 
 ### Step 7: Detect AI-Generated Examples (CRITICAL - #1 SOURCE OF PROBLEMS)
 
