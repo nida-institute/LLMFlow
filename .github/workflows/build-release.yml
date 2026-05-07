@@ -223,15 +223,30 @@ jobs:
     - name: Verify install script (Unix)
       if: runner.os != 'Windows'
       run: |
-        bash install.sh
+        for i in 1 2 3 4 5; do
+          bash install.sh && break
+          echo "Attempt $i failed, retrying in 30s..."
+          sleep 30
+        done
         "$HOME/bin/sp" --version
 
     - name: Verify install script (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        # Run install script directly in this shell
-        & .\install.ps1
+        # Retry install script up to 5 times with 30s delay (binary may not be available immediately)
+        $success = $false
+        for ($i = 1; $i -le 5; $i++) {
+          try {
+            & .\install.ps1
+            $success = $true
+            break
+          } catch {
+            Write-Host "Attempt $i failed: $_"
+            if ($i -lt 5) { Start-Sleep -Seconds 30 }
+          }
+        }
+        if (-not $success) { exit 1 }
 
         # Verify binary exists and is runnable
         $binaryPath = "$env:USERPROFILE\bin\sp.exe"
