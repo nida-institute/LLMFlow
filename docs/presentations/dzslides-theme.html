@@ -1,0 +1,30 @@
+<style>
+  body, .view section, section {
+    background-color: #1a1a1a !important;
+    color: #f0f0f0 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif !important;
+  }
+  h1, h2 {
+    color: #f0f0f0 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif !important;
+  }
+  h1.title { margin-top: 150px !important; font-size: 72px !important; text-align: center !important; }
+  h1.subtitle { margin-top: 20px !important; font-size: 36px !important; text-align: center !important; color: #aaa !important; }
+  h2 { margin-top: 20px !important; margin-bottom: 30px !important; margin-left: 60px !important; font-size: 44px !important; text-align: left !important; }
+  ul { margin: 0 60px !important; font-size: 30px !important; color: #f0f0f0 !important; line-height: 1.8 !important; }
+  li { margin-bottom: 18px !important; color: #888 !important; }
+  li[aria-selected] { color: #ffffff !important; }
+  li[aria-selected] > ul li { color: #dddddd !important; }
+  li > ul { margin: 5px 30px !important; font-size: 26px !important; }
+  section.title-slide h1 { font-size: 52px !important; color: #aaa !important; margin-top: 220px !important; }
+  footer { background-color: #1a1a1a !important; border: none !important; }
+  a { color: #7ab8f5 !important; }
+  strong { color: #fff !important; }
+</style>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('li > ul.incremental').forEach(function(ul) {
+      ul.classList.remove('incremental');
+    });
+  });
+</script>
