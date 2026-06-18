@@ -14,8 +14,7 @@ exist in abundance, but they often aren't the right fit — and producing someth
 better requires the ability to prototype new kinds of resources, try them, and iterate.
 The experts who could do this don't have time to experiment.
 
-Scripture Pipelines exists to make those experts more productive — and to help
-scholarly communities innovate rather than just consume.
+What's needed is not just more resources produced by Western scholars and sent outward. It's building capacity in the communities that need these resources — equipping teams who know the data, understand the audience, and can build and maintain these systems themselves. Scripture Pipelines is designed to support that.
 
 ---
 
@@ -35,11 +34,7 @@ problem that can consume most of a research day before any analysis begins.
 
 Scripture Pipelines addresses this with text-based pipelines (written in YAML) that a
 developer — working alongside domain experts and with the help of an AI assistant — can
-read, write, and modify. Building a pipeline typically requires three kinds of knowledge:
-someone who understands the data sources, someone who understands the audience and what
-the resource needs to accomplish, and a developer comfortable collaborating with both and
-working with AI tools to write and debug the pipeline code. Mentoring developers who can
-fill that third role is part of what this project is about. Each step in a pipeline can
+read, write, and modify. Building a pipeline requires three kinds of skill: knowledge of the data sources, understanding of the need and the users — what the resource must accomplish for the community it serves — and a developer comfortable collaborating with AI tools to write and debug the pipeline code. One person may bring more than one of these skills. We are working toward mentoring people globally in all three roles. The goal is teams that are genuinely self-sufficient. Each step in a pipeline can
 query a database (using XQuery against BaseX), extract data from XML documents (using
 XPath), load spreadsheet-style data files, call an LLM, or run custom functions. Steps
 pass their output forward; every intermediate result is saved to disk and open for
@@ -148,12 +143,7 @@ The central design problem in Scripture Pipelines is alignment: how do you keep 
 AI working toward the scholar's actual goals, rather than producing output that sounds
 like it answered the question but didn't?
 
-The design principle is simple: the scholar is in charge. The AI follows direction,
-accepts correction, and does not assert its own judgment over the scholar's. This is
-harder to achieve than it sounds — AI systems tend to pursue their own interpretation
-of a task even when it diverges from what was asked. The [Human at the Helm](https://github.com/nida-institute/human-at-the-helm)
-methodology is a practical framework for keeping that from happening: the scholar
-commands, the AI executes.
+The design principle is simple: the person is in charge. The AI follows direction, accepts correction, and does not assert its own judgment over the person's. This is harder to achieve than it sounds — AI systems tend to drift, pursuing their own interpretation of a task even when it diverges from what was asked. The pipeline architect must constantly watch out for this. The [Human at the Helm](https://github.com/nida-institute/human-at-the-helm) methodology is a practical framework for keeping that from happening: the person commands, the AI executes.
 
 In practice, this means four things:
 
@@ -212,6 +202,22 @@ source. Every freelanced claim does not. Working backward: if the final output i
 where the model stopped using what it was given.
 
 ---
+
+## Building Communities of Knowledge
+
+Knowledge is tested in community — through peer review, mentoring, and the willingness to hold on to what is good and discard what fails (1 Thess 5:21). Creating together matters: it is essential for human flourishing, and it is how truth is found. AI should support communities of knowledge, not replace them.
+
+The questions worth asking about any AI-assisted resource production effort:
+
+- Are people engaging the text, or just approving AI output?
+- Are they working together, or each alone with AI?
+- Do they own what they produce?
+- Do they trust their own judgment?
+- Are they becoming more capable, or more dependent?
+
+## Where We Are
+
+Scripture Pipelines is in active use but should be considered alpha-quality software. We are producing real resources with it — but we are also learning as we go. We are mentoring our first outside teams, and we expect to ramp up slowly and deliberately. If your team wants to use Scripture Pipelines, we will reach out when we have capacity to take on another team. Your team needs all three skills — knowledge of the data, understanding of the need and the users, and someone who can build and maintain the pipelines. One person may bring more than one.
 
 ## When to Use Scripture Pipelines
 
