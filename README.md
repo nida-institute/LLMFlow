@@ -1,6 +1,6 @@
 # Scripture Pipelines
 
-**Scripture Pipelines** is a declarative pipeline system for AI-assisted biblical and linguistic scholarship. Workflows are declared in YAML pipelines that specify information flow, prompt contracts, and output structure. The engine handles execution, validation, and persistence — every intermediate result is saved to disk, every LLM step can be required to account for its sources, and the same pipeline can be rerun with a revised prompt without re-querying earlier steps.
+**Scripture Pipelines** is a declarative pipeline system for AI-assisted biblical and linguistic scholarship. Workflows are declared in YAML pipelines that specify information flow, prompt contracts, and output structure. The engine handles execution, validation, and persistence — every intermediate result is saved to disk, every LLM step can be required to account for its sources, and the same pipeline can be rerun with a revised prompt without re-querying earlier steps. Steps can query XML databases (BaseX/XQuery), relational databases (DuckDB), call LLMs with structured JSON output, or run custom functions.
 
 Biblical and linguistic scholarship now has more open data than it can use: word-level morphological annotations for the entire Hebrew Bible and Greek New Testament, syntactic treebanks, discourse feature datasets, lexicographic databases, documentary papyri and inscriptions. The bottleneck is not data — it is the human capacity to bring rigorous scholarly attention to bear on that data at scale. Scripture Pipelines is designed for that problem.
 
