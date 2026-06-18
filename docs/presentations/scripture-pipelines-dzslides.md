@@ -1,6 +1,7 @@
 ---
 title: Scripture Pipelines
-subtitle: AI-assisted biblical resource production
+subtitle: AI tools for biblical scholarship
+author: "Jonathan Robie · R&D Fellow, Biblica · jonathan.robie@biblica.com"
 ---
 
 # The Problem
@@ -155,4 +156,4 @@ subtitle: AI-assisted biblical resource production
 - This is still very much alpha
 - We are mentoring our very first teams — and learning how to do this
 - We will ramp up slowly and deliberately
-- We will interview your team when we have capacity to mentor another team
+- We will interview new teams when we have capacity to mentor another team

@@ -18,6 +18,7 @@
   li > ul { margin: 5px 30px !important; font-size: 26px !important; }
   section.title-slide h1 { font-size: 52px !important; color: #aaa !important; margin-top: 220px !important; }
   footer { background-color: #1a1a1a !important; border: none !important; }
+  section, body { user-select: none; }
   a { color: #7ab8f5 !important; }
   strong { color: #fff !important; }
   table { width: 90%; margin: 0 auto; border-collapse: collapse; font-size: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif !important; }
@@ -31,5 +32,10 @@
     document.querySelectorAll('li > ul.incremental').forEach(function(ul) {
       ul.classList.remove('incremental');
     });
+  });
+  document.addEventListener('click', function(e) {
+    if (e.target.tagName !== 'A') {
+      document.dispatchEvent(new KeyboardEvent('keydown', {keyCode: 39, which: 39, bubbles: true}));
+    }
   });
 </script>

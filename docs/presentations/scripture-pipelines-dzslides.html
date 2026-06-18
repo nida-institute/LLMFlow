@@ -2,6 +2,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="generator" content="pandoc">
+  <meta name="author" content="Jonathan Robie · R&amp;D Fellow, Biblica · jonathan.robie@biblica.com">
   <title>Scripture Pipelines</title>
   <style>
     code{white-space: pre-wrap;}
@@ -175,6 +176,7 @@
     li > ul { margin: 5px 30px !important; font-size: 26px !important; }
     section.title-slide h1 { font-size: 52px !important; color: #aaa !important; margin-top: 220px !important; }
     footer { background-color: #1a1a1a !important; border: none !important; }
+    section, body { user-select: none; }
     a { color: #7ab8f5 !important; }
     strong { color: #fff !important; }
     table { width: 90%; margin: 0 auto; border-collapse: collapse; font-size: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif !important; }
@@ -189,14 +191,20 @@
         ul.classList.remove('incremental');
       });
     });
+    document.addEventListener('click', function(e) {
+      if (e.target.tagName !== 'A') {
+        document.dispatchEvent(new KeyboardEvent('keydown', {keyCode: 39, which: 39, bubbles: true}));
+      }
+    });
   </script>
 </head>
 <body>
 <section class="title">
   <h1 class="title">Scripture Pipelines</h1>
-  <h1 class="subtitle">AI-assisted biblical resource production</h1>
+  <h1 class="subtitle">AI tools for biblical scholarship</h1>
   <footer>
-    
+    <span class="author">Jonathan Robie · R&amp;D Fellow, Biblica ·
+jonathan.robie@biblica.com</span> · 
   </footer>
 </section>
 <section id="the-problem" class="title-slide slide level1">
@@ -461,7 +469,7 @@ notes</li>
 <li>We are mentoring our very first teams — and learning how to do
 this</li>
 <li>We will ramp up slowly and deliberately</li>
-<li>We will interview your team when we have capacity to mentor another
+<li>We will interview new teams when we have capacity to mentor another
 team</li>
 </ul>
 </section>
