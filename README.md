@@ -5,10 +5,12 @@ linguistic scholarship. Workflows are declared in YAML pipelines that specify in
 flow, prompt contracts, and output structure. The engine handles execution, validation,
 and persistence — every intermediate result is saved to disk, every LLM step can be
 required to account for its sources, and the same pipeline can be rerun with a revised
-prompt without re-querying earlier steps. Steps can call LLMs with structured JSON output, run Python functions, query XML
-databases (BaseX/XQuery) or relational databases (DuckDB), load TSV/CSV files, apply
-XSLT transformations, or read Paratext projects (USFM/USJ). The plugin system is
-designed for extensibility — you can write a plugin for any data source or tool.
+prompt without re-querying earlier steps. Steps can call LLMs with structured JSON output, load data files from GitHub
+repositories (CSV/TSV, XML, JSON — the formats most open biblical datasets use),
+run Python functions, query XML databases (BaseX/XQuery) or relational databases
+(DuckDB), apply XSLT transformations, or read Paratext projects (USFM/USJ). The
+plugin system is designed for extensibility — you can write a plugin for any data
+source or tool.
 
 Biblical and linguistic scholarship now has more open data than it can use: word-level
 morphological annotations for the entire Hebrew Bible and Greek New Testament, syntactic

@@ -44,11 +44,12 @@ pipeline code with AI tools. One person may bring more than one of these skills.
 working toward mentoring people globally in all three roles. The goal is teams that are
 genuinely self-sufficient.
 
-Each step in a pipeline can call an LLM with structured JSON output, run a Python
-function, query XML databases (BaseX/XQuery) or relational databases (DuckDB), load
-TSV/CSV files, apply XSLT transformations, or read Paratext projects (USFM/USJ). The
-plugin system is designed for extensibility — you can write a plugin for any data
-source or tool you need. Steps pass their output forward; every intermediate result is
+Each step in a pipeline can call an LLM with structured JSON output, load data files
+from GitHub repositories (CSV/TSV, XML, JSON — the formats most open biblical datasets
+use), run a Python function, query XML databases (BaseX/XQuery) or relational databases
+(DuckDB), apply XSLT transformations, or read Paratext projects (USFM/USJ). The plugin
+system is designed for extensibility — you can write a plugin for any data source or
+tool you need. Steps pass their output forward; every intermediate result is
 saved to disk and open for inspection. Anyone on the team can read the pipeline YAML
 and understand exactly what data is being fetched, what is being asked of the model,
 and what the model produced at each stage.
