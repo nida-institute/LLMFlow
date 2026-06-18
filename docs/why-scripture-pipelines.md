@@ -46,7 +46,9 @@ genuinely self-sufficient.
 
 Each step in a pipeline can call an LLM with structured JSON output, run a Python
 function, query XML databases (BaseX/XQuery) or relational databases (DuckDB), load
-TSV/CSV files, apply XSLT transformations, or read Paratext projects (USFM/USJ). Steps pass their output forward; every intermediate result is
+TSV/CSV files, apply XSLT transformations, or read Paratext projects (USFM/USJ). The
+plugin system is designed for extensibility — you can write a plugin for any data
+source or tool you need. Steps pass their output forward; every intermediate result is
 saved to disk and open for inspection. Anyone on the team can read the pipeline YAML
 and understand exactly what data is being fetched, what is being asked of the model,
 and what the model produced at each stage.
