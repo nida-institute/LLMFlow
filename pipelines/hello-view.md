@@ -1,0 +1,28 @@
+# hello.yaml
+
+```yaml
+name: "Hello LLMFlow"
+description: |
+  Minimal starter pipeline for LLMFlow.
+  Run with: llmflow run --pipeline pipelines/hello.yaml
+variables:
+  output_dir: "output"
+
+output_file_directory: "output"
+
+llm_config:
+  model: "gpt-4o-mini"
+  temperature: 0.7
+  max_tokens: 500
+
+steps:
+  - name: "multilingual-greeting"
+    type: "llm"
+    prompt:
+      file: "hello.gpt"
+      inputs:
+        language_count: 5
+    outputs: greeting
+    saveas:
+      path: "${output_dir}/greeting.md"
+```

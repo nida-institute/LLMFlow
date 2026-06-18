@@ -57,6 +57,12 @@ def read_text(path):
         raise ValueError(f"Could not decode file as UTF-8: {path}") from e
 
 
+def read_lines(path):
+    """Read a text file and return non-empty lines as a list."""
+    content = read_text(path)
+    return [line for line in content.splitlines() if line.strip()]
+
+
 # --- Template rendering ---
 
 

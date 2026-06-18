@@ -35,97 +35,124 @@ subtitle: AI-assisted biblical resource production
 
 ## A Wealth of Biblical Data
 
-[github.com/nida-institute/awesome-biblical-data](https://github.com/nida-institute/awesome-biblical-data)
+| Category | Key datasets |
+|---|---|
+| Source texts | Greek NT, Hebrew Bible, LXX — multiple editions |
+| Morphology & syntax | Macula Hebrew/Greek, treebanks |
+| Discourse analysis | Levinsohn LGNTDF |
+| Lexicons & dictionaries | Abbott-Smith, LSJ, Mounce, Tyndale Bible Dictionary |
+| Semantic & entity data | UBS semantic domains, ACAI |
+| Geography | Pleiades, UBS Bible Routes, Biblica Open Maps |
+| Historical context | Papyri, inscriptions, Josephus, Philo, patristics |
+| Jewish texts | Sefaria: Talmud, Midrash, Targums, commentaries |
+| Your own data | Paratext projects — drafts, back translations, notes |
+
+## A Wealth of Biblical Resources?
+
+- Hebrew Reader's Guide
+- Discourse Flow
+- Discourse Flow Review Tool
+- Narrative and Cultural Commentary
+- Exegetical Frameworks for Multiple Audiences
 
 # AI — Promise and Risk
 
 ## What AI Does Well
 
-- Integrates complex, heterogeneous datasets
-- High-level picture and fine-grained details
-- Brainstorming and rapid prototyping
-- Generates first drafts for scholars to shape
+- Summarizes multiple large datasets (imperfectly!)
+- Quick first drafts
+  - For brainstorming
+  - Initial versions of resources
+- Rapid prototyping of new resource types
+- Extracts data from a wide variety of files
+- Vibe coding — writes pipeline code
 
 ## Where AI Falls Short
 
 - **Hallucinates** — plausible errors, hard to catch
-- **Drifts** — pursues its own interpretation
+- **Drifts** — pursues its own goals
 - **No self-evaluation** — confident ≠ accurate
 - Always confident. Always plausible. Sometimes true.
 
 ## Expertise — It Still Matters
 
+- The data is irreplaceable
+  - Decades of annotation by domain experts
+  - AI reasons from this data; it cannot replace it
 - Experts can get it right when AI cannot
-- LLMs go off in dead ends with these datasets
-- They don't understand the data
-- Decades of annotation are irreplaceable
-- AI reasons from this data; it cannot replace it
+  - LLMs go off in dead ends with these datasets
+  - They don't understand the data; experts do
+- The goal: datasets that AI and people can trust
+  - Not AI-generated slop
+  - Grounded, verified, scholar-reviewed
 
 ## Building Communities of Knowledge
 
-- AI should make you better, not more dependent
-- Use AI to reason, not just to summarize
-- Produce materials scholars use to teach each other
-- Expertise must be transferred and reproduced
-- AI collaboration should build capacity
+- Knowledge is tested in community
+  - Peer review, mentoring, challenge
+  - Test everything; hold on to what is good (1 Thess 5:21)
+- Creating together
+  - Essential for human flourishing
+  - How truth is found
+  - AI should support communities of knowledge, not replace them
 
-## The Formation Risk
+## Keeping the Real Goals in View
 
-- Approving output that looks good is easy
-- Catching what's wrong requires doing the work
-- The AI gets faster; the scholar gets lazier
-- Expertise erodes invisibly
-- Nobody left to build these things from scratch
-- You know what happens when a consultant does the work for the translator
+- Are they engaging the text, or just approving AI output?
+- Are they working together, or each alone with AI?
+- Do they own what they produce?
+- Do they trust their own judgement?
+- Are they becoming more capable, or more dependent?
 
 # The Solution
 
+## Scripture Pipelines
+
+- A declarative pipeline language for AI-assisted resource production
+- Built for complex, heterogeneous data — the kind biblical scholarship runs on
+- Grounded in Human at the Helm principles
+
+## Scripture Pipelines: How It Works
+
+- **Prompt contracts**: each step declares its inputs and outputs
+- **JSON**: shapes what the model focuses on and guarantees what it returns
+- **Intermediate artifacts**: every step saved and inspectable
+- **Debug files**: exactly what the model saw and said
+
 ## The Design Principle
 
-- **The scholar is in charge**
+- **The person is in charge**
 - AI follows direction, accepts correction
-- Designed to assume it doesn't know the human's goals
+- Design documents, plans, audits, test suites — the person sets the agenda
 - [Human at the Helm](https://github.com/nida-institute/human-at-the-helm): scholar commands, AI executes
+- The pipeline architect must constantly watch out for AI drift
 
-## How It Works
+## Who Does This Work?
 
-- **Prompt contracts**: every step declares its data needs
-- **Structured output**: no prose where a field is expected
-- **Intermediate artifacts**: every step saved and inspectable
-- **Debug files**: exactly what the model received and said
+- Someone who knows the data
+- Someone who understands the need and the users
+- A developer with good vibe coding skills
+- Built with the communities who need them
+- Mentoring people globally — in every role
 
 ## Auditing
 
-- Human brings domain judgment
-- AI traces claims back to their source
-- **Five-claim spot-check**: is this grounded in the data?
-- Trace backward from bad output to find where it went wrong
+- AI synthesizes large amounts of data into an audit summary
+- Human engages interactively — questions, pushback, clarification
+- AI can make proposals; human decides when they agree
+- Human decides what to do about it
 
-# In Practice
+## You Can't Hit What You Can't See
 
-## What You Can Build
+- Review HTML: efficient interface for auditing large amounts of data
+- Scholar marks correct / uncertain / incorrect — can also add notes
+- Generates JSON for AI or programs to act on
 
-- Exegetical helps from discourse, morphology, entity data
-- Comprehension checking from your Paratext project
-- Community Bible study materials for specific audiences
-- Orality-adapted content
-- Rapid prototypes to try before full production
+# What's Next
 
-## The Team
+## Where We Are
 
-- Someone who knows the data
-- Someone who knows the audience
-- A developer working with AI tools
-- `sp gui` for non-developers
-- Mentoring developers is part of what we do
-
-## Get Involved
-
-- Currently producing alpha-level resources — it works for us
-- Soon: mentoring developers who support scholar teams
-- Want to be part of this?
-- We interview the developer
-- Your team needs all three skills: data, audience, development
-- [Scripture Pipelines](https://github.com/nida-institute/LLMFlow)
-- [Awesome Biblical Resources](https://github.com/nida-institute/awesome-biblical-resources)
-- [Human at the Helm](https://github.com/nida-institute/human-at-the-helm)
+- This is still very much alpha
+- We are mentoring our very first teams — and learning how to do this
+- We will ramp up slowly and deliberately
+- We will interview your team when we have capacity to mentor another team

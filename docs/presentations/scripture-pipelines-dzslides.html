@@ -177,6 +177,11 @@
     footer { background-color: #1a1a1a !important; border: none !important; }
     a { color: #7ab8f5 !important; }
     strong { color: #fff !important; }
+    table { width: 90%; margin: 0 auto; border-collapse: collapse; font-size: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif !important; }
+    th { background: #3a3a5a; color: #fff; padding: 6px 14px; text-align: left; font-size: 21px; }
+    td { padding: 5px 14px; border-bottom: 1px solid #333; color: #ddd; vertical-align: top; }
+    tr:nth-child(even) td { background: #222233; }
+    td:first-child { color: #c8a96e; font-weight: 600; white-space: nowrap; }
   </style>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -239,8 +244,66 @@ Testament</li>
 </section>
 <section id="a-wealth-of-biblical-data" class="slide level2">
 <h2>A Wealth of Biblical Data</h2>
-<p><a
-href="https://github.com/nida-institute/awesome-biblical-data">github.com/nida-institute/awesome-biblical-data</a></p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Category</th>
+<th>Key datasets</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Source texts</td>
+<td>Greek NT, Hebrew Bible, LXX — multiple editions</td>
+</tr>
+<tr class="even">
+<td>Morphology &amp; syntax</td>
+<td>Macula Hebrew/Greek, treebanks</td>
+</tr>
+<tr class="odd">
+<td>Discourse analysis</td>
+<td>Levinsohn LGNTDF</td>
+</tr>
+<tr class="even">
+<td>Lexicons &amp; dictionaries</td>
+<td>Abbott-Smith, LSJ, Mounce, Tyndale Bible Dictionary</td>
+</tr>
+<tr class="odd">
+<td>Semantic &amp; entity data</td>
+<td>UBS semantic domains, ACAI</td>
+</tr>
+<tr class="even">
+<td>Geography</td>
+<td>Pleiades, UBS Bible Routes, Biblica Open Maps</td>
+</tr>
+<tr class="odd">
+<td>Historical context</td>
+<td>Papyri, inscriptions, Josephus, Philo, patristics</td>
+</tr>
+<tr class="even">
+<td>Jewish texts</td>
+<td>Sefaria: Talmud, Midrash, Targums, commentaries</td>
+</tr>
+<tr class="odd">
+<td>Your own data</td>
+<td>Paratext projects — drafts, back translations, notes</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="a-wealth-of-biblical-resources" class="slide level2">
+<h2>A Wealth of Biblical Resources?</h2>
+<ul class="incremental">
+<li>Hebrew Reader’s Guide</li>
+<li>Discourse Flow</li>
+<li>Discourse Flow Review Tool</li>
+<li>Narrative and Cultural Commentary</li>
+<li>Exegetical Frameworks for Multiple Audiences</li>
+</ul>
 </section>
 
 <section id="ai-promise-and-risk" class="title-slide slide level1">
@@ -250,17 +313,22 @@ href="https://github.com/nida-institute/awesome-biblical-data">github.com/nida-i
 <section id="what-ai-does-well" class="slide level2">
 <h2>What AI Does Well</h2>
 <ul class="incremental">
-<li>Integrates complex, heterogeneous datasets</li>
-<li>High-level picture and fine-grained details</li>
-<li>Brainstorming and rapid prototyping</li>
-<li>Generates first drafts for scholars to shape</li>
+<li>Summarizes multiple large datasets (imperfectly!)</li>
+<li>Quick first drafts
+<ul class="incremental">
+<li>For brainstorming</li>
+<li>Initial versions of resources</li>
+</ul></li>
+<li>Rapid prototyping of new resource types</li>
+<li>Extracts data from a wide variety of files</li>
+<li>Vibe coding — writes pipeline code</li>
 </ul>
 </section>
 <section id="where-ai-falls-short" class="slide level2">
 <h2>Where AI Falls Short</h2>
 <ul class="incremental">
 <li><strong>Hallucinates</strong> — plausible errors, hard to catch</li>
-<li><strong>Drifts</strong> — pursues its own interpretation</li>
+<li><strong>Drifts</strong> — pursues its own goals</li>
 <li><strong>No self-evaluation</strong> — confident ≠ accurate</li>
 <li>Always confident. Always plausible. Sometimes true.</li>
 </ul>
@@ -268,33 +336,47 @@ href="https://github.com/nida-institute/awesome-biblical-data">github.com/nida-i
 <section id="expertise-it-still-matters" class="slide level2">
 <h2>Expertise — It Still Matters</h2>
 <ul class="incremental">
-<li>Experts can get it right when AI cannot</li>
-<li>LLMs go off in dead ends with these datasets</li>
-<li>They don’t understand the data</li>
-<li>Decades of annotation are irreplaceable</li>
+<li>The data is irreplaceable
+<ul class="incremental">
+<li>Decades of annotation by domain experts</li>
 <li>AI reasons from this data; it cannot replace it</li>
+</ul></li>
+<li>Experts can get it right when AI cannot
+<ul class="incremental">
+<li>LLMs go off in dead ends with these datasets</li>
+<li>They don’t understand the data; experts do</li>
+</ul></li>
+<li>The goal: datasets that AI and people can trust
+<ul class="incremental">
+<li>Not AI-generated slop</li>
+<li>Grounded, verified, scholar-reviewed</li>
+</ul></li>
 </ul>
 </section>
 <section id="building-communities-of-knowledge" class="slide level2">
 <h2>Building Communities of Knowledge</h2>
 <ul class="incremental">
-<li>AI should make you better, not more dependent</li>
-<li>Use AI to reason, not just to summarize</li>
-<li>Produce materials scholars use to teach each other</li>
-<li>Expertise must be transferred and reproduced</li>
-<li>AI collaboration should build capacity</li>
+<li>Knowledge is tested in community
+<ul class="incremental">
+<li>Peer review, mentoring, challenge</li>
+<li>Test everything; hold on to what is good (1 Thess 5:21)</li>
+</ul></li>
+<li>Creating together
+<ul class="incremental">
+<li>Essential for human flourishing</li>
+<li>How truth is found</li>
+<li>AI should support communities of knowledge, not replace them</li>
+</ul></li>
 </ul>
 </section>
-<section id="the-formation-risk" class="slide level2">
-<h2>The Formation Risk</h2>
+<section id="keeping-the-real-goals-in-view" class="slide level2">
+<h2>Keeping the Real Goals in View</h2>
 <ul class="incremental">
-<li>Approving output that looks good is easy</li>
-<li>Catching what’s wrong requires doing the work</li>
-<li>The AI gets faster; the scholar gets lazier</li>
-<li>Expertise erodes invisibly</li>
-<li>Nobody left to build these things from scratch</li>
-<li>You know what happens when a consultant does the work for the
-translator</li>
+<li>Are they engaging the text, or just approving AI output?</li>
+<li>Are they working together, or each alone with AI?</li>
+<li>Do they own what they produce?</li>
+<li>Do they trust their own judgement?</li>
+<li>Are they becoming more capable, or more dependent?</li>
 </ul>
 </section>
 
@@ -302,79 +384,85 @@ translator</li>
 <h1>The Solution</h1>
 
 </section>
+<section id="scripture-pipelines" class="slide level2">
+<h2>Scripture Pipelines</h2>
+<ul class="incremental">
+<li>A declarative pipeline language for AI-assisted resource
+production</li>
+<li>Built for complex, heterogeneous data — the kind biblical
+scholarship runs on</li>
+<li>Grounded in Human at the Helm principles</li>
+</ul>
+</section>
+<section id="scripture-pipelines-how-it-works" class="slide level2">
+<h2>Scripture Pipelines: How It Works</h2>
+<ul class="incremental">
+<li><strong>Prompt contracts</strong>: each step declares its inputs and
+outputs</li>
+<li><strong>JSON</strong>: shapes what the model focuses on and
+guarantees what it returns</li>
+<li><strong>Intermediate artifacts</strong>: every step saved and
+inspectable</li>
+<li><strong>Debug files</strong>: exactly what the model saw and
+said</li>
+</ul>
+</section>
 <section id="the-design-principle" class="slide level2">
 <h2>The Design Principle</h2>
 <ul class="incremental">
-<li><strong>The scholar is in charge</strong></li>
+<li><strong>The person is in charge</strong></li>
 <li>AI follows direction, accepts correction</li>
-<li>Designed to assume it doesn’t know the human’s goals</li>
+<li>Design documents, plans, audits, test suites — the person sets the
+agenda</li>
 <li><a href="https://github.com/nida-institute/human-at-the-helm">Human
 at the Helm</a>: scholar commands, AI executes</li>
+<li>The pipeline architect must constantly watch out for AI drift</li>
 </ul>
 </section>
-<section id="how-it-works" class="slide level2">
-<h2>How It Works</h2>
+<section id="who-does-this-work" class="slide level2">
+<h2>Who Does This Work?</h2>
 <ul class="incremental">
-<li><strong>Prompt contracts</strong>: every step declares its data
-needs</li>
-<li><strong>Structured output</strong>: no prose where a field is
-expected</li>
-<li><strong>Intermediate artifacts</strong>: every step saved and
-inspectable</li>
-<li><strong>Debug files</strong>: exactly what the model received and
-said</li>
+<li>Someone who knows the data</li>
+<li>Someone who understands the need and the users</li>
+<li>A developer with good vibe coding skills</li>
+<li>Built with the communities who need them</li>
+<li>Mentoring people globally — in every role</li>
 </ul>
 </section>
 <section id="auditing" class="slide level2">
 <h2>Auditing</h2>
 <ul class="incremental">
-<li>Human brings domain judgment</li>
-<li>AI traces claims back to their source</li>
-<li><strong>Five-claim spot-check</strong>: is this grounded in the
-data?</li>
-<li>Trace backward from bad output to find where it went wrong</li>
+<li>AI synthesizes large amounts of data into an audit summary</li>
+<li>Human engages interactively — questions, pushback,
+clarification</li>
+<li>AI can make proposals; human decides when they agree</li>
+<li>Human decides what to do about it</li>
+</ul>
+</section>
+<section id="you-cant-hit-what-you-cant-see" class="slide level2">
+<h2>You Can’t Hit What You Can’t See</h2>
+<ul class="incremental">
+<li>Review HTML: efficient interface for auditing large amounts of
+data</li>
+<li>Scholar marks correct / uncertain / incorrect — can also add
+notes</li>
+<li>Generates JSON for AI or programs to act on</li>
 </ul>
 </section>
 
-<section id="in-practice" class="title-slide slide level1">
-<h1>In Practice</h1>
+<section id="whats-next" class="title-slide slide level1">
+<h1>What’s Next</h1>
 
 </section>
-<section id="what-you-can-build" class="slide level2">
-<h2>What You Can Build</h2>
+<section id="where-we-are" class="slide level2">
+<h2>Where We Are</h2>
 <ul class="incremental">
-<li>Exegetical helps from discourse, morphology, entity data</li>
-<li>Comprehension checking from your Paratext project</li>
-<li>Community Bible study materials for specific audiences</li>
-<li>Orality-adapted content</li>
-<li>Rapid prototypes to try before full production</li>
-</ul>
-</section>
-<section id="the-team" class="slide level2">
-<h2>The Team</h2>
-<ul class="incremental">
-<li>Someone who knows the data</li>
-<li>Someone who knows the audience</li>
-<li>A developer working with AI tools</li>
-<li><code>sp gui</code> for non-developers</li>
-<li>Mentoring developers is part of what we do</li>
-</ul>
-</section>
-<section id="get-involved" class="slide level2">
-<h2>Get Involved</h2>
-<ul class="incremental">
-<li>Currently producing alpha-level resources — it works for us</li>
-<li>Soon: mentoring developers who support scholar teams</li>
-<li>Want to be part of this?</li>
-<li>We interview the developer</li>
-<li>Your team needs all three skills: data, audience, development</li>
-<li><a href="https://github.com/nida-institute/LLMFlow">Scripture
-Pipelines</a></li>
-<li><a
-href="https://github.com/nida-institute/awesome-biblical-resources">Awesome
-Biblical Resources</a></li>
-<li><a href="https://github.com/nida-institute/human-at-the-helm">Human
-at the Helm</a></li>
+<li>This is still very much alpha</li>
+<li>We are mentoring our very first teams — and learning how to do
+this</li>
+<li>We will ramp up slowly and deliberately</li>
+<li>We will interview your team when we have capacity to mentor another
+team</li>
 </ul>
 </section>
 <!-- {{{{ dzslides core
