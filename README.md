@@ -1,14 +1,37 @@
 # Scripture Pipelines
 
-**Scripture Pipelines** is a declarative pipeline system for AI-assisted biblical and linguistic scholarship. Workflows are declared in YAML pipelines that specify information flow, prompt contracts, and output structure. The engine handles execution, validation, and persistence — every intermediate result is saved to disk, every LLM step can be required to account for its sources, and the same pipeline can be rerun with a revised prompt without re-querying earlier steps. Steps can query XML databases (BaseX/XQuery), relational databases (DuckDB), call LLMs with structured JSON output, or run custom functions.
+**Scripture Pipelines** is a declarative pipeline system for AI-assisted biblical and
+linguistic scholarship. Workflows are declared in YAML pipelines that specify information
+flow, prompt contracts, and output structure. The engine handles execution, validation,
+and persistence — every intermediate result is saved to disk, every LLM step can be
+required to account for its sources, and the same pipeline can be rerun with a revised
+prompt without re-querying earlier steps. Steps can query XML databases (BaseX/XQuery),
+relational databases (DuckDB), call LLMs with structured JSON output, or run custom
+functions.
 
-Biblical and linguistic scholarship now has more open data than it can use: word-level morphological annotations for the entire Hebrew Bible and Greek New Testament, syntactic treebanks, discourse feature datasets, lexicographic databases, documentary papyri and inscriptions. The bottleneck is not data — it is the human capacity to bring rigorous scholarly attention to bear on that data at scale. Scripture Pipelines is designed for that problem.
+Biblical and linguistic scholarship now has more open data than it can use: word-level
+morphological annotations for the entire Hebrew Bible and Greek New Testament, syntactic
+treebanks, discourse feature datasets, lexicographic databases, documentary papyri and
+inscriptions. The bottleneck is not data — it is the human capacity to bring rigorous
+scholarly attention to bear on that data at scale. Scripture Pipelines is designed for
+that problem.
 
 ## An Opinionated Framework: The Person Is in Charge
 
-Scripture Pipelines is not neutral about who is in charge. The framework is built on a specific conviction: **the person is in charge**. The AI follows direction, accepts correction, and does not assert its own judgment over the person's. This is harder to achieve than it sounds — AI systems tend to drift, pursuing their own interpretation of a task even when it diverges from what was asked. The pipeline architect must constantly watch out for this. The [Human at the Helm](https://github.com/nida-institute/human-at-the-helm) methodology is the practical framework: the person commands, the AI executes.
+Scripture Pipelines is not neutral about who is in charge. The framework is built on a
+specific conviction: **the person is in charge**. The AI follows direction, accepts
+correction, and does not assert its own judgment over the person's. This is harder to
+achieve than it sounds — AI systems tend to drift, pursuing their own interpretation of
+a task even when it diverges from what was asked. The pipeline architect must constantly
+watch out for this. The [Human at the Helm](https://github.com/nida-institute/human-at-the-helm)
+methodology is the practical framework: the person commands, the AI executes.
 
-This also means resources should be built *with* the communities that need them, shaped by local knowledge — not imposed from outside. Building a pipeline requires three kinds of skill: knowledge of the data sources, understanding of the need and the users, and the ability to build and maintain the pipeline code with AI tools. One person may bring more than one of these skills. We are working toward mentoring people globally in all three roles.
+This also means resources should be built *with* the communities that need them, shaped
+by local knowledge — not imposed from outside. Building a pipeline requires three kinds
+of skill: knowledge of the data sources, understanding of the need and the users, and
+the ability to build and maintain the pipeline code with AI tools. One person may bring
+more than one of these skills. We are working toward mentoring people globally in all
+three roles.
 
 Scripture Pipelines operationalizes human authority through four interlocking disciplines:
 
@@ -22,11 +45,22 @@ Scripture Pipelines operationalizes human authority through four interlocking di
 
 ## The Kairos Project
 
-Scripture Pipelines is at the heart of the **[Kairos Project](https://nida.org)**, a NIDA Institute initiative to build a global community of scholars — spanning the Western academy and far beyond it — who want to serve Bible translation and the global church.
+Scripture Pipelines is at the heart of the **[Kairos Project](https://nida.org)**, a
+NIDA Institute initiative to build a global community of scholars — spanning the Western
+academy and far beyond it — who want to serve Bible translation and the global church.
 
-Part of what that means is producing resources with the communities that need them, shaped by local knowledge and goals — not resources produced by Western scholars and sent outward. Most biblical texts were written by and for oral storytelling cultures. Today's oral storytelling communities do not need PhDs from Western academia to read them well. What they need is orientation to settings and cultures that are foreign to any world we live in now — and that orientation rarely looks like a journal article.
+Part of what that means is producing resources with the communities that need them,
+shaped by local knowledge and goals — not resources produced by Western scholars and
+sent outward. Most biblical texts were written by and for oral storytelling cultures.
+Today's oral storytelling communities do not need PhDs from Western academia to read
+them well. What they need is orientation to settings and cultures that are foreign to
+any world we live in now — and that orientation rarely looks like a journal article.
 
-The Kairos Project takes a more inclusive approach: it trusts that readers in community can encounter the text directly and make genuine discoveries. Everything produced is freely licensed. Scripture Pipelines is currently in active use producing alpha-level resources — it works for us, and we are beginning to mentor our first outside teams. We expect to ramp up slowly and deliberately.
+The Kairos Project takes a more inclusive approach: it trusts that readers in community
+can encounter the text directly and make genuine discoveries. Everything produced is
+freely licensed. Scripture Pipelines is currently in active use producing alpha-level
+resources — it works for us, and we are beginning to mentor our first outside teams.
+We expect to ramp up slowly and deliberately.
 
 ## Installation
 
