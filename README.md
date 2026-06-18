@@ -8,8 +8,7 @@ required to account for its sources, and the same pipeline can be rerun with a r
 prompt without re-querying earlier steps. Steps can call LLMs with structured JSON output, load data files from GitHub
 repositories (CSV/TSV, XML, JSON, USFM — the formats most open biblical datasets
 use), run Python functions, query XML databases (BaseX/XQuery) or relational databases
-(DuckDB), apply XSLT transformations, or read Paratext projects and Scripture Burrito
-packages. The plugin system is designed for extensibility — you can write a plugin for
+(DuckDB), apply XSLT transformations, or read Paratext projects. The plugin system is designed for extensibility — you can write a plugin for
 any data source or tool.
 
 Biblical and linguistic scholarship now has more open data than it can use: word-level

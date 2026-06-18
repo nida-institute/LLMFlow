@@ -47,8 +47,7 @@ genuinely self-sufficient.
 Each step in a pipeline can call an LLM with structured JSON output, load data files
 from GitHub repositories (CSV/TSV, XML, JSON, USFM — the formats most open biblical
 datasets use), run a Python function, query XML databases (BaseX/XQuery) or relational
-databases (DuckDB), apply XSLT transformations, or read Paratext projects and Scripture
-Burrito packages. The plugin system is designed for extensibility — you can write a
+databases (DuckDB), apply XSLT transformations, or read Paratext projects. The plugin system is designed for extensibility — you can write a
 plugin for any data source or tool you need. Steps pass their output forward; every intermediate result is
 saved to disk and open for inspection. Anyone on the team can read the pipeline YAML
 and understand exactly what data is being fetched, what is being asked of the model,
