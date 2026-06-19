@@ -75,6 +75,8 @@ _EXTRA_STEP_KEYS = {
     "group_by_prefix",
     "limit",
     "variables",
+    # json step keys
+    "value",
     # basex step keys
     "database",
     "query",
@@ -170,11 +172,12 @@ def extract_template_variables(template_content):
 
     for match in re.finditer(variable_pattern, template_content):
         var_name = match.group(1).strip()
-        # Skip template logic like {{#if}} or {{/endif}}
+        # Skip template logic and mixin directives
         if (
             not var_name.startswith("#")
             and not var_name.startswith("/")
             and not var_name.startswith("%")
+            and not var_name.startswith("mixin:")
         ):
             variables.add(var_name)
 
@@ -581,9 +584,9 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
         available.update(current_item_vars)
 
         # Extract all variable references from step configuration
-        # Check: inputs, outputs, condition, saveas, format, input (for-each)
+        # Check: inputs, outputs, condition, saveas, format, input (for-each), value (json)
         # NOTE: append_to is NOT checked - it declares a new variable, doesn't reference one
-        fields_to_check = ["inputs", "condition", "saveas", "format", "input"]
+        fields_to_check = ["inputs", "condition", "saveas", "format", "input", "value"]
 
         for field in fields_to_check:
             if field in step:
@@ -621,6 +624,10 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
             declared_outputs.update(outs)
         elif isinstance(outs, str):
             declared_outputs.add(outs)
+
+        # json step uses singular 'output' key
+        if step.get("type") == "json" and step.get("output"):
+            declared_outputs.add(step["output"])
 
         # Handle append_to - these create implicit lists
         append_to = step.get("append_to")
@@ -814,6 +821,94 @@ def _ensure_path_resolved_for_lint(resolved_value: Any, original: Any, step: dic
         )
 
 
+def _build_module_func_map(module_ast: ast.Module) -> dict:
+    return {
+        node.name: node
+        for node in ast.walk(module_ast)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+
+def _collect_transitive_funcs(
+    func_name: str,
+    func_map: dict,
+    visited: set | None = None,
+) -> list:
+    if visited is None:
+        visited = set()
+    if func_name not in func_map or func_name in visited:
+        return []
+    visited.add(func_name)
+    func_node = func_map[func_name]
+    result = [func_node]
+    for node in ast.walk(func_node):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            callee = node.func.id
+            if callee in func_map and callee not in visited:
+                result.extend(_collect_transitive_funcs(callee, func_map, visited))
+    return result
+
+
+def _output_path_violations(func_nodes: list) -> list[tuple[str, int]]:
+    violations = []
+    for func_node in func_nodes:
+        for node in ast.walk(func_node):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                if "outputs/" in node.value:
+                    violations.append((func_node.name, node.lineno))
+    return violations
+
+
+def check_function_step_no_internal_paths(all_steps: list) -> list[str]:
+    """Warn when a function: step constructs hardcoded paths to outputs/ internally.
+
+    Follows the same-module call graph transitively so helper-function violations
+    are caught, not just violations in the directly-invoked function. See GH #165.
+    """
+    warnings: list[str] = []
+    seen_modules: dict[str, tuple] = {}
+
+    for step in all_steps:
+        func_ref = step.get("function")
+        if not func_ref or "." not in func_ref:
+            continue
+
+        module_dotted, func_name = func_ref.rsplit(".", 1)
+        module_path = Path(module_dotted.replace(".", "/") + ".py")
+
+        if not module_path.exists():
+            continue
+
+        module_key = str(module_path)
+        if module_key not in seen_modules:
+            try:
+                module_ast = ast.parse(module_path.read_text())
+                seen_modules[module_key] = (module_ast, _build_module_func_map(module_ast))
+            except SyntaxError:
+                continue
+
+        _, func_map = seen_modules[module_key]
+        func_nodes = _collect_transitive_funcs(func_name, func_map)
+        if not func_nodes:
+            continue
+
+        step_name = step.get("name", "unnamed")
+        for callee_name, lineno in _output_path_violations(func_nodes):
+            if callee_name == func_name:
+                warnings.append(
+                    f"Step '{step_name}': {func_ref} constructs a path to outputs/ "
+                    f"at line {lineno} — receive paths through pipeline inputs instead. (GH #165)"
+                )
+            else:
+                warnings.append(
+                    f"Step '{step_name}': {func_ref} calls {callee_name}() which constructs "
+                    f"a path to outputs/ at line {lineno} — receive paths through pipeline "
+                    f"inputs instead. (GH #165)"
+                )
+
+    return warnings
+
+
 def lint_pipeline_full(
     pipeline_path,
     *,
@@ -956,6 +1051,36 @@ def lint_pipeline_full(
 
     if all_errors:
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
+
+    # 5) Function step internal path check (GH #165)
+    func_io_warnings = check_function_step_no_internal_paths(all_steps)
+    all_warnings.extend(func_io_warnings)
+
+    # 6) Saveas directory declaration warnings
+    _intermediate_raw = pipeline_config.get("intermediate_file_directory")
+    _output_raw = pipeline_config.get("output_file_directory")
+    if _intermediate_raw or _output_raw:
+        from llmflow.runner import resolve as _resolve
+        _vars = pipeline_config.get("variables", {}) or {}
+        _ctx = {**_vars, **cli_vars}
+        _intermediate_dir = Path(str(_resolve(str(_intermediate_raw), _ctx))) if _intermediate_raw else None
+        _output_dir = Path(str(_resolve(str(_output_raw), _ctx))) if _output_raw else None
+        for _step in all_steps:
+            _saveas = _step.get("saveas")
+            if not _saveas:
+                continue
+            _raw_path = _saveas if isinstance(_saveas, str) else _saveas.get("path", "")
+            try:
+                _saveas_path = Path(str(_resolve(str(_raw_path), _ctx)))
+            except Exception:
+                continue
+            _under_intermediate = _intermediate_dir and _saveas_path.is_relative_to(_intermediate_dir)
+            _under_output = _output_dir and _saveas_path.is_relative_to(_output_dir)
+            if not _under_intermediate and not _under_output:
+                all_warnings.append(
+                    f"Step \"{_step.get('name', 'unnamed')}\" saveas path \"{_saveas_path}\" "
+                    f"is not under intermediate_file_directory or output_file_directory."
+                )
 
     # Show any warnings
     all_warnings.extend(template_warnings)
@@ -1234,6 +1359,14 @@ def _lint_for_each_group_by(step: dict, errors: list) -> None:
                 )
 
 
+def _lint_json_step(step, errors):
+    name = step.get("name", "<unnamed>")
+    if not step.get("output"):
+        errors.append(f"Step '{name}' (type: json) is missing required key 'output'")
+    if "value" not in step:
+        errors.append(f"Step '{name}' (type: json) is missing required key 'value'")
+
+
 def lint_pipeline_steps(steps):
     errors = []
     for step in steps:
@@ -1247,6 +1380,8 @@ def lint_pipeline_steps(steps):
                 errors.append(message)
         _lint_conditional_rules(step, errors, "require")
         _lint_conditional_rules(step, errors, "warn")
+        if step.get("type") == "json":
+            _lint_json_step(step, errors)
         if step.get("type") == "window":
             _lint_window_step(step, errors)
         if step.get("type") == "for-each":

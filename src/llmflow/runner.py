@@ -52,6 +52,30 @@ from llmflow.yaml_loader import LLMFlowLoader as _LLMFlowLoader  # noqa: E402
 # Sentinel for "key not found" in get_from_context — distinguishes missing keys from None values.
 _MISSING = object()
 
+def _get_debug_dir(pipeline_config: Dict[str, Any], context: Dict[str, Any], pipeline_name: str = "pipeline") -> str:
+    """Return the debug output directory path.
+
+    Uses intermediate_file_directory/debug/{pipeline_name}/ when declared,
+    falls back to outputs/debug/{pipeline_name}/.
+    """
+    raw = pipeline_config.get("intermediate_file_directory")
+    if raw:
+        resolved = resolve(str(raw), context)
+        return str(Path(str(resolved)) / "debug" / pipeline_name)
+    return str(Path(os.getcwd()) / "outputs" / "debug" / pipeline_name)
+
+
+def _clear_debug_dir(pipeline_config: Dict[str, Any], context: Dict[str, Any], dry_run: bool, pipeline_name: str = "pipeline") -> None:
+    """Clear this pipeline's debug subdirectory at pipeline start (skipped on dry_run)."""
+    if dry_run:
+        return
+    import shutil
+    debug_dir = Path(_get_debug_dir(pipeline_config, context, pipeline_name))
+    if debug_dir.exists():
+        shutil.rmtree(debug_dir)
+    debug_dir.mkdir(parents=True, exist_ok=True)
+
+
 def build_debug_filename(step: Dict[str, Any], context: Dict[str, Any], request_or_response: str) -> str:
     """Build a debug filename from passage (or timestamp), prompt file, and request/response type.
 
@@ -417,6 +441,10 @@ def render_prompt(
 
     logger.debug(f"Loading prompt from: {full_prompt_path}")
     rendered_prompt = full_prompt_path.read_text(encoding="utf-8")
+
+    # Expand {{mixin:path}} directives before contract enforcement and substitution
+    from llmflow.utils.io import expand_mixins
+    rendered_prompt = expand_mixins(rendered_prompt, full_prompt_path)
 
     # ENFORCE PROMPT CONTRACT: Validate that all {{variable}} references are declared
     from llmflow.utils.linter import parse_prompt_header, extract_template_variables
@@ -807,6 +835,29 @@ def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> List[st
     raise ValueError("Invalid saveas configuration type")
 
 
+def _resolve_saveas_path_for_resume(step: dict, context: dict) -> "Path | None":
+    """Return the resolved saveas Path for resume checking, or None if not resolvable."""
+    saveas = step.get("saveas")
+    try:
+        if isinstance(saveas, str):
+            return Path(resolve(saveas, context))
+        if isinstance(saveas, dict):
+            return Path(resolve(saveas.get("path", ""), context))
+    except Exception:
+        pass
+    return None
+
+
+def _load_resume_output(step: dict, path: "Path", context: dict) -> None:
+    """Load file content into the step's declared output variable in context."""
+    content = path.read_text(encoding="utf-8")
+    outputs = step.get("outputs")
+    if isinstance(outputs, str):
+        context[outputs] = content
+    elif isinstance(outputs, list) and outputs:
+        context[outputs[0]] = content
+
+
 def run_step(
     step: Dict[str, Any],
     context: Dict[str, Any],
@@ -836,6 +887,14 @@ def run_step(
                 logger.info(f"⏭️  Skipping step '{step.get('name')}' (condition false)")
                 return None
 
+        # Resume: skip step if its saveas file already exists on disk. See GH #166.
+        if pipeline_config and pipeline_config.get("_resume") and "saveas" in step:
+            _resume_path = _resolve_saveas_path_for_resume(step, context)
+            if _resume_path and _resume_path.exists():
+                _load_resume_output(step, _resume_path, context)
+                logger.info(f"⏭️  Resume: skipping '{step.get('name')}' ({_resume_path.name} exists)")
+                return None
+
         def _execute_once():
             local_after_action = None
 
@@ -856,6 +915,8 @@ def run_step(
                 local_after_action = run_if_step(step, context, pipeline_config)
             elif step_type == "basex":
                 run_basex_step(step, context, pipeline_config)
+            elif step_type == "json":
+                run_json_step(step, context)
             elif step_type == "save":
                 run_save_step(step, context, pipeline_config)
             elif step.get("plugin"):
@@ -1179,7 +1240,7 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
     try:
         if (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
             filename = build_debug_filename(step, context, "request")
-            prompt_path = f"outputs/debug/{filename}"
+            prompt_path = str(Path(_get_debug_dir(pipeline_config, context, pipeline_config.get("_pipeline_name", "pipeline"))) / filename)
             save_content_to_file(rendered_prompt, prompt_path, format="text")
             logger.debug(f"📝 Saved request to {prompt_path}")
     except Exception as e:
@@ -1341,7 +1402,7 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
         try:
             if response_content is not None and (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
                 filename = build_debug_filename(step, context, "response")
-                resp_path = f"outputs/debug/{filename}"
+                resp_path = str(Path(_get_debug_dir(pipeline_config, context, pipeline_config.get("_pipeline_name", "pipeline"))) / filename)
                 save_content_to_file(response_content if isinstance(response_content, str) else str(response_content), resp_path, format="text")
                 logger.debug(f"🗒️ Saved response to {resp_path}")
         except Exception as e:
@@ -1370,6 +1431,20 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
         if mcp_client:
             import asyncio
             asyncio.run(mcp_client._async_close())
+
+
+def run_json_step(
+    step: Dict[str, Any],
+    context: Dict[str, Any],
+) -> None:
+    """Execute a json step — resolve value and store in context under output."""
+    name = step.get("name", "unnamed")
+    output_var = step.get("output")
+    if not output_var:
+        raise ValueError(f"json step '{name}' requires an 'output' key")
+    value = step.get("value")
+    context[output_var] = resolve(value, context)
+    logger.info(f"✅ json step '{name}': stored in context['{output_var}']")
 
 
 def run_save_step(
@@ -2322,6 +2397,7 @@ def run_pipeline(
     log_file='llmflow.log',
     rewind_to: str | None = None,
     stop_after: str | None = None,
+    resume: bool = False,
 ):
     """
     Run a pipeline from a YAML file.
@@ -2344,13 +2420,8 @@ def run_pipeline(
     global WRITTEN_FILES
     WRITTEN_FILES = []
 
-    # Clear debug directory so it only contains output from this run
-    if not dry_run:
-        import shutil
-        debug_dir = Path(os.getcwd()) / "outputs" / "debug"
-        if debug_dir.exists():
-            shutil.rmtree(debug_dir)
-        debug_dir.mkdir(parents=True, exist_ok=True)
+    # Debug dir clear is deferred until after pipeline load so we can resolve
+    # intermediate_file_directory. See _clear_debug_dir() call below.
 
     # Reset logger singleton for new run - ensures log file is overwritten, not appended
     Logger.reset(log_file=log_file)
@@ -2447,13 +2518,36 @@ def run_pipeline(
     # Initialize rewind manager (always record checkpoints; replay only when requested)
     rewind_manager = StepRewindManager(rewind_to=rewind_to)
 
-    # Store telemetry and rewind manager in pipeline config for step access
+    # Store telemetry, rewind manager, and resume flag in pipeline config for step access
     pipeline_config["_telemetry"] = telemetry
     pipeline_config["_rewind_manager"] = rewind_manager
+    pipeline_config["_resume"] = resume
+
+    # Derive pipeline name for debug subdirectory organisation
+    if pipeline_path is not None:
+        pipeline_name = pipeline_path.stem
+    else:
+        raw_name = str(pipeline_config.get("name", "pipeline"))
+        pipeline_name = re.sub(r'[^a-zA-Z0-9-]', '-', raw_name).strip('-').lower()
+    pipeline_config["_pipeline_name"] = pipeline_name
 
     # Initialize context with merged variables (CLI vars override pipeline vars)
     context = {**pipeline_vars, **(vars or {})}
     logger.debug(f"Variables: {vars}")
+
+    # Clear this pipeline's debug subdirectory now that we can resolve intermediate_file_directory
+    _clear_debug_dir(pipeline_config, context, dry_run, pipeline_name)
+
+    # Redirect llmflow.log into debug/{pipeline_name}/ when intermediate_file_directory is declared
+    if pipeline_config.get("intermediate_file_directory") and not dry_run:
+        _debug_log = str(Path(_get_debug_dir(pipeline_config, context, pipeline_name)) / "llmflow.log")
+        Logger.reset(log_file=_debug_log)
+        _ = Logger()
+        linter_cfg = pipeline_config.get("linter_config", {}) or {}
+        if isinstance(linter_cfg, dict) and linter_cfg.get("log_level", "").upper() == "DEBUG":
+            logger.set_level("DEBUG")
+        if verbose:
+            logger.set_level("DEBUG")
 
     # Get steps to execute
     steps = pipeline_root.get("steps", [])
