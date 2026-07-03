@@ -77,6 +77,9 @@ _EXTRA_STEP_KEYS = {
     "variables",
     # json step keys
     "value",
+    # loader step keys
+    "pattern",
+    "delimiter",
     # basex step keys
     "database",
     "query",
@@ -625,9 +628,10 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
         elif isinstance(outs, str):
             declared_outputs.add(outs)
 
-        # json step uses singular 'output' key
-        if step.get("type") == "json" and step.get("output"):
-            declared_outputs.add(step["output"])
+        # json and loader steps use singular 'output' key
+        if step.get("type") in {"json"} | _LOADER_STEP_TYPES:
+            if step.get("output"):
+                declared_outputs.add(step["output"])
 
         # Handle append_to - these create implicit lists
         append_to = step.get("append_to")
@@ -1359,6 +1363,40 @@ def _lint_for_each_group_by(step: dict, errors: list) -> None:
                 )
 
 
+_LOADER_STEP_TYPES = {
+    "load_json", "load_yaml", "load_xml", "load_csv", "load_tsv",
+    "load_text", "load_directory",
+}
+_LOADER_FORMATS = {"json", "yaml", "xml", "csv", "tsv", "text"}
+
+
+def _lint_loader_step(step, errors):
+    name = step.get("name", "<unnamed>")
+    step_type = step.get("type")
+    has_output = step.get("output") or step.get("outputs")
+    if not has_output:
+        errors.append(f"Step '{name}' (type: {step_type}) is missing required key 'output'")
+    if not step.get("path"):
+        errors.append(f"Step '{name}' (type: {step_type}) is missing required key 'path'")
+    elif "${" not in str(step.get("path", "")):
+        path = Path(step["path"])
+        if not path.exists():
+            errors.append(
+                f"Step '{name}' (type: {step_type}): path not found: {step['path']}"
+            )
+    if step_type == "load_directory":
+        if not step.get("pattern"):
+            errors.append(f"Step '{name}' (type: load_directory) is missing required key 'pattern'")
+        fmt = step.get("format")
+        if not fmt:
+            errors.append(f"Step '{name}' (type: load_directory) is missing required key 'format'")
+        elif fmt not in _LOADER_FORMATS:
+            errors.append(
+                f"Step '{name}' (type: load_directory): invalid format '{fmt}'. "
+                f"Must be one of: {sorted(_LOADER_FORMATS)}"
+            )
+
+
 def _lint_json_step(step, errors):
     name = step.get("name", "<unnamed>")
     if not step.get("output"):
@@ -1382,6 +1420,8 @@ def lint_pipeline_steps(steps):
         _lint_conditional_rules(step, errors, "warn")
         if step.get("type") == "json":
             _lint_json_step(step, errors)
+        if step.get("type") in _LOADER_STEP_TYPES:
+            _lint_loader_step(step, errors)
         if step.get("type") == "window":
             _lint_window_step(step, errors)
         if step.get("type") == "for-each":
