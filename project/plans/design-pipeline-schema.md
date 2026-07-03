@@ -587,7 +587,16 @@ LLMFlow matches this with `for:`/`in:` on both step types:
 
 Reads as: *for scene in scene_list* / *for window_batch in scene_list* — identical pattern to XQuery, without the `$`. The existing `input:` and `as:` fields are accepted as deprecated aliases during transition.
 
-Note: the `window` step has additional semantics not captured by `size`/`stride` alone — dynamic window advancement (the current `!window_advance` mechanism) where the end of a window is determined during processing rather than fixed upfront. This aligns with XQuery's `end … when` clause and will be designed separately. The `for`/`in` field naming decision is independent of that design work.
+**Window semantics — fixed start, dynamic end:**
+
+The `window` step has a specific semantic that is not fully captured by `size`/`stride` alone:
+
+- **Start is fixed** — each window begins at a defined position (determined by the stride from the previous window's start).
+- **End is not always known in advance** — a step inside the window can emit `!window_advance` to signal "the boundary is here; start the next window from this point." The window ends when that signal is received, not at a fixed size.
+
+This is the correct model: the pipeline processes the window and discovers the boundary during processing. `!window_advance` is the current mechanism for that signal. In XQuery terms, this corresponds to `end … when` — a condition evaluated during processing — but LLMFlow's model is simpler: any step inside the window can trigger advancement rather than requiring a declarative condition expression.
+
+This semantic must be captured in the schema's `x-semantics` annotation for `window` and documented in the step reference. The `for`/`in` field naming decision is independent of this design.
 
 ### 3. Three patterns for "resolve context values into a step" ✅ DECIDED
 
