@@ -1,0 +1,1023 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nida-institute/LLMFlow/raw/main/src/llmflow/schema/pipeline.schema.json",
+  "title": "LLMFlow Pipeline",
+  "description": "A declarative YAML pipeline for AI-assisted processing using Scripture Pipelines (sp).",
+  "type": "object",
+  "required": ["name", "steps"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable name for this pipeline."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description of what this pipeline does."
+    },
+    "variables": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Pipeline-level variables available to all steps. Values support ${var} substitution for derived variables."
+    },
+    "llm_config": {
+      "$ref": "#/$defs/LlmConfig",
+      "description": "Default LLM configuration applied to all llm steps unless overridden."
+    },
+    "linter_config": {
+      "$ref": "#/$defs/LinterConfig",
+      "description": "Linting behaviour for this pipeline."
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "description": "Ordered list of steps to execute."
+    }
+  },
+
+  "$defs": {
+
+    "Step": {
+      "description": "A single pipeline step. The type field selects which step variant applies.",
+      "oneOf": [
+        { "$ref": "#/$defs/LlmStep" },
+        { "$ref": "#/$defs/FunctionStep" },
+        { "$ref": "#/$defs/ForEachStep" },
+        { "$ref": "#/$defs/WindowStep" },
+        { "$ref": "#/$defs/IfStep" },
+        { "$ref": "#/$defs/JsonStep" },
+        { "$ref": "#/$defs/SaveStep" },
+        { "$ref": "#/$defs/LoadJsonStep" },
+        { "$ref": "#/$defs/LoadYamlStep" },
+        { "$ref": "#/$defs/LoadXmlStep" },
+        { "$ref": "#/$defs/LoadCsvStep" },
+        { "$ref": "#/$defs/LoadTsvStep" },
+        { "$ref": "#/$defs/LoadTextStep" },
+        { "$ref": "#/$defs/LoadDirectoryStep" },
+        { "$ref": "#/$defs/BasexStep" },
+        { "$ref": "#/$defs/DuckdbStep" },
+        { "$ref": "#/$defs/PluginStep" }
+      ]
+    },
+
+    "CommonStepFields": {
+      "description": "Fields available on every step type.",
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique step name within the pipeline. Used in logs, rewind targets, and debug output."
+        },
+        "type": {
+          "type": "string",
+          "description": "Step type discriminator."
+        },
+        "condition": {
+          "type": "string",
+          "description": "Skip this step if the expression is falsy. Supports ${var} references. Example: \"${include_detail}\"."
+        },
+        "saveas": {
+          "$ref": "#/$defs/SaveasValue",
+          "description": "Write this step's output to disk in addition to storing it in context."
+        },
+        "append_to": {
+          "type": "string",
+          "description": "Append this step's output to an existing list variable in context rather than replacing it."
+        },
+        "log": {
+          "type": "string",
+          "enum": ["debug", "info", "warning", "error"],
+          "description": "Override the log level for this step."
+        },
+        "retry": {
+          "$ref": "#/$defs/RetryConfig",
+          "description": "Retry policy if the step output fails validation."
+        },
+        "after": {
+          "type": "string",
+          "description": "Name of a step that must have run before this step (for non-sequential ordering)."
+        }
+      }
+    },
+
+    "LlmStep": {
+      "description": "Runs a prompt through an LLM and stores the response in context.\n\nflow: once | effect: llm | idempotent: false",
+      "x-handler": "llmflow.steps.llm.execute",
+      "x-resolve-fields": ["model", "max_tokens", "max_completion_tokens", "temperature", "timeout_seconds", "reasoning_effort"],
+      "x-resolve-inputs-map": true,
+      "x-output-field": "output",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "llm",
+        "reads": ["prompt.inputs.*"],
+        "writes": "output",
+        "write-mode": "single",
+        "idempotent": false
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "llm" },
+            "prompt": {
+              "$ref": "#/$defs/PromptConfig",
+              "description": "Prompt file and inputs."
+            },
+            "model": {
+              "type": "string",
+              "description": "Override the pipeline-level model for this step. Example: \"gpt-4o\", \"claude-3.5-sonnet\"."
+            },
+            "output": {
+              "type": "string",
+              "description": "Context variable to store the LLM response."
+            },
+            "outputs": {
+              "type": "string",
+              "description": "Deprecated: use output (singular).",
+              "deprecated": true
+            },
+            "output_type": {
+              "type": "string",
+              "enum": ["json", "text"],
+              "description": "Parse the LLM response as JSON before storing. Default: text."
+            },
+            "response_format": {
+              "$ref": "#/$defs/ResponseFormatConfig",
+              "description": "OpenAI structured output schema. Guarantees valid JSON conforming to a declared schema."
+            },
+            "max_tokens": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum output tokens for this step."
+            },
+            "max_completion_tokens": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Alias for max_tokens used by some model families."
+            },
+            "temperature": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2,
+              "description": "Sampling temperature. 0 = deterministic, 2 = very random."
+            },
+            "timeout_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Seconds before the LLM call is abandoned."
+            },
+            "reasoning_effort": {
+              "type": "string",
+              "enum": ["low", "medium", "high"],
+              "description": "Reasoning effort for models that support extended thinking."
+            },
+            "llm_options": {
+              "type": "object",
+              "description": "Additional LLM provider options passed through directly.",
+              "additionalProperties": true
+            },
+            "mcp": {
+              "type": "object",
+              "description": "MCP (Model Context Protocol) server configuration for tool-calling steps.",
+              "additionalProperties": true
+            },
+            "template": {
+              "type": "string",
+              "description": "Markdown template file to format the LLM response into a final artifact."
+            },
+            "format_with": {
+              "type": "string",
+              "description": "Alias for template.",
+              "deprecated": true
+            }
+          },
+          "required": ["type", "prompt"]
+        }
+      ]
+    },
+
+    "FunctionStep": {
+      "description": "Calls a Python function from the LLMFlow library or custom plugin code.\n\nflow: once | effect: function (arbitrary) | idempotent: unknown",
+      "x-handler": "llmflow.steps.function.execute",
+      "x-resolve-inputs-map": true,
+      "x-output-field": "output",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "function",
+        "reads": ["inputs.*"],
+        "writes": "output",
+        "write-mode": "single",
+        "idempotent": "unknown"
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "function" },
+            "function": {
+              "type": "string",
+              "description": "Dotted Python path to the function. Example: \"llmflow.utils.data.parse_bible_reference\"."
+            },
+            "inputs": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Map of argument name to ${expression}. Resolved from context before the function is called."
+            },
+            "output": {
+              "type": "string",
+              "description": "Context variable to store the function return value."
+            },
+            "outputs": {
+              "type": "string",
+              "description": "Deprecated: use output (singular).",
+              "deprecated": true
+            }
+          },
+          "required": ["type", "function"]
+        }
+      ]
+    },
+
+    "ForEachStep": {
+      "description": "Executes a block of steps once for each element of a list, following XQuery for/in syntax.\n\n  for: scene          (binding variable — the current element)\n  in: \"${scene_list}\" (the list to iterate over)\n\nflow: foreach(in, for) | effect: contains-steps | idempotent: depends",
+      "x-handler": "llmflow.steps.control.execute_foreach",
+      "x-nested-steps": "steps",
+      "x-semantics": {
+        "flow": { "type": "foreach", "in": "in", "for": "for" },
+        "effect": "contains-steps",
+        "reads": ["in"],
+        "writes": "append_to",
+        "write-mode": "append",
+        "idempotent": "depends"
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "for-each" },
+            "for": {
+              "type": "string",
+              "description": "Name of the loop variable bound to each element. Follows XQuery: for $scene in $list."
+            },
+            "in": {
+              "type": "string",
+              "description": "Context variable resolving to the list to iterate over. Follows XQuery: for $scene in $list."
+            },
+            "item_var": {
+              "type": "string",
+              "description": "Deprecated: use for.",
+              "deprecated": true
+            },
+            "input": {
+              "type": "string",
+              "description": "Deprecated: use in.",
+              "deprecated": true
+            },
+            "as": {
+              "type": "string",
+              "description": "Deprecated: use for.",
+              "deprecated": true
+            },
+            "steps": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/Step" },
+              "description": "Steps to execute for each element."
+            },
+            "parallel": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Number of iterations to run in parallel. Default: 1 (sequential)."
+            },
+            "group-by": {
+              "type": "string",
+              "description": "Group iterations by this expression before processing."
+            },
+            "order-by": {
+              "type": "string",
+              "description": "Sort the list by this expression before iterating."
+            },
+            "debug_label": {
+              "type": "string",
+              "description": "Template for per-iteration log labels. Supports ${var} substitution."
+            }
+          },
+          "required": ["type", "steps"]
+        }
+      ]
+    },
+
+    "WindowStep": {
+      "description": "Slides a window over a list, executing nested steps for each window.\n\nThe start of each window is fixed (position-based). The end is either fixed (size)\nor determined dynamically when a nested step emits !window_advance — aligned with\nXQuery's 'end when' semantic. Follows XQuery for/in syntax:\n\n  for: window_batch\n  in: \"${scene_list}\"\n\nflow: window(in, for) | effect: contains-steps | idempotent: depends",
+      "x-handler": "llmflow.steps.control.execute_window",
+      "x-nested-steps": "steps",
+      "x-semantics": {
+        "flow": { "type": "window", "in": "in", "for": "for" },
+        "effect": "contains-steps",
+        "reads": ["in"],
+        "writes": "append_to",
+        "write-mode": "append",
+        "idempotent": "depends"
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "window" },
+            "for": {
+              "type": "string",
+              "description": "Name of the loop variable bound to each window (list of elements). Follows XQuery: for $w in $list."
+            },
+            "in": {
+              "type": "string",
+              "description": "Context variable resolving to the list to window over. Follows XQuery: for $w in $list."
+            },
+            "item_var": {
+              "type": "string",
+              "description": "Deprecated: use for.",
+              "deprecated": true
+            },
+            "input": {
+              "type": "string",
+              "description": "Deprecated: use in.",
+              "deprecated": true
+            },
+            "over": {
+              "type": "string",
+              "description": "Deprecated: use in.",
+              "deprecated": true
+            },
+            "as": {
+              "type": "string",
+              "description": "Deprecated: use for.",
+              "deprecated": true
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Fixed window size in elements. If omitted, end is determined dynamically by !window_advance."
+            },
+            "stride": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Number of elements to advance after each window. Default: same as size (tumbling). Less than size = sliding."
+            },
+            "include_partial": {
+              "type": "boolean",
+              "description": "Include the final window if it is smaller than size. Default: true.",
+              "default": true
+            },
+            "start_when": {
+              "type": "string",
+              "description": "Expression evaluated on each element to determine window start. Aligns with XQuery 'start when'."
+            },
+            "end_when": {
+              "type": "string",
+              "description": "Expression evaluated during processing to determine window end. Aligns with XQuery 'end when'. Alternative to !window_advance."
+            },
+            "size_by_tokens": {
+              "type": "integer",
+              "description": "Token-based window size. Requires model to be set for tokenisation."
+            },
+            "stride_by_tokens": {
+              "type": "integer",
+              "description": "Token-based stride. Default: 0."
+            },
+            "model": {
+              "type": "string",
+              "description": "Model used for token counting when size_by_tokens is set."
+            },
+            "steps": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/Step" },
+              "description": "Steps to execute for each window."
+            }
+          },
+          "required": ["type", "steps"]
+        }
+      ]
+    },
+
+    "IfStep": {
+      "description": "Conditionally executes a block of steps.\n\nflow: conditional(condition) | effect: contains-steps | idempotent: depends",
+      "x-handler": "llmflow.steps.control.execute_if",
+      "x-nested-steps": ["steps", "else"],
+      "x-semantics": {
+        "flow": { "type": "conditional", "condition": "condition" },
+        "effect": "contains-steps",
+        "reads": ["condition"],
+        "writes": null,
+        "write-mode": null,
+        "idempotent": "depends"
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "if" },
+            "condition": {
+              "type": "string",
+              "description": "Expression evaluated before the block runs. If falsy, the block is skipped. Supports ${var} references."
+            },
+            "steps": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/Step" },
+              "description": "Steps to execute when condition is truthy."
+            },
+            "else": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/Step" },
+              "description": "Optional steps to execute when condition is falsy."
+            }
+          },
+          "required": ["type", "condition", "steps"]
+        }
+      ]
+    },
+
+    "JsonStep": {
+      "description": "Assembles a structured value from context variables and stores it in context. No I/O.\n\nflow: once | effect: pure | idempotent: true",
+      "x-handler": "llmflow.steps.json_step.execute",
+      "x-output-field": "output",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "pure",
+        "reads": ["value"],
+        "writes": "output",
+        "write-mode": "single",
+        "idempotent": true
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "json" },
+            "value": {
+              "description": "The value to store. May be a scalar, map, or list. Strings support ${var} substitution."
+            },
+            "output": {
+              "type": "string",
+              "description": "Context variable to store the assembled value."
+            }
+          },
+          "required": ["type", "value", "output"]
+        }
+      ]
+    },
+
+    "SaveStep": {
+      "description": "Writes content to a file. Terminal step — produces no context variable.\nUse saveas on another step to write output to disk while also storing it in context.\n\nflow: once | effect: file-write | idempotent: true",
+      "x-handler": "llmflow.steps.save.execute",
+      "x-resolve-fields": ["content", "path"],
+      "x-semantics": {
+        "flow": "once",
+        "effect": "file-write",
+        "reads": ["content", "path"],
+        "writes": null,
+        "write-mode": null,
+        "idempotent": true
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "save" },
+            "content": {
+              "type": "string",
+              "description": "Content to write. Supports ${var} substitution."
+            },
+            "path": {
+              "type": "string",
+              "description": "Output file path. Supports ${var} substitution. Parent directories are created automatically."
+            }
+          },
+          "required": ["type", "content", "path"]
+        }
+      ]
+    },
+
+    "LoadJsonStep": {
+      "description": "Loads a JSON file into context as a dict or list.\n\nflow: once | effect: file-read | idempotent: true",
+      "x-handler": "llmflow.steps.loaders.run_load_json",
+      "x-resolve-fields": ["path"],
+      "x-output-field": "output",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "file-read",
+        "reads": ["path"],
+        "writes": "output",
+        "write-mode": "single",
+        "idempotent": true
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "load_json" },
+            "path": { "$ref": "#/$defs/LoadPath" },
+            "output": { "$ref": "#/$defs/OutputField" }
+          },
+          "required": ["type", "path", "output"]
+        }
+      ]
+    },
+
+    "LoadYamlStep": {
+      "description": "Loads a YAML file into context as a dict or list.\n\nflow: once | effect: file-read | idempotent: true",
+      "x-handler": "llmflow.steps.loaders.run_load_yaml",
+      "x-resolve-fields": ["path"],
+      "x-output-field": "output",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "file-read",
+        "reads": ["path"],
+        "writes": "output",
+        "write-mode": "single",
+        "idempotent": true
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "load_yaml" },
+            "path": { "$ref": "#/$defs/LoadPath" },
+            "output": { "$ref": "#/$defs/OutputField" }
+          },
+          "required": ["type", "path", "output"]
+        }
+      ]
+    },
+
+    "LoadXmlStep": {
+      "description": "Loads an XML file into context as an lxml.etree._Element. Supports XPath and XSLT downstream.\n\nflow: once | effect: file-read | idempotent: true",
+      "x-handler": "llmflow.steps.loaders.run_load_xml",
+      "x-resolve-fields": ["path"],
+      "x-output-field": "output",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "file-read",
+        "reads": ["path"],
+        "writes": "output",
+        "write-mode": "single",
+        "idempotent": true
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "load_xml" },
+            "path": { "$ref": "#/$defs/LoadPath" },
+            "output": { "$ref": "#/$defs/OutputField" }
+          },
+          "required": ["type", "path", "output"]
+        }
+      ]
+    },
+
+    "LoadCsvStep": {
+      "description": "Loads a CSV file into context as a list of dicts (one dict per row, keys from header).\n\nflow: once | effect: file-read | idempotent: true",
+      "x-handler": "llmflow.steps.loaders.run_load_csv",
+      "x-resolve-fields": ["path"],
+      "x-output-field": "output",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "file-read",
+        "reads": ["path"],
+        "writes": "output",
+        "write-mode": "list",
+        "idempotent": true
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "load_csv" },
+            "path": { "$ref": "#/$defs/LoadPath" },
+            "output": { "$ref": "#/$defs/OutputField" },
+            "delimiter": {
+              "type": "string",
+              "default": ",",
+              "description": "Field delimiter. Default: comma. Use \"\\t\" to read TSV files via load_csv."
+            }
+          },
+          "required": ["type", "path", "output"]
+        }
+      ]
+    },
+
+    "LoadTsvStep": {
+      "description": "Loads a TSV file into context as a list of dicts. Shorthand for load_csv with delimiter: \"\\t\".\n\nflow: once | effect: file-read | idempotent: true",
+      "x-handler": "llmflow.steps.loaders.run_load_tsv",
+      "x-resolve-fields": ["path"],
+      "x-output-field": "output",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "file-read",
+        "reads": ["path"],
+        "writes": "output",
+        "write-mode": "list",
+        "idempotent": true
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "load_tsv" },
+            "path": { "$ref": "#/$defs/LoadPath" },
+            "output": { "$ref": "#/$defs/OutputField" },
+            "delimiter": {
+              "type": "string",
+              "default": "\t",
+              "description": "Field delimiter. Default: tab."
+            }
+          },
+          "required": ["type", "path", "output"]
+        }
+      ]
+    },
+
+    "LoadTextStep": {
+      "description": "Loads a text or Markdown file into context as a string.\n\nflow: once | effect: file-read | idempotent: true",
+      "x-handler": "llmflow.steps.loaders.run_load_text",
+      "x-resolve-fields": ["path"],
+      "x-output-field": "output",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "file-read",
+        "reads": ["path"],
+        "writes": "output",
+        "write-mode": "single",
+        "idempotent": true
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "load_text" },
+            "path": { "$ref": "#/$defs/LoadPath" },
+            "output": { "$ref": "#/$defs/OutputField" }
+          },
+          "required": ["type", "path", "output"]
+        }
+      ]
+    },
+
+    "LoadDirectoryStep": {
+      "description": "Loads all files matching a glob pattern from a directory into a list. Files are parsed per format and returned in sorted filename order.\n\nflow: once | effect: file-read | idempotent: true",
+      "x-handler": "llmflow.steps.loaders.run_load_directory",
+      "x-resolve-fields": ["path"],
+      "x-output-field": "output",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "file-read",
+        "reads": ["path"],
+        "writes": "output",
+        "write-mode": "list",
+        "idempotent": true
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "load_directory" },
+            "path": {
+              "type": "string",
+              "description": "Directory path. Supports ${var} substitution."
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Glob pattern relative to path. Example: \"*.json\", \"*.md\"."
+            },
+            "format": {
+              "type": "string",
+              "enum": ["json", "yaml", "xml", "csv", "tsv", "text"],
+              "description": "How to parse each matched file."
+            },
+            "output": { "$ref": "#/$defs/OutputField" }
+          },
+          "required": ["type", "path", "pattern", "format", "output"]
+        }
+      ]
+    },
+
+    "BasexStep": {
+      "description": "Runs an XQuery against a local BaseX database via the basex CLI.\n\nflow: once | effect: db | idempotent: true",
+      "x-handler": "llmflow.steps.basex.execute",
+      "x-resolve-fields": ["timeout"],
+      "x-resolve-inputs-map": true,
+      "x-output-field": "output",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "db",
+        "reads": ["inputs.*"],
+        "writes": "output",
+        "write-mode": "single",
+        "idempotent": true
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "basex" },
+            "query_file": {
+              "type": "string",
+              "description": "Path to an .xq XQuery file. Exactly one of query_file or query is required."
+            },
+            "query": {
+              "type": "string",
+              "description": "Inline XQuery expression. Exactly one of query_file or query is required."
+            },
+            "inputs": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Map of XQuery external variable name to ${expression}. Resolved from context and substituted into the query."
+            },
+            "params": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Deprecated: use inputs.",
+              "deprecated": true
+            },
+            "timeout": {
+              "type": "integer",
+              "default": 120,
+              "description": "Seconds before the BaseX process is killed. Default: 120."
+            },
+            "output": { "$ref": "#/$defs/OutputField" }
+          },
+          "required": ["type", "output"]
+        }
+      ]
+    },
+
+    "DuckdbStep": {
+      "description": "Runs a SQL query via DuckDB and stores the result in context.\n\nflow: once | effect: db | idempotent: true",
+      "x-handler": "llmflow.steps.duckdb_step.execute",
+      "x-resolve-inputs-map": true,
+      "x-output-field": "output",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "db",
+        "reads": ["inputs.*"],
+        "writes": "output",
+        "write-mode": "single",
+        "idempotent": true
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "duckdb" },
+            "query": {
+              "type": "string",
+              "description": "SQL query to execute."
+            },
+            "query_file": {
+              "type": "string",
+              "description": "Path to a .sql file. Exactly one of query or query_file is required."
+            },
+            "inputs": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Map of context variable name to context key. Registers context values as DuckDB tables or parameters."
+            },
+            "format": {
+              "type": "string",
+              "enum": ["records", "df", "arrow"],
+              "default": "records",
+              "description": "Output format. records = list of dicts. Default: records."
+            },
+            "output": { "$ref": "#/$defs/OutputField" }
+          },
+          "required": ["type", "output"]
+        }
+      ]
+    },
+
+    "PluginStep": {
+      "description": "A registered plugin step type (xpath, xslt, tsv, or user-installed plugins). The type field must match a registered plugin name. All additional fields are passed to the plugin function.",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "function",
+        "reads": ["inputs.*"],
+        "writes": "output",
+        "write-mode": "single",
+        "idempotent": "unknown"
+      },
+      "allOf": [
+        { "$ref": "#/$defs/CommonStepFields" },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Registered plugin name. Built-in: xpath, xslt, tsv."
+            },
+            "inputs": {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "Plugin inputs. Shape is plugin-specific."
+            },
+            "output": { "$ref": "#/$defs/OutputField" }
+          }
+        }
+      ]
+    },
+
+    "PromptConfig": {
+      "description": "Prompt configuration for an llm step.",
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Path to a .gpt prompt file. Relative to the pipeline file."
+        },
+        "text": {
+          "type": "string",
+          "description": "Inline prompt text. Supports {{var}} substitution."
+        },
+        "system": {
+          "type": "string",
+          "description": "System message override."
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Map of prompt variable name to ${expression}. Must satisfy the prompt file's requires: contract."
+        }
+      }
+    },
+
+    "LlmConfig": {
+      "description": "Default LLM settings applied pipeline-wide. Individual steps may override.",
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string",
+          "description": "Default model. Example: \"gpt-4o\", \"claude-3.5-sonnet\", \"gemini-2.5-flash\"."
+        },
+        "max_tokens": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Default maximum output tokens."
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Default sampling temperature."
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Default LLM call timeout in seconds."
+        }
+      }
+    },
+
+    "LinterConfig": {
+      "description": "Controls linting behaviour for this pipeline.",
+      "type": "object",
+      "properties": {
+        "warnings_as_errors": {
+          "type": "boolean",
+          "description": "Treat linter warnings as errors. Default: false.",
+          "default": false
+        }
+      }
+    },
+
+    "RetryConfig": {
+      "description": "Retry policy for a step. The step is re-run if the output fails any declared constraint.",
+      "type": "object",
+      "properties": {
+        "max_attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 3,
+          "description": "Maximum number of attempts including the first. Default: 3."
+        },
+        "min_length": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Retry if the output is shorter than this many characters."
+        },
+        "max_length": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Retry if the output is longer than this many characters."
+        },
+        "must_contain": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ],
+          "description": "Retry if the output does not contain this string or any string in this list."
+        },
+        "backoff_seconds": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Seconds to wait between attempts. Default: 0."
+        }
+      }
+    },
+
+    "SaveasValue": {
+      "description": "Write output to disk. Either a file path string or a config object.",
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "File path. Supports ${var} substitution. Format is auto-detected from extension."
+        },
+        { "$ref": "#/$defs/SaveasConfig" }
+      ]
+    },
+
+    "SaveasConfig": {
+      "description": "Explicit saveas configuration.",
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Output file path. Supports ${var} substitution."
+        },
+        "format": {
+          "type": "string",
+          "enum": ["json", "yaml", "text", "markdown", "auto"],
+          "default": "auto",
+          "description": "Output format. Default: auto-detected from file extension."
+        },
+        "encoding": {
+          "type": "string",
+          "default": "utf-8",
+          "description": "File encoding. Default: utf-8."
+        }
+      }
+    },
+
+    "ResponseFormatConfig": {
+      "description": "OpenAI structured output configuration. Guarantees valid JSON conforming to a JSON Schema.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["json_schema", "json_object"],
+          "description": "json_schema: enforce full schema (recommended). json_object: force JSON but no schema validation."
+        },
+        "json_schema": {
+          "type": "object",
+          "description": "Schema definition. Only used when type is json_schema.",
+          "properties": {
+            "name": { "type": "string" },
+            "strict": {
+              "type": "boolean",
+              "default": true,
+              "description": "Require strict schema adherence. Recommended: true."
+            },
+            "schema": {
+              "type": "object",
+              "description": "JSON Schema definition of the expected response structure."
+            }
+          }
+        }
+      },
+      "required": ["type"]
+    },
+
+    "LoadPath": {
+      "type": "string",
+      "description": "File path. Supports ${var} substitution. Static paths are checked for existence at lint time; paths containing ${...} are checked at runtime."
+    },
+
+    "OutputField": {
+      "type": "string",
+      "description": "Context variable name to store the result. Use output (singular)."
+    }
+
+  }
+}
