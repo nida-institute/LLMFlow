@@ -353,6 +353,171 @@ After this design:
 
 ---
 
+## Step Semantics — A Formal Description Language
+
+The `x-` dispatch annotations tell the runner *how* to execute a step. A separate `x-semantics` annotation tells the system *what* a step *means* — how it transforms the pipeline context, what kind of effects it produces, and whether it can be safely replayed.
+
+This is a small, closed vocabulary. It is not Turing-complete. Its job is to make the operational behavior of every step type formally stated and machine-readable.
+
+### The four semantic dimensions
+
+#### 1. Flow — control structure
+
+How many times does this step execute, and over what?
+
+| Value | Meaning |
+|-------|---------|
+| `once` | Executes exactly once (most steps) |
+| `foreach(over, as)` | Executes once per element of the list in `over`, binding each to `as` |
+| `window(over, size, stride, as)` | Executes once per window of the list in `over` |
+| `conditional(condition)` | Executes zero or one times depending on `condition` |
+
+#### 2. Effect — I/O character
+
+What does this step do outside the pipeline context?
+
+| Value | Meaning |
+|-------|---------|
+| `pure` | No I/O; result is fully determined by context inputs |
+| `file-read` | Reads from the filesystem |
+| `file-write` | Writes to the filesystem |
+| `llm` | Makes an LLM API call (non-deterministic, has cost) |
+| `db` | Issues a database query (BaseX, DuckDB) |
+| `function` | Calls arbitrary Python (effects unknown to the schema) |
+| `contains-steps` | Effect is determined by its nested steps |
+
+#### 3. Context — reads and writes
+
+What does this step consume from the pipeline context, and what does it produce?
+
+```
+reads:  [list of field names or "inputs.*" for map inputs]
+writes: [variable name(s) bound after execution]
+write-mode: single | list | append
+```
+
+`reads` entries correspond to resolved fields — values that come from the context via `${var}` substitution. `writes` is the variable name taken from the step's output field. `write-mode` is:
+- `single` — writes one scalar value
+- `list` — writes a list value
+- `append` — appends to an existing list (`append_to` pattern)
+
+#### 4. Idempotent — replay safety
+
+Can this step be safely re-run without unintended side effects?
+
+| Value | Meaning |
+|-------|---------|
+| `true` | Re-running produces the same result; no durable side effects |
+| `false` | Re-running may produce a different result or incur costs (LLM calls) |
+| `depends` | Idempotency depends on the nested steps (for `for-each`, `if`) |
+
+This drives resume and checkpoint logic: non-idempotent steps should declare `saveas` so the runner can skip them on replay.
+
+---
+
+### Semantic table — all core step types
+
+| Step type | flow | effect | reads | writes | write-mode | idempotent |
+|-----------|------|--------|-------|--------|------------|------------|
+| `llm` | once | llm | inputs.* | outputs | single | false |
+| `function` | once | function | inputs.* | outputs | single | unknown |
+| `for-each` | foreach(input, as) | contains-steps | input | append_to? | append | depends |
+| `window` | window(input, size, stride, as) | contains-steps | input | append_to? | append | depends |
+| `if` | conditional(condition) | contains-steps | condition | — | — | depends |
+| `json` | once | pure | value | output | single | true |
+| `save` | once | file-write | content, path | — | — | true |
+| `load_json` | once | file-read | path | output | single | true |
+| `load_yaml` | once | file-read | path | output | single | true |
+| `load_xml` | once | file-read | path | output | single | true |
+| `load_csv` | once | file-read | path | output | list | true |
+| `load_tsv` | once | file-read | path | output | list | true |
+| `load_text` | once | file-read | path | output | single | true |
+| `load_directory` | once | file-read | path | output | list | true |
+| `basex` | once | db | params.* | outputs | single | true |
+| `duckdb` | once | db | inputs.* | outputs | single | true |
+
+---
+
+### Schema annotation
+
+In the JSON Schema, `x-semantics` sits alongside `x-handler`:
+
+```json
+{
+  "$defs": {
+    "LlmStep": {
+      "x-handler": "llmflow.steps.llm.execute",
+      "x-resolve-fields": ["model", "max_tokens", "temperature"],
+      "x-resolve-inputs-map": true,
+      "x-output-field": "outputs",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "llm",
+        "reads": ["inputs.*"],
+        "writes": "outputs",
+        "write-mode": "single",
+        "idempotent": false
+      },
+      "properties": { ... }
+    },
+    "ForEachStep": {
+      "x-handler": "llmflow.steps.control.execute_foreach",
+      "x-nested-steps": "steps",
+      "x-semantics": {
+        "flow": { "type": "foreach", "over": "input", "as": "as" },
+        "effect": "contains-steps",
+        "reads": ["input"],
+        "writes": "append_to",
+        "write-mode": "append",
+        "idempotent": "depends"
+      },
+      "properties": { ... }
+    },
+    "LoadJsonStep": {
+      "x-handler": "llmflow.steps.loaders.run_load_json",
+      "x-resolve-fields": ["path"],
+      "x-output-field": "output",
+      "x-semantics": {
+        "flow": "once",
+        "effect": "file-read",
+        "reads": ["path"],
+        "writes": "output",
+        "write-mode": "single",
+        "idempotent": true
+      },
+      "properties": { ... }
+    }
+  }
+}
+```
+
+---
+
+### What the runtime can derive from semantics
+
+#### Static analysis (linter)
+
+- **Unresolved reads**: if step B reads a variable that no prior step writes and it is not declared in `variables:`, flag it.
+- **Missing saveas on non-idempotent steps**: if a step has `idempotent: false` and no `saveas`, warn — it cannot be resumed.
+- **Dead writes**: if a step writes a variable that no subsequent step reads and it has no `saveas`, warn (likely a bug).
+- **Effect summary**: report how many LLM calls, file reads, and file writes a pipeline will perform — shown on `sp lint` and `sp run --dry-run`.
+
+#### Dry-run
+
+With semantics declared, a dry-run can trace the full pipeline execution symbolically — showing which variables are written at each step, which LLM calls would be made, and which files would be read or written — without invoking any handler.
+
+#### Resume / checkpointing
+
+The runner already supports `saveas`-based resume. With `idempotent` declared in the schema, it can:
+- Automatically skip `idempotent: true` steps whose declared output already exists in context (re-derive from source rather than needing a checkpoint)
+- Require `saveas` on `idempotent: false` steps that appear before any resumable boundary
+
+#### Future: parallel execution
+
+Steps whose `reads` and `writes` sets are disjoint and whose effects are both `file-read` or `pure` have no data dependency and no shared side effects. The runner could execute them concurrently. The semantics make this analysis possible without inspecting handler code.
+
+---
+
 ## Integration Points
 
 ### 1. VS Code autocompletion (immediate value)
@@ -407,8 +572,12 @@ Once stable, submit to [SchemaStore](https://www.schemastore.org/json/) so that 
 6. **Migrate step types one at a time** — start with the simplest (`load_json`, `json`, `save`), validate against existing tests, then move to complex ones (`llm`, `for-each`, `if`). The old `elif` chain shrinks to zero.
 
 ### Phase 3 — Linter and docs
-7. **Migrate linter** — replace ad-hoc field checks with JSON Schema validation via `jsonschema` package; retain semantic checks (path existence, variable references, prompt contracts).
-8. **Write `tools/generate_schema_docs.py`** — render schema to `docs/llmflow-step-reference.md`; this becomes the authoritative reference.
+7. **Migrate linter** — replace ad-hoc field checks with JSON Schema validation via `jsonschema` package; add semantic analysis (dependency ordering, missing saveas on non-idempotent steps, dead writes, effect summary).
+8. **Write `tools/generate_schema_docs.py`** — render schema + semantics to `docs/llmflow-step-reference.md`; this becomes the authoritative reference, generated not hand-maintained.
 9. **Submit to SchemaStore** (post-stabilization).
 
 Phase 1 can ship alone and delivers immediate value (editor tooling). Phases 2 and 3 follow in order.
+
+### Semantic vocabulary stability
+
+The semantic vocabulary (`flow`, `effect`, `reads`, `writes`, `write-mode`, `idempotent`) should be treated as a stable interface once Phase 2 ships. Changes to the vocabulary require updating every step type definition. Additions (new `effect` values, new `flow` types) are backward-compatible; removals are breaking.
