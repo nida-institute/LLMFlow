@@ -840,9 +840,9 @@ def _resolve_saveas_path_for_resume(step: dict, context: dict) -> "Path | None":
     saveas = step.get("saveas")
     try:
         if isinstance(saveas, str):
-            return Path(resolve(saveas, context))
+            return Path(str(resolve(saveas, context)))
         if isinstance(saveas, dict):
-            return Path(resolve(saveas.get("path", ""), context))
+            return Path(str(resolve(saveas.get("path", ""), context)))
     except Exception:
         pass
     return None
@@ -1471,7 +1471,7 @@ def run_load_step(step: Dict[str, Any], context: Dict[str, Any]) -> None:
     if isinstance(output_var, list):
         output_var = output_var[0]
 
-    path = resolve(step.get("path", ""), context)
+    path = str(resolve(step.get("path", ""), context))
 
     if step_type == "load_directory":
         pattern = step.get("pattern")

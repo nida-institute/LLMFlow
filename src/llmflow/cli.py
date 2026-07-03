@@ -120,7 +120,8 @@ def build_parser():
         help="Re-run setup to update keys or add new providers",
     )
 
-    subparsers.add_parser("models", help="List available models by provider")
+    models_p = subparsers.add_parser("models", help="List available models by provider")
+    models_p.add_argument("--update", action="store_true", help="Update model pricing from installed llm plugins")
     subparsers.add_parser("update-ai-context", help="Regenerate docs/ai-context/ helper files for AI assistants")
 
     # download-data command
@@ -160,8 +161,6 @@ def build_parser():
     # registry context
     reg_sub.add_parser("context", help="Generate AI context from registry")
 
-    # registry update-models
-    reg_sub.add_parser("update-models", help="Update model pricing/limits from GitHub")
 
     # context command
     ctx_p = subparsers.add_parser("context", help="Manage AI context files (docs/ai-context/)")
@@ -430,6 +429,9 @@ def main(argv=None):
         return
 
     if args.command == "models":
+        if getattr(args, "update", False):
+            from llmflow.setup_command import run_models_update
+            sys.exit(0 if run_models_update() else 1)
         from llmflow.setup_command import run_models
         run_models()
         return
@@ -546,13 +548,6 @@ def main(argv=None):
         elif args.registry_command == "context":
             # Generate AI context
             print(registry.generate_ai_context())
-
-        elif args.registry_command == "update-models":
-            # Update model metadata from GitHub
-            from llmflow.modules.telemetry import update_models_from_github
-
-            success = update_models_from_github()
-            sys.exit(0 if success else 1)
 
         return
 
@@ -794,6 +789,11 @@ def main(argv=None):
             logger.error(f"❌ Permission denied: {e}")
             logger.error("   💡 Tip: Check file/directory permissions")
             sys.exit(1)
+
+        from llmflow.modules.telemetry import models_data_age_days
+        age = models_data_age_days()
+        if age is not None and age > 60:
+            logger.info(f"💡 Model pricing data is {age} days old. Run `sp models --update` to refresh.")
         return
 
     parser.print_help()

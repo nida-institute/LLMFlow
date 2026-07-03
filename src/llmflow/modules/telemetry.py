@@ -14,8 +14,6 @@ from typing import Optional, List, Dict, Any
 import time
 import json
 import importlib.resources
-import urllib.request
-import urllib.error
 from pathlib import Path
 
 from llmflow.modules.logger import Logger
@@ -207,56 +205,76 @@ def supports_json_schema(model: str) -> bool:
     return metadata["json_schema"] if metadata else False
 
 
-def update_models_from_github(target_path: Optional[Path] = None) -> bool:
-    """Update models.json from GitHub main branch.
+def discover_new_models() -> List[str]:
+    """Query installed llm plugins for available model IDs not covered by models.json.
+
+    Returns model IDs that don't match any existing pattern — these are candidates
+    for adding pricing entries.
+    """
+    try:
+        import llm as llm_pkg
+    except ImportError:
+        logger.error("❌ 'llm' package not available")
+        return []
+
+    available = [m.model_id for m in llm_pkg.get_models()]
+    return [mid for mid in available if get_pricing_family(mid) is None]
+
+
+def get_models_data() -> Dict[str, Any]:
+    """Return a fresh (non-cached) copy of models.json data for editing."""
+    models_file = _find_models_file()
+    if not models_file.exists():
+        return {
+            "metadata_version": "1.0",
+            "last_updated": "unknown",
+            "models": {},
+            "model_patterns": {},
+        }
+    with open(models_file, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_models_json(data: Dict[str, Any], target_path: Optional[Path] = None) -> bool:
+    """Stamp today's date on data and write models.json to disk.
 
     Args:
-        target_path: Path to save models.json (default: data/models.json in package)
+        data: Full models.json structure (will have last_updated overwritten).
+        target_path: Override destination path (default: repo data/models.json).
 
     Returns:
-        True if update successful, False otherwise
+        True on success.
     """
-    url = "https://raw.githubusercontent.com/nida-institute/LLMFlow/main/data/models.json"
+    from datetime import date as _date
+
+    data["last_updated"] = str(_date.today())
 
     if target_path is None:
-        # __file__ = src/llmflow/modules/telemetry.py
-        # .parent.parent.parent.parent = repo root
-        target_path = Path(__file__).parent.parent.parent.parent / "data" / "models.json"
+        target_path = _find_models_file()
 
     try:
-        logger.info(f"📡 Fetching latest model metadata from GitHub...")
-        with urllib.request.urlopen(url, timeout=10) as response:
-            data = json.loads(response.read().decode('utf-8'))
-
-        # Validate basic structure
-        required_keys = {"metadata_version", "last_updated", "models", "model_patterns"}
-        if not all(k in data for k in required_keys):
-            logger.error("❌ Invalid model metadata format from GitHub")
-            return False
-
-        # Write to file
         target_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(target_path, 'w', encoding='utf-8') as f:
+        with open(target_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-            f.write('\n')  # Add trailing newline
+            f.write("\n")
 
-        logger.info(f"✅ Updated model metadata to version {data['metadata_version']}")
-        logger.info(f"   Last updated: {data['last_updated']}")
-        logger.info(f"   Models: {len(data['models'])}")
-
-        # Clear cache to force reload
         global _models_cache
         _models_cache = None
-
         return True
-
-    except urllib.error.URLError as e:
-        logger.error(f"❌ Failed to fetch from GitHub: {e}")
-        logger.error("   Check your internet connection or try again later.")
-        return False
     except Exception as e:
-        logger.error(f"❌ Failed to update model metadata: {e}")
+        logger.error(f"❌ Failed to save models.json: {e}")
         return False
+
+
+def models_data_age_days() -> Optional[int]:
+    """Return how many days ago models.json was last updated, or None if unknown."""
+    _, last_updated_str = get_model_data_version()
+    try:
+        from datetime import datetime as _dt
+        last_updated = _dt.strptime(last_updated_str, "%Y-%m-%d")
+        return (_dt.now() - last_updated).days
+    except Exception:
+        return None
 
 
 def calculate_cost(model: str, prompt_tokens: int, completion_tokens: int) -> float:
