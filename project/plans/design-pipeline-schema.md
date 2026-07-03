@@ -421,8 +421,8 @@ This drives resume and checkpoint logic: non-idempotent steps should declare `sa
 |-----------|------|--------|-------|--------|------------|------------|
 | `llm` | once | llm | inputs.* | outputs | single | false |
 | `function` | once | function | inputs.* | outputs | single | unknown |
-| `for-each` | foreach(input, as) | contains-steps | input | append_to? | append | depends |
-| `window` | window(input, size, stride, as) | contains-steps | input | append_to? | append | depends |
+| `for-each` | foreach(in, for) | contains-steps | in | append_to? | append | depends |
+| `window` | window(in, size, stride, for) | contains-steps | in | append_to? | append | depends |
 | `if` | conditional(condition) | contains-steps | condition | — | — | depends |
 | `json` | once | pure | value | output | single | true |
 | `save` | once | file-write | content, path | — | — | true |
@@ -464,9 +464,9 @@ In the JSON Schema, `x-semantics` sits alongside `x-handler`:
       "x-handler": "llmflow.steps.control.execute_foreach",
       "x-nested-steps": "steps",
       "x-semantics": {
-        "flow": { "type": "foreach", "over": "input", "as": "as" },
+        "flow": { "type": "foreach", "in": "in", "for": "for" },
         "effect": "contains-steps",
-        "reads": ["input"],
+        "reads": ["in"],
         "writes": "append_to",
         "write-mode": "append",
         "idempotent": "depends"
@@ -555,42 +555,56 @@ Once stable, submit to [SchemaStore](https://www.schemastore.org/json/) so that 
 
 Formalizing the schema surfaces inconsistencies in the language as it currently exists. These should be resolved before the schema is written, not after — fixing them post-schema means breaking changes to pipeline YAML files already in use.
 
-### 1. `output` vs `outputs` — singular vs plural
+### 1. `output` vs `outputs` — singular vs plural ✅ DECIDED
 
-The language uses both with no consistent rule:
+**Decision: standardize on `output` (singular) everywhere.**
 
-| Step type | Field used |
-|-----------|-----------|
-| `llm` | `outputs` |
-| `function` | `outputs` |
-| `basex` | `outputs` |
-| `duckdb` | `outputs` |
-| `json` | `output` |
-| `load_json`, `load_yaml`, etc. | `output` (also accepts `outputs`) |
+A step produces one result, even if that result is a list. The plural `outputs` was inherited informally and has no semantic justification. The runner will continue to accept `outputs` as a deprecated alias during a transition period; `sp lint` will warn on its use.
 
-The runner currently accepts both everywhere as a workaround. A formal schema must pick one, or state an explicit rule. The most defensible rule: **`output` (singular) always** — a step writes one result, even if that result is a list. The plural form was inherited informally and has no semantic justification.
+### 2. `input` / `as` vs XQuery-aligned `for` / `in` ✅ DECIDED
 
-**Decision needed:** standardize on `output` and deprecate `outputs`, or document a rule distinguishing them.
+**Decision: adopt `for:` / `in:` aligned with XQuery syntax, for both `for-each` and `window`.**
 
-### 2. `input` vs `inputs` — same word, different shapes
+XQuery uses `for ... in` as the universal iteration construct — for regular iteration and for both tumbling and sliding windows:
 
-`for-each` uses `input:` (a single context variable name resolving to a list). `function` and `llm` use `inputs:` (a map of name→expression for resolving multiple values). These are the same English word applied to structurally different things with no naming rule.
+```xquery
+for $scene in $scene_list                          (regular)
+for tumbling window $w in $items start … end …     (windowed)
+for sliding window $w in $items start … end …      (sliding)
+```
 
-**Decision needed:** rename `for-each`'s field to `over:` (which also reads more naturally: "for each item *over* this list") or document that `input` means "the one thing iterated over" vs `inputs` means "the map of things passed in."
+LLMFlow matches this with `for:`/`in:` on both step types:
 
-### 3. Three patterns for "resolve context values into a step"
+```yaml
+- type: for-each          - type: window
+  for: scene                for: window_batch
+  in: "${scene_list}"       in: "${scene_list}"
+  steps:                    size: 3
+    - ...                   stride: 1
+                            steps:
+                              - ...
+```
 
-The language has three different conventions for passing context values into a step:
+Reads as: *for scene in scene_list* / *for window_batch in scene_list* — identical pattern to XQuery, without the `$`. The existing `input:` and `as:` fields are accepted as deprecated aliases during transition.
 
-| Pattern | Used by | Shape |
-|---------|---------|-------|
-| Named top-level fields | `load_json` (`path:`), `save` (`content:`, `path:`) | Flat: each input is its own field |
-| `inputs:` map | `function`, `llm` (`prompt.inputs:`) | Map of name→`${expression}` |
-| `params:` map | `basex` | Map of name→`${expression}` |
+Note: the `window` step has additional semantics not captured by `size`/`stride` alone — dynamic window advancement (the current `!window_advance` mechanism) where the end of a window is determined during processing rather than fixed upfront. This aligns with XQuery's `end … when` clause and will be designed separately. The `for`/`in` field naming decision is independent of that design work.
 
-`inputs` and `params` do the same thing under different names. The named-field pattern and the map pattern serve different purposes (named fields are fixed by the step type; maps are user-defined), but this distinction is not stated anywhere in the language.
+### 3. Three patterns for "resolve context values into a step" ✅ DECIDED
 
-**Decision needed:** consolidate `params` into `inputs` for `basex`; document the rule distinguishing named top-level fields from the `inputs` map.
+**Decision: two patterns, clearly distinguished. Rename `basex` `params:` to `inputs:`.**
+
+The language has — and should retain — exactly two patterns for passing context values into a step:
+
+| Pattern | Used by | Rule |
+|---------|---------|------|
+| Named top-level fields | `load_json` (`path:`), `save` (`content:`, `path:`) | The schema declares these fields by name. They are fixed for the step type. |
+| `inputs:` map | `function`, `llm`, `basex`, `duckdb` | User-defined name→`${expression}` pairs. The step type does not know the key names in advance. |
+
+`basex` currently uses `params:` for what is structurally identical to `inputs:`. **Rename `params:` to `inputs:`** for consistency. The old `params:` is accepted as a deprecated alias during transition.
+
+**The rule, stated explicitly:** use named top-level fields when the schema knows the field names (they are part of the step type definition); use `inputs:` when the names are chosen by the pipeline author (they are passed through to a function, query, or prompt).
+
+**Testing benefit:** consistent `inputs:` shape means handler functions can be unit-tested with a plain dict — no pipeline context, no runner, no YAML parsing. The schema-driven runner resolves `inputs:` to a flat dict before calling the handler, so tests call handlers directly with the same dict the runner would produce. One test fixture shape covers all `inputs:`-bearing step types.
 
 ### 4. `save` step vs `saveas` cross-cutting field
 
@@ -648,6 +662,26 @@ Items 1–3 affect the `x-output-field` and `x-resolve-fields` annotations on ev
 9. **Submit to SchemaStore** (post-stabilization).
 
 Phase 1 can ship alone and delivers immediate value (editor tooling). Phases 2 and 3 follow in order.
+
+### Testing benefit of the schema-driven approach
+
+Because the runner resolves all declared fields before calling a handler, handler functions become trivially testable in isolation:
+
+```python
+# Before: testing run_basex_step requires a full pipeline context and step dict
+def test_basex(tmp_path):
+    step = {"name": "s", "type": "basex", "query": "//verse", "params": {...}, "outputs": "result"}
+    context = {"passage": "Mark 1"}
+    run_basex_step(step, context)
+    assert context["result"] == ...
+
+# After: handler receives already-resolved inputs, returns a value
+def test_basex_handler():
+    result = execute_basex(query="//verse", inputs={"passage": "Mark 1"})
+    assert result == ...
+```
+
+This also makes it possible to generate test cases from the schema: for each step type, the schema declares which fields are required — a test generator can produce a minimal valid input dict and verify the handler accepts it, and a missing-field dict and verify it raises.
 
 ### Semantic vocabulary stability
 
