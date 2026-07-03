@@ -551,6 +551,77 @@ Once stable, submit to [SchemaStore](https://www.schemastore.org/json/) so that 
 
 ---
 
+## Language Inconsistencies Exposed by Formal Semantics
+
+Formalizing the schema surfaces inconsistencies in the language as it currently exists. These should be resolved before the schema is written, not after — fixing them post-schema means breaking changes to pipeline YAML files already in use.
+
+### 1. `output` vs `outputs` — singular vs plural
+
+The language uses both with no consistent rule:
+
+| Step type | Field used |
+|-----------|-----------|
+| `llm` | `outputs` |
+| `function` | `outputs` |
+| `basex` | `outputs` |
+| `duckdb` | `outputs` |
+| `json` | `output` |
+| `load_json`, `load_yaml`, etc. | `output` (also accepts `outputs`) |
+
+The runner currently accepts both everywhere as a workaround. A formal schema must pick one, or state an explicit rule. The most defensible rule: **`output` (singular) always** — a step writes one result, even if that result is a list. The plural form was inherited informally and has no semantic justification.
+
+**Decision needed:** standardize on `output` and deprecate `outputs`, or document a rule distinguishing them.
+
+### 2. `input` vs `inputs` — same word, different shapes
+
+`for-each` uses `input:` (a single context variable name resolving to a list). `function` and `llm` use `inputs:` (a map of name→expression for resolving multiple values). These are the same English word applied to structurally different things with no naming rule.
+
+**Decision needed:** rename `for-each`'s field to `over:` (which also reads more naturally: "for each item *over* this list") or document that `input` means "the one thing iterated over" vs `inputs` means "the map of things passed in."
+
+### 3. Three patterns for "resolve context values into a step"
+
+The language has three different conventions for passing context values into a step:
+
+| Pattern | Used by | Shape |
+|---------|---------|-------|
+| Named top-level fields | `load_json` (`path:`), `save` (`content:`, `path:`) | Flat: each input is its own field |
+| `inputs:` map | `function`, `llm` (`prompt.inputs:`) | Map of name→`${expression}` |
+| `params:` map | `basex` | Map of name→`${expression}` |
+
+`inputs` and `params` do the same thing under different names. The named-field pattern and the map pattern serve different purposes (named fields are fixed by the step type; maps are user-defined), but this distinction is not stated anywhere in the language.
+
+**Decision needed:** consolidate `params` into `inputs` for `basex`; document the rule distinguishing named top-level fields from the `inputs` map.
+
+### 4. `save` step vs `saveas` cross-cutting field
+
+`save` is a step type whose entire job is writing content to disk. `saveas` is an optional field any step can carry to also write its output to disk as a side effect. A pipeline author encounters both and has no obvious rule for which to use.
+
+The semantic difference: `save` is a terminal step (its only purpose is the write; it has no output variable). `saveas` is a side effect on a step that also produces a context variable. This distinction is real and worth keeping — but it needs to be named and documented, not left implicit.
+
+**Decision needed:** document the rule explicitly in the language reference: use `save` when writing to disk *is the step*; use `saveas` when writing to disk is *in addition to* storing a result in context.
+
+### 5. `condition:` collision between step type and cross-cutting field
+
+`if` is a step type with a `condition:` field that gates an entire nested block. Any step can also carry a top-level `condition:` that skips just that one step. Same keyword, two different scopes and behaviors.
+
+This is not necessarily a problem — the scopes are unambiguous syntactically (one is inside an `if` step, one is a field on any step). But it can surprise readers.
+
+**Decision needed:** accept this as intentional symmetry and document it clearly, or rename the per-step field (e.g. `skip_if:` or `when:`).
+
+### 6. `tsv` plugin vs `load_tsv` step type
+
+The `tsv` plugin (registered in `plugins/`) predates the `load_tsv` step type and does overlapping work. Having two ways to load a TSV file is confusing and splits documentation across two concepts.
+
+**Decision needed:** deprecate the `tsv` plugin and direct users to `load_tsv`; or document a distinction (the plugin has additional filtering options the step type lacks).
+
+---
+
+### Resolution before schema implementation
+
+Items 1–3 affect the `x-output-field` and `x-resolve-fields` annotations on every step type and must be decided before the schema is written. Items 4–6 can be documented as intentional without schema impact, but should be resolved before the language reference is regenerated from the schema.
+
+---
+
 ## What the Schema Does Not Cover
 
 - **Prompt contract format** — the `requires:`/`optional:` frontmatter in `.gpt` files. This is a separate schema (`prompt.schema.json`) and a separate workstream.
