@@ -24,7 +24,10 @@ from llmflow.plugins.loader import discover_plugins
 from llmflow.utils.io import validate_all_templates
 from llmflow.utils.linter import lint_pipeline_full
 from llmflow.utils.llm_runner import call_llm, run_llm_with_mcp_tools
-from llmflow.utils.get_prefix_directory import get_prefix_directory  # ← ADD THIS LINE
+from llmflow.utils.context import _MISSING, get_from_context, resolve
+from llmflow.utils.file_io import WRITTEN_FILES, _record_written_file, save_content_to_file
+from llmflow.utils.step_outputs import handle_step_outputs, handle_step_saveas
+from llmflow.utils.debug import _get_debug_dir, _clear_debug_dir
 from llmflow.exceptions import (
     StepExecutionError,
     ForEachIterationError,
@@ -48,32 +51,6 @@ logger = Logger()
 # Shared YAML loader that recognises LLMFlow tags such as !window_advance.
 # Defined in yaml_loader.py to avoid circular imports with linter.py.
 from llmflow.yaml_loader import LLMFlowLoader as _LLMFlowLoader  # noqa: E402
-
-# Sentinel for "key not found" in get_from_context — distinguishes missing keys from None values.
-_MISSING = object()
-
-def _get_debug_dir(pipeline_config: Dict[str, Any], context: Dict[str, Any], pipeline_name: str = "pipeline") -> str:
-    """Return the debug output directory path.
-
-    Uses intermediate_file_directory/debug/{pipeline_name}/ when declared,
-    falls back to outputs/debug/{pipeline_name}/.
-    """
-    raw = pipeline_config.get("intermediate_file_directory")
-    if raw:
-        resolved = resolve(str(raw), context)
-        return str(Path(str(resolved)) / "debug" / pipeline_name)
-    return str(Path(os.getcwd()) / "outputs" / "debug" / pipeline_name)
-
-
-def _clear_debug_dir(pipeline_config: Dict[str, Any], context: Dict[str, Any], dry_run: bool, pipeline_name: str = "pipeline") -> None:
-    """Clear this pipeline's debug subdirectory at pipeline start (skipped on dry_run)."""
-    if dry_run:
-        return
-    import shutil
-    debug_dir = Path(_get_debug_dir(pipeline_config, context, pipeline_name))
-    if debug_dir.exists():
-        shutil.rmtree(debug_dir)
-    debug_dir.mkdir(parents=True, exist_ok=True)
 
 
 def build_debug_filename(step: Dict[str, Any], context: Dict[str, Any], request_or_response: str) -> str:
@@ -160,248 +137,17 @@ def _format_iteration_fragment(value: Any, max_length: int = 48) -> str:
     return sanitized or "item"
 
 # Track files written during a run and emit to both llmflow.log and stdout
-WRITTEN_FILES = []
-
 _RETRY_MISSING = object()
 
 
-def _record_written_file(path):
-    import traceback
-
-    p = Path(path).resolve()
-    pstr = str(p)
-    if pstr not in WRITTEN_FILES:
-        WRITTEN_FILES.append(pstr)
-    logger.info(f"Wrote file: {p}")
-    logger.debug(
-        "Called from:\n" + "".join(traceback.format_stack()[-4:-1])
-    )
 
 
-def get_from_context(expr: str, ctx: Dict[str, Any]) -> Any:
-    """
-    Resolve dot notation and list indices from context.
-    Supports: foo.bar, foo[0], foo[key], foo['key'], foo[-3:], foo[:5][*].field
-    """
-    import re
-
-    parts = re.split(r"\.(?![^\[]*\])", expr)  # split on dots not inside brackets
-    result = ctx
-
-    for i, part in enumerate(parts):
-        # Extract key and all bracket operations: foo[0][*]['key']
-        # Match: identifier followed by zero or more bracket operations
-        m = re.match(r"^([a-zA-Z0-9_]+)(.*)$", part)
-        if not m:
-            return _MISSING
-
-        key = m.group(1)
-        bracket_section = m.group(2)
-
-        # Get key from dict or object attribute
-        if isinstance(result, dict):
-            result = result.get(key, _MISSING)
-            if result is _MISSING:
-                return _MISSING
-        elif hasattr(result, key):
-            try:
-                result = getattr(result, key)
-            except AttributeError:
-                return _MISSING
-        else:
-            return _MISSING
-
-        # Process all bracket operations in sequence
-        if bracket_section:
-            # Extract all bracket contents: [content1], [content2], etc.
-            bracket_matches = re.findall(r"\[([^\]]+)\]", bracket_section)
-
-            for bracket_idx, bracket_content in enumerate(bracket_matches):
-                # Wildcard: map remaining path over every item in the list
-                if bracket_content == "*":
-                    if not isinstance(result, list):
-                        return _MISSING
-
-                    # Check if there are more bracket operations after wildcard
-                    remaining_brackets = bracket_matches[bracket_idx + 1:]
-                    remaining_parts = parts[i + 1:]
-
-                    if remaining_brackets or remaining_parts:
-                        # Complex case: apply remaining brackets to each item first
-                        results = []
-                        for item in result:
-                            temp_result = item
-                            # Apply remaining brackets to this item
-                            for rb in remaining_brackets:
-                                temp_result = _apply_single_bracket(
-                                    temp_result, rb, i, parts, bracket_idx
-                                )
-                                if temp_result is _MISSING:
-                                    results.append(None)
-                                    break
-                            else:
-                                # Then apply remaining parts
-                                if remaining_parts:
-                                    sub_expr = ".".join(remaining_parts)
-                                    temp_result = (
-                                        get_from_context(sub_expr, temp_result)
-                                        if temp_result is not _MISSING
-                                        else None
-                                    )
-                                    # [*] fills missing fields with None, not _MISSING
-                                    if temp_result is _MISSING:
-                                        temp_result = None
-                                results.append(temp_result)
-                        return results
-                    else:
-                        # No remaining operations, just return the list
-                        return list(result)
-
-                # Slice notation: check for colon (e.g., [-3:], [:5], [1:4], [::2])
-                elif ":" in bracket_content:
-                    result = _apply_slice(result, bracket_content)
-                    if result is _MISSING:
-                        return _MISSING
-
-                # Numeric index or dict/object key
-                else:
-                    result = _apply_index_or_key(result, bracket_content)
-                    if result is _MISSING:
-                        return _MISSING
-
-    return result
 
 
-def _apply_slice(result: Any, bracket_content: str) -> Any:
-    """Apply slice notation to result."""
-    # Parse slice notation: [start:stop] or [start:stop:step]
-    slice_parts = bracket_content.split(":")
-
-    # Handle up to 3 parts: start, stop, step
-    start = None
-    stop = None
-    step = None
-
-    if len(slice_parts) >= 1 and slice_parts[0].strip():
-        try:
-            start = int(slice_parts[0].strip())
-        except ValueError:
-            return _MISSING
-
-    if len(slice_parts) >= 2 and slice_parts[1].strip():
-        try:
-            stop = int(slice_parts[1].strip())
-        except ValueError:
-            return _MISSING
-
-    if len(slice_parts) >= 3 and slice_parts[2].strip():
-        try:
-            step = int(slice_parts[2].strip())
-        except ValueError:
-            return _MISSING
-
-    # Apply slice to list or string (sequences)
-    if isinstance(result, (list, str)):
-        try:
-            return result[slice(start, stop, step)]
-        except (IndexError, TypeError):
-            return _MISSING
-    else:
-        # Can't slice non-sequence types — leave template string intact
-        return _MISSING
 
 
-def _apply_index_or_key(result: Any, bracket_content: str) -> Any:
-    """Apply numeric index or dict/object key access."""
-    # Try numeric index first
-    try:
-        idx = int(bracket_content)
-        if isinstance(result, list):
-            if len(result) == 0 or idx >= len(result) or (idx < 0 and abs(idx) > len(result)):
-                return _MISSING
-            return result[idx]
-        else:
-            return _MISSING
-    except ValueError:
-        # Not a number - treat as dict/object key
-        # Remove quotes if present: 'key' or "key" -> key
-        bracket_key = bracket_content.strip().strip("'\"")
-
-        # Try dict access
-        if isinstance(result, dict):
-            return result.get(bracket_key, _MISSING)
-        # Try Row object __getitem__
-        elif hasattr(result, '__getitem__'):
-            try:
-                return result[bracket_key]  # type: ignore[index]
-            except (KeyError, TypeError):
-                return _MISSING
-        # Try attribute access as fallback
-        elif hasattr(result, bracket_key):
-            return getattr(result, bracket_key)
-        else:
-            return _MISSING
 
 
-def _apply_single_bracket(result: Any, bracket_content: str, part_idx: int, parts: list, bracket_idx: int) -> Any:
-    """Helper to apply a single bracket operation (for wildcard processing)."""
-    if ":" in bracket_content:
-        return _apply_slice(result, bracket_content)
-    else:
-        return _apply_index_or_key(result, bracket_content)
-
-
-def resolve(value, context, max_depth=5):
-    """
-    Resolves variables within a value using the provided context.
-    Supports both {curly} and ${dollar} notation with dot notation and list indexing.
-    Returns native Python objects for exact variable references.
-    """
-    import re
-
-    if isinstance(value, str):
-        # Handle ${...} syntax (exact match returns native object)
-        match = re.match(r"^\$\{([^\}]+)\}$", value)
-        if match:
-            expr = match.group(1)
-            resolved = get_from_context(expr, context)
-            if resolved is not _MISSING:
-                # Recursive resolution if still templated (including mid-string ${} refs)
-                if isinstance(resolved, str) and ("${" in resolved or "{" in resolved):
-                    if max_depth > 0:
-                        return resolve(resolved, context, max_depth - 1)
-                return resolved
-            return value
-
-        # Handle {curly} syntax (exact match returns native object)
-        match = re.match(r"^\{([^\}]+)\}$", value)
-        if match:
-            expr = match.group(1)
-            resolved = get_from_context(expr, context)
-            if resolved is not _MISSING:
-                # Recursive resolution if still templated (including mid-string {} refs)
-                if isinstance(resolved, str) and ("${" in resolved or "{" in resolved):
-                    if max_depth > 0:
-                        return resolve(resolved, context, max_depth - 1)
-                return resolved
-            return value
-
-        # String substitution for both syntaxes
-        def replace_var(match):
-            expr = match.group(1)
-            resolved = get_from_context(expr, context)
-            return str(resolved) if resolved is not _MISSING else match.group(0)
-
-        value = re.sub(r"\$\{([^\}]+)\}", replace_var, value)
-        value = re.sub(r"\{([^\}]+)\}", replace_var, value)
-        return value
-
-    elif isinstance(value, dict):
-        return {k: resolve(v, context, max_depth) for k, v in value.items()}
-    elif isinstance(value, list):
-        return [resolve(item, context, max_depth) for item in value]
-
-    return value
 
 
 def render_prompt(
@@ -525,59 +271,6 @@ def render_prompt(
     return str(rendered_prompt)
 
 
-def handle_step_outputs(step, result, context, base_dir="."):
-    """Handle step outputs, including saveas."""
-    context.pop("_last_saved_files", None)
-    saved_paths: List[str] = []
-    # 1. Handle outputs - store results in context
-    outputs = step.get("outputs")
-    if outputs is not None:
-        if isinstance(outputs, str):
-            context[outputs] = result
-            logger.info(f"📦 Stored in context['{outputs}']: {type(result).__name__}, length={len(str(result)) if result else 0}")
-            if step.get("name") == "bodies":
-                logger.debug(f"   First 100 chars: {repr(str(result)[:100]) if result else 'NONE'}")
-        elif isinstance(outputs, list):
-            if len(outputs) == 1:
-                context[outputs[0]] = result
-                logger.debug(f"Stored result in context['{outputs[0]}']")
-            else:
-                for i, output_name in enumerate(outputs):
-                    value = result[i] if isinstance(result, (list, tuple)) and i < len(result) else result
-                    context[output_name] = value
-                    logger.debug(f"Stored result in context['{output_name}']")
-
-    # 2. Handle append_to
-    append_to = step.get("append_to")
-    if append_to:
-        if append_to not in context:
-            context[append_to] = []
-        if outputs:
-            if isinstance(outputs, str):
-                value_to_append = context.get(outputs)
-            elif isinstance(outputs, list):
-                value_to_append = context.get(outputs[0])
-            else:
-                value_to_append = result
-        else:
-            value_to_append = result
-        context[append_to].append(value_to_append)
-        logger.debug(f"Appended to {append_to}: now has {len(context[append_to])} items")
-
-    # 3. Handle saveas - delegate to handle_step_saveas for proper group_by_prefix support
-    if "saveas" in step:
-        # Store result in context temporarily if not already there
-        if outputs is None:
-            # Need a temporary output name for saveas to work
-            temp_output = f"_temp_output_{id(result)}"
-            step_with_output = {**step, "outputs": temp_output}
-            context[temp_output] = result
-            saved_paths = handle_step_saveas(step_with_output, context)
-            del context[temp_output]
-        else:
-            saved_paths = handle_step_saveas(step, context)
-
-    context["_last_saved_files"] = saved_paths
 
 
 
@@ -770,69 +463,6 @@ def _execute_step_with_retry(step, context, retry_cfg, execute_once):
     return None
 
 
-def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> List[str]:
-    """Handle saveas output for pipeline steps and return written paths."""
-    saveas_config = step["saveas"]
-    outputs = step.get("outputs")
-    saved_paths: List[str] = []
-
-    def get_content():
-        if isinstance(outputs, list):
-            return context[outputs[0]]
-        if isinstance(outputs, str):
-            return context[outputs]
-        raise ValueError("No outputs specified for saveas")
-
-    if isinstance(saveas_config, str):
-        path = resolve(saveas_config, context)
-        content = get_content()
-        fmt = step.get("format", "auto")
-        saved_path = save_content_to_file(content, str(path), fmt)
-        _record_written_file(saved_path)
-        saved_paths.append(saved_path)
-        return saved_paths
-
-    if isinstance(saveas_config, dict):
-        raw_path = saveas_config["path"]
-        logger.debug(f"Resolving saveas path: {raw_path}")
-        logger.debug(f"Context keys: {list(context.keys())}")
-        path = resolve(raw_path, context)
-        logger.debug(f"Resolved path: {path}")
-        group_cfg = saveas_config.get("group_by_prefix")
-        content = get_content()
-        fmt = step.get("format", "auto")
-
-        if group_cfg:
-            from pathlib import Path as _P
-            fname = _P(str(path)).name
-            if isinstance(group_cfg, int):
-                prefix_dir = get_prefix_directory(fname, prefix_length=group_cfg)
-            else:
-                prefix_dir = get_prefix_directory(
-                    fname,
-                    prefix_length=group_cfg.get("prefix_length"),
-                    prefix_delimiter=group_cfg.get("prefix_delimiter"),
-                )
-            path = str(_P(str(path)).parent / prefix_dir / fname)
-
-        saved_path = save_content_to_file(content, str(path), fmt)
-        _record_written_file(saved_path)
-        saved_paths.append(saved_path)
-        return saved_paths
-
-    if isinstance(saveas_config, list):
-        for item in saveas_config:
-            if isinstance(item, dict):
-                path = resolve(item["path"], context)
-                content_spec = item.get("content")
-                content = resolve(content_spec, context) if content_spec else get_content()
-                fmt = item.get("format", "auto")
-                saved_path = save_content_to_file(content, str(path), fmt)
-                _record_written_file(saved_path)
-                saved_paths.append(saved_path)
-        return saved_paths
-
-    raise ValueError("Invalid saveas configuration type")
 
 
 def _resolve_saveas_path_for_resume(step: dict, context: dict) -> "Path | None":
@@ -1545,85 +1175,6 @@ def run_save_step(
     logger.info(f"✅ Completed save step: {name}")
 
 
-def save_content_to_file(content: Any, path: str, format: Optional[str] = None) -> str:
-    """Save content to file with optional format specification."""
-    import json
-    from pathlib import Path
-
-    # Auto-detect format from extension if not specified OR if format='auto'
-    if format is None or format == 'auto':
-        if path.endswith('.json'):
-            format = 'json'
-        elif path.endswith('.usx'):
-            format = 'usx'
-        elif path.endswith('.usj'):
-            format = 'json'
-        elif path.endswith('.usfm'):
-            format = 'usfm'
-        else:
-            format = 'text'
-
-    # Apply format
-    if format == 'json':
-        # Case 1: Python dict/list - serialize directly
-        if isinstance(content, (dict, list)):
-            formatted_content = json.dumps(content, ensure_ascii=False, indent=2)
-
-        # Case 2: String that might be JSON
-        elif isinstance(content, str):
-            try:
-                parsed = json.loads(content)
-
-                # Handle double/triple encoding - keep parsing strings
-                while isinstance(parsed, str):
-                    try:
-                        parsed = json.loads(parsed)
-                    except (json.JSONDecodeError, ValueError):
-                        break  # Can't parse further
-
-                # Now re-serialize with proper formatting
-                formatted_content = json.dumps(parsed, ensure_ascii=False, indent=2)
-
-            except (json.JSONDecodeError, ValueError):
-                # Not valid JSON, serialize the string itself
-                formatted_content = json.dumps(content, ensure_ascii=False, indent=2)
-
-        # Case 3: Other Python objects
-        else:
-            formatted_content = json.dumps(content, ensure_ascii=False, indent=2)
-    else:
-        # Text mode - normalize if .md, otherwise preserve exact content
-        raw = content if isinstance(content, str) else str(content)
-        if path.endswith('.md'):
-            from llmflow.utils.markdown_cleaner import clean_markdown
-            formatted_content = clean_markdown(raw) + "\n"
-        else:
-            formatted_content = raw
-
-    # Handle scripture formats and lxml elements
-    if format == 'usx':
-        from llmflow.utils.data import serialize_usx
-        formatted_content = serialize_usx(content)
-    elif format == 'usfm':
-        from llmflow.utils.data import serialize_usfm
-        formatted_content = serialize_usfm(content)
-    elif format == 'text':
-        # If content is an lxml _Element, serialize as XML (e.g. saving to .xml)
-        try:
-            from lxml.etree import _Element, tostring
-            if isinstance(content, _Element):
-                formatted_content = tostring(content, encoding="unicode", pretty_print=True)
-        except ImportError:
-            pass
-
-    # Create parent directories and write
-    path_obj = Path(path)
-    path_obj.parent.mkdir(parents=True, exist_ok=True)
-
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(str(formatted_content))
-
-    return str(path_obj.absolute())
 
 
 def resolve_template(template: str, context: Dict[str, Any]) -> str:
