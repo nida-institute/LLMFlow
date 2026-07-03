@@ -615,27 +615,26 @@ The language has — and should retain — exactly two patterns for passing cont
 
 **Testing benefit:** consistent `inputs:` shape means handler functions can be unit-tested with a plain dict — no pipeline context, no runner, no YAML parsing. The schema-driven runner resolves `inputs:` to a flat dict before calling the handler, so tests call handlers directly with the same dict the runner would produce. One test fixture shape covers all `inputs:`-bearing step types.
 
-### 4. `save` step vs `saveas` cross-cutting field
+### 4. `save` step vs `saveas` cross-cutting field ✅ DECIDED
 
-`save` is a step type whose entire job is writing content to disk. `saveas` is an optional field any step can carry to also write its output to disk as a side effect. A pipeline author encounters both and has no obvious rule for which to use.
+**Decision: keep both; document the rule explicitly.**
 
-The semantic difference: `save` is a terminal step (its only purpose is the write; it has no output variable). `saveas` is a side effect on a step that also produces a context variable. This distinction is real and worth keeping — but it needs to be named and documented, not left implicit.
+- Use `type: save` when writing to disk *is the step* — a terminal action with no output variable.
+- Use `saveas:` on any other step when writing to disk is a side effect alongside storing a result in context.
 
-**Decision needed:** document the rule explicitly in the language reference: use `save` when writing to disk *is the step*; use `saveas` when writing to disk is *in addition to* storing a result in context.
+The rule in one sentence: `save` when the write is the whole point; `saveas` when you also need the value downstream.
 
-### 5. `condition:` collision between step type and cross-cutting field
+### 5. `condition:` collision between step type and cross-cutting field ✅ DECIDED
 
-`if` is a step type with a `condition:` field that gates an entire nested block. Any step can also carry a top-level `condition:` that skips just that one step. Same keyword, two different scopes and behaviors.
+**Decision: accept as intentional symmetry; document clearly. No rename.**
 
-This is not necessarily a problem — the scopes are unambiguous syntactically (one is inside an `if` step, one is a field on any step). But it can surprise readers.
+Both uses share the same semantics: evaluate the expression; if falsy, do not execute. The scopes are unambiguous syntactically — `condition:` inside an `if` step gates a nested block; `condition:` on any other step is a per-step skip guard. Renaming the per-step field would break existing pipelines for a minor readability gain.
 
-**Decision needed:** accept this as intentional symmetry and document it clearly, or rename the per-step field (e.g. `skip_if:` or `when:`).
+### 6. `tsv` plugin vs `load_tsv` step type ✅ DECIDED
 
-### 6. `tsv` plugin vs `load_tsv` step type
+**Decision: bring `load_tsv` (and `load_csv`) to full parity, then deprecate the plugin.**
 
-The `tsv` plugin (registered in `plugins/`) predates the `load_tsv` step type and does overlapping work. Having two ways to load a TSV file is confusing and splits documentation across two concepts.
-
-**Decision needed:** deprecate the `tsv` plugin and direct users to `load_tsv`; or document a distinction (the plugin has additional filtering options the step type lacks).
+`load_tsv` and `load_csv` now support `where:`, `limit:`, `offset:`, and `columns:` — the full filtering capability of the `tsv` plugin. The plugin is simplified to a thin wrapper around the shared `apply_tabular_filters()` helper and remains for backwards compatibility. New pipelines should use the step types.
 
 ---
 

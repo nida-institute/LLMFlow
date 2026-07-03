@@ -157,20 +157,31 @@ For static objects that don't depend on step outputs, use `variables:` instead.
 
 ### type: `save`
 
-Writes literal content to disk without calling an LLM.
+Writes content to disk. Terminal step — produces no context variable.
 
 ```yaml
-- name: write-confirmation
+- name: write-report
   type: save
-  content: |
-    ✅ LLMFlow is installed and running.
-    2 + 2 = ${total}
-  saveas:
-    path: "${output_dir}/hello-llmflow.txt"
+  content: "${report_md}"
+  path: "${output_dir}/report.md"
 ```
 
-Use `save` when you just need to materialize a small message or
-artifact from existing variables.
+**`save` vs `saveas`:** use `save` when writing to disk *is the whole step*. Use
+`saveas:` on any other step when you want to write its output to disk *and also*
+keep the value in context for downstream steps.
+
+```yaml
+# saveas: side effect on an llm step — value stays in context AND is written
+- name: generate-report
+  type: llm
+  prompt:
+    file: report.gpt
+    inputs:
+      data: "${analysis}"
+  output: report_md
+  saveas:
+    path: "${output_dir}/report.md"
+```
 
 ### type: `load_json` / `load_yaml` / `load_xml` / `load_csv` / `load_tsv` / `load_text`
 
@@ -271,7 +282,7 @@ Conditionally executes a block of steps.
 
 ### Step-level `condition:` (skip guard)
 
-Any step (any type) can be skipped individually:
+Any step (any type) can carry a `condition:` to skip just that step:
 
 ```yaml
 - name: optional-step
@@ -281,11 +292,19 @@ Any step (any type) can be skipped individually:
     file: "optional.gpt"
     inputs:
       data: "${data}"
-  outputs: optional_result
+  output: optional_result
 ```
 
-The expression follows the same rules as `type: if` — variable reference,
-Python eval expression, or boolean literal.
+**`condition:` appears in two scopes** — this is intentional symmetry, not a collision:
+
+| Context | Meaning |
+|---|---|
+| On a `type: if` step | Gates the entire nested `steps:` block |
+| On any other step | Skip guard — skips just that one step if falsy |
+
+Both evaluate the same way: if the expression is falsy, execution does not happen.
+The scopes are unambiguous — which step the `condition:` belongs to is always clear
+from indentation.
 
 ## 4. Saving outputs with `saveas`
 
