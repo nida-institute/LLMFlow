@@ -16,10 +16,8 @@
     },
     "variables": {
       "type": "object",
-      "additionalProperties": {
-        "type": "string"
-      },
-      "description": "Pipeline-level variables available to all steps. Values support ${var} substitution for derived variables."
+      "additionalProperties": true,
+      "description": "Pipeline-level variables available to all steps. Values may be strings, numbers, booleans, arrays, or objects."
     },
     "llm_config": {
       "$ref": "#/$defs/LlmConfig",
@@ -137,11 +135,6 @@
               "type": "string",
               "description": "Context variable to store the LLM response."
             },
-            "outputs": {
-              "type": "string",
-              "description": "Deprecated: use output (singular).",
-              "deprecated": true
-            },
             "output_type": {
               "type": "string",
               "enum": ["json", "text"],
@@ -227,17 +220,12 @@
             },
             "inputs": {
               "type": "object",
-              "additionalProperties": { "type": "string" },
-              "description": "Map of argument name to ${expression}. Resolved from context before the function is called."
+              "additionalProperties": true,
+              "description": "Map of argument name to value or ${expression}. Resolved from context before the function is called."
             },
             "output": {
               "type": "string",
               "description": "Context variable to store the function return value."
-            },
-            "outputs": {
-              "type": "string",
-              "description": "Deprecated: use output (singular).",
-              "deprecated": true
             }
           },
           "required": ["type", "function"]
@@ -844,6 +832,20 @@
             },
             "output": { "$ref": "#/$defs/OutputField" }
           }
+        },
+        {
+          "not": {
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "enum": [
+                  "llm", "function", "for-each", "window", "if", "json", "save",
+                  "load_json", "load_yaml", "load_xml", "load_csv", "load_tsv",
+                  "load_text", "load_directory", "basex", "duckdb"
+                ]
+              }
+            }
+          }
         }
       ]
     },
@@ -866,8 +868,8 @@
         },
         "inputs": {
           "type": "object",
-          "additionalProperties": { "type": "string" },
-          "description": "Map of prompt variable name to ${expression}. Must satisfy the prompt file's requires: contract."
+          "additionalProperties": true,
+          "description": "Map of prompt variable name to value or ${expression}. Must satisfy the prompt file's requires: contract."
         }
       }
     },
@@ -947,13 +949,19 @@
     },
 
     "SaveasValue": {
-      "description": "Write output to disk. Either a file path string or a config object.",
+      "description": "Write output to disk. A path string, a config object, or a list of config objects for multiple files.",
       "oneOf": [
         {
           "type": "string",
           "description": "File path. Supports ${var} substitution. Format is auto-detected from extension."
         },
-        { "$ref": "#/$defs/SaveasConfig" }
+        { "$ref": "#/$defs/SaveasConfig" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SaveasConfig" },
+          "minItems": 1,
+          "description": "Multiple output files from a single step."
+        }
       ]
     },
 
@@ -965,6 +973,10 @@
         "path": {
           "type": "string",
           "description": "Output file path. Supports ${var} substitution."
+        },
+        "content": {
+          "type": "string",
+          "description": "Content to write. Supports ${var} substitution. Defaults to the step's output."
         },
         "format": {
           "type": "string",
