@@ -527,6 +527,7 @@ def parse_bible_reference(passage):
                     f"{book_display_name} {chapter}:{start_verse}-{end_verse}"
                 )
 
+            is_nt = int(book_number) >= 40
             return {
                 "book_name": book_display_name,
                 "book_number": book_number,
@@ -540,6 +541,8 @@ def parse_bible_reference(passage):
                 "filename_prefix": filename_prefix,
                 "display_name": display_name,
                 "canonical_reference": canonical_reference,
+                "testament": "NT" if is_nt else "OT",
+                "original_language": "Greek" if is_nt else "Hebrew",
             }
 
     # Last resort: try matching the entire input as a book name (whole-book reference)
@@ -550,6 +553,7 @@ def parse_bible_reference(passage):
     if book_info_whole:
         book_number, book_display_name, book_code = book_info_whole
         filename_prefix = f"{book_number}_book"
+        is_nt = int(book_number) >= 40
         return {
             "book_name": book_display_name,
             "book_number": book_number,
@@ -564,6 +568,8 @@ def parse_bible_reference(passage):
             "filename_prefix": filename_prefix,
             "display_name": book_display_name.replace(" ", "-"),
             "canonical_reference": book_display_name,
+            "testament": "NT" if is_nt else "OT",
+            "original_language": "Greek" if is_nt else "Hebrew",
         }
 
     # If we get here, the passage wasn't recognized
