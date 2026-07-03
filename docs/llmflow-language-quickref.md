@@ -184,9 +184,29 @@ Load a file into pipeline context — no Python function required.
 ```
 
 - `path` supports `${var}` substitution; static paths are checked at lint time.
-- Use `output:` or `outputs:` (both accepted).
 - `load_csv` accepts an optional `delimiter:` key (default `,`); `load_tsv` uses `\t`.
 - `load_xml` returns an `lxml.etree._Element`.
+
+`load_csv` and `load_tsv` support filtering after the file is loaded:
+
+```yaml
+- name: load_genesis
+  type: load_tsv
+  path: "${macula_tsv}"
+  output: genesis_rows
+  where: "book(ref) == 'GEN' and chapter(ref) == '1'"
+  limit: 50
+  offset: 0
+  columns: [ref, text, lemma]
+```
+
+- `where` — filter expression; supports `${var}` substitution. Forms (joined by `and`):
+  - `column == 'value'`
+  - `column startswith 'prefix'`
+  - `book(column) == 'GEN'` / `chapter(column) == '1'` / `verse(column) == '1'` / `word(column) == '1'`
+- `limit` — max rows to return (applied after `where`).
+- `offset` — rows to skip (applied after `where`).
+- `columns` — list of column names to include; omit for all columns.
 
 ### type: `load_directory`
 

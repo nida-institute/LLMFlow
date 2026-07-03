@@ -1546,3 +1546,136 @@ def xpath_text(element, path: str):
         return result[0] if isinstance(result, list) else result
 
     return None
+
+
+# ---------------------------------------------------------------------------
+# Tabular filtering — shared by load_tsv, load_csv, and the tsv plugin
+# ---------------------------------------------------------------------------
+
+import re as _re
+
+_EQ_RE = _re.compile(r'^(\w+)\s*==\s*[\'"]([^\'"]*)[\'"]$')
+_STARTSWITH_RE = _re.compile(r'^(\w+)\s+startswith\s+[\'"]([^\'"]*)[\'"]$')
+_USFM_RE = _re.compile(r'^(book|chapter|verse|word)\((\w+)\)\s*==\s*[\'"]([^\'"]*)[\'"]$')
+
+
+def _extract_usfm_part(cell: str, part: str) -> str:
+    """Extract book/chapter/verse/word component from a USFM ref like 'PHM 1:10!3'."""
+    try:
+        book, cv = cell.split(" ", 1)
+        if part == "book":
+            return book
+        cv_part, word = (cv.split("!", 1) if "!" in cv else (cv, ""))
+        chapter, verse = cv_part.split(":", 1)
+        if part == "chapter":
+            return chapter
+        if part == "verse":
+            return verse
+        if part == "word":
+            return word
+    except (ValueError, AttributeError):
+        pass
+    return ""
+
+
+def _parse_tabular_where(where_expr: str) -> list[tuple[str, str, str, str]]:
+    """Parse a where expression into (extractor, column, operator, value) tuples.
+
+    Supported forms (joined by 'and'):
+        column == 'value'
+        column startswith 'prefix'
+        book(column) == 'value'
+        chapter(column) == 'value'
+        verse(column) == 'value'
+        word(column) == 'value'
+    """
+    conditions = []
+    for atom in (a.strip() for a in where_expr.split(" and ")):
+        m = _USFM_RE.match(atom)
+        if m:
+            conditions.append((m.group(1), m.group(2), "==", m.group(3)))
+            continue
+        m = _EQ_RE.match(atom)
+        if m:
+            conditions.append(("", m.group(1), "==", m.group(2)))
+            continue
+        m = _STARTSWITH_RE.match(atom)
+        if m:
+            conditions.append(("", m.group(1), "startswith", m.group(2)))
+            continue
+        raise ValueError(
+            f"cannot parse where condition: {atom!r}. "
+            "Supported: column == 'value'  |  column startswith 'prefix'  |  "
+            "book/chapter/verse/word(column) == 'value'  (joined by 'and')"
+        )
+    return conditions
+
+
+def _matches_tabular_row(row: dict, extractor: str, col: str, op: str, val: str) -> bool:
+    """Test one parsed condition against a row dict."""
+    cell = row.get(col, "")
+    if extractor:
+        cell = _extract_usfm_part(cell, extractor)
+    if op == "==":
+        return cell == val
+    if op == "startswith":
+        return cell.startswith(val)
+    return False
+
+
+def apply_tabular_filters(rows: list[dict], step: dict) -> list[dict]:
+    """Apply where/limit/offset/columns filtering to a list of row dicts.
+
+    Args:
+        rows:  Loaded tabular data as list of dicts (one dict per row).
+        step:  Step config dict. Recognized keys:
+                 where   — filter expression string
+                 limit   — max rows to return (applied after where)
+                 offset  — rows to skip (applied after where)
+                 columns — list of column names to project
+
+    Returns:
+        Filtered list of dicts.
+    """
+    from llmflow.modules.logger import Logger
+    logger = Logger()
+
+    where = step.get("where")
+    limit = step.get("limit")
+    offset = int(step.get("offset", 0))
+    columns = step.get("columns")
+
+    if columns and rows:
+        fieldnames = list(rows[0].keys())
+        unknown = [c for c in columns if c not in fieldnames]
+        if unknown:
+            raise ValueError(
+                f"unknown columns: {unknown}. Available: {fieldnames}"
+            )
+
+    if where:
+        conditions = _parse_tabular_where(where)
+        # Warn once per condition if the column is missing from the data
+        if rows:
+            fieldnames = list(rows[0].keys())
+            for _ext, col, _op, _val in conditions:
+                if col not in fieldnames:
+                    logger.warning(
+                        f"where condition references unknown column {col!r} — no rows will match"
+                    )
+                    return []
+        rows = [r for r in rows if all(
+            _matches_tabular_row(r, ext, col, op, val)
+            for ext, col, op, val in conditions
+        )]
+
+    if offset:
+        rows = rows[offset:]
+
+    if limit is not None:
+        rows = rows[:int(limit)]
+
+    if columns:
+        rows = [{k: r[k] for k in columns} for r in rows]
+
+    return rows

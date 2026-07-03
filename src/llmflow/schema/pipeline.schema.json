@@ -581,9 +581,9 @@
     },
 
     "LoadCsvStep": {
-      "description": "Loads a CSV file into context as a list of dicts (one dict per row, keys from header).\n\nflow: once | effect: file-read | idempotent: true",
+      "description": "Loads a CSV file into context as a list of dicts (one dict per row, keys from header).\nSupports where/limit/offset/columns filtering.\n\nflow: once | effect: file-read | idempotent: true",
       "x-handler": "llmflow.steps.loaders.run_load_csv",
-      "x-resolve-fields": ["path"],
+      "x-resolve-fields": ["path", "where"],
       "x-output-field": "output",
       "x-semantics": {
         "flow": "once",
@@ -604,7 +604,26 @@
             "delimiter": {
               "type": "string",
               "default": ",",
-              "description": "Field delimiter. Default: comma. Use \"\\t\" to read TSV files via load_csv."
+              "description": "Field delimiter. Default: comma."
+            },
+            "where": {
+              "type": "string",
+              "description": "Filter expression applied after loading. Supports ${var} substitution. Forms (joined by 'and'): column == 'value' | column startswith 'prefix' | book/chapter/verse/word(column) == 'value'."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum rows to return, applied after where filter."
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Rows to skip, applied after where filter."
+            },
+            "columns": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Column names to include. If omitted, all columns are returned."
             }
           },
           "required": ["type", "path", "output"]
@@ -613,9 +632,9 @@
     },
 
     "LoadTsvStep": {
-      "description": "Loads a TSV file into context as a list of dicts. Shorthand for load_csv with delimiter: \"\\t\".\n\nflow: once | effect: file-read | idempotent: true",
+      "description": "Loads a TSV file into context as a list of dicts (one dict per row, keys from header).\nSupports where/limit/offset/columns filtering.\n\nflow: once | effect: file-read | idempotent: true",
       "x-handler": "llmflow.steps.loaders.run_load_tsv",
-      "x-resolve-fields": ["path"],
+      "x-resolve-fields": ["path", "where"],
       "x-output-field": "output",
       "x-semantics": {
         "flow": "once",
@@ -637,6 +656,25 @@
               "type": "string",
               "default": "\t",
               "description": "Field delimiter. Default: tab."
+            },
+            "where": {
+              "type": "string",
+              "description": "Filter expression applied after loading. Supports ${var} substitution. Forms (joined by 'and'): column == 'value' | column startswith 'prefix' | book/chapter/verse/word(column) == 'value'."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum rows to return, applied after where filter."
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Rows to skip, applied after where filter."
+            },
+            "columns": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Column names to include. If omitted, all columns are returned."
             }
           },
           "required": ["type", "path", "output"]

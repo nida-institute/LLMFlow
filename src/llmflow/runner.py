@@ -1515,8 +1515,10 @@ def _load_one(path, fmt, load_json_file, load_yaml, load_xml_file,
     if fmt == "xml":
         return load_xml_file(str(path))
     if fmt in ("csv", "tsv"):
+        from llmflow.utils.data import apply_tabular_filters
         delimiter = step.get("delimiter", "\t" if fmt == "tsv" else ",")
-        return load_csv_file(str(path), delimiter=delimiter)
+        rows = load_csv_file(str(path), delimiter=delimiter)
+        return apply_tabular_filters(rows, step)
     if fmt == "text":
         return load_text_file(str(path))
 
