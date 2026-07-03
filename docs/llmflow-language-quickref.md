@@ -185,7 +185,30 @@ Load a file into pipeline context — no Python function required.
 
 - `path` supports `${var}` substitution; static paths are checked at lint time.
 - `load_csv` accepts an optional `delimiter:` key (default `,`); `load_tsv` uses `\t`.
-- `load_xml` returns an `lxml.etree._Element`.
+- `load_xml` returns an `lxml.etree._Element` (or a list if `xpath:` is used).
+
+`load_json` and `load_yaml` accept a `key:` dot-path to extract a nested value:
+
+```yaml
+- name: load_pericopes
+  type: load_json
+  path: "${book_summary}"
+  key: pericopes          # or "book.chapters" for nested access
+  output: pericopes
+```
+
+`load_xml` accepts `xpath:` to filter the tree and return a list of matching nodes:
+
+```yaml
+- name: load_verses
+  type: load_xml
+  path: "${book_xml}"
+  xpath: "//verse[@chapter='1']"
+  output_format: element   # element (default) | xml-string | text
+  namespaces:              # optional, for namespace-aware XPath
+    usx: "http://usx.org/"
+  output: verses
+```
 
 `load_csv` and `load_tsv` support filtering after the file is loaded:
 

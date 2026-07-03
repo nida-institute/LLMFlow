@@ -1679,3 +1679,84 @@ def apply_tabular_filters(rows: list[dict], step: dict) -> list[dict]:
         rows = [{k: r[k] for k in columns} for r in rows]
 
     return rows
+
+
+# ---------------------------------------------------------------------------
+# XML XPath filtering — used by load_xml step
+# ---------------------------------------------------------------------------
+
+def apply_xml_xpath(element, step: dict):
+    """Apply an optional xpath: filter to a loaded lxml element.
+
+    Args:
+        element:  Root lxml _Element returned by load_xml_file.
+        step:     Step config dict. Recognized keys:
+                    xpath         — XPath expression (optional)
+                    namespaces    — prefix→URI mapping for namespace-aware XPath
+                    output_format — "element" (default), "xml-string", or "text"
+
+    Returns:
+        If xpath is absent: the element unchanged.
+        If xpath is present: a list of results in the requested output_format.
+    """
+    xpath_expr = step.get("xpath")
+    if not xpath_expr:
+        return element
+
+    from lxml import etree  # type: ignore[attr-defined]
+
+    namespaces = step.get("namespaces") or {}
+    output_format = step.get("output_format", "element")
+
+    results = element.xpath(xpath_expr, namespaces=namespaces)
+
+    if output_format == "text":
+        out = []
+        for item in results:
+            if isinstance(item, str):
+                out.append(item)
+            elif hasattr(item, "text"):
+                out.append(item.text or "")
+            else:
+                out.append(str(item))
+        return out
+
+    if output_format == "xml-string":
+        return [etree.tostring(item, encoding="unicode") for item in results]
+
+    # Default: "element" — return lxml elements as-is
+    return list(results)
+
+
+# ---------------------------------------------------------------------------
+# JSON/YAML key extraction — used by load_json and load_yaml steps
+# ---------------------------------------------------------------------------
+
+def apply_key_extract(data, step: dict):
+    """Extract a nested value from loaded JSON/YAML data by dot-path key.
+
+    Args:
+        data:  Loaded data (dict or list).
+        step:  Step config dict. Recognized key:
+                 key — dot-separated path, e.g. "pericopes" or "book.chapters"
+
+    Returns:
+        If key is absent: data unchanged.
+        If key is present: the value at that dot-path.
+
+    Raises:
+        KeyError if any part of the path does not exist.
+    """
+    key = step.get("key")
+    if not key:
+        return data
+
+    result = data
+    for part in key.split("."):
+        if isinstance(result, dict):
+            if part not in result:
+                raise KeyError(f"key '{key}': '{part}' not found in {list(result.keys())}")
+            result = result[part]
+        else:
+            raise KeyError(f"key '{key}': cannot traverse '{part}' — not a dict")
+    return result

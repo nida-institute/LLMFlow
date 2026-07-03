@@ -1509,11 +1509,14 @@ def _load_one(path, fmt, load_json_file, load_yaml, load_xml_file,
     """Load a single file according to fmt."""
     path = Path(path)
     if fmt == "json":
-        return load_json_file(str(path))
+        from llmflow.utils.data import apply_key_extract
+        return apply_key_extract(load_json_file(str(path)), step)
     if fmt == "yaml":
-        return load_yaml(str(path))
+        from llmflow.utils.data import apply_key_extract
+        return apply_key_extract(load_yaml(str(path)), step)
     if fmt == "xml":
-        return load_xml_file(str(path))
+        from llmflow.utils.data import apply_xml_xpath
+        return apply_xml_xpath(load_xml_file(str(path)), step)
     if fmt in ("csv", "tsv"):
         from llmflow.utils.data import apply_tabular_filters
         delimiter = step.get("delimiter", "\t" if fmt == "tsv" else ",")

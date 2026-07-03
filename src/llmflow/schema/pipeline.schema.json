@@ -500,9 +500,9 @@
     },
 
     "LoadJsonStep": {
-      "description": "Loads a JSON file into context as a dict or list.\n\nflow: once | effect: file-read | idempotent: true",
+      "description": "Loads a JSON file into context as a dict or list. Use key: to extract a nested value by dot-path.\n\nflow: once | effect: file-read | idempotent: true",
       "x-handler": "llmflow.steps.loaders.run_load_json",
-      "x-resolve-fields": ["path"],
+      "x-resolve-fields": ["path", "key"],
       "x-output-field": "output",
       "x-semantics": {
         "flow": "once",
@@ -519,7 +519,11 @@
           "properties": {
             "type": { "const": "load_json" },
             "path": { "$ref": "#/$defs/LoadPath" },
-            "output": { "$ref": "#/$defs/OutputField" }
+            "output": { "$ref": "#/$defs/OutputField" },
+            "key": {
+              "type": "string",
+              "description": "Dot-path to extract from the loaded data. Example: \"pericopes\" or \"book.chapters\". Raises an error if the path does not exist."
+            }
           },
           "required": ["type", "path", "output"]
         }
@@ -527,9 +531,9 @@
     },
 
     "LoadYamlStep": {
-      "description": "Loads a YAML file into context as a dict or list.\n\nflow: once | effect: file-read | idempotent: true",
+      "description": "Loads a YAML file into context as a dict or list. Use key: to extract a nested value by dot-path.\n\nflow: once | effect: file-read | idempotent: true",
       "x-handler": "llmflow.steps.loaders.run_load_yaml",
-      "x-resolve-fields": ["path"],
+      "x-resolve-fields": ["path", "key"],
       "x-output-field": "output",
       "x-semantics": {
         "flow": "once",
@@ -546,7 +550,11 @@
           "properties": {
             "type": { "const": "load_yaml" },
             "path": { "$ref": "#/$defs/LoadPath" },
-            "output": { "$ref": "#/$defs/OutputField" }
+            "output": { "$ref": "#/$defs/OutputField" },
+            "key": {
+              "type": "string",
+              "description": "Dot-path to extract from the loaded data. Example: \"pericopes\" or \"book.chapters\". Raises an error if the path does not exist."
+            }
           },
           "required": ["type", "path", "output"]
         }
@@ -554,9 +562,9 @@
     },
 
     "LoadXmlStep": {
-      "description": "Loads an XML file into context as an lxml.etree._Element. Supports XPath and XSLT downstream.\n\nflow: once | effect: file-read | idempotent: true",
+      "description": "Loads an XML file into context. Without xpath:, returns the root lxml.etree._Element. With xpath:, returns a list of matching nodes in the requested output_format.\n\nflow: once | effect: file-read | idempotent: true",
       "x-handler": "llmflow.steps.loaders.run_load_xml",
-      "x-resolve-fields": ["path"],
+      "x-resolve-fields": ["path", "xpath"],
       "x-output-field": "output",
       "x-semantics": {
         "flow": "once",
@@ -573,7 +581,22 @@
           "properties": {
             "type": { "const": "load_xml" },
             "path": { "$ref": "#/$defs/LoadPath" },
-            "output": { "$ref": "#/$defs/OutputField" }
+            "output": { "$ref": "#/$defs/OutputField" },
+            "xpath": {
+              "type": "string",
+              "description": "XPath expression to apply to the root element. Supports ${var} substitution. Returns a list of matching nodes."
+            },
+            "namespaces": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Namespace prefix-to-URI mapping for namespace-aware XPath. Example: {\"usx\": \"http://usx.org/\"}."
+            },
+            "output_format": {
+              "type": "string",
+              "enum": ["element", "xml-string", "text"],
+              "default": "element",
+              "description": "How to serialize XPath results. element: lxml _Element objects (default). xml-string: serialized XML strings. text: text content of each node."
+            }
           },
           "required": ["type", "path", "output"]
         }
