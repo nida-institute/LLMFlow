@@ -28,7 +28,7 @@ linter_config:
 
 steps:
   - name: first-step
-    type: llm | function | for-each | save
+    type: llm | function | for-each | save | load_json | load_yaml | load_csv | load_tsv | load_text | load_xml | load_directory
     # ...
 ```
 
@@ -139,6 +139,22 @@ Loops over a list variable and runs nested steps for each item.
 - `${loop.index}`, `${loop.total}`, `${loop.first}`, `${loop.last}` are available inside every iteration.
 - Use `append_to` in nested steps to build a list across iterations.
 
+### type: `json`
+
+Constructs a JSON value from variables in context and stores it under a named key.
+
+```yaml
+- name: build_scene
+  type: json
+  output: scene_object
+  value:
+    scene_id: "${scene.scene_id}"
+    characters: "${scene.characters}"
+```
+
+Use `json` to assemble a structured value mid-pipeline from step outputs.
+For static objects that don't depend on step outputs, use `variables:` instead.
+
 ### type: `save`
 
 Writes literal content to disk without calling an LLM.
@@ -155,6 +171,39 @@ Writes literal content to disk without calling an LLM.
 
 Use `save` when you just need to materialize a small message or
 artifact from existing variables.
+
+### type: `load_json` / `load_yaml` / `load_xml` / `load_csv` / `load_tsv` / `load_text`
+
+Load a file into pipeline context — no Python function required.
+
+```yaml
+- name: load_summary
+  type: load_json
+  path: "${output_dir}/summary.json"
+  output: summary
+```
+
+- `path` supports `${var}` substitution; static paths are checked at lint time.
+- Use `output:` or `outputs:` (both accepted).
+- `load_csv` accepts an optional `delimiter:` key (default `,`); `load_tsv` uses `\t`.
+- `load_xml` returns an `lxml.etree._Element`.
+
+### type: `load_directory`
+
+Load all files matching a glob from a directory into a list.
+
+```yaml
+- name: load_files
+  type: load_directory
+  path: "${data_dir}"
+  pattern: "*.json"
+  format: json
+  output: items
+```
+
+- `pattern`: glob relative to `path` (required)
+- `format`: one of `json`, `yaml`, `xml`, `csv`, `tsv`, `text` (required)
+- Files are loaded in sorted order.
 
 ### type: `if`
 
@@ -267,3 +316,11 @@ Key rules:
 - Variables in the body use `{{double_braces}}`.
 - If `requires:` is missing, the linter cannot validate the contract and will
   emit warnings about undeclared inputs.
+
+**Mixins** — include shared text from another file:
+
+```
+{{mixin:../mixins/output-language.md}}
+```
+
+Paths are relative to the `.gpt` file. The mixin's contents are inlined at render time. Mixin directives are not treated as missing variables by the linter.
