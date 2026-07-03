@@ -16,7 +16,9 @@ documentation:
 
 variables:
   book: "Mark"  # Can be overridden with --var book="..."
-  output_dir: "outputs/json-schema-example"
+  output_dir: "output/json-schema-example"
+
+output_file_directory: "output/json-schema-example"
 
 llm_config:
   model: gpt-4o-2024-08-06  # CRITICAL: Must be 2024-08-06 or later for json_schema support
@@ -106,7 +108,7 @@ steps:
       inputs:
         book: "${book}"
 
-    outputs: segmentation
+    output: segmentation
 
     saveas:
       path: "${output_dir}/${book}_segmentation.json"
@@ -185,7 +187,7 @@ steps:
         passage: "${segmentation.pericopes[0].passage}"
         theme: "${segmentation.pericopes[0].theme}"
 
-    outputs: analysis
+    output: analysis
 
     saveas:
       path: "${output_dir}/${book}_first_pericope_analysis.json"
@@ -251,7 +253,7 @@ steps:
         book: "${book}"
         segmentation_json: "${segmentation}"  # Auto-serialized to JSON string
 
-    outputs: summary
+    output: summary
 
     saveas:
       path: "${output_dir}/${book}_summary.json"
