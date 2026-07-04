@@ -16,8 +16,8 @@ llmflow.log
 .DS_Store
 .idea/
 
-# Claude Code — local session state (never commit)
-.claude/settings.local.json
+# Claude Code — local session state and AI memory (never commit)
+.claude/
 
 # VSCode (allow settings.json for Copilot integration)
 .vscode/*
