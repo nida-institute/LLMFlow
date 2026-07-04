@@ -14,13 +14,21 @@ docs/audits/           ← Procedures (version-controlled, reusable)
   audit-verse-atlas.md
 
 project/audits/        ← Records (per-run findings, not committed)
-  audit-MRK-6-14-29.md ← One file per artifact audited
-  audit-LUK-1-full-pipeline.md
+  audit-MRK-6-14-29.md      ← Per-artifact: one file per passage/output audited
+  audit-leadersguide.md     ← Per-pipeline: one rolling file per pipeline (see below)
+
+project/plans/         ← Implementation tasks (per-pipeline rolling files)
+  leadersguide-plan.md      ← Tasks for the leader's guide pipeline
 ```
 
 **Key distinction:**
 - `docs/audits/` = **how to audit** (procedures, stable across runs)
-- `project/audits/` = **what you found** (findings, one file per artifact)
+- `project/audits/` = **what you found** — two types:
+  - **Per-artifact records** (`audit-<PASSAGE>.md`) — one file per passage or output; retained as a record
+  - **Per-pipeline rolling files** (`audit-{pipeline-name}.md`) — one file per pipeline, updated in place; items removed when resolved; git history is the audit trail
+- `project/plans/` = **what will be done** (`{pipeline-name}-plan.md`) — tasks checked off and removed when done
+
+See `~/.sp/conventions/llmflow-project-tracking.md` (installed by `sp init`) for the full rolling-file convention.
 
 ---
 
