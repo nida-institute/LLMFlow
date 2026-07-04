@@ -8,8 +8,8 @@ and linter validation.
 NO STUBS — uses real runner.py and linter.py.
 """
 import pytest
-from llmflow.runner import (
-    run_window_step,
+from llmflow.runner import run_window_step
+from llmflow.steps.window import (
     _build_windows_fixed,
     _build_windows_condition,
     _build_windows_token,
@@ -695,7 +695,7 @@ class TestConditionWindowObjects:
     def test_object_with_attribute_access(self):
         """Items that are objects (not plain dicts) — dot notation via getattr."""
         from types import SimpleNamespace
-        from llmflow.runner import _build_windows_condition
+        from llmflow.steps.window import _build_windows_condition
 
         items = [
             SimpleNamespace(type="heading", text="Title"),
@@ -720,7 +720,7 @@ class TestConditionWindowObjects:
 
     def test_condition_uses_parent_context(self):
         """start_when can reference parent context variables."""
-        from llmflow.runner import _build_windows_condition
+        from llmflow.steps.window import _build_windows_condition
 
         items = [
             {"value": 1}, {"value": 5}, {"value": 2},
@@ -740,7 +740,7 @@ class TestConditionWindowObjects:
 
     def test_condition_no_matches_returns_empty(self):
         """If start_when never fires, no windows produced."""
-        from llmflow.runner import _build_windows_condition
+        from llmflow.steps.window import _build_windows_condition
 
         items = [{"type": "para"}, {"type": "para"}]
         windows = _build_windows_condition(
@@ -753,7 +753,7 @@ class TestConditionWindowObjects:
 
     def test_single_item_window(self):
         """A window can contain a single item."""
-        from llmflow.runner import _build_windows_condition
+        from llmflow.steps.window import _build_windows_condition
 
         items = [{"s": True, "e": True}, {"s": False, "e": False}]
         windows = _build_windows_condition(
@@ -767,7 +767,7 @@ class TestConditionWindowObjects:
 
     def test_consecutive_start_markers_each_open_new_window(self):
         """Two adjacent start markers without intervening items each form their own window."""
-        from llmflow.runner import _build_windows_condition
+        from llmflow.steps.window import _build_windows_condition
 
         items = [
             {"m": "s"}, {"m": "a"}, {"m": "e"},

@@ -296,7 +296,7 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
 
         # Only validate contracts for LLM steps
         if step_type == "llm":
-            log_func(
+            logger.debug(
                 f"🔍 Validating step '{step_name}' contract: {step.get('prompt', {}).get('file', 'NO_FILE')}"
             )
 
@@ -356,7 +356,7 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
                     )
                     log_func(f"❌ Step '{step_name}' contract validation failed")
                 else:
-                    log_func(f"✅ Step '{step_name}' contract validation passed")
+                    logger.debug(f"✅ Step '{step_name}' contract validation passed")
                     validated_count += 1
 
             except Exception as e:
@@ -1064,6 +1064,10 @@ def lint_pipeline_full(
         _ctx = {**_vars, **cli_vars}
         _intermediate_dir = Path(str(_resolve(str(_intermediate_raw), _ctx))) if _intermediate_raw else None
         _output_dir = Path(str(_resolve(str(_output_raw), _ctx))) if _output_raw else None
+        if _intermediate_dir:
+            _ctx["intermediate_file_directory"] = str(_intermediate_dir)
+        if _output_dir:
+            _ctx["output_file_directory"] = str(_output_dir)
         for _step in all_steps:
             _saveas = _step.get("saveas")
             if not _saveas:
@@ -1073,8 +1077,17 @@ def lint_pipeline_full(
                 _saveas_path = Path(str(_resolve(str(_raw_path), _ctx)))
             except Exception:
                 continue
-            _under_intermediate = _intermediate_dir and _saveas_path.is_relative_to(_intermediate_dir)
-            _under_output = _output_dir and _saveas_path.is_relative_to(_output_dir)
+            _saveas_str = str(_saveas_path)
+            if "${" in _saveas_str:
+                # Path has unresolved runtime variables — check the resolved prefix only
+                _prefix = Path(_saveas_str[:_saveas_str.index("${")])
+                if not str(_prefix):
+                    continue  # Nothing resolved — cannot determine containment
+                _under_intermediate = _intermediate_dir and _prefix.is_relative_to(_intermediate_dir)
+                _under_output = _output_dir and _prefix.is_relative_to(_output_dir)
+            else:
+                _under_intermediate = _intermediate_dir and _saveas_path.is_relative_to(_intermediate_dir)
+                _under_output = _output_dir and _saveas_path.is_relative_to(_output_dir)
             if not _under_intermediate and not _under_output:
                 all_warnings.append(
                     f"Step \"{_step.get('name', 'unnamed')}\" saveas path \"{_saveas_path}\" "

@@ -186,10 +186,14 @@ def resolve(value: Any, context: Dict[str, Any], max_depth: int = 5) -> Any:
         def replace_var(match: re.Match) -> str:
             expr = match.group(1)
             resolved = get_from_context(expr, context)
-            return str(resolved) if resolved is not _MISSING else match.group(0)
+            if resolved is _MISSING:
+                return match.group(0)
+            if isinstance(resolved, str) and ("${" in resolved or "{" in resolved) and max_depth > 0:
+                resolved = resolve(resolved, context, max_depth - 1)
+            return str(resolved)
 
         value = re.sub(r"\$\{([^\}]+)\}", replace_var, value)
-        value = re.sub(r"\{([^\}]+)\}", replace_var, value)
+        value = re.sub(r"(?<!\$)\{([^\}]+)\}", replace_var, value)
         return value
 
     elif isinstance(value, dict):

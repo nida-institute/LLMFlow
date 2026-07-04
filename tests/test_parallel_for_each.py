@@ -19,8 +19,8 @@ import types
 import threading
 import pytest
 
-from llmflow.runner import (
-    run_for_each_step,
+from llmflow.runner import run_for_each_step
+from llmflow.steps.for_each import (
     _collect_loop_outputs,
     _setup_iteration_context,
     _run_iteration_steps,

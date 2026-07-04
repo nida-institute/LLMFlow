@@ -155,6 +155,25 @@ def _eval_node(node, ctx: Mapping[str, Any]):
     raise ValueError(f"Expression type '{type(node).__name__}' is not allowed in pipeline conditions")
 
 
+def build_eval_locals(context: Dict[str, Any]) -> dict:
+    """Build a locals dict for _safe_eval from a pipeline context.
+
+    Adds all identifier-safe context keys as locals plus a ``ctx`` lookup
+    function for dot-notation access via get_from_context.
+    """
+    from llmflow.utils.context import get_from_context, _MISSING
+
+    def ctx_lookup(expr):
+        result = get_from_context(expr, context)
+        return None if result is _MISSING else result
+
+    eval_locals: dict = {"context": context, "ctx": ctx_lookup}
+    for key, value in context.items():
+        if isinstance(key, str) and key.isidentifier():
+            eval_locals[key] = value
+    return eval_locals
+
+
 def _safe_eval(expr: str, ctx: Mapping[str, Any]) -> bool:
     if not isinstance(expr, str):
         raise ValueError("Guard expression must be a string")

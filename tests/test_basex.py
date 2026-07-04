@@ -118,7 +118,7 @@ class TestBasexStepRunner:
         step = self._make_step(tmp_path)
         context = {"lemma": "λέγω"}
 
-        with patch("llmflow.runner.run_basex", return_value="<occ ref='MAT.1.1'/>"):
+        with patch("llmflow.steps.basex.run_basex", return_value="<occ ref='MAT.1.1'/>"):
             run_basex_step(step, context, {})
 
         assert "corpus_data" in context
@@ -135,7 +135,7 @@ class TestBasexStepRunner:
             captured["inputs"] = inputs
             return "<occ/>"
 
-        with patch("llmflow.runner.run_basex", side_effect=fake_run_basex):
+        with patch("llmflow.steps.basex.run_basex", side_effect=fake_run_basex):
             run_basex_step(step, context, {})
 
         assert captured["inputs"]["lemma"] == "λόγος"
@@ -153,7 +153,7 @@ class TestBasexStepRunner:
             captured["query_file"] = query_file
             return "<occ/>"
 
-        with patch("llmflow.runner.run_basex", side_effect=fake_run_basex):
+        with patch("llmflow.steps.basex.run_basex", side_effect=fake_run_basex):
             run_basex_step(step, context, {})
 
         assert captured["query_file"] == str(qfile)
@@ -169,7 +169,7 @@ class TestBasexStepRunner:
             captured["timeout"] = timeout
             return "<occ/>"
 
-        with patch("llmflow.runner.run_basex", side_effect=fake_run_basex):
+        with patch("llmflow.steps.basex.run_basex", side_effect=fake_run_basex):
             run_basex_step(step, context, {})
 
         assert captured["timeout"] == 30
@@ -180,7 +180,7 @@ class TestBasexStepRunner:
         step = self._make_step(tmp_path)
         context = {"lemma": "λέγω"}
 
-        with patch("llmflow.runner.run_basex",
+        with patch("llmflow.steps.basex.run_basex",
                    side_effect=RuntimeError("basex not found on PATH")):
             with pytest.raises(RuntimeError, match="basex"):
                 run_basex_step(step, context, {})
