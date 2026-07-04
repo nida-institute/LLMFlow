@@ -280,10 +280,10 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
         # Check append_to without outputs
         if "append_to" in step:
             append_to_value = step["append_to"]
-            if not step.get("outputs"):
+            if not step.get("outputs") and not step.get("output"):
                 if isinstance(append_to_value, str) and append_to_value.strip():
                     errors.append(
-                        f"❌ Step '{step_name}': append_to: {append_to_value} requires 'outputs' to be specified"
+                        f"❌ Step '{step_name}': append_to: {append_to_value} requires 'output' to be specified"
                     )
                 continue
 
@@ -296,7 +296,7 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
 
         # Only validate contracts for LLM steps
         if step_type == "llm":
-            log_func(
+            logger.debug(
                 f"🔍 Validating step '{step_name}' contract: {step.get('prompt', {}).get('file', 'NO_FILE')}"
             )
 
@@ -356,7 +356,7 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
                     )
                     log_func(f"❌ Step '{step_name}' contract validation failed")
                 else:
-                    log_func(f"✅ Step '{step_name}' contract validation passed")
+                    logger.debug(f"✅ Step '{step_name}' contract validation passed")
                     validated_count += 1
 
             except Exception as e:
@@ -480,7 +480,7 @@ class LintResult:
 def _collect_declared_outputs(all_steps):
     declared = set()
     for step in all_steps:
-        outs = step.get("outputs")
+        outs = step.get("outputs") or step.get("output")
         if isinstance(outs, dict):
             declared.update(outs.keys())
         elif isinstance(outs, list):
@@ -620,18 +620,13 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
             )
 
         # After processing step (including nested steps), add its outputs to declared_outputs
-        outs = step.get("outputs")
+        outs = step.get("outputs") or step.get("output")
         if isinstance(outs, dict):
             declared_outputs.update(outs.keys())
         elif isinstance(outs, list):
             declared_outputs.update(outs)
         elif isinstance(outs, str):
             declared_outputs.add(outs)
-
-        # json and loader steps use singular 'output' key
-        if step.get("type") in {"json"} | _LOADER_STEP_TYPES:
-            if step.get("output"):
-                declared_outputs.add(step["output"])
 
         # Handle append_to - these create implicit lists
         append_to = step.get("append_to")
@@ -1069,6 +1064,10 @@ def lint_pipeline_full(
         _ctx = {**_vars, **cli_vars}
         _intermediate_dir = Path(str(_resolve(str(_intermediate_raw), _ctx))) if _intermediate_raw else None
         _output_dir = Path(str(_resolve(str(_output_raw), _ctx))) if _output_raw else None
+        if _intermediate_dir:
+            _ctx["intermediate_file_directory"] = str(_intermediate_dir)
+        if _output_dir:
+            _ctx["output_file_directory"] = str(_output_dir)
         for _step in all_steps:
             _saveas = _step.get("saveas")
             if not _saveas:
@@ -1078,8 +1077,17 @@ def lint_pipeline_full(
                 _saveas_path = Path(str(_resolve(str(_raw_path), _ctx)))
             except Exception:
                 continue
-            _under_intermediate = _intermediate_dir and _saveas_path.is_relative_to(_intermediate_dir)
-            _under_output = _output_dir and _saveas_path.is_relative_to(_output_dir)
+            _saveas_str = str(_saveas_path)
+            if "${" in _saveas_str:
+                # Path has unresolved runtime variables — check the resolved prefix only
+                _prefix = Path(_saveas_str[:_saveas_str.index("${")])
+                if not str(_prefix):
+                    continue  # Nothing resolved — cannot determine containment
+                _under_intermediate = _intermediate_dir and _prefix.is_relative_to(_intermediate_dir)
+                _under_output = _output_dir and _prefix.is_relative_to(_output_dir)
+            else:
+                _under_intermediate = _intermediate_dir and _saveas_path.is_relative_to(_intermediate_dir)
+                _under_output = _output_dir and _saveas_path.is_relative_to(_output_dir)
             if not _under_intermediate and not _under_output:
                 all_warnings.append(
                     f"Step \"{_step.get('name', 'unnamed')}\" saveas path \"{_saveas_path}\" "
@@ -1099,14 +1107,14 @@ def check_step_outputs(step):
     """Warn if a step generates data but doesn't store it"""
     warnings = []
 
-    # Check if step has append_to but no outputs
-    if "append_to" in step and "outputs" not in step:
+    # Check if step has append_to but no output
+    if "append_to" in step and "outputs" not in step and "output" not in step:
         warnings.append(
-            f"Step '{step.get('name', 'unnamed')}' has append_to but no outputs"
+            f"Step '{step.get('name', 'unnamed')}' has append_to but no output"
         )
 
-    # Check if LLM step has neither outputs nor append_to
-    if step.get("type") == "llm" and "outputs" not in step and "append_to" not in step:
+    # Check if LLM step has neither output nor append_to
+    if step.get("type") == "llm" and "outputs" not in step and "output" not in step and "append_to" not in step:
         warnings.append(
             f"LLM step '{step.get('name', 'unnamed')}' generates content but doesn't store it"
         )

@@ -157,20 +157,31 @@ For static objects that don't depend on step outputs, use `variables:` instead.
 
 ### type: `save`
 
-Writes literal content to disk without calling an LLM.
+Writes content to disk. Terminal step — produces no context variable.
 
 ```yaml
-- name: write-confirmation
+- name: write-report
   type: save
-  content: |
-    ✅ LLMFlow is installed and running.
-    2 + 2 = ${total}
-  saveas:
-    path: "${output_dir}/hello-llmflow.txt"
+  content: "${report_md}"
+  path: "${output_dir}/report.md"
 ```
 
-Use `save` when you just need to materialize a small message or
-artifact from existing variables.
+**`save` vs `saveas`:** use `save` when writing to disk *is the whole step*. Use
+`saveas:` on any other step when you want to write its output to disk *and also*
+keep the value in context for downstream steps.
+
+```yaml
+# saveas: side effect on an llm step — value stays in context AND is written
+- name: generate-report
+  type: llm
+  prompt:
+    file: report.gpt
+    inputs:
+      data: "${analysis}"
+  output: report_md
+  saveas:
+    path: "${output_dir}/report.md"
+```
 
 ### type: `load_json` / `load_yaml` / `load_xml` / `load_csv` / `load_tsv` / `load_text`
 
@@ -184,9 +195,52 @@ Load a file into pipeline context — no Python function required.
 ```
 
 - `path` supports `${var}` substitution; static paths are checked at lint time.
-- Use `output:` or `outputs:` (both accepted).
 - `load_csv` accepts an optional `delimiter:` key (default `,`); `load_tsv` uses `\t`.
-- `load_xml` returns an `lxml.etree._Element`.
+- `load_xml` returns an `lxml.etree._Element` (or a list if `xpath:` is used).
+
+`load_json` and `load_yaml` accept a `key:` dot-path to extract a nested value:
+
+```yaml
+- name: load_pericopes
+  type: load_json
+  path: "${book_summary}"
+  key: pericopes          # or "book.chapters" for nested access
+  output: pericopes
+```
+
+`load_xml` accepts `xpath:` to filter the tree and return a list of matching nodes:
+
+```yaml
+- name: load_verses
+  type: load_xml
+  path: "${book_xml}"
+  xpath: "//verse[@chapter='1']"
+  output_format: element   # element (default) | xml-string | text
+  namespaces:              # optional, for namespace-aware XPath
+    usx: "http://usx.org/"
+  output: verses
+```
+
+`load_csv` and `load_tsv` support filtering after the file is loaded:
+
+```yaml
+- name: load_genesis
+  type: load_tsv
+  path: "${macula_tsv}"
+  output: genesis_rows
+  where: "book(ref) == 'GEN' and chapter(ref) == '1'"
+  limit: 50
+  offset: 0
+  columns: [ref, text, lemma]
+```
+
+- `where` — filter expression; supports `${var}` substitution. Forms (joined by `and`):
+  - `column == 'value'`
+  - `column startswith 'prefix'`
+  - `book(column) == 'GEN'` / `chapter(column) == '1'` / `verse(column) == '1'` / `word(column) == '1'`
+- `limit` — max rows to return (applied after `where`).
+- `offset` — rows to skip (applied after `where`).
+- `columns` — list of column names to include; omit for all columns.
 
 ### type: `load_directory`
 
@@ -228,7 +282,7 @@ Conditionally executes a block of steps.
 
 ### Step-level `condition:` (skip guard)
 
-Any step (any type) can be skipped individually:
+Any step (any type) can carry a `condition:` to skip just that step:
 
 ```yaml
 - name: optional-step
@@ -238,11 +292,19 @@ Any step (any type) can be skipped individually:
     file: "optional.gpt"
     inputs:
       data: "${data}"
-  outputs: optional_result
+  output: optional_result
 ```
 
-The expression follows the same rules as `type: if` — variable reference,
-Python eval expression, or boolean literal.
+**`condition:` appears in two scopes** — this is intentional symmetry, not a collision:
+
+| Context | Meaning |
+|---|---|
+| On a `type: if` step | Gates the entire nested `steps:` block |
+| On any other step | Skip guard — skips just that one step if falsy |
+
+Both evaluate the same way: if the expression is falsy, execution does not happen.
+The scopes are unambiguous — which step the `condition:` belongs to is always clear
+from indentation.
 
 ## 4. Saving outputs with `saveas`
 

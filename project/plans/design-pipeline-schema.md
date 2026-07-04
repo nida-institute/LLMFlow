@@ -421,8 +421,8 @@ This drives resume and checkpoint logic: non-idempotent steps should declare `sa
 |-----------|------|--------|-------|--------|------------|------------|
 | `llm` | once | llm | inputs.* | outputs | single | false |
 | `function` | once | function | inputs.* | outputs | single | unknown |
-| `for-each` | foreach(input, as) | contains-steps | input | append_to? | append | depends |
-| `window` | window(input, size, stride, as) | contains-steps | input | append_to? | append | depends |
+| `for-each` | foreach(in, for) | contains-steps | in | append_to? | append | depends |
+| `window` | window(in, size, stride, for) | contains-steps | in | append_to? | append | depends |
 | `if` | conditional(condition) | contains-steps | condition | — | — | depends |
 | `json` | once | pure | value | output | single | true |
 | `save` | once | file-write | content, path | — | — | true |
@@ -464,9 +464,9 @@ In the JSON Schema, `x-semantics` sits alongside `x-handler`:
       "x-handler": "llmflow.steps.control.execute_foreach",
       "x-nested-steps": "steps",
       "x-semantics": {
-        "flow": { "type": "foreach", "over": "input", "as": "as" },
+        "flow": { "type": "foreach", "in": "in", "for": "for" },
         "effect": "contains-steps",
-        "reads": ["input"],
+        "reads": ["in"],
         "writes": "append_to",
         "write-mode": "append",
         "idempotent": "depends"
@@ -555,64 +555,86 @@ Once stable, submit to [SchemaStore](https://www.schemastore.org/json/) so that 
 
 Formalizing the schema surfaces inconsistencies in the language as it currently exists. These should be resolved before the schema is written, not after — fixing them post-schema means breaking changes to pipeline YAML files already in use.
 
-### 1. `output` vs `outputs` — singular vs plural
+### 1. `output` vs `outputs` — singular vs plural ✅ DECIDED
 
-The language uses both with no consistent rule:
+**Decision: standardize on `output` (singular) everywhere.**
 
-| Step type | Field used |
-|-----------|-----------|
-| `llm` | `outputs` |
-| `function` | `outputs` |
-| `basex` | `outputs` |
-| `duckdb` | `outputs` |
-| `json` | `output` |
-| `load_json`, `load_yaml`, etc. | `output` (also accepts `outputs`) |
+A step produces one result, even if that result is a list. The plural `outputs` was inherited informally and has no semantic justification. The runner will continue to accept `outputs` as a deprecated alias during a transition period; `sp lint` will warn on its use.
 
-The runner currently accepts both everywhere as a workaround. A formal schema must pick one, or state an explicit rule. The most defensible rule: **`output` (singular) always** — a step writes one result, even if that result is a list. The plural form was inherited informally and has no semantic justification.
+### 2. `input` / `as` vs XQuery-aligned `for` / `in` ✅ DECIDED
 
-**Decision needed:** standardize on `output` and deprecate `outputs`, or document a rule distinguishing them.
+**Decision: adopt `for:` / `in:` aligned with XQuery syntax, for both `for-each` and `window`.**
 
-### 2. `input` vs `inputs` — same word, different shapes
+XQuery uses `for ... in` as the universal iteration construct — for regular iteration and for both tumbling and sliding windows:
 
-`for-each` uses `input:` (a single context variable name resolving to a list). `function` and `llm` use `inputs:` (a map of name→expression for resolving multiple values). These are the same English word applied to structurally different things with no naming rule.
+```xquery
+for $scene in $scene_list                          (regular)
+for tumbling window $w in $items start … end …     (windowed)
+for sliding window $w in $items start … end …      (sliding)
+```
 
-**Decision needed:** rename `for-each`'s field to `over:` (which also reads more naturally: "for each item *over* this list") or document that `input` means "the one thing iterated over" vs `inputs` means "the map of things passed in."
+LLMFlow matches this with `for:`/`in:` on both step types:
 
-### 3. Three patterns for "resolve context values into a step"
+```yaml
+- type: for-each          - type: window
+  for: scene                for: window_batch
+  in: "${scene_list}"       in: "${scene_list}"
+  steps:                    size: 3
+    - ...                   stride: 1
+                            steps:
+                              - ...
+```
 
-The language has three different conventions for passing context values into a step:
+Reads as: *for scene in scene_list* / *for window_batch in scene_list* — identical pattern to XQuery, without the `$`. The existing `input:` and `as:` fields are accepted as deprecated aliases during transition.
 
-| Pattern | Used by | Shape |
-|---------|---------|-------|
-| Named top-level fields | `load_json` (`path:`), `save` (`content:`, `path:`) | Flat: each input is its own field |
-| `inputs:` map | `function`, `llm` (`prompt.inputs:`) | Map of name→`${expression}` |
-| `params:` map | `basex` | Map of name→`${expression}` |
+**Window semantics — fixed start, dynamic end:**
 
-`inputs` and `params` do the same thing under different names. The named-field pattern and the map pattern serve different purposes (named fields are fixed by the step type; maps are user-defined), but this distinction is not stated anywhere in the language.
+The `window` step has a specific semantic that is not fully captured by `size`/`stride` alone:
 
-**Decision needed:** consolidate `params` into `inputs` for `basex`; document the rule distinguishing named top-level fields from the `inputs` map.
+- **Start is fixed** — each window begins at a defined position (determined by the stride from the previous window's start).
+- **End is not always known in advance** — a step inside the window can emit `!window_advance` to signal "the boundary is here; start the next window from this point." The window ends when that signal is received, not at a fixed size.
 
-### 4. `save` step vs `saveas` cross-cutting field
+This is the correct model: the pipeline processes the window and discovers the boundary during processing. `!window_advance` is the current mechanism for that signal. In XQuery terms, this corresponds to `end … when` — a condition evaluated during processing — but LLMFlow's model is simpler: any step inside the window can trigger advancement rather than requiring a declarative condition expression.
 
-`save` is a step type whose entire job is writing content to disk. `saveas` is an optional field any step can carry to also write its output to disk as a side effect. A pipeline author encounters both and has no obvious rule for which to use.
+This semantic must be captured in the schema's `x-semantics` annotation for `window` and documented in the step reference. The `for`/`in` field naming decision is independent of this design.
 
-The semantic difference: `save` is a terminal step (its only purpose is the write; it has no output variable). `saveas` is a side effect on a step that also produces a context variable. This distinction is real and worth keeping — but it needs to be named and documented, not left implicit.
+### 3. Three patterns for "resolve context values into a step" ✅ DECIDED
 
-**Decision needed:** document the rule explicitly in the language reference: use `save` when writing to disk *is the step*; use `saveas` when writing to disk is *in addition to* storing a result in context.
+**Decision: two patterns, clearly distinguished. Rename `basex` `params:` to `inputs:`.**
 
-### 5. `condition:` collision between step type and cross-cutting field
+The language has — and should retain — exactly two patterns for passing context values into a step:
 
-`if` is a step type with a `condition:` field that gates an entire nested block. Any step can also carry a top-level `condition:` that skips just that one step. Same keyword, two different scopes and behaviors.
+| Pattern | Used by | Rule |
+|---------|---------|------|
+| Named top-level fields | `load_json` (`path:`), `save` (`content:`, `path:`) | The schema declares these fields by name. They are fixed for the step type. |
+| `inputs:` map | `function`, `llm`, `basex`, `duckdb` | User-defined name→`${expression}` pairs. The step type does not know the key names in advance. |
 
-This is not necessarily a problem — the scopes are unambiguous syntactically (one is inside an `if` step, one is a field on any step). But it can surprise readers.
+`basex` currently uses `params:` for what is structurally identical to `inputs:`. **Rename `params:` to `inputs:`** for consistency. The old `params:` is accepted as a deprecated alias during transition.
 
-**Decision needed:** accept this as intentional symmetry and document it clearly, or rename the per-step field (e.g. `skip_if:` or `when:`).
+**The rule, stated explicitly:** use named top-level fields when the schema knows the field names (they are part of the step type definition); use `inputs:` when the names are chosen by the pipeline author (they are passed through to a function, query, or prompt).
 
-### 6. `tsv` plugin vs `load_tsv` step type
+**Testing benefit:** consistent `inputs:` shape means handler functions can be unit-tested with a plain dict — no pipeline context, no runner, no YAML parsing. The schema-driven runner resolves `inputs:` to a flat dict before calling the handler, so tests call handlers directly with the same dict the runner would produce. One test fixture shape covers all `inputs:`-bearing step types.
 
-The `tsv` plugin (registered in `plugins/`) predates the `load_tsv` step type and does overlapping work. Having two ways to load a TSV file is confusing and splits documentation across two concepts.
+### 4. `save` step vs `saveas` cross-cutting field ✅ DECIDED
 
-**Decision needed:** deprecate the `tsv` plugin and direct users to `load_tsv`; or document a distinction (the plugin has additional filtering options the step type lacks).
+**Decision: keep both; document the rule explicitly.**
+
+- Use `type: save` when writing to disk *is the step* — a terminal action with no output variable.
+- Use `saveas:` on any other step when writing to disk is a side effect alongside storing a result in context.
+
+The rule in one sentence: `save` when the write is the whole point; `saveas` when you also need the value downstream.
+
+### 5. `condition:` collision between step type and cross-cutting field ✅ DECIDED
+
+**Decision: accept as intentional symmetry; document clearly. No rename.**
+
+Both uses share the same semantics: evaluate the expression; if falsy, do not execute. The scopes are unambiguous syntactically — `condition:` inside an `if` step gates a nested block; `condition:` on any other step is a per-step skip guard. Renaming the per-step field would break existing pipelines for a minor readability gain.
+
+### 6. `tsv` plugin vs `load_tsv` step type ✅ DECIDED
+
+**Decision: bring `load_tsv` (and `load_csv`) to full parity, then deprecate the plugin.**
+
+`load_tsv` and `load_csv` now support `where:`, `limit:`, `offset:`, and `columns:` — the full filtering capability of the `tsv` plugin. The plugin is simplified to a thin wrapper around the shared `apply_tabular_filters()` helper and remains for backwards compatibility. New pipelines should use the step types.
 
 ---
 
@@ -648,6 +670,26 @@ Items 1–3 affect the `x-output-field` and `x-resolve-fields` annotations on ev
 9. **Submit to SchemaStore** (post-stabilization).
 
 Phase 1 can ship alone and delivers immediate value (editor tooling). Phases 2 and 3 follow in order.
+
+### Testing benefit of the schema-driven approach
+
+Because the runner resolves all declared fields before calling a handler, handler functions become trivially testable in isolation:
+
+```python
+# Before: testing run_basex_step requires a full pipeline context and step dict
+def test_basex(tmp_path):
+    step = {"name": "s", "type": "basex", "query": "//verse", "params": {...}, "outputs": "result"}
+    context = {"passage": "Mark 1"}
+    run_basex_step(step, context)
+    assert context["result"] == ...
+
+# After: handler receives already-resolved inputs, returns a value
+def test_basex_handler():
+    result = execute_basex(query="//verse", inputs={"passage": "Mark 1"})
+    assert result == ...
+```
+
+This also makes it possible to generate test cases from the schema: for each step type, the schema declares which fields are required — a test generator can produce a minimal valid input dict and verify the handler accepts it, and a missing-field dict and verify it raises.
 
 ### Semantic vocabulary stability
 

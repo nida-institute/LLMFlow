@@ -22,6 +22,11 @@ Standard organization pattern for LLMFlow `.gpt` prompt files.
 - Examples consolidated in one section (not scattered)
 - Heading hierarchy: `#` for major sections, `##` for subsections
 
+### llmflow-pipeline-steps.md
+Convention for documenting pipeline steps, including the `description:` field.
+
+**Key standard:** Use `description: |` (YAML block scalar) on steps for multi-line human commentary. The `description` field is whitelisted by the linter and ignored by the runner. YAML `#` comments are reserved for short inline notes and section dividers only.
+
 ---
 
 ## Adding New Conventions

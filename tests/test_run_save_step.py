@@ -59,7 +59,7 @@ class TestRunSaveStep:
 
     def test_save_with_default_path(self, tmp_path):
         """Test save uses default path when not specified"""
-        with patch('llmflow.runner.save_content_to_file') as mock_save:
+        with patch('llmflow.steps.save.save_content_to_file') as mock_save:
             mock_save.return_value = str(tmp_path / "output.txt")
 
             step = {
@@ -157,7 +157,7 @@ class TestRunSaveStep:
 
     def test_save_records_written_file(self, tmp_path):
         """Test save records the written file path"""
-        with patch('llmflow.runner._record_written_file') as mock_record:
+        with patch('llmflow.steps.save._record_written_file') as mock_record:
             step = {
                 "name": "test-save",
                 "path": str(tmp_path / "output.txt"),
@@ -174,7 +174,7 @@ class TestRunSaveStep:
 
     def test_save_logs_info_messages(self, tmp_path):
         """Test save logs appropriate info messages"""
-        with patch('llmflow.runner.logger') as mock_logger:
+        with patch('llmflow.steps.save.logger') as mock_logger:
             step = {
                 "name": "test-save-step",
                 "path": str(tmp_path / "output.txt"),

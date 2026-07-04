@@ -411,9 +411,9 @@ class TestTelemetryCollector:
         summary = collector.generate_summary()
 
         assert "test-pipeline" in summary
-        assert "Total Duration" in summary
-        assert "Total Cost" in summary
-        assert "test" in summary  # Step name
+        assert "·" in summary          # cost · duration · tokens header line
+        assert "tokens" in summary
+        assert "test" in summary       # step name in grouped table
 
 
 # ============================================================================

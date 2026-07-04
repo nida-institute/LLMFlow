@@ -87,7 +87,7 @@ steps:
         pipeline_file = tmp_path / "foreach-isolation.yaml"
         pipeline_file.write_text(pipeline_content)
 
-        with patch("llmflow.runner.call_llm", return_value="mocked"):
+        with patch("llmflow.steps.llm.call_llm", return_value="mocked"):
             with patch("llmflow.runner.Path.read_text", return_value="Test"):
                 context = run_pipeline(str(pipeline_file), vars={"prompts_dir": temp_prompt_file}, skip_lint=True)
 
@@ -124,7 +124,7 @@ steps:
         pipeline_file = tmp_path / "nested-foreach-isolation.yaml"
         pipeline_file.write_text(pipeline_content)
 
-        with patch("llmflow.runner.call_llm", return_value="mocked") as mock_llm:
+        with patch("llmflow.steps.llm.call_llm", return_value="mocked") as mock_llm:
             with patch("llmflow.runner.Path.read_text", return_value="Test"):
                 context = run_pipeline(str(pipeline_file), vars={"prompts_dir": temp_prompt_file}, skip_lint=True)
 
@@ -158,7 +158,7 @@ steps:
         pipeline_file = tmp_path / "foreach-dict-isolation.yaml"
         pipeline_file.write_text(pipeline_content)
 
-        with patch("llmflow.runner.call_llm", return_value="mocked"):
+        with patch("llmflow.steps.llm.call_llm", return_value="mocked"):
             with patch("llmflow.runner.Path.read_text", return_value="Test"):
                 context = run_pipeline(str(pipeline_file), vars={"prompts_dir": temp_prompt_file}, skip_lint=True)
 
@@ -237,7 +237,7 @@ steps:
         pipeline_file = tmp_path / "foreach-append-propagates.yaml"
         pipeline_file.write_text(pipeline_content)
 
-        with patch("llmflow.runner.call_llm", return_value="mocked") as mock_llm:
+        with patch("llmflow.steps.llm.call_llm", return_value="mocked") as mock_llm:
             with patch("llmflow.runner.Path.read_text", return_value="Test"):
                 context = run_pipeline(str(pipeline_file), vars={"prompts_dir": temp_prompt_file}, skip_lint=True)
 
@@ -278,7 +278,7 @@ steps:
         pipeline_file = tmp_path / "foreach-variable-shadowing.yaml"
         pipeline_file.write_text(pipeline_content)
 
-        with patch("llmflow.runner.call_llm", return_value="mocked") as mock_llm:
+        with patch("llmflow.steps.llm.call_llm", return_value="mocked") as mock_llm:
             with patch("llmflow.runner.Path.read_text", return_value="Test ${item}"):
                 context = run_pipeline(str(pipeline_file), vars={"prompts_dir": temp_prompt_file}, skip_lint=True)
 
@@ -311,7 +311,7 @@ steps:
         pipeline_file = tmp_path / "foreach-multi-list-isolation.yaml"
         pipeline_file.write_text(pipeline_content)
 
-        with patch("llmflow.runner.call_llm", return_value="mocked"):
+        with patch("llmflow.steps.llm.call_llm", return_value="mocked"):
             with patch("llmflow.runner.Path.read_text", return_value="Test"):
                 context = run_pipeline(str(pipeline_file), vars={"prompts_dir": temp_prompt_file}, skip_lint=True)
 
@@ -345,7 +345,7 @@ steps:
         pipeline_file = tmp_path / "foreach-nested-object-isolation.yaml"
         pipeline_file.write_text(pipeline_content)
 
-        with patch("llmflow.runner.call_llm", return_value="mocked"):
+        with patch("llmflow.steps.llm.call_llm", return_value="mocked"):
             with patch("llmflow.runner.Path.read_text", return_value="Test"):
                 context = run_pipeline(str(pipeline_file), vars={"prompts_dir": temp_prompt_file}, skip_lint=True)
 
@@ -375,7 +375,7 @@ steps:
         pipeline_file = tmp_path / "foreach-outputs-no-append.yaml"
         pipeline_file.write_text(pipeline_content)
 
-        with patch("llmflow.runner.call_llm", return_value="mocked") as mock_llm:
+        with patch("llmflow.steps.llm.call_llm", return_value="mocked") as mock_llm:
             with patch("llmflow.runner.Path.read_text", return_value="Test"):
                 context = run_pipeline(str(pipeline_file), vars={"prompts_dir": temp_prompt_file}, skip_lint=True)
 
@@ -416,7 +416,7 @@ steps:
         pipeline_file = tmp_path / "foreach-if-isolation.yaml"
         pipeline_file.write_text(pipeline_content)
 
-        with patch("llmflow.runner.call_llm", return_value="mocked") as mock_llm:
+        with patch("llmflow.steps.llm.call_llm", return_value="mocked") as mock_llm:
             with patch("llmflow.runner.Path.read_text", return_value="Test"):
                 context = run_pipeline(str(pipeline_file), vars={"prompts_dir": temp_prompt_file}, skip_lint=True)
 
@@ -467,7 +467,7 @@ steps:
         pipeline_file = tmp_path / "foreach-parallel-isolation.yaml"
         pipeline_file.write_text(pipeline_content)
 
-        with patch("llmflow.runner.call_llm", return_value="mocked") as mock_llm:
+        with patch("llmflow.steps.llm.call_llm", return_value="mocked") as mock_llm:
             with patch("llmflow.runner.Path.read_text", return_value="Test"):
                 context = run_pipeline(str(pipeline_file), vars={"prompts_dir": temp_prompt_file}, skip_lint=True)
 
@@ -549,7 +549,7 @@ steps:
         pipeline_file = tmp_path / "foreach-counter-isolation.yaml"
         pipeline_file.write_text(pipeline_content)
 
-        with patch("llmflow.runner.call_llm", return_value="mocked") as mock_llm:
+        with patch("llmflow.steps.llm.call_llm", return_value="mocked") as mock_llm:
             with patch("llmflow.runner.Path.read_text", return_value="Test"):
                 context = run_pipeline(str(pipeline_file), vars={"prompts_dir": temp_prompt_file}, skip_lint=True)
 
@@ -583,7 +583,7 @@ steps:
         pipeline_file = tmp_path / "foreach-append-pre-existing.yaml"
         pipeline_file.write_text(pipeline_content)
 
-        with patch("llmflow.runner.call_llm", return_value="new") as mock_llm:
+        with patch("llmflow.steps.llm.call_llm", return_value="new") as mock_llm:
             with patch("llmflow.runner.Path.read_text", return_value="Test"):
                 context = run_pipeline(str(pipeline_file), vars={"prompts_dir": temp_prompt_file}, skip_lint=True)
 
@@ -631,7 +631,7 @@ steps:
         pipeline_file = tmp_path / "foreach-3level-isolation.yaml"
         pipeline_file.write_text(pipeline_content)
 
-        with patch("llmflow.runner.call_llm", return_value="mocked") as mock_llm:
+        with patch("llmflow.steps.llm.call_llm", return_value="mocked") as mock_llm:
             with patch("llmflow.runner.Path.read_text", return_value="Test"):
                 context = run_pipeline(str(pipeline_file), vars={"prompts_dir": temp_prompt_file}, skip_lint=True)
 
@@ -671,7 +671,7 @@ steps:
         pipeline_file = tmp_path / "foreach-complex-isolation.yaml"
         pipeline_file.write_text(pipeline_content)
 
-        with patch("llmflow.runner.call_llm", return_value="mocked"):
+        with patch("llmflow.steps.llm.call_llm", return_value="mocked"):
             with patch("llmflow.runner.Path.read_text", return_value="Test"):
                 context = run_pipeline(str(pipeline_file), vars={"prompts_dir": temp_prompt_file}, skip_lint=True)
 

@@ -1552,3 +1552,217 @@ def xpath_text(element, path: str):
         return result[0] if isinstance(result, list) else result
 
     return None
+
+
+# ---------------------------------------------------------------------------
+# Tabular filtering — shared by load_tsv, load_csv, and the tsv plugin
+# ---------------------------------------------------------------------------
+
+import re as _re
+
+_EQ_RE = _re.compile(r'^(\w+)\s*==\s*[\'"]([^\'"]*)[\'"]$')
+_STARTSWITH_RE = _re.compile(r'^(\w+)\s+startswith\s+[\'"]([^\'"]*)[\'"]$')
+_USFM_RE = _re.compile(r'^(book|chapter|verse|word)\((\w+)\)\s*==\s*[\'"]([^\'"]*)[\'"]$')
+
+
+def _extract_usfm_part(cell: str, part: str) -> str:
+    """Extract book/chapter/verse/word component from a USFM ref like 'PHM 1:10!3'."""
+    try:
+        book, cv = cell.split(" ", 1)
+        if part == "book":
+            return book
+        cv_part, word = (cv.split("!", 1) if "!" in cv else (cv, ""))
+        chapter, verse = cv_part.split(":", 1)
+        if part == "chapter":
+            return chapter
+        if part == "verse":
+            return verse
+        if part == "word":
+            return word
+    except (ValueError, AttributeError):
+        pass
+    return ""
+
+
+def _parse_tabular_where(where_expr: str) -> list[tuple[str, str, str, str]]:
+    """Parse a where expression into (extractor, column, operator, value) tuples.
+
+    Supported forms (joined by 'and'):
+        column == 'value'
+        column startswith 'prefix'
+        book(column) == 'value'
+        chapter(column) == 'value'
+        verse(column) == 'value'
+        word(column) == 'value'
+    """
+    conditions = []
+    for atom in (a.strip() for a in where_expr.split(" and ")):
+        m = _USFM_RE.match(atom)
+        if m:
+            conditions.append((m.group(1), m.group(2), "==", m.group(3)))
+            continue
+        m = _EQ_RE.match(atom)
+        if m:
+            conditions.append(("", m.group(1), "==", m.group(2)))
+            continue
+        m = _STARTSWITH_RE.match(atom)
+        if m:
+            conditions.append(("", m.group(1), "startswith", m.group(2)))
+            continue
+        raise ValueError(
+            f"cannot parse where condition: {atom!r}. "
+            "Supported: column == 'value'  |  column startswith 'prefix'  |  "
+            "book/chapter/verse/word(column) == 'value'  (joined by 'and')"
+        )
+    return conditions
+
+
+def _matches_tabular_row(row: dict, extractor: str, col: str, op: str, val: str) -> bool:
+    """Test one parsed condition against a row dict."""
+    cell = row.get(col, "")
+    if extractor:
+        cell = _extract_usfm_part(cell, extractor)
+    if op == "==":
+        return cell == val
+    if op == "startswith":
+        return cell.startswith(val)
+    return False
+
+
+def apply_tabular_filters(rows: list[dict], step: dict) -> list[dict]:
+    """Apply where/limit/offset/columns filtering to a list of row dicts.
+
+    Args:
+        rows:  Loaded tabular data as list of dicts (one dict per row).
+        step:  Step config dict. Recognized keys:
+                 where   — filter expression string
+                 limit   — max rows to return (applied after where)
+                 offset  — rows to skip (applied after where)
+                 columns — list of column names to project
+
+    Returns:
+        Filtered list of dicts.
+    """
+    from llmflow.modules.logger import Logger
+    logger = Logger()
+
+    where = step.get("where")
+    limit = step.get("limit")
+    offset = int(step.get("offset", 0))
+    columns = step.get("columns")
+
+    if columns and rows:
+        fieldnames = list(rows[0].keys())
+        unknown = [c for c in columns if c not in fieldnames]
+        if unknown:
+            raise ValueError(
+                f"unknown columns: {unknown}. Available: {fieldnames}"
+            )
+
+    if where:
+        conditions = _parse_tabular_where(where)
+        # Warn once per condition if the column is missing from the data
+        if rows:
+            fieldnames = list(rows[0].keys())
+            for _ext, col, _op, _val in conditions:
+                if col not in fieldnames:
+                    logger.warning(
+                        f"where condition references unknown column {col!r} — no rows will match"
+                    )
+                    return []
+        rows = [r for r in rows if all(
+            _matches_tabular_row(r, ext, col, op, val)
+            for ext, col, op, val in conditions
+        )]
+
+    if offset:
+        rows = rows[offset:]
+
+    if limit is not None:
+        rows = rows[:int(limit)]
+
+    if columns:
+        rows = [{k: r[k] for k in columns} for r in rows]
+
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# XML XPath filtering — used by load_xml step
+# ---------------------------------------------------------------------------
+
+def apply_xml_xpath(element, step: dict):
+    """Apply an optional xpath: filter to a loaded lxml element.
+
+    Args:
+        element:  Root lxml _Element returned by load_xml_file.
+        step:     Step config dict. Recognized keys:
+                    xpath         — XPath expression (optional)
+                    namespaces    — prefix→URI mapping for namespace-aware XPath
+                    output_format — "element" (default), "xml-string", or "text"
+
+    Returns:
+        If xpath is absent: the element unchanged.
+        If xpath is present: a list of results in the requested output_format.
+    """
+    xpath_expr = step.get("xpath")
+    if not xpath_expr:
+        return element
+
+    from lxml import etree  # type: ignore[attr-defined]
+
+    namespaces = step.get("namespaces") or {}
+    output_format = step.get("output_format", "element")
+
+    results = element.xpath(xpath_expr, namespaces=namespaces)
+
+    if output_format == "text":
+        out = []
+        for item in results:
+            if isinstance(item, str):
+                out.append(item)
+            elif hasattr(item, "text"):
+                out.append(item.text or "")
+            else:
+                out.append(str(item))
+        return out
+
+    if output_format == "xml-string":
+        return [etree.tostring(item, encoding="unicode") for item in results]
+
+    # Default: "element" — return lxml elements as-is
+    return list(results)
+
+
+# ---------------------------------------------------------------------------
+# JSON/YAML key extraction — used by load_json and load_yaml steps
+# ---------------------------------------------------------------------------
+
+def apply_key_extract(data, step: dict):
+    """Extract a nested value from loaded JSON/YAML data by dot-path key.
+
+    Args:
+        data:  Loaded data (dict or list).
+        step:  Step config dict. Recognized key:
+                 key — dot-separated path, e.g. "pericopes" or "book.chapters"
+
+    Returns:
+        If key is absent: data unchanged.
+        If key is present: the value at that dot-path.
+
+    Raises:
+        KeyError if any part of the path does not exist.
+    """
+    key = step.get("key")
+    if not key:
+        return data
+
+    result = data
+    for part in key.split("."):
+        if isinstance(result, dict):
+            if part not in result:
+                raise KeyError(f"key '{key}': '{part}' not found in {list(result.keys())}")
+            result = result[part]
+        else:
+            raise KeyError(f"key '{key}': cannot traverse '{part}' — not a dict")
+    return result

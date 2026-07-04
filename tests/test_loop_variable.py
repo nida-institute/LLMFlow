@@ -14,7 +14,7 @@ These tests are written TDD-style and will fail until the feature is
 implemented in runner.py:_setup_iteration_context / run_for_each_step.
 """
 import pytest
-from llmflow.runner import run_for_each_step, _setup_iteration_context
+from llmflow.steps.for_each import run_for_each_step, _setup_iteration_context
 
 
 # ---------------------------------------------------------------------------

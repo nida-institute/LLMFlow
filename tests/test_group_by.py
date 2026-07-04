@@ -15,11 +15,7 @@ import sys
 import types
 import pytest
 
-from llmflow.runner import (
-    _group_items,
-    _sort_groups,
-    run_for_each_step,
-)
+from llmflow.steps.for_each import _group_items, _sort_groups, run_for_each_step
 from llmflow.utils.linter import _lint_for_each_group_by, lint_pipeline_steps
 
 

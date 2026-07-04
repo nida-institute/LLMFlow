@@ -152,7 +152,7 @@ gamma\tThird
 
     def test_xpath_in_llm_prompt_inputs(self, tmp_path, sample_xml, mocker):
         """Test XPath results can be used in LLM prompt inputs with indexing."""
-        mock_llm = mocker.patch('llmflow.runner.call_llm')
+        mock_llm = mocker.patch('llmflow.steps.llm.call_llm')
         mock_llm.return_value = "Mocked response"
 
         # Create a simple prompt file WITH PROPER YAML HEADER

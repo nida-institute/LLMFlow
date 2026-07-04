@@ -766,6 +766,7 @@ def main(argv=None):
                     rewind_to=args.rewind_to,
                     stop_after=args.stop_after,
                     resume=args.resume,
+                    skip_lint=True,
                 )
             except FileNotFoundError as e:
                 # Distinguish between a missing pipeline file and a missing

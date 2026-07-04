@@ -397,7 +397,7 @@ def _expand_response_format_schema(response_format: dict) -> dict:
         json_schema = expanded["json_schema"]
         if isinstance(json_schema, dict) and "schema_file" in json_schema:
             schema_file = json_schema["schema_file"]
-            logger.info(f"📄 Loading schema from file: {schema_file}")
+            logger.debug(f"📄 Loading schema from file: {schema_file}")
 
             # Load schema from file
             schema = _load_schema_from_file(schema_file)

@@ -295,7 +295,7 @@ class TestRunPipeline:
             call_count["n"] += 1
             raise RuntimeError("simulated LLM error")
 
-        with patch("llmflow.runner.call_llm", side_effect=failing_llm):
+        with patch("llmflow.steps.llm.call_llm", side_effect=failing_llm):
             with pytest.raises(StepRetryError):
                 run_pipeline(pipeline, skip_lint=True)
 

@@ -289,7 +289,7 @@ def test_full_lexicon_pipeline_simulation(mocker):  # Add mocker parameter
     import yaml
 
     # Mock the LLM call so it doesn't actually run - fix the patch path
-    mock_llm = mocker.patch('llmflow.runner.call_llm')
+    mock_llm = mocker.patch('llmflow.steps.llm.call_llm')
     mock_llm.return_value = "Mocked LLM response for expanded entry"
 
     # Create test XML lexicon
