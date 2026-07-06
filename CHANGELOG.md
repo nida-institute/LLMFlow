@@ -2,6 +2,67 @@
 
 ## Unreleased
 
+### Architecture
+
+- **Step handlers extracted to `src/llmflow/steps/` package** — each step type now lives in
+  its own module (`llm.py`, `function.py`, `for_each.py`, `window.py`, `if_step.py`,
+  `load.py`, `save.py`, `json_step.py`, `basex.py`, `duckdb.py`, `plugin.py`). The runner
+  dispatches to these handlers rather than containing all execution logic inline. This is
+  Phase 1 of the schema-driven runner design: adding a new step type no longer requires
+  touching `runner.py`.
+- **Utils extracted from runner** — `context.py` (variable resolution), `file_io.py`
+  (file writing), `step_outputs.py` (output binding and saveas), `debug.py` (debug
+  directory management) are now standalone modules under `src/llmflow/utils/`.
+- **JSON Schema draft 2020-12** — `src/llmflow/schema/pipeline.schema.json` formally
+  defines the pipeline language: all step types, all fields, required/optional, types.
+  Wired to VS Code via `.vscode/settings.json` for live autocompletion and inline
+  validation across `pipelines/**/*.yaml`. See `project/plans/design-pipeline-schema.md`
+  for the full design including the planned schema-driven execution loop (Phase 2).
+
+### New Features
+
+- **Loader step types** — `load_json`, `load_yaml`, `load_xml`, `load_csv`, `load_tsv`,
+  `load_text`, `load_directory` load files directly into context without a function step.
+  `load_tsv` and `load_csv` support `where:`, `limit:`, `offset:`, and `columns:` filters
+  (full parity with the legacy `tsv` plugin). `load_xml` supports an `xpath:` key;
+  `load_json` and `load_yaml` support a `key:` field for sub-document extraction.
+- **Prompt mixins** — `{{mixin:path/to/file.md}}` directives in `.gpt` prompt files include
+  shared content at render time, resolved relative to the prompt file. Enables reusable
+  instruction fragments across prompts. The linter recognises mixin directives and does not
+  flag them as unknown variables.
+- **`parse_bible_reference()` extended** — now returns `testament` (`OT`/`NT`) and
+  `original_language` (`Hebrew`/`Greek`) for all recognised book codes.
+
+### Fixed
+
+- **Derived variable resolution** — `resolve()` now recursively expands variables whose
+  values reference other variables (e.g. `book_output_prefix: "${book_output_dir}/..."`
+  where `book_output_dir` itself contains `${...}`). Previously, multi-level chains
+  produced garbage paths like `$57-$PHM` or literal `${...}` directory names on disk.
+- **Linter saveas directory check** — when a saveas path contains unresolved runtime
+  `${vars}`, the linter now checks only the resolvable prefix against the declared
+  directories rather than emitting a false-positive warning. Root-level pipeline keys
+  (`intermediate_file_directory`, `output_file_directory`) are also now included in the
+  linter's resolution context.
+- **Root-level directory keys in runtime context** — `intermediate_file_directory` and
+  `output_file_directory` declared at the pipeline root (not inside `variables:`) are now
+  seeded into the runtime context, so `${intermediate_file_directory}` resolves correctly
+  in `saveas` paths.
+- **Double lint eliminated** — `sp run` was running `lint_pipeline_full()` twice (once in
+  the CLI handler, once inside the runner). The runner now skips lint when called from the
+  CLI (`skip_lint=True`).
+- **Telemetry footer** — corrected stale command reference from `sp registry update-models`
+  to `sp models --update`.
+
+### Changed
+
+- **Telemetry summary redesigned** — cost and total time are now visually prominent (double
+  horizontal rule). Steps are grouped by name and sorted by cost descending, with iteration
+  counts (`N×`) for for-each steps. Slowest single runs are shown on one line at the bottom.
+- **Reduced default output verbosity** — `📦 Stored in context` and `📄 Loading schema`
+  messages demoted to debug level; they appear in the log file and with `-v` but not in
+  default console output.
+
 ## 0.2.1.18 — 2026-04-06
 
 ### Fixed
