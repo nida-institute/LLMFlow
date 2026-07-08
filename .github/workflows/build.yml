@@ -139,7 +139,7 @@ jobs:
           --include-package=llm_anthropic \
           --include-package=llm_gemini \
           --include-data-dir=prompts=prompts \
-          --include-data-dir=templates=templates \
+          --include-data-dir=src/llmflow/templates=llmflow/templates \
           --include-data-dir=src/llmflow/gui/static=llmflow/gui/static \
           --output-dir=nuitka_dist \
           --output-filename=${{ matrix.artifact_name }} \
@@ -148,7 +148,7 @@ jobs:
     - name: Build with Nuitka (Windows)
       if: runner.os == 'Windows'
       run: |
-        python -m nuitka --standalone --onefile --assume-yes-for-downloads --windows-dependency-tool=pefile --enable-plugin=dll-files --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=templates=templates --include-data-dir=src/llmflow/gui/static=llmflow/gui/static --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
+        python -m nuitka --standalone --onefile --assume-yes-for-downloads --windows-dependency-tool=pefile --enable-plugin=dll-files --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=src/llmflow/templates=llmflow/templates --include-data-dir=src/llmflow/gui/static=llmflow/gui/static --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
 
     - name: Smoke test binary (Unix)
       if: runner.os != 'Windows'
