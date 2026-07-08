@@ -9,7 +9,7 @@ def test_gpt5_cost_estimation_when_usage_missing(monkeypatch, tmp_path):
     def fake_call_llm(prompt, config, output_type="text"):
         return {"content": "Short output text for testing.", "usage": {}}
 
-    monkeypatch.setattr(runner_module, "call_llm", fake_call_llm)
+    monkeypatch.setattr("llmflow.steps.llm.call_llm", fake_call_llm)
 
     telemetry = TelemetryCollector(pipeline_name="test_pipeline")
     pipeline_config = {
