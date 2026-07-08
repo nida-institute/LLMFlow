@@ -1,0 +1,176 @@
+name: Build
+
+# Builds the Linux/macOS/Windows executables on every PR (the merge gate) and
+# on manual dispatch. Artifacts are retained for 7 days and later PROMOTED —
+# not rebuilt — by release.yml when a v* tag is pushed. See
+# project/plans/design-pr-build-promote.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        # For pull_request events, build/test the PR head commit itself (not the
+        # ephemeral merge-preview commit) so the artifact maps to the commit that
+        # becomes HEAD^2 after merge. Falls back to the dispatched ref otherwise.
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install hatch
+      run: pip install hatch
+
+    - name: Setup Node.js for GUI tests
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: gui/frontend/package-lock.json
+
+    - name: Install frontend dependencies
+      run: |
+        cd gui/frontend
+        npm ci
+
+    - name: Run frontend tests
+      run: |
+        cd gui/frontend
+        npm test -- --run
+
+    - name: Type-check frontend
+      run: |
+        cd gui/frontend
+        npx tsc --noEmit
+
+    - name: Build GUI (verify build works)
+      run: python build_gui.py
+
+    - name: Type-check Python with Pyright
+      run: hatch run pytest tests/test_types.py -v
+
+    - name: Run backend tests
+      run: hatch run pytest tests/ -q --tb=short
+      env:
+        # Integration tests requiring real API keys are skipped when these are absent
+        OPENAI_API_KEY: ""
+        ANTHROPIC_API_KEY: ""
+        GEMINI_API_KEY: ""
+
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: test
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            artifact_name: sp-linux
+          - os: macos-latest
+            artifact_name: sp-macos
+          - os: windows-latest
+            artifact_name: sp-windows.exe
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install nuitka ordered-set
+        pip install -e .
+        pip install llm-anthropic llm-gemini
+
+    - name: Install C compiler (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ccache patchelf
+
+    - name: Install C compiler (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Setup Node.js for GUI build
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: gui/frontend/package-lock.json
+
+    - name: Install frontend dependencies
+      run: |
+        cd gui/frontend
+        npm ci
+
+    - name: Build GUI frontend
+      run: |
+        python build_gui.py
+
+    - name: Build with Nuitka (Unix)
+      if: runner.os != 'Windows'
+      run: |
+        python -m nuitka --standalone --onefile \
+          --include-package=llmflow \
+          --include-package=llm \
+          --include-package-data=puremagic \
+          --include-package-data=llm \
+          --include-package=llm_anthropic \
+          --include-package=llm_gemini \
+          --include-data-dir=prompts=prompts \
+          --include-data-dir=templates=templates \
+          --include-data-dir=src/llmflow/gui/static=llmflow/gui/static \
+          --output-dir=nuitka_dist \
+          --output-filename=${{ matrix.artifact_name }} \
+          src/llmflow/cli.py
+
+    - name: Build with Nuitka (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        python -m nuitka --standalone --onefile --assume-yes-for-downloads --windows-dependency-tool=pefile --enable-plugin=dll-files --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=templates=templates --include-data-dir=src/llmflow/gui/static=llmflow/gui/static --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
+
+    - name: Smoke test binary (Unix)
+      if: runner.os != 'Windows'
+      run: |
+        BIN=./nuitka_dist/${{ matrix.artifact_name }}
+        $BIN --version
+        $BIN lint --pipeline tests/fixtures/smoke.yaml
+        $BIN run --pipeline tests/fixtures/smoke.yaml --dry-run
+
+    - name: Smoke test binary (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $bin = ".\nuitka_dist\${{ matrix.artifact_name }}"
+        & $bin --version
+        & $bin lint --pipeline tests/fixtures/smoke.yaml
+        & $bin run --pipeline tests/fixtures/smoke.yaml --dry-run
+
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: nuitka_dist/${{ matrix.artifact_name }}
+        retention-days: 7
+        if-no-files-found: error
