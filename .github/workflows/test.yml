@@ -52,7 +52,7 @@ jobs:
       run: hatch run pytest tests/test_types.py -v
 
     - name: Run backend tests
-      run: hatch run pytest tests/ -q --tb=short
+      run: hatch run pytest tests/ -q --tb=short -m "not integration"
       env:
         # Integration tests requiring real API keys are skipped when these are absent
         OPENAI_API_KEY: ""
