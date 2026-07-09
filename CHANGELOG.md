@@ -63,6 +63,53 @@
   messages demoted to debug level; they appear in the log file and with `-v` but not in
   default console output.
 
+### CI / Release
+
+- **Executables build on PRs now, and get promoted (not rebuilt) on tag.** The
+  Linux/macOS/Windows Nuitka builds run on every pull request as a merge gate and upload the
+  three binaries as artifacts; `release.yml` attaches those same artifacts to the GitHub
+  Release when a `v*` tag is pushed. A broken build shows up on the PR, before merge — not an
+  hour after tagging. Replaces the old `build-release.yml`. See
+  `project/plans/design-pr-build-promote.md`.
+- **PyPI publish waits for a good build, but not for the build time** (#152). Because the
+  build already ran on the PR, tagging doesn't re-run the ~1hr Nuitka build — `release.yml`
+  just confirms the tagged commit has a successful build, then promotes and publishes. A
+  broken binary still blocks the release; the pure-Python wheel isn't held up by build time.
+
+## 0.2.1.19 — 2026-05-06
+
+Catch-up entry — 0.2.1.19 shipped without a changelog section. The feature wave from roughly
+0.2.1.15–0.2.1.19 (window steps, richer for-each, TSV filtering, …) never got written down,
+so the highlights are recorded here.
+
+### New Features
+
+- **TSV filtering** (#141) — the `tsv` step takes `where:`, `limit:`, `offset:`, and
+  `columns:`. Filter rows (`where: "book == '${book}'"`) and pick columns without a
+  hand-rolled for-each. Safe parser, no `eval()`.
+- **`window` step** — sliding / tumbling / condition-based windowing, including token-aware
+  windows and a merge block.
+- **Richer for-each** — `group-by`, `order-by`, and `parallel:` (parallel iterations with
+  ordered results).
+- **Paratext verse ranges** — verse-range selection with optional metadata loading.
+- **Array slicing in `${...}`** — e.g. `${items[1:3]}`.
+- **`~/.sp/user-context/`** — machine-level AI instructions shared across projects; `sp init`
+  registers the project and indexes its ai-context files into `~/.sp/`.
+
+### Fixed
+
+- **`resolve()` None handling** — stopped treating missing keys as `None` (which caused silent
+  data corruption), fixed the None sentinel, and propagated for-each outputs to the parent
+  context.
+- **Conditions evaluate via AST** — `${...}` conditions like `is None` / `is not None` work.
+- **Linter loop-var scoping** — `!window_advance` inner-step outputs are registered, so loop
+  variables aren't flagged as unknown.
+
+### CI / Release
+
+- **PyPI publishing workflow** added (automated publish on release).
+- **`sp run` clears `outputs/debug/`** at the start of each run (#145).
+
 ## 0.2.1.18 — 2026-04-06
 
 ### Fixed
