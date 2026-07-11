@@ -14,8 +14,6 @@ from typing import Optional, List, Dict, Any
 import time
 import json
 import importlib.resources
-import urllib.request
-import urllib.error
 from pathlib import Path
 
 from llmflow.modules.logger import Logger
@@ -207,56 +205,76 @@ def supports_json_schema(model: str) -> bool:
     return metadata["json_schema"] if metadata else False
 
 
-def update_models_from_github(target_path: Optional[Path] = None) -> bool:
-    """Update models.json from GitHub main branch.
+def discover_new_models() -> List[str]:
+    """Query installed llm plugins for available model IDs not covered by models.json.
+
+    Returns model IDs that don't match any existing pattern — these are candidates
+    for adding pricing entries.
+    """
+    try:
+        import llm as llm_pkg
+    except ImportError:
+        logger.error("❌ 'llm' package not available")
+        return []
+
+    available = [m.model_id for m in llm_pkg.get_models()]
+    return [mid for mid in available if get_pricing_family(mid) is None]
+
+
+def get_models_data() -> Dict[str, Any]:
+    """Return a fresh (non-cached) copy of models.json data for editing."""
+    models_file = _find_models_file()
+    if not models_file.exists():
+        return {
+            "metadata_version": "1.0",
+            "last_updated": "unknown",
+            "models": {},
+            "model_patterns": {},
+        }
+    with open(models_file, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_models_json(data: Dict[str, Any], target_path: Optional[Path] = None) -> bool:
+    """Stamp today's date on data and write models.json to disk.
 
     Args:
-        target_path: Path to save models.json (default: data/models.json in package)
+        data: Full models.json structure (will have last_updated overwritten).
+        target_path: Override destination path (default: repo data/models.json).
 
     Returns:
-        True if update successful, False otherwise
+        True on success.
     """
-    url = "https://raw.githubusercontent.com/nida-institute/LLMFlow/main/data/models.json"
+    from datetime import date as _date
+
+    data["last_updated"] = str(_date.today())
 
     if target_path is None:
-        # __file__ = src/llmflow/modules/telemetry.py
-        # .parent.parent.parent.parent = repo root
-        target_path = Path(__file__).parent.parent.parent.parent / "data" / "models.json"
+        target_path = _find_models_file()
 
     try:
-        logger.info(f"📡 Fetching latest model metadata from GitHub...")
-        with urllib.request.urlopen(url, timeout=10) as response:
-            data = json.loads(response.read().decode('utf-8'))
-
-        # Validate basic structure
-        required_keys = {"metadata_version", "last_updated", "models", "model_patterns"}
-        if not all(k in data for k in required_keys):
-            logger.error("❌ Invalid model metadata format from GitHub")
-            return False
-
-        # Write to file
         target_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(target_path, 'w', encoding='utf-8') as f:
+        with open(target_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-            f.write('\n')  # Add trailing newline
+            f.write("\n")
 
-        logger.info(f"✅ Updated model metadata to version {data['metadata_version']}")
-        logger.info(f"   Last updated: {data['last_updated']}")
-        logger.info(f"   Models: {len(data['models'])}")
-
-        # Clear cache to force reload
         global _models_cache
         _models_cache = None
-
         return True
-
-    except urllib.error.URLError as e:
-        logger.error(f"❌ Failed to fetch from GitHub: {e}")
-        logger.error("   Check your internet connection or try again later.")
-        return False
     except Exception as e:
-        logger.error(f"❌ Failed to update model metadata: {e}")
+        logger.error(f"❌ Failed to save models.json: {e}")
         return False
+
+
+def models_data_age_days() -> Optional[int]:
+    """Return how many days ago models.json was last updated, or None if unknown."""
+    _, last_updated_str = get_model_data_version()
+    try:
+        from datetime import datetime as _dt
+        last_updated = _dt.strptime(last_updated_str, "%Y-%m-%d")
+        return (_dt.now() - last_updated).days
+    except Exception:
+        return None
 
 
 def calculate_cost(model: str, prompt_tokens: int, completion_tokens: int) -> float:
@@ -512,81 +530,90 @@ class TelemetryCollector:
             self.current_step.mcp_truncations += 1
 
     def generate_summary(self) -> str:
-        """Generate formatted summary of pipeline execution.
-
-        Returns:
-            Multi-line summary string
-        """
+        """Generate formatted summary of pipeline execution."""
         lines = []
+        rule = "━" * 60
         lines.append("")
-        lines.append("📋 Pipeline Summary")
-        lines.append("━" * 60)
-        lines.append(f"Pipeline: {self.pipeline.pipeline_name}")
-        lines.append(f"Total Duration: {format_duration(self.pipeline.total_duration)}")
-        lines.append(f"Wall Clock: {format_duration(self.pipeline.wall_clock_duration)}")
-        lines.append(f"Total Cost: ${self.pipeline.total_cost:.4f}")
-        lines.append(f"Total Tokens: {self.pipeline.total_tokens:,}")
-        lines.append("")
+        lines.append(f"📋 {self.pipeline.pipeline_name}")
+        lines.append(rule)
+        cost_time = (
+            f"  ${self.pipeline.total_cost:.4f}"
+            f"  ·  {format_duration(self.pipeline.total_duration)}"
+            f"  (wall {format_duration(self.pipeline.wall_clock_duration)})"
+            f"  ·  {self.pipeline.total_tokens:,} tokens"
+        )
+        lines.append(cost_time)
+        lines.append(rule)
 
         if self.pipeline.steps:
-            lines.append("⏱️ Step Timeline:")
-            cumulative = 0.0
+            lines.append("")
+            step_groups: Dict[str, List[StepMetrics]] = {}
             for step in self.pipeline.steps:
-                step_duration = step.duration or 0.0
-                cumulative += step_duration
-                model_info = f" ({step.model})" if step.model else ""
+                step_groups.setdefault(step.step_name, []).append(step)
+
+            total_invocations = len(self.pipeline.steps)
+            total_cost = self.pipeline.total_cost
+
+            models_used = {s.model for s in self.pipeline.steps if s.model}
+            model_label = f", {next(iter(models_used))}" if len(models_used) == 1 else ""
+            lines.append(f"⏱️ Steps — {total_invocations} invocation{'s' if total_invocations != 1 else ''}{model_label}")
+
+            # Build rows sorted by cost descending (zero-cost steps sort to bottom)
+            rows = []
+            for name, group in step_groups.items():
+                count = len(group)
+                total_secs = sum(s.duration or 0.0 for s in group)
+                cost = sum(s.calculate_cost() for s in group)
+                cost_pct = (cost / total_cost * 100) if total_cost > 0 else 0
+                step_model = group[0].model or "" if len(models_used) > 1 else ""
+                rows.append((name, count, total_secs, cost, cost_pct, step_model))
+            rows.sort(key=lambda r: r[3], reverse=True)
+
+            name_w = max(len(r[0]) for r in rows)
+            time_strs = [format_duration(r[2]) for r in rows]
+            time_w = max(len(t) for t in time_strs)
+            avg_strs = [f"avg {format_duration(r[2] / r[1])}" if r[1] > 1 else "" for r in rows]
+            avg_w = max((len(a) for a in avg_strs), default=0)
+
+            for (name, count, total_secs, cost, cost_pct, step_model), time_str, avg_str in zip(rows, time_strs, avg_strs):
+                count_col = f"{count}×" if count > 1 else " 1"
+                avg_col = f"  {avg_str:<{avg_w}}" if avg_w else ""
+                cost_col = f"   ${cost:.4f}  {cost_pct:3.0f}%" if cost > 0 else ""
+                model_col = f"  ({step_model})" if step_model else ""
                 lines.append(
-                    f"  • {step.step_name}: {format_duration(step_duration)} | Cumulative {format_duration(cumulative)}{model_info}"
+                    f"  {name:<{name_w}}  {count_col}  {time_str:>{time_w}}{avg_col}{cost_col}{model_col}"
                 )
             lines.append("")
 
-        # Slowest steps
+        # Slowest individual invocations — one line
         slowest = self.pipeline.get_slowest_steps(n=5)
         if slowest:
-            lines.append("🐌 Slowest Steps:")
-            for i, step in enumerate(slowest, 1):
-                model_info = f" ({step.model})" if step.model else ""
-                lines.append(f"  {i}. {step.step_name}: {format_duration(step.duration or 0)}{model_info}")
+            parts = [f"{s.step_name} {format_duration(s.duration or 0)}" for s in slowest]
+            lines.append(f"🐌 Slowest single runs:  {' · '.join(parts)}")
             lines.append("")
 
-        # Cost breakdown (nested by model → step/prompt)
-        breakdown = self.pipeline.get_cost_breakdown_by_model()
-        if breakdown:
-            lines.append("💰 Cost Breakdown by Model:")
-            total = self.pipeline.total_cost
-            for model, model_cost in sorted(breakdown.items(), key=lambda x: x[1], reverse=True):
-                model_pct = (model_cost / total * 100) if total > 0 else 0
-                lines.append(f"  • {model}: ${model_cost:.4f} ({model_pct:.0f}%)")
-
-                # Per-step breakdown for this model
-                step_costs = []
-                for step in self.pipeline.steps:
-                    if step.model == model:
-                        cost = step.calculate_cost()
-                        if cost > 0:
-                            step_costs.append((step.step_name, cost))
-
-                # Sort steps by cost descending and print
-                for step_name, cost in sorted(step_costs, key=lambda x: x[1], reverse=True):
-                    step_pct = (cost / model_cost * 100) if model_cost > 0 else 0
-                    lines.append(f"     - {step_name}: ${cost:.4f} ({step_pct:.0f}%)")
-
-            lines.append("")
-
-        # MCP stats
+        # MCP stats — one line
         total_mcp_calls = sum(s.mcp_calls for s in self.pipeline.steps)
         total_truncations = sum(s.mcp_truncations for s in self.pipeline.steps)
         if total_mcp_calls > 0:
-            lines.append("🔧 MCP Tool Calls:")
-            lines.append(f"  Total calls: {total_mcp_calls}")
+            mcp = f"🔧 MCP: {total_mcp_calls} tool call{'s' if total_mcp_calls != 1 else ''}"
             if total_truncations > 0:
-                lines.append(f"  Truncations: {total_truncations} (saved tokens)")
+                mcp += f", {total_truncations} truncated (saved tokens)"
+            lines.append(mcp)
             lines.append("")
 
-        # Add footer note about updating model metadata
+        # Model cost breakdown — only when multiple models used
+        breakdown = self.pipeline.get_cost_breakdown_by_model()
+        if breakdown and len(breakdown) > 1:
+            lines.append("💰 Cost by Model:")
+            total = self.pipeline.total_cost
+            for model, model_cost in sorted(breakdown.items(), key=lambda x: x[1], reverse=True):
+                model_pct = (model_cost / total * 100) if total > 0 else 0
+                lines.append(f"  {model}: ${model_cost:.4f} ({model_pct:.0f}%)")
+            lines.append("")
+
         version, last_updated = get_model_data_version()
-        lines.append(f"ℹ️  Model data version {version} (updated {last_updated})")
-        lines.append("   To ensure pricing/limits are current: sp registry update-models")
+        lines.append(f"ℹ️  Model data v{version} ({last_updated}) · sp models --update")
         lines.append("")
 
         return "\n".join(lines)

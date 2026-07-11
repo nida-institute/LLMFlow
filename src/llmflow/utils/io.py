@@ -57,6 +57,33 @@ def read_text(path):
         raise ValueError(f"Could not decode file as UTF-8: {path}") from e
 
 
+def read_lines(path):
+    """Read a text file and return non-empty lines as a list."""
+    content = read_text(path)
+    return [line for line in content.splitlines() if line.strip()]
+
+
+def expand_mixins(content: str, prompt_path: Path) -> str:
+    """Expand {{mixin:path}} directives in prompt content.
+
+    Paths are resolved relative to the prompt file's directory.
+    Raises FileNotFoundError if a referenced mixin file does not exist.
+    """
+    base_dir = Path(prompt_path).parent
+
+    def load_mixin(match):
+        rel_path = match.group(1).strip()
+        mixin_path = (base_dir / rel_path).resolve()
+        if not mixin_path.exists():
+            raise FileNotFoundError(
+                f"Mixin file not found: {rel_path!r} "
+                f"(resolved to {mixin_path})"
+            )
+        return mixin_path.read_text(encoding="utf-8")
+
+    return re.sub(r"\{\{\s*mixin\s*:\s*([^\}]+?)\s*\}\}", load_mixin, content)
+
+
 # --- Template rendering ---
 
 

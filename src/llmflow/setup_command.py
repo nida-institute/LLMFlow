@@ -154,3 +154,107 @@ def run_models():
     print("💡 Using pip install? Any llm plugin works — use the model name directly")
     print("   in your pipeline YAML: model: ollama/llama3")
     print("   Plugin directory: https://llm.datasette.io/en/stable/plugins/directory.html\n")
+
+    from llmflow.modules.telemetry import models_data_age_days
+    age = models_data_age_days()
+    if age is not None and age > 60:
+        print(f"⚠️  Model pricing data is {age} days old. Run `sp models --update` to refresh.\n")
+
+
+def run_models_update() -> bool:
+    """Interactively update models.json from installed llm plugins.
+
+    Discovers model IDs not covered by any pricing pattern, prompts the user
+    to assign each to an existing family or define a new one, then saves the
+    file with today's date stamped as last_updated.
+    """
+    from llmflow.modules.telemetry import (
+        discover_new_models,
+        get_models_data,
+        save_models_json,
+    )
+
+    print("🔍 Querying installed llm plugins for available models...")
+    new_ids = discover_new_models()
+
+    data = get_models_data()
+    families = list(data.get("models", {}).keys())
+
+    if not new_ids:
+        print("✅ All available models are already covered in models.json.")
+    else:
+        print(f"\n📋 Found {len(new_ids)} model(s) not covered by any pricing pattern:")
+        for mid in new_ids:
+            print(f"   {mid}")
+
+        added = 0
+        for model_id in new_ids:
+            print(f"\n--- {model_id} ---")
+            print("Assign to existing family:")
+            for i, fam in enumerate(families, 1):
+                print(f"  {i:2}. {fam}")
+            print("   n. New family")
+            print("   s. Skip")
+
+            try:
+                choice = input("Choice: ").strip().lower()
+            except EOFError:
+                break
+
+            if choice == "s":
+                continue
+
+            if choice == "n":
+                try:
+                    family_key = input("  Family key (e.g. gpt-5.4): ").strip()
+                    if not family_key:
+                        continue
+                    provider = input("  Provider (openai/anthropic/google): ").strip()
+                    family_label = input(f"  Family label [{family_key}]: ").strip() or family_key
+                    inp = float(input("  Input price per 1M tokens: ").strip() or "0")
+                    out = float(input("  Output price per 1M tokens: ").strip() or "0")
+                    ctx = int(input("  Max context tokens: ").strip() or "0")
+                    max_out = int(input("  Max output tokens: ").strip() or "0")
+                    json_schema_raw = input("  Supports JSON schema? (y/n) [n]: ").strip().lower()
+                    json_schema = json_schema_raw == "y"
+                except (EOFError, ValueError) as e:
+                    print(f"  Skipping — {e}")
+                    continue
+
+                data["models"][family_key] = {
+                    "provider": provider,
+                    "family": family_label,
+                    "input_price_per_1m": inp,
+                    "output_price_per_1m": out,
+                    "max_context_tokens": ctx,
+                    "max_output_tokens": max_out,
+                    "supports_json_schema": json_schema,
+                }
+                data["model_patterns"][family_key] = [model_id]
+                families.append(family_key)
+                print(f"  ✅ Added new family '{family_key}' with pattern '{model_id}'")
+                added += 1
+
+            else:
+                try:
+                    idx = int(choice) - 1
+                    if not (0 <= idx < len(families)):
+                        print("  Invalid number, skipping.")
+                        continue
+                    family_key = families[idx]
+                except ValueError:
+                    print("  Invalid choice, skipping.")
+                    continue
+
+                patterns = data["model_patterns"].setdefault(family_key, [])
+                if model_id not in patterns:
+                    patterns.append(model_id)
+                print(f"  ✅ Added '{model_id}' to patterns for '{family_key}'")
+                added += 1
+
+        print(f"\n{added} new pattern(s) added.")
+
+    if save_models_json(data):
+        print("✅ models.json saved with today's date.")
+        return True
+    return False

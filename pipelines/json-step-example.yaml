@@ -1,0 +1,30 @@
+name: json-step-example
+description: |
+  Demonstrates the type: json step — constructs a JSON object from pipeline
+  variables without calling an LLM or writing a Python function.
+
+variables:
+  scene_id: "MRK-001"
+  canonical_reference: "Mark 1:1-13"
+  characters:
+    - "Jesus"
+    - "John the Baptist"
+    - "the crowd"
+  spatial_relationships:
+    - "beside the Jordan"
+    - "in the wilderness"
+
+steps:
+  - name: build_scene_object
+    type: json
+    output: scene
+    value:
+      scene_id: "${scene_id}"
+      canonical_reference: "${canonical_reference}"
+      characters: "${characters}"
+      spatial_relationships: "${spatial_relationships}"
+
+  - name: save_scene
+    type: save
+    content: "${scene}"
+    path: "output/json-step-example/scene.json"

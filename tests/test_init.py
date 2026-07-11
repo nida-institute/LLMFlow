@@ -539,3 +539,47 @@ def test_copilot_instructions_mentions_user_context():
     assert "user-context" in COPILOT_INSTRUCTIONS_DOC, (
         "COPILOT_INSTRUCTIONS_DOC must include user-context step so Copilot reads machine instructions"
     )
+
+
+class TestNoExamples:
+    """sp init --no-examples skips example files but still creates directories and structural files."""
+
+    EXAMPLE_FILES = [
+        "prompts/hello.gpt",
+        "prompts/reply.gpt",
+        "pipelines/hello-llmflow.yaml",
+        "pipelines/hello.yaml",
+        "docs/tutorial.md",
+    ]
+    STRUCTURAL_FILES = [
+        "docs/llmflow-language-quickref.md",
+        "docs/ai-context/overview.md",
+        "docs/ai-context/rules.md",
+        "docs/ai-context/index.md",
+        "project/TODO.md",
+    ]
+    STRUCTURAL_DIRS = [
+        "prompts",
+        "pipelines",
+        "output",
+        "docs",
+    ]
+
+    def test_no_examples_skips_example_files(self, tmp_path):
+        init_environment(tmp_path, no_examples=True)
+
+        for rel in self.EXAMPLE_FILES:
+            assert not (tmp_path / rel).exists(), f"{rel} should not be created with no_examples=True"
+
+        for rel in self.STRUCTURAL_FILES:
+            assert (tmp_path / rel).exists(), f"{rel} should still be created with no_examples=True"
+
+        for rel in self.STRUCTURAL_DIRS:
+            assert (tmp_path / rel).is_dir(), f"{rel}/ directory should still be created with no_examples=True"
+
+    def test_no_examples_via_cli(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        main(["init", "--no-examples"])
+
+        for rel in self.EXAMPLE_FILES:
+            assert not (tmp_path / rel).exists(), f"{rel} should not be created with --no-examples"

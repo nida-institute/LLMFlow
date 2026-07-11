@@ -151,7 +151,7 @@ def test_run_basex_step_passes_inputs_to_run_basex(tmp_path):
     }
     context = {"lemma": "הָיָה"}
 
-    with patch("llmflow.runner.run_basex") as mock_run_basex:
+    with patch("llmflow.steps.basex.run_basex") as mock_run_basex:
         mock_run_basex.return_value = "הָיָה"
         from llmflow.runner import run_basex_step
         run_basex_step(step, context, {})
@@ -173,7 +173,7 @@ def test_run_basex_step_no_inputs_passes_none(tmp_path):
         "outputs": "result",
     }
 
-    with patch("llmflow.runner.run_basex") as mock_run_basex:
+    with patch("llmflow.steps.basex.run_basex") as mock_run_basex:
         mock_run_basex.return_value = "3"
         from llmflow.runner import run_basex_step
         run_basex_step(step, {}, {})

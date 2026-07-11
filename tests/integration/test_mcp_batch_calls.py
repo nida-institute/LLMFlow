@@ -4,8 +4,14 @@ import time
 from llmflow.runner import run_pipeline
 from llmflow.modules.mcp import MCPClient, init_mcp_client
 
+@pytest.mark.integration
 class TestMCPBatchCalls:
-    """Integration tests for MCP batch reference retrieval"""
+    """Integration tests for MCP batch reference retrieval.
+
+    Marked ``integration`` because every test connects to a live external MCP
+    server; CI deselects these (``-m "not integration"``) to stay deterministic.
+    Run on demand with ``hatch run pytest -m integration``.
+    """
 
     @pytest.fixture
     def mcp_server_url(self):

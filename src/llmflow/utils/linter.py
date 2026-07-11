@@ -75,6 +75,11 @@ _EXTRA_STEP_KEYS = {
     "group_by_prefix",
     "limit",
     "variables",
+    # json step keys
+    "value",
+    # loader step keys
+    "pattern",
+    "delimiter",
     # basex step keys
     "database",
     "query",
@@ -170,11 +175,12 @@ def extract_template_variables(template_content):
 
     for match in re.finditer(variable_pattern, template_content):
         var_name = match.group(1).strip()
-        # Skip template logic like {{#if}} or {{/endif}}
+        # Skip template logic and mixin directives
         if (
             not var_name.startswith("#")
             and not var_name.startswith("/")
             and not var_name.startswith("%")
+            and not var_name.startswith("mixin:")
         ):
             variables.add(var_name)
 
@@ -274,10 +280,10 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
         # Check append_to without outputs
         if "append_to" in step:
             append_to_value = step["append_to"]
-            if not step.get("outputs"):
+            if not step.get("outputs") and not step.get("output"):
                 if isinstance(append_to_value, str) and append_to_value.strip():
                     errors.append(
-                        f"❌ Step '{step_name}': append_to: {append_to_value} requires 'outputs' to be specified"
+                        f"❌ Step '{step_name}': append_to: {append_to_value} requires 'output' to be specified"
                     )
                 continue
 
@@ -290,7 +296,7 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
 
         # Only validate contracts for LLM steps
         if step_type == "llm":
-            log_func(
+            logger.debug(
                 f"🔍 Validating step '{step_name}' contract: {step.get('prompt', {}).get('file', 'NO_FILE')}"
             )
 
@@ -350,7 +356,7 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
                     )
                     log_func(f"❌ Step '{step_name}' contract validation failed")
                 else:
-                    log_func(f"✅ Step '{step_name}' contract validation passed")
+                    logger.debug(f"✅ Step '{step_name}' contract validation passed")
                     validated_count += 1
 
             except Exception as e:
@@ -474,7 +480,7 @@ class LintResult:
 def _collect_declared_outputs(all_steps):
     declared = set()
     for step in all_steps:
-        outs = step.get("outputs")
+        outs = step.get("outputs") or step.get("output")
         if isinstance(outs, dict):
             declared.update(outs.keys())
         elif isinstance(outs, list):
@@ -581,9 +587,9 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
         available.update(current_item_vars)
 
         # Extract all variable references from step configuration
-        # Check: inputs, outputs, condition, saveas, format, input (for-each)
+        # Check: inputs, outputs, condition, saveas, format, input (for-each), value (json)
         # NOTE: append_to is NOT checked - it declares a new variable, doesn't reference one
-        fields_to_check = ["inputs", "condition", "saveas", "format", "input"]
+        fields_to_check = ["inputs", "condition", "saveas", "format", "input", "value"]
 
         for field in fields_to_check:
             if field in step:
@@ -614,7 +620,7 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
             )
 
         # After processing step (including nested steps), add its outputs to declared_outputs
-        outs = step.get("outputs")
+        outs = step.get("outputs") or step.get("output")
         if isinstance(outs, dict):
             declared_outputs.update(outs.keys())
         elif isinstance(outs, list):
@@ -814,6 +820,94 @@ def _ensure_path_resolved_for_lint(resolved_value: Any, original: Any, step: dic
         )
 
 
+def _build_module_func_map(module_ast: ast.Module) -> dict:
+    return {
+        node.name: node
+        for node in ast.walk(module_ast)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+
+def _collect_transitive_funcs(
+    func_name: str,
+    func_map: dict,
+    visited: set | None = None,
+) -> list:
+    if visited is None:
+        visited = set()
+    if func_name not in func_map or func_name in visited:
+        return []
+    visited.add(func_name)
+    func_node = func_map[func_name]
+    result = [func_node]
+    for node in ast.walk(func_node):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            callee = node.func.id
+            if callee in func_map and callee not in visited:
+                result.extend(_collect_transitive_funcs(callee, func_map, visited))
+    return result
+
+
+def _output_path_violations(func_nodes: list) -> list[tuple[str, int]]:
+    violations = []
+    for func_node in func_nodes:
+        for node in ast.walk(func_node):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                if "outputs/" in node.value:
+                    violations.append((func_node.name, node.lineno))
+    return violations
+
+
+def check_function_step_no_internal_paths(all_steps: list) -> list[str]:
+    """Warn when a function: step constructs hardcoded paths to outputs/ internally.
+
+    Follows the same-module call graph transitively so helper-function violations
+    are caught, not just violations in the directly-invoked function. See GH #165.
+    """
+    warnings: list[str] = []
+    seen_modules: dict[str, tuple] = {}
+
+    for step in all_steps:
+        func_ref = step.get("function")
+        if not func_ref or "." not in func_ref:
+            continue
+
+        module_dotted, func_name = func_ref.rsplit(".", 1)
+        module_path = Path(module_dotted.replace(".", "/") + ".py")
+
+        if not module_path.exists():
+            continue
+
+        module_key = str(module_path)
+        if module_key not in seen_modules:
+            try:
+                module_ast = ast.parse(module_path.read_text())
+                seen_modules[module_key] = (module_ast, _build_module_func_map(module_ast))
+            except SyntaxError:
+                continue
+
+        _, func_map = seen_modules[module_key]
+        func_nodes = _collect_transitive_funcs(func_name, func_map)
+        if not func_nodes:
+            continue
+
+        step_name = step.get("name", "unnamed")
+        for callee_name, lineno in _output_path_violations(func_nodes):
+            if callee_name == func_name:
+                warnings.append(
+                    f"Step '{step_name}': {func_ref} constructs a path to outputs/ "
+                    f"at line {lineno} — receive paths through pipeline inputs instead. (GH #165)"
+                )
+            else:
+                warnings.append(
+                    f"Step '{step_name}': {func_ref} calls {callee_name}() which constructs "
+                    f"a path to outputs/ at line {lineno} — receive paths through pipeline "
+                    f"inputs instead. (GH #165)"
+                )
+
+    return warnings
+
+
 def lint_pipeline_full(
     pipeline_path,
     *,
@@ -957,6 +1051,49 @@ def lint_pipeline_full(
     if all_errors:
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
 
+    # 5) Function step internal path check (GH #165)
+    func_io_warnings = check_function_step_no_internal_paths(all_steps)
+    all_warnings.extend(func_io_warnings)
+
+    # 6) Saveas directory declaration warnings
+    _intermediate_raw = pipeline_config.get("intermediate_file_directory")
+    _output_raw = pipeline_config.get("output_file_directory")
+    if _intermediate_raw or _output_raw:
+        from llmflow.runner import resolve as _resolve
+        _vars = pipeline_config.get("variables", {}) or {}
+        _ctx = {**_vars, **cli_vars}
+        _intermediate_dir = Path(str(_resolve(str(_intermediate_raw), _ctx))) if _intermediate_raw else None
+        _output_dir = Path(str(_resolve(str(_output_raw), _ctx))) if _output_raw else None
+        if _intermediate_dir:
+            _ctx["intermediate_file_directory"] = str(_intermediate_dir)
+        if _output_dir:
+            _ctx["output_file_directory"] = str(_output_dir)
+        for _step in all_steps:
+            _saveas = _step.get("saveas")
+            if not _saveas:
+                continue
+            _raw_path = _saveas if isinstance(_saveas, str) else _saveas.get("path", "")
+            try:
+                _saveas_path = Path(str(_resolve(str(_raw_path), _ctx)))
+            except Exception:
+                continue
+            _saveas_str = str(_saveas_path)
+            if "${" in _saveas_str:
+                # Path has unresolved runtime variables — check the resolved prefix only
+                _prefix = Path(_saveas_str[:_saveas_str.index("${")])
+                if not str(_prefix):
+                    continue  # Nothing resolved — cannot determine containment
+                _under_intermediate = _intermediate_dir and _prefix.is_relative_to(_intermediate_dir)
+                _under_output = _output_dir and _prefix.is_relative_to(_output_dir)
+            else:
+                _under_intermediate = _intermediate_dir and _saveas_path.is_relative_to(_intermediate_dir)
+                _under_output = _output_dir and _saveas_path.is_relative_to(_output_dir)
+            if not _under_intermediate and not _under_output:
+                all_warnings.append(
+                    f"Step \"{_step.get('name', 'unnamed')}\" saveas path \"{_saveas_path}\" "
+                    f"is not under intermediate_file_directory or output_file_directory."
+                )
+
     # Show any warnings
     all_warnings.extend(template_warnings)
     for warning in all_warnings:
@@ -970,14 +1107,14 @@ def check_step_outputs(step):
     """Warn if a step generates data but doesn't store it"""
     warnings = []
 
-    # Check if step has append_to but no outputs
-    if "append_to" in step and "outputs" not in step:
+    # Check if step has append_to but no output
+    if "append_to" in step and "outputs" not in step and "output" not in step:
         warnings.append(
-            f"Step '{step.get('name', 'unnamed')}' has append_to but no outputs"
+            f"Step '{step.get('name', 'unnamed')}' has append_to but no output"
         )
 
-    # Check if LLM step has neither outputs nor append_to
-    if step.get("type") == "llm" and "outputs" not in step and "append_to" not in step:
+    # Check if LLM step has neither output nor append_to
+    if step.get("type") == "llm" and "outputs" not in step and "output" not in step and "append_to" not in step:
         warnings.append(
             f"LLM step '{step.get('name', 'unnamed')}' generates content but doesn't store it"
         )
@@ -1234,6 +1371,48 @@ def _lint_for_each_group_by(step: dict, errors: list) -> None:
                 )
 
 
+_LOADER_STEP_TYPES = {
+    "load_json", "load_yaml", "load_xml", "load_csv", "load_tsv",
+    "load_text", "load_directory",
+}
+_LOADER_FORMATS = {"json", "yaml", "xml", "csv", "tsv", "text"}
+
+
+def _lint_loader_step(step, errors):
+    name = step.get("name", "<unnamed>")
+    step_type = step.get("type")
+    has_output = step.get("output") or step.get("outputs")
+    if not has_output:
+        errors.append(f"Step '{name}' (type: {step_type}) is missing required key 'output'")
+    if not step.get("path"):
+        errors.append(f"Step '{name}' (type: {step_type}) is missing required key 'path'")
+    elif "${" not in str(step.get("path", "")):
+        path = Path(step["path"])
+        if not path.exists():
+            errors.append(
+                f"Step '{name}' (type: {step_type}): path not found: {step['path']}"
+            )
+    if step_type == "load_directory":
+        if not step.get("pattern"):
+            errors.append(f"Step '{name}' (type: load_directory) is missing required key 'pattern'")
+        fmt = step.get("format")
+        if not fmt:
+            errors.append(f"Step '{name}' (type: load_directory) is missing required key 'format'")
+        elif fmt not in _LOADER_FORMATS:
+            errors.append(
+                f"Step '{name}' (type: load_directory): invalid format '{fmt}'. "
+                f"Must be one of: {sorted(_LOADER_FORMATS)}"
+            )
+
+
+def _lint_json_step(step, errors):
+    name = step.get("name", "<unnamed>")
+    if not step.get("output"):
+        errors.append(f"Step '{name}' (type: json) is missing required key 'output'")
+    if "value" not in step:
+        errors.append(f"Step '{name}' (type: json) is missing required key 'value'")
+
+
 def lint_pipeline_steps(steps):
     errors = []
     for step in steps:
@@ -1247,6 +1426,10 @@ def lint_pipeline_steps(steps):
                 errors.append(message)
         _lint_conditional_rules(step, errors, "require")
         _lint_conditional_rules(step, errors, "warn")
+        if step.get("type") == "json":
+            _lint_json_step(step, errors)
+        if step.get("type") in _LOADER_STEP_TYPES:
+            _lint_loader_step(step, errors)
         if step.get("type") == "window":
             _lint_window_step(step, errors)
         if step.get("type") == "for-each":

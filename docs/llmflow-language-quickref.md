@@ -28,7 +28,7 @@ linter_config:
 
 steps:
   - name: first-step
-    type: llm | function | for-each | save
+    type: llm | function | for-each | save | load_json | load_yaml | load_csv | load_tsv | load_text | load_xml | load_directory
     # ...
 ```
 
@@ -139,22 +139,125 @@ Loops over a list variable and runs nested steps for each item.
 - `${loop.index}`, `${loop.total}`, `${loop.first}`, `${loop.last}` are available inside every iteration.
 - Use `append_to` in nested steps to build a list across iterations.
 
-### type: `save`
+### type: `json`
 
-Writes literal content to disk without calling an LLM.
+Constructs a JSON value from variables in context and stores it under a named key.
 
 ```yaml
-- name: write-confirmation
-  type: save
-  content: |
-    ✅ LLMFlow is installed and running.
-    2 + 2 = ${total}
-  saveas:
-    path: "${output_dir}/hello-llmflow.txt"
+- name: build_scene
+  type: json
+  output: scene_object
+  value:
+    scene_id: "${scene.scene_id}"
+    characters: "${scene.characters}"
 ```
 
-Use `save` when you just need to materialize a small message or
-artifact from existing variables.
+Use `json` to assemble a structured value mid-pipeline from step outputs.
+For static objects that don't depend on step outputs, use `variables:` instead.
+
+### type: `save`
+
+Writes content to disk. Terminal step — produces no context variable.
+
+```yaml
+- name: write-report
+  type: save
+  content: "${report_md}"
+  path: "${output_dir}/report.md"
+```
+
+**`save` vs `saveas`:** use `save` when writing to disk *is the whole step*. Use
+`saveas:` on any other step when you want to write its output to disk *and also*
+keep the value in context for downstream steps.
+
+```yaml
+# saveas: side effect on an llm step — value stays in context AND is written
+- name: generate-report
+  type: llm
+  prompt:
+    file: report.gpt
+    inputs:
+      data: "${analysis}"
+  output: report_md
+  saveas:
+    path: "${output_dir}/report.md"
+```
+
+### type: `load_json` / `load_yaml` / `load_xml` / `load_csv` / `load_tsv` / `load_text`
+
+Load a file into pipeline context — no Python function required.
+
+```yaml
+- name: load_summary
+  type: load_json
+  path: "${output_dir}/summary.json"
+  output: summary
+```
+
+- `path` supports `${var}` substitution; static paths are checked at lint time.
+- `load_csv` accepts an optional `delimiter:` key (default `,`); `load_tsv` uses `\t`.
+- `load_xml` returns an `lxml.etree._Element` (or a list if `xpath:` is used).
+
+`load_json` and `load_yaml` accept a `key:` dot-path to extract a nested value:
+
+```yaml
+- name: load_pericopes
+  type: load_json
+  path: "${book_summary}"
+  key: pericopes          # or "book.chapters" for nested access
+  output: pericopes
+```
+
+`load_xml` accepts `xpath:` to filter the tree and return a list of matching nodes:
+
+```yaml
+- name: load_verses
+  type: load_xml
+  path: "${book_xml}"
+  xpath: "//verse[@chapter='1']"
+  output_format: element   # element (default) | xml-string | text
+  namespaces:              # optional, for namespace-aware XPath
+    usx: "http://usx.org/"
+  output: verses
+```
+
+`load_csv` and `load_tsv` support filtering after the file is loaded:
+
+```yaml
+- name: load_genesis
+  type: load_tsv
+  path: "${macula_tsv}"
+  output: genesis_rows
+  where: "book(ref) == 'GEN' and chapter(ref) == '1'"
+  limit: 50
+  offset: 0
+  columns: [ref, text, lemma]
+```
+
+- `where` — filter expression; supports `${var}` substitution. Forms (joined by `and`):
+  - `column == 'value'`
+  - `column startswith 'prefix'`
+  - `book(column) == 'GEN'` / `chapter(column) == '1'` / `verse(column) == '1'` / `word(column) == '1'`
+- `limit` — max rows to return (applied after `where`).
+- `offset` — rows to skip (applied after `where`).
+- `columns` — list of column names to include; omit for all columns.
+
+### type: `load_directory`
+
+Load all files matching a glob from a directory into a list.
+
+```yaml
+- name: load_files
+  type: load_directory
+  path: "${data_dir}"
+  pattern: "*.json"
+  format: json
+  output: items
+```
+
+- `pattern`: glob relative to `path` (required)
+- `format`: one of `json`, `yaml`, `xml`, `csv`, `tsv`, `text` (required)
+- Files are loaded in sorted order.
 
 ### type: `if`
 
@@ -179,7 +282,7 @@ Conditionally executes a block of steps.
 
 ### Step-level `condition:` (skip guard)
 
-Any step (any type) can be skipped individually:
+Any step (any type) can carry a `condition:` to skip just that step:
 
 ```yaml
 - name: optional-step
@@ -189,11 +292,19 @@ Any step (any type) can be skipped individually:
     file: "optional.gpt"
     inputs:
       data: "${data}"
-  outputs: optional_result
+  output: optional_result
 ```
 
-The expression follows the same rules as `type: if` — variable reference,
-Python eval expression, or boolean literal.
+**`condition:` appears in two scopes** — this is intentional symmetry, not a collision:
+
+| Context | Meaning |
+|---|---|
+| On a `type: if` step | Gates the entire nested `steps:` block |
+| On any other step | Skip guard — skips just that one step if falsy |
+
+Both evaluate the same way: if the expression is falsy, execution does not happen.
+The scopes are unambiguous — which step the `condition:` belongs to is always clear
+from indentation.
 
 ## 4. Saving outputs with `saveas`
 
@@ -267,3 +378,11 @@ Key rules:
 - Variables in the body use `{{double_braces}}`.
 - If `requires:` is missing, the linter cannot validate the contract and will
   emit warnings about undeclared inputs.
+
+**Mixins** — include shared text from another file:
+
+```
+{{mixin:../mixins/output-language.md}}
+```
+
+Paths are relative to the `.gpt` file. The mixin's contents are inlined at render time. Mixin directives are not treated as missing variables by the linter.

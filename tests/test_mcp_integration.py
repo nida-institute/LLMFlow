@@ -35,9 +35,9 @@ def test_llm_step_with_mcp_enabled():
     context = {"prompts_dir": "prompts"}
 
     # Mock the MCP client and LLM response
-    with patch("llmflow.runner.init_mcp_client") as mock_init, \
-         patch("llmflow.runner.run_llm_with_mcp_tools") as mock_mcp_call, \
-         patch("llmflow.runner.render_prompt") as mock_render:
+    with patch("llmflow.steps.llm.init_mcp_client") as mock_init, \
+         patch("llmflow.steps.llm.run_llm_with_mcp_tools") as mock_mcp_call, \
+         patch("llmflow.steps.llm.render_prompt") as mock_render:
 
         # Setup mocks - use AsyncMock for the client's async methods
         mock_client = Mock()
@@ -83,9 +83,9 @@ def test_llm_step_without_mcp():
 
     context = {"prompts_dir": "prompts"}
 
-    with patch("llmflow.runner.init_mcp_client") as mock_init, \
-         patch("llmflow.runner.call_llm") as mock_llm, \
-         patch("llmflow.runner.render_prompt") as mock_render:
+    with patch("llmflow.steps.llm.init_mcp_client") as mock_init, \
+         patch("llmflow.steps.llm.call_llm") as mock_llm, \
+         patch("llmflow.steps.llm.render_prompt") as mock_render:
 
         # MCP disabled - should return None
         mock_init.return_value = None

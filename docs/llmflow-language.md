@@ -30,6 +30,16 @@ steps:
 
 ## 🔧 Root-Level Configuration
 
+### `description:` (optional)
+Human commentary on the pipeline. Use YAML block scalar (`|`) for multi-line content:
+
+```yaml
+name: storytelling-dictionary
+description: |
+  Generates storytelling definitions for biblical concepts.
+  Run: sp run --pipeline pipelines/storytelling-dictionary.yaml
+```
+
 ### `variables:`
 Defines pipeline-level variables that can be referenced in steps.
 
@@ -51,6 +61,17 @@ Controls pipeline validation:
 ## 🔧 Types of Steps
 
 ### Common Step Options
+
+All steps accept an optional `description:` field for human commentary. Use YAML block scalar (`|`) for multi-line content. This field is ignored by the runner and produces no lint warnings:
+
+```yaml
+- name: define_term
+  description: |
+    Generates the full definition. Temperature 0.6 was chosen after testing
+    showed lower values produced formulaic output.
+  type: llm
+  ...
+```
 
 All step types accept an optional `retry` block to re-run the step when a condition stays true or the step raises:
 
@@ -450,6 +471,42 @@ The `condition:` is evaluated in the shared `run_step()` dispatcher. If false th
 
 ---
 
+### type: `json`
+
+Constructs a JSON value (object, array, or scalar) from variables already in context and stores it under a named key. Use this when you need to assemble a structured value mid-pipeline from step outputs.
+
+```yaml
+- name: build_scene
+  type: json
+  output: scene_object          # required — context key to store the result
+  value:                        # required — any YAML value; ${var} resolved at execution time
+    scene_id: "${scene.scene_id}"
+    canonical_reference: "${scene.canonical_reference}"
+    sensory_items: "${scene.sensory_items}"
+    characters: "${scene.characters}"
+```
+
+Arrays are also valid:
+
+```yaml
+- name: collect_ids
+  type: json
+  output: id_list
+  value:
+    - "${scene.scene_id}"
+    - "${passage.id}"
+```
+
+**Required Fields:**
+- `output`: Name of the context variable the result is bound to.
+- `value`: Any YAML value — object, array, or scalar. `${var}` references are resolved via the same `resolve()` mechanism used throughout the pipeline. Exact `${var}` references (nothing else on the line) return the native Python value, so a list stays a list.
+
+**Notes:**
+- `value` may be nested arbitrarily deep; resolution is recursive.
+- For static objects that do not depend on step outputs, use the pipeline-level `variables:` section instead.
+
+---
+
 ### type: `save`
 
 Writes content directly to a file. No LLM call, no Python function — just a write.
@@ -499,6 +556,62 @@ Runs an XQuery against a local BaseX database via the `basex` CLI.
 - `saveas`: File path to save the output (supports `${var}` substitution).
 
 **Prerequisites:** The `basex` executable must be on `PATH` with a running BaseX instance.
+
+---
+
+### type: `load_json` / `load_yaml` / `load_xml` / `load_csv` / `load_tsv` / `load_text`
+
+Load a file into the pipeline context without writing a Python function. These first-class step types are discoverable and replace `type: function` with an explicit loading primitive.
+
+```yaml
+- name: load_book_summary
+  type: load_json
+  path: "${intermediate_book_dir}/book-summary.json"
+  output: book_summary
+```
+
+| Step type | Returns |
+|-----------|---------|
+| `load_json` | `dict` or `list` — parsed JSON |
+| `load_yaml` | `dict` or `list` — parsed YAML |
+| `load_xml` | `lxml.etree._Element` — full lxml tree; supports XPath/XSLT downstream |
+| `load_csv` | `list[dict]` — one dict per row, keys from header row |
+| `load_tsv` | `list[dict]` — shorthand for `load_csv` with `delimiter: "\t"` |
+| `load_text` | `str` — full file contents |
+
+**Required fields:**
+- `path`: File path; supports `${var}` substitution
+- `output` (or `outputs`): Context variable name to store the result
+
+**Optional fields:**
+- `delimiter`: For `load_csv`, overrides the default `,`. Use `"\t"` to parse TSV files via `load_csv`.
+
+**Path substitution:** `${var}` references are resolved from the pipeline context at runtime. Static paths (no `${...}`) are checked for existence at lint time.
+
+**Raises:** `FileNotFoundError` at runtime if the file does not exist.
+
+---
+
+### type: `load_directory`
+
+Load all files matching a glob pattern from a directory into a list — one parsed item per file, in sorted order.
+
+```yaml
+- name: load_acai
+  type: load_directory
+  path: "${acai_dir}/${book_ref.book_number}/"
+  pattern: "*.json"
+  format: json
+  output: acai_files
+```
+
+**Required fields:**
+- `path`: Directory path; supports `${var}` substitution
+- `pattern`: Glob pattern relative to `path` (e.g. `*.json`, `*.md`)
+- `format`: How to parse each file — one of `json`, `yaml`, `xml`, `csv`, `tsv`, `text`
+- `output` (or `outputs`): Context variable; always receives a `list`
+
+Files are loaded in **sorted filename order** for reproducibility.
 
 ---
 
@@ -945,6 +1058,36 @@ Supports:
 - **Contract in HTML comments**: YAML frontmatter defines `requires:`, `optional:`, `format:`, `description:`
 - **Variable syntax**: `{{variable_name}}` for substitution
 - **Validation**: Linter checks that all `requires:` inputs are provided
+
+#### Prompt Mixins
+
+Reuse shared text across multiple prompt files with inline mixin directives:
+
+```
+{{mixin:../mixins/output-language.md}}
+```
+
+The directive is replaced at render time with the full contents of the referenced file. Paths are relative to the prompt file that contains the directive.
+
+**Conventions:**
+- Mixin files are plain Markdown fragments — no headers required, no frontmatter
+- Place shared mixins in a `prompts/mixins/` directory alongside your prompt files
+- Mixins do not need to be listed in the prompt contract (`requires:`) — they are expanded before contract validation
+
+**Example:**
+```
+<!--
+prompt:
+  requires:
+    - passage
+-->
+
+Analyze the following passage: {{passage}}
+
+{{mixin:../mixins/output-language.md}}
+```
+
+The linter skips `{{mixin:...}}` patterns — they are not treated as missing variables.
 
 ### Template File Format
 

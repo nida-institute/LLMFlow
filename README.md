@@ -1,32 +1,68 @@
 # Scripture Pipelines
 
-**Scripture Pipelines** is a declarative pipeline system for AI-assisted biblical and linguistic scholarship. Workflows are declared in YAML pipelines that specify information flow, prompt contracts, and output structure. The engine handles execution, validation, and persistence — every intermediate result is saved to disk, every LLM step can be required to account for its sources, and the same pipeline can be rerun with a revised prompt without re-querying earlier steps.
+**Scripture Pipelines** is a declarative pipeline system for AI-assisted biblical and
+linguistic scholarship. Workflows are declared in YAML pipelines that specify information
+flow, prompt contracts, and output structure. The engine handles execution, validation,
+and persistence — every intermediate result is saved to disk, every LLM step can be
+required to account for its sources, and the same pipeline can be rerun with a revised
+prompt without re-querying earlier steps. A step can call an LLM, run a Python
+function, or load data from a wide range of sources: open biblical datasets from
+GitHub (CSV/TSV, XML, JSON, USFM), Paratext projects, XML databases (BaseX/XQuery),
+relational databases (DuckDB), and more. The plugin system makes any data source
+reachable.
 
-Biblical and linguistic scholarship now has more open data than it can use: word-level morphological annotations for the entire Hebrew Bible and Greek New Testament, syntactic treebanks, discourse feature datasets, lexicographic databases, documentary papyri and inscriptions. The bottleneck is not data — it is the human capacity to bring rigorous scholarly attention to bear on that data at scale. Scripture Pipelines is designed for that problem.
+Biblical and linguistic scholarship now has more open data than it can use: word-level
+morphological annotations for the entire Hebrew Bible and Greek New Testament, syntactic
+treebanks, discourse feature datasets, lexicographic databases, documentary papyri and
+inscriptions. The bottleneck is not data — it is the human capacity to bring rigorous
+scholarly attention to bear on that data at scale. Scripture Pipelines is designed for
+that problem.
 
-## An Opinionated Framework: The Human Commands
+## An Opinionated Framework: The Person Is in Charge
 
-Scripture Pipelines is not neutral about who is in charge. The framework is built on a specific conviction: **Bible translation and biblical scholarship are best done by human beings**. This is not a modest claim about current AI limitations; it is a claim about the nature of the work. Translation creates community ownership. Biblical scholarship is the work of scholars whose training, judgment, and accountability to the academy and the church are not transferable to a language model. And beyond these specific domains: doing meaningful work together matters. The collaboration of a translation team, the exchange between a scholar and a dataset — these are not inefficiencies to be automated away.
+Scripture Pipelines is not neutral about who is in charge. The framework is built on a
+specific conviction: **the person is in charge**. The AI follows direction, accepts
+correction, and does not assert its own judgment over the person's. This is harder to
+achieve than it sounds — AI systems tend to drift, pursuing their own interpretation of
+a task even when it diverges from what was asked. The pipeline architect must constantly
+watch out for this. The [Human at the Helm](https://github.com/nida-institute/human-at-the-helm)
+methodology is the practical framework: the person commands, the AI executes.
 
-The operating model is the **James Kirk model**: Captain Kirk commands the Enterprise; the crew and the ship's computer execute. The contrasting model is HAL 9000 — the AI that locks the crew out because it has concluded that the mission matters more than the people. HAL is not a villain; it is doing exactly what it was designed to do. Stuart Russell (*Human Compatible*, 2019) calls the distinguishing property **corrigibility**: an AI that remains genuinely uncertain about human preferences and therefore defers to humans for correction. The James Kirk model is corrigibility in practice.
+This also means resources should be built *with* the communities that need them, shaped
+by local knowledge — not imposed from outside. Building a pipeline requires three kinds
+of skill: knowledge of the data sources, understanding of the need and the users, and
+the ability to build and maintain the pipeline code with AI tools. One person may bring
+more than one of these skills. We are working toward mentoring people globally in all
+three roles.
 
-Scripture Pipelines operationalizes this through four interlocking disciplines:
+Scripture Pipelines operationalizes human authority through four interlocking disciplines:
 
-1. **Test-driven development** — approximately 2:1 test-to-production ratio. Writing the failing test first forces the human to own the specification before the AI touches it. Without a precise test, a model that ignores an inconvenient requirement produces code that compiles while silently failing.
+1. **Prompt contracts** — every LLM step declares exactly what data it requires, verified before any LLM calls are made. The AI cannot substitute training knowledge for a required input.
 
-2. **Explain before implementing** — every non-trivial change begins with the AI describing what it plans to do and which files it will modify, before any file is touched. Explanation commits the model to a specific interpretation that can be evaluated before any file is modified.
+2. **Structured outputs** — every LLM step produces JSON output that follows a defined schema. Output is inspectable, comparable, and testable in ways that prose is not.
 
-3. **Persistent context infrastructure** — each project carries `.github/copilot-instructions.md` (the AI's constitution: architecture patterns, pitfalls, what not to change) and `docs/ai-context/` (which data sources to trust, what the pipeline language supports, what work is in progress). These are active working constraints in every session, not documentation artifacts.
+3. **Persistent intermediate artifacts** — every step's output is saved to disk. If the final result is wrong, you can trace backward step by step to find exactly where the analysis went off.
 
-4. **Cross-repository choreography** — when a pipeline run reveals an error in an upstream dataset, the AI drafts a well-formed upstream issue, files it via the GitHub CLI, and records the issue number in `project/TODO.md`. The issue tracker is the communication bus. The AI is the correspondent. The human remains the architect.
+4. **Debug request and response files** — every LLM step records what the model actually received and returned. These are the primary tool for detecting freelancing: output that sounds grounded in the text but was generated from training knowledge.
 
 ## The Kairos Project
 
-Scripture Pipelines is at the heart of the **[Kairos Project](https://nida.org)**, a NIDA Institute initiative to build a global community of scholars — spanning the Western academy and far beyond it — who want to serve Bible translation and the global church.
+Scripture Pipelines is at the heart of the **[Kairos Project](https://nida.org)**, a
+NIDA Institute initiative to build a global community of scholars — spanning the Western
+academy and far beyond it — who want to serve Bible translation and the global church.
 
-Part of what that means is providing information in the most useful form for communities that traditional scholarly resources were not built for: non-Western communities, oral cultures, and people who engage Scripture outside the academy. Most of these texts were written by and for oral storytelling cultures. Today's oral storytelling communities do not need PhDs from Western academia to read them. What they need is orientation to settings and cultures that are foreign to any world we live in now — and that orientation rarely looks like a journal article.
+Part of what that means is producing resources with the communities that need them,
+shaped by local knowledge and goals — not resources produced by Western scholars and
+sent outward. Most biblical texts were written by and for oral storytelling cultures.
+Today's oral storytelling communities do not need PhDs from Western academia to read
+them well. What they need is orientation to settings and cultures that are foreign to
+any world we live in now — and that orientation rarely looks like a journal article.
 
-The Kairos Project takes a more inclusive approach: it trusts that readers in community can encounter the text directly and make genuine discoveries. The scholar's role is to equip that encounter, not to conduct it on the reader's behalf. It also builds resources for people who want to learn Greek or Hebrew, who want to understand what discourse analysis reveals about text structure, who want to climb into technical scholarship because the text draws them deeper. The goal is scaffolding at every level, with the ladder running in both directions: scholarly insight flows out and community questions flow back in. Everything produced is freely licensed.
+The Kairos Project takes a more inclusive approach: it trusts that readers in community
+can encounter the text directly and make genuine discoveries. Everything produced is
+freely licensed. Scripture Pipelines is currently in active use producing alpha-level
+resources — it works for us, and we are beginning to mentor our first outside teams.
+We expect to ramp up slowly and deliberately.
 
 ## Installation
 

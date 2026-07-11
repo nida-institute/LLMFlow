@@ -32,12 +32,14 @@ class TestParseBibleReference:
             "chapter": 23,
             "chapter_padded": "023",
             "start_verse": 1,
-            "end_verse": 6,  # Changed from 176 - Psalm 23 has 6 verses
-            "end_chapter": 23,  # Added for cross-chapter support
+            "end_verse": 6,
+            "end_chapter": 23,
             "is_whole_chapter": True,
-            "filename_prefix": "19023001-19023006",  # Changed from 19023176
+            "filename_prefix": "19023001-19023006",
             "display_name": "Psalms-23",
-            "canonical_reference": "Psalms 23:1-6",  # Changed from 176
+            "canonical_reference": "Psalms 23:1-6",
+            "testament": "OT",
+            "original_language": "Hebrew",
         }
         assert result == expected
 
@@ -52,11 +54,13 @@ class TestParseBibleReference:
             "chapter_padded": "001",
             "start_verse": 5,
             "end_verse": 25,
-            "end_chapter": 1,  # Added for cross-chapter support
+            "end_chapter": 1,
             "is_whole_chapter": False,
             "filename_prefix": "42001005-42001025",
             "display_name": "Luke-1-5-25",
             "canonical_reference": "Luke 1:5-25",
+            "testament": "NT",
+            "original_language": "Greek",
         }
         assert result == expected
 
@@ -71,11 +75,13 @@ class TestParseBibleReference:
             "chapter_padded": "003",
             "start_verse": 16,
             "end_verse": 16,
-            "end_chapter": 3,  # Added for cross-chapter support
+            "end_chapter": 3,
             "is_whole_chapter": False,
             "filename_prefix": "43003016-43003016",
             "display_name": "John-3-16",
             "canonical_reference": "John 3:16",
+            "testament": "NT",
+            "original_language": "Greek",
         }
         assert result == expected
 
@@ -566,6 +572,46 @@ def run_tests():
 
 if __name__ == "__main__":
     run_tests()
+
+
+class TestTestamentFields:
+    """parse_bible_reference must expose testament and original_language."""
+
+    def test_ot_book_testament(self):
+        result = parse_bible_reference("Genesis 1:1")
+        assert result["testament"] == "OT"
+        assert result["original_language"] == "Hebrew"
+
+    def test_nt_book_testament(self):
+        result = parse_bible_reference("Mark 1:1")
+        assert result["testament"] == "NT"
+        assert result["original_language"] == "Greek"
+
+    def test_last_ot_book(self):
+        result = parse_bible_reference("Malachi 1:1")
+        assert result["testament"] == "OT"
+
+    def test_first_nt_book(self):
+        result = parse_bible_reference("Matthew 1:1")
+        assert result["testament"] == "NT"
+
+    def test_whole_book_ot(self):
+        result = parse_bible_reference("Ruth")
+        assert result["testament"] == "OT"
+        assert result["original_language"] == "Hebrew"
+
+    def test_whole_book_nt(self):
+        result = parse_bible_reference("Philemon")
+        assert result["testament"] == "NT"
+        assert result["original_language"] == "Greek"
+
+    def test_psalms_is_ot(self):
+        result = parse_bible_reference("Psalm 23")
+        assert result["testament"] == "OT"
+
+    def test_revelation_is_nt(self):
+        result = parse_bible_reference("Revelation 1:1")
+        assert result["testament"] == "NT"
 
 
 @pytest.mark.skip(reason="Pipeline uses mock step, needs real storyflow-test.yaml")

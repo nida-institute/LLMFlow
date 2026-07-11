@@ -229,8 +229,8 @@ class TestRunPluginStep:
 class TestRunLLMStep:
     """Test LLM step execution"""
 
-    @patch("llmflow.runner.render_prompt")
-    @patch("llmflow.runner.call_llm")
+    @patch("llmflow.steps.llm.render_prompt")
+    @patch("llmflow.steps.llm.call_llm")
     def test_llm_basic(self, mock_call_llm, mock_render_prompt):
         mock_render_prompt.return_value = "Rendered prompt"
         mock_call_llm.return_value = "LLM response"
@@ -249,8 +249,8 @@ class TestRunLLMStep:
         assert result == "LLM response"
         mock_call_llm.assert_called_once()
 
-    @patch("llmflow.runner.render_prompt")
-    @patch("llmflow.runner.call_llm")
+    @patch("llmflow.steps.llm.render_prompt")
+    @patch("llmflow.steps.llm.call_llm")
     def test_llm_with_config_override(self, mock_call_llm, mock_render_prompt):
         mock_render_prompt.return_value = "Prompt"
         mock_call_llm.return_value = "Response"
@@ -423,9 +423,9 @@ class TestIntegration:
 class TestMCPConfigMerging:
     """Test that MCP configuration from step is properly merged into config passed to llm_runner"""
 
-    @patch("llmflow.runner.render_prompt")
-    @patch("llmflow.runner.init_mcp_client")
-    @patch("llmflow.runner.run_llm_with_mcp_tools")
+    @patch("llmflow.steps.llm.render_prompt")
+    @patch("llmflow.steps.llm.init_mcp_client")
+    @patch("llmflow.steps.llm.run_llm_with_mcp_tools")
     def test_mcp_config_includes_max_iterations(self, mock_run_llm_mcp, mock_init_mcp, mock_render_prompt):
         """Test that mcp.max_iterations from step is included in merged_config"""
         mock_render_prompt.return_value = "Rendered prompt"
@@ -474,9 +474,9 @@ class TestMCPConfigMerging:
         assert merged_config["mcp"]["enabled"] is True
         assert merged_config["mcp"]["server"] == "bible"
 
-    @patch("llmflow.runner.render_prompt")
-    @patch("llmflow.runner.init_mcp_client")
-    @patch("llmflow.runner.run_llm_with_mcp_tools")
+    @patch("llmflow.steps.llm.render_prompt")
+    @patch("llmflow.steps.llm.init_mcp_client")
+    @patch("llmflow.steps.llm.run_llm_with_mcp_tools")
     def test_mcp_config_all_fields_preserved(self, mock_run_llm_mcp, mock_init_mcp, mock_render_prompt):
         """Test that all MCP config fields are preserved in merged_config"""
         mock_render_prompt.return_value = "Rendered prompt"
@@ -527,8 +527,8 @@ class TestMCPConfigMerging:
 class TestModelSpecificDefaults:
     """Test that token limit defaults are model-aware"""
 
-    @patch("llmflow.runner.render_prompt")
-    @patch("llmflow.runner.call_llm")
+    @patch("llmflow.steps.llm.render_prompt")
+    @patch("llmflow.steps.llm.call_llm")
     def test_gpt4_gets_max_tokens_default(self, mock_call_llm, mock_render_prompt):
         """GPT-4 should get max_tokens default if not specified"""
         mock_render_prompt.return_value = "Prompt"
@@ -552,8 +552,8 @@ class TestModelSpecificDefaults:
         assert config["max_tokens"] == 2500
         assert "max_completion_tokens" not in config
 
-    @patch("llmflow.runner.render_prompt")
-    @patch("llmflow.runner.call_llm")
+    @patch("llmflow.steps.llm.render_prompt")
+    @patch("llmflow.steps.llm.call_llm")
     def test_gpt5_gets_no_token_limit_defaults(self, mock_call_llm, mock_render_prompt):
         """GPT-5 should NOT get any token limit defaults (only accepts reasoning_effort)"""
         mock_render_prompt.return_value = "Prompt"
@@ -576,8 +576,8 @@ class TestModelSpecificDefaults:
         assert "max_completion_tokens" not in config
         assert "max_tokens" not in config
 
-    @patch("llmflow.runner.render_prompt")
-    @patch("llmflow.runner.call_llm")
+    @patch("llmflow.steps.llm.render_prompt")
+    @patch("llmflow.steps.llm.call_llm")
     def test_o1_gets_max_completion_tokens_default(self, mock_call_llm, mock_render_prompt):
         """o1 should get max_completion_tokens default if not specified"""
         mock_render_prompt.return_value = "Prompt"
@@ -601,8 +601,8 @@ class TestModelSpecificDefaults:
         assert config["max_completion_tokens"] == 2500
         assert "max_tokens" not in config
 
-    @patch("llmflow.runner.render_prompt")
-    @patch("llmflow.runner.call_llm")
+    @patch("llmflow.steps.llm.render_prompt")
+    @patch("llmflow.steps.llm.call_llm")
     def test_explicit_max_tokens_overrides_default(self, mock_call_llm, mock_render_prompt):
         """Explicit max_tokens should override default"""
         mock_render_prompt.return_value = "Prompt"
@@ -625,8 +625,8 @@ class TestModelSpecificDefaults:
         config = call_kwargs["config"]
         assert config["max_tokens"] == 4096
 
-    @patch("llmflow.runner.render_prompt")
-    @patch("llmflow.runner.call_llm")
+    @patch("llmflow.steps.llm.render_prompt")
+    @patch("llmflow.steps.llm.call_llm")
     def test_explicit_max_completion_tokens_overrides_default(self, mock_call_llm, mock_render_prompt):
         """Explicit max_completion_tokens should override default"""
         mock_render_prompt.return_value = "Prompt"
@@ -649,8 +649,8 @@ class TestModelSpecificDefaults:
         config = call_kwargs["config"]
         assert config["max_completion_tokens"] == 8192
 
-    @patch("llmflow.runner.render_prompt")
-    @patch("llmflow.runner.call_llm")
+    @patch("llmflow.steps.llm.render_prompt")
+    @patch("llmflow.steps.llm.call_llm")
     def test_claude_gets_max_tokens_default(self, mock_call_llm, mock_render_prompt):
         """Claude should get max_tokens default (not GPT-5 family)"""
         mock_render_prompt.return_value = "Prompt"
@@ -678,9 +678,9 @@ class TestModelSpecificDefaults:
 class TestMCPModelSpecificParameters:
     """Test that MCP path applies model-specific token parameters correctly"""
 
-    @patch("llmflow.runner.render_prompt")
-    @patch("llmflow.runner.init_mcp_client")
-    @patch("llmflow.runner.run_llm_with_mcp_tools")
+    @patch("llmflow.steps.llm.render_prompt")
+    @patch("llmflow.steps.llm.init_mcp_client")
+    @patch("llmflow.steps.llm.run_llm_with_mcp_tools")
     def test_mcp_gpt5_gets_no_token_limits(self, mock_run_llm_mcp, mock_init_mcp, mock_render_prompt):
         """GPT-5 with MCP should NOT get any token limit defaults (only accepts reasoning_effort)"""
         mock_render_prompt.return_value = "Rendered prompt"
@@ -729,9 +729,9 @@ class TestMCPModelSpecificParameters:
         assert "max_completion_tokens" not in merged_config
         assert "max_tokens" not in merged_config
 
-    @patch("llmflow.runner.render_prompt")
-    @patch("llmflow.runner.init_mcp_client")
-    @patch("llmflow.runner.run_llm_with_mcp_tools")
+    @patch("llmflow.steps.llm.render_prompt")
+    @patch("llmflow.steps.llm.init_mcp_client")
+    @patch("llmflow.steps.llm.run_llm_with_mcp_tools")
     def test_mcp_gpt4_gets_max_tokens(self, mock_run_llm_mcp, mock_init_mcp, mock_render_prompt):
         """GPT-4 with MCP should get max_tokens, not max_completion_tokens"""
         mock_render_prompt.return_value = "Rendered prompt"
@@ -778,9 +778,9 @@ class TestMCPModelSpecificParameters:
         assert merged_config["max_tokens"] == 2500
         assert "max_completion_tokens" not in merged_config
 
-    @patch("llmflow.runner.render_prompt")
-    @patch("llmflow.runner.init_mcp_client")
-    @patch("llmflow.runner.run_llm_with_mcp_tools")
+    @patch("llmflow.steps.llm.render_prompt")
+    @patch("llmflow.steps.llm.init_mcp_client")
+    @patch("llmflow.steps.llm.run_llm_with_mcp_tools")
     def test_mcp_explicit_max_completion_tokens_preserved(self, mock_run_llm_mcp, mock_init_mcp, mock_render_prompt):
         """Explicit max_completion_tokens should be preserved in MCP config"""
         mock_render_prompt.return_value = "Rendered prompt"

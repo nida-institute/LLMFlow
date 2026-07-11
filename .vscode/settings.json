@@ -85,5 +85,12 @@
     "taskkill.exe": false
   },
 
-  "ruff.importStrategy": "fromEnvironment"
+  "ruff.importStrategy": "fromEnvironment",
+
+  "yaml.schemas": {
+    "./src/llmflow/schema/pipeline.schema.json": [
+      "pipelines/**/*.yaml",
+      "pipelines/**/*.yml"
+    ]
+  }
 }

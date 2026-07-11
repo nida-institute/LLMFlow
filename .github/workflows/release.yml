@@ -1,0 +1,222 @@
+name: Release
+
+# Promotes the binaries that build.yml already built on the PR into a GitHub
+# Release. Does NOT rebuild the executables. Triggered by pushing a v* tag on a
+# commit that was previously built on a PR. See
+# project/plans/design-pr-build-promote.md.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  resolve-build:
+    name: Resolve blessed build run
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      run_id: ${{ steps.find.outputs.run_id }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # need parents to resolve HEAD^2 (the built PR head)
+
+    - name: Find the build.yml run for this commit
+      id: find
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # The binaries were built on the PR head. With a merge commit that is
+        # HEAD^2; with a fast-forward it is HEAD. Try both, newest success wins.
+        CANDIDATES="$(git rev-parse HEAD)"
+        if git rev-parse HEAD^2 >/dev/null 2>&1; then
+          CANDIDATES="$CANDIDATES $(git rev-parse HEAD^2)"
+        fi
+        echo "Candidate commits: $CANDIDATES"
+
+        RUN_ID=""
+        for sha in $CANDIDATES; do
+          id=$(gh run list --workflow build.yml --commit "$sha" --status success \
+                 --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -n "$id" ]; then
+            RUN_ID="$id"
+            echo "Found successful build run $id for commit $sha"
+            break
+          fi
+        done
+
+        if [ -z "$RUN_ID" ]; then
+          echo "::error::No successful build.yml run found for: $CANDIDATES"
+          echo "::error::This commit was never built on a PR, or its artifacts expired (7-day retention)."
+          echo "::error::Refusing to publish a release with unbuilt/unverified binaries. Open a PR to build first."
+          exit 1
+        fi
+        echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+  create-release:
+    name: Create Draft Release
+    runs-on: ubuntu-latest
+    needs: resolve-build
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Create draft release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release create "${{ github.ref_name }}" \
+          --draft \
+          --generate-notes \
+          --title "${{ github.ref_name }}"
+
+  promote:
+    name: Promote blessed binaries
+    runs-on: ubuntu-latest
+    needs: [resolve-build, create-release]
+    permissions:
+      actions: read
+      contents: write
+    steps:
+    - name: Download binaries from the blessed build run
+      uses: actions/download-artifact@v4
+      with:
+        run-id: ${{ needs.resolve-build.outputs.run_id }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path: dist
+        merge-multiple: true
+
+    - name: List downloaded binaries
+      run: ls -R dist
+
+    - name: Upload binaries to release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release upload "${{ github.ref_name }}" \
+          dist/sp-linux \
+          dist/sp-macos \
+          dist/sp-windows.exe \
+          --repo "${{ github.repository }}"
+
+  publish-release:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    needs: promote
+    permissions:
+      contents: write
+    steps:
+    - name: Publish release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh release edit "${{ github.ref_name }}" --draft=false --repo "${{ github.repository }}"
+
+  verify-install:
+    name: Verify install script on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: publish-release
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Verify install script (Unix)
+      if: runner.os != 'Windows'
+      run: |
+        for i in 1 2 3 4 5; do
+          bash install.sh && break
+          echo "Attempt $i failed, retrying in 30s..."
+          sleep 30
+        done
+        "$HOME/bin/sp" --version
+
+    - name: Verify install script (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        # Retry install script up to 5 times with 30s delay (binary may not be available immediately)
+        $success = $false
+        for ($i = 1; $i -le 5; $i++) {
+          try {
+            & .\install.ps1
+            $success = $true
+            break
+          } catch {
+            Write-Host "Attempt $i failed: $_"
+            if ($i -lt 5) { Start-Sleep -Seconds 30 }
+          }
+        }
+        if (-not $success) { exit 1 }
+
+        # Verify binary exists and is runnable
+        $binaryPath = "$env:USERPROFILE\bin\sp.exe"
+        Write-Host "`n=== Verification ==="
+        Write-Host "Checking binary at: $binaryPath"
+
+        if (Test-Path $binaryPath) {
+          $fileInfo = Get-Item $binaryPath
+          Write-Host "✅ Binary exists. Size: $($fileInfo.Length) bytes"
+          Write-Host "File attributes: $($fileInfo.Attributes)"
+        } else {
+          Write-Error "❌ Binary not found at expected path!"
+          Write-Host "Directory contents:"
+          Get-ChildItem "$env:USERPROFILE\bin" -ErrorAction SilentlyContinue
+          exit 1
+        }
+
+        # Try to execute with explicit full path and capture detailed error
+        try {
+          $output = & $binaryPath --version 2>&1
+          Write-Host "Success: $output"
+        } catch {
+          Write-Host "Execution failed with error:"
+          Write-Host $_.Exception.Message
+          Write-Host "Error details: $_"
+          Write-Host "Trying alternate execution method..."
+
+          # Try with Start-Process for more error details
+          try {
+            $proc = Start-Process -FilePath $binaryPath -ArgumentList "--version" -Wait -NoNewWindow -PassThru -RedirectStandardOutput "$env:TEMP\sp_out.txt" -RedirectStandardError "$env:TEMP\sp_err.txt"
+            Write-Host "Exit code: $($proc.ExitCode)"
+            if (Test-Path "$env:TEMP\sp_out.txt") { Get-Content "$env:TEMP\sp_out.txt" }
+            if (Test-Path "$env:TEMP\sp_err.txt") { Get-Content "$env:TEMP\sp_err.txt" }
+          } catch {
+            Write-Error "Start-Process also failed: $_"
+            Write-Host "This suggests missing runtime dependencies (VC++ redistributable, .NET, etc.)"
+            exit 1
+          }
+        }
+
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: promote
+    environment: pypi
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install hatch
+      run: pip install hatch
+
+    - name: Build package
+      run: hatch build
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1

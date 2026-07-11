@@ -1,9 +1,10 @@
 name: Tests
 
+# Fast Linux test signal on direct branch pushes. Pull-request testing (and the
+# gate before the executable build) is owned by build.yml, so this workflow no
+# longer runs on pull_request to avoid double-running the suite.
 on:
   push:
-    branches: ["**"]
-  pull_request:
     branches: ["**"]
 
 jobs:
@@ -51,7 +52,7 @@ jobs:
       run: hatch run pytest tests/test_types.py -v
 
     - name: Run backend tests
-      run: hatch run pytest tests/ -q --tb=short
+      run: hatch run pytest tests/ -q --tb=short -m "not integration"
       env:
         # Integration tests requiring real API keys are skipped when these are absent
         OPENAI_API_KEY: ""

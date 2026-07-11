@@ -362,8 +362,8 @@ def test_verify_citations_with_real_mcp_mock_llm():
     }
 
     # Mock both the prompt rendering AND the LLM call
-    with patch("llmflow.runner.render_prompt") as mock_render, \
-         patch("llmflow.runner.run_llm_with_mcp_tools") as mock_mcp_call:
+    with patch("llmflow.steps.llm.render_prompt") as mock_render, \
+         patch("llmflow.steps.llm.run_llm_with_mcp_tools") as mock_mcp_call:
 
         # Mock prompt rendering
         mock_render.return_value = "Verify that citation 'John 3:16' contains the word 'ἀγαπάω' (love)"

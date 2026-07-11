@@ -58,7 +58,7 @@ def test_llm_step_retries_until_condition_passes():
             ]
         }
 
-        with patch("llmflow.runner.call_llm", side_effect=fake_call_llm) as call_spy:
+        with patch("llmflow.steps.llm.call_llm", side_effect=fake_call_llm) as call_spy:
             with patch("time.sleep"):
                 context = run_pipeline(pipeline, skip_lint=True)
 
@@ -93,7 +93,7 @@ def test_llm_step_retry_condition_failure_raises():
             ]
         }
 
-        with patch("llmflow.runner.call_llm", side_effect=fake_call_llm) as call_spy:
+        with patch("llmflow.steps.llm.call_llm", side_effect=fake_call_llm) as call_spy:
             with patch("time.sleep"):
                 with pytest.raises(StepRetryError) as err:
                     run_pipeline(pipeline, skip_lint=True)

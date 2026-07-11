@@ -16,6 +16,9 @@ llmflow.log
 .DS_Store
 .idea/
 
+# Claude Code — local session state and AI memory (never commit)
+.claude/
+
 # VSCode (allow settings.json for Copilot integration)
 .vscode/*
 !.vscode/settings.json
@@ -67,4 +70,4 @@ obsidian/
 FOO
 chat.json
 inputs/Abbot-Smith/macula-hebrew.tsv
-.vscode/
+CLAUDE.md

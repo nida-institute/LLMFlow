@@ -29,7 +29,7 @@ from pathlib import Path
 
 try:
     from importlib.metadata import version
-    __version__ = version("llmflow")
+    __version__ = version("scripture-pipelines")
 except Exception:
     __version__ = "unknown"
 
@@ -63,6 +63,7 @@ def build_parser():
     run_p.add_argument("--log", default="llmflow.log", help="Path to log file (default: llmflow.log in cwd)")
     run_p.add_argument("--rewind-to", help="Replay checkpoints up to and including this step name")
     run_p.add_argument("--stop-after", help="Stop pipeline after this step name runs")
+    run_p.add_argument("--resume", action="store_true", help="Skip steps whose saveas files already exist (resume interrupted run)")
 
     # list command
     list_p = subparsers.add_parser("list", help="List available pipelines")
@@ -77,6 +78,13 @@ def build_parser():
     lint_p.add_argument("--json", action="store_true", help="Emit JSON result")
     lint_p.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
     lint_p.add_argument("--rewind-to", help="Validate rewind readiness up to this step")
+
+    # clean command
+    clean_p = subparsers.add_parser("clean", help="Delete contents of intermediate_file_directory")
+    clean_p.add_argument("--pipeline", required=True, help="Path to pipeline YAML")
+    clean_p.add_argument("--dry-run", action="store_true", help="Show what would be deleted without deleting")
+    clean_p.add_argument("--debug-only", action="store_true", help="Delete only debug files (intermediate_file_directory/debug/ or outputs/debug/)")
+    clean_p.add_argument("--intermediate-only", action="store_true", help="Delete only intermediate files, preserving debug/")
 
     # version command
     subparsers.add_parser("version", help="Show version")
@@ -98,6 +106,12 @@ def build_parser():
         action="store_true",
         help="Copy ai-context files from the installed LLMFlow package to the current project",
     )
+    init_p.add_argument(
+        "--no-examples",
+        action="store_true",
+        dest="no_examples",
+        help="Skip example files (hello.gpt, hello-llmflow.yaml, tutorial.md, etc.) — creates directories and structural files only",
+    )
 
     setup_p = subparsers.add_parser("setup", help="Configure AI provider API keys")
     setup_p.add_argument(
@@ -106,7 +120,8 @@ def build_parser():
         help="Re-run setup to update keys or add new providers",
     )
 
-    subparsers.add_parser("models", help="List available models by provider")
+    models_p = subparsers.add_parser("models", help="List available models by provider")
+    models_p.add_argument("--update", action="store_true", help="Update model pricing from installed llm plugins")
     subparsers.add_parser("update-ai-context", help="Regenerate docs/ai-context/ helper files for AI assistants")
 
     # download-data command
@@ -146,8 +161,6 @@ def build_parser():
     # registry context
     reg_sub.add_parser("context", help="Generate AI context from registry")
 
-    # registry update-models
-    reg_sub.add_parser("update-models", help="Update model pricing/limits from GitHub")
 
     # context command
     ctx_p = subparsers.add_parser("context", help="Manage AI context files (docs/ai-context/)")
@@ -279,6 +292,92 @@ def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    if args.command == "clean":
+        import shutil
+        import yaml as _yaml
+        from llmflow.runner import resolve as _resolve
+
+        pipeline_path = Path(args.pipeline)
+        if not pipeline_path.exists():
+            logger.error(f"❌ Pipeline file not found: {args.pipeline}")
+            sys.exit(1)
+
+        with open(pipeline_path) as _f:
+            _config = _yaml.safe_load(_f)
+        _config = _config or {}
+        _pipeline_cfg = _config.get("pipeline", _config)
+        _context = {**(_pipeline_cfg.get("variables", {}) or {})}
+
+        _raw_dir = _pipeline_cfg.get("intermediate_file_directory")
+        _intermediate_dir = Path(str(_resolve(str(_raw_dir), _context))) if _raw_dir else None
+
+        _debug_only = getattr(args, "debug_only", False)
+        _intermediate_only = getattr(args, "intermediate_only", False)
+
+        def _delete_files(files, label):
+            if args.dry_run:
+                if files:
+                    print(f"Would delete {len(files)} file(s) from {label}:")
+                    for _f in files:
+                        print(f"  {_f}")
+                else:
+                    print(f"Nothing to delete in {label}")
+                return 0
+            for _f in files:
+                _f.unlink()
+                print(f"Deleted: {_f}")
+            return len(files)
+
+        def _remove_empty_dirs(root):
+            for _d in sorted(root.rglob("*"), reverse=True):
+                if _d.is_dir() and not any(_d.iterdir()):
+                    _d.rmdir()
+
+        _pipeline_name = pipeline_path.stem
+
+        if _debug_only:
+            # Delete debug files only
+            if _intermediate_dir:
+                _debug_dir = _intermediate_dir / "debug" / _pipeline_name
+            else:
+                _debug_dir = Path.cwd() / "outputs" / "debug" / _pipeline_name
+
+            if not _debug_dir.exists():
+                print(f"⚠️  Debug directory does not exist: {_debug_dir}")
+                return
+
+            _files = sorted(f for f in _debug_dir.rglob("*") if f.is_file())
+            _n = _delete_files(_files, _debug_dir)
+            if not args.dry_run:
+                _remove_empty_dirs(_debug_dir)
+                print(f"✅ Cleaned {_debug_dir} ({_n} file(s) deleted)")
+            return
+
+        if not _intermediate_dir:
+            print("⚠️  No intermediate_file_directory declared in this pipeline. Nothing to clean.")
+            return
+
+        if not _intermediate_dir.exists():
+            print(f"⚠️  intermediate_file_directory does not exist: {_intermediate_dir}")
+            return
+
+        if _intermediate_only:
+            # Delete everything except the debug/ subdirectory
+            _debug_dir = _intermediate_dir / "debug" / _pipeline_name
+            _files = sorted(
+                f for f in _intermediate_dir.rglob("*")
+                if f.is_file() and not f.is_relative_to(_debug_dir)
+            )
+        else:
+            # Delete everything
+            _files = sorted(f for f in _intermediate_dir.rglob("*") if f.is_file())
+
+        _n = _delete_files(_files, _intermediate_dir)
+        if not args.dry_run:
+            _remove_empty_dirs(_intermediate_dir)
+            print(f"✅ Cleaned {_intermediate_dir} ({_n} file(s) deleted)")
+        return
+
     if args.command == "version":
         print(__version__)
         return
@@ -315,7 +414,11 @@ def main(argv=None):
 
     if args.command == "init":
         from llmflow.cli_utils import sync_ai_context_files
-        init_project(Path.cwd(), update=getattr(args, "update", False))
+        init_project(
+            Path.cwd(),
+            update=getattr(args, "update", False),
+            no_examples=getattr(args, "no_examples", False),
+        )
         if getattr(args, "sync", False):
             sync_ai_context_files(Path.cwd())
         return
@@ -326,6 +429,9 @@ def main(argv=None):
         return
 
     if args.command == "models":
+        if getattr(args, "update", False):
+            from llmflow.setup_command import run_models_update
+            sys.exit(0 if run_models_update() else 1)
         from llmflow.setup_command import run_models
         run_models()
         return
@@ -442,13 +548,6 @@ def main(argv=None):
         elif args.registry_command == "context":
             # Generate AI context
             print(registry.generate_ai_context())
-
-        elif args.registry_command == "update-models":
-            # Update model metadata from GitHub
-            from llmflow.modules.telemetry import update_models_from_github
-
-            success = update_models_from_github()
-            sys.exit(0 if success else 1)
 
         return
 
@@ -666,6 +765,8 @@ def main(argv=None):
                     log_file=args.log,
                     rewind_to=args.rewind_to,
                     stop_after=args.stop_after,
+                    resume=args.resume,
+                    skip_lint=True,
                 )
             except FileNotFoundError as e:
                 # Distinguish between a missing pipeline file and a missing
@@ -689,6 +790,11 @@ def main(argv=None):
             logger.error(f"❌ Permission denied: {e}")
             logger.error("   💡 Tip: Check file/directory permissions")
             sys.exit(1)
+
+        from llmflow.modules.telemetry import models_data_age_days
+        age = models_data_age_days()
+        if age is not None and age > 60:
+            logger.info(f"💡 Model pricing data is {age} days old. Run `sp models --update` to refresh.")
         return
 
     parser.print_help()
