@@ -16,8 +16,8 @@ def test_regular_output_visible_after_loop():
     step = {
         "name": "loop",
         "type": "for-each",
-        "input": "${items}",
-        "item_var": "item",
+        "in": "${items}",
+        "for": "item",
         "steps": [
             {
                 "name": "make_dict",
@@ -44,8 +44,8 @@ def test_last_iteration_wins():
     step = {
         "name": "loop",
         "type": "for-each",
-        "input": "${items}",
-        "item_var": "item",
+        "in": "${items}",
+        "for": "item",
         "steps": [
             {
                 "name": "make_dict",
@@ -71,8 +71,8 @@ def test_append_to_and_regular_output_both_propagate():
     step = {
         "name": "loop",
         "type": "for-each",
-        "input": "${items}",
-        "item_var": "item",
+        "in": "${items}",
+        "for": "item",
         "steps": [
             {
                 "name": "make_dict",
@@ -104,8 +104,8 @@ def test_output_after_loop_usable_in_next_step():
     foreach_step = {
         "name": "loop",
         "type": "for-each",
-        "input": "${items}",
-        "item_var": "item",
+        "in": "${items}",
+        "for": "item",
         "steps": [
             {
                 "name": "capture",

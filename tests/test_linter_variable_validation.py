@@ -213,8 +213,8 @@ class TestValidateAllVariableReferences:
             {
                 "name": "process_items",
                 "type": "for-each",
-                "input": "${items}",
-                "item_var": "item",
+                "in": "${items}",
+                "for": "item",
                 "steps": [
                     {
                         "name": "inner",
@@ -238,8 +238,8 @@ class TestValidateAllVariableReferences:
             {
                 "name": "outer",
                 "type": "for-each",
-                "input": "${sections}",
-                "item_var": "section",
+                "in": "${sections}",
+                "for": "section",
                 "steps": [
                     {
                         "name": "generate",
@@ -262,8 +262,8 @@ class TestValidateAllVariableReferences:
             {
                 "name": "outer",
                 "type": "for-each",
-                "input": "${items}",
-                "item_var": "item",
+                "in": "${items}",
+                "for": "item",
                 "steps": [
                     {
                         "name": "inner",
@@ -448,8 +448,8 @@ def test_window_advance_inner_outputs_in_scope():
         {
             "name": "segment",
             "type": "window",
-            "input": "${content}",
-            "item_var": "window_content",
+            "in": "${content}",
+            "for": "window_content",
             "size": 10,
             "steps": [
                 {
@@ -498,8 +498,8 @@ def test_window_advance_is_none_condition_no_error():
         {
             "name": "segment",
             "type": "window",
-            "input": "${content}",
-            "item_var": "window_content",
+            "in": "${content}",
+            "for": "window_content",
             "size": 10,
             "steps": [
                 {

@@ -121,8 +121,8 @@ Loops over a list variable and runs nested steps for each item.
 ```yaml
 - name: process_each_item
   type: for-each
-  input: "${items}"
-  item_var: item
+  for: item
+  in: "${items}"
   steps:
     - name: handle-item
       type: llm
@@ -134,8 +134,8 @@ Loops over a list variable and runs nested steps for each item.
       append_to: all_results
 ```
 
-- `input` points to a list value.
-- `item_var` is the name used to refer to each element.
+- `for` is the name used to refer to each element (XQuery-style: `for $x in $list`).
+- `in` points to the list value.
 - `${loop.index}`, `${loop.total}`, `${loop.first}`, `${loop.last}` are available inside every iteration.
 - Use `append_to` in nested steps to build a list across iterations.
 

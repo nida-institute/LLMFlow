@@ -155,8 +155,8 @@ class TestDebugLogging:
                 {
                     "name": "for_each_with_debug",
                     "type": "for-each",
-                    "input": "${passages}",
-                    "item_var": "passage",
+                    "in": "${passages}",
+                    "for": "passage",
                     "steps": [
                         {
                             "name": "parse_in_loop",

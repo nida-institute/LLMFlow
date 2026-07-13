@@ -359,8 +359,8 @@ Please expand this entry with semantic domain information."""
                 {
                     "name": "process-entries",
                     "type": "for-each",
-                    "input": "${status}",
-                    "item_var": "row",
+                    "in": "${status}",
+                    "for": "row",
                     "steps": [
                         {
                             "name": "find-entry",

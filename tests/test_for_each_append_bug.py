@@ -22,8 +22,8 @@ class TestForEachAppendBug:
         rule = {
             "name": "test",
             "type": "for-each",
-            "input": "${items}",
-            "item_var": "item",
+            "in": "${items}",
+            "for": "item",
             "steps": [
                 {
                     "name": "process",
@@ -61,8 +61,8 @@ class TestForEachAppendBug:
         rule = {
             "name": "test",
             "type": "for-each",
-            "input": "${items}",
-            "item_var": "item",
+            "in": "${items}",
+            "for": "item",
             "steps": [
                 {
                     "name": "process",
@@ -106,8 +106,8 @@ class TestForEachAppendBug:
         rule = {
             "name": "test",
             "type": "for-each",
-            "input": "${items}",
-            "item_var": "item",
+            "in": "${items}",
+            "for": "item",
             "steps": [
                 {
                     "name": "process",
@@ -136,14 +136,14 @@ class TestForEachAppendBug:
         rule = {
             "name": "outer_loop",
             "type": "for-each",
-            "input": "${outer}",
-            "item_var": "outer_item",
+            "in": "${outer}",
+            "for": "outer_item",
             "steps": [
                 {
                     "name": "inner_loop",
                     "type": "for-each",
-                    "input": "${inner}",
-                    "item_var": "inner_item",
+                    "in": "${inner}",
+                    "for": "inner_item",
                     "steps": [
                         {
                             "name": "combine",

@@ -98,8 +98,8 @@ variables:
 steps:
   - name: process-items
     type: for-each
-    input: "${items}"
-    item_var: item
+    in: "${items}"
+    for: item
     steps:
       - name: nested-step
         type: llm
@@ -133,8 +133,8 @@ variables:
 steps:
   - name: process-items
     type: for-each
-    input: "${items}"
-    item_var: item
+    in: "${items}"
+    for: item
     steps:
       - name: nested-step1
         type: llm
@@ -310,13 +310,13 @@ variables:
 steps:
   - name: outer-loop
     type: for-each
-    input: "${outer_items}"
-    item_var: outer
+    in: "${outer_items}"
+    for: outer
     steps:
       - name: inner-loop
         type: for-each
-        input: "${inner_items}"
-        item_var: inner
+        in: "${inner_items}"
+        for: inner
         steps:
           - name: nested-step
             type: llm
@@ -348,8 +348,8 @@ variables:
 steps:
   - name: process-items
     type: for-each
-    input: "${items}"
-    item_var: item
+    in: "${items}"
+    for: item
     steps:
       - name: nested-step
         type: llm
@@ -444,8 +444,8 @@ steps:
       - result1
   - name: loop
     type: for-each
-    input: "${items}"
-    item_var: item
+    in: "${items}"
+    for: item
     steps:
       - name: nested-step
         type: llm
@@ -583,8 +583,8 @@ steps:
       - result1
   - name: loop
     type: for-each
-    input: "${items}"
-    item_var: item
+    in: "${items}"
+    for: item
     steps:
       - name: nested
         type: llm
@@ -677,8 +677,8 @@ variables:
 steps:
   - name: loop
     type: for-each
-    input: "${items}"
-    item_var: item
+    in: "${items}"
+    for: item
     steps:
       - name: step1
         type: llm
@@ -749,8 +749,8 @@ variables:
 steps:
   - name: loop
     type: for-each
-    input: "${{items}}"
-    item_var: item
+    in: "${{items}}"
+    for: item
     steps:
       - name: save1
         type: save
@@ -789,8 +789,8 @@ variables:
 steps:
   - name: loop
     type: for-each
-    input: "${{items}}"
-    item_var: item
+    in: "${{items}}"
+    for: item
     steps:
       - name: process
         type: llm
@@ -831,8 +831,8 @@ variables:
 steps:
   - name: loop
     type: for-each
-    input: "${items}"
-    item_var: item
+    in: "${items}"
+    for: item
     steps:
       - name: process
         type: llm
@@ -866,8 +866,8 @@ variables:
 steps:
   - name: loop
     type: for-each
-    input: "${items}"
-    item_var: item
+    in: "${items}"
+    for: item
     steps:
       - name: skip-step
         type: llm
@@ -950,8 +950,8 @@ variables:
 steps:
   - name: loop
     type: for-each
-    input: "${items}"
-    item_var: item
+    in: "${items}"
+    for: item
     steps:
       - name: process
         type: llm
@@ -991,8 +991,8 @@ variables:
 steps:
   - name: loop1
     type: for-each
-    input: "${items1}"
-    item_var: item
+    in: "${items1}"
+    for: item
     steps:
       - name: step1
         type: llm
@@ -1012,8 +1012,8 @@ steps:
           - r2
   - name: loop2
     type: for-each
-    input: "${items2}"
-    item_var: item
+    in: "${items2}"
+    for: item
     steps:
       - name: step3
         type: llm
@@ -1154,8 +1154,8 @@ variables:
 steps:
   - name: loop
     type: for-each
-    input: "${items}"
-    item_var: item
+    in: "${items}"
+    for: item
     steps:
       - name: step1
         type: llm
@@ -1197,8 +1197,8 @@ variables:
 steps:
   - name: search
     type: for-each
-    input: "${candidates}"
-    item_var: candidate
+    in: "${candidates}"
+    for: candidate
     steps:
       - name: check
         type: if
@@ -1292,8 +1292,8 @@ variables:
 steps:
   - name: loop
     type: for-each
-    input: "${items}"
-    item_var: item
+    in: "${items}"
+    for: item
     steps:
       - name: process
         type: llm
@@ -1336,18 +1336,18 @@ variables:
 steps:
   - name: outer
     type: for-each
-    input: "${level1}"
-    item_var: l1
+    in: "${level1}"
+    for: l1
     steps:
       - name: middle
         type: for-each
-        input: "${level2}"
-        item_var: l2
+        in: "${level2}"
+        for: l2
         steps:
           - name: inner
             type: for-each
-            input: "${level3}"
-            item_var: l3
+            in: "${level3}"
+            for: l3
             steps:
               - name: deepest
                 type: llm

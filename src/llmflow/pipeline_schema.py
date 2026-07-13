@@ -46,10 +46,8 @@ class StepConfig(BaseModel):
     type: Optional[str] = None
     function: Optional[str] = None
     inputs: Optional[dict] = None
-    input: Optional[str] = None  # For for-each steps
     outputs: Optional[Union[str, List[str]]] = None
     prompt: Optional[dict] = None
-    item_var: Optional[str] = None
     steps: Optional[List["StepConfig"]] = None
     append_to: Optional[str] = None
     log: Optional[str] = None
@@ -117,7 +115,7 @@ PIPELINE_SCHEMA = {
                     "max_tokens": {"type": "integer"},
                     "temperature": {"type": "number"},
                     "timeout_seconds": {"type": "number"},
-                    "input": {},
+                    "in": {},
                     "inputs": {"type": "object"},
                     "outputs": {
                         "oneOf": [
@@ -127,7 +125,7 @@ PIPELINE_SCHEMA = {
                     },
                     "append_to": {"type": "string"},
                     "steps": {"type": "array"},
-                    "item_var": {"type": "string"},
+                    "for": {"type": "string"},
                     "condition": {"type": "string"},
                     "saveas": {
                         "oneOf": [

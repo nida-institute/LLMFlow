@@ -117,8 +117,8 @@ class TestWindowAdvanceDynamic:
         step = {
             "name": "seg",
             "type": "window",
-            "input": "${content}",
-            "item_var": "wc",
+            "in": "${content}",
+            "for": "wc",
             "size": 10,
             "steps": [
                 {
@@ -141,8 +141,8 @@ class TestWindowAdvanceDynamic:
         step = {
             "name": "seg",
             "type": "window",
-            "input": "${content}",
-            "item_var": "wc",
+            "in": "${content}",
+            "for": "wc",
             "size": 10,
             "steps": [
                 {
@@ -172,8 +172,8 @@ class TestWindowAdvanceDynamic:
         step = {
             "name": "seg",
             "type": "window",
-            "input": "${content}",
-            "item_var": "wc",
+            "in": "${content}",
+            "for": "wc",
             "size": 5,
             "steps": [
                 {
@@ -199,8 +199,8 @@ class TestWindowAdvanceDynamic:
         step = {
             "name": "seg",
             "type": "window",
-            "input": "${content}",
-            "item_var": "wc",
+            "in": "${content}",
+            "for": "wc",
             "size": 5,
             "steps": [
                 _window_advance_step("next_pos"),
@@ -225,8 +225,8 @@ class TestWindowAdvanceDynamic:
         step = {
             "name": "seg",
             "type": "window",
-            "input": "${content}",
-            "item_var": "wc",
+            "in": "${content}",
+            "for": "wc",
             "size": 3,
             "steps": [
                 {
@@ -250,8 +250,8 @@ class TestWindowAdvanceDynamic:
         step = {
             "name": "seg",
             "type": "window",
-            "input": "${content}",
-            "item_var": "wc",
+            "in": "${content}",
+            "for": "wc",
             "size": 10,
             "steps": [
                 {
@@ -287,8 +287,8 @@ class TestWindowAdvanceErrors:
         step = {
             "name": "seg",
             "type": "window",
-            "input": "${content}",
-            "item_var": "wc",
+            "in": "${content}",
+            "for": "wc",
             "size": 5,
             "steps": [_window_advance_step()],
         }
@@ -301,8 +301,8 @@ class TestWindowAdvanceErrors:
         step = {
             "name": "seg",
             "type": "window",
-            "input": "${content}",
-            "item_var": "wc",
+            "in": "${content}",
+            "for": "wc",
             "size": 5,
             "steps": [_window_advance_step()],
         }

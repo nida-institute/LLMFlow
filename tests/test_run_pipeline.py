@@ -46,8 +46,8 @@ class TestRunPipeline:
                 {
                     "name": "process_items",
                     "type": "for-each",
-                    "input": "${input_data}",
-                    "item_var": "item",
+                    "in": "${input_data}",
+                    "for": "item",
                     "steps": [
                         {
                             "name": "transform_item",

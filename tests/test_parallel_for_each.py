@@ -158,8 +158,8 @@ class TestParallelMatchesSequential:
             step = {
                 "name": "loop",
                 "type": "for-each",
-                "input": "${items}",
-                "item_var": "x",
+                "in": "${items}",
+                "for": "x",
                 "parallel": parallel,
                 "steps": [
                     {
@@ -202,8 +202,8 @@ class TestParallelMatchesSequential:
             step = {
                 "name": "loop",
                 "type": "for-each",
-                "input": "${items}",
-                "item_var": "x",
+                "in": "${items}",
+                "for": "x",
                 "parallel": 3,
                 "steps": [
                     {
@@ -228,8 +228,8 @@ class TestParallelMatchesSequential:
             step = {
                 "name": "loop",
                 "type": "for-each",
-                "input": "${items}",
-                "item_var": "x",
+                "in": "${items}",
+                "for": "x",
                 "parallel": 4,
                 "steps": [
                     {
@@ -257,7 +257,7 @@ class TestParallelMatchesSequential:
                 ctx = {"items": items}
                 s = {
                     "name": "loop", "type": "for-each",
-                    "input": "${items}", "item_var": "x",
+                    "in": "${items}", "for": "x",
                     "steps": [{
                         "name": "do", "type": "function",
                         "function": f"{mod}.identity",
@@ -296,8 +296,8 @@ class TestParallelExceptionPropagation:
             step = {
                 "name": "loop",
                 "type": "for-each",
-                "input": "${items}",
-                "item_var": "x",
+                "in": "${items}",
+                "for": "x",
                 "parallel": 3,
                 "steps": [
                     {
@@ -329,8 +329,8 @@ class TestParallelAfterExit:
             step = {
                 "name": "loop",
                 "type": "for-each",
-                "input": "${items}",
-                "item_var": "x",
+                "in": "${items}",
+                "for": "x",
                 "parallel": 3,
                 "steps": [
                     {
@@ -363,7 +363,7 @@ class TestLintForEachParallel:
 
     def test_no_parallel_no_error(self):
         step = {
-            "name": "loop", "type": "for-each", "input": "${items}",
+            "name": "loop", "type": "for-each", "in": "${items}",
             "steps": [
                 {"outputs": "v", "append_to": "results"},
                 {"inputs": {"x": "${results}"}},
@@ -373,7 +373,7 @@ class TestLintForEachParallel:
 
     def test_parallel_1_no_error(self):
         step = {
-            "name": "loop", "type": "for-each", "input": "${items}",
+            "name": "loop", "type": "for-each", "in": "${items}",
             "parallel": 1,
             "steps": [
                 {"outputs": "v", "append_to": "results"},
@@ -384,7 +384,7 @@ class TestLintForEachParallel:
 
     def test_parallel_cross_iteration_ref_is_error(self):
         step = {
-            "name": "loop", "type": "for-each", "input": "${items}",
+            "name": "loop", "type": "for-each", "in": "${items}",
             "parallel": 5,
             "steps": [
                 {"outputs": "v", "append_to": "results"},
@@ -398,7 +398,7 @@ class TestLintForEachParallel:
 
     def test_parallel_no_cross_ref_no_error(self):
         step = {
-            "name": "loop", "type": "for-each", "input": "${items}",
+            "name": "loop", "type": "for-each", "in": "${items}",
             "parallel": 5,
             "steps": [
                 {"outputs": "v", "append_to": "results"},
@@ -409,7 +409,7 @@ class TestLintForEachParallel:
 
     def test_multiple_cross_refs_multiple_errors(self):
         step = {
-            "name": "loop", "type": "for-each", "input": "${items}",
+            "name": "loop", "type": "for-each", "in": "${items}",
             "parallel": 3,
             "steps": [
                 {"outputs": "a", "append_to": "list_a"},
@@ -422,7 +422,7 @@ class TestLintForEachParallel:
 
     def test_nested_cross_ref_detected(self):
         step = {
-            "name": "loop", "type": "for-each", "input": "${items}",
+            "name": "loop", "type": "for-each", "in": "${items}",
             "parallel": 4,
             "steps": [
                 {"outputs": "v", "append_to": "results"},
@@ -438,8 +438,8 @@ class TestLintForEachParallel:
             {
                 "name": "bad_parallel",
                 "type": "for-each",
-                "input": "${items}",
-                "item_var": "x",
+                "in": "${items}",
+                "for": "x",
                 "parallel": 5,
                 "steps": [
                     {"name": "a", "type": "function", "function": "f",
@@ -457,8 +457,8 @@ class TestLintForEachParallel:
             {
                 "name": "ok_parallel",
                 "type": "for-each",
-                "input": "${items}",
-                "item_var": "x",
+                "in": "${items}",
+                "for": "x",
                 "parallel": 5,
                 "steps": [
                     {"name": "a", "type": "function", "function": "f",

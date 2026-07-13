@@ -109,8 +109,8 @@ variables:
 steps:
   - name: loop
     type: for-each
-    input: items
-    item_var: item
+    in: items
+    for: item
     steps:
       - name: nested-step
         type: llm

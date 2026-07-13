@@ -2,7 +2,13 @@
 
 ## 0.2.1.20 — 2026-07-06
 
-### Architecture
+### Breaking
+
+- **Loop syntax is now `for`/`in` only.** for-each and window steps use the XQuery-style
+  `for:` (loop variable) and `in:` (list) keys. The legacy aliases `item_var`/`input`/`over`/`as`
+  have been **removed** — the runtime raises and the linter flags them (with a "did you mean
+  'for'/'in'?" hint) rather than silently ignoring them. One syntax per language. Migrate
+  pipelines with `item_var:`→`for:`, `input:`/`over:`→`in:`.
 
 - **Step handlers extracted to `src/llmflow/steps/` package** — each step type now lives in
   its own module (`llm.py`, `function.py`, `for_each.py`, `window.py`, `if_step.py`,

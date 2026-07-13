@@ -259,21 +259,6 @@
               "type": "string",
               "description": "Context variable resolving to the list to iterate over. Follows XQuery: for $scene in $list."
             },
-            "item_var": {
-              "type": "string",
-              "description": "Deprecated: use for.",
-              "deprecated": true
-            },
-            "input": {
-              "type": "string",
-              "description": "Deprecated: use in.",
-              "deprecated": true
-            },
-            "as": {
-              "type": "string",
-              "description": "Deprecated: use for.",
-              "deprecated": true
-            },
             "steps": {
               "type": "array",
               "minItems": 1,
@@ -298,7 +283,7 @@
               "description": "Template for per-iteration log labels. Supports ${var} substitution."
             }
           },
-          "required": ["type", "steps"]
+          "required": ["type", "for", "in", "steps"]
         }
       ]
     },
@@ -328,26 +313,6 @@
             "in": {
               "type": "string",
               "description": "Context variable resolving to the list to window over. Follows XQuery: for $w in $list."
-            },
-            "item_var": {
-              "type": "string",
-              "description": "Deprecated: use for.",
-              "deprecated": true
-            },
-            "input": {
-              "type": "string",
-              "description": "Deprecated: use in.",
-              "deprecated": true
-            },
-            "over": {
-              "type": "string",
-              "description": "Deprecated: use in.",
-              "deprecated": true
-            },
-            "as": {
-              "type": "string",
-              "description": "Deprecated: use for.",
-              "deprecated": true
             },
             "size": {
               "type": "integer",
@@ -391,7 +356,7 @@
               "description": "Steps to execute for each window."
             }
           },
-          "required": ["type", "steps"]
+          "required": ["type", "for", "in", "steps"]
         }
       ]
     },

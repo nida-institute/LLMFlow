@@ -2,217 +2,217 @@
 
 Follow this checklist when preparing a new release.
 
-**For AI assistance:** Invoke the `/release` skill which provides guided automation and mandatory verification.
+## The model (read this first)
 
-**CRITICAL:** Never claim "build succeeded" without running verification commands. See Section 8 for mandatory checks.
+As of 0.2.1.20 the release pipeline is **build-on-PR, promote-on-tag** — see
+`project/plans/design-pr-build-promote.md` for the full design.
+
+- **`build.yml`** runs on every **pull request**: tests + the Linux/macOS/Windows Nuitka
+  builds, uploading the three binaries as artifacts (7-day retention). This is the merge
+  gate — a red build blocks merge.
+- **`release.yml`** runs on a **`v*` tag**: it does **NOT rebuild**. It finds the successful
+  `build.yml` run for the tagged commit, downloads those exact binaries, attaches them to a
+  GitHub Release, publishes, verifies the install scripts, and publishes the wheel to PyPI.
+
+**Consequences that differ from the old flow:**
+- The binaries are already built *before* you tag. Tagging promotes them.
+- The tag **must point at the merge commit** whose `HEAD^2` is the PR head that was built.
+- You must merge with a **merge commit** (not squash/rebase), or there is no `HEAD^2` to
+  resolve and `release.yml` fails.
+- Blessed artifacts expire after **7 days** — tag within that window or the build re-runs.
+
+**CRITICAL:** Never claim "release succeeded" without watching `release.yml` to completion.
+See Section 8.
 
 ---
 
 ## Pre-Release Validation
 
-### 1. Test Suite
-- [ ] `pytest -v` passes with 0 failures
-- [ ] Check test count hasn't decreased unexpectedly
-- [ ] Review any newly skipped tests (should be rare)
-- [ ] Integration tests pass (or are properly skipped if API keys absent)
-- [ ] GitHub Actions test workflow passing on dev branch
+### 1. The PR build is green
+- [ ] The release PR (dev → main) has a passing **`build.yml`** run on its head commit
+- [ ] All three platforms succeeded — verify explicitly:
+  ```bash
+  gh run list --workflow build.yml --limit 1 --json headSha,conclusion
+  gh run view <run-id> --json jobs --jq '.jobs[] | "\(.name): \(.conclusion)"'
+  ```
+- [ ] Tests job green (integration tests are deselected in CI via `-m "not integration"`)
 
-**Note:** Tests verify code correctness. This is NOT the same as Nuitka executable builds.
+**Note:** the build already happened here, on the PR — not at tag time. If this is red, fix
+it before merging; do not tag hoping the release build will differ.
 
-### 2. Previous Nuitka Build Status
-- [ ] Check if previous Nuitka builds are failing: `gh run list --workflow=build-release.yml --limit 3`
-- [ ] If previous builds failed, understand why before creating new tag
-- [ ] Recent successful Nuitka build completed (if one exists)
-- [ ] Binary sizes reasonable (~50-70MB range) in last successful build
-
-**Note:** Nuitka builds create executables (sp-linux, sp-macos, sp-windows.exe). This is NOT the same as pytest.
+### 2. Blessed artifacts exist and are fresh
+- [ ] The PR build uploaded `sp-linux`, `sp-macos`, `sp-windows.exe`:
+  ```bash
+  gh api repos/nida-institute/LLMFlow/actions/runs/<run-id>/artifacts \
+    --jq '.artifacts[] | "\(.name)  \(.size_in_bytes) bytes  expires \(.expires_at[0:10])"'
+  ```
+- [ ] Expiry is in the future (7-day retention) — you must tag before then
+- [ ] Binary sizes reasonable (~95–145 MB each)
 
 ### 3. Version & Changelog
-- [ ] `CHANGELOG.md` updated with all changes from this release
-  - Clear section with version number and date
-  - Categorized changes (features, fixes, docs, etc.)
-  - Issue numbers linked where applicable
-  - Breaking changes clearly marked (if any)
-- [ ] Version number incremented in `pyproject.toml`
-  - **Convention:** Always bump 4th component (e.g., 0.2.1.04 → 0.2.1.05)
-  - Unless explicitly bumping minor/major
+- [ ] `CHANGELOG.md` has a section for this version (date, categorized changes, issue refs,
+      breaking changes marked)
+- [ ] Version bumped in `pyproject.toml` — **bump the 4th component** (e.g. 0.2.1.19 → 0.2.1.20)
+      unless explicitly doing a minor/major
+- [ ] The version-bump commit is part of the PR (so the tag lands on code with the right version)
 
-### 4. Documentation Sync
-- [ ] AI context files up to date (docs/ai-context/)
-- [ ] Main documentation reflects new features (docs/*.md)
-- [ ] INSTALL.md still accurate for current release
-- [ ] README.md examples still work
-- [ ] Tutorial still matches current CLI behavior
+### 4. Documentation sync
+- [ ] Main docs reflect new features (`docs/*.md`, e.g. `docs/llmflow-language.md`)
+- [ ] `INSTALL.md` / `README.md` examples still accurate
+- [ ] Tutorial matches current CLI behavior
+- [ ] (Propose updates to `docs/ai-context/` to the Captain if the workflow changed — do not
+      edit those directly)
 
-### 5. Code Quality
-- [ ] No TODO/FIXME comments that should be addressed before release
-- [ ] No debug print statements left in production code
-- [ ] No commented-out code blocks that should be removed
-- [ ] Linter passes (`llmflow lint` on example pipelines)
+### 5. Code quality
+- [ ] No stray debug prints / commented-out blocks that should go
+- [ ] `sp lint` passes on example pipelines
+- [ ] No consumer-specific coupling introduced into the core engine
+      (see `project/audits/` cruft audit)
 
 ---
 
 ## Release Process
 
-### 6. Branch Management
-- [ ] All changes committed on dev branch
-- [ ] `git push origin dev` completed
-- [ ] Switch to main: `git checkout main`
-- [ ] Merge dev: `git merge dev --no-edit`
-- [ ] Resolve any merge conflicts
-- [ ] `git push origin main`
+### 6. Merge the PR — **must be a merge commit**
+- [ ] The PR is up to date with `main` (no divergence)
+- [ ] Merge with a **merge commit** so `release.yml` can resolve `HEAD^2`:
+  ```bash
+  gh pr merge <pr-number> --merge --repo nida-institute/LLMFlow
+  ```
+  **Do NOT** use `--squash` or `--rebase` (they destroy the `HEAD^2` mapping).
+  **Do NOT** use `--delete-branch` (the head branch is `dev`).
+- [ ] Confirm the merge commit's second parent is the built PR head:
+  ```bash
+  git fetch origin main
+  git rev-list --parents -n1 origin/main   # third SHA = HEAD^2 = the built commit
+  ```
 
-### 7. Tagging **[CRITICAL - CHECK FOR EXISTING TAGS]**
+### 7. Tagging **[CRITICAL — TAG THE MERGE COMMIT, DELETE STALE TAGS FIRST]**
+
+> ⚠️ Incident (2026-07-11): a pre-existing local `v0.2.1.20` tag caused `git tag` to fail
+> silently; the stale tag (pointing at the old version-bump commit) got pushed instead,
+> firing the retired workflow on stale code. **Always delete any existing tag first, and
+> verify the tag dereferences to the merge commit before pushing.**
 
 ```bash
-# Get version from pyproject.toml
-VERSION=$(grep 'version = ' pyproject.toml | cut -d'"' -f2)
+VERSION=$(grep '^version' pyproject.toml | head -1 | cut -d'"' -f2)
+MERGE=$(git rev-parse origin/main)          # the merge commit
 
-# CHECK if tag already exists (prevents orphaned tags from failed releases)
-git tag --list "v$VERSION"
-git ls-remote --tags origin "v$VERSION"
+# Delete any existing tag (local + remote) — prevents the silent-stale-tag trap
+git tag -d "v$VERSION" 2>/dev/null || true
+git push origin ":refs/tags/v$VERSION" 2>/dev/null || true
 
-# If tag exists, DELETE IT FIRST:
-git tag -d "v$VERSION"
-git push origin --delete "v$VERSION"
+# Create the annotated tag ON THE MERGE COMMIT
+git tag -a "v$VERSION" "$MERGE" -m "Release $VERSION"
 
-# Create new annotated tag
-git tag -a "v$VERSION" -m "Release $VERSION"
+# VERIFY it points at the merge commit (annotated tags: use ^{commit})
+git rev-parse "v$VERSION^{commit}"          # must equal $MERGE
+git rev-list --parents -n1 "v$VERSION^{commit}"   # third SHA = built PR head
 
-# Push tag to trigger build
 git push origin "v$VERSION"
 ```
 
 **CHECKLIST:**
-- [ ] Checked for existing tag with same version number
-- [ ] Deleted old tag if it existed (locally and remotely)
-- [ ] Created annotated tag: `git tag -a v$VERSION -m "Release $VERSION"`
-  - Use exact version from pyproject.toml
-  - Format: `v` + version number (e.g., v0.2.1.15)
-- [ ] Pushed tag: `git push origin v$VERSION`
-- [ ] Verified tag appears on GitHub: https://github.com/nida-institute/LLMFlow/tags
+- [ ] Deleted any existing `v$VERSION` tag locally and remotely
+- [ ] Created annotated tag on the **merge commit** (not the version-bump commit)
+- [ ] `v$VERSION^{commit}` equals the merge commit SHA
+- [ ] `HEAD^2` of that commit is the PR head that `build.yml` built
+- [ ] Pushed the tag
 
-### 8. CI Build **[CRITICAL - MANDATORY VERIFICATION]**
-
-**🚨 DO NOT SKIP THESE VERIFICATION COMMANDS 🚨**
+### 8. Watch `release.yml` **[MANDATORY VERIFICATION]**
 
 ```bash
-# Wait for workflow to start (30 seconds after tag push)
-sleep 30
-
-# Check if workflow was triggered
-gh run list --workflow=build-release.yml --limit 1
-
-# Get the run ID and URL
-RUN_ID=$(gh run list --workflow=build-release.yml --limit 1 --json databaseId --jq '.[0].databaseId')
-echo "Build URL: https://github.com/nida-institute/LLMFlow/actions/runs/$RUN_ID"
-
-# Monitor until complete (takes ~3-5 minutes)
-gh run watch $RUN_ID
-
-# VERIFY ALL PLATFORMS SUCCEEDED (all must show "success")
-gh run view $RUN_ID --json jobs --jq '.jobs[] | "\(.name): \(.conclusion)"'
+sleep 15
+RUN=$(gh run list --workflow release.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+gh run watch "$RUN" --exit-status
+gh run view "$RUN" --json jobs --jq '.jobs[] | "\(.name): \(.conclusion)"'
 ```
 
-**CHECKLIST (do not proceed unless ALL are checked):**
-- [ ] GitHub Actions "Build and Release Executables" workflow triggered automatically
-- [ ] Verified run URL in browser shows ALL green checkmarks
-- [ ] Command output shows "success" for: Create Draft Release, Build on Linux, Build on macOS, Build on Windows
-- [ ] Draft release created automatically
-- [ ] Binaries attached to release (visible in GitHub UI):
-  - `sp-linux`
-  - `sp-macos`
-  - `sp-windows.exe`
-- [ ] Binary sizes reasonable (~50-70MB each)
+**CHECKLIST (do not claim success unless ALL pass):**
+- [ ] The **Release** workflow (not the old "Build and Release Executables") triggered, on
+      the merge-commit SHA
+- [ ] `resolve-build` found the build run (if it fails here: the tag isn't on the merge
+      commit, or artifacts expired — it fails loud, nothing is published)
+- [ ] `create-release` → `promote` attached all three binaries (no rebuild)
+- [ ] `publish-release` flipped the draft to published
+- [ ] `verify-install` passed on all three OSes
+- [ ] `publish-pypi` succeeded — confirm at https://pypi.org/project/scripture-pipelines/
+- [ ] Release assets present: `sp-linux`, `sp-macos`, `sp-windows.exe`
+  ```bash
+  gh release view "v$VERSION" --json isDraft,assets --jq '{isDraft, assets:[.assets[].name]}'
+  ```
 
-**IF ANY BUILD FAILED:**
+**IF `release.yml` FAILS:** it never publishes a partial/bad release. Diagnose, then:
 ```bash
-# Get error logs
-gh run view $RUN_ID --log-failed
-
-# Delete failed release and tag
-gh release delete "v$VERSION" --yes
-git tag -d "v$VERSION"
-git push origin --delete "v$VERSION"
-
-# Fix the issue, then start checklist over from step 1
+gh run view "$RUN" --log-failed
+gh release delete "v$VERSION" --yes 2>/dev/null || true   # if a draft was created
+git tag -d "v$VERSION"; git push origin ":refs/tags/v$VERSION"
+# fix, re-merge if needed, re-tag from Section 7
 ```
 
-### 9. Release Notes
-- [ ] Open draft release on GitHub
-- [ ] Review auto-generated notes
-- [ ] Edit release notes for clarity
-  - Add highlights section for major features
-  - Note any breaking changes prominently
-  - Link to CHANGELOG for full details
-  - Add migration notes if needed
-- [ ] Verify binary download links work
-- [ ] Publish release (convert from draft)
+### 9. Release notes
+- [ ] Review the auto-generated notes on the published release
+- [ ] Add a highlights section; call out breaking changes; link `CHANGELOG.md`
+- [ ] Verify the binary download links work
 
 ---
 
 ## Post-Release Validation
 
-### 10. Installation Testing
-- [ ] Download Linux binary, verify `chmod +x`, test `./sp-linux --version`
-- [ ] Download macOS binary, verify Gatekeeper instructions in INSTALL.md work
-- [ ] Download Windows binary, verify SmartScreen instructions work
-- [ ] Test `sp init` workflow on fresh directory
-- [ ] Test example pipeline runs
+### 10. Installation testing
+- [ ] `install.sh` (Linux/macOS) and `install.ps1` (Windows) install a runnable `sp`
+      (largely covered by the `verify-install` job, but spot-check once)
+- [ ] `pip install scripture-pipelines` gets the new version
+- [ ] `sp init` on a fresh directory works; an example pipeline runs
 
-### 11. Documentation Updates
-- [ ] Update any external documentation pointing to release downloads
-- [ ] Update version references in docs (if they specify versions)
-- [ ] Announce release (if there's a communication plan)
+### 11. Documentation & announcement
+- [ ] Update any external docs pointing at release downloads
+- [ ] Announce (if there's a communication plan)
 
-### 12. Branch Cleanup
-- [ ] Switch back to dev: `git checkout dev`
-- [ ] Reset CHANGELOG "Unreleased" section:
-  ```markdown
-  ## Unreleased
-  - _No changes yet._
-  ```
-- [ ] Commit and push to dev
+### 12. Prepare `dev` for the next cycle
+- [ ] `git checkout dev && git pull`
+- [ ] Bump `pyproject.toml` to the next 4th-component version
+- [ ] Start a fresh `CHANGELOG.md` section for the next release
+- [ ] Commit and push to `dev`
 
 ---
 
-## Rollback Procedure
+## Rollback
 
-If a critical issue is discovered post-release:
-
-1. Mark release as "pre-release" on GitHub (or delete it)
-2. Remove binaries from release assets
-3. Delete the tag locally: `git tag -d v0.2.1.05`
-4. Delete the tag remotely: `git push origin :refs/tags/v0.2.1.05`
-5. Fix the issue on dev branch
-6. Follow checklist again for new release
+If a critical issue is found post-release:
+1. Mark the GitHub release as pre-release (or delete it)
+2. Yank the PyPI release if the wheel is broken (`pip` users are affected):
+   see https://pypi.org/help/#yanked
+3. Delete the tag: `git tag -d vX; git push origin :refs/tags/vX`
+4. Fix on `dev`, open a PR (rebuilds on the PR), then re-release from Section 6
 
 ---
 
-## Version Numbering Convention
+## Common failure modes (learned the hard way)
 
-**Always increment the 4th component** (per user-prefs.md):
-- `0.2.1.02` → `0.2.1.03` → `0.2.1.04` → `0.2.1.05`
-- Never propose minor/major bump unless explicitly asked
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `release.yml` didn't run; old "Build and Release Executables" did | Tag points at a pre-CI-split commit | Tag the **merge commit**; delete the stale tag first |
+| `git tag` "already exists", stale tag pushed | Didn't delete the existing tag first | Always `git tag -d` + delete remote before re-tagging (Section 7) |
+| `resolve-build` fails, no release | Squash/rebase merge (no `HEAD^2`), or tag not on merge commit, or artifacts expired | Merge-commit only; tag the merge commit; tag within 7 days |
+| PyPI publishes but binaries missing | (shouldn't happen — `publish-pypi` needs `promote`) | Check the job graph in `release.yml` |
 
-## Quick Reference: Common Commands
+## Version numbering
+- Always increment the **4th component** (`0.2.1.19` → `0.2.1.20`). Never propose minor/major
+  unless explicitly asked.
 
+## Quick reference (happy path)
 ```bash
-# Run tests
-pytest -v
-
-# Check version in pyproject.toml
-grep 'version =' pyproject.toml
-
-# Create and push tag
-git tag -a v0.2.1.05 -m "Release 0.2.1.05"
-git push origin v0.2.1.05
-
-# Quick release (assumes all checks passed)
-git checkout main && \
-git merge dev --no-edit && \
-git push origin main && \
-git tag -a v0.2.1.05 -m "Release 0.2.1.05" && \
-git push origin v0.2.1.05 && \
-git checkout dev
+# 1. Confirm the PR build is green (Section 1) and artifacts are fresh (Section 2)
+# 2. Merge as a merge commit
+gh pr merge <pr-number> --merge --repo nida-institute/LLMFlow
+# 3. Tag the merge commit (delete any stale tag first)
+git fetch origin main
+VERSION=$(grep '^version' pyproject.toml | head -1 | cut -d'"' -f2)
+git tag -d "v$VERSION" 2>/dev/null; git push origin ":refs/tags/v$VERSION" 2>/dev/null
+git tag -a "v$VERSION" "$(git rev-parse origin/main)" -m "Release $VERSION"
+git rev-parse "v$VERSION^{commit}"    # sanity: == origin/main
+git push origin "v$VERSION"
+# 4. Watch the release (Section 8)
+gh run watch "$(gh run list --workflow release.yml --limit 1 --json databaseId --jq '.[0].databaseId')" --exit-status
 ```

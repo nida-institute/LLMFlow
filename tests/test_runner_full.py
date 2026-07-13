@@ -393,14 +393,14 @@ class TestIntegration:
         rule = {
             "name": "nested_loop",
             "type": "for-each",
-            "input": "${rows}",
-            "item_var": "row",
+            "in": "${rows}",
+            "for": "row",
             "steps": [
                 {
                     "name": "inner_loop",
                     "type": "for-each",
-                    "input": "${row.tags}",
-                    "item_var": "tag",
+                    "in": "${row.tags}",
+                    "for": "tag",
                     "steps": [
                         {
                             "name": "collect",

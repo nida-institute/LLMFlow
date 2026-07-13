@@ -7,6 +7,23 @@
 
 ## 🔥 Active
 
+### 🔁 for/in syntax migration (breaking — one syntax, no aliases)
+> See `project/plans/design-foreach-syntax-migration.md`. Systematic commits, one per repo.
+> Migration: `item_var:`→`for:`, `input:`/`over:`→`in:` (for before in). Old keys fail loud.
+- [x] **Core engine** — runtime (for_each/window fail-loud), schema (JSON + pipeline_schema),
+      linter (reject aliases + "did you mean" hints), 25 tests migrated, docs flipped
+- [x] **discourse-flow** — migrated + committed + pushed
+- [ ] **ears-to-hear** — migrate + commit + push
+- [ ] **discourse-flow-hebrew** — migrate + commit + push
+- [ ] **image-scene-descriptions** — migrate + commit
+- [ ] **macula-lxx-greek** — migrate + commit
+- [ ] **semdom-greek-lexicon** — migrate + commit
+- [ ] **storytelling-dictionary** — migrate + commit
+- [ ] **Fast-follow** — commit doc-example lint test (`tests/test_doc_examples_lint.py`) after
+      filling `ALLOWED_STEP_KEYS` gaps it surfaced (`content`, `key`, `where`, `offset`, `columns`)
+      and fixing doc-isms (`prompt_file`); propose `docs/ai-context/json-reliability.md` fix
+- [ ] **Release** — re-cut `v0.2.1.20` with for/in (delete stale tag, re-tag the merge commit)
+
 ### 🔥 Monday priorities
 - [ ] **Fix GUI Content Lifecycle** — Content Lifecycle page displays blank, needs debugging
 - [ ] **Publish v0.2.1.14 to PyPI** — Built and tagged, needs PyPI credentials
@@ -49,6 +66,14 @@
 - [ ] Bootstrap New Project UX improvements → #28
 - [ ] Conditionals and switches → #11
 - [ ] Checkpointing support → #8
+
+### 🗂 Pipeline data operations
+- [ ] Verse range operations (`overlaps`, `contains`, `intersection`, `union`) → #169
+  - Design document: `project/plans/design-verse-range-operations.md`
+  - 6 decisions needed before implementation (see design doc / issue comment)
+- [ ] List transformation: flatten, project, slice as framework primitives → #167
+- [ ] Predicate filtering: filter lists by value / cross-list membership → #168
+- [ ] Accumulator initialization in `variables:` block → #170
 
 ## ✅ Done
 

@@ -555,7 +555,8 @@ Process this entry: {entry}""")
                 {
                     "name": "process-each",
                     "type": "for-each",
-                    "input": "${rows}",  # ✅ Changed from "items" to "input"
+                    "for": "item",
+                    "in": "${rows}",
                     "steps": [
                         {
                             "name": "find-entry",
