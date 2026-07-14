@@ -49,8 +49,8 @@ def _run(items, extra_steps=None, item_var="item"):
     step = {
         "name": "loop",
         "type": "for-each",
-        "input": "${items}",
-        "item_var": item_var,
+        "in": "${items}",
+        "for": item_var,
         "steps": steps,
     }
     run_for_each_step(step, context, {})
@@ -161,14 +161,14 @@ class TestNestedLoopVariable:
         step = {
             "name": "outer_loop",
             "type": "for-each",
-            "input": "${outer}",
-            "item_var": "outer_item",
+            "in": "${outer}",
+            "for": "outer_item",
             "steps": [
                 {
                     "name": "inner_loop",
                     "type": "for-each",
-                    "input": "${inner}",
-                    "item_var": "inner_item",
+                    "in": "${inner}",
+                    "for": "inner_item",
                     "steps": [
                         {
                             "name": "capture",
@@ -212,8 +212,8 @@ class TestLoopNotLeakedToParent:
         step = {
             "name": "loop",
             "type": "for-each",
-            "input": "${items}",
-            "item_var": "item",
+            "in": "${items}",
+            "for": "item",
             "steps": [
                 _capture_step("snap", append_to="snaps"),
             ],

@@ -113,8 +113,8 @@ def test_linter_catches_append_to_in_nested_for_each():
                 {
                     "name": "outer_loop",
                     "type": "for-each",
-                    "input": ["item1", "item2"],
-                    "item_var": "item",
+                    "in": ["item1", "item2"],
+                    "for": "item",
                     "steps": [
                         {
                             "name": "nested_generate",
@@ -479,14 +479,14 @@ def test_linter_catches_append_to_in_deeply_nested_structure():
                 {
                     "name": "outer_loop",
                     "type": "for-each",
-                    "input": ["a", "b"],
-                    "item_var": "item",
+                    "in": ["a", "b"],
+                    "for": "item",
                     "steps": [
                         {
                             "name": "middle_loop",
                             "type": "for-each",
-                            "input": ["1", "2"],
-                            "item_var": "subitem",
+                            "in": ["1", "2"],
+                            "for": "subitem",
                             "steps": [
                                 {
                                     "name": "inner_step",

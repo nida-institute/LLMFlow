@@ -71,8 +71,8 @@ def test_for_each_variable_isolation_minimal():
                 {
                     "name": "process_each",
                     "type": "for-each",
-                    "input": "${items}",
-                    "item_var": "item",
+                    "in": "${items}",
+                    "for": "item",
                     "steps": [
                         {
                             "name": "capture",
@@ -145,8 +145,8 @@ def test_simple_for_each_context_contamination():
                 {
                     "name": "process_items",
                     "type": "for-each",
-                    "input": "${items}",
-                    "item_var": "item",
+                    "in": "${items}",
+                    "for": "item",
                     "steps": [
                         {
                             "name": "capture_context",
@@ -232,8 +232,8 @@ def test_list_indexing_behavior():
                 {
                     "name": "process_with_for_each",
                     "type": "for-each",
-                    "input": "${test_list}",
-                    "item_var": "item",
+                    "in": "${test_list}",
+                    "for": "item",
                     "steps": [
                         {
                             "name": "capture_indexing",
@@ -316,8 +316,8 @@ def test_append_list_indexing():
                 {
                     "name": "process_scenes",
                     "type": "for-each",
-                    "input": "${scene_list}",
-                    "item_var": "scene",
+                    "in": "${scene_list}",
+                    "for": "scene",
                     "steps": [
                         {
                             "name": "add_to_joshfrost_list",

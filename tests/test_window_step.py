@@ -172,8 +172,8 @@ class TestRunWindowStep:
         step = {
             "name": "w",
             "type": "window",
-            "input": "${items}",
-            "item_var": "batch",
+            "in": "${items}",
+            "for": "batch",
             "size": 2,
             "steps": [
                 {
@@ -193,8 +193,8 @@ class TestRunWindowStep:
         step = {
             "name": "w",
             "type": "window",
-            "input": "${items}",
-            "item_var": "batch",
+            "in": "${items}",
+            "for": "batch",
             "size": 3,
             "include_partial": True,
             "steps": [
@@ -215,8 +215,8 @@ class TestRunWindowStep:
         step = {
             "name": "w",
             "type": "window",
-            "input": "${items}",
-            "item_var": "batch",
+            "in": "${items}",
+            "for": "batch",
             "size": 3,
             "include_partial": False,
             "steps": [
@@ -237,8 +237,8 @@ class TestRunWindowStep:
         step = {
             "name": "w",
             "type": "window",
-            "input": "${items}",
-            "item_var": "batch",
+            "in": "${items}",
+            "for": "batch",
             "size": 3,
             "stride": 1,
             "include_partial": False,
@@ -270,8 +270,8 @@ class TestRunWindowStep:
         step = {
             "name": "w",
             "type": "window",
-            "input": "${items}",
-            "item_var": "batch",
+            "in": "${items}",
+            "for": "batch",
             "size": 2,
             "steps": [],  # empty steps — we'll check context directly
         }
@@ -326,8 +326,8 @@ class TestRunWindowStep:
         step = {
             "name": "w",
             "type": "window",
-            "input": "${items}",
-            "item_var": "pericope",
+            "in": "${items}",
+            "for": "pericope",
             "start_when": "${item.marker == 's'}",
             "end_when": "${item.marker == 'e'}",
             "steps": [
@@ -350,8 +350,8 @@ class TestRunWindowStep:
         step = {
             "name": "w",
             "type": "window",
-            "input": "${items}",
-            "item_var": "batch",
+            "in": "${items}",
+            "for": "batch",
             "size": 3,
             "steps": [
                 {
@@ -371,8 +371,8 @@ class TestRunWindowStep:
         step = {
             "name": "w",
             "type": "window",
-            "input": "${items}",
-            "item_var": "batch",
+            "in": "${items}",
+            "for": "batch",
             "size": 2,
             "steps": [],
         }
@@ -470,8 +470,8 @@ class TestLintWindowStep:
             {
                 "name": "bad_window",
                 "type": "window",
-                "input": "${items}",
-                "item_var": "batch",
+                "in": "${items}",
+                "for": "batch",
                 # Missing size AND start_when — should produce an error
                 "steps": [{"name": "x", "type": "function", "function": "f"}],
             }
@@ -485,8 +485,8 @@ class TestLintWindowStep:
             {
                 "name": "valid_window",
                 "type": "window",
-                "input": "${items}",
-                "item_var": "batch",
+                "in": "${items}",
+                "for": "batch",
                 "size": 3,
                 "steps": [{"name": "x", "type": "function", "function": "f"}],
             }
@@ -513,8 +513,8 @@ class TestWindowFlowControl:
         return {
             "name": "w",
             "type": "window",
-            "input": "${items}",
-            "item_var": "batch",
+            "in": "${items}",
+            "for": "batch",
             "size": 2,
             "steps": nested,
         }
@@ -618,14 +618,14 @@ class TestWindowNesting:
         pipeline_step = {
             "name": "outer",
             "type": "for-each",
-            "input": "${groups}",
-            "item_var": "group",
+            "in": "${groups}",
+            "for": "group",
             "steps": [
                 {
                     "name": "inner",
                     "type": "window",
-                    "input": "${group}",
-                    "item_var": "win",
+                    "in": "${group}",
+                    "for": "win",
                     "size": 2,
                     "steps": [
                         {
@@ -659,15 +659,15 @@ class TestWindowNesting:
         pipeline_step = {
             "name": "outer",
             "type": "window",
-            "input": "${items}",
-            "item_var": "win",
+            "in": "${items}",
+            "for": "win",
             "size": 2,
             "steps": [
                 {
                     "name": "inner",
                     "type": "for-each",
-                    "input": "${win}",
-                    "item_var": "ch",
+                    "in": "${win}",
+                    "for": "ch",
                     "steps": [
                         {
                             "name": "record",
@@ -797,8 +797,8 @@ class TestWindowOutputPropagation:
         step = {
             "name": "w",
             "type": "window",
-            "input": "${items}",
-            "item_var": "batch",
+            "in": "${items}",
+            "for": "batch",
             "size": 2,
             "steps": [
                 {
@@ -824,8 +824,8 @@ class TestWindowOutputPropagation:
         step = {
             "name": "w",
             "type": "window",
-            "input": "${items}",
-            "item_var": "batch",
+            "in": "${items}",
+            "for": "batch",
             "size": 2,
             "steps": [
                 {
@@ -855,8 +855,8 @@ class TestWindowOutputPropagation:
         step = {
             "name": "w",
             "type": "window",
-            "input": "${items}",
-            "item_var": "batch",
+            "in": "${items}",
+            "for": "batch",
             "size": 2,
             "steps": [
                 {
@@ -894,8 +894,8 @@ class TestWindowOutputPropagation:
         step = {
             "name": "w",
             "type": "window",
-            "input": "${items}",
-            "item_var": "batch",
+            "in": "${items}",
+            "for": "batch",
             "size": 1,
             "steps": [
                 {
@@ -941,8 +941,8 @@ class TestWindowOutputPropagation:
         step = {
             "name": "w",
             "type": "window",
-            "input": "${items}",
-            "item_var": "batch",
+            "in": "${items}",
+            "for": "batch",
             "size": 1,
             "steps": [
                 {
@@ -1149,8 +1149,8 @@ class TestRunWindowStepToken:
             step = {
                 "name": "tw",
                 "type": "window",
-                "input": "${verses}",
-                "item_var": "chunk",
+                "in": "${verses}",
+                "for": "chunk",
                 "size_by_tokens": 5000,
                 "stride_by_tokens": 0,
                 "model": "gpt-4o",
@@ -1190,8 +1190,8 @@ class TestRunWindowStepToken:
         step = {
             "name": "tw",
             "type": "window",
-            "input": "${items}",
-            "item_var": "my_chunk",
+            "in": "${items}",
+            "for": "my_chunk",
             "size_by_tokens": 5000,
             "stride_by_tokens": 0,
             "model": "gpt-4o",
@@ -1215,42 +1215,33 @@ class TestRunWindowStepToken:
         step = {
             "name": "bad",
             "type": "window",
-            "input": "${v}",
+            "in": "${v}",
+            "for": "w",
             "size_by_tokens": -1,
             "steps": [{}],
         }
         with pytest.raises(ValueError, match="size_by_tokens"):
             run_window_step(step, context, {})
 
-    def test_over_alias_for_input(self):
-        """'over' is accepted as an alias for 'input'."""
-        import sys, types
-        mod = types.ModuleType("__over_alias_mod")
-        mod.get_len = lambda items: len(items)
-        sys.modules["__over_alias_mod"] = mod
-        try:
-            context: dict = {"items": [1, 2, 3]}
-            step = {
-                "name": "w",
-                "type": "window",
-                "over": "${items}",   # alias
-                "size": 2,
-                "include_partial": True,
-                "steps": [
-                    {
-                        "name": "noop",
-                        "type": "function",
-                        "function": "__over_alias_mod.get_len",
-                        "inputs": {"items": "${window}"},
-                        "outputs": "wlen",
-                        "append_to": "lens",
-                    }
-                ],
-            }
-            run_window_step(step, context, {})
-            assert "lens" in context
-        finally:
-            sys.modules.pop("__over_alias_mod", None)
+    def test_legacy_loop_keys_rejected(self):
+        """The removed loop-key aliases fail loud (keys set via vars so the
+        one-off syntax migration can't rewrite them)."""
+        legacy_list_key = "over"      # was an alias for 'in'
+        legacy_loop_key = "item_var"  # was an alias for 'for'
+        context: dict = {"items": [1, 2, 3]}
+
+        # legacy list key, no 'in' -> missing 'in'
+        step_list = {"name": "w", "type": "window", "size": 2, "steps": [{}]}
+        step_list[legacy_list_key] = "${items}"
+        step_list[legacy_loop_key] = "window"
+        with pytest.raises(ValueError, match="missing required 'in'"):
+            run_window_step(step_list, context, {})
+
+        # 'in' present but only the legacy loop key -> missing 'for'
+        step_loop = {"name": "w", "type": "window", "in": "${items}", "size": 2, "steps": [{}]}
+        step_loop[legacy_loop_key] = "window"
+        with pytest.raises(ValueError, match="missing required 'for'"):
+            run_window_step(step_loop, context, {})
 
 
 # ---------------------------------------------------------------------------
@@ -1284,7 +1275,8 @@ class TestWindowMerge:
             step = {
                 "name": "w",
                 "type": "window",
-                "input": "${items}",
+                "in": "${items}",
+                "for": "window",
                 "size": 2,
                 "include_partial": True,
                 "steps": [
@@ -1333,7 +1325,8 @@ class TestWindowMerge:
             step = {
                 "name": "w",
                 "type": "window",
-                "input": "${items}",
+                "in": "${items}",
+                "for": "window",
                 "size": 2,
                 "include_partial": True,
                 "steps": [

@@ -102,7 +102,7 @@ def test_reasoning_effort_in_responses_api():
     # Simulate the API params building (llm_runner.py lines 352-367)
     api_params = {
         "model": config.get("model", "gpt-5"),
-        "input": [{"role": "user", "content": "test"}],
+        "in": [{"role": "user", "content": "test"}],
         "tools": [],
         "reasoning": {
             "effort": config.get("reasoning_effort", "medium")

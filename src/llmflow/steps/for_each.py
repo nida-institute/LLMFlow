@@ -263,12 +263,22 @@ def run_for_each_step(
     if run_step_fn is None:
         from llmflow.runner import run_step
         run_step_fn = run_step
-    _input_raw = resolve(step.get("input", []), context)
+    step_name = step.get("name", "unnamed")
+    if "in" not in step:
+        raise ValueError(
+            f"for-each step '{step_name}': missing required 'in' key (the list to iterate "
+            f"over). The legacy 'input' key was removed — use 'in'."
+        )
+    if "for" not in step:
+        raise ValueError(
+            f"for-each step '{step_name}': missing required 'for' key (the loop variable "
+            f"name). The legacy 'item_var' key was removed — use 'for'."
+        )
+    _input_raw = resolve(step.get("in"), context)
     input_data: list = _input_raw if isinstance(_input_raw, list) else list(_input_raw)
-    item_var = step.get("item_var", "item")
+    item_var: str = str(step["for"])
     steps = step.get("steps", [])
     debug_label_template = step.get("debug_label")
-    step_name = step.get("name", "unnamed")
     parallel = step.get("parallel", 1)
     group_by_expr = step.get("group-by")
     order_by = step.get("order-by")

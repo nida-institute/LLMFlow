@@ -7,6 +7,22 @@
 
 ## 🔥 Active
 
+### 🔁 for/in syntax migration (breaking — one syntax, no aliases)
+> See `project/plans/design-foreach-syntax-migration.md`. Systematic commits, one per repo.
+> Migration: `item_var:`→`for:`, `input:`/`over:`→`in:` (for before in). Old keys fail loud.
+- [x] **Core engine** — runtime/schema/linter/tests/docs (`86b3f2b`, pushed `dev`)
+- [x] **discourse-flow** — committed + pushed (clean)
+- [x] **discourse-flow-hebrew** — committed + pushed (clean)
+- [x] **semdom-greek-lexicon** — pipeline committed `0e050f6` (incl. in-file WIP); not pushed
+- [x] **macula-lxx-greek** — pipeline committed `b55fca7`; not pushed
+- [x] **image-scene-descriptions** — pipeline committed; not pushed
+- [x] **Fast-follow** — `tests/test_doc_examples_lint.py` + filled `ALLOWED_STEP_KEYS` gaps
+      (`content`, `key`, `where`, `offset`, `columns`) + `prompt_file` doc fixes
+- [x] **json-reliability.md** — `response_mime_type`/`response_schema` were real Gemini keys
+      missing from `ALLOWED_STEP_KEYS` (doc was correct); added them + re-included ai-context
+      in the doc-lint scan. No ai-context edit needed.
+- [ ] **Release** — re-cut `v0.2.1.20` with for/in (delete stale tag, re-tag the merge commit)
+
 ### 🔥 Monday priorities
 - [ ] **Fix GUI Content Lifecycle** — Content Lifecycle page displays blank, needs debugging
 - [ ] **Publish v0.2.1.14 to PyPI** — Built and tagged, needs PyPI credentials
@@ -49,6 +65,14 @@
 - [ ] Bootstrap New Project UX improvements → #28
 - [ ] Conditionals and switches → #11
 - [ ] Checkpointing support → #8
+
+### 🗂 Pipeline data operations
+- [ ] Verse range operations (`overlaps`, `contains`, `intersection`, `union`) → #169
+  - Design document: `project/plans/design-verse-range-operations.md`
+  - 6 decisions needed before implementation (see design doc / issue comment)
+- [ ] List transformation: flatten, project, slice as framework primitives → #167
+- [ ] Predicate filtering: filter lists by value / cross-list membership → #168
+- [ ] Accumulator initialization in `variables:` block → #170
 
 ## ✅ Done
 

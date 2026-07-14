@@ -168,8 +168,8 @@ Loops over a list, executing nested steps for each item.
 ```yaml
 - name: process-items
   type: for-each
-  input: "${items}"           # List to iterate over
-  item_var: item              # Variable name for current item
+  for: item              # Variable name for current item
+  in: "${items}"           # List to iterate over
   steps:
     - name: process-one
       type: llm
@@ -226,8 +226,8 @@ Reads TSV (tab-separated values) files.
 ```yaml
 - name: process-rows
   type: for-each
-  input: "${rows}"
-  item_var: row
+  for: row
+  in: "${rows}"
   steps:
     - name: use-row-data
       type: llm
@@ -345,8 +345,8 @@ steps:
 
   - name: process-each
     type: for-each
-    input: "${items}"
-    item_var: item
+    for: item
+    in: "${items}"
     steps:
       - name: process-one
         type: llm
@@ -366,8 +366,8 @@ steps:
 steps:
   - name: check-status
     type: for-each
-    input: "${items}"
-    item_var: item
+    for: item
+    in: "${items}"
     steps:
       - name: process-if-active
         type: llm
@@ -390,8 +390,8 @@ steps:
 
   - name: process-entries
     type: for-each
-    input: "${entries}"
-    item_var: entry
+    for: entry
+    in: "${entries}"
     steps:
       - name: extract-data
         type: function
@@ -514,18 +514,18 @@ saveas: nonexistent/result.txt
 **Problem:** Loop not iterating correctly or items not accessible.
 
 **Solutions:**
-- Verify `input:` is a list (check previous step output)
+- Verify `in:` is a list (check previous step output)
 - Use correct syntax for item access (`${item}` or `${item[prop]}`)
 - For TSV: Use `${item[column_name]}` with brackets
-- Check `item_var:` doesn't conflict with existing variable
+- Check `for:` doesn't conflict with existing variable
 
 **Example:**
 ```yaml
 # ✅ Correct TSV access
 - name: process-rows
   type: for-each
-  input: "${rows}"
-  item_var: row
+  for: row
+  in: "${rows}"
   steps:
     - name: use-data
       type: echo
@@ -706,8 +706,8 @@ steps:
 
   - name: process-entries
     type: for-each
-    input: "${entries}"
-    item_var: entry
+    for: entry
+    in: "${entries}"
     steps:
       - name: expand-entry
         type: llm
@@ -747,8 +747,8 @@ steps:
 
   - name: process-each-entry
     type: for-each
-    input: "${entries}"
-    item_var: entry
+    for: entry
+    in: "${entries}"
     steps:
       - name: extract-lemma
         type: function
@@ -878,8 +878,8 @@ A: Prompts use `{{variable}}` syntax similar to Jinja2, but it's a simpler syste
 steps:
   - name: process-items
     type: for-each
-    input: "${items}"
-    item_var: item
+    for: item
+    in: "${items}"
     steps:
       - name: do-something
         type: llm
@@ -906,7 +906,8 @@ context = {"shared_list": ["initial"]}
 steps:
   - name: loop
     type: for-each
-    input: [1, 2, 3]
+    for: item
+    in: [1, 2, 3]
     steps:
       - name: modify-input
         type: function
@@ -932,7 +933,8 @@ steps:
 ```yaml
 - name: collect-results
   type: for-each
-  input: "${items}"
+  for: item
+  in: "${items}"
   steps:
     - name: process
       type: llm
@@ -972,13 +974,13 @@ steps:
 ```yaml
 - name: outer
   type: for-each
-  input: ["a", "b"]
-  item_var: outer_item
+  for: outer_item
+  in: ["a", "b"]
   steps:
     - name: inner
       type: for-each
-      input: [1, 2]
-      item_var: inner_item
+      for: inner_item
+      in: [1, 2]
       steps:
         - name: collect
           type: function

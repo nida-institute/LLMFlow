@@ -28,8 +28,8 @@ class TestCriticalPipelineFlow:
                     {
                         "name": "process_scenes",
                         "type": "for-each",
-                        "input": "${scenes}",
-                        "item_var": "scene",
+                        "in": "${scenes}",
+                        "for": "scene",
                         "steps": [
                             {
                                 "name": "generate_content",

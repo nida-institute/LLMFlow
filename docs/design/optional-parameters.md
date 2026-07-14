@@ -480,8 +480,8 @@ is documentation that the linter learns to verify.
 ```yaml
 - name: collect-analysis
   type: for-each
-  input: "${passages}"
-  item_var: item
+  for: item
+  in: "${passages}"
   steps:
     - name: analyze
       type: llm

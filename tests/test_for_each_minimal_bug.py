@@ -24,8 +24,8 @@ def test_minimal_for_each_append_bug():
         rule = {
             "name": "test",
             "type": "for-each",
-            "input": "${items}",
-            "item_var": "item",
+            "in": "${items}",
+            "for": "item",
             "steps": [
                 {
                     "name": "process",

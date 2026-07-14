@@ -28,8 +28,8 @@ def test_function_step_output_accessible_in_same_iteration():
     step = {
         "name": "process_items",
         "type": "for-each",
-        "input": "${items}",
-        "item_var": "item",
+        "in": "${items}",
+        "for": "item",
         "steps": [
             # Step 1: create enriched dict
             {

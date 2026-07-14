@@ -692,10 +692,11 @@ steps:
   # 2. Generate pedagogical descriptions
   - name: explain_verbs
     type: llm
-    prompt_file: prompts/explain_verbs.gpt
-    inputs:
-      verbs: "${verb_data}"
-      level: "intermediate"
+    prompt:
+      file: prompts/explain_verbs.gpt
+      inputs:
+        verbs: "${verb_data}"
+        level: "intermediate"
     outputs: vocab_list
 ```
 
@@ -778,11 +779,12 @@ steps:
   # 3. Generate pedagogical descriptions
   - name: explain_verbs
     type: llm
-    prompt_file: prompts/explain_verbs.gpt
-    inputs:
-      verbs: "${verb_data}"
-      collocations: "${collocation_data}"
-      level: "${level}"
+    prompt:
+      file: prompts/explain_verbs.gpt
+      inputs:
+        verbs: "${verb_data}"
+        collocations: "${collocation_data}"
+        level: "${level}"
     outputs: vocab_list
 
   # 4. Save to markdown

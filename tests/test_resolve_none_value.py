@@ -83,8 +83,8 @@ class TestResolveNoneInForEach:
         step = {
             "name": "process_items",
             "type": "for-each",
-            "input": "${items}",
-            "item_var": "item",
+            "in": "${items}",
+            "for": "item",
             "steps": [
                 # Step 1: produces a dict with a None field
                 {

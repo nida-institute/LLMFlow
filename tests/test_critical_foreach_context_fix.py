@@ -20,8 +20,8 @@ class TestCriticalForEachContext:
         rule = {
             "name": "test_deepcopy",
             "type": "for-each",
-            "input": ["item1", "item2", "item3"],
-            "item_var": "item",
+            "in": ["item1", "item2", "item3"],
+            "for": "item",
             "steps": [
                 {
                     "name": "append_to_list",
@@ -52,8 +52,8 @@ variables:
 steps:
   - name: loop
     type: for-each
-    input: "${items}"
-    item_var: item
+    in: "${items}"
+    for: item
     steps:
       - name: mutate-attempt
         type: function

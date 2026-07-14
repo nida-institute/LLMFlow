@@ -429,10 +429,11 @@ steps:
   # 3. Generate pedagogical descriptions
   - name: explain_patterns
     type: llm
-    prompt_file: prompts/explain_syntax_patterns.gpt
-    inputs:
-      patterns: "${patterns_data}"
-      book: "${book}"
+    prompt:
+      file: prompts/explain_syntax_patterns.gpt
+      inputs:
+        patterns: "${patterns_data}"
+        book: "${book}"
     outputs: syntax_guide
 
   # 4. Save output

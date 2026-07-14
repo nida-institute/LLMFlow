@@ -360,8 +360,8 @@ Loops over a list and executes substeps for each item.
 ```yaml
 - name: process_each_scene
   type: for-each
-  input: "${scene_list}"
-  item_var: scene
+  for: scene
+  in: "${scene_list}"
   steps:
     - name: bodies
       type: llm
@@ -375,9 +375,9 @@ Loops over a list and executes substeps for each item.
 ```
 
 **Required Fields:**
-- `input`: Variable name containing the list to iterate over
-- `item_var`: Variable name to bind each list item to
-- `steps`: Nested steps to execute for each item
+- `for`: Name bound to each list element (XQuery-style: `for $x in $list`)
+- `in`: The list to iterate over
+- `steps`: Nested steps to execute for each element
 
 **Using `append_to` in substeps:**
 Within `for-each` loops, use `append_to` to accumulate results across iterations:
@@ -385,8 +385,8 @@ Within `for-each` loops, use `append_to` to accumulate results across iterations
 ```yaml
 - name: process_each_scene
   type: for-each
-  input: "${scene_list}"
-  item_var: scene
+  for: scene
+  in: "${scene_list}"
   steps:
     - name: analyze_scene
       type: llm
@@ -412,8 +412,8 @@ Every iteration injects a `loop` dict into the step context:
 ```yaml
 - name: process_each_scene
   type: for-each
-  input: "${scene_list}"
-  item_var: scene
+  for: scene
+  in: "${scene_list}"
   steps:
     - name: log_progress
       type: function
@@ -422,13 +422,75 @@ Every iteration injects a `loop` dict into the step context:
         text: "Scene ${loop.index} of ${loop.total}"
 ```
 
-For nested `for-each` loops, the inner loop's `loop` variable shadows the outer one — consistent with how `item_var` works.
+For nested `for-each` loops, the inner loop's `loop` variable shadows the outer one — consistent with how the `for` variable works.
 
 **Important notes:**
 - Each iteration has its own isolated context
 - Variables from outer scope are accessible via `${var}`
 - Use `append_to` to collect results into a list variable
 - Nested `for-each` loops are supported
+
+**Optional modifiers** — reshape the list before iterating:
+
+| Field | Type | Effect |
+|---|---|---|
+| `order-by` | expression | Sort the list by this expression before iterating |
+| `group-by` | expression | Group iterations by this expression before processing |
+| `parallel` | integer | Number of iterations to run concurrently (default `1` = sequential); results are kept in input order |
+
+```yaml
+- name: analyze_pericopes
+  type: for-each
+  for: pericope
+  in: "${pericopes}"
+  order-by: "${pericope.sequence}"   # iterate in sequence order
+  parallel: 4                        # up to 4 iterations at once
+  steps:
+    - name: analyze
+      type: llm
+      prompt: { file: analyze.gpt, inputs: { p: "${pericope}" } }
+      outputs: analysis
+      append_to: analyses
+```
+
+---
+
+### type: `window`
+
+Groups a list into **windows** (sliding, tumbling, or condition-based) and runs substeps
+for each window. Like `for-each`, but each iteration binds a *list* of elements rather than a
+single item — useful for chunking long inputs (e.g. by token budget) before an LLM step.
+
+```yaml
+- name: chunk_verses
+  type: window
+  for: chunk               # binds each window (a list) to ${chunk}
+  in: "${verses}"          # the list to window over
+  size: 10                 # 10 elements per window
+  stride: 10               # advance 10 each time (tumbling); < size = sliding/overlap
+  steps:
+    - name: summarize_chunk
+      type: llm
+      prompt: { file: summarize.gpt, inputs: { verses: "${chunk}" } }
+      outputs: chunk_summary
+      append_to: summaries
+```
+
+**Fields:**
+
+| Field | Type | Meaning |
+|---|---|---|
+| `for` | string | Loop variable bound to each window — a *list* of elements. |
+| `in` | expression | The list to window over. |
+| `size` | integer | Fixed window size in elements. Omit to end windows dynamically via `!window_advance`. |
+| `stride` | integer | Elements to advance after each window. Default: same as `size` (tumbling); less than `size` = sliding. |
+| `include_partial` | boolean | Include a final window smaller than `size`. Default: `true`. |
+| `start_when` | expression | Begin a window when this evaluates true. |
+| `end_when` | expression | End a window when this evaluates true. Alternative to `!window_advance`. |
+| `size_by_tokens` | integer | Token-based window size instead of element count. Requires `model`. |
+| `stride_by_tokens` | integer | Token-based stride. Default: `0`. |
+| `model` | string | Model used for token counting when `size_by_tokens` is set. |
+| `steps` | array | Steps to execute for each window. |
 
 ---
 
@@ -556,6 +618,36 @@ Runs an XQuery against a local BaseX database via the `basex` CLI.
 - `saveas`: File path to save the output (supports `${var}` substitution).
 
 **Prerequisites:** The `basex` executable must be on `PATH` with a running BaseX instance.
+
+---
+
+### type: `duckdb`
+
+Runs a SQL query against an in-process DuckDB engine, registering context values as tables
+or parameters. Useful for joins, aggregation, and filtering over tabular data (e.g. rows
+from `load_csv`/`load_tsv`).
+
+```yaml
+- name: top-lemmas
+  type: duckdb
+  query: "SELECT lemma, COUNT(*) AS n FROM words GROUP BY lemma ORDER BY n DESC LIMIT 20"
+  # query_file: queries/top-lemmas.sql   # alternative: path to a .sql file
+  inputs:
+    words: "${morphology_rows}"   # registers the context list as a DuckDB table `words`
+  format: records                 # list of dicts (default)
+  output: top_lemmas
+```
+
+**Required Fields:**
+- `query` **or** `query_file` (exactly one)
+- `output` (or `outputs`): Variable name to store the result
+
+**Optional Fields:**
+- `inputs`: Map of table/parameter name → context key. Context values (e.g. `list[dict]`)
+  are registered as DuckDB tables so the query can reference them by name.
+- `format`: Output shape. `records` (default) returns a `list[dict]`.
+
+**Prerequisites:** the `duckdb` Python package (installed with LLMFlow).
 
 ---
 
@@ -829,8 +921,8 @@ steps:
   # Process each scene
   - name: process_each_scene
     type: for-each
-    input: "${scene_list}"
-    item_var: scene
+    for: scene
+    in: "${scene_list}"
     steps:
       - name: bodies
         type: llm

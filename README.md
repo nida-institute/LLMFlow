@@ -47,7 +47,7 @@ Scripture Pipelines operationalizes human authority through four interlocking di
 
 ## The Kairos Project
 
-Scripture Pipelines is at the heart of the **[Kairos Project](https://nida.org)**, a
+Scripture Pipelines is at the heart of the **[Kairos Project](https://nida.bible)**, a
 NIDA Institute initiative to build a global community of scholars — spanning the Western
 academy and far beyond it — who want to serve Bible translation and the global church.
 

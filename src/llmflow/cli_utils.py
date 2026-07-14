@@ -320,11 +320,11 @@ Loops over a list variable and runs nested steps for each item.
 ```yaml
 - name: process_each_item
   type: for-each
-  input: "${items}"
-  item_var: item
+  for: item
+  in: "${items}"
   parallel: 4                      # optional: run up to 4 iterations concurrently
-  group_by: "${item.category}"     # optional: group results by this field
-  order_by: "${item.sequence}"     # optional: sort results within groups
+  group-by: "${item.category}"     # optional: group results by this field
+  order-by: "${item.sequence}"     # optional: sort results within groups
   steps:
     - name: handle-item
       type: llm
@@ -336,14 +336,14 @@ Loops over a list variable and runs nested steps for each item.
       append_to: all_results
 ```
 
-- `input` points to a list value.
-- `item_var` is the name used to refer to each element.
+- `for` is the name used to refer to each element (XQuery-style: `for $x in $list`).
+- `in` points to the list value.
 - Use `append_to` in nested steps to build a list across iterations.
 - `parallel: N` runs N iterations concurrently; results are collected in
   input order regardless. Omit for sequential execution (default).
-- `group_by` and `order_by` accept `${expr}` expressions evaluated against
-  each item. `group_by` groups `append_to` results by the expression value;
-  `order_by` sorts within each group.
+- `group-by` and `order-by` accept `${expr}` expressions evaluated against
+  each item. `group-by` groups `append_to` results by the expression value;
+  `order-by` sorts within each group.
 
 ### type: `window`
 
@@ -353,8 +353,8 @@ steps on each slice. Useful when a list is too large to process at once.
 ```yaml
 - name: segment_by_windows
   type: window
-  input: "${content_list}"
-  item_var: window_content
+  for: window_content
+  in: "${content_list}"
   size: 50                   # fixed: 50 items per window
   # or: size_by_tokens: 4000 # token-aware: ~4000 tokens per window
   include_partial: true      # include the last partial window
@@ -406,8 +406,8 @@ appended by earlier iterations. This enables "rolling context" patterns:
 ```yaml
 - name: analyze_pericopes
   type: for-each
-  input: "${leaf_pericopes}"
-  item_var: pericope
+  for: pericope
+  in: "${leaf_pericopes}"
   steps:
     - name: analyze
       type: llm

@@ -61,6 +61,8 @@ _EXTRA_STEP_KEYS = {
     "output_type",
     "plugin",
     "response_format",
+    "response_mime_type",  # Gemini native JSON MIME type
+    "response_schema",     # Gemini native JSON schema
     "temperature",
     "timeout_seconds",
     "mcp",
@@ -80,13 +82,21 @@ _EXTRA_STEP_KEYS = {
     # loader step keys
     "pattern",
     "delimiter",
+    "key",        # load_json/load_yaml: sub-document extraction
+    "where",      # load_csv/load_tsv: row filter
+    "offset",     # load_csv/load_tsv: skip N rows
+    "columns",    # load_csv/load_tsv: column projection
+    # save step keys
+    "content",
     # basex step keys
     "database",
     "query",
     "query_file",
     "params",
     "timeout",
-    # for-each keys
+    # for-each / window loop keys (XQuery-style)
+    "for",
+    "in",
     "parallel",
     "group-by",
     "order-by",
@@ -99,8 +109,6 @@ _EXTRA_STEP_KEYS = {
     "size_by_tokens",
     "stride_by_tokens",
     "merge",
-    "item_var",
-    "over",
 }
 
 ALLOWED_STEP_KEYS = _SCHEMA_STEP_KEYS | _EXTRA_STEP_KEYS
@@ -111,6 +119,13 @@ COMMON_TYPOS = {
     "intputs": "inputs",
     "inputss": "inputs",
     "apend_to": "append_to",
+    # Removed loop-key aliases (migrated to XQuery-style for/in) — guide the fix.
+    "item_var": "for",
+    "input": "in",
+    "over": "in",
+    # Wrong-format modifier keys (schema uses hyphens, not underscores).
+    "group_by": "group-by",
+    "order_by": "order-by",
 }
 
 from llmflow.modules.logger import Logger
@@ -565,8 +580,8 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
         step_type = step.get("type", "")
 
         # Build available context for this step
-        item_var = step.get("item_var")
-        for_each_input = step.get("input")  # for-each uses "input" not "for-each"
+        item_var = step.get("for")  # for-each/window loop variable
+        for_each_input = step.get("in")  # the list expression
 
         # Combine parent item_vars with current item_var
         current_item_vars = parent_item_vars.copy()

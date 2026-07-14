@@ -302,14 +302,24 @@ def run_window_step(
     from llmflow.steps.function import run_function_step
 
     step_name = step.get("name", "unnamed")
-    input_data = resolve(step.get("input", step.get("over", [])), context)
+    if "in" not in step:
+        raise ValueError(
+            f"Window step '{step_name}': missing required 'in' key (the list to window "
+            f"over). The legacy 'input'/'over' keys were removed — use 'in'."
+        )
+    if "for" not in step:
+        raise ValueError(
+            f"Window step '{step_name}': missing required 'for' key (the window variable "
+            f"name). The legacy 'item_var' key was removed — use 'for'."
+        )
+    input_data = resolve(step.get("in"), context)
     if not isinstance(input_data, list):
         raise ValueError(
-            f"Window step '{step_name}': input must resolve to a list, "
+            f"Window step '{step_name}': 'in' must resolve to a list, "
             f"got {type(input_data).__name__}"
         )
 
-    item_var = step.get("item_var", "window")
+    item_var: str = str(step["for"])
     steps = step.get("steps", [])
     size = step.get("size")
     stride = step.get("stride", size)
