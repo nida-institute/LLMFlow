@@ -32,10 +32,7 @@ _FENCE_RE = re.compile(r"```ya?ml\n(.*?)```", re.DOTALL)
 
 
 def _iter_yaml_blocks():
-    # docs/ai-context/ is the Captain's domain (AI must not edit it), so it is not
-    # validated here — its examples are curated separately.
-    sources = [p for p in (REPO_ROOT / "docs").rglob("*.md")
-               if "ai-context" not in p.parts]
+    sources = list((REPO_ROOT / "docs").rglob("*.md"))
     sources.append(REPO_ROOT / "src" / "llmflow" / "cli_utils.py")
     for path in sources:
         text = path.read_text(encoding="utf-8")

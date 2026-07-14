@@ -61,6 +61,8 @@ _EXTRA_STEP_KEYS = {
     "output_type",
     "plugin",
     "response_format",
+    "response_mime_type",  # Gemini native JSON MIME type
+    "response_schema",     # Gemini native JSON schema
     "temperature",
     "timeout_seconds",
     "mcp",

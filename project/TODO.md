@@ -18,9 +18,9 @@
 - [x] **image-scene-descriptions** — pipeline committed; not pushed
 - [x] **Fast-follow** — `tests/test_doc_examples_lint.py` + filled `ALLOWED_STEP_KEYS` gaps
       (`content`, `key`, `where`, `offset`, `columns`) + `prompt_file` doc fixes
-- [ ] **ears-to-hear** — migration on disk; Captain commits with loader-step WIP
-- [ ] **storytelling-dictionary** — migrated on disk; NOT a git repo (cannot commit)
-- [ ] **Propose** `docs/ai-context/json-reliability.md` fix (AI can't edit ai-context)
+- [x] **json-reliability.md** — `response_mime_type`/`response_schema` were real Gemini keys
+      missing from `ALLOWED_STEP_KEYS` (doc was correct); added them + re-included ai-context
+      in the doc-lint scan. No ai-context edit needed.
 - [ ] **Release** — re-cut `v0.2.1.20` with for/in (delete stale tag, re-tag the merge commit)
 
 ### 🔥 Monday priorities
