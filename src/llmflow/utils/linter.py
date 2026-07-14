@@ -80,6 +80,12 @@ _EXTRA_STEP_KEYS = {
     # loader step keys
     "pattern",
     "delimiter",
+    "key",        # load_json/load_yaml: sub-document extraction
+    "where",      # load_csv/load_tsv: row filter
+    "offset",     # load_csv/load_tsv: skip N rows
+    "columns",    # load_csv/load_tsv: column projection
+    # save step keys
+    "content",
     # basex step keys
     "database",
     "query",

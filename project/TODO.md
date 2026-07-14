@@ -10,18 +10,17 @@
 ### 🔁 for/in syntax migration (breaking — one syntax, no aliases)
 > See `project/plans/design-foreach-syntax-migration.md`. Systematic commits, one per repo.
 > Migration: `item_var:`→`for:`, `input:`/`over:`→`in:` (for before in). Old keys fail loud.
-- [x] **Core engine** — runtime (for_each/window fail-loud), schema (JSON + pipeline_schema),
-      linter (reject aliases + "did you mean" hints), 25 tests migrated, docs flipped
-- [x] **discourse-flow** — migrated + committed + pushed
-- [ ] **ears-to-hear** — migrate + commit + push
-- [ ] **discourse-flow-hebrew** — migrate + commit + push
-- [ ] **image-scene-descriptions** — migrate + commit
-- [ ] **macula-lxx-greek** — migrate + commit
-- [ ] **semdom-greek-lexicon** — migrate + commit
-- [ ] **storytelling-dictionary** — migrate + commit
-- [ ] **Fast-follow** — commit doc-example lint test (`tests/test_doc_examples_lint.py`) after
-      filling `ALLOWED_STEP_KEYS` gaps it surfaced (`content`, `key`, `where`, `offset`, `columns`)
-      and fixing doc-isms (`prompt_file`); propose `docs/ai-context/json-reliability.md` fix
+- [x] **Core engine** — runtime/schema/linter/tests/docs (`86b3f2b`, pushed `dev`)
+- [x] **discourse-flow** — committed + pushed (clean)
+- [x] **discourse-flow-hebrew** — committed + pushed (clean)
+- [x] **semdom-greek-lexicon** — pipeline committed `0e050f6` (incl. in-file WIP); not pushed
+- [x] **macula-lxx-greek** — pipeline committed `b55fca7`; not pushed
+- [x] **image-scene-descriptions** — pipeline committed; not pushed
+- [x] **Fast-follow** — `tests/test_doc_examples_lint.py` + filled `ALLOWED_STEP_KEYS` gaps
+      (`content`, `key`, `where`, `offset`, `columns`) + `prompt_file` doc fixes
+- [ ] **ears-to-hear** — migration on disk; Captain commits with loader-step WIP
+- [ ] **storytelling-dictionary** — migrated on disk; NOT a git repo (cannot commit)
+- [ ] **Propose** `docs/ai-context/json-reliability.md` fix (AI can't edit ai-context)
 - [ ] **Release** — re-cut `v0.2.1.20` with for/in (delete stale tag, re-tag the merge commit)
 
 ### 🔥 Monday priorities
