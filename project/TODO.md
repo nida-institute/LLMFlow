@@ -21,7 +21,7 @@
 - [x] **json-reliability.md** — `response_mime_type`/`response_schema` were real Gemini keys
       missing from `ALLOWED_STEP_KEYS` (doc was correct); added them + re-included ai-context
       in the doc-lint scan. No ai-context edit needed.
-- [ ] **Release** — re-cut `v0.2.1.20` with for/in (delete stale tag, re-tag the merge commit)
+- [x] **Release** — re-cut `v0.2.1.20` shipped 2026-07-14: GitHub Release (3 binaries) + PyPI 0.2.1.20. (Hit a PyPI trusted-publisher/workflow-rename snag; fixed — see RELEASE_CHECKLIST failure modes.)
 
 ### 🔥 Monday priorities
 - [ ] **Fix GUI Content Lifecycle** — Content Lifecycle page displays blank, needs debugging

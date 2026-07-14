@@ -196,6 +196,8 @@ If a critical issue is found post-release:
 | `git tag` "already exists", stale tag pushed | Didn't delete the existing tag first | Always `git tag -d` + delete remote before re-tagging (Section 7) |
 | `resolve-build` fails, no release | Squash/rebase merge (no `HEAD^2`), or tag not on merge commit, or artifacts expired | Merge-commit only; tag the merge commit; tag within 7 days |
 | PyPI publishes but binaries missing | (shouldn't happen — `publish-pypi` needs `promote`) | Check the job graph in `release.yml` |
+| `publish-pypi` fails: "Trusted publishing exchange failure: invalid-publisher" | PyPI trusted publishing matches on the **workflow filename**; renaming/splitting the release workflow breaks the OIDC claim | On PyPI (project → Manage → Publishing) set the trusted publisher's workflow to the current filename (`release.yml`) + environment `pypi`, then re-run `Publish to PyPI` (re-approve the `pypi` gate). **If you ever rename the release workflow, update the PyPI publisher first.** |
+| `verify-install` 403s on one OS while the others pass | Transient GitHub release-asset 403 on that runner — not a code bug | Re-run the failed job (`gh run rerun <run> --failed`); it clears |
 
 ## Version numbering
 - Always increment the **4th component** (`0.2.1.19` → `0.2.1.20`). Never propose minor/major
