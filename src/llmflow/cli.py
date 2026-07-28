@@ -227,6 +227,14 @@ def build_parser():
     trans_p.add_argument("--dry-run", action="store_true", help="Validate without making changes")
     trans_p.add_argument("--json", action="store_true", help="Output result as JSON")
 
+    # sp tools <tool> — developer/collaboration tools (see src/llmflow/tools/)
+    tools_p = subparsers.add_parser("tools", help="Developer/collaboration tools")
+    tools_sub = tools_p.add_subparsers(dest="tools_command", required=True)
+    from llmflow.tools import replay as _replay
+    replay_p = tools_sub.add_parser(
+        "replay", help="Test a prompt change against captured debug requests, cheaply")
+    _replay.add_arguments(replay_p)
+
     # Standard --version flag (e.g. used by CI smoke tests: llmflow --version)
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
@@ -726,6 +734,12 @@ def main(argv=None):
                 logger.error(f"❌ Transition failed: {error}")
                 sys.exit(1)
 
+        return
+
+    if args.command == "tools":
+        if args.tools_command == "replay":
+            from llmflow.tools import replay
+            sys.exit(replay.run(args))
         return
 
     if args.command == "run":
