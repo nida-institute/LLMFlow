@@ -49,6 +49,22 @@
 
 ## 📋 Backlog
 
+### 🧹 Debug/log docs follow-ups + `sp` terminology audit → #180
+> Fallout from documenting the `log_level: debug` request/response dump feature
+> (added `docs/architecture.md` §15; new `~/.sp/conventions/sp-debugging.md`).
+- [ ] Cross-ref the debug-dump feature from `docs/llmflow-language.md` — `log_level`
+      is documented there (≈ line 57) only as a verbosity knob; point it at
+      `architecture.md` §15 so the dump behavior is discoverable from the language spec.
+- [ ] **Decide:** rename the log file `llmflow.log` → `sp.log`? Core change
+      (`runner.py` default `log_file='llmflow.log'`, the `--log` flag default, and the
+      debug-dir log co-location). If yes, update the docs that name it literally
+      (`architecture.md` §15, `~/.sp/conventions/sp-debugging.md`) in the same change.
+- [ ] **Audit** for other stale references worth changing at the same time: product/CLI
+      name (`llmflow run/lint/template` → `sp`) across `docs/`, any remaining `.llmflow/`
+      path fictions, and consumer-repo docs (e.g. ears-to-hear
+      `docs/architecture/debugging.md` still uses `llmflow …` command names and
+      leaders-guide framing). Scope the sweep before making edits.
+
 ### 🎓 Workshop readiness
 - [ ] Replace hello-world example with a domain-relevant pipeline
       (e.g. translation notes for a Bible passage, or back-translation check)
