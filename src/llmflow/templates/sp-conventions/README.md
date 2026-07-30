@@ -27,6 +27,11 @@ Convention for documenting pipeline steps, including the `description:` field.
 
 **Key standard:** Use `description: |` (YAML block scalar) on steps for multi-line human commentary. The `description` field is whitelisted by the linter and ignored by the runner. YAML `#` comments are reserved for short inline notes and section dividers only.
 
+### surface-decisions.md
+Surface genuine decisions to the Captain (whoever directs the project) and stop; never proceed on an assumption.
+
+**Key standard:** A genuine decision (scope boundary, design choice, anything with real consequence) → name it crisply, make sure the Captain sees it, and halt for the Captain's call. Mechanical/low-stakes work proceeds without gating. Streaming decisions past the Captain and acting on an assumption are both drift.
+
 ---
 
 ## Adding New Conventions
