@@ -297,6 +297,11 @@ def command_lint(
 
 
 def main(argv=None):
+    # Frozen binaries ship no usable system cert store — point SSL at bundled
+    # certifi before any network call. See LLMFlow#182.
+    from llmflow.utils.ssl_certs import ensure_ca_certs
+    ensure_ca_certs()
+
     parser = build_parser()
     args = parser.parse_args(argv)
 

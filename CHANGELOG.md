@@ -17,6 +17,13 @@
   the `linter_config.log_level: debug` dump mechanism: trigger, output location, file
   names, per-run clearing, and cleanup via `sp clean --debug-only`. (#180)
 
+### Fixed
+
+- **Frozen-binary packaging** — the Nuitka `sp` binary now bundles `data/models.json`
+  (cost tracking works instead of silently disabling), the certifi CA bundle (HTTPS
+  fetches no longer fail with `CERTIFICATE_VERIFY_FAILED`), and the package metadata
+  (`sp --version` reports the real version instead of `unknown`). (#182, #184)
+
 ## 0.2.1.20 — 2026-07-06
 
 ### Breaking

@@ -32,7 +32,7 @@
 
 ### 🎓 Workshop readiness (main next goal)
 - [ ] Build Mac + Windows installers via GitHub Actions CI → #32
-  - PyInstaller spec already exists (`llmflow.spec`)
+  - Built via Nuitka in `.github/workflows/build.yml` (`--standalone --onefile`, per-platform)
   - Trigger: push a version tag `v*` → auto-publish to GitHub Releases
   - Install script renames binary to `llmflow` (no manual rename needed):
     ```bash
