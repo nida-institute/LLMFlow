@@ -12,6 +12,7 @@ class TestMCPClient:
     """Test suite for MCP client functionality."""
 
     @pytest.mark.asyncio
+    @pytest.mark.skip(reason="Requires live MCP server - run manually (matches sibling live-server tests)")
     async def test_connection_to_biblica_server(self):
         """Test actual connection to Biblica MCP server."""
         # DO NOT use hardcoded URL - use the constant
