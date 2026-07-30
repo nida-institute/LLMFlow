@@ -479,7 +479,17 @@ def main(argv=None):
             source=args.source,
             list_drivers_only=args.list_drivers,
         )
-        # TODO: If --register flag is set, register the database in registry
+        # run_load_db raises on failure, so reaching here means the load succeeded.
+        if args.register and not args.list_drivers:
+            from llmflow.registry import Registry
+
+            registry = Registry()
+            db_name = args.db_name or args.dataset
+            # Re-register cleanly so --force reloads and re-runs stay idempotent.
+            if registry.databases.get(db_name):
+                registry.databases.unregister(db_name)
+            registry.databases.register(name=db_name, type=args.driver)
+            print(f"✅ Registered database '{db_name}' in ~/.sp/ registry")
         return
 
     if args.command == "registry":

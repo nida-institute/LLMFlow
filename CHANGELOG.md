@@ -23,6 +23,10 @@
   (cost tracking works instead of silently disabling), the certifi CA bundle (HTTPS
   fetches no longer fail with `CERTIFICATE_VERIFY_FAILED`), and the package metadata
   (`sp --version` reports the real version instead of `unknown`). (#182, #184)
+- **`load-db --register` now records the database** — the flag was parsed but never
+  wired (a stubbed TODO), so it printed success while the registry stayed empty and
+  `sp registry list` couldn't see the database. Databases loaded with `--register`
+  are now recorded (idempotently, so `--force` reloads don't duplicate). (#183)
 
 ## 0.2.1.20 — 2026-07-06
 
