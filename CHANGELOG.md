@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.1.21 — 2026-07-30
+
+### New Features
+
+- **`sp tools replay`** — test a prompt change against captured debug requests without
+  re-running the pipeline, so prompt edits can be checked cheaply. Usage:
+  `sp tools replay --request <debug>/*_request.txt --prompt old.gpt --prompt-new new.gpt`.
+- **`surface-decisions` global convention** — installed by `sp init` (shipped in
+  `templates/sp-conventions/`): surface genuine decisions to the Captain and stop;
+  never proceed on an assumption. (#181)
+
+### Documentation
+
+- **Debug request/response dumps documented** — `docs/architecture.md` §15 describes
+  the `linter_config.log_level: debug` dump mechanism: trigger, output location, file
+  names, per-run clearing, and cleanup via `sp clean --debug-only`. (#180)
+
 ## 0.2.1.20 — 2026-07-06
 
 ### Breaking
