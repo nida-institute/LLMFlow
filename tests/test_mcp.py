@@ -8,11 +8,11 @@ from llmflow.modules.mcp import MCPClient, init_mcp_client
 MCP_SERVER_URL = "https://bible-resource-server-preview.labs.biblica.com/mcp"
 
 
+@pytest.mark.skip(reason="Requires live MCP server (bible-resource-server-preview) - run manually")
 class TestMCPClient:
     """Test suite for MCP client functionality."""
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Requires live MCP server - run manually (matches sibling live-server tests)")
     async def test_connection_to_biblica_server(self):
         """Test actual connection to Biblica MCP server."""
         # DO NOT use hardcoded URL - use the constant
@@ -178,6 +178,7 @@ class TestInitMCPClient:
         assert 'not defined' in str(exc_info.value)
 
 
+@pytest.mark.skip(reason="Requires live MCP server (bible-resource-server-preview) - run manually")
 class TestMCPIntegration:
     """Integration tests for full MCP workflow."""
 
