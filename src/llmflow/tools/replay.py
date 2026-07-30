@@ -215,7 +215,10 @@ def call_model(prompt_text: str, schema: dict[str, Any], schema_name: str,
             "json_schema": {"name": schema_name, "strict": True, "schema": schema},
         },
     )
-    return json.loads(resp.choices[0].message.content)
+    content = resp.choices[0].message.content
+    if content is None:
+        raise RuntimeError("model returned empty content")
+    return json.loads(content)
 
 
 def _segments_by_ref(obj: dict[str, Any]) -> dict[str, dict[str, Any]]:
