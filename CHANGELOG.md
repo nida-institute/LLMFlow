@@ -22,6 +22,9 @@
 - **`docs/ai-assistants.md`** — working on Scripture Pipelines repos with any AI
   assistant (Claude Code, Codex, Gemini CLI, Cursor, VS Code, browser agents), including
   non-CLI setups, via the cross-tool `AGENTS.md` model. Linked from the README.
+- **Editable-install pattern documented** — `docs/getting-started.md` §4 shows the
+  known-good consumer-repo `pyproject.toml` (Hatch `post-install-commands` editable
+  install) and why not to pin it or make it non-editable.
 
 ### Fixed
 

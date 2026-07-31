@@ -65,6 +65,46 @@ Install Scripture Pipelines once, then inside any resource repo:
 sp run --pipeline pipelines/your-pipeline.yaml --var passage="Psalm 23"
 ```
 
+### Consumer repo `pyproject.toml` — the editable-install pattern
+
+A resource/consumer repo runs on LLMFlow but does **not** vendor it. It installs the engine
+as an **editable** dependency from your local clone, so engine changes propagate immediately.
+The known-good Hatch pattern:
+
+```toml
+[project]
+name = "your-project"
+version = "0.0.0"
+requires-python = ">=3.10"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.envs.default]
+post-install-commands = ["pip install -e /path/to/your/LLMFlow"]
+dependencies = [
+  # your project's own runtime deps, e.g. "python-dotenv"
+]
+```
+
+Replace `/path/to/your/LLMFlow` with the absolute path to your LLMFlow clone — it is
+machine-specific; there is no portable form for editable-installing a sibling checkout.
+`post-install-commands` runs the editable install after Hatch builds the env, so `sp` /
+LLMFlow stays live in both `hatch run …` and inside `hatch shell`. A real `[build-system]`
+plus `[project]` metadata is what lets `hatch shell` set the env up cleanly — no `skip-install`
+gymnastics needed.
+
+**Why editable — and why not to "fix" it:** LLMFlow is developed alongside consumer repos on
+the same machine, so the editable install (`pip install -e`) picks up upstream engine fixes the
+moment they land. Pinning a version, or switching to a non-editable `llmflow @ file://…`
+dependency, **freezes** the engine and silently breaks that propagation — this has repeatedly
+caused stale-install bugs (e.g. a `response_format` crash, and a broken `sp clean`). AI agents
+in particular tend to "helpfully" reformat this into a pinned or non-editable form; **do not.**
+Consumer repos guard the invariant with a test such as
+`tests/test_environment.py::test_llmflow_editable_install`, and the commit-ready version-bump
+step does **not** apply to `pyproject.toml` here — update `CHANGELOG.md` only.
+
 ---
 
 ## 5. Pipeline Basics
