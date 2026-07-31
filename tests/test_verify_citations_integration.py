@@ -5,6 +5,9 @@ from unittest.mock import patch, AsyncMock, MagicMock
 from llmflow.modules.mcp import MCPClient
 from llmflow.runner import run_llm_step
 
+# Exercises a LIVE external MCP server — integration-only, excluded from CI.
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.asyncio
 async def test_mcp_client_returns_tools():
