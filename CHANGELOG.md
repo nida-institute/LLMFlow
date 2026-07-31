@@ -10,12 +10,18 @@
 - **`surface-decisions` global convention** — installed by `sp init` (shipped in
   `templates/sp-conventions/`): surface genuine decisions to the Captain and stop;
   never proceed on an assumption. (#181)
+- **`/handoff` skill** — writes `project/HANDOFF.md` (active threads, in-flight work,
+  open decisions, established facts, key files/issues) for the next session; the
+  bookend to `/load-context`. Distributed via `sp init`.
 
 ### Documentation
 
 - **Debug request/response dumps documented** — `docs/architecture.md` §15 describes
   the `linter_config.log_level: debug` dump mechanism: trigger, output location, file
   names, per-run clearing, and cleanup via `sp clean --debug-only`. (#180)
+- **`docs/ai-assistants.md`** — working on Scripture Pipelines repos with any AI
+  assistant (Claude Code, Codex, Gemini CLI, Cursor, VS Code, browser agents), including
+  non-CLI setups, via the cross-tool `AGENTS.md` model. Linked from the README.
 
 ### Fixed
 
