@@ -141,6 +141,10 @@ jobs:
           --include-data-dir=prompts=prompts \
           --include-data-dir=src/llmflow/templates=llmflow/templates \
           --include-data-dir=src/llmflow/gui/static=llmflow/gui/static \
+          --include-data-file=data/models.json=llmflow/data/models.json \
+          --include-distribution-metadata=scripture-pipelines \
+          --include-package=certifi \
+          --include-package-data=certifi \
           --output-dir=nuitka_dist \
           --output-filename=${{ matrix.artifact_name }} \
           src/llmflow/cli.py
@@ -148,13 +152,14 @@ jobs:
     - name: Build with Nuitka (Windows)
       if: runner.os == 'Windows'
       run: |
-        python -m nuitka --standalone --onefile --assume-yes-for-downloads --windows-dependency-tool=pefile --enable-plugin=dll-files --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=src/llmflow/templates=llmflow/templates --include-data-dir=src/llmflow/gui/static=llmflow/gui/static --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
+        python -m nuitka --standalone --onefile --assume-yes-for-downloads --windows-dependency-tool=pefile --enable-plugin=dll-files --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=src/llmflow/templates=llmflow/templates --include-data-dir=src/llmflow/gui/static=llmflow/gui/static --include-data-file=data/models.json=llmflow/data/models.json --include-distribution-metadata=scripture-pipelines --include-package=certifi --include-package-data=certifi --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
 
     - name: Smoke test binary (Unix)
       if: runner.os != 'Windows'
       run: |
         BIN=./nuitka_dist/${{ matrix.artifact_name }}
-        $BIN --version
+        $BIN --version | tee version.txt
+        if grep -qi unknown version.txt; then echo "::error::sp --version returned 'unknown' — package metadata not bundled (#184)"; exit 1; fi
         $BIN lint --pipeline tests/fixtures/smoke.yaml
         $BIN run --pipeline tests/fixtures/smoke.yaml --dry-run
 
@@ -163,7 +168,9 @@ jobs:
       shell: pwsh
       run: |
         $bin = ".\nuitka_dist\${{ matrix.artifact_name }}"
-        & $bin --version
+        $ver = & $bin --version
+        Write-Output $ver
+        if ($ver -match "unknown") { Write-Error "sp --version returned 'unknown' — package metadata not bundled (#184)"; exit 1 }
         & $bin lint --pipeline tests/fixtures/smoke.yaml
         & $bin run --pipeline tests/fixtures/smoke.yaml --dry-run
 

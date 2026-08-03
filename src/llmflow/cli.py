@@ -227,6 +227,14 @@ def build_parser():
     trans_p.add_argument("--dry-run", action="store_true", help="Validate without making changes")
     trans_p.add_argument("--json", action="store_true", help="Output result as JSON")
 
+    # sp tools <tool> — developer/collaboration tools (see src/llmflow/tools/)
+    tools_p = subparsers.add_parser("tools", help="Developer/collaboration tools")
+    tools_sub = tools_p.add_subparsers(dest="tools_command", required=True)
+    from llmflow.tools import replay as _replay
+    replay_p = tools_sub.add_parser(
+        "replay", help="Test a prompt change against captured debug requests, cheaply")
+    _replay.add_arguments(replay_p)
+
     # Standard --version flag (e.g. used by CI smoke tests: llmflow --version)
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
@@ -289,6 +297,11 @@ def command_lint(
 
 
 def main(argv=None):
+    # Frozen binaries ship no usable system cert store — point SSL at bundled
+    # certifi before any network call. See LLMFlow#182.
+    from llmflow.utils.ssl_certs import ensure_ca_certs
+    ensure_ca_certs()
+
     parser = build_parser()
     args = parser.parse_args(argv)
 
@@ -466,7 +479,17 @@ def main(argv=None):
             source=args.source,
             list_drivers_only=args.list_drivers,
         )
-        # TODO: If --register flag is set, register the database in registry
+        # run_load_db raises on failure, so reaching here means the load succeeded.
+        if args.register and not args.list_drivers:
+            from llmflow.registry import Registry
+
+            registry = Registry()
+            db_name = args.db_name or args.dataset
+            # Re-register cleanly so --force reloads and re-runs stay idempotent.
+            if registry.databases.get(db_name):
+                registry.databases.unregister(db_name)
+            registry.databases.register(name=db_name, type=args.driver)
+            print(f"✅ Registered database '{db_name}' in ~/.sp/ registry")
         return
 
     if args.command == "registry":
@@ -726,6 +749,12 @@ def main(argv=None):
                 logger.error(f"❌ Transition failed: {error}")
                 sys.exit(1)
 
+        return
+
+    if args.command == "tools":
+        if args.tools_command == "replay":
+            from llmflow.tools import replay
+            sys.exit(replay.run(args))
         return
 
     if args.command == "run":

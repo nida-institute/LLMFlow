@@ -376,6 +376,8 @@ Here are some example project types and their typical structures:
 
 ## 🤖 Working with AI Assistants (GitHub Copilot, Claude, ChatGPT)
 
+**Working across environments:** For how to work on a Scripture Pipelines repo with any AI assistant — Claude Code, Codex, Gemini, Cursor, VS Code, or a browser agent, including non-command-line setups — see **[docs/ai-assistants.md](docs/ai-assistants.md)**.
+
 **Important:** When asking for help with Scripture Pipelines pipelines, reference [`docs/GPT_CONTEXT.md`](docs/GPT_CONTEXT.md)
 
 This file contains comprehensive documentation about:

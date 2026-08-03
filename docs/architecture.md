@@ -272,3 +272,34 @@ import default fire.
 - Output repositories are separate from the engine — generated content is
   auditable and reviewable independently
 - Apache 2.0 license with institutional copyright (Biblica, Inc.)
+
+## 15. Debug Request/Response Dumps
+
+Setting `linter_config.log_level: debug` at the pipeline level makes every
+`type: llm` step write its rendered request and raw response to disk — the
+mechanism for seeing exactly what the model was sent and returned. There is no
+`--debug` flag and no environment variable; the pipeline's `log_level` is the
+switch.
+
+- **Trigger:** `linter_config: { log_level: debug }` in the pipeline YAML
+  (checked in `steps/llm.py` on the request and response save paths).
+- **Location** (`utils/debug.py:_get_debug_dir`):
+  `<intermediate_file_directory>/debug/<pipeline_name>/` when the pipeline
+  declares `intermediate_file_directory` (resolved through `${...}`), otherwise
+  `<cwd>/outputs/debug/<pipeline_name>/`. `<pipeline_name>` is the pipeline YAML
+  file stem.
+- **Filenames** (`steps/llm.py:build_debug_filename`):
+  `<passage>_<prompt_stem>_request.txt` and `<passage>_<prompt_stem>_response.txt`.
+  `<passage>` comes from context `passage` / `Citation` / `scene.Citation`
+  (sanitized); when absent a `YYYY-MM-DD-HHMMSS` timestamp is used.
+  `<prompt_stem>` is the step's prompt-file stem, falling back to the step name.
+  Inside `for-each` loops, iteration tokens (`lvl<n>`, `<var>-<label>`) are
+  appended. Files are plain text (`.txt`) — the rendered prompt and the raw
+  response — not JSON.
+- **Cleared per run:** `_clear_debug_dir` wipes the pipeline's debug subdirectory
+  at the start of every run (skipped on `--dry-run`), so dumps always reflect the
+  most recent run only.
+- **Log co-location:** when `intermediate_file_directory` is declared,
+  `llmflow.log` is redirected into `<debug_dir>/llmflow.log` (`runner.py`).
+- **Cleanup:** `sp clean --debug-only` deletes only the debug directory;
+  `sp clean --intermediate-only` preserves it.

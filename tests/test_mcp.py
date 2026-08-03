@@ -7,6 +7,10 @@ from llmflow.modules.mcp import MCPClient, init_mcp_client
 # CRITICAL: Must include /mcp in the URL
 MCP_SERVER_URL = "https://bible-resource-server-preview.labs.biblica.com/mcp"
 
+# The tests below exercise a LIVE external MCP server (bible-resource-server-preview):
+# integration tests, excluded from CI via `-m "not integration"`, still runnable on demand.
+pytestmark = pytest.mark.integration
+
 
 class TestMCPClient:
     """Test suite for MCP client functionality."""

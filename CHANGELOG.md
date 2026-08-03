@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.2.1.21 — 2026-07-30
+
+### New Features
+
+- **`sp tools replay`** — test a prompt change against captured debug requests without
+  re-running the pipeline, so prompt edits can be checked cheaply. Usage:
+  `sp tools replay --request <debug>/*_request.txt --prompt old.gpt --prompt-new new.gpt`.
+- **`surface-decisions` global convention** — installed by `sp init` (shipped in
+  `templates/sp-conventions/`): surface genuine decisions to the Captain and stop;
+  never proceed on an assumption. (#181)
+- **`/handoff` skill** — writes `project/HANDOFF.md` (active threads, in-flight work,
+  open decisions, established facts, key files/issues) for the next session; the
+  bookend to `/load-context`. Distributed via `sp init`.
+
+### Documentation
+
+- **Debug request/response dumps documented** — `docs/architecture.md` §15 describes
+  the `linter_config.log_level: debug` dump mechanism: trigger, output location, file
+  names, per-run clearing, and cleanup via `sp clean --debug-only`. (#180)
+- **`docs/ai-assistants.md`** — working on Scripture Pipelines repos with any AI
+  assistant (Claude Code, Codex, Gemini CLI, Cursor, VS Code, browser agents), including
+  non-CLI setups, via the cross-tool `AGENTS.md` model. Linked from the README.
+- **Editable-install pattern documented** — `docs/getting-started.md` §4 shows the
+  known-good consumer-repo `pyproject.toml` (Hatch `post-install-commands` editable
+  install) and why not to pin it or make it non-editable.
+
+### Fixed
+
+- **Frozen-binary packaging** — the Nuitka `sp` binary now bundles `data/models.json`
+  (cost tracking works instead of silently disabling), the certifi CA bundle (HTTPS
+  fetches no longer fail with `CERTIFICATE_VERIFY_FAILED`), and the package metadata
+  (`sp --version` reports the real version instead of `unknown`). (#182, #184)
+- **`load-db --register` now records the database** — the flag was parsed but never
+  wired (a stubbed TODO), so it printed success while the registry stayed empty and
+  `sp registry list` couldn't see the database. Databases loaded with `--register`
+  are now recorded (idempotently, so `--force` reloads don't duplicate). (#183)
+
 ## 0.2.1.20 — 2026-07-06
 
 ### Breaking

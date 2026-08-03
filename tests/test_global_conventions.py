@@ -20,6 +20,7 @@ EXPECTED_SKILLS = {
     "audit-prompts",
     "authorize",
     "commit-ready",
+    "handoff",
     "load-context",
     "release",
     "stand-down",
