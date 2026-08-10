@@ -4,6 +4,13 @@
 
 ### New Features
 
+- **Public Python API — object model (`load_pipeline`, `Pipeline`, `Step`)** —
+  `load_pipeline(path)` returns a read-only `Pipeline` whose attributes mirror the pipeline
+  YAML 1:1 (`p.name`, `p.variables`, `p.steps`, `step.type`, `step.saveas`, nested
+  `step.steps`; reserved words as `in_` / `for_`), so the calls are guessable directly from
+  the syntax. Declared values are raw (`${...}` resolution arrives in a later slice).
+  `PIPELINE_SCHEMA` is now a public export, and a drift test keeps the object model in
+  lockstep with it. (#187)
 - **Public Python API — `llmflow.resolve_pipeline_paths()`** — resolve a pipeline's
   `intermediate_file_directory`, `output_file_directory`, and `variables` from outside a
   run, with the same precedence and `${...}` expansion a real run uses (honors `--var`).
