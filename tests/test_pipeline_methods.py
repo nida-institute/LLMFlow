@@ -101,3 +101,53 @@ def test_call_llm_is_lazy_export():
     from llmflow.utils.llm_runner import call_llm as direct
 
     assert llmflow.call_llm is direct
+
+
+# --- Pipeline.schemas() — {step: schema_file} from response_format (config-only, recursive) ---
+
+_SCHEMA_PIPELINE = """\
+name: p
+steps:
+  - name: gen
+    type: llm
+    response_format:
+      type: json_schema
+      json_schema:
+        schema_file: schemas/scene.json
+  - name: plain
+    type: llm
+  - name: loop
+    type: for-each
+    for: ${items}
+    steps:
+      - name: inner
+        response_format:
+          type: json_schema
+          json_schema:
+            schema_file: schemas/inner.json
+"""
+
+
+def test_schemas_maps_steps_to_schema_files(tmp_path):
+    p = _write(tmp_path, _SCHEMA_PIPELINE)
+    assert load_pipeline(p).schemas() == {
+        "gen": "schemas/scene.json",
+        "inner": "schemas/inner.json",
+    }
+
+
+# --- api_catalog() — introspection-generated method catalog ---
+
+def test_api_catalog_lists_the_verbs():
+    from llmflow import api_catalog
+
+    cat = api_catalog()
+    names = {(e["node"], e["name"]) for e in cat}
+    assert {
+        ("Pipeline", "resolve"), ("Pipeline", "lint"), ("Pipeline", "run"),
+        ("Pipeline", "schemas"), ("Step", "render_prompt"),
+        ("llmflow", "load_pipeline"), ("llmflow", "call_llm"),
+    } <= names
+    resolve = next(e for e in cat if e["node"] == "Pipeline" and e["name"] == "resolve")
+    assert "self" not in resolve["signature"]   # self stripped for consumers
+    assert resolve["doc"]                        # first docstring line present

@@ -90,7 +90,7 @@ def test_model_is_read_only(tmp_path):
 
 # Computed methods (resolve/run/lint/schemas/render_prompt) land in later slices; they are
 # not schema keys, so the reverse check excludes them.
-_KNOWN_METHODS: set[str] = {"resolve", "lint", "run", "render_prompt"}
+_KNOWN_METHODS: set[str] = {"resolve", "lint", "run", "render_prompt", "schemas"}
 
 
 def _public_attrs(cls) -> set:

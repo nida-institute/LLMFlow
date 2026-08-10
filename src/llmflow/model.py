@@ -235,6 +235,27 @@ class Pipeline(_PipelineView):
             skip_lint=skip_lint,
         )
 
+    def schemas(self) -> Dict[str, str]:
+        """Return ``{step_name: schema_file}`` for every step (including nested) that
+        declares a JSON schema file via ``response_format.json_schema.schema_file``.
+
+        Config-only: reads declared (raw) paths; it does not read prompt files or resolve
+        ``${...}`` (call :meth:`resolve` first if you need resolved paths).
+        """
+        found: Dict[str, str] = {}
+
+        def _walk(steps: Any) -> None:
+            for step in steps or []:
+                rf = step.get("response_format")
+                if isinstance(rf, dict):
+                    js = rf.get("json_schema")
+                    if isinstance(js, dict) and js.get("schema_file"):
+                        found[step.get("name")] = js["schema_file"]
+                _walk(step.get("steps"))
+
+        _walk(self._root.get("steps"))
+        return found
+
 
 class ResolvedPipeline(_PipelineView):
     """A resolved view of a pipeline (``${...}`` expanded, ``--var`` applied).

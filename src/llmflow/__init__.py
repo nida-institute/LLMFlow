@@ -6,6 +6,7 @@ re-derive what the engine already resolves (see LLMFlow public-API epic).
 """
 from typing import TYPE_CHECKING, Any
 
+from llmflow.catalog import api_catalog
 from llmflow.model import Pipeline, ResolvedPipeline, Step, load_pipeline
 from llmflow.pipeline_schema import PIPELINE_SCHEMA
 
@@ -22,6 +23,7 @@ __all__ = [
     "call_llm",
     # published machine-readable mapping (Decision 2)
     "PIPELINE_SCHEMA",
+    "api_catalog",
 ]
 
 
