@@ -197,7 +197,7 @@ class Pipeline(_PipelineView):
                 root[key] = resolve_value(raw, context)
         return ResolvedPipeline(resolved)
 
-    def lint(self, vars: Optional[Dict[str, Any]] = None):
+    def lint(self, vars: Optional[Dict[str, Any]] = None, *, rewind_to: Optional[str] = None):
         """Lint the pipeline, returning the engine's ``LintResult`` (``.valid`` /
         ``.errors`` / ``.warnings``). Requires a pipeline loaded from a file.
         """
@@ -205,7 +205,7 @@ class Pipeline(_PipelineView):
 
         if self._source is None:
             raise ValueError("Pipeline.lint() needs a pipeline loaded from a file")
-        return lint_pipeline_full(self._source, vars=vars)
+        return lint_pipeline_full(self._source, vars=vars, rewind_to=rewind_to)
 
     def run(
         self,
@@ -217,6 +217,7 @@ class Pipeline(_PipelineView):
         resume: bool = False,
         verbose: bool = False,
         skip_lint: bool = False,
+        log_file: str = "llmflow.log",
     ):
         """Run the pipeline (delegates to the engine's ``run_pipeline``).
 
@@ -233,6 +234,7 @@ class Pipeline(_PipelineView):
             resume=resume,
             verbose=verbose,
             skip_lint=skip_lint,
+            log_file=log_file,
         )
 
     def schemas(self) -> Dict[str, str]:

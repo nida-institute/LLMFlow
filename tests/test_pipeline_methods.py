@@ -38,14 +38,16 @@ def test_lint_delegates_with_source_and_vars(tmp_path, monkeypatch):
     def fake(pipeline_path, *, vars=None, rewind_to=None):
         calls["path"] = pipeline_path
         calls["vars"] = vars
+        calls["rewind_to"] = rewind_to
         return "LR"
 
     monkeypatch.setattr("llmflow.utils.linter.lint_pipeline_full", fake)
     p = _write(tmp_path)
-    out = load_pipeline(p).lint(vars={"x": "1"})
+    out = load_pipeline(p).lint(vars={"x": "1"}, rewind_to="chk")
     assert out == "LR"
     assert Path(calls["path"]) == p          # passes the source path through
     assert calls["vars"] == {"x": "1"}
+    assert calls["rewind_to"] == "chk"
 
 
 # --- Pipeline.run() (delegates to run_pipeline) ---
@@ -60,12 +62,13 @@ def test_run_delegates(tmp_path, monkeypatch):
 
     monkeypatch.setattr("llmflow.runner.run_pipeline", fake)
     p = _write(tmp_path)
-    out = load_pipeline(p).run(vars={"x": "1"}, dry_run=True, stop_after="s")
+    out = load_pipeline(p).run(vars={"x": "1"}, dry_run=True, stop_after="s", log_file="my.log")
     assert out == "RAN"
     assert Path(calls["pipeline_file"]) == p          # passes the source path
     assert calls["kwargs"]["vars"] == {"x": "1"}
     assert calls["kwargs"]["dry_run"] is True
     assert calls["kwargs"]["stop_after"] == "s"
+    assert calls["kwargs"]["log_file"] == "my.log"
 
 
 # --- Step.render_prompt() (delegates to steps.llm.render_prompt) ---

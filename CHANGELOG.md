@@ -32,6 +32,11 @@
 
 ### Changed
 
+- **CLI runs on the public API** — `sp run` / `sp lint` / `sp clean` now go through the
+  `llmflow` facade (`load_pipeline().run()` / `.lint()` / `.resolve()`) instead of calling
+  engine internals in parallel, so there is one code path per operation and CLI/API behavior
+  cannot diverge. (`Pipeline.lint()` gained `rewind_to`; `Pipeline.run()` gained `log_file`.)
+  (#187)
 - **Pipeline schema recognizes the directory keys** — `intermediate_file_directory` and
   `output_file_directory` are now first-class in `PIPELINE_SCHEMA` / `PipelineConfig`
   (previously accepted only implicitly via `additionalProperties`), so the linter knows
