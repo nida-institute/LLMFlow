@@ -13,6 +13,10 @@
   it can't drift, and letting consumer repos delete hand-rolled YAML-reading path modules.
   `PIPELINE_SCHEMA` is a public export, and a drift test keeps the object model in lockstep
   with it. (#187)
+- **Public Python API — `Pipeline.lint()` / `Pipeline.run()`** — thin facade methods that
+  delegate to the engine's own `lint_pipeline_full` / `run_pipeline` (no reimplementation):
+  `load_pipeline(p).lint(vars=...)` returns a `LintResult`; `load_pipeline(p).run(vars=...,
+  dry_run=...)` runs the pipeline. (#187)
 - **`sp clean` honors `--var`** — `clean` resolves its target directory through the same
   accessor, so `sp clean --var output_file_directory=...` matches the run it cleans up
   after. (#186)
