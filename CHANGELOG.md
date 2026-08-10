@@ -17,6 +17,10 @@
   delegate to the engine's own `lint_pipeline_full` / `run_pipeline` (no reimplementation):
   `load_pipeline(p).lint(vars=...)` returns a `LintResult`; `load_pipeline(p).run(vars=...,
   dry_run=...)` runs the pipeline. (#187)
+- **Public Python API — `Step.render_prompt()` and lazy `call_llm`** —
+  `step.render_prompt(context)` renders the step's prompt (delegates to the engine's
+  `render_prompt`); `llmflow.call_llm(prompt, config)` gives direct model access (#175),
+  imported lazily so `import llmflow` stays light. (#187)
 - **`sp clean` honors `--var`** — `clean` resolves its target directory through the same
   accessor, so `sp clean --var output_file_directory=...` matches the run it cleans up
   after. (#186)

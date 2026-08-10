@@ -66,3 +66,38 @@ def test_run_delegates(tmp_path, monkeypatch):
     assert calls["kwargs"]["vars"] == {"x": "1"}
     assert calls["kwargs"]["dry_run"] is True
     assert calls["kwargs"]["stop_after"] == "s"
+
+
+# --- Step.render_prompt() (delegates to steps.llm.render_prompt) ---
+
+def test_render_prompt_delegates(monkeypatch):
+    from llmflow import Step
+
+    calls = {}
+
+    def fake(prompt_config, context):
+        calls["prompt"] = prompt_config
+        calls["context"] = context
+        return "RENDERED"
+
+    monkeypatch.setattr("llmflow.steps.llm.render_prompt", fake)
+    out = Step({"name": "s", "prompt": "greet.gpt"}).render_prompt({"name": "World"})
+    assert out == "RENDERED"
+    assert calls["prompt"] == "greet.gpt"
+    assert calls["context"] == {"name": "World"}
+
+
+def test_render_prompt_requires_prompt():
+    from llmflow import Step
+
+    with pytest.raises(ValueError):
+        Step({"name": "s"}).render_prompt({})
+
+
+# --- call_llm: lazy top-level export (#175) ---
+
+def test_call_llm_is_lazy_export():
+    import llmflow
+    from llmflow.utils.llm_runner import call_llm as direct
+
+    assert llmflow.call_llm is direct

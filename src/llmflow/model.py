@@ -108,6 +108,17 @@ class Step:
     def retry(self) -> Optional[Dict[str, Any]]:
         return self._raw.get("retry")
 
+    def render_prompt(self, context: Dict[str, Any]) -> str:
+        """Render this step's ``prompt`` with variable substitution (delegates to the
+        engine's ``render_prompt``). Requires the step to declare a ``prompt``.
+        """
+        from llmflow.steps.llm import render_prompt as _render_prompt
+
+        prompt = self._raw.get("prompt")
+        if prompt is None:
+            raise ValueError("Step.render_prompt() requires the step to declare a 'prompt'")
+        return _render_prompt(prompt, context)
+
     def __repr__(self) -> str:
         return f"Step(name={self.name!r}, type={self.type!r})"
 
