@@ -61,7 +61,7 @@ logger = Logger()
 
 # Shared YAML loader that recognises LLMFlow tags such as !window_advance.
 # Defined in yaml_loader.py to avoid circular imports with linter.py.
-from llmflow.yaml_loader import LLMFlowLoader as _LLMFlowLoader  # noqa: E402
+from llmflow.yaml_loader import load_pipeline_config  # noqa: E402
 
 
 _RETRY_MISSING = object()
@@ -494,8 +494,7 @@ def run_pipeline(
 
         # Load and parse YAML with error handling
         try:
-            with open(pipeline_path, "r") as f:
-                pipeline_config = yaml.load(f, Loader=_LLMFlowLoader)
+            pipeline_config = load_pipeline_config(pipeline_path)
         except yaml.YAMLError as e:
             logger.error(f"❌ YAML syntax error in {pipeline_file}:")
             if hasattr(e, 'problem_mark'):

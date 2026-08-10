@@ -72,6 +72,8 @@ class PipelineConfig(BaseModel):
     variables: Optional[Dict[str, Any]] = Field(default_factory=dict)
     llm_config: Optional[LLMConfig] = None
     linter_config: Optional[Dict[str, Any]] = None
+    intermediate_file_directory: Optional[str] = None
+    output_file_directory: Optional[str] = None
     steps: List[StepConfig]
     vars: Optional[Dict[str, Any]] = None
     prompts_dir: Optional[str] = None
@@ -97,6 +99,8 @@ PIPELINE_SCHEMA = {
             "required": ["provider", "model"],
         },
         "linter_config": {"type": "object", "additionalProperties": True},
+        "intermediate_file_directory": {"type": "string"},
+        "output_file_directory": {"type": "string"},
         "steps": {
             "type": "array",
             "items": {

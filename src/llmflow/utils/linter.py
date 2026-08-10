@@ -8,7 +8,7 @@ from pathlib import Path
 import click
 import yaml
 from pydantic import ValidationError
-from llmflow.yaml_loader import LLMFlowLoader as _LLMFlowLoader
+from llmflow.yaml_loader import load_pipeline_config
 from llmflow.pipeline_schema import PipelineConfig, PIPELINE_SCHEMA
 from llmflow.exceptions import StepRewindError
 from llmflow.utils.llm_runner import validate_model_parameter, get_model_family
@@ -385,7 +385,7 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
 
 def lint_pipeline_contracts(pipeline_path):
     """Validate that all pipeline steps match their prompt contracts"""
-    pipeline = yaml.load(Path(pipeline_path).read_text(), Loader=_LLMFlowLoader)
+    pipeline = load_pipeline_config(pipeline_path)
     pipeline_root = pipeline.get("pipeline", pipeline)
 
     # ✅ CHECK IF LINTER IS DISABLED
@@ -935,7 +935,7 @@ def lint_pipeline_full(
 
     # Load pipeline first
     try:
-        pipeline = yaml.load(Path(pipeline_path).read_text(), Loader=_LLMFlowLoader)
+        pipeline = load_pipeline_config(pipeline_path)
     except FileNotFoundError:
         # Re-raise to let cli.py handle with better error message
         raise

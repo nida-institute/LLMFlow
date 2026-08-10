@@ -11,10 +11,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
-import yaml
-
 from llmflow.utils.context import build_run_context, resolve
-from llmflow.yaml_loader import LLMFlowLoader
+from llmflow.yaml_loader import load_pipeline_config
 
 
 @dataclass
@@ -41,10 +39,7 @@ def resolve_pipeline_paths(
         pipeline_file: Path to the pipeline YAML.
         vars: Optional overrides equivalent to ``sp run --var key=value``.
     """
-    path = Path(pipeline_file)
-    with open(path, "r", encoding="utf-8") as f:
-        config = yaml.load(f, Loader=LLMFlowLoader) or {}
-
+    config = load_pipeline_config(pipeline_file)
     context = build_run_context(config, vars)
 
     def _resolve_dir(key: str) -> Optional[Path]:

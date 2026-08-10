@@ -14,7 +14,8 @@ NO STUBS — uses real runner.py.
 import pytest
 import yaml
 
-from llmflow.runner import run_window_step, _LLMFlowLoader
+from llmflow.runner import run_window_step
+from llmflow.yaml_loader import LLMFlowLoader as _LLMFlowLoader
 from tests.test_helpers import set_cursor_seq
 
 

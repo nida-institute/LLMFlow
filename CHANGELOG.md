@@ -16,6 +16,15 @@
   accessor, so `sp clean --var output_file_directory=...` matches the run it cleans up
   after. (#186)
 
+### Changed
+
+- **Pipeline schema recognizes the directory keys** — `intermediate_file_directory` and
+  `output_file_directory` are now first-class in `PIPELINE_SCHEMA` / `PipelineConfig`
+  (previously accepted only implicitly via `additionalProperties`), so the linter knows
+  them. Internally, pipeline YAML loading is consolidated into a single
+  `load_pipeline_config()` shared by the runner, linter, and path resolution — groundwork
+  for the object-model public API. (#187)
+
 ### Documentation
 
 - **`docs/python-api.md`** — documents the supported `llmflow` public API surface and the
