@@ -85,6 +85,7 @@ def build_parser():
     clean_p.add_argument("--dry-run", action="store_true", help="Show what would be deleted without deleting")
     clean_p.add_argument("--debug-only", action="store_true", help="Delete only debug files (intermediate_file_directory/debug/ or outputs/debug/)")
     clean_p.add_argument("--intermediate-only", action="store_true", help="Delete only intermediate files, preserving debug/")
+    clean_p.add_argument("--var", action="append", default=[], help="Pipeline variable key=value; repeatable (honored when resolving directories)")
 
     # version command
     subparsers.add_parser("version", help="Show version")
@@ -306,23 +307,17 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     if args.command == "clean":
-        import shutil
-        import yaml as _yaml
-        from llmflow.runner import resolve as _resolve
+        from llmflow import resolve_pipeline_paths
 
         pipeline_path = Path(args.pipeline)
         if not pipeline_path.exists():
             logger.error(f"❌ Pipeline file not found: {args.pipeline}")
             sys.exit(1)
 
-        with open(pipeline_path) as _f:
-            _config = _yaml.safe_load(_f)
-        _config = _config or {}
-        _pipeline_cfg = _config.get("pipeline", _config)
-        _context = {**(_pipeline_cfg.get("variables", {}) or {})}
-
-        _raw_dir = _pipeline_cfg.get("intermediate_file_directory")
-        _intermediate_dir = Path(str(_resolve(str(_raw_dir), _context))) if _raw_dir else None
+        # Resolve via the shared engine accessor so `sp clean` honors --var and uses the
+        # same ${...} expansion a real run does (LLMFlow#186).
+        _clean_vars = _collect_cli_variables(getattr(args, "var", []) or [])
+        _intermediate_dir = resolve_pipeline_paths(pipeline_path, vars=_clean_vars).intermediate_file_directory
 
         _debug_only = getattr(args, "debug_only", False)
         _intermediate_only = getattr(args, "intermediate_only", False)

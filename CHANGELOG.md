@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### New Features
+
+- **Public Python API — `llmflow.resolve_pipeline_paths()`** — resolve a pipeline's
+  `intermediate_file_directory`, `output_file_directory`, and `variables` from outside a
+  run, with the same precedence and `${...}` expansion a real run uses (honors `--var`).
+  Returns a `ResolvedPipelinePaths`. Backed by the runner's own context construction (new
+  shared `build_run_context` helper) so it cannot drift. Lets consumer repos delete
+  hand-rolled YAML-reading path modules. First slice of the public Python API epic
+  (#187), which tracks exposing what the engine resolves so consumers stop re-deriving
+  it. (#186)
+- **`sp clean` honors `--var`** — `clean` resolves its target directory through the same
+  accessor, so `sp clean --var output_file_directory=...` matches the run it cleans up
+  after. (#186)
+
+### Documentation
+
+- **`docs/python-api.md`** — documents the supported `llmflow` public API surface and the
+  stability principle: public functions are backed by the engine's own code, never a
+  reimplementation. (#186)
+
 ## 0.2.1.21 — 2026-07-30
 
 ### New Features

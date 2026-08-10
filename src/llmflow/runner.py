@@ -544,9 +544,8 @@ def run_pipeline(
                 logger.error(f"  - {error}")
             raise SystemExit(1)
 
-    # Get variables from pipeline
+    # Resolve the pipeline block (root, or nested under a top-level `pipeline:` key)
     pipeline_root = pipeline_config.get("pipeline", pipeline_config)
-    pipeline_vars = pipeline_root.get("variables", {})
 
     # Initialize rewind manager (always record checkpoints; replay only when requested)
     rewind_manager = StepRewindManager(rewind_to=rewind_to)
@@ -564,9 +563,10 @@ def run_pipeline(
         pipeline_name = re.sub(r'[^a-zA-Z0-9-]', '-', raw_name).strip('-').lower()
     pipeline_config["_pipeline_name"] = pipeline_name
 
-    # Initialize context: dir declarations are base, pipeline vars override, CLI vars win
-    _dir_ctx = {k: pipeline_root[k] for k in ("intermediate_file_directory", "output_file_directory") if pipeline_root.get(k)}
-    context = {**_dir_ctx, **pipeline_vars, **(vars or {})}
+    # Initialize context: dir declarations are base, pipeline vars override, CLI vars win.
+    # Shared with the public resolve_pipeline_paths accessor so the two can't drift (LLMFlow#186).
+    from llmflow.utils.context import build_run_context
+    context = build_run_context(pipeline_config, vars)
     logger.debug(f"Variables: {vars}")
 
     # Clear this pipeline's debug subdirectory now that we can resolve intermediate_file_directory

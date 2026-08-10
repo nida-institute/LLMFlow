@@ -1,10 +1,28 @@
 """Variable resolution utilities — ${var} substitution and context traversal."""
 
 import re
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 # Sentinel for "key not found" — distinguishes missing keys from None values.
 _MISSING = object()
+
+
+def build_run_context(pipeline_config: Dict[str, Any], vars: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Build the flat variable context a pipeline run uses.
+
+    Precedence, low to high: root-level directory keys (base) -> the ``variables:``
+    block -> caller ``vars`` (e.g. ``--var``, which win). This is the single source of
+    the run context — both the runner and the public ``resolve_pipeline_paths`` accessor
+    call it, so run-time and inspection-time behavior cannot drift. See LLMFlow#186.
+    """
+    pipeline_root = pipeline_config.get("pipeline", pipeline_config)
+    pipeline_vars = pipeline_root.get("variables", {}) or {}
+    dir_ctx = {
+        k: pipeline_root[k]
+        for k in ("intermediate_file_directory", "output_file_directory")
+        if pipeline_root.get(k)
+    }
+    return {**dir_ctx, **pipeline_vars, **(vars or {})}
 
 
 def _apply_slice(result: Any, bracket_content: str) -> Any:
