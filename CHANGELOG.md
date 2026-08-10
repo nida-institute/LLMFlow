@@ -22,8 +22,9 @@
   `render_prompt`); `llmflow.call_llm(prompt, config)` gives direct model access (#175),
   imported lazily so `import llmflow` stays light. (#187)
 - **Public Python API — `Pipeline.schemas()` and `api_catalog()`** — `p.schemas()` returns
-  `{step: schema_file}` for steps declaring a JSON schema via `response_format` (config-only,
-  recursive). `llmflow.api_catalog()` returns the machine-readable method catalog
+  `{step: schema_file}` for steps referencing a JSON schema via `response_format` or a
+  prompt's `.gpt` frontmatter `schema:` (recursive). `llmflow.api_catalog()` returns the
+  machine-readable method catalog
   (`{node, name, signature, doc}`), introspection-generated so it can't drift — the verb half
   of the published API mapping, with `PIPELINE_SCHEMA` the attribute half. (#187)
 - **`sp clean` honors `--var`** — `clean` resolves its target directory through the same

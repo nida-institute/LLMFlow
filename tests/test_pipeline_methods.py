@@ -154,3 +154,41 @@ def test_api_catalog_lists_the_verbs():
     resolve = next(e for e in cat if e["node"] == "Pipeline" and e["name"] == "resolve")
     assert "self" not in resolve["signature"]   # self stripped for consumers
     assert resolve["doc"]                        # first docstring line present
+
+
+# --- Pipeline.schemas() also reads .gpt prompt-frontmatter `schema:` refs ---
+
+def test_schemas_reads_prompt_frontmatter(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    prompts = tmp_path / "prompts"
+    prompts.mkdir()
+    (prompts / "gen.gpt").write_text(
+        "---\nschema: schemas/scene.json\nrequires:\n  - passage\n---\nBody {{passage}}\n",
+        encoding="utf-8",
+    )
+    p = _write(tmp_path, "name: p\nsteps:\n  - name: gen\n    type: llm\n    prompt: gen.gpt\n")
+    assert load_pipeline(p).schemas() == {"gen": "schemas/scene.json"}
+
+
+def test_schemas_response_format_takes_precedence(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    prompts = tmp_path / "prompts"
+    prompts.mkdir()
+    (prompts / "gen.gpt").write_text("---\nschema: schemas/from_prompt.json\n---\nBody\n", encoding="utf-8")
+    body = (
+        "name: p\n"
+        "steps:\n"
+        "  - name: gen\n"
+        "    type: llm\n"
+        "    prompt: gen.gpt\n"
+        "    response_format:\n"
+        "      json_schema:\n"
+        "        schema_file: schemas/from_rf.json\n"
+    )
+    assert load_pipeline(_write(tmp_path, body)).schemas() == {"gen": "schemas/from_rf.json"}
+
+
+def test_schemas_skips_unfindable_prompt(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    p = _write(tmp_path, "name: p\nsteps:\n  - name: gen\n    type: llm\n    prompt: nope.gpt\n")
+    assert load_pipeline(p).schemas() == {}

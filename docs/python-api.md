@@ -92,8 +92,8 @@ so there is exactly one code path per operation.
 ## Inspecting
 
 ```python
-p.schemas()               # {step_name: schema_file} for steps declaring a JSON schema via
-                          # response_format (config-only, recursive)
+p.schemas()               # {step_name: schema_file} for steps referencing a JSON schema via
+                          # response_format or a prompt's frontmatter `schema:` (recursive)
 
 s.render_prompt(context)  # render this step's prompt with variable substitution -> str
 ```

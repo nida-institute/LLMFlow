@@ -239,20 +239,46 @@ class Pipeline(_PipelineView):
 
     def schemas(self) -> Dict[str, str]:
         """Return ``{step_name: schema_file}`` for every step (including nested) that
-        declares a JSON schema file via ``response_format.json_schema.schema_file``.
+        references a JSON schema — via ``response_format.json_schema.schema_file`` or via its
+        ``.gpt`` prompt's frontmatter ``schema:``.
 
-        Config-only: reads declared (raw) paths; it does not read prompt files or resolve
-        ``${...}`` (call :meth:`resolve` first if you need resolved paths).
+        Prompt files are resolved against the pipeline's ``prompts_dir`` (default ``prompts``)
+        with the engine's own resolver; a step whose prompt cannot be found or parsed, or
+        whose prompt path is templated, is skipped. ``response_format`` wins when a step
+        declares both.
         """
+        prompts_dir = str(self._root.get("prompts_dir") or "prompts")
         found: Dict[str, str] = {}
+
+        def _prompt_schema(prompt: Any) -> Optional[str]:
+            if isinstance(prompt, dict):
+                prompt = prompt.get("file")
+            if not isinstance(prompt, str) or "${" in prompt:
+                return None
+            from llmflow.utils.io import resolve_prompt_path
+            from llmflow.utils.linter import parse_prompt_header
+
+            try:
+                path = resolve_prompt_path(prompt, prompts_dir)
+                header = parse_prompt_header(str(path)) or {}
+            except Exception:
+                return None
+            schema = header.get("schema")
+            return schema if isinstance(schema, str) else None
 
         def _walk(steps: Any) -> None:
             for step in steps or []:
+                name = step.get("name")
+                ref: Optional[str] = None
                 rf = step.get("response_format")
                 if isinstance(rf, dict):
                     js = rf.get("json_schema")
                     if isinstance(js, dict) and js.get("schema_file"):
-                        found[step.get("name")] = js["schema_file"]
+                        ref = js["schema_file"]
+                if ref is None and step.get("prompt") is not None:
+                    ref = _prompt_schema(step.get("prompt"))
+                if ref is not None and name is not None:
+                    found[name] = ref
                 _walk(step.get("steps"))
 
         _walk(self._root.get("steps"))
