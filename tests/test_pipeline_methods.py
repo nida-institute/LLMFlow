@@ -106,6 +106,20 @@ def test_call_llm_is_lazy_export():
     assert llmflow.call_llm is direct
 
 
+def test_parse_bible_reference_is_lazy_export():
+    import llmflow
+    from llmflow.utils.data import parse_bible_reference as direct
+
+    assert llmflow.parse_bible_reference is direct
+
+
+def test_model_metadata_is_lazy_export():
+    import llmflow
+    from llmflow.modules.telemetry import get_model_metadata as direct
+
+    assert llmflow.model_metadata is direct
+
+
 # --- Pipeline.schemas() — {step: schema_file} from response_format (config-only, recursive) ---
 
 _SCHEMA_PIPELINE = """\
@@ -148,8 +162,9 @@ def test_api_catalog_lists_the_verbs():
     names = {(e["node"], e["name"]) for e in cat}
     assert {
         ("Pipeline", "resolve"), ("Pipeline", "lint"), ("Pipeline", "run"),
-        ("Pipeline", "schemas"), ("Step", "render_prompt"),
+        ("Pipeline", "schemas"), ("Pipeline", "saveas"), ("Step", "render_prompt"),
         ("llmflow", "load_pipeline"), ("llmflow", "call_llm"),
+        ("llmflow", "parse_bible_reference"), ("llmflow", "model_metadata"),
     } <= names
     resolve = next(e for e in cat if e["node"] == "Pipeline" and e["name"] == "resolve")
     assert "self" not in resolve["signature"]   # self stripped for consumers

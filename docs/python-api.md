@@ -110,6 +110,17 @@ text = call_llm(prompt, config, output_type="text")
 `call_llm` is imported lazily, so a bare `import llmflow` never pulls in the heavy provider
 stack.
 
+## Utilities
+
+```python
+from llmflow import parse_bible_reference, model_metadata
+
+parse_bible_reference("John 3:16")   # parse a scripture reference
+model_metadata("gpt-4o")             # pricing / context-window metadata for a model
+```
+
+Both are imported lazily.
+
 ## The published mapping (machine-readable)
 
 The syntax↔API mapping is published so a program can compose calls without guessing:

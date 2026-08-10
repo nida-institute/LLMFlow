@@ -29,6 +29,9 @@
   of the published API mapping, with `PIPELINE_SCHEMA` the attribute half. (#187)
 - **Public Python API — `Pipeline.saveas()`** — `{step_name: saveas}` declared output targets
   for every step (recursive); resolved paths come from `.resolve()`. (#187)
+- **Public Python API — utilities** — `llmflow.parse_bible_reference` (scripture-reference
+  parser) and `llmflow.model_metadata` (model pricing / context-window info) are exposed as
+  lazy top-level functions and listed in `api_catalog()`. (#187)
 - **`sp clean` honors `--var`** — `clean` resolves its target directory through the same
   accessor, so `sp clean --var output_file_directory=...` matches the run it cleans up
   after. (#186)

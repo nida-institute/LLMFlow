@@ -43,7 +43,12 @@ def api_catalog() -> List[Dict[str, Any]]:
                 entries.append(_entry(node_name, name, member))
 
     entries.append(_entry("llmflow", "load_pipeline", load_pipeline))
+
+    from llmflow.modules.telemetry import get_model_metadata
+    from llmflow.utils.data import parse_bible_reference
     from llmflow.utils.llm_runner import call_llm
 
     entries.append(_entry("llmflow", "call_llm", call_llm))
+    entries.append(_entry("llmflow", "parse_bible_reference", parse_bible_reference))
+    entries.append(_entry("llmflow", "model_metadata", get_model_metadata))
     return entries
