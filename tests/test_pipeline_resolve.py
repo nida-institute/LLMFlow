@@ -1,16 +1,13 @@
-"""Public API for resolved pipeline paths (LLMFlow#186).
+"""Pipeline.resolve() — the resolved view of a pipeline (LLMFlow#187 slice 3).
 
-Consumers need a pipeline's resolved directories + variables from outside a run,
-with the same precedence and ${...} expansion a real run uses. These tests pin the
-contract for the shared `build_run_context` helper and the public
-`resolve_pipeline_paths` accessor.
+Supersedes the removed `resolve_pipeline_paths` flat accessor. `build_run_context` (the
+shared context builder, still internal) is exercised here too; `sp clean` reaches the same
+code via `load_pipeline().resolve()`.
 """
 import textwrap
 from pathlib import Path
 
-import pytest
-
-from llmflow import resolve_pipeline_paths
+from llmflow import load_pipeline
 from llmflow.utils.context import build_run_context
 
 PIPELINE = textwrap.dedent("""
@@ -30,7 +27,7 @@ def _write(tmp_path) -> Path:
     return p
 
 
-# --- build_run_context: the shared merge the runner uses ---
+# --- build_run_context: the shared merge the runner and .resolve() both use ---
 
 def test_build_run_context_precedence():
     cfg = {
@@ -39,46 +36,48 @@ def test_build_run_context_precedence():
         "variables": {"a": "1", "b": "2"},
     }
     ctx = build_run_context(cfg, {"a": "override", "c": "cli"})
-    # dir keys seeded as base
     assert ctx["intermediate_file_directory"] == "I"
     assert ctx["output_file_directory"] == "O"
-    # variables present
     assert ctx["b"] == "2"
-    # --var wins over variables, and adds new keys
     assert ctx["a"] == "override"
     assert ctx["c"] == "cli"
 
 
 def test_build_run_context_no_vars():
-    cfg = {"variables": {"a": "1"}}
-    assert build_run_context(cfg) == {"a": "1"}
+    assert build_run_context({"variables": {"a": "1"}}) == {"a": "1"}
 
 
-# --- resolve_pipeline_paths: the public accessor ---
+# --- Pipeline.resolve() ---
 
-def test_resolve_paths_basic(tmp_path):
-    r = resolve_pipeline_paths(_write(tmp_path))
-    assert str(r.intermediate_file_directory) == "outputs/intermediate"
-    assert str(r.output_file_directory) == "outputs/out"          # ${base} -> outputs
-    assert r.variables["book_dir"] == "outputs/out/books"          # derived + transitive
-
-
-def test_resolve_paths_var_override(tmp_path):
-    r = resolve_pipeline_paths(_write(tmp_path), vars={"output_file_directory": "acc/out"})
-    assert str(r.output_file_directory) == "acc/out"               # --var wins
-    assert r.variables["book_dir"] == "acc/out/books"              # derived picks up override
+def test_resolve_dirs_and_variables(tmp_path):
+    r = load_pipeline(_write(tmp_path)).resolve()
+    assert r.intermediate_file_directory == Path("outputs/intermediate")
+    assert r.output_file_directory == Path("outputs/out")     # ${base} -> outputs
+    assert r.variables["book_dir"] == "outputs/out/books"     # derived + transitive
 
 
-def test_resolve_paths_missing_dirs(tmp_path):
+def test_resolve_var_override(tmp_path):
+    r = load_pipeline(_write(tmp_path)).resolve(vars={"output_file_directory": "acc/out"})
+    assert r.output_file_directory == Path("acc/out")         # --var wins
+    assert r.variables["book_dir"] == "acc/out/books"
+
+
+def test_resolve_missing_dirs(tmp_path):
     p = tmp_path / "bare.yaml"
     p.write_text("name: bare\nsteps: []\n", encoding="utf-8")
-    r = resolve_pipeline_paths(p)
+    r = load_pipeline(p).resolve()
     assert r.intermediate_file_directory is None
     assert r.output_file_directory is None
     assert r.variables == {}
 
 
-# --- sp clean honors --var (resolves its target through the accessor) ---
+def test_resolved_view_is_same_shape(tmp_path):
+    r = load_pipeline(_write(tmp_path)).resolve()
+    assert r.name == "sample"          # navigable exactly like a Pipeline
+    assert r.steps == []
+
+
+# --- sp clean honors --var (now via load_pipeline().resolve()) ---
 
 def test_clean_honors_var(tmp_path, capsys):
     from llmflow.cli import main
@@ -97,5 +96,5 @@ def test_clean_honors_var(tmp_path, capsys):
         "--var", f"intermediate_file_directory={override}",
     ])
     out = capsys.readouterr().out
-    assert str(override) in out       # clean targeted the --var override...
+    assert str(override) in out       # targeted the --var override...
     assert "canonical" not in out     # ...not the pipeline's declared dir

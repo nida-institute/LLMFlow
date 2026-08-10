@@ -2,8 +2,8 @@
 
 A pipeline YAML is an object tree (``pipeline → steps → step → saveas``); this module is
 an object graph of the same shape, so reading a pipeline tells you the API calls. Every
-attribute is a declared syntax key from ``PIPELINE_SCHEMA`` (raw/unresolved — resolution
-is a method, added in a later slice); nesting mirrors the YAML's nesting.
+attribute is a declared syntax key from ``PIPELINE_SCHEMA`` (raw/unresolved for ``Pipeline``;
+resolved for ``ResolvedPipeline``); nesting mirrors the YAML's nesting.
 
 The classes are a thin, hand-written, read-only view over the parsed config. They add
 **shape only, no logic** — computed operations (resolve/run/lint/…) delegate to the
@@ -18,6 +18,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from llmflow.utils.context import build_run_context
+from llmflow.utils.context import resolve as resolve_value
 from llmflow.yaml_loader import load_pipeline_config
 
 
@@ -110,11 +112,12 @@ class Step:
         return f"Step(name={self.name!r}, type={self.type!r})"
 
 
-class Pipeline:
-    """Read-only view of a pipeline; attributes are the declared top-level keys.
+class _PipelineView:
+    """Shared read-only view of a pipeline's non-directory attributes.
 
-    Declared values are raw (``${...}`` unexpanded). Resolved values come from the
-    ``.resolve()`` method (added in a later slice), which returns a same-shaped view.
+    ``Pipeline`` (declared/raw) and ``ResolvedPipeline`` (resolved) share these; they differ
+    only in the directory keys — ``str`` when declared, ``Path`` once resolved — so those are
+    declared separately on each rather than overridden (keeps the types honest).
     """
 
     def __init__(self, config: Dict[str, Any]):
@@ -142,6 +145,21 @@ class Pipeline:
         return self._root.get("linter_config")
 
     @property
+    def steps(self) -> List[Step]:
+        return [Step(s) for s in (self._root.get("steps") or [])]
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(name={self.name!r}, steps={len(self.steps)})"
+
+
+class Pipeline(_PipelineView):
+    """Read-only view of a pipeline; attributes are the declared top-level keys (raw).
+
+    Declared values are raw (``${...}`` unexpanded). Resolved values come from
+    :meth:`resolve`, which returns a same-shaped :class:`ResolvedPipeline`.
+    """
+
+    @property
     def intermediate_file_directory(self) -> Optional[str]:
         return self._root.get("intermediate_file_directory")
 
@@ -149,12 +167,41 @@ class Pipeline:
     def output_file_directory(self) -> Optional[str]:
         return self._root.get("output_file_directory")
 
-    @property
-    def steps(self) -> List[Step]:
-        return [Step(s) for s in (self._root.get("steps") or [])]
+    def resolve(self, vars: Optional[Dict[str, Any]] = None) -> "ResolvedPipeline":
+        """Return a resolved view: ``${...}`` expanded and *vars* (``--var``) applied.
 
-    def __repr__(self) -> str:
-        return f"Pipeline(name={self.name!r}, steps={len(self.steps)})"
+        Same shape as this ``Pipeline``; directory attributes come back as ``Path``. Uses
+        the engine's own context builder and resolver, so the result matches a real run.
+        """
+        context = build_run_context(self._config, vars)
+        resolved = resolve_value(self._config, context)
+        # A directory key can be overridden via --var (vars win in the context). The config's
+        # own raw value for the key doesn't reference itself, so take the key's resolved value
+        # from the context — that is what a real run would use.
+        root = resolved.get("pipeline", resolved)
+        for key in ("intermediate_file_directory", "output_file_directory"):
+            raw = context.get(key)
+            if raw is not None:
+                root[key] = resolve_value(raw, context)
+        return ResolvedPipeline(resolved)
+
+
+class ResolvedPipeline(_PipelineView):
+    """A resolved view of a pipeline (``${...}`` expanded, ``--var`` applied).
+
+    Built by :meth:`Pipeline.resolve`. Same shape as :class:`Pipeline`; the directory keys
+    are returned as ``Path`` objects.
+    """
+
+    @property
+    def intermediate_file_directory(self) -> Optional[Path]:
+        v = self._root.get("intermediate_file_directory")
+        return Path(v) if v else None
+
+    @property
+    def output_file_directory(self) -> Optional[Path]:
+        v = self._root.get("output_file_directory")
+        return Path(v) if v else None
 
 
 def load_pipeline(pipeline_file: Union[str, Path]) -> Pipeline:

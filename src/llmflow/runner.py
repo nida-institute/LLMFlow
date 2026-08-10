@@ -563,7 +563,7 @@ def run_pipeline(
     pipeline_config["_pipeline_name"] = pipeline_name
 
     # Initialize context: dir declarations are base, pipeline vars override, CLI vars win.
-    # Shared with the public resolve_pipeline_paths accessor so the two can't drift (LLMFlow#186).
+    # Shared with the public Pipeline.resolve() accessor so the two can't drift (LLMFlow#187).
     from llmflow.utils.context import build_run_context
     context = build_run_context(pipeline_config, vars)
     logger.debug(f"Variables: {vars}")

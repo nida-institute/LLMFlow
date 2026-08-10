@@ -10,39 +10,43 @@ Consumers should never re-parse pipeline YAML to re-derive what the engine alrea
 resolves; that copy inevitably drifts. If you find yourself reaching into `llmflow.*`
 internals or re-reading a pipeline file, that is a gap in this surface worth reporting.
 
-## `resolve_pipeline_paths(pipeline_file, vars=None) -> ResolvedPipelinePaths`
+## The object model — `load_pipeline()`
 
-Resolve a pipeline's directories and variables from *outside* a run, with the same
-precedence and `${...}` expansion a real run uses.
+`load_pipeline(path)` returns a `Pipeline` whose attributes mirror the pipeline YAML 1:1,
+so the calls are guessable directly from the syntax. Attributes are the declared keys
+(raw); computations are methods.
 
 ```python
-from llmflow import resolve_pipeline_paths
+from llmflow import load_pipeline
 
-paths = resolve_pipeline_paths("pipelines/build-book.yaml")
-paths.intermediate_file_directory   # pathlib.Path | None
-paths.output_file_directory         # pathlib.Path | None
-paths.variables                     # dict[str, Any], resolved
+p = load_pipeline("pipelines/build-book.yaml")   # -> Pipeline
+p.name
+p.variables                       # declared {...}
+p.output_file_directory           # declared, raw "${base}/out"
+p.steps[0].saveas                 # == the YAML path steps[0].saveas
+p.steps[0].steps                  # nested steps (for-each / if)
+```
+
+Reserved words get a trailing underscore: `for:` → `step.for_`, `in:` → `step.in_`.
+
+### `Pipeline.resolve(vars=None) -> ResolvedPipeline`
+
+Resolution expands `${...}` and applies `--var`, so it is a method whose result is a
+same-shaped view with resolved attributes — directory keys as `Path`:
+
+```python
+r = p.resolve()                                   # defaults
+r.output_file_directory                           # Path("outputs/out")  (${base} expanded)
+r.variables["book_dir"]                           # derived vars resolved transitively
 
 # Honor the same overrides `sp run --var` would apply:
-acc = resolve_pipeline_paths(
-    "pipelines/build-book.yaml",
-    vars={"output_file_directory": "acceptance/out"},
-)
+r = p.resolve(vars={"output_file_directory": "acceptance/out"})
+r.output_file_directory                           # Path("acceptance/out")
 ```
 
 Precedence, low to high: root-level directory keys → the pipeline's `variables:` block →
 `vars` (which win). Directory keys the pipeline does not declare come back as `None`.
 
-This replaces the pattern of opening a pipeline YAML in consumer code and re-deriving
-paths by hand — a copy that inevitably drifts from the engine (misses `--var`, hard-pins
-one pipeline, invents non-YAML constants).
-
-### `ResolvedPipelinePaths`
-
-A dataclass with three fields:
-
-| Field | Type | Notes |
-|-------|------|-------|
-| `intermediate_file_directory` | `Path \| None` | Resolved; `None` if not declared. |
-| `output_file_directory` | `Path \| None` | Resolved; `None` if not declared. |
-| `variables` | `dict[str, Any]` | The pipeline's `variables:` block, resolved. |
+`resolve()` uses the engine's own context builder and resolver, so the result matches a
+real run — replacing the pattern of re-parsing a pipeline YAML in consumer code (a copy
+that drifts: misses `--var`, hard-pins one pipeline, invents non-YAML constants).

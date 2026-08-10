@@ -307,7 +307,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     if args.command == "clean":
-        from llmflow import resolve_pipeline_paths
+        from llmflow import load_pipeline
 
         pipeline_path = Path(args.pipeline)
         if not pipeline_path.exists():
@@ -317,7 +317,7 @@ def main(argv=None):
         # Resolve via the shared engine accessor so `sp clean` honors --var and uses the
         # same ${...} expansion a real run does (LLMFlow#186).
         _clean_vars = _collect_cli_variables(getattr(args, "var", []) or [])
-        _intermediate_dir = resolve_pipeline_paths(pipeline_path, vars=_clean_vars).intermediate_file_directory
+        _intermediate_dir = load_pipeline(pipeline_path).resolve(vars=_clean_vars).intermediate_file_directory
 
         _debug_only = getattr(args, "debug_only", False)
         _intermediate_only = getattr(args, "intermediate_only", False)

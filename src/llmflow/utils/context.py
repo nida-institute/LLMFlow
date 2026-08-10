@@ -12,8 +12,8 @@ def build_run_context(pipeline_config: Dict[str, Any], vars: Optional[Dict[str, 
 
     Precedence, low to high: root-level directory keys (base) -> the ``variables:``
     block -> caller ``vars`` (e.g. ``--var``, which win). This is the single source of
-    the run context — both the runner and the public ``resolve_pipeline_paths`` accessor
-    call it, so run-time and inspection-time behavior cannot drift. See LLMFlow#186.
+    the run context — both the runner and the public ``Pipeline.resolve()`` accessor
+    call it, so run-time and inspection-time behavior cannot drift. See LLMFlow#187.
     """
     pipeline_root = pipeline_config.get("pipeline", pipeline_config)
     pipeline_vars = pipeline_root.get("variables", {}) or {}

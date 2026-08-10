@@ -4,21 +4,15 @@
 
 ### New Features
 
-- **Public Python API — object model (`load_pipeline`, `Pipeline`, `Step`)** —
+- **Public Python API — object model (`load_pipeline`, `Pipeline`, `Step`, `Pipeline.resolve`)** —
   `load_pipeline(path)` returns a read-only `Pipeline` whose attributes mirror the pipeline
   YAML 1:1 (`p.name`, `p.variables`, `p.steps`, `step.type`, `step.saveas`, nested
   `step.steps`; reserved words as `in_` / `for_`), so the calls are guessable directly from
-  the syntax. Declared values are raw (`${...}` resolution arrives in a later slice).
-  `PIPELINE_SCHEMA` is now a public export, and a drift test keeps the object model in
-  lockstep with it. (#187)
-- **Public Python API — `llmflow.resolve_pipeline_paths()`** — resolve a pipeline's
-  `intermediate_file_directory`, `output_file_directory`, and `variables` from outside a
-  run, with the same precedence and `${...}` expansion a real run uses (honors `--var`).
-  Returns a `ResolvedPipelinePaths`. Backed by the runner's own context construction (new
-  shared `build_run_context` helper) so it cannot drift. Lets consumer repos delete
-  hand-rolled YAML-reading path modules. First slice of the public Python API epic
-  (#187), which tracks exposing what the engine resolves so consumers stop re-deriving
-  it. (#186)
+  the syntax. `Pipeline.resolve(vars)` returns a same-shaped view with `${...}` expanded and
+  `--var` applied (directory keys as `Path`) — backed by the engine's own context builder so
+  it can't drift, and letting consumer repos delete hand-rolled YAML-reading path modules.
+  `PIPELINE_SCHEMA` is a public export, and a drift test keeps the object model in lockstep
+  with it. (#187)
 - **`sp clean` honors `--var`** — `clean` resolves its target directory through the same
   accessor, so `sp clean --var output_file_directory=...` matches the run it cleans up
   after. (#186)

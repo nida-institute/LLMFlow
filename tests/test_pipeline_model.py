@@ -90,11 +90,12 @@ def test_model_is_read_only(tmp_path):
 
 # Computed methods (resolve/run/lint/schemas/render_prompt) land in later slices; they are
 # not schema keys, so the reverse check excludes them.
-_KNOWN_METHODS: set[str] = set()
+_KNOWN_METHODS: set[str] = {"resolve"}
 
 
 def _public_attrs(cls) -> set:
-    return {a for a in vars(cls) if not a.startswith("_")} - _KNOWN_METHODS
+    # dir() so inherited attributes (from the shared _PipelineView base) are included.
+    return {a for a in dir(cls) if not a.startswith("_")} - _KNOWN_METHODS
 
 
 def test_pipeline_attributes_match_schema():
