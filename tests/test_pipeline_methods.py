@@ -192,3 +192,28 @@ def test_schemas_skips_unfindable_prompt(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     p = _write(tmp_path, "name: p\nsteps:\n  - name: gen\n    type: llm\n    prompt: nope.gpt\n")
     assert load_pipeline(p).schemas() == {}
+
+
+# --- Pipeline.saveas() — {step: saveas} targets (declared, recursive) ---
+
+def test_saveas_maps_steps_to_targets(tmp_path):
+    body = (
+        "name: p\n"
+        "steps:\n"
+        "  - name: gen\n"
+        "    type: llm\n"
+        "    saveas: ${output_file_directory}/gen.txt\n"
+        "  - name: plain\n"
+        "    type: llm\n"
+        "  - name: loop\n"
+        "    type: for-each\n"
+        "    for: ${items}\n"
+        "    steps:\n"
+        "      - name: inner\n"
+        "        saveas:\n"
+        "          path: ${output_file_directory}/inner.txt\n"
+    )
+    assert load_pipeline(_write(tmp_path, body)).saveas() == {
+        "gen": "${output_file_directory}/gen.txt",
+        "inner": {"path": "${output_file_directory}/inner.txt"},
+    }

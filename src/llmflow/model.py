@@ -284,6 +284,25 @@ class Pipeline(_PipelineView):
         _walk(self._root.get("steps"))
         return found
 
+    def saveas(self) -> Dict[str, Any]:
+        """Return ``{step_name: saveas}`` for every step (including nested) that declares a
+        ``saveas:`` target.
+
+        Declared (raw) values — each is a string or a ``{path, group_by_prefix}`` mapping.
+        Call :meth:`resolve` and read ``step.saveas`` for resolved paths.
+        """
+        found: Dict[str, Any] = {}
+
+        def _walk(steps: Any) -> None:
+            for step in steps or []:
+                name = step.get("name")
+                if step.get("saveas") is not None and name is not None:
+                    found[name] = step["saveas"]
+                _walk(step.get("steps"))
+
+        _walk(self._root.get("steps"))
+        return found
+
 
 class ResolvedPipeline(_PipelineView):
     """A resolved view of a pipeline (``${...}`` expanded, ``--var`` applied).

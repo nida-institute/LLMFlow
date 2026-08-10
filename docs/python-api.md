@@ -94,6 +94,7 @@ so there is exactly one code path per operation.
 ```python
 p.schemas()               # {step_name: schema_file} for steps referencing a JSON schema via
                           # response_format or a prompt's frontmatter `schema:` (recursive)
+p.saveas()                # {step_name: saveas} declared output targets (recursive)
 
 s.render_prompt(context)  # render this step's prompt with variable substitution -> str
 ```

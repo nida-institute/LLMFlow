@@ -90,17 +90,19 @@ def test_model_is_read_only(tmp_path):
 
 # Computed methods (resolve/run/lint/schemas/render_prompt) land in later slices; they are
 # not schema keys, so the reverse check excludes them.
-_KNOWN_METHODS: set[str] = {"resolve", "lint", "run", "render_prompt", "schemas"}
+# Computed methods per class (not schema keys) — excluded from the attribute drift check.
+_PIPELINE_METHODS: set[str] = {"resolve", "lint", "run", "schemas", "saveas"}
+_STEP_METHODS: set[str] = {"render_prompt"}
 
 
-def _public_attrs(cls) -> set:
+def _public_attrs(cls, methods: set) -> set:
     # dir() so inherited attributes (from the shared _PipelineView base) are included.
-    return {a for a in dir(cls) if not a.startswith("_")} - _KNOWN_METHODS
+    return {a for a in dir(cls) if not a.startswith("_")} - methods
 
 
 def test_pipeline_attributes_match_schema():
     schema_keys = {_api_name(k) for k in PIPELINE_SCHEMA["properties"]}
-    api = _public_attrs(Pipeline)
+    api = _public_attrs(Pipeline, _PIPELINE_METHODS)
     missing = schema_keys - api
     invented = api - schema_keys
     assert not missing, f"Pipeline missing attributes for schema keys: {missing}"
@@ -110,7 +112,7 @@ def test_pipeline_attributes_match_schema():
 def test_step_attributes_match_schema():
     step_props = PIPELINE_SCHEMA["properties"]["steps"]["items"]["properties"]
     schema_keys = {_api_name(k) for k in step_props}
-    api = _public_attrs(Step)
+    api = _public_attrs(Step, _STEP_METHODS)
     missing = schema_keys - api
     invented = api - schema_keys
     assert not missing, f"Step missing attributes for schema keys: {missing}"
