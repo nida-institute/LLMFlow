@@ -4,35 +4,56 @@ LLMFlow's supported Python API is the top-level `llmflow` namespace. Everything 
 `llmflow.__all__` is a stable, documented surface for programs that embed the engine.
 Anything reached through `llmflow.*` submodules is internal and may change without notice.
 
-**Principle.** Each public function is backed by the *same* code the engine runs — never a
-parallel reimplementation — so a program using the API sees exactly what a real run sees.
-Consumers should never re-parse pipeline YAML to re-derive what the engine already
-resolves; that copy inevitably drifts. If you find yourself reaching into `llmflow.*`
-internals or re-reading a pipeline file, that is a gap in this surface worth reporting.
+## The mapping principle
 
-## The object model — `load_pipeline()`
+A pipeline YAML is an object tree (`pipeline → steps → step → saveas`); the API is an object
+graph of the **same shape**, so *reading a pipeline tells you the calls*. The mapping is
+total and mechanical — a program can compose API calls directly from pipeline syntax:
 
-`load_pipeline(path)` returns a `Pipeline` whose attributes mirror the pipeline YAML 1:1,
-so the calls are guessable directly from the syntax. Attributes are the declared keys
-(raw); computations are methods.
+- **If you can point to it in the YAML, it's an attribute** (`p.output_file_directory`,
+  `step.saveas`). **If the engine has to compute it, it's a method** (`p.resolve()`,
+  `p.run()`).
+- Attribute names come straight from the pipeline schema (`PIPELINE_SCHEMA`); a syntax key
+  that is a Python keyword gets a trailing underscore (`for:` → `step.for_`, `in:` →
+  `step.in_`). No invented names.
+- Every method is backed by the *same* code the engine runs — never a parallel
+  reimplementation — so a program using the API sees exactly what a real run sees.
+
+If you find yourself reaching into `llmflow.*` internals or re-parsing a pipeline file to
+re-derive what the engine already resolves, that is a gap in this surface worth reporting.
+
+## Loading and navigating
+
+`load_pipeline(path)` returns a read-only `Pipeline`; its attributes and nested `Step`
+objects mirror the YAML.
 
 ```python
 from llmflow import load_pipeline
 
 p = load_pipeline("pipelines/build-book.yaml")   # -> Pipeline
 p.name
-p.variables                       # declared {...}
+p.description
+p.variables                       # declared {...} (raw)
+p.llm_config
 p.output_file_directory           # declared, raw "${base}/out"
-p.steps[0].saveas                 # == the YAML path steps[0].saveas
-p.steps[0].steps                  # nested steps (for-each / if)
+p.intermediate_file_directory
+p.steps                           # [Step, ...]
+
+s = p.steps[0]                    # -> Step
+s.type                            # "llm"
+s.prompt
+s.inputs
+s.saveas                          # == the YAML path steps[0].saveas
+s.for_                            # the `for:` key (renamed)
+s.steps                           # nested steps (for-each / if)
 ```
 
-Reserved words get a trailing underscore: `for:` → `step.for_`, `in:` → `step.in_`.
+Declared values are raw — `${...}` is **not** expanded until you call `resolve()`.
 
-### `Pipeline.resolve(vars=None) -> ResolvedPipeline`
+## Resolving — `Pipeline.resolve(vars=None) -> ResolvedPipeline`
 
-Resolution expands `${...}` and applies `--var`, so it is a method whose result is a
-same-shaped view with resolved attributes — directory keys as `Path`:
+Resolution expands `${...}` and applies `--var` overrides, returning a same-shaped view
+whose attributes are resolved (directory keys as `Path`):
 
 ```python
 r = p.resolve()                                   # defaults
@@ -47,6 +68,66 @@ r.output_file_directory                           # Path("acceptance/out")
 Precedence, low to high: root-level directory keys → the pipeline's `variables:` block →
 `vars` (which win). Directory keys the pipeline does not declare come back as `None`.
 
-`resolve()` uses the engine's own context builder and resolver, so the result matches a
-real run — replacing the pattern of re-parsing a pipeline YAML in consumer code (a copy
-that drifts: misses `--var`, hard-pins one pipeline, invents non-YAML constants).
+## Validating and running
+
+```python
+result = p.lint(vars=None, rewind_to=None)        # -> LintResult(.valid, .errors, .warnings)
+
+p.run(                                             # like `sp run` — calls LLMs, writes files
+    vars=None,
+    dry_run=False,
+    rewind_to=None,
+    stop_after=None,
+    resume=False,
+    verbose=False,
+    skip_lint=False,
+    log_file="llmflow.log",
+)
+```
+
+`lint()` delegates to the engine's linter and requires a pipeline loaded from a file;
+`run()` delegates to the engine's runner. The `sp` CLI is itself a client of these methods,
+so there is exactly one code path per operation.
+
+## Inspecting
+
+```python
+p.schemas()               # {step_name: schema_file} for steps declaring a JSON schema via
+                          # response_format (config-only, recursive)
+
+s.render_prompt(context)  # render this step's prompt with variable substitution -> str
+```
+
+## Direct model access — `call_llm`
+
+```python
+from llmflow import call_llm
+
+text = call_llm(prompt, config, output_type="text")
+```
+
+`call_llm` is imported lazily, so a bare `import llmflow` never pulls in the heavy provider
+stack.
+
+## The published mapping (machine-readable)
+
+The syntax↔API mapping is published so a program can compose calls without guessing:
+
+- **`PIPELINE_SCHEMA`** — the JSON Schema of the pipeline syntax; it enumerates every
+  attribute the object model exposes (`llmflow.PIPELINE_SCHEMA`).
+- **`api_catalog()`** — the *verbs* the schema cannot describe, generated by introspection so
+  it cannot drift:
+
+```python
+from llmflow import api_catalog
+
+for entry in api_catalog():
+    # {"node": "Pipeline"|"Step"|"llmflow", "name": ..., "signature": ..., "doc": ...}
+    print(entry["node"], entry["signature"])
+```
+
+## Stability
+
+The `llmflow` namespace is the contract; the object model's attributes are kept in lockstep
+with `PIPELINE_SCHEMA` by a drift test, and every method delegates to the engine's own
+implementation. Pin the package version to depend on it.

@@ -46,9 +46,10 @@
 
 ### Documentation
 
-- **`docs/python-api.md`** — documents the supported `llmflow` public API surface and the
-  stability principle: public functions are backed by the engine's own code, never a
-  reimplementation. (#186)
+- **`docs/python-api.md`** — documents the object-model public API (`load_pipeline`,
+  `Pipeline`/`Step`, `.resolve` / `.lint` / `.run` / `.schemas`, `Step.render_prompt`,
+  `call_llm`, `PIPELINE_SCHEMA`, `api_catalog`), the syntax→API mapping principle
+  (read a pipeline, guess the calls), and the stability contract. (#187)
 
 ## 0.2.1.21 — 2026-07-30
 
