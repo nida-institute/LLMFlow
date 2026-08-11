@@ -1,0 +1,145 @@
+# Python API
+
+LLMFlow's supported Python API is the top-level `llmflow` namespace. Everything listed in
+`llmflow.__all__` is a stable, documented surface for programs that embed the engine.
+Anything reached through `llmflow.*` submodules is internal and may change without notice.
+
+## The mapping principle
+
+A pipeline YAML is an object tree (`pipeline → steps → step → saveas`); the API is an object
+graph of the **same shape**, so *reading a pipeline tells you the calls*. The mapping is
+total and mechanical — a program can compose API calls directly from pipeline syntax:
+
+- **If you can point to it in the YAML, it's an attribute** (`p.output_file_directory`,
+  `step.saveas`). **If the engine has to compute it, it's a method** (`p.resolve()`,
+  `p.run()`).
+- Attribute names come straight from the pipeline schema (`PIPELINE_SCHEMA`); a syntax key
+  that is a Python keyword gets a trailing underscore (`for:` → `step.for_`, `in:` →
+  `step.in_`). No invented names.
+- Every method is backed by the *same* code the engine runs — never a parallel
+  reimplementation — so a program using the API sees exactly what a real run sees.
+
+If you find yourself reaching into `llmflow.*` internals or re-parsing a pipeline file to
+re-derive what the engine already resolves, that is a gap in this surface worth reporting.
+
+## Loading and navigating
+
+`load_pipeline(path)` returns a read-only `Pipeline`; its attributes and nested `Step`
+objects mirror the YAML.
+
+```python
+from llmflow import load_pipeline
+
+p = load_pipeline("pipelines/build-book.yaml")   # -> Pipeline
+p.name
+p.description
+p.variables                       # declared {...} (raw)
+p.llm_config
+p.output_file_directory           # declared, raw "${base}/out"
+p.intermediate_file_directory
+p.steps                           # [Step, ...]
+
+s = p.steps[0]                    # -> Step
+s.type                            # "llm"
+s.prompt
+s.inputs
+s.saveas                          # == the YAML path steps[0].saveas
+s.for_                            # the `for:` key (renamed)
+s.steps                           # nested steps (for-each / if)
+```
+
+Declared values are raw — `${...}` is **not** expanded until you call `resolve()`.
+
+## Resolving — `Pipeline.resolve(vars=None) -> ResolvedPipeline`
+
+Resolution expands `${...}` and applies `--var` overrides, returning a same-shaped view
+whose attributes are resolved (directory keys as `Path`):
+
+```python
+r = p.resolve()                                   # defaults
+r.output_file_directory                           # Path("outputs/out")  (${base} expanded)
+r.variables["book_dir"]                           # derived vars resolved transitively
+
+# Honor the same overrides `sp run --var` would apply:
+r = p.resolve(vars={"output_file_directory": "acceptance/out"})
+r.output_file_directory                           # Path("acceptance/out")
+```
+
+Precedence, low to high: root-level directory keys → the pipeline's `variables:` block →
+`vars` (which win). Directory keys the pipeline does not declare come back as `None`.
+
+## Validating and running
+
+```python
+result = p.lint(vars=None, rewind_to=None)        # -> LintResult(.valid, .errors, .warnings)
+
+p.run(                                             # like `sp run` — calls LLMs, writes files
+    vars=None,
+    dry_run=False,
+    rewind_to=None,
+    stop_after=None,
+    resume=False,
+    verbose=False,
+    skip_lint=False,
+    log_file="llmflow.log",
+)
+```
+
+`lint()` delegates to the engine's linter and requires a pipeline loaded from a file;
+`run()` delegates to the engine's runner. The `sp` CLI is itself a client of these methods,
+so there is exactly one code path per operation.
+
+## Inspecting
+
+```python
+p.schemas()               # {step_name: schema_file} for steps referencing a JSON schema via
+                          # response_format or a prompt's frontmatter `schema:` (recursive)
+p.saveas()                # {step_name: saveas} declared output targets (recursive)
+
+s.render_prompt(context)  # render this step's prompt with variable substitution -> str
+```
+
+## Direct model access — `call_llm`
+
+```python
+from llmflow import call_llm
+
+text = call_llm(prompt, config, output_type="text")
+```
+
+`call_llm` is imported lazily, so a bare `import llmflow` never pulls in the heavy provider
+stack.
+
+## Utilities
+
+```python
+from llmflow import parse_bible_reference, model_metadata
+
+parse_bible_reference("John 3:16")   # parse a scripture reference
+model_metadata("gpt-4o")             # pricing / context-window metadata for a model
+```
+
+Both are imported lazily.
+
+## The published mapping (machine-readable)
+
+The syntax↔API mapping is published so a program can compose calls without guessing:
+
+- **`PIPELINE_SCHEMA`** — the JSON Schema of the pipeline syntax; it enumerates every
+  attribute the object model exposes (`llmflow.PIPELINE_SCHEMA`).
+- **`api_catalog()`** — the *verbs* the schema cannot describe, generated by introspection so
+  it cannot drift:
+
+```python
+from llmflow import api_catalog
+
+for entry in api_catalog():
+    # {"node": "Pipeline"|"Step"|"llmflow", "name": ..., "signature": ..., "doc": ...}
+    print(entry["node"], entry["signature"])
+```
+
+## Stability
+
+The `llmflow` namespace is the contract; the object model's attributes are kept in lockstep
+with `PIPELINE_SCHEMA` by a drift test, and every method delegates to the engine's own
+implementation. Pin the package version to depend on it.

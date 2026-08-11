@@ -33,7 +33,7 @@ try:
 except Exception:
     __version__ = "unknown"
 
-from llmflow.runner import run_pipeline
+import llmflow.plugins.loader  # noqa: F401 — trigger eager plugin discovery on CLI startup
 from llmflow.cli_utils import init_project, list_pipelines
 
 def list_pipelines(directory: str) -> list[str]:
@@ -85,6 +85,7 @@ def build_parser():
     clean_p.add_argument("--dry-run", action="store_true", help="Show what would be deleted without deleting")
     clean_p.add_argument("--debug-only", action="store_true", help="Delete only debug files (intermediate_file_directory/debug/ or outputs/debug/)")
     clean_p.add_argument("--intermediate-only", action="store_true", help="Delete only intermediate files, preserving debug/")
+    clean_p.add_argument("--var", action="append", default=[], help="Pipeline variable key=value; repeatable (honored when resolving directories)")
 
     # version command
     subparsers.add_parser("version", help="Show version")
@@ -259,16 +260,12 @@ def command_lint(
     cli_vars: dict | None = None,
     rewind_to: str | None = None,
 ):
-    from llmflow.utils.linter import lint_pipeline_full
+    from llmflow import load_pipeline
 
     if verbose:
         print(f"🔍 Linting pipeline: {pipeline_path}")
 
-    result = lint_pipeline_full(
-        pipeline_path,
-        vars=cli_vars,
-        rewind_to=rewind_to,
-    )
+    result = load_pipeline(pipeline_path).lint(vars=cli_vars, rewind_to=rewind_to)
 
     if json_mode:
         output = {
@@ -306,23 +303,17 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     if args.command == "clean":
-        import shutil
-        import yaml as _yaml
-        from llmflow.runner import resolve as _resolve
+        from llmflow import load_pipeline
 
         pipeline_path = Path(args.pipeline)
         if not pipeline_path.exists():
             logger.error(f"❌ Pipeline file not found: {args.pipeline}")
             sys.exit(1)
 
-        with open(pipeline_path) as _f:
-            _config = _yaml.safe_load(_f)
-        _config = _config or {}
-        _pipeline_cfg = _config.get("pipeline", _config)
-        _context = {**(_pipeline_cfg.get("variables", {}) or {})}
-
-        _raw_dir = _pipeline_cfg.get("intermediate_file_directory")
-        _intermediate_dir = Path(str(_resolve(str(_raw_dir), _context))) if _raw_dir else None
+        # Resolve via the shared engine accessor so `sp clean` honors --var and uses the
+        # same ${...} expansion a real run does (LLMFlow#186).
+        _clean_vars = _collect_cli_variables(getattr(args, "var", []) or [])
+        _intermediate_dir = load_pipeline(pipeline_path).resolve(vars=_clean_vars).intermediate_file_directory
 
         _debug_only = getattr(args, "debug_only", False)
         _intermediate_only = getattr(args, "intermediate_only", False)
@@ -760,25 +751,19 @@ def main(argv=None):
     if args.command == "run":
         try:
             variables = _collect_cli_variables(args.var)
+            from llmflow import load_pipeline
+
+            try:
+                pipeline = load_pipeline(args.pipeline)
+            except FileNotFoundError:
+                logger.error(f"❌ Pipeline file not found: {args.pipeline}")
+                logger.error(f"   Current directory: {os.getcwd()}")
+                logger.error("   💡 Tip: Make sure you're running from the correct directory")
+                sys.exit(1)
+
             if not args.skip_lint:
-                from llmflow.utils.linter import lint_pipeline_full
-
                 logger.info("🔍 Validating pipeline...")
-                try:
-                    result = lint_pipeline_full(
-                        args.pipeline,
-                        vars=variables,
-                        rewind_to=args.rewind_to,
-                    )
-                except FileNotFoundError as e:
-                    if not Path(args.pipeline).exists():
-                        logger.error(f"❌ Pipeline file not found: {args.pipeline}")
-                        logger.error(f"   Current directory: {os.getcwd()}")
-                        logger.error("   💡 Tip: Make sure you're running from the correct directory")
-                    else:
-                        logger.error(f"❌ {e}")
-                    sys.exit(1)
-
+                result = pipeline.lint(vars=variables, rewind_to=args.rewind_to)
                 if not result.valid:
                     logger.error("❌ Pipeline validation failed:")
                     for error in result.errors:
@@ -786,8 +771,7 @@ def main(argv=None):
                     sys.exit(1)
 
             try:
-                run_pipeline(
-                    args.pipeline,
+                pipeline.run(
                     vars=variables,
                     dry_run=args.dry_run,
                     verbose=args.verbose,

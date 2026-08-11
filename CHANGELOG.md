@@ -1,5 +1,62 @@
 # Changelog
 
+## 0.2.1.22 — 2026-08-10
+
+### New Features
+
+- **Public Python API — object model (`load_pipeline`, `Pipeline`, `Step`, `Pipeline.resolve`)** —
+  `load_pipeline(path)` returns a read-only `Pipeline` whose attributes mirror the pipeline
+  YAML 1:1 (`p.name`, `p.variables`, `p.steps`, `step.type`, `step.saveas`, nested
+  `step.steps`; reserved words as `in_` / `for_`), so the calls are guessable directly from
+  the syntax. `Pipeline.resolve(vars)` returns a same-shaped view with `${...}` expanded and
+  `--var` applied (directory keys as `Path`) — backed by the engine's own context builder so
+  it can't drift, and letting consumer repos delete hand-rolled YAML-reading path modules.
+  `PIPELINE_SCHEMA` is a public export, and a drift test keeps the object model in lockstep
+  with it. (#187)
+- **Public Python API — `Pipeline.lint()` / `Pipeline.run()`** — thin facade methods that
+  delegate to the engine's own `lint_pipeline_full` / `run_pipeline` (no reimplementation):
+  `load_pipeline(p).lint(vars=...)` returns a `LintResult`; `load_pipeline(p).run(vars=...,
+  dry_run=...)` runs the pipeline. (#187)
+- **Public Python API — `Step.render_prompt()` and lazy `call_llm`** —
+  `step.render_prompt(context)` renders the step's prompt (delegates to the engine's
+  `render_prompt`); `llmflow.call_llm(prompt, config)` gives direct model access (#175),
+  imported lazily so `import llmflow` stays light. (#187)
+- **Public Python API — `Pipeline.schemas()` and `api_catalog()`** — `p.schemas()` returns
+  `{step: schema_file}` for steps referencing a JSON schema via `response_format` or a
+  prompt's `.gpt` frontmatter `schema:` (recursive). `llmflow.api_catalog()` returns the
+  machine-readable method catalog
+  (`{node, name, signature, doc}`), introspection-generated so it can't drift — the verb half
+  of the published API mapping, with `PIPELINE_SCHEMA` the attribute half. (#187)
+- **Public Python API — `Pipeline.saveas()`** — `{step_name: saveas}` declared output targets
+  for every step (recursive); resolved paths come from `.resolve()`. (#187)
+- **Public Python API — utilities** — `llmflow.parse_bible_reference` (scripture-reference
+  parser) and `llmflow.model_metadata` (model pricing / context-window info) are exposed as
+  lazy top-level functions and listed in `api_catalog()`. (#187)
+- **`sp clean` honors `--var`** — `clean` resolves its target directory through the same
+  accessor, so `sp clean --var output_file_directory=...` matches the run it cleans up
+  after. (#186)
+
+### Changed
+
+- **CLI runs on the public API** — `sp run` / `sp lint` / `sp clean` now go through the
+  `llmflow` facade (`load_pipeline().run()` / `.lint()` / `.resolve()`) instead of calling
+  engine internals in parallel, so there is one code path per operation and CLI/API behavior
+  cannot diverge. (`Pipeline.lint()` gained `rewind_to`; `Pipeline.run()` gained `log_file`.)
+  (#187)
+- **Pipeline schema recognizes the directory keys** — `intermediate_file_directory` and
+  `output_file_directory` are now first-class in `PIPELINE_SCHEMA` / `PipelineConfig`
+  (previously accepted only implicitly via `additionalProperties`), so the linter knows
+  them. Internally, pipeline YAML loading is consolidated into a single
+  `load_pipeline_config()` shared by the runner, linter, and path resolution — groundwork
+  for the object-model public API. (#187)
+
+### Documentation
+
+- **`docs/python-api.md`** — documents the object-model public API (`load_pipeline`,
+  `Pipeline`/`Step`, `.resolve` / `.lint` / `.run` / `.schemas`, `Step.render_prompt`,
+  `call_llm`, `PIPELINE_SCHEMA`, `api_catalog`), the syntax→API mapping principle
+  (read a pipeline, guess the calls), and the stability contract. (#187)
+
 ## 0.2.1.21 — 2026-07-30
 
 ### New Features
