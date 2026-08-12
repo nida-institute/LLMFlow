@@ -607,3 +607,10 @@ def test_init_update_never_overwrites_project_md(tmp_path, monkeypatch):
 
 def test_index_references_project_md():
     assert "project.md" in AI_INDEX_DOC
+
+
+def test_index_references_python_api():
+    # Project AIs must be able to discover the public Python API via their AI context.
+    assert "python-api" in AI_INDEX_DOC
+    assert "load_pipeline" in AI_INDEX_DOC
+    assert "api_catalog" in AI_INDEX_DOC

@@ -10,6 +10,10 @@
   `overview.md`, `rules.md`, `github-workflow.md`) still refresh on `--update`; local context
   goes in `project.md`, which `index.md` links for AI assistants. Cleanly separates sp's
   evolving standard context from a repo's own, so neither pollutes the other.
+- **The Python API is discoverable from generated AI context** — the `docs/ai-context/index.md`
+  template now points project AIs at the engine's Python API (`load_pipeline` / `Pipeline` /
+  `api_catalog` + `PIPELINE_SCHEMA`), so an assistant in a consumer repo finds the programmatic
+  surface — not just the CLI and the YAML language. (#187)
 
 ### Fixed
 

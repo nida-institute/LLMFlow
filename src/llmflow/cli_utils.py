@@ -1108,6 +1108,7 @@ Don't read everything upfront. Use this index to find what you need for each spe
 ### External References
 - [Engine language spec (canonical)](https://github.com/nida-institute/LLMFlow/blob/main/docs/llmflow-language.md) - Full YAML specification
 - [Engine tutorial](https://github.com/nida-institute/LLMFlow/blob/main/docs/tutorial.md) - Core tutorial
+- [Engine Python API](https://github.com/nida-institute/LLMFlow/blob/main/docs/python-api.md) - `import llmflow`: `load_pipeline` / `Pipeline` / `.resolve` / `.lint` / `.run` / `.schemas` / `.saveas`, plus `PIPELINE_SCHEMA` + `api_catalog()` — the machine-readable syntax↔API map. Use this to inspect or drive a pipeline from Python instead of re-parsing YAML.
 
 ---
 
@@ -1149,6 +1150,7 @@ Don't read everything upfront. Use this index to find what you need for each spe
 - **Auditing code** → `~/.sp/skills/audit-code/SKILL.md`
 - **Writing tests** → `../.github/copilot-instructions.md` TDD workflow
 - **CLI questions** → `../llmflow-language-quickref.md`
+- **Inspecting or driving a pipeline from Python** → [Engine Python API](https://github.com/nida-institute/LLMFlow/blob/main/docs/python-api.md) — `load_pipeline("…").resolve()/.lint()/.run()/.schemas()`; `PIPELINE_SCHEMA` + `api_catalog()` are the machine-readable map. Prefer this over re-parsing pipeline YAML.
 - **Architecture patterns** → `../.github/copilot-instructions.md`
 
 ---
