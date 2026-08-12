@@ -31,6 +31,11 @@
   `inputs.schema_path`), silently under-reporting. It now returns
   `{step: {"path": ..., "kind": "response_format" | "validator" | "frontmatter"}}`, covering all
   three routes a step can reference a JSON schema. (#187)
+- **`sp init` no longer plants an `output/` decoy** — sp's scaffolding used singular `output/`
+  (the created directory, the HELLO examples, the tutorial) while sp's own runtime default is
+  plural `outputs/` (e.g. debug dumps under `outputs/debug/`, and real projects use `outputs/`).
+  Every `sp init` left an empty `output/` beside where output actually lands, and the examples
+  taught the wrong name. sp now scaffolds `outputs/` consistently.
 
 ### Documentation
 

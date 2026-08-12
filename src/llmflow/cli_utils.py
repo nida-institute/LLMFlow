@@ -50,7 +50,7 @@ description: |
     sp run --pipeline pipelines/hello-llmflow.yaml
 variables:
   prompts_dir: "prompts"
-  output_dir: "output"
+  output_dir: "outputs"
 
 llm_config:
   model: "gpt-4o-mini"
@@ -84,7 +84,7 @@ description: |
   Minimal starter pipeline for LLMFlow.
   Run with: sp run --pipeline pipelines/hello.yaml
 variables:
-  output_dir: "output"
+  output_dir: "outputs"
 
 llm_config:
   model: "gpt-4o-mini"
@@ -115,7 +115,7 @@ After running `sp init` in an empty directory, you should see:
 
 ```
 ./
-├── output/
+├── outputs/
 ├── pipelines/
 │   └── hello-llmflow.yaml
 └── prompts/
@@ -124,7 +124,7 @@ After running `sp init` in an empty directory, you should see:
 ```
 
 Pipelines live under `pipelines/`, prompt templates live under `prompts/`,
-and generated content is written into `output/`.
+and generated content is written into `outputs/`.
 
 ## 2. Tutorial pipeline
 
@@ -134,7 +134,7 @@ The tutorial pipeline is defined in `pipelines/hello-llmflow.yaml`:
 name: "Hello Multilingual Pipeline"
 variables:
   prompts_dir: "prompts"
-  output_dir: "output"
+  output_dir: "outputs"
 
 llm_config:
   model: "gpt-4o-mini"
@@ -167,10 +167,10 @@ Highlights:
 - The `variables` block declares `output_dir`, which is referenced later
   in the `saveas.path` fields using `${output_dir}`.
 - The first step saves its LLM output into a pipeline variable called
-  `greeting` and also writes that markdown to `output/hello.md`.
+  `greeting` and also writes that markdown to `outputs/hello.md`.
 - The second step reads `${greeting}` and passes it into the `reply.gpt`
   prompt as `greeting_markdown`, then writes its result to
-  `output/responses.md`.
+  `outputs/responses.md`.
 
 ## 3. Running the tutorial
 
@@ -182,8 +182,8 @@ sp run --pipeline pipelines/hello-llmflow.yaml
 
 On success, you should see two files:
 
-- `output/hello.md` – the original multilingual greetings
-- `output/responses.md` – replies to each greeting
+- `outputs/hello.md` – the original multilingual greetings
+- `outputs/responses.md` – replies to each greeting
 
 Open them in your editor or viewer of choice and iterate on the prompts
 as needed.
@@ -214,7 +214,7 @@ description: |
   One-line or multi-line description of what this flow does.
 
 variables:
-  output_dir: "output"
+  output_dir: "outputs"
 
 llm_config:
   model: gpt-4o-mini
@@ -524,7 +524,7 @@ To pass variables from the CLI:
 ```bash
 sp run --pipeline pipelines/my-pipeline.yaml \
   --var passage="Psalm 23" \
-  --var output_dir="output"
+  --var output_dir="outputs"
 ```
 
 To validate a pipeline without running it:
@@ -637,7 +637,7 @@ the AI implements (executes and provides analysis).
 
 - `pipelines/` — YAML pipeline definitions
 - `prompts/` — prompt templates (`.gpt` files) used by `llm` steps
-- `output/` — generated artifacts written by `saveas`
+- `outputs/` — generated artifacts written by `saveas`
 - `docs/ai-context/` — AI-facing documentation (read index.md first)
 
 ### Workflow guidelines
@@ -842,7 +842,7 @@ It was initialized with the `sp init` command.
 
 - `pipelines/` – YAML pipeline definitions
 - `prompts/` – prompt templates used by `llm` steps
-- `output/` – generated artifacts written by `saveas`
+- `outputs/` – generated artifacts written by `saveas`
 - `docs/` – human- and AI-facing documentation
   - `docs/tutorial.md` – walkthrough of the starter pipeline
   - `docs/llmflow-language-quickref.md` – compact language reference
@@ -869,7 +869,7 @@ LLMFlow-based project.
 2. **Keep prompts and pipelines in sync.** If a prompt template expects
    a variable (e.g., `{{greeting_markdown}}`), ensure the corresponding
    pipeline step passes it via `prompt.inputs`.
-3. **Preserve human review.** Generated files under `output/` are
+3. **Preserve human review.** Generated files under `outputs/` are
    drafts. Do not assume they are final; humans review and edit them
    before publication.
 4. **Be explicit about paths.** When suggesting changes, reference
@@ -1316,7 +1316,7 @@ The index tells you:
 This is an LLMFlow consumer project. It does NOT contain the LLMFlow engine source.
 - Pipelines live in `pipelines/`
 - Prompts live in `prompts/`
-- Generated outputs live in `output/`
+- Generated outputs live in `outputs/`
 - The LLMFlow engine is installed separately: https://github.com/nida-institute/LLMFlow
 
 ## Global Skills
@@ -1504,7 +1504,7 @@ Examples:
 ## What does not belong here
 
 - Pipeline YAML files → `pipelines/`
-- Generated artifacts → `output/`
+- Generated artifacts → `outputs/`
 - Active tasks → `project/TODO.md`
 """
 
@@ -1760,7 +1760,7 @@ def init_project(base_dir: Path, update: bool = False, no_examples: bool = False
     """
     prompts_dir = base_dir / "prompts"
     pipelines_dir = base_dir / "pipelines"
-    output_dir = base_dir / "output"
+    output_dir = base_dir / "outputs"
     docs_dir = base_dir / "docs"
     ai_context_dir = docs_dir / "ai-context"
     docs_audits_dir = docs_dir / "audits"
