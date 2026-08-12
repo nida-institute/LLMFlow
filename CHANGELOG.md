@@ -18,7 +18,8 @@
   handoff *adequate*: a fresh instance, from `HANDOFF.md` + the repo alone, can name and start
   the next action without re-deriving settled decisions or hitting deferred landmines. It leads
   the output with the next action, adds a per-thread "verify" pointer and a "Do NOT / deferred"
-  section, and ends with a fresh-instance self-check. Distributed via `sp init`.
+  section, and ends with a tickable **adequacy checklist** (each item an outcome test, so a
+  section filled with fluff doesn't pass). Distributed via `sp init`.
 
 ### Fixed
 

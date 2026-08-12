@@ -67,14 +67,22 @@ action**, then the supporting map:
   nearly done." State claims the next instance can check, not ones it must trust.
 - Keep it short enough that the next instance reads the whole thing — a map, not a narrative.
 
-## Self-check before finishing
+## Adequacy checklist — the handoff is done only when every box is true
 
-Re-read the file as if you are a fresh instance with no memory of this session:
+Re-read the file as a fresh instance with no memory of this session, and check each. These test
+the **outcome**, so a section filled with vague text does not pass:
 
-- Can you **name the next action and start it**, from this file plus the repo alone?
-- Is any claim of state unverifiable? Replace it with a pointer (a test to run, a SHA, a file).
-- Did you assume knowledge the next instance won't have? Add it, or cut the dependency.
-- Would the next instance reopen a decision you already settled? State the decision and why.
+- [ ] A fresh instance can name the single **NEXT ACTION** and start it, from this file + the
+      repo alone.
+- [ ] Every state claim is backed by a **verifiable pointer** — a test to run, a commit SHA, a
+      `file:line` — not a bare assertion.
+- [ ] All **uncommitted / unpushed** work is named (files, branch, what's RED/failing), with SHAs
+      for what is committed.
+- [ ] Every **settled decision** the next instance might reopen carries its *why*.
+- [ ] **Landmines** are listed: deferred work, boundaries, and "looks like a next step but isn't."
+- [ ] Nothing the next instance **cannot independently know** (audit results, external-thread
+      state) is left implicit — it is captured or pointed to.
+- [ ] It is **short enough to read whole** — a map, not a narrative.
 
 Then tell the Captain the path and offer to `/exit`.
 
