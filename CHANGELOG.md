@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed
+
+- **`Pipeline.schemas()` now covers validator steps and reports the reference kind** — it
+  previously missed `json_schema_validator` steps (whose schema is referenced via
+  `inputs.schema_path`), silently under-reporting. It now returns
+  `{step: {"path": ..., "kind": "response_format" | "validator" | "frontmatter"}}`, covering all
+  three routes a step can reference a JSON schema. (#187)
+
 ## 0.2.1.22 — 2026-08-10
 
 ### New Features

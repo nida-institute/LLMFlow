@@ -237,18 +237,21 @@ class Pipeline(_PipelineView):
             log_file=log_file,
         )
 
-    def schemas(self) -> Dict[str, str]:
-        """Return ``{step_name: schema_file}`` for every step (including nested) that
-        references a JSON schema — via ``response_format.json_schema.schema_file`` or via its
-        ``.gpt`` prompt's frontmatter ``schema:``.
+    def schemas(self) -> Dict[str, Dict[str, str]]:
+        """Return ``{step_name: {"path": schema_file, "kind": ...}}`` for every step (including
+        nested) that references a JSON schema. ``kind`` is one of:
+
+        - ``"response_format"`` — an LLM step's ``response_format.json_schema.schema_file``
+        - ``"validator"`` — a ``json_schema_validator`` step's ``inputs.schema_path``
+        - ``"frontmatter"`` — the step's ``.gpt`` prompt frontmatter ``schema:``
 
         Prompt files are resolved against the pipeline's ``prompts_dir`` (default ``prompts``)
-        with the engine's own resolver; a step whose prompt cannot be found or parsed, or
-        whose prompt path is templated, is skipped. ``response_format`` wins when a step
-        declares both.
+        with the engine's own resolver; a step whose prompt cannot be found or parsed, or whose
+        prompt path is templated, contributes no frontmatter schema. When a step references a
+        schema by more than one route, precedence is response_format > validator > frontmatter.
         """
         prompts_dir = str(self._root.get("prompts_dir") or "prompts")
-        found: Dict[str, str] = {}
+        found: Dict[str, Dict[str, str]] = {}
 
         def _prompt_schema(prompt: Any) -> Optional[str]:
             if isinstance(prompt, dict):
@@ -269,16 +272,31 @@ class Pipeline(_PipelineView):
         def _walk(steps: Any) -> None:
             for step in steps or []:
                 name = step.get("name")
-                ref: Optional[str] = None
+                if name is None:
+                    _walk(step.get("steps"))
+                    continue
+
+                path: Optional[str] = None
+                kind: Optional[str] = None
+
                 rf = step.get("response_format")
                 if isinstance(rf, dict):
                     js = rf.get("json_schema")
                     if isinstance(js, dict) and js.get("schema_file"):
-                        ref = js["schema_file"]
-                if ref is None and step.get("prompt") is not None:
-                    ref = _prompt_schema(step.get("prompt"))
-                if ref is not None and name is not None:
-                    found[name] = ref
+                        path, kind = js["schema_file"], "response_format"
+
+                if path is None and step.get("type") == "json_schema_validator":
+                    inputs = step.get("inputs")
+                    if isinstance(inputs, dict) and inputs.get("schema_path"):
+                        path, kind = inputs["schema_path"], "validator"
+
+                if path is None and step.get("prompt") is not None:
+                    sch = _prompt_schema(step.get("prompt"))
+                    if sch:
+                        path, kind = sch, "frontmatter"
+
+                if path is not None and kind is not None:
+                    found[name] = {"path": path, "kind": kind}
                 _walk(step.get("steps"))
 
         _walk(self._root.get("steps"))

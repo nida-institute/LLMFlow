@@ -148,8 +148,8 @@ steps:
 def test_schemas_maps_steps_to_schema_files(tmp_path):
     p = _write(tmp_path, _SCHEMA_PIPELINE)
     assert load_pipeline(p).schemas() == {
-        "gen": "schemas/scene.json",
-        "inner": "schemas/inner.json",
+        "gen": {"path": "schemas/scene.json", "kind": "response_format"},
+        "inner": {"path": "schemas/inner.json", "kind": "response_format"},
     }
 
 
@@ -182,7 +182,7 @@ def test_schemas_reads_prompt_frontmatter(tmp_path, monkeypatch):
         encoding="utf-8",
     )
     p = _write(tmp_path, "name: p\nsteps:\n  - name: gen\n    type: llm\n    prompt: gen.gpt\n")
-    assert load_pipeline(p).schemas() == {"gen": "schemas/scene.json"}
+    assert load_pipeline(p).schemas() == {"gen": {"path": "schemas/scene.json", "kind": "frontmatter"}}
 
 
 def test_schemas_response_format_takes_precedence(tmp_path, monkeypatch):
@@ -200,13 +200,33 @@ def test_schemas_response_format_takes_precedence(tmp_path, monkeypatch):
         "      json_schema:\n"
         "        schema_file: schemas/from_rf.json\n"
     )
-    assert load_pipeline(_write(tmp_path, body)).schemas() == {"gen": "schemas/from_rf.json"}
+    assert load_pipeline(_write(tmp_path, body)).schemas() == {
+        "gen": {"path": "schemas/from_rf.json", "kind": "response_format"},
+    }
 
 
 def test_schemas_skips_unfindable_prompt(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     p = _write(tmp_path, "name: p\nsteps:\n  - name: gen\n    type: llm\n    prompt: nope.gpt\n")
     assert load_pipeline(p).schemas() == {}
+
+
+def test_schemas_includes_validator_steps(tmp_path):
+    body = (
+        "name: p\n"
+        "steps:\n"
+        "  - name: validate_hierarchy\n"
+        "    type: json_schema_validator\n"
+        "    inputs:\n"
+        "      payload: ${book_hierarchy}\n"
+        "      schema_path: schemas/book-hierarchy.schema.json\n"
+    )
+    assert load_pipeline(_write(tmp_path, body)).schemas() == {
+        "validate_hierarchy": {
+            "path": "schemas/book-hierarchy.schema.json",
+            "kind": "validator",
+        },
+    }
 
 
 # --- Pipeline.saveas() — {step: saveas} targets (declared, recursive) ---
