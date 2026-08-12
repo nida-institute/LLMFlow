@@ -14,6 +14,11 @@
   template now points project AIs at the engine's Python API (`load_pipeline` / `Pipeline` /
   `api_catalog` + `PIPELINE_SCHEMA`), so an assistant in a consumer repo finds the programmatic
   surface — not just the CLI and the YAML language. (#187)
+- **`/handoff` skill — an adequacy standard** — the handoff skill now defines what makes a
+  handoff *adequate*: a fresh instance, from `HANDOFF.md` + the repo alone, can name and start
+  the next action without re-deriving settled decisions or hitting deferred landmines. It leads
+  the output with the next action, adds a per-thread "verify" pointer and a "Do NOT / deferred"
+  section, and ends with a fresh-instance self-check. Distributed via `sp init`.
 
 ### Fixed
 
