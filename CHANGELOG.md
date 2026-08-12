@@ -9,7 +9,10 @@
   `sp` **never overwrites** (even on `sp init --update`). The generated files (`index.md`,
   `overview.md`, `rules.md`, `github-workflow.md`) still refresh on `--update`; local context
   goes in `project.md`, which `index.md` links for AI assistants. Cleanly separates sp's
-  evolving standard context from a repo's own, so neither pollutes the other.
+  evolving standard context from a repo's own, so neither pollutes the other. The stub carries a
+  light suggested structure (what-this-repo-is, data sources, local conventions, gotchas, where
+  active work lives) and a maintenance discipline (record non-obvious facts as learned; keep it a
+  map) — so a project AI knows how to *structure* local context, not just where to put it.
 - **The Python API is discoverable from generated AI context** — the `docs/ai-context/index.md`
   template now points project AIs at the engine's Python API (`load_pipeline` / `Pipeline` /
   `api_catalog` + `PIPELINE_SCHEMA`), so an assistant in a consumer repo finds the programmatic
