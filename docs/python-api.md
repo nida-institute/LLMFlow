@@ -123,7 +123,9 @@ Both are imported lazily.
 
 ## The published mapping (machine-readable)
 
-The syntax↔API mapping is published so a program can compose calls without guessing:
+The syntax↔API mapping is published so a program can compose calls without guessing (see
+`docs/architecture.md` §16–§17 for how one declarative schema drives the implementation, the
+API, and the drift test that keeps them aligned):
 
 - **`PIPELINE_SCHEMA`** — the JSON Schema of the pipeline syntax; it enumerates every
   attribute the object model exposes (`llmflow.PIPELINE_SCHEMA`).

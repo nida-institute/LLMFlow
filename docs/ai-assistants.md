@@ -17,7 +17,10 @@ orientation and rules; it points to `docs/ai-context/` for detail.
 - **`CLAUDE.md`** — Claude Code reads this one, not `AGENTS.md`. In these repos it is a
   one-line `@AGENTS.md` import plus Claude-only slash-command skills, so Claude Code
   ends up with the same instructions as everyone else.
-- **`docs/ai-context/`** — the deeper reference `AGENTS.md` points to.
+- **`docs/ai-context/`** — the deeper reference `AGENTS.md` points to. Two lanes: sp-managed
+  files (`index.md`, `overview.md`, `rules.md`, `github-workflow.md`), refreshed by
+  `sp init --update`, and **`project.md`** — this repo's own context, which `sp` never
+  overwrites. Put project-specific facts there; see `docs/consumer-repo-layout.md`.
 
 **Precondition — the tool must have the repo open.** These files only help a tool that
 has the project's folder loaded (or a connected GitHub repo). A plain chat window with

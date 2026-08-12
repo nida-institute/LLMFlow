@@ -19,6 +19,15 @@
   `{step: {"path": ..., "kind": "response_format" | "validator" | "frontmatter"}}`, covering all
   three routes a step can reference a JSON schema. (#187)
 
+### Documentation
+
+- **`docs/architecture.md` §16–§18** — the *declarative schema as single source*
+  (`PIPELINE_SCHEMA` drives validation, linting, the object-model API, and a schema-derived
+  drift test — not code-generated tests); *machine-readable semantics for programs and LLMs*
+  (`PIPELINE_SCHEMA` nouns + `api_catalog()` verbs, a total syntax↔API isomorphism); and
+  *AI-context distribution* across consumer repos (sp-managed vs `project.md` lanes,
+  `AGENTS.md`-first). `docs/ai-assistants.md` and `docs/python-api.md` cross-linked to match.
+
 ## 0.2.1.22 — 2026-08-10
 
 ### New Features
