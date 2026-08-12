@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### New Features
+
+- **`sp init` — a project-owned AI-context lane** — `sp init` now creates
+  `docs/ai-context/project.md`, a file for a repo's *own* project-specific AI context that
+  `sp` **never overwrites** (even on `sp init --update`). The generated files (`index.md`,
+  `overview.md`, `rules.md`, `github-workflow.md`) still refresh on `--update`; local context
+  goes in `project.md`, which `index.md` links for AI assistants. Cleanly separates sp's
+  evolving standard context from a repo's own, so neither pollutes the other.
+
 ### Fixed
 
 - **`Pipeline.schemas()` now covers validator steps and reports the reference kind** — it

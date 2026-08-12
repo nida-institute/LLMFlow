@@ -10,6 +10,7 @@ from llmflow.cli_utils import (
     HELLO_REPLY_PROMPT,
     AI_INDEX_DOC,
     AI_OVERVIEW_DOC,
+    AI_PROJECT_DOC,
     AI_RULES_DOC,
     COPILOT_INSTRUCTIONS_DOC,
     DOCS_AUDITS_INDEX,
@@ -583,3 +584,26 @@ class TestNoExamples:
 
         for rel in self.EXAMPLE_FILES:
             assert not (tmp_path / rel).exists(), f"{rel} should not be created with --no-examples"
+
+
+# --- docs/ai-context/project.md: the consumer-owned lane ---
+
+def test_init_creates_project_md(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    main(["init"])
+    p = tmp_path / "docs" / "ai-context" / "project.md"
+    assert p.exists()
+    assert p.read_text(encoding="utf-8") == AI_PROJECT_DOC
+
+
+def test_init_update_never_overwrites_project_md(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    main(["init"])
+    p = tmp_path / "docs" / "ai-context" / "project.md"
+    p.write_text("# our project\nlocal facts\n", encoding="utf-8")
+    main(["init", "--update"])   # sp never touches project.md, even on --update
+    assert p.read_text(encoding="utf-8") == "# our project\nlocal facts\n"
+
+
+def test_index_references_project_md():
+    assert "project.md" in AI_INDEX_DOC
