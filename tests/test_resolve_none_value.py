@@ -92,7 +92,7 @@ class TestResolveNoneInForEach:
                     "type": "function",
                     "function": "tests.test_resolve_none_value.make_dict_with_none",
                     "inputs": {"name": "${item.name}"},
-                    "outputs": "built",
+                    "output": "built",
                 },
                 # Step 2: reads the None field via dot-notation
                 {
@@ -103,7 +103,7 @@ class TestResolveNoneInForEach:
                         "id": "${item.id}",
                         "optional_field": "${built.optional_field}",
                     },
-                    "outputs": "packaged",
+                    "output": "packaged",
                     "append_to": "results",
                 },
             ],

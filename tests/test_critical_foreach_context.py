@@ -20,7 +20,7 @@ class TestCriticalForEachContext:
                     "type": "function",
                     "function": "tests.test_critical_foreach_context.mutate_context",
                     "inputs": {"item": "${item}"},
-                    "outputs": "result",
+                    "output": "result",
                     "append_to": "results",
                 }
             ],
@@ -52,7 +52,7 @@ class TestCriticalForEachContext:
                     "type": "function",
                     "function": "tests.test_critical_foreach_context.append_to_shared_list",
                     "inputs": {"item": "${item}", "shared_list": "${shared_list}"},
-                    "outputs": "result",
+                    "output": "result",
                 }
             ],
         }
@@ -81,7 +81,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
 """
         pipeline_file = tmp_path / "foreach-isolation.yaml"
@@ -118,7 +118,7 @@ steps:
             model: gpt-4o
             prompt:
               file: test.gpt
-            outputs:
+            output:
               - result
 """
         pipeline_file = tmp_path / "nested-foreach-isolation.yaml"
@@ -152,7 +152,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
 """
         pipeline_file = tmp_path / "foreach-dict-isolation.yaml"
@@ -196,7 +196,7 @@ steps:
         inputs:
           item: "${item}"
           shared_list: "${shared_list}"
-        outputs:
+        output:
           - result
         append_to: results
 """
@@ -230,7 +230,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
         append_to: collected
 """
@@ -264,7 +264,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
         append_to: results
   - name: after-loop
@@ -272,7 +272,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - final
 """
         pipeline_file = tmp_path / "foreach-variable-shadowing.yaml"
@@ -305,7 +305,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
 """
         pipeline_file = tmp_path / "foreach-multi-list-isolation.yaml"
@@ -339,7 +339,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
 """
         pipeline_file = tmp_path / "foreach-nested-object-isolation.yaml"
@@ -369,7 +369,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - iteration_result
 """
         pipeline_file = tmp_path / "foreach-outputs-no-append.yaml"
@@ -409,7 +409,7 @@ steps:
             model: gpt-4o
             prompt:
               file: test.gpt
-            outputs:
+            output:
               - result
             append_to: results
 """
@@ -447,7 +447,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - r1
         append_to: results1
   - name: loop2
@@ -460,7 +460,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - r2
         append_to: results2
 """
@@ -529,7 +529,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - r1
         append_to: list1
   - name: loop2
@@ -542,7 +542,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - r2
         append_to: list2
 """
@@ -576,7 +576,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
         append_to: results
 """
@@ -624,7 +624,7 @@ steps:
                 model: gpt-4o
                 prompt:
                   file: test.gpt
-                outputs:
+                output:
                   - result
                 append_to: deep_results
 """
@@ -665,7 +665,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
 """
         pipeline_file = tmp_path / "foreach-complex-isolation.yaml"

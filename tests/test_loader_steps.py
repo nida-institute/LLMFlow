@@ -105,7 +105,7 @@ def test_load_json_accepts_output_singular(tmp_path):
 def test_load_json_accepts_outputs_plural(tmp_path):
     f = tmp_path / "d.json"
     f.write_text('{"x": 1}')
-    step = {"name": "s", "type": "load_json", "path": str(f), "outputs": "result"}
+    step = {"name": "s", "type": "load_json", "path": str(f), "output": "result"}
     ctx = {}
     run_load_step(step, ctx)
     assert ctx["result"] == {"x": 1}

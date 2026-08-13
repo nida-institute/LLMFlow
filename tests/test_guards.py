@@ -63,7 +63,7 @@ class TestBuildStepEvalCtx:
 
     def test_single_string_output(self):
         """Test step with single string output"""
-        step = {"outputs": "result"}
+        step = {"output": "result"}
         context = {"result": "some value"}
 
         eval_ctx = build_step_eval_ctx(step, context)
@@ -73,7 +73,7 @@ class TestBuildStepEvalCtx:
 
     def test_list_outputs(self):
         """Test step with list of outputs"""
-        step = {"outputs": ["result1", "result2"]}
+        step = {"output": ["result1", "result2"]}
         context = {"result1": "value1", "result2": "value2"}
 
         eval_ctx = build_step_eval_ctx(step, context)
@@ -83,7 +83,7 @@ class TestBuildStepEvalCtx:
 
     def test_dict_outputs(self):
         """Test step with dict outputs"""
-        step = {"outputs": {"result": "string"}}
+        step = {"output": {"result": "string"}}
         context = {"result": "some value"}
 
         eval_ctx = build_step_eval_ctx(step, context)
@@ -92,7 +92,7 @@ class TestBuildStepEvalCtx:
 
     def test_context_merged_into_eval_ctx(self):
         """Test that entire context is merged into eval_ctx"""
-        step = {"outputs": "result"}
+        step = {"output": "result"}
         context = {
             "result": "primary value",
             "exegetical_culture": "background info",
@@ -109,7 +109,7 @@ class TestBuildStepEvalCtx:
     def test_variable_resolution(self):
         """Test that ${var} style inputs are resolved"""
         step = {
-            "outputs": "result",
+            "output": "result",
             "inputs": {
                 "variables": {
                     "passage": "${passage_ref}",
@@ -258,7 +258,7 @@ class TestEnforceRequire:
 
         step = {
             "name": "bodies",
-            "outputs": "bodies_content",
+            "output": "bodies_content",
             "require": [
                 {"if": "bool(str(bodies_content or '').strip())",
                  "message": "Bodies content is empty"}
@@ -289,7 +289,7 @@ class TestEnforceRequire:
 
         step = {
             "name": "bodies",
-            "outputs": "bodies_content",
+            "output": "bodies_content",
             "require": [
                 {"if": "bool(str(bodies_content or '').strip())",
                  "message": "Bodies content is empty"}
@@ -469,7 +469,7 @@ class TestGuardEdgeCases:
 
     def test_none_context(self):
         """Test that None context is handled gracefully"""
-        step = {"outputs": "result"}
+        step = {"output": "result"}
         eval_ctx = build_step_eval_ctx(step, None)
         # Should not crash, context updates with None should be safe
         assert isinstance(eval_ctx, dict)

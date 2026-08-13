@@ -16,9 +16,9 @@ documentation:
 
 variables:
   book: "Mark"  # Can be overridden with --var book="..."
-  output_dir: "output/json-schema-example"
+  output_dir: "outputs/json-schema-example"
 
-output_file_directory: "output/json-schema-example"
+output_file_directory: "outputs/json-schema-example"
 
 llm_config:
   model: gpt-4o-2024-08-06  # CRITICAL: Must be 2024-08-06 or later for json_schema support

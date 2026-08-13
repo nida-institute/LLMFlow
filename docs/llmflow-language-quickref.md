@@ -15,7 +15,7 @@ description: |
   One-line or multi-line description of what this flow does.
 
 variables:
-  output_dir: "output"
+  output_dir: "outputs"
 
 llm_config:
   model: gpt-4o-mini
@@ -81,7 +81,7 @@ Runs a prompt through an LLM and stores the response.
     file: "template.gpt"
     inputs:
       topic: "${topic}"
-  outputs: draft
+  output: draft
   saveas:
     path: "${output_dir}/draft.md"
 ```
@@ -106,7 +106,7 @@ Calls a Python function as part of the flow.
   function: some.module:callable
   inputs:
     raw: "${raw_text}"
-  outputs: parsed
+  output: parsed
   saveas:
     path: "${output_dir}/parsed.json"
 ```
@@ -130,7 +130,7 @@ Loops over a list variable and runs nested steps for each item.
         file: "item.gpt"
         inputs:
           item_text: "${item}"
-      outputs: item_result
+      output: item_result
       append_to: all_results
 ```
 
@@ -274,7 +274,7 @@ Conditionally executes a block of steps.
         file: "detail.gpt"
         inputs:
           topic: "${topic}"
-      outputs: detail_text
+      output: detail_text
 ```
 
 - `condition` is evaluated first; if falsy the whole block is skipped.
@@ -317,7 +317,7 @@ Any step can write its primary output (or literal content) to a file:
     file: "report.gpt"
     inputs:
       data: "${analysis}"
-  outputs: report_md
+  output: report_md
   saveas:
     path: "${output_dir}/report.md"
 ```

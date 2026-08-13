@@ -175,7 +175,7 @@ class TestValidateAllVariableReferences:
         steps = [
             {
                 "name": "step1",
-                "outputs": "result1"
+                "output": "result1"
             },
             {
                 "name": "step2",
@@ -197,7 +197,7 @@ class TestValidateAllVariableReferences:
             },
             {
                 "name": "step2",
-                "outputs": "result2"
+                "output": "result2"
             }
         ]
         pipeline_vars = {}
@@ -246,7 +246,7 @@ class TestValidateAllVariableReferences:
                         "type": "llm",
                         "saveas": "output/${_for_each_index}_${section}.txt",
                         "inputs": {"text": "${section}"},
-                        "outputs": "result",
+                        "output": "result",
                     }
                 ],
             }
@@ -270,7 +270,7 @@ class TestValidateAllVariableReferences:
                         "type": "function",
                         "function": "some.fn",
                         "inputs": {"idx": "${loop.index}", "total": "${loop.total}"},
-                        "outputs": "result",
+                        "output": "result",
                     }
                 ],
             }
@@ -302,7 +302,7 @@ class TestValidateAllVariableReferences:
         steps = [
             {
                 "name": "step1",
-                "outputs": {"result": "data", "status": "ok"}
+                "output": {"result": "data", "status": "ok"}
             },
             {
                 "name": "step2",
@@ -320,7 +320,7 @@ class TestValidateAllVariableReferences:
         steps = [
             {
                 "name": "step1",
-                "outputs": ["result1", "result2"]
+                "output": ["result1", "result2"]
             },
             {
                 "name": "step2",
@@ -384,7 +384,7 @@ class TestLintPipelineFull:
                                 "a": "${var1}",
                                 "p": "${var2}"
                             },
-                            "outputs": "result"
+                            "output": "result"
                         }
                     ]
                 }
@@ -415,7 +415,7 @@ class TestLintPipelineFull:
                                 "a": "${input_data}",
                                 "p": "test"
                             },
-                            "outputs": "processed"
+                            "output": "processed"
                         },
                         {
                             "name": "summarize",
@@ -425,7 +425,7 @@ class TestLintPipelineFull:
                                 "a": "${processed}",
                                 "p": "done"
                             },
-                            "outputs": "summary"
+                            "output": "summary"
                         }
                     ]
                 }
@@ -457,7 +457,7 @@ def test_window_advance_inner_outputs_in_scope():
                     "type": "function",
                     "function": "llmflow.utils.data.identity",
                     "inputs": {"value": "${window_content}"},
-                    "outputs": "window_result",
+                    "output": "window_result",
                 },
                 {
                     "_tag": "window_advance",
@@ -468,7 +468,7 @@ def test_window_advance_inner_outputs_in_scope():
                         "type": "function",
                         "function": "tests.test_helpers.cursor_pop",
                         "inputs": {},
-                        "outputs": "next_start",
+                        "output": "next_start",
                     },
                 },
                 {
@@ -477,7 +477,7 @@ def test_window_advance_inner_outputs_in_scope():
                     "condition": "${next_start is not None}",  # must see next_start
                     "function": "llmflow.utils.data.identity",
                     "inputs": {"value": "${window_result}"},
-                    "outputs": "stored",
+                    "output": "stored",
                     "append_to": "all_results",
                 },
             ],
@@ -511,7 +511,7 @@ def test_window_advance_is_none_condition_no_error():
                         "type": "function",
                         "function": "tests.test_helpers.cursor_pop",
                         "inputs": {},
-                        "outputs": "cursor",
+                        "output": "cursor",
                     },
                 },
                 {
@@ -520,7 +520,7 @@ def test_window_advance_is_none_condition_no_error():
                     "condition": "${cursor is None}",
                     "function": "llmflow.utils.data.identity",
                     "inputs": {"value": "done"},
-                    "outputs": "final",
+                    "output": "final",
                 },
             ],
         }
@@ -530,3 +530,74 @@ def test_window_advance_is_none_condition_no_error():
     errors = []
     _validate_variable_references_recursive(steps, pipeline_vars, set(), errors)
     assert errors == [], f"Unexpected linter errors: {errors}"
+
+
+class TestPipelineDirectoryKeysAreAvailable:
+    """The linter's available-variable set must match the runtime context.
+
+    `utils/context.py::build_run_context` — whose docstring calls itself "the single
+    source of the run context ... so run-time and inspection-time behavior cannot
+    drift" — injects `output_file_directory` and `intermediate_file_directory`. The
+    linter built its own set from `variables:` alone and so rejected a pipeline that
+    runs perfectly. Since `sp run` lints by default, that made the pipeline unusable.
+
+    Found while wiring hebrew-poetry-features, where 23 saveas paths had to hardcode
+    the output root because the declared key would not lint.
+    """
+
+    def _lint(self, pipeline: dict, **kw):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(pipeline, f)
+            path = f.name
+        try:
+            return lint_pipeline_full(path, **kw)
+        finally:
+            Path(path).unlink()
+
+    def test_output_file_directory_is_available_in_saveas(self):
+        result = self._lint({
+            "name": "t",
+            "output_file_directory": "outputs",
+            "steps": [{"name": "s", "type": "save", "content": "hi",
+                       "saveas": "${output_file_directory}/x.md"}],
+        })
+        assert result.valid, result.errors
+
+    def test_intermediate_file_directory_is_available(self):
+        result = self._lint({
+            "name": "t",
+            "intermediate_file_directory": "outputs/intermediate",
+            "steps": [{"name": "s", "type": "save", "content": "hi",
+                       "saveas": "${intermediate_file_directory}/x.md"}],
+        })
+        assert result.valid, result.errors
+
+    def test_directory_key_not_declared_is_still_an_error(self):
+        """Availability follows the runtime rule: the key must actually be declared."""
+        result = self._lint({
+            "name": "t",
+            "steps": [{"name": "s", "type": "save", "content": "hi",
+                       "saveas": "${output_file_directory}/x.md"}],
+        })
+        assert not result.valid
+        assert any("output_file_directory" in e for e in result.errors)
+
+    def test_var_supplied_variables_are_available(self):
+        """`--var` values are in the run context, so lint must count them too."""
+        result = self._lint({
+            "name": "t",
+            "steps": [{"name": "s", "type": "save", "content": "${passage}",
+                       "saveas": "out/x.md"}],
+        }, vars={"passage": "Psalm 23"})
+        assert result.valid, result.errors
+
+    def test_a_genuine_typo_is_still_caught(self):
+        """Broadening the set must not stop real mistakes being reported."""
+        result = self._lint({
+            "name": "t",
+            "output_file_directory": "outputs",
+            "steps": [{"name": "s", "type": "save", "content": "hi",
+                       "saveas": "${output_file_directoy}/x.md"}],
+        })
+        assert not result.valid
+        assert any("output_file_directoy" in e for e in result.errors)

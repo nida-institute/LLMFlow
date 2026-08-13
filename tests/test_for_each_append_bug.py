@@ -30,7 +30,7 @@ class TestForEachAppendBug:
                     "type": "function",
                     "function": "tests.test_for_each_append_bug.count_calls",
                     "inputs": {"item": "${item}"},
-                    "outputs": "result",
+                    "output": "result",
                 }
             ],
         }
@@ -69,7 +69,7 @@ class TestForEachAppendBug:
                     "type": "function",
                     "function": "tests.test_for_each_append_bug.process_and_log",
                     "inputs": {"item": "${item}"},
-                    "outputs": "result",
+                    "output": "result",
                     "append_to": "results",
                 }
             ],
@@ -114,7 +114,7 @@ class TestForEachAppendBug:
                     "type": "function",
                     "function": "tests.test_for_each_append_bug.modify_context",
                     "inputs": {"item": "${item}"},
-                    "outputs": "result",
+                    "output": "result",
                     "append_to": "results",
                 }
             ],
@@ -153,7 +153,7 @@ class TestForEachAppendBug:
                                 "outer": "${outer_item}",
                                 "inner": "${inner_item}",
                             },
-                            "outputs": "combined",
+                            "output": "combined",
                             "append_to": "combined_results",
                         }
                     ],

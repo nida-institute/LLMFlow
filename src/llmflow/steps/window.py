@@ -356,8 +356,8 @@ def run_window_step(
         for s in steps_list:
             if "append_to" in s:
                 append_targets.add(s["append_to"])
-            if "outputs" in s:
-                ov = s["outputs"]
+            if "output" in s:
+                ov = s["output"]
                 if isinstance(ov, str):
                     output_vars.add(ov)
                 elif isinstance(ov, list):

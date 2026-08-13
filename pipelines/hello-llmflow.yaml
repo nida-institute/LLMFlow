@@ -5,9 +5,9 @@ description: |
     sp run --pipeline pipelines/hello-llmflow.yaml
 variables:
   prompts_dir: "prompts"
-  output_dir: "output"
+  output_dir: "outputs"
 
-output_file_directory: "output"
+output_file_directory: "outputs"
 
 llm_config:
   model: "gpt-4o-mini"

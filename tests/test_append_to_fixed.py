@@ -12,7 +12,7 @@ class TestAppendToFixed:
             "name": "test",
             "type": "function",
             "function": "tests.test_append_to_fixed.return_value",
-            "outputs": "result",
+            "output": "result",
             "append_to": "results_list",
         }
 
@@ -44,7 +44,7 @@ class TestAppendToFixed:
                 "type": "function",
                 "function": "tests.test_append_to_fixed.make_value",
                 "inputs": {"value": f"item_{i}"},
-                "outputs": f"result_{i}",
+                "output": f"result_{i}",
                 "append_to": "collected_items",
             }
 

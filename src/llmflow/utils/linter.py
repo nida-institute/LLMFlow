@@ -9,10 +9,11 @@ import click
 import yaml
 from pydantic import ValidationError
 from llmflow.yaml_loader import load_pipeline_config
-from llmflow.pipeline_schema import PipelineConfig, PIPELINE_SCHEMA
+from llmflow.pipeline_schema import PipelineConfig, allowed_step_keys, step_keys
 from llmflow.exceptions import StepRewindError
 from llmflow.utils.llm_runner import validate_model_parameter, get_model_family
 from llmflow.utils.get_prefix_directory import get_prefix_directory
+from llmflow.utils.context import build_run_context
 
 
 def _identifiers_in_expr(expr: str) -> Set[str]:
@@ -38,84 +39,13 @@ def extract_variable_references(text: str) -> Set[str]:
 
     return variables
 
-def _allowed_step_keys_from_schema() -> set:
-    props = (
-        PIPELINE_SCHEMA.get("properties", {})
-        .get("steps", {})
-        .get("items", {})
-        .get("properties", {})
-    )
-    return set(props.keys())
+# Engine-internal keys the runner sets on a step dict; never written in YAML.
+_INTERNAL_STEP_KEYS = {"_tag"}
 
-
-# Keep schema-driven keys authoritative so new keywords (like "retry") are picked up
-# automatically, then union the plugin-specific extras that live outside the schema.
-_SCHEMA_STEP_KEYS = _allowed_step_keys_from_schema()
-_EXTRA_STEP_KEYS = {
-    "description",
-    "output",
-    "after",
-    "format",
-    "log",
-    "max_tokens",
-    "output_type",
-    "plugin",
-    "response_format",
-    "response_mime_type",  # Gemini native JSON MIME type
-    "response_schema",     # Gemini native JSON schema
-    "temperature",
-    "timeout_seconds",
-    "mcp",
-    "llm_options",
-    "tools",
-    "path",
-    "xpath",
-    "namespaces",
-    "output_format",
-    "stylesheet_path",
-    "xml_string",
-    "group_by_prefix",
-    "limit",
-    "variables",
-    # json step keys
-    "value",
-    # loader step keys
-    "pattern",
-    "delimiter",
-    "key",        # load_json/load_yaml: sub-document extraction
-    "where",      # load_csv/load_tsv: row filter
-    "offset",     # load_csv/load_tsv: skip N rows
-    "columns",    # load_csv/load_tsv: column projection
-    # save step keys
-    "content",
-    # basex step keys
-    "database",
-    "query",
-    "query_file",
-    "params",
-    "timeout",
-    # for-each / window loop keys (XQuery-style)
-    "for",
-    "in",
-    "parallel",
-    "group-by",
-    "order-by",
-    # window step keys
-    "size",
-    "stride",
-    "include_partial",
-    "start_when",
-    "end_when",
-    "size_by_tokens",
-    "stride_by_tokens",
-    "merge",
-}
-
-ALLOWED_STEP_KEYS = _SCHEMA_STEP_KEYS | _EXTRA_STEP_KEYS
 COMMON_TYPOS = {
     "saveaas": "saveas",
-    "ouput": "outputs",
-    "ouptuts": "outputs",
+    "ouput": "output",
+    "ouptuts": "output",
     "intputs": "inputs",
     "inputss": "inputs",
     "apend_to": "append_to",
@@ -123,9 +53,13 @@ COMMON_TYPOS = {
     "item_var": "for",
     "input": "in",
     "over": "in",
-    # Wrong-format modifier keys (schema uses hyphens, not underscores).
-    "group_by": "group-by",
-    "order_by": "order-by",
+    # Retired spellings — one syntax per concept, no aliases. See
+    # project/plans/design-schema-single-source.md.
+    "outputs": "output",
+    "format_with": "template",
+    "timeout": "timeout_seconds",
+    "group-by": "group_by",
+    "order-by": "order_by",
 }
 
 from llmflow.modules.logger import Logger
@@ -295,10 +229,10 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
         # Check append_to without outputs
         if "append_to" in step:
             append_to_value = step["append_to"]
-            if not step.get("outputs") and not step.get("output"):
+            if not step.get("output"):
                 if isinstance(append_to_value, str) and append_to_value.strip():
                     errors.append(
-                        f"❌ Step '{step_name}': append_to: {append_to_value} requires 'output' to be specified"
+                        f"❌ Step '{step_name}': append_to: {append_to_value} requires 'outputs' to be specified"
                     )
                 continue
 
@@ -495,7 +429,7 @@ class LintResult:
 def _collect_declared_outputs(all_steps):
     declared = set()
     for step in all_steps:
-        outs = step.get("outputs") or step.get("output")
+        outs = step.get("output")
         if isinstance(outs, dict):
             declared.update(outs.keys())
         elif isinstance(outs, list):
@@ -635,7 +569,7 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
             )
 
         # After processing step (including nested steps), add its outputs to declared_outputs
-        outs = step.get("outputs") or step.get("output")
+        outs = step.get("output")
         if isinstance(outs, dict):
             declared_outputs.update(outs.keys())
         elif isinstance(outs, list):
@@ -652,7 +586,7 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
         # steps in the same window iteration (e.g. the cursor variable).
         if step.get("_tag") == "window_advance":
             inner = step.get("step", {})
-            inner_outs = inner.get("outputs")
+            inner_outs = inner.get("output")
             if isinstance(inner_outs, str):
                 declared_outputs.add(inner_outs)
             elif isinstance(inner_outs, list):
@@ -964,7 +898,7 @@ def lint_pipeline_full(
     # 1.5) Step keyword validation
     logger.info("🔍 Validating step keywords...")
     all_steps = collect_all_steps(pipeline_config.get("steps", []))
-    keyword_errors = lint_pipeline_steps(all_steps)
+    keyword_errors = lint_pipeline_steps(all_steps, warnings=all_warnings)
     if keyword_errors:
         all_errors.extend(keyword_errors)
         for error in keyword_errors:
@@ -1019,7 +953,11 @@ def lint_pipeline_full(
     # 2.5) Variable reference validation (NEW: ensure all variable references can be resolved)
     logger.info("🔍 Validating variable references...")
     variable_errors = []
-    pipeline_vars = pipeline_config.get("variables", {})
+    # Build the available set from the *same* function the runner uses, so lint cannot
+    # reject a pipeline that would run. build_run_context adds the pipeline-level
+    # directory keys (output_file_directory / intermediate_file_directory) and applies
+    # --var; deriving from `variables:` alone missed both.
+    pipeline_vars = build_run_context(pipeline_config, cli_vars)
     # Use pipeline_config.get("steps", []) instead of all_steps to preserve hierarchy
     _validate_all_variable_references(pipeline_config.get("steps", []), pipeline_vars, variable_errors)
 
@@ -1123,13 +1061,13 @@ def check_step_outputs(step):
     warnings = []
 
     # Check if step has append_to but no output
-    if "append_to" in step and "outputs" not in step and "output" not in step:
+    if "append_to" in step and "output" not in step:
         warnings.append(
             f"Step '{step.get('name', 'unnamed')}' has append_to but no output"
         )
 
     # Check if LLM step has neither output nor append_to
-    if step.get("type") == "llm" and "outputs" not in step and "output" not in step and "append_to" not in step:
+    if step.get("type") == "llm" and "output" not in step and "append_to" not in step:
         warnings.append(
             f"LLM step '{step.get('name', 'unnamed')}' generates content but doesn't store it"
         )
@@ -1355,16 +1293,16 @@ def _lint_for_each_parallel(step: dict, errors: list) -> None:
 
 
 def _lint_for_each_group_by(step: dict, errors: list) -> None:
-    """Validate group-by and order-by on for-each steps."""
-    group_by = step.get("group-by")
-    order_by = step.get("order-by")
+    """Validate group_by and order_by on for-each steps."""
+    group_by = step.get("group_by")
+    order_by = step.get("order_by")
     name = step.get("name", "<unnamed>")
 
     if group_by is not None:
-        # group-by expression must reference ${item.*} to be meaningful
+        # group_by expression must reference ${item.*} to be meaningful
         if isinstance(group_by, str) and not re.search(r"\$\{item\b", group_by):
             errors.append(
-                f"Step '{name}': group-by expression '{group_by}' does not reference "
+                f"Step '{name}': group_by expression '{group_by}' does not reference "
                 f"'item' — use ${{item.field}} to group by an attribute of each item."
             )
 
@@ -1396,9 +1334,9 @@ _LOADER_FORMATS = {"json", "yaml", "xml", "csv", "tsv", "text"}
 def _lint_loader_step(step, errors):
     name = step.get("name", "<unnamed>")
     step_type = step.get("type")
-    has_output = step.get("output") or step.get("outputs")
+    has_output = step.get("output")
     if not has_output:
-        errors.append(f"Step '{name}' (type: {step_type}) is missing required key 'output'")
+        errors.append(f"Step '{name}' (type: {step_type}) is missing required key 'outputs'")
     if not step.get("path"):
         errors.append(f"Step '{name}' (type: {step_type}) is missing required key 'path'")
     elif "${" not in str(step.get("path", "")):
@@ -1423,22 +1361,61 @@ def _lint_loader_step(step, errors):
 def _lint_json_step(step, errors):
     name = step.get("name", "<unnamed>")
     if not step.get("output"):
-        errors.append(f"Step '{name}' (type: json) is missing required key 'output'")
+        errors.append(f"Step '{name}' (type: json) is missing required key 'outputs'")
     if "value" not in step:
         errors.append(f"Step '{name}' (type: json) is missing required key 'value'")
 
 
-def lint_pipeline_steps(steps):
+def _lint_step_keys(step, errors):
+    """Validate a step's keys against the schema's per-type vocabulary.
+
+    Per-type rather than global: a key that is real but belongs to another step type
+    (``output_type:`` on a ``function`` step) is read by no handler, so it used to be
+    accepted and silently ignored. See project/plans/design-schema-single-source.md.
+    """
+    step_type = step.get("type")
+    allowed = allowed_step_keys(step_type)
+    step_name = step.get("name", "<unnamed>")
+
+    if allowed is None:
+        # Plugin / registered type (or no type declared): the whole step dict is passed
+        # through as a flat config, so its keys cannot be enumerated and an unrecognised
+        # key may well be meaningful to the plugin. Known typos are still worth catching —
+        # `saveaas:` on an xslt step is a mistake whatever the plugin accepts.
+        for key in step.keys():
+            if key in COMMON_TYPOS:
+                errors.append(
+                    f"Step '{step_name}' has unknown keyword '{key}' "
+                    f"(Did you mean '{COMMON_TYPOS[key]}'?)"
+                )
+        return
+
+    for key in step.keys():
+        if key in allowed or key in _INTERNAL_STEP_KEYS:
+            continue
+        if key in step_keys():
+            message = (
+                f"Step '{step_name}' has key '{key}', which is not valid on a "
+                f"'{step_type}' step (it would be silently ignored)"
+            )
+        else:
+            message = f"Step '{step_name}' has unknown keyword '{key}'"
+        suggestion = COMMON_TYPOS.get(key)
+        if suggestion:
+            message += f" (Did you mean '{suggestion}'?)"
+        errors.append(message)
+
+
+def lint_pipeline_steps(steps, warnings=None):
+    """Validate step keywords.
+
+    *warnings* is accepted for callers that collect non-fatal notices; the keyword checks
+    currently produce only errors, since a retired spelling is an error naming its
+    replacement rather than a deprecation (see project/plans/design-schema-single-source.md).
+    """
     errors = []
     for step in steps:
-        step_name = step.get('name', '<unnamed>')
-        for key in step.keys():
-            if key not in ALLOWED_STEP_KEYS:
-                suggestion = COMMON_TYPOS.get(key)
-                message = f"Step '{step_name}' has unknown keyword '{key}'"
-                if suggestion:
-                    message += f" (Did you mean '{suggestion}'?)"
-                errors.append(message)
+        _lint_step_keys(step, errors)
         _lint_conditional_rules(step, errors, "require")
         _lint_conditional_rules(step, errors, "warn")
         if step.get("type") == "json":

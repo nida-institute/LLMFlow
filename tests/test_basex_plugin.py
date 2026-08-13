@@ -147,7 +147,7 @@ def test_run_basex_step_passes_inputs_to_run_basex(tmp_path):
         "type": "basex",
         "query_file": str(qfile),
         "inputs": {"lemma": "${lemma}"},
-        "outputs": "result",
+        "output": "result",
     }
     context = {"lemma": "הָיָה"}
 
@@ -170,7 +170,7 @@ def test_run_basex_step_no_inputs_passes_none(tmp_path):
         "name": "test-step",
         "type": "basex",
         "query_file": str(qfile),
-        "outputs": "result",
+        "output": "result",
     }
 
     with patch("llmflow.steps.basex.run_basex") as mock_run_basex:

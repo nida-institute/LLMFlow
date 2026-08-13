@@ -55,7 +55,7 @@ class StepRewindManager:
                 context=context,
             )
 
-        outputs = step.get("outputs")
+        outputs = step.get("output")
         if not outputs:
             raise StepRewindError(
                 f"Step '{step_name}' must declare outputs to support rewind",

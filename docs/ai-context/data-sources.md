@@ -48,7 +48,7 @@ Lowfat XML tree structure. XPath is the primary access method.
     path: "${LLMFLOW_DATA_DIR}/macula-greek/lowfat/61-MAT.xml"
     xpath: "//w[@ref='MAT 1:1']"
     output_format: xml_string
-  outputs: verse_words
+  output: verse_words
 ```
 
 Available sub-paths under `~/.sp/data/macula-greek/`:
@@ -69,7 +69,7 @@ Same structure as Macula Greek.
     path: "${LLMFLOW_DATA_DIR}/macula-hebrew/WLC/01GEN.xml"
     xpath: "//w[@gloss]"
     output_format: xml_string
-  outputs: words
+  output: words
 ```
 
 ### Berean USX (English Bible)
@@ -82,7 +82,7 @@ USX 3.0 XML, one file per canonical book. Reference via `parse_bible_reference` 
   inputs:
     path: "${LLMFLOW_DATA_DIR}/berean-usx/${passage_info.book_code}.usx"
     xpath: "//verse[@number='${passage_info.chapter}:${passage_info.start_verse}']"
-  outputs: verse_usx
+  output: verse_usx
 ```
 
 ---
@@ -135,7 +135,7 @@ Use the built-in data loaders (all in `llmflow.utils.data`):
 - name: load_metadata
   function: load_project_file
   inputs: {base_dir: "${PARATEXT_DIR}", project_name: "cebAPDv4", file: "metadata.json"}
-  outputs: [burrito]
+  output: [burrito]
 
 # Direct dict access in templates
 language: "${burrito.languages[0].name.en}"
@@ -147,12 +147,12 @@ iso: "${burrito.languages[0].tag}"
 - name: load_settings
   function: load_project_file
   inputs: {base_dir: "${PARATEXT_DIR}", project_name: "cebAPDv4", file: "Settings.xml"}
-  outputs: [settings]
+  output: [settings]
 
 - name: extract_language
   function: xpath_text
   inputs: {xml: "${settings}", path: ".//LanguageName/text()"}
-  outputs: [language_name]
+  output: [language_name]
 ```
 
 **Book codes:** Always 3-letter uppercase (`"LUK"`, `"GEN"`). Project numeric prefixes are preserved in filenames but not used in API calls.
@@ -177,7 +177,7 @@ steps:
       project_name: "ProjectA"
       passage: "${book} ${chapter}"
       format: "usj"
-    outputs:
+    output:
       - text_a
 ```
 
@@ -188,7 +188,7 @@ steps:
   inputs:
     file_path: "${LLMFLOW_DATA_DIR}/macula-greek/tsv/61-MAT.tsv"
     delimiter: "\t"
-  outputs: words_tsv
+  output: words_tsv
 ```
 
 ---

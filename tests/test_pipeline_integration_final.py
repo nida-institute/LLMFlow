@@ -16,7 +16,7 @@ class TestPipelineIntegrationFinal:
             "name": "generate_body",
             "type": "function",
             "function": "tests.test_pipeline_integration_final.generate_body_content",
-            "outputs": "body_content",
+            "output": "body_content",
             "append_to": "bodies_list",
         }
 
@@ -55,7 +55,7 @@ Body Content: {{body_value}}
                         "body_value": "${bodies_list[-1]}"  # This should resolve!
                     },
                 },
-                "outputs": "rendered_scene",
+                "output": "rendered_scene",
             }
 
             # Run step 2

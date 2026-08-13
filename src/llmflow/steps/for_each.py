@@ -48,8 +48,8 @@ def _collect_loop_outputs(steps_list: list) -> tuple[set, set]:
     for s in steps_list:
         if "append_to" in s:
             append_targets.add(s["append_to"])
-        if "outputs" in s:
-            ov = s["outputs"]
+        if "output" in s:
+            ov = s["output"]
             if isinstance(ov, str):
                 output_vars.add(ov)
             elif isinstance(ov, list):
@@ -280,8 +280,8 @@ def run_for_each_step(
     steps = step.get("steps", [])
     debug_label_template = step.get("debug_label")
     parallel = step.get("parallel", 1)
-    group_by_expr = step.get("group-by")
-    order_by = step.get("order-by")
+    group_by_expr = step.get("group_by")
+    order_by = step.get("order_by")
 
     if group_by_expr:
         input_data = _group_items(input_data, group_by_expr, context)

@@ -24,7 +24,7 @@ class TestRunPipeline:
                     "type": "function",
                     "function": "tests.test_helpers.mock_function",
                     "inputs": {"a": "${test_var}", "p": "processed"},
-                    "outputs": "result",
+                    "output": "result",
                 }
             ],
         }
@@ -57,7 +57,7 @@ class TestRunPipeline:
                                 "a": "${item}",  # Fixed: transform_function expects 'a' and 'p'
                                 "p": "processed",
                             },
-                            "outputs": "transformed",
+                            "output": "transformed",
                             "append_to": "results",
                         }
                     ],
@@ -234,14 +234,14 @@ class TestRunPipeline:
                     "type": "function",
                     "function": "tests.test_helpers.mock_function",
                     "inputs": {"a": "${initial}", "p": "step1"},
-                    "outputs": "step1_result",
+                    "output": "step1_result",
                 },
                 {
                     "name": "step2",
                     "type": "function",
                     "function": "tests.test_helpers.mock_function",
                     "inputs": {"a": "${step1_result}", "p": "step2"},
-                    "outputs": "step2_result",
+                    "output": "step2_result",
                 },
             ],
         }
@@ -283,7 +283,7 @@ class TestRunPipeline:
                     "name": "llm_step",
                     "type": "llm",
                     "prompt": {"file": str(prompt_file)},
-                    "outputs": "result",
+                    "output": "result",
                     "retry": {"max_attempts": 1, "delay_seconds": 0},
                 }
             ],

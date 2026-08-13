@@ -183,11 +183,6 @@
             "template": {
               "type": "string",
               "description": "Markdown template file to format the LLM response into a final artifact."
-            },
-            "format_with": {
-              "type": "string",
-              "description": "Alias for template.",
-              "deprecated": true
             }
           },
           "required": ["type", "prompt"]
@@ -270,11 +265,11 @@
               "minimum": 1,
               "description": "Number of iterations to run in parallel. Default: 1 (sequential)."
             },
-            "group-by": {
+            "group_by": {
               "type": "string",
               "description": "Group iterations by this expression before processing."
             },
-            "order-by": {
+            "order_by": {
               "type": "string",
               "description": "Sort the list by this expression before iterating."
             },
@@ -364,7 +359,7 @@
     "IfStep": {
       "description": "Conditionally executes a block of steps.\n\nflow: conditional(condition) | effect: contains-steps | idempotent: depends",
       "x-handler": "llmflow.steps.control.execute_if",
-      "x-nested-steps": ["steps", "else"],
+      "x-nested-steps": ["steps"],
       "x-semantics": {
         "flow": { "type": "conditional", "condition": "condition" },
         "effect": "contains-steps",
@@ -388,12 +383,6 @@
               "minItems": 1,
               "items": { "$ref": "#/$defs/Step" },
               "description": "Steps to execute when condition is truthy."
-            },
-            "else": {
-              "type": "array",
-              "minItems": 1,
-              "items": { "$ref": "#/$defs/Step" },
-              "description": "Optional steps to execute when condition is falsy."
             }
           },
           "required": ["type", "condition", "steps"]
@@ -739,7 +728,7 @@
     "BasexStep": {
       "description": "Runs an XQuery against a local BaseX database via the basex CLI.\n\nflow: once | effect: db | idempotent: true",
       "x-handler": "llmflow.steps.basex.execute",
-      "x-resolve-fields": ["timeout"],
+      "x-resolve-fields": ["timeout_seconds"],
       "x-resolve-inputs-map": true,
       "x-output-field": "output",
       "x-semantics": {
@@ -769,13 +758,7 @@
               "additionalProperties": { "type": "string" },
               "description": "Map of XQuery external variable name to ${expression}. Resolved from context and substituted into the query."
             },
-            "params": {
-              "type": "object",
-              "additionalProperties": { "type": "string" },
-              "description": "Deprecated: use inputs.",
-              "deprecated": true
-            },
-            "timeout": {
+            "timeout_seconds": {
               "type": "integer",
               "default": 120,
               "description": "Seconds before the BaseX process is killed. Default: 120."

@@ -29,7 +29,7 @@ class TestSceneConcatenation:
                     "type": "function",
                     "function": "tests.test_scene_concatenation.format_scene_content",
                     "inputs": {"scene": "${scene}"},
-                    "outputs": "formatted_scene",
+                    "output": "formatted_scene",
                     "append_to": "scene_list",
                 }
             ],

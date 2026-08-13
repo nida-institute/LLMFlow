@@ -14,7 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from llmflow.utils.linter import ALLOWED_STEP_KEYS, COMMON_TYPOS
+from llmflow.pipeline_schema import allowed_step_keys
+from llmflow.utils.linter import COMMON_TYPOS
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -66,8 +67,13 @@ def test_doc_yaml_examples_use_known_step_keys():
             continue
         for step in _walk_steps(parsed):
             name = step.get("name", "<unnamed>")
+            # Per-type: a key that is real but wrong for this step's type is exactly the
+            # silently-ignored case doc examples must not teach.
+            allowed = allowed_step_keys(step.get("type"))
+            if allowed is None:
+                continue  # plugin / registered type — keys cannot be enumerated
             for key in step:
-                if key not in ALLOWED_STEP_KEYS:
+                if key not in allowed:
                     hint = COMMON_TYPOS.get(key)
                     rel = path.relative_to(REPO_ROOT)
                     msg = f"{rel}: step '{name}' (type: {step.get('type')}) uses unknown key '{key}'"

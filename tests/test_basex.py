@@ -107,7 +107,7 @@ class TestBasexStepRunner:
             "type": "basex",
             "query_file": str(qfile),
             "inputs": {"lemma": "${lemma}"},
-            "outputs": "corpus_data",
+            "output": "corpus_data",
         }
         base.update(overrides)
         return base
@@ -159,9 +159,13 @@ class TestBasexStepRunner:
         assert captured["query_file"] == str(qfile)
 
     def test_run_basex_step_propagates_timeout(self, tmp_path):
-        """timeout: in the step config must be passed through to run_basex."""
+        """timeout_seconds: in the step config must be passed through to run_basex.
+
+        The step key is `timeout_seconds` (one spelling across step types); the
+        `run_basex` *function* parameter is still named `timeout`.
+        """
         from llmflow.runner import run_basex_step
-        step = self._make_step(tmp_path, timeout=30)
+        step = self._make_step(tmp_path, timeout_seconds=30)
         context = {"lemma": "ὁ"}
         captured = {}
 
@@ -198,7 +202,7 @@ class TestBasexStepDispatch:
             "name": "test-basex",
             "type": "basex",
             "query_file": str(qfile),
-            "outputs": "result",
+            "output": "result",
         }
         context = {}
         with patch("llmflow.runner.run_basex_step", return_value=None) as mock_fn:

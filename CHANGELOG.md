@@ -4,6 +4,45 @@
 
 ### New Features
 
+- **One schema, one step vocabulary** — `PIPELINE_SCHEMA` is now the *only* declaration of the
+  step vocabulary, and it is **per step type**. The step schema became a tagged union (common
+  keys plus `allOf` `if type == …` branches), the linter derives its allowed keys per type from
+  it (`allowed_step_keys()`), and `Step`'s attributes are **generated** from it. The linter's
+  second key list (`_EXTRA_STEP_KEYS` / `ALLOWED_STEP_KEYS`, ~40 keys the schema never declared)
+  is deleted — the object model previously saw only the schema half of the vocabulary, so ~34
+  keys the engine reads were absent from the published API. Reported by ears-to-hear;
+  design in `project/plans/design-schema-single-source.md`.
+  - New derived helpers: `allowed_step_keys(step_type)` (returns `None` for plugin/registered
+    types, whose keys cannot be enumerated), `common_step_keys()`, `step_keys()`.
+  - Step attribute names extend the existing rule mechanically: a hyphen becomes an underscore
+    (`group-by:` → `step.group_by`) alongside the keyword rule (`for:` → `step.for_`).
+- **One syntax per concept — BREAKING** — the language admitted four redundant spellings, each a
+  second name the engine honoured silently. A reader could not tell which was canonical, so all
+  four are now single-spelled. Retired spellings are **lint errors naming their replacement**, not
+  silent aliases; `tests/test_one_syntax.py` pins it.
+
+  | Concept | Spelling | Retired |
+  |---|---|---|
+  | bind a step's result to context | `output` | `outputs` |
+  | format the response through a template | `template` | `format_with` |
+  | abandon a call after N seconds | `timeout_seconds` | `timeout` |
+  | loop modifiers | `group_by`, `order_by` | `group-by`, `order-by` |
+
+  `output` (singular) is the spelling: a step produces one result, even when that result is a
+  list — the ruling in `project/plans/design-pipeline-schema.md` §1.
+
+  **Migration:** every pipeline in every local repo was migrated in the same window — **~1,100
+  sites across 15 repos**: 528 in consumer pipelines (discourse-flow 179, ears-to-hear 141,
+  llmflow-historical-pipelines 93, and 10 more), plus the engine, both schemas, 472 test-fixture
+  sites, and 116 in docs. `format_with`, `group-by` and `order-by` had **zero** usages anywhere.
+  `sp lint` names the replacement for anything missed.
+- **The editor schema is held to the same vocabulary** — `src/llmflow/schema/pipeline.schema.json`
+  (wired to `pipelines/**/*.yaml` by `.vscode/settings.json`) is a second declaration of the
+  vocabulary that no Python code reads, so nothing caught it drifting. It required `outputs`,
+  offered `format_with`, and advertised two keys the engine never reads: `params` on basex (#189)
+  and **`else` on `if` steps** (#192) — an if/else whose else branch silently never fired. It is
+  now aligned, and a guard test asserts it declares no retired spelling and no key the engine
+  would reject.
 - **`sp init` — a project-owned AI-context lane** — `sp init` now creates
   `docs/ai-context/project.md`, a file for a repo's *own* project-specific AI context that
   `sp` **never overwrites** (even on `sp init --update`). The generated files (`index.md`,
@@ -26,6 +65,34 @@
 
 ### Fixed
 
+- **`${output_file_directory}` / `${intermediate_file_directory}` now lint** — referencing either
+  in a `saveas` (or any checked field) failed lint with *"Variable not available"*, even though
+  both resolve fine at run time. Since `sp run` lints by default, a pipeline that would run
+  perfectly could not run at all, and the only workaround was to hardcode the output root in every
+  `saveas`.
+
+  The cause was a duplicated rule: `utils/context.py::build_run_context` — whose docstring calls
+  itself *"the single source of the run context … so run-time and inspection-time behavior cannot
+  drift"* — injects the two directory keys, but the linter built its own available-variable set
+  from `variables:` alone. The linter was the one caller bypassing that single source, which is
+  exactly how it drifted. It now calls `build_run_context`, so lint and run cannot disagree by
+  construction. Found while wiring `hebrew-poetry-features`, where 23 `saveas` paths had to
+  hardcode the root.
+
+- **Wrong-type step keys are no longer silently ignored** — the linter's allowed-key set was
+  *global*, so a key that is real but belongs to another step type passed lint and was then read
+  by no handler: no error, no warning, no effect. `output_type:` on a `function` step,
+  `query_file:` or `size:` on an `llm` step, and `content:` on a `json` step were all accepted
+  and inert. Per-type validation makes each a lint error. Typo detection is unchanged for
+  plugin/registered types, which stay permissive by design.
+- **Loader filter keys were missing from the schema** — `key`, `where`, `limit`, `offset`,
+  `columns`, `xpath`, `namespaces` and `output_format` are read top-level on `load_*` steps (by
+  `utils/data.py`) and are covered by tests, but no schema declared them, so they were absent
+  from the object model. Now declared on the loader branch. The schema-vs-runner guard test also
+  scans `utils/` and `modules/` — handlers hand the step dict to helpers, and scanning only the
+  handlers is what let these keys stay hidden.
+- **Dead step keys removed** — `tools`, `response_mime_type` and `response_schema` were accepted
+  top-level but never read there (only nested inside `llm_options` / `response_format`).
 - **`Pipeline.schemas()` now covers validator steps and reports the reference kind** — it
   previously missed `json_schema_validator` steps (whose schema is referenced via
   `inputs.schema_path`), silently under-reporting. It now returns

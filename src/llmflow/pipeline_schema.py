@@ -82,6 +82,243 @@ class PipelineConfig(BaseModel):
 # Enable forward references
 StepConfig.model_rebuild()
 
+# ======================================================================================
+# Step vocabulary — the single source (project/plans/design-schema-single-source.md)
+#
+# The pipeline language is a tagged union: which keys a step may carry depends on its
+# ``type``. The step schema states that grammar directly — universal keys in
+# ``properties``, per-type keys in ``allOf`` branches discriminated on ``type``.
+# Everything downstream derives from it: the linter's per-type allowed set
+# (:func:`allowed_step_keys`), the object model's attribute set (:func:`step_keys`),
+# and the schema-vs-runner guard test. There is no second list of step keys.
+# ======================================================================================
+
+_OUTPUT_TARGET = {
+    "oneOf": [
+        {"type": "string"},
+        {"type": "array", "items": {"type": "string"}},
+    ]
+}
+
+_GUARD_RULES = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "if": {"type": "string"},
+            "message": {"type": "string"},
+        },
+        "required": ["if"],
+        "additionalProperties": False,
+    },
+}
+
+_SAVEAS = {
+    "oneOf": [
+        {"type": "string"},
+        {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string"},
+                "group_by_prefix": {
+                    "oneOf": [
+                        {"type": "integer"},
+                        {
+                            "type": "object",
+                            "properties": {
+                                "prefix_length": {"type": "integer"},
+                                "prefix_delimiter": {"type": "string"},
+                            },
+                            "additionalProperties": False,
+                            "anyOf": [
+                                {"required": ["prefix_length"]},
+                                {"required": ["prefix_delimiter"]},
+                            ],
+                        },
+                    ]
+                },
+            },
+            "required": ["path"],
+            "additionalProperties": False,
+        },
+        {"type": "array", "items": {"type": "object"}},
+    ]
+}
+
+# Keys read on a step of any type: the generic runner path (name, type, condition, log,
+# after, require, warn, retry, and the `plugin:` dispatch) plus the shared output helper
+# in utils/step_outputs.py (output/append_to/saveas/format).
+_COMMON_STEP_PROPERTIES = {
+    "name": {"type": "string"},
+    "type": {"type": "string"},
+    "description": {"type": "string"},  # documentation; read by no handler
+    "condition": {"type": "string"},
+    "log": {"type": "string"},
+    "after": {"type": "string"},
+    "plugin": {"type": "string"},
+    # Read on any step type by the guard context builder (utils/guards.py reads
+    # inputs.variables when evaluating require/warn), as well as by the handlers below.
+    "inputs": {"type": "object"},
+    "output": _OUTPUT_TARGET,
+    "append_to": {"type": "string"},
+    "saveas": _SAVEAS,
+    "format": {"type": "string"},
+    "require": _GUARD_RULES,
+    "warn": _GUARD_RULES,
+    "retry": {
+        "type": "object",
+        "properties": {
+            "max_attempts": {"type": "integer", "minimum": 1},
+            "delay_seconds": {"type": "number", "minimum": 0},
+            "condition": {"type": "string"},
+        },
+        "additionalProperties": True,
+    },
+}
+
+_LOADER_TYPES = (
+    "load_json",
+    "load_yaml",
+    "load_xml",
+    "load_csv",
+    "load_tsv",
+    "load_text",
+    "load_directory",
+)
+
+# Per-type keys, in addition to the common ones above. Each entry becomes an ``allOf``
+# branch keyed on ``type``. A step type absent from this list is *permissive*: plugin and
+# registered types receive the whole step dict as a flat config, so their keys cannot be
+# enumerated here.
+_STEP_TYPE_PROPERTIES = [
+    (
+        ("llm",),
+        {
+            "prompt": {
+                "oneOf": [
+                    {"type": "string"},
+                    {"type": "object", "additionalProperties": True},
+                ]
+            },
+            "llm_options": {"type": "object", "additionalProperties": True},
+            "model": {"type": "string"},
+            "temperature": {"type": "number"},
+            "max_tokens": {"type": "integer"},
+            "max_completion_tokens": {"type": "integer"},
+            "timeout_seconds": {"type": "number"},
+            "response_format": {"type": "object", "additionalProperties": True},
+            "reasoning_effort": {"type": "string"},
+            "mcp": {"type": "object", "additionalProperties": True},
+            "output_type": {"type": "string"},
+            "template": {"type": "string"},
+        },
+    ),
+    (
+        ("function",),
+        {
+            "function": {"type": "string"},
+        },
+    ),
+    (
+        ("duckdb",),
+        {
+            "query_file": {"type": "string"},
+        },
+    ),
+    (
+        ("basex",),
+        {
+            "database": {"type": "string"},
+            "query": {"type": "string"},
+            "query_file": {"type": "string"},
+            "timeout_seconds": {"type": "number"},
+        },
+    ),
+    (
+        ("for-each",),
+        {
+            "in": {},
+            "for": {"type": "string"},
+            "steps": {"type": "array"},
+            "debug_label": {"type": "string"},
+            "parallel": {"type": "integer", "minimum": 1},
+            "group_by": {"type": "string"},
+            "order_by": {
+                "oneOf": [
+                    {"type": "object", "additionalProperties": True},
+                    {"type": "array", "items": {"type": "object"}},
+                ]
+            },
+        },
+    ),
+    (
+        ("window",),
+        {
+            "in": {},
+            "for": {"type": "string"},
+            "steps": {"type": "array"},
+            "size": {"type": "integer"},
+            "stride": {"type": "integer"},
+            "include_partial": {"type": "boolean"},
+            "start_when": {"type": "string"},
+            "end_when": {"type": "string"},
+            "size_by_tokens": {"type": "integer"},
+            "stride_by_tokens": {"type": "integer"},
+            "model": {"type": "string"},
+            "merge": {"type": "object", "additionalProperties": True},
+        },
+    ),
+    (
+        ("if",),
+        {"steps": {"type": "array"}},
+    ),
+    (
+        ("json",),
+        {"value": {}},
+    ),
+    (
+        _LOADER_TYPES,
+        {
+            "path": {"type": "string"},
+            "pattern": {"type": "string"},
+            "delimiter": {"type": "string"},
+            # Post-load filters applied by utils/data.py to the loaded payload.
+            "key": {"type": "string"},
+            "xpath": {"type": "string"},
+            "namespaces": {"type": "object", "additionalProperties": True},
+            "output_format": {"type": "string"},
+            "where": {"type": "string"},
+            "limit": {"type": "integer"},
+            "offset": {"type": "integer"},
+            "columns": {"type": "array", "items": {"type": "string"}},
+        },
+    ),
+    (
+        ("save",),
+        {
+            "path": {"type": "string"},
+            "content": {},
+        },
+    ),
+]
+
+
+def _type_branch(types, properties):
+    """Build one ``if type == …  then <keys>`` branch of the step schema."""
+    match = {"const": types[0]} if len(types) == 1 else {"enum": list(types)}
+    return {
+        "if": {"properties": {"type": match}, "required": ["type"]},
+        "then": {"properties": properties},
+    }
+
+
+_STEP_SCHEMA = {
+    "type": "object",
+    "properties": _COMMON_STEP_PROPERTIES,
+    "required": ["name", "type"],
+    "allOf": [_type_branch(types, props) for types, props in _STEP_TYPE_PROPERTIES],
+}
+
 PIPELINE_SCHEMA = {
     "type": "object",
     "properties": {
@@ -101,104 +338,65 @@ PIPELINE_SCHEMA = {
         "linter_config": {"type": "object", "additionalProperties": True},
         "intermediate_file_directory": {"type": "string"},
         "output_file_directory": {"type": "string"},
-        "steps": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string"},
-                    "type": {"type": "string"},
-                    "function": {"type": "string"},
-                    "prompt": {
-                        "oneOf": [
-                            {"type": "string"},
-                            {"type": "object", "additionalProperties": True},
-                        ]
-                    },
-                    "model": {"type": "string"},
-                    "max_tokens": {"type": "integer"},
-                    "temperature": {"type": "number"},
-                    "timeout_seconds": {"type": "number"},
-                    "in": {},
-                    "inputs": {"type": "object"},
-                    "outputs": {
-                        "oneOf": [
-                            {"type": "string"},
-                            {"type": "array", "items": {"type": "string"}},
-                        ]
-                    },
-                    "append_to": {"type": "string"},
-                    "steps": {"type": "array"},
-                    "for": {"type": "string"},
-                    "condition": {"type": "string"},
-                    "saveas": {
-                        "oneOf": [
-                            {"type": "string"},
-                            {
-                                "type": "object",
-                                "properties": {
-                                    "path": {"type": "string"},
-                                    "group_by_prefix": {
-                                        "oneOf": [
-                                            {"type": "integer"},
-                                            {
-                                                "type": "object",
-                                                "properties": {
-                                                    "prefix_length": {"type": "integer"},
-                                                    "prefix_delimiter": {"type": "string"},
-                                                },
-                                                "additionalProperties": False,
-                                                "anyOf": [
-                                                    {"required": ["prefix_length"]},
-                                                    {"required": ["prefix_delimiter"]},
-                                                ],
-                                            },
-                                        ]
-                                    },
-                                },
-                                "required": ["path"],
-                                "additionalProperties": False,
-                            },
-                        ]
-                    },
-                    # NEW: guards in schema
-                    "require": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "if": {"type": "string"},
-                                "message": {"type": "string"},
-                            },
-                            "required": ["if"],
-                            "additionalProperties": False,
-                        },
-                    },
-                    "warn": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "if": {"type": "string"},
-                                "message": {"type": "string"},
-                            },
-                            "required": ["if"],
-                            "additionalProperties": False,
-                        },
-                    },
-                    "retry": {
-                        "type": "object",
-                        "properties": {
-                            "max_attempts": {"type": "integer", "minimum": 1},
-                            "delay_seconds": {"type": "number", "minimum": 0},
-                            "condition": {"type": "string"},
-                        },
-                        "additionalProperties": True,
-                    },
-                },
-                "required": ["name", "type"],
-            },
-        },
+        "steps": {"type": "array", "items": _STEP_SCHEMA},
     },
     "required": ["name", "steps"],
 }
+
+
+# --- derived views of the step vocabulary ---------------------------------------------
+#
+# These read PIPELINE_SCHEMA, so the schema stays the only declaration. Consumers (the
+# linter, the object model, the guard tests) call these rather than keeping their own list.
+
+
+def _step_items() -> dict:
+    return PIPELINE_SCHEMA["properties"]["steps"]["items"]
+
+
+def _branch_types(branch: dict) -> set:
+    """The step types a schema branch applies to."""
+    match = branch.get("if", {}).get("properties", {}).get("type", {})
+    if "const" in match:
+        return {match["const"]}
+    return set(match.get("enum", ()))
+
+
+def common_step_keys() -> set:
+    """Step keys valid regardless of ``type``."""
+    return set(_step_items().get("properties", {}))
+
+
+def declared_step_types() -> set:
+    """Step types with a declared per-type key set (i.e. not permissive)."""
+    types: set = set()
+    for branch in _step_items().get("allOf", []):
+        types |= _branch_types(branch)
+    return types
+
+
+def allowed_step_keys(step_type):
+    """Keys a step of *step_type* may carry, or ``None`` when the type is permissive.
+
+    ``None`` means "cannot be enumerated": plugin and registered step types receive the
+    whole step dict as a flat config, so any key may be meaningful to the plugin.
+    """
+    if step_type not in declared_step_types():
+        return None
+    keys = common_step_keys()
+    for branch in _step_items().get("allOf", []):
+        if step_type in _branch_types(branch):
+            keys |= set(branch.get("then", {}).get("properties", {}))
+    return keys
+
+
+def step_keys() -> set:
+    """Every declared step key — the union across all types.
+
+    This is the object model's attribute set: ``Step`` is flat and generic, exposing the
+    union, while *validation* is per-type (see :func:`allowed_step_keys`).
+    """
+    keys = common_step_keys()
+    for branch in _step_items().get("allOf", []):
+        keys |= set(branch.get("then", {}).get("properties", {}))
+    return keys

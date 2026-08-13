@@ -26,7 +26,7 @@ def run_basex_step(
         raise ValueError(f"basex step '{name}' requires 'query_file'")
     query_file = resolve(step["query_file"], context)
 
-    timeout = step.get("timeout", 120)
+    timeout = step.get("timeout_seconds", 120)
 
     result = run_basex(str(query_file), inputs=resolved_inputs, timeout=timeout)
     handle_step_outputs(step, result, context)

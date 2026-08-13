@@ -104,7 +104,7 @@ Any step (any type) accepts an optional `condition:` field. When present, the ex
     file: enrich.gpt
     inputs:
       data: "${raw_data}"
-  outputs: enriched_data
+  output: enriched_data
 ```
 
 The expression is resolved through the normal `resolve()` / `_evaluate_condition_expression()` pipeline:
@@ -124,7 +124,7 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
     inputs:
       passage: "${passage}"
       exegetical_culture: "${exegetical_culture}"
-  outputs: intro_response
+  output: intro_response
   log: debug
 ```
 
@@ -149,7 +149,7 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
     inputs:
       passage: "${passage}"
       source: "${source}"
-  outputs: scene_list
+  output: scene_list
   log: debug
 ```
 
@@ -198,7 +198,7 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
     file: analyze.gpt
     inputs:
       book_text: "${text}"
-  outputs: analysis
+  output: analysis
 ```
 
 **File-based schema** (recommended for reusability):
@@ -218,7 +218,7 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
     file: analyze.gpt
     inputs:
       book_text: "${text}"
-  outputs: analysis
+  output: analysis
 ```
 
 Using `schema_file` keeps pipelines clean and allows schema reuse across multiple pipelines. The schema file should contain a standard JSON Schema object:
@@ -297,7 +297,7 @@ Calls a Python function from the Scripture Pipelines library or custom code.
   function: llmflow.utils.data.parse_bible_reference
   inputs:
     passage: "${passage}"
-  outputs: passage_info
+  output: passage_info
 ```
 
 **Required Fields:**
@@ -347,7 +347,7 @@ Calls a Python function from the Scripture Pipelines library or custom code.
       passage: "${passage}"
       intro: "${intro_response}"
       summary: "${summary_response}"
-  outputs: leaders_guide_markdown
+  output: leaders_guide_markdown
   saveas: "outputs/leaders_guide/${passage_info.filename_prefix}_leaders_guide.md"
 ```
 
@@ -370,7 +370,7 @@ Loops over a list and executes substeps for each item.
         inputs:
           scene: "${scene.WLC}"
           citation: "${scene.Citation}"
-      outputs: bodies_content
+      output: bodies_content
       append_to: bodies_list
 ```
 
@@ -394,7 +394,7 @@ Within `for-each` loops, use `append_to` to accumulate results across iterations
         file: analyze.gpt
         inputs:
           scene: "${scene}"
-      outputs: analysis
+      output: analysis
       append_to: all_analyses  # Creates list: [analysis1, analysis2, ...]
 ```
 
@@ -434,8 +434,8 @@ For nested `for-each` loops, the inner loop's `loop` variable shadows the outer 
 
 | Field | Type | Effect |
 |---|---|---|
-| `order-by` | expression | Sort the list by this expression before iterating |
-| `group-by` | expression | Group iterations by this expression before processing |
+| `order_by` | expression | Sort the list by this expression before iterating |
+| `group_by` | expression | Group iterations by this expression before processing |
 | `parallel` | integer | Number of iterations to run concurrently (default `1` = sequential); results are kept in input order |
 
 ```yaml
@@ -443,13 +443,13 @@ For nested `for-each` loops, the inner loop's `loop` variable shadows the outer 
   type: for-each
   for: pericope
   in: "${pericopes}"
-  order-by: "${pericope.sequence}"   # iterate in sequence order
+  order_by: "${pericope.sequence}"   # iterate in sequence order
   parallel: 4                        # up to 4 iterations at once
   steps:
     - name: analyze
       type: llm
       prompt: { file: analyze.gpt, inputs: { p: "${pericope}" } }
-      outputs: analysis
+      output: analysis
       append_to: analyses
 ```
 
@@ -472,7 +472,7 @@ single item — useful for chunking long inputs (e.g. by token budget) before an
     - name: summarize_chunk
       type: llm
       prompt: { file: summarize.gpt, inputs: { verses: "${chunk}" } }
-      outputs: chunk_summary
+      output: chunk_summary
       append_to: summaries
 ```
 
@@ -509,7 +509,7 @@ Evaluates a `condition:` and, when true, executes a nested `steps:` block. When 
         file: culture.gpt
         inputs:
           passage: "${passage}"
-      outputs: cultural_notes
+      output: cultural_notes
 
     - name: save_culture
       type: save
@@ -560,7 +560,7 @@ Arrays are also valid:
 ```
 
 **Required Fields:**
-- `output`: Name of the context variable the result is bound to.
+- `outputs`: Name of the context variable the result is bound to.
 - `value`: Any YAML value — object, array, or scalar. `${var}` references are resolved via the same `resolve()` mechanism used throughout the pipeline. Exact `${var}` references (nothing else on the line) return the native Python value, so a list stays a list.
 
 **Notes:**
@@ -598,24 +598,43 @@ Runs an XQuery against a local BaseX database via the `basex` CLI.
 ```yaml
 - name: query-verses
   type: basex
-  query_file: queries/get-passage.xq  # path to .xq file
-  # query: "for $v in //verse return $v"  # alternative: inline XQuery
-  params:                               # optional — resolved and substituted into query
+  database: acai                        # see note below
+  query_file: queries/get-passage.xq    # path to .xq file
+  inputs:                               # bound as XQuery external variables
+    db: acai
     passage: "${passage}"
     source: "${source}"
-  timeout: 120                          # optional, seconds (default: 120)
-  outputs: query_result
+  timeout_seconds: 120                          # optional, seconds (default: 120)
+  output: query_result
   saveas: "outputs/passages/${passage}.json"
 ```
 
 **Required Fields:**
-- `query_file` **or** `query` (exactly one)
+- `query_file`: Path to the `.xq` file
 - `outputs`: Variable name to store the result
 
 **Optional Fields:**
-- `params`: Key-value pairs resolved from pipeline context, then substituted into the query via Python `str.format_map`.
+- `inputs`: Key-value pairs resolved from pipeline context and passed to BaseX as **external
+  variable bindings** (`-b<key>=<value>`). The query must declare each one, e.g.
+  `declare variable $passage external;`. The query file is never modified — no string
+  substitution is performed, so XQuery curly braces (computed constructors, maps, arrays) are
+  safe.
 - `timeout`: Seconds before the BaseX process is killed (default 120).
 - `saveas`: File path to save the output (supports `${var}` substitution).
+
+**Selecting the database:** open it inside the query, from an external variable you bind through
+`inputs`. See `queries/acai-verse-range.xq`:
+
+```xquery
+declare variable $db external := "acai";
+...
+for $e in db:get($db)//entity
+```
+
+The step-level `database:` key is currently required by the linter but is not read by the engine
+and does not select anything — see [#189](https://github.com/nida-institute/LLMFlow/issues/189).
+Until that is settled, declare it (to pass lint) *and* bind the real database name through
+`inputs`.
 
 **Prerequisites:** The `basex` executable must be on `PATH` with a running BaseX instance.
 
@@ -630,8 +649,7 @@ from `load_csv`/`load_tsv`).
 ```yaml
 - name: top-lemmas
   type: duckdb
-  query: "SELECT lemma, COUNT(*) AS n FROM words GROUP BY lemma ORDER BY n DESC LIMIT 20"
-  # query_file: queries/top-lemmas.sql   # alternative: path to a .sql file
+  query_file: queries/top-lemmas.sql   # path to a .sql file
   inputs:
     words: "${morphology_rows}"   # registers the context list as a DuckDB table `words`
   format: records                 # list of dicts (default)
@@ -639,8 +657,10 @@ from `load_csv`/`load_tsv`).
 ```
 
 **Required Fields:**
-- `query` **or** `query_file` (exactly one)
-- `output` (or `outputs`): Variable name to store the result
+- `query_file`: Path to the `.sql` file. Relative paths resolve against `queries_dir`
+  (default `queries`). Inline SQL via `query:` is **not** implemented — see
+  [#190](https://github.com/nida-institute/LLMFlow/issues/190).
+- `outputs`: Variable name to store the result
 
 **Optional Fields:**
 - `inputs`: Map of table/parameter name → context key. Context values (e.g. `list[dict]`)
@@ -673,7 +693,7 @@ Load a file into the pipeline context without writing a Python function. These f
 
 **Required fields:**
 - `path`: File path; supports `${var}` substitution
-- `output` (or `outputs`): Context variable name to store the result
+- `outputs`: Context variable name to store the result
 
 **Optional fields:**
 - `delimiter`: For `load_csv`, overrides the default `,`. Use `"\t"` to parse TSV files via `load_csv`.
@@ -701,7 +721,7 @@ Load all files matching a glob pattern from a directory into a list — one pars
 - `path`: Directory path; supports `${var}` substitution
 - `pattern`: Glob pattern relative to `path` (e.g. `*.json`, `*.md`)
 - `format`: How to parse each file — one of `json`, `yaml`, `xml`, `csv`, `tsv`, `text`
-- `output` (or `outputs`): Context variable; always receives a `list`
+- `outputs`: Context variable; always receives a `list`
 
 Files are loaded in **sorted filename order** for reproducibility.
 
@@ -727,7 +747,7 @@ Built-in plugins are invoked by using their registration name as the step `type`
     path: "${xml_file}"
     xpath: "//verse"
     output_format: text        # text | xml_string | attribute
-  outputs: verse_list
+  output: verse_list
 ```
 
 **`tsv` example:**
@@ -739,7 +759,7 @@ Built-in plugins are invoked by using their registration name as the step `type`
     delimiter: "\t"            # optional, default "\t"
     limit: 100                 # optional — stop after N rows
     from: 10                   # optional — start at row N (0-indexed)
-  outputs: term_rows
+  output: term_rows
 ```
 
 **How plugin steps work:**
@@ -770,7 +790,7 @@ sp run --pipeline pipeline.yaml --var passage="Psalm 23"
 - name: get_data
   type: function
   function: some.function
-  outputs: my_var  # Now available as ${my_var}
+  output: my_var  # Now available as ${my_var}
 ```
 
 ### Using Variables
@@ -798,10 +818,10 @@ sp run --pipeline pipeline.yaml --var passage="Psalm 23"
 `outputs` controls what variable name(s) the step result is stored under in the pipeline context.
 
 ```yaml
-outputs: my_var          # string — stores result as context["my_var"]
-outputs:                 # list of one — same effect
+output: my_var          # string — stores result as context["my_var"]
+output:                 # list of one — same effect
   - my_var
-outputs:                 # list of N — unpacks result tuple/list into N variables
+output:                 # list of N — unpacks result tuple/list into N variables
   - first_thing
   - second_thing
 ```
@@ -892,7 +912,7 @@ steps:
     function: llmflow.utils.data.parse_bible_reference
     inputs:
       passage: "${passage}"
-    outputs: passage_info
+    output: passage_info
 
   # Generate exegetical background
   - name: generate_exegetical_culture
@@ -902,7 +922,7 @@ steps:
       inputs:
         source: "${source}"
         passage: "${passage}"
-    outputs: exegetical_culture
+    output: exegetical_culture
     log: debug
 
   # Generate scene list (JSON)
@@ -915,7 +935,7 @@ steps:
         source: "${source}"
         exegetical_culture: "${exegetical_culture}"
     output_type: json
-    outputs: scene_list
+    output: scene_list
     log: debug
 
   # Process each scene
@@ -932,7 +952,7 @@ steps:
             passage: "${passage}"
             scene: "${scene.WLC}"
             citation: "${scene.Citation}"
-        outputs: bodies_content
+        output: bodies_content
         append_to: bodies_list
 
       # Render scene markdown
@@ -944,7 +964,7 @@ steps:
           variables:
             scene_title: "${scene.Title}"
             step1: "${bodies_content}"
-        outputs: leadersguide_scene_markdown
+        output: leadersguide_scene_markdown
         append_to: leadersguide_scenes_markdown_list
 
   # Concatenate all scenes
@@ -953,7 +973,7 @@ steps:
     function: llmflow.utils.data.flatten_json_to_markdown
     inputs:
       data: "${leadersguide_scenes_markdown_list}"
-    outputs: leadersguide_scenes_markdown
+    output: leadersguide_scenes_markdown
 
   # Save final guide
   - name: save_leaders_guide
@@ -964,7 +984,7 @@ steps:
       variables:
         passage: "${passage}"
         leadersguide_scenes_markdown: "${leadersguide_scenes_markdown}"
-    outputs: leaders_guide_markdown
+    output: leaders_guide_markdown
     saveas: "outputs/leaders_guide/${passage_info.filename_prefix}_leaders_guide.md"
 ```
 

@@ -124,7 +124,7 @@ steps:
       inputs:
         passage: "${passage}"
         source: "${source}"
-    outputs: intro_text
+    output: intro_text
     saveas: "outputs/${passage}_intro.md"
 ```
 
@@ -226,7 +226,7 @@ Function step:
     variables:
       passage: "${passage}"
       intro_text: "${intro_text}"
-  outputs: guide_markdown
+  output: guide_markdown
   saveas: "outputs/${passage}_guide.md"
 ```
 

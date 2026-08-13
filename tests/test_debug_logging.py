@@ -20,7 +20,7 @@ class TestDebugLogging:
                     "type": "function",
                     "function": "llmflow.utils.data.parse_bible_reference",
                     "inputs": {"passage": "John 3:16"},
-                    "outputs": "result"
+                    "output": "result"
                 }
             ]
         }
@@ -50,7 +50,7 @@ class TestDebugLogging:
                     "type": "function",
                     "function": "llmflow.utils.data.parse_bible_reference",
                     "inputs": {"passage": "John 3:16"},
-                    "outputs": "result"
+                    "output": "result"
                 }
             ]
         }
@@ -75,14 +75,14 @@ class TestDebugLogging:
                     "type": "function",
                     "function": "llmflow.utils.data.parse_bible_reference",
                     "inputs": {"passage": "John 3:16"},
-                    "outputs": "result1"
+                    "output": "result1"
                 },
                 {
                     "name": "step2_with_debug",
                     "type": "function",
                     "function": "llmflow.utils.data.parse_bible_reference",
                     "inputs": {"passage": "Mark 1:1"},
-                    "outputs": "result2",
+                    "output": "result2",
                     "log": "debug"
                 },
                 {
@@ -90,7 +90,7 @@ class TestDebugLogging:
                     "type": "function",
                     "function": "llmflow.utils.data.parse_bible_reference",
                     "inputs": {"passage": "Luke 2:1"},
-                    "outputs": "result3"
+                    "output": "result3"
                 }
             ]
         }
@@ -118,7 +118,7 @@ class TestDebugLogging:
                     "type": "function",
                     "function": "llmflow.utils.data.parse_bible_reference",
                     "inputs": {"passage": "John 3:16"},
-                    "outputs": "result1",
+                    "output": "result1",
                     "log": "debug"
                 },
                 {
@@ -126,7 +126,7 @@ class TestDebugLogging:
                     "type": "function",
                     "function": "llmflow.utils.data.parse_bible_reference",
                     "inputs": {"passage": "Mark 1:1"},
-                    "outputs": "result2"
+                    "output": "result2"
                 }
             ]
         }
@@ -163,7 +163,7 @@ class TestDebugLogging:
                             "type": "function",
                             "function": "llmflow.utils.data.parse_bible_reference",
                             "inputs": {"passage": "${passage}"},
-                            "outputs": "parsed",
+                            "output": "parsed",
                             "log": "debug"
                         }
                     ]
@@ -195,7 +195,7 @@ class TestDebugLogging:
                     "type": "function",
                     "function": "llmflow.utils.data.identity",
                     "inputs": {"value": "${scene_list}"},
-                    "outputs": "scenes"
+                    "output": "scenes"
                     # No log: debug
                 }
             ]
@@ -231,7 +231,7 @@ class TestDebugOutputContent:
                     "type": "function",
                     "function": "llmflow.utils.data.identity",
                     "inputs": {"value": long_text},
-                    "outputs": "text"
+                    "output": "text"
                 }
             ]
         }
@@ -253,7 +253,7 @@ class TestDebugOutputContent:
                     "type": "function",
                     "function": "llmflow.utils.data.identity",
                     "inputs": {"value": "some content here"},
-                    "outputs": "text"
+                    "output": "text"
                 }
             ]
         }

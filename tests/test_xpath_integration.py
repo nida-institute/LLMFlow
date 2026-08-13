@@ -65,7 +65,7 @@ gamma\tThird
                         "xpath": "//entry[@key='alpha']",
                         "output_format": "text",
                     },
-                    "outputs": ["content"],
+                    "output": ["content"],
                 }
             ],
         }
@@ -94,7 +94,7 @@ gamma\tThird
                         "xpath": "//entry",
                         "output_format": "xml-string",
                     },
-                    "outputs": ["entries"],
+                    "output": ["entries"],
                 }
             ],
         }
@@ -125,7 +125,7 @@ gamma\tThird
                         "xpath": "//entry[@key='alpha']",
                         "output_format": "xml-string",
                     },
-                    "outputs": ["entries"],
+                    "output": ["entries"],
                 },
                 {
                     "name": "save-first",
@@ -176,7 +176,7 @@ Process this entry: {entry}""")
                         "xpath": "//entry[@key='beta']",
                         "output_format": "xml-string",
                     },
-                    "outputs": ["entries"],
+                    "output": ["entries"],
                 },
                 {
                     "name": "process-entry",
@@ -187,7 +187,7 @@ Process this entry: {entry}""")
                             "entry": "${entries[0]}",  # CRITICAL: Must expand correctly
                         }
                     },
-                    "outputs": ["result"],
+                    "output": ["result"],
                 },
             ],
         }
@@ -228,7 +228,7 @@ Process this entry: {entry}""")
                         "xpath": "//entry[@key='beta']",
                         "output_format": "text",
                     },
-                    "outputs": ["beta_content"],
+                    "output": ["beta_content"],
                 }
             ],
         }
@@ -256,7 +256,7 @@ Process this entry: {entry}""")
                         "xpath": "//entry/@key",
                         "output_format": "text",
                     },
-                    "outputs": ["keys"],
+                    "output": ["keys"],
                 }
             ],
         }
@@ -284,7 +284,7 @@ Process this entry: {entry}""")
                         "xpath": "//entry",
                         "output_format": "text",
                     },
-                    "outputs": ["all_entries"],
+                    "output": ["all_entries"],
                 }
             ],
         }
@@ -317,7 +317,7 @@ Process this entry: {entry}""")
                         "output_format": "text",
                         "namespaces": {"tei": "http://www.tei-c.org/ns/1.0"},
                     },
-                    "outputs": ["entries"],
+                    "output": ["entries"],
                 }
             ],
         }
@@ -347,7 +347,7 @@ Process this entry: {entry}""")
                         "output_format": "text",
                         "namespaces": {"tei": "http://www.tei-c.org/ns/1.0"},
                     },
-                    "outputs": ["keys"],
+                    "output": ["keys"],
                 }
             ],
         }
@@ -375,7 +375,7 @@ Process this entry: {entry}""")
                         "xpath": "//nonexistent",
                         "output_format": "text",
                     },
-                    "outputs": ["nothing"],
+                    "output": ["nothing"],
                 }
             ],
         }
@@ -404,7 +404,7 @@ Process this entry: {entry}""")
                         "xpath": "//entry[1]",
                         "output_format": "text",
                     },
-                    "outputs": ["first_entry"],
+                    "output": ["first_entry"],
                 }
             ],
         }
@@ -432,7 +432,7 @@ Process this entry: {entry}""")
                         "xpath": "//entry[@key!='alpha']",
                         "output_format": "xml-string",
                     },
-                    "outputs": ["non_alpha"],
+                    "output": ["non_alpha"],
                 }
             ],
         }
@@ -461,7 +461,7 @@ Process this entry: {entry}""")
                         "xpath": "//entry",
                         "output_format": "text",
                     },
-                    "outputs": ["entries"],
+                    "output": ["entries"],
                 }
             ],
         }
@@ -489,7 +489,7 @@ Process this entry: {entry}""")
                         "path": str(sample_xml),
                         "xpath": "//entry[@key='alpha']",
                     },
-                    "outputs": ["entry"],
+                    "output": ["entry"],
                 }
             ],
         }
@@ -521,7 +521,7 @@ Process this entry: {entry}""")
                         "xpath": "//entry[@key='alpha']",
                         "output_format": "xml-string",
                     },
-                    "outputs": ["entry"],
+                    "output": ["entry"],
                     "saveas": str(output_file),
                 }
             ],
@@ -550,7 +550,7 @@ Process this entry: {entry}""")
                     "name": "load-keys",
                     "type": "tsv",
                     "inputs": {"path": str(tsv_data)},
-                    "outputs": ["rows"],
+                    "output": ["rows"],
                 },
                 {
                     "name": "process-each",
@@ -566,7 +566,7 @@ Process this entry: {entry}""")
                                 "xpath": "//entry[@key='${item.key}']",
                                 "output_format": "text",
                             },
-                            "outputs": ["entry_text"],
+                            "output": ["entry_text"],
                             "append_to": "all_results",
                         }
                     ],
@@ -604,7 +604,7 @@ Process this entry: {entry}""")
                         "xpath": "//entry[@key='alpha']",
                         "output_format": "text",
                     },
-                    "outputs": ["content"],
+                    "output": ["content"],
                 },
                 {
                     "name": "save",
@@ -647,7 +647,7 @@ Process this entry: {entry}""")
                                 "xpath": "//entry[@key='${target_key}']",
                                 "output_format": "text",
                             },
-                            "outputs": ["result"],
+                            "output": ["result"],
                         }
                     ],
                 },
@@ -675,7 +675,7 @@ Process this entry: {entry}""")
                         "xpath": "//entry[@key='${search_key}']",
                         "output_format": "text",
                     },
-                    "outputs": ["content"],
+                    "output": ["content"],
                 }
             ],
         }
@@ -700,7 +700,7 @@ Process this entry: {entry}""")
                         "xpath": "//entry",
                         "output_format": "text",
                     },
-                    "outputs": ["all_entries", "backup_entries"],
+                    "output": ["all_entries", "backup_entries"],
                 }
             ],
         }
@@ -746,7 +746,7 @@ Process this entry: {entry}""")
                         "xpath": "//book[@id='1']//chapter",
                         "output_format": "text",
                     },
-                    "outputs": ["chapters"],
+                    "output": ["chapters"],
                 }
             ],
         }
@@ -782,7 +782,7 @@ Process this entry: {entry}""")
                         "xpath": "//root//leaf",
                         "output_format": "text",
                     },
-                    "outputs": ["deep_content"],
+                    "output": ["deep_content"],
                 }
             ],
         }

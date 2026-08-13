@@ -380,11 +380,12 @@ steps:
     type: basex
     database: macula-greek
     query_file: queries/clause-patterns.xq
-    params:
+    inputs:                     # bound as XQuery external variables (-b<key>=<value>)
+      db: macula-greek
       book: "${book}"
       min_frequency: 10
-    outputs: clause_data
-    timeout: 60
+    output: clause_data
+    timeout_seconds: 60
 ```
 
 **Query file** (`queries/clause-patterns.xq`):
@@ -413,10 +414,11 @@ steps:
     type: basex
     database: macula-greek
     query_file: queries/clause-patterns.xq
-    params:
+    inputs:
+      db: macula-greek
       book: "${book}"
       min_frequency: 5
-    outputs: patterns_xml
+    output: patterns_xml
 
   # 2. Parse XML result to structured data
   - name: parse_patterns
@@ -424,7 +426,7 @@ steps:
     function: llmflow.utils.data.parse_xml_to_dict
     inputs:
       xml_string: "${patterns_xml}"
-    outputs: patterns_data
+    output: patterns_data
 
   # 3. Generate pedagogical descriptions
   - name: explain_patterns
@@ -434,7 +436,7 @@ steps:
       inputs:
         patterns: "${patterns_data}"
         book: "${book}"
-    outputs: syntax_guide
+    output: syntax_guide
 
   # 4. Save output
   - name: save_guide

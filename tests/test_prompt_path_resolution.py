@@ -139,7 +139,7 @@ def test_linter_and_runner_find_same_file(tmp_path):
             "type": "llm",
             "model": "gpt-4o",
             "prompt": {"file": "prompts/step.gpt", "inputs": {"text": "hi"}},
-            "outputs": "result",
+            "output": "result",
         }]
     }
     pipeline_file = tmp_path / "pipeline.yaml"
@@ -184,7 +184,7 @@ def test_cli_run_reports_prompt_error_not_pipeline_error(tmp_path, capsys):
             "type": "llm",
             "model": "gpt-4o",
             "prompt": {"file": "missing-prompt.gpt", "inputs": {}},
-            "outputs": "result",
+            "output": "result",
         }]
     }
     pipeline_file = tmp_path / "pipeline.yaml"

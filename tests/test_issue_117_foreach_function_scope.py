@@ -39,7 +39,7 @@ def test_function_step_output_accessible_in_same_iteration():
                 "inputs": {
                     "enriched_field": "Enriched value for ${item.name}",
                 },
-                "outputs": "item_enriched",
+                "output": "item_enriched",
             },
             # Step 2: try to use step 1's output via dot-notation
             {
@@ -51,7 +51,7 @@ def test_function_step_output_accessible_in_same_iteration():
                     "name": "${item.name}",
                     "enriched_field": "${item_enriched.enriched_field}",
                 },
-                "outputs": "packaged_item",
+                "output": "packaged_item",
                 "append_to": "results",
             },
         ],

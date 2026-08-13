@@ -638,7 +638,7 @@ steps:
       genre: "narrative"
       macula_path: "/Users/jonathan/github/Clear/macula-hebrew/tsv/"
       min_frequency: 5
-    outputs: verb_stats
+    output: verb_stats
     format: records  # Optional: records (default), dataframe, json
 ```
 
@@ -687,7 +687,7 @@ steps:
     inputs:
       book: "${book}"
       macula_path: "/data/macula-hebrew/tsv/"
-    outputs: verb_data
+    output: verb_data
 
   # 2. Generate pedagogical descriptions
   - name: explain_verbs
@@ -697,7 +697,7 @@ steps:
       inputs:
         verbs: "${verb_data}"
         level: "intermediate"
-    outputs: vocab_list
+    output: vocab_list
 ```
 
 **Prompt file** (`prompts/explain_verbs.gpt`):
@@ -764,7 +764,7 @@ steps:
       book: "${book}"
       macula_path: "${macula_path}"
       min_frequency: 5
-    outputs: verb_data
+    output: verb_data
 
   # 2. Find common collocations for top verbs
   - name: find_collocations
@@ -774,7 +774,7 @@ steps:
       book: "${book}"
       macula_path: "${macula_path}"
       top_n_verbs: 20
-    outputs: collocation_data
+    output: collocation_data
 
   # 3. Generate pedagogical descriptions
   - name: explain_verbs
@@ -785,13 +785,13 @@ steps:
         verbs: "${verb_data}"
         collocations: "${collocation_data}"
         level: "${level}"
-    outputs: vocab_list
+    output: vocab_list
 
   # 4. Save to markdown
   - name: save_output
     type: save
     content: "${vocab_list}"
-    path: "output/${book}_vocab_${level}.md"
+    path: "outputs/${book}_vocab_${level}.md"
 ```
 
 ### Benefits
@@ -855,14 +855,14 @@ def generate_frequency_list(books: List[str], pos: str = 'all') -> pd.DataFrame:
   function: llmflow.utils.bible_data.analyze_difficulty
   inputs:
     passage: "${passage}"
-  outputs: difficulty_metrics
+  output: difficulty_metrics
 
 - name: identify_discourse_signals
   type: function
   function: llmflow.utils.bible_data.find_discourse_boundaries
   inputs:
     passage_info: "${passage_info}"
-  outputs: discourse_signals
+  output: discourse_signals
 ```
 
 ### 3. Paratext Pipelines

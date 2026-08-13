@@ -18,5 +18,5 @@ steps:
     function: "tests.test_storyflow_pipeline.mock_identity"
     inputs:
       value: "${psalm_reference}"
-    outputs:
+    output:
       - psalm_text

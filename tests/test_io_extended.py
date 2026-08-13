@@ -248,8 +248,8 @@ class TestExtractPipelineVariables:
     PIPELINE = {
         "variables": {"passage": "John 3:16", "lang": "en"},
         "steps": [
-            {"name": "step1", "type": "llm", "outputs": ["result1"]},
-            {"name": "step2", "type": "llm", "outputs": ["result2"]},
+            {"name": "step1", "type": "llm", "output": ["result1"]},
+            {"name": "step2", "type": "llm", "output": ["result2"]},
         ],
     }
 

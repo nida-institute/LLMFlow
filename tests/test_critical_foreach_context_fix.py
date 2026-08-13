@@ -28,7 +28,7 @@ class TestCriticalForEachContext:
                     "type": "function",
                     "function": "tests.test_critical_foreach_context.append_to_shared_list",
                     "inputs": {"item": "${item}", "shared_list": "${shared_list}"},
-                    "outputs": "result",
+                    "output": "result",
                 }
             ],
         }
@@ -61,7 +61,7 @@ steps:
         inputs:
           item: "${item}"
           shared_list: "${shared_list}"
-        outputs:
+        output:
           - result
         append_to: results
 """

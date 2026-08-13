@@ -16,7 +16,7 @@ def handle_step_outputs(step: Dict[str, Any], result: Any, context: Dict[str, An
     context.pop("_last_saved_files", None)
     saved_paths: List[str] = []
 
-    outputs = step.get("outputs") or step.get("output")
+    outputs = step.get("output")
     if outputs is not None:
         if isinstance(outputs, str):
             context[outputs] = result
@@ -52,7 +52,7 @@ def handle_step_outputs(step: Dict[str, Any], result: Any, context: Dict[str, An
     if "saveas" in step:
         if outputs is None:
             temp_output = f"_temp_output_{id(result)}"
-            step_with_output = {**step, "outputs": temp_output}
+            step_with_output = {**step, "output": temp_output}
             context[temp_output] = result
             saved_paths = handle_step_saveas(step_with_output, context)
             del context[temp_output]
@@ -65,7 +65,7 @@ def handle_step_outputs(step: Dict[str, Any], result: Any, context: Dict[str, An
 def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> List[str]:
     """Handle saveas output for pipeline steps and return written paths."""
     saveas_config = step["saveas"]
-    outputs = step.get("outputs") or step.get("output")
+    outputs = step.get("output")
     saved_paths: List[str] = []
 
     def get_content() -> Any:

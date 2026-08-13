@@ -24,14 +24,14 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result1
   - name: step2
     type: llm
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result2
     after: exit
   - name: step3
@@ -39,7 +39,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result3
 """
     pipeline_file = tmp_path / "test-pipeline.yaml"
@@ -64,7 +64,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result1
     after: continue
   - name: step2
@@ -72,7 +72,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result2
 """
     pipeline_file = tmp_path / "continue-pipeline.yaml"
@@ -106,7 +106,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
         after: exit
 """
@@ -141,7 +141,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result1
         after: continue
       - name: nested-step2
@@ -149,7 +149,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result2
 """
     pipeline_file = tmp_path / "foreach-continue-pipeline.yaml"
@@ -179,7 +179,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result1
         after: exit
       - name: nested-step2
@@ -187,14 +187,14 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result2
   - name: after-if
     type: llm
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result3
 """
     pipeline_file = tmp_path / "if-exit-pipeline.yaml"
@@ -226,7 +226,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result1
         after: continue
       - name: nested-step2
@@ -234,14 +234,14 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result2
   - name: after-if
     type: llm
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result3
 """
     pipeline_file = tmp_path / "if-continue-pipeline.yaml"
@@ -267,21 +267,21 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result1
   - name: step2
     type: llm
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result2
   - name: step3
     type: llm
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result3
 """
     pipeline_file = tmp_path / "no-after-pipeline.yaml"
@@ -323,7 +323,7 @@ steps:
             model: gpt-4o
             prompt:
               file: test.gpt
-            outputs:
+            output:
               - result
             after: exit
 """
@@ -356,7 +356,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result1
         append_to: all_results
         after: exit
@@ -365,7 +365,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result2
 """
     pipeline_file = tmp_path / "foreach-then-exit.yaml"
@@ -403,7 +403,7 @@ steps:
     function: helpers.get_basename
     inputs:
       path: "/path/to/file.txt"
-    outputs:
+    output:
       - result1
     after: exit
   - name: func2
@@ -411,7 +411,7 @@ steps:
     function: helpers.get_basename
     inputs:
       path: "/other/path.txt"
-    outputs:
+    output:
       - result2
 """
         pipeline_file = tmp_path / "function-exit.yaml"
@@ -440,7 +440,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result1
   - name: loop
     type: for-each
@@ -452,7 +452,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - loop_result
         after: continue
       - name: should-not-run
@@ -460,14 +460,14 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - unreachable
   - name: step2
     type: llm
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result2
 """
     pipeline_file = tmp_path / "mixed-steps.yaml"
@@ -500,7 +500,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result1
         after: exit
   - name: after-if
@@ -508,7 +508,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result2
 """
     pipeline_file = tmp_path / "if-false.yaml"
@@ -534,7 +534,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result1
     after: exit
   - name: step2
@@ -542,7 +542,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result2
     after: exit
   - name: step3
@@ -550,7 +550,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result3
 """
     pipeline_file = tmp_path / "multiple-exits.yaml"
@@ -579,7 +579,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result1
   - name: loop
     type: for-each
@@ -591,7 +591,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - loop_result
         after: exit
   - name: step2
@@ -599,7 +599,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result2
 """
     pipeline_file = tmp_path / "foreach-exit-parent.yaml"
@@ -636,7 +636,7 @@ steps:
             model: gpt-4o
             prompt:
               file: test.gpt
-            outputs:
+            output:
               - result1
             after: exit
       - name: after-inner
@@ -644,14 +644,14 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result2
   - name: after-outer
     type: llm
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result3
 """
     pipeline_file = tmp_path / "nested-if-exit.yaml"
@@ -685,7 +685,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
         append_to: collected
         after: continue
@@ -694,7 +694,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - unreachable
 """
     pipeline_file = tmp_path / "foreach-append-continue.yaml"
@@ -797,7 +797,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
         append_to: results
       - name: save
@@ -839,7 +839,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
         append_to: results
         after: exit
@@ -874,7 +874,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - skipped
         after: continue
       - name: never-runs
@@ -882,7 +882,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
 """
     pipeline_file = tmp_path / "continue-first-step.yaml"
@@ -918,14 +918,14 @@ steps:
             model: gpt-4o
             prompt:
               file: test.gpt
-            outputs:
+            output:
               - result1
   - name: after-all
     type: llm
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result2
 """
     pipeline_file = tmp_path / "nested-if-outer-false.yaml"
@@ -958,14 +958,14 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
   - name: after-loop
     type: llm
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - final_result
 """
     pipeline_file = tmp_path / "foreach-empty-list.yaml"
@@ -999,7 +999,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - r1
         append_to: list1
         after: continue
@@ -1008,7 +1008,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - r2
   - name: loop2
     type: for-each
@@ -1020,7 +1020,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - r3
         after: exit
 """
@@ -1054,7 +1054,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result1
         after: exit
   - name: after-if
@@ -1062,7 +1062,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result2
 """
     pipeline_file = tmp_path / "if-explicit-true.yaml"
@@ -1091,14 +1091,14 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result1
   - name: after-if
     type: llm
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result2
 """
     pipeline_file = tmp_path / "if-explicit-false.yaml"
@@ -1162,7 +1162,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result1
           - result2
         append_to: collected
@@ -1172,7 +1172,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - unreachable
 """
     pipeline_file = tmp_path / "continue-multiple-outputs.yaml"
@@ -1209,7 +1209,7 @@ steps:
             model: gpt-4o
             prompt:
               file: test.gpt
-            outputs:
+            output:
               - match
             after: exit
       - name: keep-searching
@@ -1217,7 +1217,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - searched
         append_to: searched_items
 """
@@ -1250,7 +1250,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result1
   - name: save1
     type: save
@@ -1261,7 +1261,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - result2
     after: exit
   - name: save2
@@ -1300,7 +1300,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - result
         append_to: results
         after: continue
@@ -1309,7 +1309,7 @@ steps:
         model: gpt-4o
         prompt:
           file: test.gpt
-        outputs:
+        output:
           - skip
 """
     pipeline_file = tmp_path / "foreach-with-index.yaml"
@@ -1354,7 +1354,7 @@ steps:
                 model: gpt-4o
                 prompt:
                   file: test.gpt
-                outputs:
+                output:
                   - result
                 after: exit
   - name: after-all
@@ -1362,7 +1362,7 @@ steps:
     model: gpt-4o
     prompt:
       file: test.gpt
-    outputs:
+    output:
       - final
 """
     pipeline_file = tmp_path / "deeply-nested-exit.yaml"

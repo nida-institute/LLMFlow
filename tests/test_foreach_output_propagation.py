@@ -24,7 +24,7 @@ def test_regular_output_visible_after_loop():
                 "type": "function",
                 "function": "llmflow.utils.data.create_json_dictionary",
                 "inputs": {"id": "${item.id}"},
-                "outputs": "last_item",
+                "output": "last_item",
             }
         ],
     }
@@ -52,7 +52,7 @@ def test_last_iteration_wins():
                 "type": "function",
                 "function": "llmflow.utils.data.create_json_dictionary",
                 "inputs": {"value": "${item}"},
-                "outputs": "current",
+                "output": "current",
             }
         ],
     }
@@ -79,7 +79,7 @@ def test_append_to_and_regular_output_both_propagate():
                 "type": "function",
                 "function": "llmflow.utils.data.create_json_dictionary",
                 "inputs": {"n": "${item}"},
-                "outputs": "current_item",
+                "output": "current_item",
                 "append_to": "all_items",
             }
         ],
@@ -112,7 +112,7 @@ def test_output_after_loop_usable_in_next_step():
                 "type": "function",
                 "function": "llmflow.utils.data.create_json_dictionary",
                 "inputs": {"x": "${item.x}"},
-                "outputs": "last_captured",
+                "output": "last_captured",
             }
         ],
     }
@@ -122,7 +122,7 @@ def test_output_after_loop_usable_in_next_step():
         "type": "function",
         "function": "llmflow.utils.data.create_json_dictionary",
         "inputs": {"final_x": "${last_captured.x}"},
-        "outputs": "result",
+        "output": "result",
     }
 
     run_step(foreach_step, context, {})

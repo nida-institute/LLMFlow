@@ -12,7 +12,7 @@ class TestAppendToFunctionSteps:
             "name": "test_step",
             "type": "function",
             "function": "tests.test_append_to_function_steps.return_value",
-            "outputs": "result",
+            "output": "result",
             "append_to": "results_list",
         }
 
@@ -41,7 +41,7 @@ class TestAppendToFunctionSteps:
             "name": "generate",
             "type": "function",
             "function": "tests.test_append_to_function_steps.generate_content",
-            "outputs": "new_item",
+            "output": "new_item",
         }
 
         def generate_content():

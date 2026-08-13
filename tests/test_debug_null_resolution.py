@@ -21,7 +21,7 @@ def test_null_value_resolution():
                     "string_var": "${test_string}",
                     "empty_var": "${test_empty}",
                 },
-                "outputs": "debug_result",
+                "output": "debug_result",
             }
         ],
     }

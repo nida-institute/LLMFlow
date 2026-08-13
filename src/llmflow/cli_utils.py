@@ -64,7 +64,7 @@ steps:
       file: "hello.gpt"
       inputs:
         language_count: 5
-    outputs: greeting
+    output: greeting
     saveas:
       path: "${output_dir}/hello.md"
 
@@ -74,7 +74,7 @@ steps:
       file: "reply.gpt"
       inputs:
         greeting_markdown: "${greeting}"
-    outputs: reply_block
+    output: reply_block
     saveas:
       path: "${output_dir}/responses.md"
 """
@@ -98,7 +98,7 @@ steps:
       file: "hello.gpt"
       inputs:
         language_count: 5
-    outputs: greeting
+    output: greeting
     saveas:
       path: "${output_dir}/greeting.md"
 """
@@ -147,7 +147,7 @@ steps:
       file: "hello.gpt"
       inputs:
         language_count: 5
-    outputs: greeting
+    output: greeting
     saveas:
       path: "${output_dir}/hello.md"
 
@@ -157,7 +157,7 @@ steps:
       file: "reply.gpt"
       inputs:
         greeting_markdown: "${greeting}"
-    outputs: reply_block
+    output: reply_block
     saveas:
       path: "${output_dir}/responses.md"
 ```
@@ -280,7 +280,7 @@ Runs a prompt through an LLM and stores the response.
     file: "template.gpt"
     inputs:
       topic: "${topic}"
-  outputs: draft
+  output: draft
   saveas:
     path: "${output_dir}/draft.md"
 ```
@@ -305,7 +305,7 @@ Calls a Python function as part of the flow.
   function: some.module:callable
   inputs:
     raw: "${raw_text}"
-  outputs: parsed
+  output: parsed
   saveas:
     path: "${output_dir}/parsed.json"
 ```
@@ -323,8 +323,8 @@ Loops over a list variable and runs nested steps for each item.
   for: item
   in: "${items}"
   parallel: 4                      # optional: run up to 4 iterations concurrently
-  group-by: "${item.category}"     # optional: group results by this field
-  order-by: "${item.sequence}"     # optional: sort results within groups
+  group_by: "${item.category}"     # optional: group results by this field
+  order_by: "${item.sequence}"     # optional: sort results within groups
   steps:
     - name: handle-item
       type: llm
@@ -332,7 +332,7 @@ Loops over a list variable and runs nested steps for each item.
         file: "item.gpt"
         inputs:
           item_text: "${item}"
-      outputs: item_result
+      output: item_result
       append_to: all_results
 ```
 
@@ -341,9 +341,9 @@ Loops over a list variable and runs nested steps for each item.
 - Use `append_to` in nested steps to build a list across iterations.
 - `parallel: N` runs N iterations concurrently; results are collected in
   input order regardless. Omit for sequential execution (default).
-- `group-by` and `order-by` accept `${expr}` expressions evaluated against
-  each item. `group-by` groups `append_to` results by the expression value;
-  `order-by` sorts within each group.
+- `group_by` and `order_by` accept `${expr}` expressions evaluated against
+  each item. `group_by` groups `append_to` results by the expression value;
+  `order_by` sorts within each group.
 
 ### type: `window`
 
@@ -365,7 +365,7 @@ steps on each slice. Useful when a list is too large to process at once.
         file: "process.gpt"
         inputs:
           chunk: "${window_content}"
-      outputs: window_result
+      output: window_result
       append_to: all_results
 
     # Optional: dynamic cursor — tell the engine where the next window starts.
@@ -380,7 +380,7 @@ steps on each slice. Useful when a list is too large to process at once.
         inputs:
           verse_sid: "${window_result.pericopes[-1].opening_verse_sid}"
           content: "${content_list}"
-        outputs: next_start
+        output: next_start
 ```
 
 - `size` — fixed item count per window.
@@ -417,7 +417,7 @@ appended by earlier iterations. This enables "rolling context" patterns:
           passage: "${pericope.canonical_reference}"
           # Only pass the last 10 summaries — prior_pericopes grows each iteration
           prior_context: "${prior_pericopes[-10:]}"
-      outputs: pericope_analysis
+      output: pericope_analysis
 
     - name: summarize
       type: function
@@ -425,7 +425,7 @@ appended by earlier iterations. This enables "rolling context" patterns:
       inputs:
         obj: "${pericope_analysis}"
         fields: ["title", "themes"]
-      outputs: summary
+      output: summary
       append_to: prior_pericopes   # visible to next iteration
 ```
 
@@ -464,7 +464,7 @@ Conditionally executes a block of steps.
         file: "detail.gpt"
         inputs:
           topic: "${topic}"
-      outputs: detail_text
+      output: detail_text
 ```
 
 - `condition` is evaluated first; if falsy the whole block is skipped.
@@ -482,7 +482,7 @@ Any step (any type) can be skipped individually:
     file: "optional.gpt"
     inputs:
       data: "${data}"
-  outputs: optional_result
+  output: optional_result
 ```
 
 The expression follows the same rules as `type: if` — variable reference,
@@ -499,7 +499,7 @@ Any step can write its primary output (or literal content) to a file:
     file: "report.gpt"
     inputs:
       data: "${analysis}"
-  outputs: report_md
+  output: report_md
   saveas:
     path: "${output_dir}/report.md"
 ```
@@ -1946,7 +1946,7 @@ def init_project(base_dir: Path, update: bool = False, no_examples: bool = False
     else:
         logger.info("docs/audits/audit-leadersguide.md already exists; leaving as-is.")
 
-    logger.info("Output directory ready at ./output")
+    logger.info("Output directory ready at ./outputs")
 
     # Install global conventions to ~/.sp/ (non-interactive, no machine-scoped UI needed)
     try:

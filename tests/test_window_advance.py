@@ -35,7 +35,7 @@ steps:
     step:
       type: function
       function: tests.test_helpers.cursor_pop
-      outputs: next_pos
+      output: next_pos
 """
         parsed = yaml.load(src, Loader=_LLMFlowLoader)
         step = parsed["steps"][0]
@@ -49,7 +49,7 @@ steps:
 steps:
   - name: segment
     type: llm
-    outputs: result
+    output: result
 """
         parsed = yaml.load(src, Loader=_LLMFlowLoader)
         step = parsed["steps"][0]
@@ -66,7 +66,7 @@ steps:
     step:
       type: function
       function: tests.test_helpers.cursor_pop
-      outputs: next_pos
+      output: next_pos
 """
         parsed = yaml.load(src, Loader=_LLMFlowLoader)
         inner = parsed["steps"][0]["step"]
@@ -94,7 +94,7 @@ def _window_advance_step(cursor_var="next_pos"):
             "type": "function",
             "function": "tests.test_helpers.cursor_pop",
             "inputs": {},
-            "outputs": cursor_var,
+            "output": cursor_var,
         },
     }
 
@@ -127,7 +127,7 @@ class TestWindowAdvanceDynamic:
                     "type": "function",
                     "function": "llmflow.utils.data.identity",
                     "inputs": {"value": "${wc}"},
-                    "outputs": "last_window",
+                    "output": "last_window",
                 },
                 _window_advance_step(),
             ],
@@ -151,7 +151,7 @@ class TestWindowAdvanceDynamic:
                     "type": "function",
                     "function": "llmflow.utils.data.identity",
                     "inputs": {"value": "${wc}"},
-                    "outputs": "last_window",
+                    "output": "last_window",
                     "append_to": "all_windows",
                 },
                 _window_advance_step(),
@@ -182,7 +182,7 @@ class TestWindowAdvanceDynamic:
                     "type": "function",
                     "function": "llmflow.utils.data.identity",
                     "inputs": {"value": "${wc}"},
-                    "outputs": "last_window",
+                    "output": "last_window",
                     "append_to": "all_windows",
                 },
                 _window_advance_step(),
@@ -211,7 +211,7 @@ class TestWindowAdvanceDynamic:
                     "type": "function",
                     "function": "llmflow.utils.data.identity",
                     "inputs": {"value": "${next_pos}"},
-                    "outputs": "cursor_copy",
+                    "output": "cursor_copy",
                 },
             ],
         }
@@ -235,7 +235,7 @@ class TestWindowAdvanceDynamic:
                     "type": "function",
                     "function": "llmflow.utils.data.identity",
                     "inputs": {"value": "${wc}"},
-                    "outputs": "last_window",
+                    "output": "last_window",
                     "append_to": "all_windows",
                 },
                 _window_advance_step(),
@@ -260,7 +260,7 @@ class TestWindowAdvanceDynamic:
                     "type": "function",
                     "function": "llmflow.utils.data.identity",
                     "inputs": {"value": "${wc}"},
-                    "outputs": "result",
+                    "output": "result",
                     "append_to": "results",
                 },
                 _window_advance_step(),

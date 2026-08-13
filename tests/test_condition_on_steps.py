@@ -10,7 +10,7 @@ def test_llm_step_with_condition_true():
         "condition": "should_run == True",
         "model": "gpt-4",
         "prompt": {"text": "Hello"},
-        "outputs": ["result"]
+        "output": ["result"]
     }
     context = {"should_run": True}
     pipeline_config = {}
@@ -31,7 +31,7 @@ def test_llm_step_with_condition_false():
         "condition": "should_run == True",
         "model": "gpt-4",
         "prompt": {"text": "Hello"},
-        "outputs": ["result"]
+        "output": ["result"]
     }
     context = {"should_run": False}
     pipeline_config = {}
@@ -50,7 +50,7 @@ def test_function_step_with_condition_false():
         "type": "function",
         "condition": "len(items) > 0",
         "function": "noop",
-        "outputs": ["result"]
+        "output": ["result"]
     }
     context = {"items": []}
     pipeline_config = {"modules": {"noop": lambda: "executed"}}
@@ -70,7 +70,7 @@ def test_xpath_step_with_condition_false():
             "path": "test.xml",
             "xpath": "//node"
         },
-        "outputs": ["nodes"]
+        "output": ["nodes"]
     }
     context = {"has_xml": False}
     pipeline_config = {}
@@ -113,7 +113,7 @@ def test_is_none_step_skipped_when_var_not_none():
         "condition": "${cursor is None}",
         "function": "llmflow.utils.data.identity",
         "inputs": {"value": "done"},
-        "outputs": "final_result",
+        "output": "final_result",
     }
     context = {"cursor": 10}
     run_step(step, context, {})
@@ -128,7 +128,7 @@ def test_is_none_step_runs_when_var_is_none():
         "condition": "${cursor is None}",
         "function": "llmflow.utils.data.identity",
         "inputs": {"value": "done"},
-        "outputs": "final_result",
+        "output": "final_result",
     }
     context = {"cursor": None}
     run_step(step, context, {})

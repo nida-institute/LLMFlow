@@ -50,7 +50,7 @@ class TestHandleStepOutputs:
 
     def test_outputs_string(self):
         context = {}
-        rule = {"name": "test", "outputs": "result"}
+        rule = {"name": "test", "output": "result"}
         result = "test_value"
 
         handle_step_outputs(rule, result, context)
@@ -59,7 +59,7 @@ class TestHandleStepOutputs:
 
     def test_outputs_list(self):
         context = {}
-        rule = {"name": "test", "outputs": ["out1", "out2"]}
+        rule = {"name": "test", "output": ["out1", "out2"]}
         result = ("val1", "val2")
 
         handle_step_outputs(rule, result, context)
@@ -69,7 +69,7 @@ class TestHandleStepOutputs:
 
     def test_append_to_creates_list(self):
         context = {}
-        rule = {"name": "test", "outputs": "item", "append_to": "items"}
+        rule = {"name": "test", "output": "item", "append_to": "items"}
         result = "first_item"
 
         handle_step_outputs(rule, result, context)
@@ -79,7 +79,7 @@ class TestHandleStepOutputs:
 
     def test_append_to_extends_list(self):
         context = {"items": ["existing"]}
-        rule = {"name": "test", "outputs": "item", "append_to": "items"}
+        rule = {"name": "test", "output": "item", "append_to": "items"}
         result = "new_item"
 
         handle_step_outputs(rule, result, context)
@@ -92,7 +92,7 @@ class TestHandleStepOutputs:
         context = {}
         step = {
             "name": "test",
-            "outputs": "content",
+            "output": "content",
             "saveas": str(tmp_path / "output.txt")
         }
         result = "Hello World"
@@ -125,7 +125,7 @@ class TestRunFunctionStep:
             "name": "test",
             "type": "function",
             "function": "test_module.test_func",
-            "outputs": "result"
+            "output": "result"
         }
 
         # Call run_step which should handle outputs
@@ -149,7 +149,7 @@ class TestRunFunctionStep:
             "type": "function",
             "function": "test_module.greet",
             "inputs": {"name": "${name}"},
-            "outputs": "greeting"
+            "output": "greeting"
         }
 
         run_step(rule, context, {})
@@ -170,7 +170,7 @@ class TestRunFunctionStep:
             "name": "gen",
             "type": "function",
             "function": "test_module.generate",
-            "outputs": "item",
+            "output": "item",
             "append_to": "items_list"
         }
 
@@ -198,7 +198,7 @@ class TestRunPluginStep:
             "name": "test",
             "type": "test_plugin",
             "param": "value",
-            "outputs": "results"
+            "output": "results"
         }
 
         result = run_plugin_step(rule, context)
@@ -218,7 +218,7 @@ class TestRunPluginStep:
             "name": "test",
             "type": "test_plugin",
             "path": "${input_path}",
-            "outputs": "result"
+            "output": "result"
         }
 
         result = run_plugin_step(rule, context)
@@ -240,7 +240,7 @@ class TestRunLLMStep:
             "name": "test_llm",
             "type": "llm",
             "prompt": {"file": "test.gpt", "inputs": {}},
-            "outputs": "response"
+            "output": "response"
         }
         pipeline_config = {}
 
@@ -261,7 +261,7 @@ class TestRunLLMStep:
             "type": "llm",
             "prompt": {"file": "test.gpt"},
             "llm_options": {"temperature": 0.5, "max_tokens": 1000},
-            "outputs": "result"
+            "output": "result"
         }
         pipeline_config = {"llm_config": {"model": "gpt-4"}}
 
@@ -290,7 +290,7 @@ class TestRunStep:
             "name": "test",
             "type": "function",
             "function": "test_mod.test_func",
-            "outputs": "result"
+            "output": "result"
         }
 
         run_step(rule, context, {})
@@ -309,7 +309,7 @@ class TestRunStep:
         rule = {
             "name": "test_plugin",
             "type": "test",
-            "outputs": "result"
+            "output": "result"
         }
 
         run_step(rule, context, {})
@@ -343,7 +343,7 @@ class TestIntegration:
             "name": "gen",
             "type": "function",
             "function": "test_mod.generate_data",
-            "outputs": "content"
+            "output": "content"
         }
 
         run_step(step1, context, {})
@@ -368,7 +368,7 @@ class TestIntegration:
                 "type": "function",
                 "function": "test_mod.gen_item",
                 "inputs": {"n": i},
-                "outputs": "item",
+                "output": "item",
                 "append_to": "items"
             }
             run_step(rule, context, {})
@@ -407,7 +407,7 @@ class TestIntegration:
                             "type": "function",
                             "function": "test_mod.collect_tag",
                             "inputs": {"tag": "${tag}"},
-                            "outputs": "tag_value",
+                            "output": "tag_value",
                             "append_to": "all_tags"
                         }
                     ]
@@ -451,7 +451,7 @@ class TestMCPConfigMerging:
                 "max_iterations": 5,
                 "tools": ["get_passage_text"]
             },
-            "outputs": "response"
+            "output": "response"
         }
         pipeline_config = {
             "mcp_servers": {
@@ -505,7 +505,7 @@ class TestMCPConfigMerging:
                     "get_word_sense"
                 ]
             },
-            "outputs": "result"
+            "output": "result"
         }
         pipeline_config = {
             "mcp_servers": {
@@ -540,7 +540,7 @@ class TestModelSpecificDefaults:
             "type": "llm",
             "model": "gpt-4o",
             "prompt": {"file": "test.gpt"},
-            "outputs": "result"
+            "output": "result"
         }
         pipeline_config = {}
 
@@ -565,7 +565,7 @@ class TestModelSpecificDefaults:
             "type": "llm",
             "model": "gpt-5",
             "prompt": {"file": "test.gpt"},
-            "outputs": "result"
+            "output": "result"
         }
         pipeline_config = {}
 
@@ -589,7 +589,7 @@ class TestModelSpecificDefaults:
             "type": "llm",
             "model": "o1",
             "prompt": {"file": "test.gpt"},
-            "outputs": "result"
+            "output": "result"
         }
         pipeline_config = {}
 
@@ -615,7 +615,7 @@ class TestModelSpecificDefaults:
             "model": "gpt-4o",
             "max_tokens": 4096,
             "prompt": {"file": "test.gpt"},
-            "outputs": "result"
+            "output": "result"
         }
         pipeline_config = {}
 
@@ -639,7 +639,7 @@ class TestModelSpecificDefaults:
             "model": "gpt-5",
             "max_completion_tokens": 8192,
             "prompt": {"file": "test.gpt"},
-            "outputs": "result"
+            "output": "result"
         }
         pipeline_config = {}
 
@@ -662,7 +662,7 @@ class TestModelSpecificDefaults:
             "type": "llm",
             "model": "claude-3.7-sonnet",
             "prompt": {"file": "test.gpt"},
-            "outputs": "result"
+            "output": "result"
         }
         pipeline_config = {}
 
@@ -707,7 +707,7 @@ class TestMCPModelSpecificParameters:
                 "max_iterations": 5,
                 "tools": ["get_passage_text"]
             },
-            "outputs": "response"
+            "output": "response"
         }
         pipeline_config = {
             "mcp_servers": {
@@ -757,7 +757,7 @@ class TestMCPModelSpecificParameters:
                 "max_iterations": 5,
                 "tools": ["get_passage_text"]
             },
-            "outputs": "response"
+            "output": "response"
         }
         pipeline_config = {
             "mcp_servers": {
@@ -807,7 +807,7 @@ class TestMCPModelSpecificParameters:
                 "max_iterations": 5,
                 "tools": ["get_passage_text"]
             },
-            "outputs": "response"
+            "output": "response"
         }
         pipeline_config = {
             "mcp_servers": {
