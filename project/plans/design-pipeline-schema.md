@@ -561,6 +561,16 @@ Formalizing the schema surfaces inconsistencies in the language as it currently 
 
 A step produces one result, even if that result is a list. The plural `outputs` was inherited informally and has no semantic justification. The runner will continue to accept `outputs` as a deprecated alias during a transition period; `sp lint` will warn on its use.
 
+> **IMPLEMENTED 2026-08-13 (0.2.1.23), with one change: no alias.** `outputs` is a **lint error
+> naming `output`**, not a deprecated alias — one syntax per concept, since a second accepted
+> spelling reads as a bug. All ~1,100 sites across 15 repos were migrated in the same window
+> rather than over a transition period. Pinned by `tests/test_one_syntax.py`; see
+> `project/plans/design-schema-single-source.md`.
+>
+> Note for future sessions: this ruling was nearly reversed because a later design note proposed
+> `outputs` as canonical without checking here first. Search this file's "Language
+> Inconsistencies" section before changing keyword vocabulary.
+
 ### 2. `input` / `as` vs XQuery-aligned `for` / `in` ✅ DECIDED
 
 **Decision: adopt `for:` / `in:` aligned with XQuery syntax, for both `for-each` and `window`.**
