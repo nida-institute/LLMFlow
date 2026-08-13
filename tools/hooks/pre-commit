@@ -1,10 +1,37 @@
 #!/bin/bash
-# Auto-generate docs/index.json from function signatures
+# Regenerate docs/index.json (the module/function index) and include it in the commit.
+#
+# tools/index_signatures.py writes the index to STDOUT — it must be redirected. Without
+# the redirect the hook printed ~11MB of JSON on every commit and updated nothing, which
+# is why docs/index.json sat stale from 2026-01-09 to 2026-08-13 while appearing to be
+# maintained. Do not drop the `>`.
+#
+# Root is `src`, so modules are named llmflow.* (matching the historical naming) and only
+# engine code is indexed. Rooting at `.` sweeps .venv / node_modules and yields ~5,700
+# junk modules; rooting at `src/llmflow` loses the `llmflow.` prefix.
+#
+# Only stdlib imports are used, so plain python3 is enough — no hatch env needed.
+#
+# This hook is NOT active just by existing here. Enable it once per clone:
+#     git config core.hooksPath tools/hooks
+# (Hooks in .git/hooks/ are not version-controlled, so keeping the real one here is what
+# makes it reviewable and shared.)
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
 
 echo "Updating docs/index.json..."
-python tools/index_signatures.py
+python3 tools/index_signatures.py src > docs/index.json.tmp
+mv docs/index.json.tmp docs/index.json
 
-# Add the updated file to the commit if it changed
-git add docs/index.json docs/index.signatures.json
+git add docs/index.json
 
-echo "✓ Function index updated"
+echo "✓ docs/index.json refreshed"
+
+# NOTE: this hook deliberately does NOT run tools/update_ai_context.py. That generator is
+# being retired (LLMFlow#156 — "sp init wins"): it hand-maintains engine-only index/rules
+# content and force-added docs/ai-context/{index,overview,rules}.md to every commit, which
+# is why those files kept drifting with unrequested edits. docs/ai-context/ is regenerated
+# by `sp init --update`, and repo-local context belongs in docs/ai-context/project.md.
