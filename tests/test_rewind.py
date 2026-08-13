@@ -25,7 +25,7 @@ def rewind_pipeline(tmp_path):
                 "type": "function",
                 "function": "tests.test_helpers.save_text",
                 "inputs": {"path": "${output_path}", "content": "snapshot"},
-                "outputs": "saved_content",
+                "output": "saved_content",
                 "saveas": "${output_path}",
             },
             {
@@ -33,7 +33,7 @@ def rewind_pipeline(tmp_path):
                 "type": "function",
                 "function": "tests.test_helpers.mock_function",
                 "inputs": {"a": "${saved_content}", "p": "done"},
-                "outputs": "final_value",
+                "output": "final_value",
             },
         ],
     }
@@ -66,7 +66,7 @@ def dynamic_path_pipeline(tmp_path):
                 "type": "function",
                 "function": "tests.test_helpers.make_prefix",
                 "inputs": {"name": "${name}"},
-                "outputs": "prefix_info",
+                "output": "prefix_info",
                 # No saveas — just a cheap setup step
             },
             {
@@ -77,7 +77,7 @@ def dynamic_path_pipeline(tmp_path):
                     "path": str(output_dir / "${prefix_info.prefix}_result.txt"),
                     "content": "heavy result",
                 },
-                "outputs": "heavy_content",
+                "output": "heavy_content",
                 "saveas": str(output_dir / "${prefix_info.prefix}_result.txt"),
             },
             {
@@ -85,7 +85,7 @@ def dynamic_path_pipeline(tmp_path):
                 "type": "function",
                 "function": "tests.test_helpers.mock_function",
                 "inputs": {"a": "${heavy_content}", "p": "done"},
-                "outputs": "final_value",
+                "output": "final_value",
             },
         ],
     }
@@ -296,7 +296,7 @@ class TestReplayStepJsonParsing:
         step = {
             "name": "the_step",
             "type": "llm",
-            "outputs": "result",
+            "output": "result",
             "saveas": str(artifact_path),
         }
         if output_type:

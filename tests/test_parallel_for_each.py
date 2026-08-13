@@ -50,7 +50,7 @@ def _make_identity_step(mod_name: str, input_var: str, output_var: str, append_t
         "type": "function",
         "function": f"{mod_name}.identity",
         "inputs": {"value": f"${{{input_var}}}"},
-        "outputs": output_var,
+        "output": output_var,
     }
     if append_to:
         step["append_to"] = append_to
@@ -65,8 +65,8 @@ class TestCollectLoopOutputs:
 
     def test_collects_append_to_and_outputs(self):
         steps = [
-            {"outputs": "foo", "append_to": "bar"},
-            {"outputs": ["baz", "qux"]},
+            {"output": "foo", "append_to": "bar"},
+            {"output": ["baz", "qux"]},
         ]
         targets, vars_ = _collect_loop_outputs(steps)
         assert targets == {"bar"}
@@ -74,7 +74,7 @@ class TestCollectLoopOutputs:
 
     def test_recursive_nested_steps(self):
         steps = [
-            {"steps": [{"append_to": "inner_list", "outputs": "inner_var"}]},
+            {"steps": [{"append_to": "inner_list", "output": "inner_var"}]},
         ]
         targets, vars_ = _collect_loop_outputs(steps)
         assert "inner_list" in targets
@@ -167,7 +167,7 @@ class TestParallelMatchesSequential:
                         "type": "function",
                         "function": f"{mod_name}.double",
                         "inputs": {"value": "${x}"},
-                        "outputs": "doubled",
+                        "output": "doubled",
                         "append_to": "results",
                     }
                 ],
@@ -211,7 +211,7 @@ class TestParallelMatchesSequential:
                         "type": "function",
                         "function": "__par_last_mod.slow_identity",
                         "inputs": {"value": "${x}"},
-                        "outputs": "last_seen",
+                        "output": "last_seen",
                     }
                 ],
             }
@@ -237,7 +237,7 @@ class TestParallelMatchesSequential:
                         "type": "function",
                         "function": "__par_empty_mod.noop",
                         "inputs": {"value": "${x}"},
-                        "outputs": "v",
+                        "output": "v",
                         "append_to": "results",
                     }
                 ],
@@ -262,7 +262,7 @@ class TestParallelMatchesSequential:
                         "name": "do", "type": "function",
                         "function": f"{mod}.identity",
                         "inputs": {"value": "${x}"},
-                        "outputs": "v", "append_to": "results",
+                        "output": "v", "append_to": "results",
                     }],
                 }
                 if parallel_val is not None:
@@ -305,7 +305,7 @@ class TestParallelExceptionPropagation:
                         "type": "function",
                         "function": "__par_exc_mod.boom",
                         "inputs": {"value": "${x}"},
-                        "outputs": "v",
+                        "output": "v",
                     }
                 ],
             }
@@ -338,7 +338,7 @@ class TestParallelAfterExit:
                         "type": "function",
                         "function": "__par_exit_mod.identity",
                         "inputs": {"value": "${x}"},
-                        "outputs": "v",
+                        "output": "v",
                         "append_to": "results",
                         "after": "exit",
                     }
@@ -365,7 +365,7 @@ class TestLintForEachParallel:
         step = {
             "name": "loop", "type": "for-each", "in": "${items}",
             "steps": [
-                {"outputs": "v", "append_to": "results"},
+                {"output": "v", "append_to": "results"},
                 {"inputs": {"x": "${results}"}},
             ],
         }
@@ -376,7 +376,7 @@ class TestLintForEachParallel:
             "name": "loop", "type": "for-each", "in": "${items}",
             "parallel": 1,
             "steps": [
-                {"outputs": "v", "append_to": "results"},
+                {"output": "v", "append_to": "results"},
                 {"inputs": {"x": "${results}"}},
             ],
         }
@@ -387,7 +387,7 @@ class TestLintForEachParallel:
             "name": "loop", "type": "for-each", "in": "${items}",
             "parallel": 5,
             "steps": [
-                {"outputs": "v", "append_to": "results"},
+                {"output": "v", "append_to": "results"},
                 {"inputs": {"prior": "${results}"}},   # ← reads own append_to target
             ],
         }
@@ -401,7 +401,7 @@ class TestLintForEachParallel:
             "name": "loop", "type": "for-each", "in": "${items}",
             "parallel": 5,
             "steps": [
-                {"outputs": "v", "append_to": "results"},
+                {"output": "v", "append_to": "results"},
                 {"inputs": {"other": "${parent_var}"}},  # reads parent, not results
             ],
         }
@@ -412,8 +412,8 @@ class TestLintForEachParallel:
             "name": "loop", "type": "for-each", "in": "${items}",
             "parallel": 3,
             "steps": [
-                {"outputs": "a", "append_to": "list_a"},
-                {"outputs": "b", "append_to": "list_b"},
+                {"output": "a", "append_to": "list_a"},
+                {"output": "b", "append_to": "list_b"},
                 {"inputs": {"x": "${list_a}", "y": "${list_b}"}},
             ],
         }
@@ -425,7 +425,7 @@ class TestLintForEachParallel:
             "name": "loop", "type": "for-each", "in": "${items}",
             "parallel": 4,
             "steps": [
-                {"outputs": "v", "append_to": "results"},
+                {"output": "v", "append_to": "results"},
                 {"steps": [{"inputs": {"x": "${results}"}}]},  # nested
             ],
         }
@@ -443,7 +443,7 @@ class TestLintForEachParallel:
                 "parallel": 5,
                 "steps": [
                     {"name": "a", "type": "function", "function": "f",
-                     "outputs": "v", "append_to": "acc"},
+                     "output": "v", "append_to": "acc"},
                     {"name": "b", "type": "function", "function": "g",
                      "inputs": {"prior": "${acc}"}},
                 ],
@@ -462,7 +462,7 @@ class TestLintForEachParallel:
                 "parallel": 5,
                 "steps": [
                     {"name": "a", "type": "function", "function": "f",
-                     "outputs": "v", "append_to": "acc"},
+                     "output": "v", "append_to": "acc"},
                 ],
             }
         ]

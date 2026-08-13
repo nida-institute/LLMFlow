@@ -110,7 +110,7 @@ steps:
       file: "test.gpt"
       inputs:
         name: "world"
-    outputs: result
+    output: result
 """)
 
     # Run linter - MUST pass despite broken output files
@@ -175,7 +175,7 @@ steps:
       file: "test.gpt"
       inputs:
         x: "hello"
-    outputs: result
+    output: result
 """)
 
     # Run linter - must pass
@@ -221,7 +221,7 @@ steps:
       file: "valid.gpt"
       inputs:
         name: "user"
-    outputs: greeting
+    output: greeting
 """)
 
     # This should pass
@@ -248,7 +248,7 @@ def test_linter_still_validates_pipeline_structure(tmp_path):
 steps:
   - name: "step1"
     type: "llm"
-    outputs: result
+    output: result
 """)
 
     # This should fail due to missing pipeline name

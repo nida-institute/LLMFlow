@@ -194,7 +194,7 @@ def build_step_eval_ctx(step: dict, context: Mapping[str, Any]) -> Dict[str, obj
     if context is None:
         context = {}
 
-    outs = step.get("outputs")
+    outs = step.get("output")
     if isinstance(outs, dict):
         for k in outs.keys():
             eval_ctx[k] = context.get(k)

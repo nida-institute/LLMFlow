@@ -6,9 +6,9 @@ description: |
   Minimal starter pipeline for LLMFlow.
   Run with: llmflow run --pipeline pipelines/hello.yaml
 variables:
-  output_dir: "output"
+  output_dir: "outputs"
 
-output_file_directory: "output"
+output_file_directory: "outputs"
 
 llm_config:
   model: "gpt-4o-mini"
@@ -22,7 +22,7 @@ steps:
       file: "hello.gpt"
       inputs:
         language_count: 5
-    outputs: greeting
+    output: greeting
     saveas:
       path: "${output_dir}/greeting.md"
 ```

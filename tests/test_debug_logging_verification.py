@@ -45,7 +45,7 @@ def test_linter_config_sets_debug_level():
                 "type": "function",
                 "function": "llmflow.utils.data.parse_bible_reference",
                 "inputs": {"passage": "John 3:16"},
-                "outputs": "result"
+                "output": "result"
             }
         ]
     }

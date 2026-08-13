@@ -38,7 +38,7 @@ def test_json_parse_failure_triggers_retry():
                         "file": str(prompt_file)
                     },
                     "output_type": "json",
-                    "outputs": "result"
+                    "output": "result"
                 }
             ]
         }
@@ -80,7 +80,7 @@ def test_json_parse_failure_exhausts_retries():
                         "file": str(prompt_file)
                     },
                     "output_type": "json",
-                    "outputs": "result"
+                    "output": "result"
                 }
             ]
         }
@@ -120,7 +120,7 @@ def test_valid_json_no_retry():
                         "file": str(prompt_file)
                     },
                     "output_type": "json",
-                    "outputs": "result"
+                    "output": "result"
                 }
             ]
         }

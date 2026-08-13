@@ -11,7 +11,7 @@ MINIMAL_OK = {
             "type": "function",
             "function": "llmflow.utils.io.echo",
             "inputs": {"value": "Hello"},
-            "outputs": "greeting",
+            "output": "greeting",
             "require": [
                 {"if": "greeting and len(str(greeting).strip()) > 0", "message": "greeting must be non-empty"}
             ],
@@ -21,7 +21,7 @@ MINIMAL_OK = {
             "type": "function",
             "function": "llmflow.utils.io.echo",
             "inputs": {"value": "${greeting}"},
-            "outputs": "rendered",
+            "output": "rendered",
             "require": [
                 {"if": "rendered and len(str(rendered).strip()) > 0", "message": "rendered must be non-empty"}
             ],
@@ -37,7 +37,7 @@ MINIMAL_FAIL_REQUIRE = {
             "type": "function",
             "function": "llmflow.utils.io.echo",
             "inputs": {"value": "   "},  # empty after strip
-            "outputs": "greeting",
+            "output": "greeting",
             "require": [
                 {"if": "greeting and len(str(greeting).strip()) > 0", "message": "greeting must be non-empty"}
             ],
@@ -53,7 +53,7 @@ MINIMAL_WARN_ONLY = {
             "type": "function",
             "function": "llmflow.utils.io.echo",
             "inputs": {"value": "   "},  # empty after strip
-            "outputs": "greeting",
+            "output": "greeting",
             "warn": [
                 {"if": "not greeting or len(str(greeting).strip()) == 0", "message": "greeting is empty"}
             ],
@@ -63,7 +63,7 @@ MINIMAL_WARN_ONLY = {
             "type": "function",
             "function": "llmflow.utils.io.echo",
             "inputs": {"value": "OK"},
-            "outputs": "status",
+            "output": "status",
         },
     ],
 }
@@ -76,7 +76,7 @@ MINIMAL_REQUIRE_AND_WARN = {
             "type": "function",
             "function": "llmflow.utils.io.echo",
             "inputs": {"value": "Hi"},
-            "outputs": "greeting",
+            "output": "greeting",
             "warn": [
                 {"if": "len(str(greeting)) < 3", "message": "greeting is very short"}
             ],
@@ -89,7 +89,7 @@ MINIMAL_REQUIRE_AND_WARN = {
             "type": "function",
             "function": "llmflow.utils.io.echo",
             "inputs": {"value": "${greeting}"},
-            "outputs": "echoed",
+            "output": "echoed",
             "warn": [
                 {"if": "len(str(echoed)) < 3", "message": "echoed result is still short"}
             ],

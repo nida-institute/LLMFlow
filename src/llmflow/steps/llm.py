@@ -338,8 +338,8 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
         except Exception as e:
             logger.debug(f"(response debug save skipped: {e})")
 
-        if response_content and ("template" in step or "format_with" in step):
-            template_path = step.get("template") or step.get("format_with")
+        if response_content and "template" in step:
+            template_path = step.get("template")
             response_content = apply_output_template(response_content, template_path, context)
 
         logger.info(f"✅ Completed LLM step: {name}")

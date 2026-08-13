@@ -13,7 +13,7 @@ class TestFunctionOutputsList:
             "name": "multi_output_function",
             "type": "function",
             "function": "tests.test_function_outputs_list.return_multiple",
-            "outputs": ["result1", "result2", "result3"],  # List of outputs
+            "output": ["result1", "result2", "result3"],  # List of outputs
         }
 
         def return_multiple():
@@ -42,7 +42,7 @@ class TestFunctionOutputsList:
             "name": "single_list_output",
             "type": "function",
             "function": "tests.test_function_outputs_list.return_single",
-            "outputs": ["single_result"],  # Single item list
+            "output": ["single_result"],  # Single item list
         }
 
         def return_single():

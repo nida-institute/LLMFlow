@@ -36,7 +36,7 @@ class TestCriticalPipelineFlow:
                                 "type": "function",
                                 "function": "tests.test_critical_pipeline_flow.generate_scene_content",
                                 "inputs": {"scene_name": "${scene}"},
-                                "outputs": "content",
+                                "output": "content",
                             },
                             {
                                 "name": "save_scene",

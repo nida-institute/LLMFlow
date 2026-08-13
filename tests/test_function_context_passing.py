@@ -43,7 +43,7 @@ class TestFunctionContextPassing:
                     "template_path": template_path,
                     "variables": {"value": "${items[-1]}"},
                 },
-                "outputs": "rendered_result",  # Add this!
+                "output": "rendered_result",  # Add this!
             }
 
             # Add debug output

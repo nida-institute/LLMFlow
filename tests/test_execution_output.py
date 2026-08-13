@@ -78,7 +78,7 @@ class TestExecutionOutput:
                     "name": "test_step",
                     "type": "function",
                     "function": "tests.test_execution_output.simple_function",
-                    "outputs": ["result"],
+                    "output": ["result"],
                 }
             ],
         }
@@ -113,7 +113,7 @@ class TestExecutionOutput:
                     "name": "unique_step",
                     "type": "function",
                     "function": "tests.test_execution_output.simple_function",
-                    "outputs": ["result"],
+                    "output": ["result"],
                 }
             ],
         }

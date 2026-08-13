@@ -5,108 +5,59 @@ an object graph of the same shape, so reading a pipeline tells you the API calls
 attribute is a declared syntax key from ``PIPELINE_SCHEMA`` (raw/unresolved for ``Pipeline``;
 resolved for ``ResolvedPipeline``); nesting mirrors the YAML's nesting.
 
-The classes are a thin, hand-written, read-only view over the parsed config. They add
-**shape only, no logic** — computed operations (resolve/run/lint/…) delegate to the
-engine's existing single-implementation functions. The schema-mirror drift test keeps the
-attribute set in lockstep with ``PIPELINE_SCHEMA``.
+The classes are a thin, read-only view over the parsed config. They add **shape only, no
+logic** — computed operations (resolve/run/lint/…) delegate to the engine's existing
+single-implementation functions.
 
-Reserved-word rule (total, mechanical): a syntax key that is a Python keyword gets a
-trailing underscore — ``in`` → ``in_``, ``for`` → ``for_``.
+``Step``'s attributes are *generated* from ``PIPELINE_SCHEMA`` rather than hand-written,
+so drift between the schema and the model is impossible by construction. The model is
+flat and generic: it exposes the union of every type's keys, while *validation* is
+per-type in the linter (see ``pipeline_schema.allowed_step_keys``). A key that does not
+apply to a step's type simply reads as ``None``.
+
+Attribute-name rule (total, mechanical): a syntax key that is not a usable Python
+identifier is mapped — a Python keyword gets a trailing underscore (``in`` → ``in_``,
+``for`` → ``for_``), and a hyphen becomes an underscore (``group-by`` → ``group_by``).
 """
 from __future__ import annotations
 
+from keyword import iskeyword
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
+from llmflow.pipeline_schema import step_keys
 from llmflow.utils.context import build_run_context
 from llmflow.utils.context import resolve as resolve_value
 from llmflow.yaml_loader import load_pipeline_config
 
 
+def api_name(key: str) -> str:
+    """The Python attribute name for a pipeline syntax *key*."""
+    name = key.replace("-", "_")
+    return f"{name}_" if iskeyword(name) else name
+
+
+# attribute name -> syntax key, for every key PIPELINE_SCHEMA declares on a step.
+_STEP_ATTRS: Dict[str, str] = {api_name(k): k for k in step_keys()}
+
+
 class Step:
-    """Read-only view of one pipeline step; attributes are the step's declared keys."""
+    """Read-only view of one pipeline step; attributes are the step's declared keys.
+
+    The attributes are generated from ``PIPELINE_SCHEMA`` at import time (see
+    :func:`_generate_step_attributes`), so the set is exactly the schema's step
+    vocabulary. Keys not present on this step read as ``None``; ``steps`` returns nested
+    :class:`Step` objects.
+    """
+
+    if TYPE_CHECKING:
+        # The attributes are installed at import time from PIPELINE_SCHEMA, so a static
+        # checker cannot see them. This tells it the surface is dynamic; the runtime
+        # source of truth is the schema, and the drift test proves the two agree.
+        def __getattr__(self, name: str) -> Any: ...
 
     def __init__(self, raw: Dict[str, Any]):
         self._raw = dict(raw)
-
-    @property
-    def name(self) -> Optional[str]:
-        return self._raw.get("name")
-
-    @property
-    def type(self) -> Optional[str]:
-        return self._raw.get("type")
-
-    @property
-    def function(self) -> Optional[str]:
-        return self._raw.get("function")
-
-    @property
-    def prompt(self) -> Any:
-        return self._raw.get("prompt")
-
-    @property
-    def model(self) -> Optional[str]:
-        return self._raw.get("model")
-
-    @property
-    def max_tokens(self) -> Optional[int]:
-        return self._raw.get("max_tokens")
-
-    @property
-    def temperature(self) -> Optional[float]:
-        return self._raw.get("temperature")
-
-    @property
-    def timeout_seconds(self) -> Optional[float]:
-        return self._raw.get("timeout_seconds")
-
-    @property
-    def in_(self) -> Any:
-        """The ``in:`` key (renamed — ``in`` is a Python keyword)."""
-        return self._raw.get("in")
-
-    @property
-    def inputs(self) -> Optional[Dict[str, Any]]:
-        return self._raw.get("inputs")
-
-    @property
-    def outputs(self) -> Any:
-        return self._raw.get("outputs")
-
-    @property
-    def append_to(self) -> Optional[str]:
-        return self._raw.get("append_to")
-
-    @property
-    def steps(self) -> List["Step"]:
-        """Nested steps (for ``for-each`` / ``if``), mirroring the YAML nesting."""
-        return [Step(s) for s in (self._raw.get("steps") or [])]
-
-    @property
-    def for_(self) -> Optional[str]:
-        """The ``for:`` key (renamed — ``for`` is a Python keyword)."""
-        return self._raw.get("for")
-
-    @property
-    def condition(self) -> Optional[str]:
-        return self._raw.get("condition")
-
-    @property
-    def saveas(self) -> Any:
-        return self._raw.get("saveas")
-
-    @property
-    def require(self) -> Optional[List[Dict[str, Any]]]:
-        return self._raw.get("require")
-
-    @property
-    def warn(self) -> Optional[List[Dict[str, Any]]]:
-        return self._raw.get("warn")
-
-    @property
-    def retry(self) -> Optional[Dict[str, Any]]:
-        return self._raw.get("retry")
 
     def render_prompt(self, context: Dict[str, Any]) -> str:
         """Render this step's ``prompt`` with variable substitution (delegates to the
@@ -121,6 +72,38 @@ class Step:
 
     def __repr__(self) -> str:
         return f"Step(name={self.name!r}, type={self.type!r})"
+
+
+def _step_property(key: str) -> property:
+    """A read-only property returning the step's *key*, or ``None`` if absent."""
+
+    def read_nested_steps(self):
+        """Nested steps (``for-each`` / ``window`` / ``if``), mirroring the YAML."""
+        return [Step(s) for s in (self._raw.get("steps") or [])]
+
+    def read_key(self):
+        return self._raw.get(key)
+
+    read = read_nested_steps if key == "steps" else read_key
+    if read is read_key:
+        read.__doc__ = f"The step's ``{key}:`` key (``None`` when not declared)."
+    read.__name__ = api_name(key)
+    return property(read)
+
+
+def _generate_step_attributes() -> None:
+    """Install one read-only property on ``Step`` per declared step key.
+
+    Generated rather than hand-written so the attribute set cannot drift from
+    ``PIPELINE_SCHEMA`` — the schema is the only place the vocabulary is declared. They
+    are real properties (not ``__getattr__``), so ``dir(Step)`` and autocomplete still
+    show the full surface.
+    """
+    for attr, key in _STEP_ATTRS.items():
+        setattr(Step, attr, _step_property(key))
+
+
+_generate_step_attributes()
 
 
 class _PipelineView:
@@ -237,18 +220,21 @@ class Pipeline(_PipelineView):
             log_file=log_file,
         )
 
-    def schemas(self) -> Dict[str, str]:
-        """Return ``{step_name: schema_file}`` for every step (including nested) that
-        references a JSON schema — via ``response_format.json_schema.schema_file`` or via its
-        ``.gpt`` prompt's frontmatter ``schema:``.
+    def schemas(self) -> Dict[str, Dict[str, str]]:
+        """Return ``{step_name: {"path": schema_file, "kind": ...}}`` for every step (including
+        nested) that references a JSON schema. ``kind`` is one of:
+
+        - ``"response_format"`` — an LLM step's ``response_format.json_schema.schema_file``
+        - ``"validator"`` — a ``json_schema_validator`` step's ``inputs.schema_path``
+        - ``"frontmatter"`` — the step's ``.gpt`` prompt frontmatter ``schema:``
 
         Prompt files are resolved against the pipeline's ``prompts_dir`` (default ``prompts``)
-        with the engine's own resolver; a step whose prompt cannot be found or parsed, or
-        whose prompt path is templated, is skipped. ``response_format`` wins when a step
-        declares both.
+        with the engine's own resolver; a step whose prompt cannot be found or parsed, or whose
+        prompt path is templated, contributes no frontmatter schema. When a step references a
+        schema by more than one route, precedence is response_format > validator > frontmatter.
         """
         prompts_dir = str(self._root.get("prompts_dir") or "prompts")
-        found: Dict[str, str] = {}
+        found: Dict[str, Dict[str, str]] = {}
 
         def _prompt_schema(prompt: Any) -> Optional[str]:
             if isinstance(prompt, dict):
@@ -269,16 +255,31 @@ class Pipeline(_PipelineView):
         def _walk(steps: Any) -> None:
             for step in steps or []:
                 name = step.get("name")
-                ref: Optional[str] = None
+                if name is None:
+                    _walk(step.get("steps"))
+                    continue
+
+                path: Optional[str] = None
+                kind: Optional[str] = None
+
                 rf = step.get("response_format")
                 if isinstance(rf, dict):
                     js = rf.get("json_schema")
                     if isinstance(js, dict) and js.get("schema_file"):
-                        ref = js["schema_file"]
-                if ref is None and step.get("prompt") is not None:
-                    ref = _prompt_schema(step.get("prompt"))
-                if ref is not None and name is not None:
-                    found[name] = ref
+                        path, kind = js["schema_file"], "response_format"
+
+                if path is None and step.get("type") == "json_schema_validator":
+                    inputs = step.get("inputs")
+                    if isinstance(inputs, dict) and inputs.get("schema_path"):
+                        path, kind = inputs["schema_path"], "validator"
+
+                if path is None and step.get("prompt") is not None:
+                    sch = _prompt_schema(step.get("prompt"))
+                    if sch:
+                        path, kind = sch, "frontmatter"
+
+                if path is not None and kind is not None:
+                    found[name] = {"path": path, "kind": kind}
                 _walk(step.get("steps"))
 
         _walk(self._root.get("steps"))

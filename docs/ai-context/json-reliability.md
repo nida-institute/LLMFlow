@@ -48,7 +48,7 @@ LLMs generating JSON through prompt instructions alone experience **40-60% inter
         additionalProperties: false
   prompt:
     file: your-prompt.gpt
-  outputs: result
+  output: result
 ```
 
 ### Critical Requirements
@@ -164,7 +164,7 @@ Insert `response_format` block in the step config:
   output_type: json
   prompt:
     file: segment.gpt
-  outputs: segments
+  output: segments
 
 # After
 - name: segment_chunk
@@ -180,7 +180,7 @@ Insert `response_format` block in the step config:
         # ... schema from Step 2
   prompt:
     file: segment.gpt
-  outputs: segments
+  output: segments
 ```
 
 ### Step 4: Remove JSON Formatting Rules from Prompt
@@ -222,9 +222,15 @@ Deploy to all JSON-producing steps in the pipeline.
 
 ## Gemini Alternative
 
-Gemini 1.5+ uses different parameters:
+> ⚠️ **Not implemented.** Gemini 1.5+ accepts different parameters, but `sp` does not send
+> them: `run_llm_step` never reads `response_mime_type` or `response_schema`, so a step
+> declaring them is called with **no** structured-output enforcement — exactly the failure this
+> document exists to prevent. Tracked in
+> [#191](https://github.com/nida-institute/LLMFlow/issues/191) — do not rely on this recipe
+> until that issue is closed.
 
 ```yaml
+# lint-doc: skip — keys below are not yet implemented (#191)
 - name: json_step
   type: llm
   model: gemini-2.0-flash

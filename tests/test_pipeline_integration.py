@@ -50,7 +50,7 @@ class TestPipelineIntegration:
                         "step4": "${naming_list[-1]}",
                     },
                 },
-                "outputs": "scene_markdown",
+                "output": "scene_markdown",
             }
 
             # Run the function step

@@ -50,7 +50,7 @@ burrito["copyright"]["shortStatements"]            # list of copyright statement
     base_dir: "${PARATEXT_DIR}"
     project_name: "cebAPDv4"
     file: "metadata.json"
-  outputs:
+  output:
     - burrito
 
 # Direct dict access in templates
@@ -131,7 +131,7 @@ xpath_text(settings, ".//Encoding/text()")              # "65001" (UTF-8 code pa
     base_dir: "${PARATEXT_DIR}"
     project_name: "cebAPDv4"
     file: "Settings.xml"
-  outputs:
+  output:
     - settings
 
 # Extract individual fields
@@ -141,7 +141,7 @@ xpath_text(settings, ".//Encoding/text()")              # "65001" (UTF-8 code pa
   inputs:
     element: "${settings}"
     path: ".//LanguageName/text()"
-  outputs:
+  output:
     - language_name
 
 - name: extract_iso
@@ -150,7 +150,7 @@ xpath_text(settings, ".//Encoding/text()")              # "65001" (UTF-8 code pa
   inputs:
     element: "${settings}"
     path: ".//LanguageIsoCode/text()"
-  outputs:
+  output:
     - iso_code
 ```
 

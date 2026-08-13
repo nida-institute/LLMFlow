@@ -1,5 +1,5 @@
 import pytest
-from llmflow.utils.linter import lint_pipeline_steps, ALLOWED_STEP_KEYS
+from llmflow.utils.linter import lint_pipeline_steps
 
 
 def test_disallowed_keyword_fails():
@@ -82,7 +82,7 @@ class TestGptBodyDeclaresAllVars:
         pipeline.write_text(
             "name: test\nvariables: {}\nsteps:\n"
             "  - name: greet\n    type: llm\n    prompt:\n      file: bad.gpt\n"
-            "      inputs: {}\n    outputs: result\n",
+            "      inputs: {}\n    output: result\n",
             encoding="utf-8",
         )
         from llmflow.utils.linter import lint_pipeline_full

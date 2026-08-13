@@ -29,12 +29,12 @@ documentation:
 
 variables:
   prompts_dir: "prompts"
-  output_dir: "output/json-response"
+  output_dir: "outputs/json-response"
   json_mode_request:
     type: "json_object"
   default_instructions: "Return a compact JSON document matching the listed fields."
 
-output_file_directory: "output/json-response"
+output_file_directory: "outputs/json-response"
 
 steps:
   - name: "gpt-4o-json"

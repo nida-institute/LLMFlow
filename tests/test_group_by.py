@@ -152,13 +152,13 @@ class TestForEachGroupBy:
             step = {
                 "name": "loop", "type": "for-each",
                 "in": "${items}",
-                "group-by": "${item.div}",
+                "group_by": "${item.div}",
                 "for": "group",
                 "steps": [{
                     "name": "cap", "type": "function",
                     "function": "__gb_test1.capture",
                     "inputs": {"group": "${group}"},
-                    "outputs": "g",
+                    "output": "g",
                 }],
             }
             run_for_each_step(step, context, {})
@@ -179,13 +179,13 @@ class TestForEachGroupBy:
             step = {
                 "name": "loop", "type": "for-each",
                 "in": "${items}",
-                "group-by": "${item.k}",
+                "group_by": "${item.k}",
                 "for": "group",
                 "steps": [{
                     "name": "rec", "type": "function",
                     "function": "__gb_test2.record",
                     "inputs": {"group": "${group}"},
-                    "outputs": "key",
+                    "output": "key",
                     "append_to": "keys",
                 }],
             }
@@ -203,14 +203,14 @@ class TestForEachGroupBy:
             step = {
                 "name": "loop", "type": "for-each",
                 "in": "${items}",
-                "group-by": "${item.k}",
-                "order-by": "${group.key}",
+                "group_by": "${item.k}",
+                "order_by": "${group.key}",
                 "for": "group",
                 "steps": [{
                     "name": "rec", "type": "function",
                     "function": "__gb_test3.record",
                     "inputs": {"group": "${group}"},
-                    "outputs": "key",
+                    "output": "key",
                     "append_to": "keys",
                 }],
             }
@@ -227,15 +227,15 @@ class TestForEachGroupBy:
             step = {
                 "name": "loop", "type": "for-each",
                 "in": "${items}",
-                "group-by": "${item.k}",
-                "order-by":
+                "group_by": "${item.k}",
+                "order_by":
                     {"key": "${group.key}", "direction": "descending"},
                 "for": "group",
                 "steps": [{
                     "name": "rec", "type": "function",
                     "function": "__gb_test4.record",
                     "inputs": {"group": "${group}"},
-                    "outputs": "key",
+                    "output": "key",
                     "append_to": "keys",
                 }],
             }
@@ -255,14 +255,14 @@ class TestForEachGroupBy:
             step = {
                 "name": "loop", "type": "for-each",
                 "in": "${items}",
-                "group-by": "${item.div}",
-                "order-by": "${group.key}",
+                "group_by": "${item.div}",
+                "order_by": "${group.key}",
                 "for": "group",
                 "steps": [{
                     "name": "id", "type": "function",
                     "function": "__gb_test5.identity",
                     "inputs": {"items": "${group.items}"},
-                    "outputs": "group_items",
+                    "output": "group_items",
                     "append_to": "all_groups",
                 }],
             }
@@ -285,15 +285,15 @@ class TestForEachGroupBy:
             step = {
                 "name": "loop", "type": "for-each",
                 "in": "${items}",
-                "group-by": "${item.div}",
-                "order-by": "${group.key}",
+                "group_by": "${item.div}",
+                "order_by": "${group.key}",
                 "for": "group",
                 "parallel": 3,
                 "steps": [{
                     "name": "id", "type": "function",
                     "function": "__gb_test6.identity",
                     "inputs": {"items": "${group.items}"},
-                    "outputs": "g",
+                    "output": "g",
                     "append_to": "groups",
                 }],
             }
@@ -315,14 +315,14 @@ class TestForEachGroupBy:
             step = {
                 "name": "loop", "type": "for-each",
                 "in": "${items}",
-                "group-by": "${item.div}",
-                "order-by": "${group.key}",
+                "group_by": "${item.div}",
+                "order_by": "${group.key}",
                 "for": "group",
                 "steps": [{
                     "name": "rec", "type": "function",
                     "function": "__gb_test7.record",
                     "inputs": {"key": "${group.key}"},
-                    "outputs": "k",
+                    "output": "k",
                     "append_to": "keys",
                 }],
             }
@@ -338,13 +338,13 @@ class TestForEachGroupBy:
             step = {
                 "name": "loop", "type": "for-each",
                 "in": "${items}",
-                "group-by": "${item.div}",
+                "group_by": "${item.div}",
                 "for": "group",
                 "steps": [{
                     "name": "n", "type": "function",
                     "function": "__gb_test8.noop",
                     "inputs": {"group": "${group}"},
-                    "outputs": "g",
+                    "output": "g",
                     "append_to": "results",
                 }],
             }
@@ -361,13 +361,13 @@ class TestForEachGroupBy:
             step = {
                 "name": "loop", "type": "for-each",
                 "in": "${items}",
-                "order-by": "${item.n}",
+                "order_by": "${item.n}",
                 "for": "x",
                 "steps": [{
                     "name": "id", "type": "function",
                     "function": "__gb_test9.identity",
                     "inputs": {"value": "${x.n}"},
-                    "outputs": "v",
+                    "output": "v",
                     "append_to": "results",
                 }],
             }
@@ -391,36 +391,36 @@ class TestLintGroupBy:
     def test_valid_group_by(self):
         assert self._lint({
             "name": "s", "type": "for-each",
-            "group-by": "${item.div}",
+            "group_by": "${item.div}",
             "steps": [{}],
         }) == []
 
     def test_valid_group_by_with_order_by(self):
         assert self._lint({
             "name": "s", "type": "for-each",
-            "group-by": "${item.div}",
-            "order-by": "${group.key}",
+            "group_by": "${item.div}",
+            "order_by": "${group.key}",
             "steps": [{}],
         }) == []
 
     def test_valid_order_by_without_group_by(self):
         assert self._lint({
             "name": "s", "type": "for-each",
-            "order-by": "${item.sequence}",
+            "order_by": "${item.sequence}",
             "steps": [{}],
         }) == []
 
     def test_order_by_dict_form_valid(self):
         assert self._lint({
             "name": "s", "type": "for-each",
-            "order-by": {"key": "${item.n}", "direction": "descending"},
+            "order_by": {"key": "${item.n}", "direction": "descending"},
             "steps": [{}],
         }) == []
 
     def test_order_by_list_form_valid(self):
         assert self._lint({
             "name": "s", "type": "for-each",
-            "order-by": [
+            "order_by": [
                 {"key": "${item.chapter}", "direction": "ascending"},
                 {"key": "${item.verse}", "direction": "ascending"},
             ],
@@ -431,7 +431,7 @@ class TestLintGroupBy:
         """group-by expression must reference ${item.*}."""
         errors = self._lint({
             "name": "s", "type": "for-each",
-            "group-by": "${book}",   # references context, not item
+            "group_by": "${book}",   # references context, not item
             "steps": [{}],
         })
         assert any("item" in e for e in errors)
@@ -439,7 +439,7 @@ class TestLintGroupBy:
     def test_order_by_invalid_direction_is_error(self):
         errors = self._lint({
             "name": "s", "type": "for-each",
-            "order-by": {"key": "${item.n}", "direction": "sideways"},
+            "order_by": {"key": "${item.n}", "direction": "sideways"},
             "steps": [{}],
         })
         assert any("direction" in e for e in errors)
@@ -448,7 +448,7 @@ class TestLintGroupBy:
         steps = [{
             "name": "bad", "type": "for-each",
             "in": "${items}", "for": "x",
-            "group-by": "${book}",   # should error
+            "group_by": "${book}",   # should error
             "steps": [{}],
         }]
         errors = lint_pipeline_steps(steps)
@@ -458,10 +458,10 @@ class TestLintGroupBy:
         steps = [{
             "name": "ok", "type": "for-each",
             "in": "${items}", "for": "group",
-            "group-by": "${item.division_id}",
-            "order-by": "${group.key}",
+            "group_by": "${item.division_id}",
+            "order_by": "${group.key}",
             "steps": [{"name": "x", "type": "function", "function": "f"}],
         }]
         errors = lint_pipeline_steps(steps)
-        group_errors = [e for e in errors if "group-by" in e or "order-by" in e]
+        group_errors = [e for e in errors if "group_by" in e or "order_by" in e]
         assert group_errors == []

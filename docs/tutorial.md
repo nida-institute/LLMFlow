@@ -29,7 +29,7 @@ The tutorial pipeline is defined in `pipelines/hello-llmflow.yaml`:
 name: "Hello Multilingual Pipeline"
 variables:
   prompts_dir: "prompts"
-  output_dir: "output"
+  output_dir: "outputs"
 
 llm_config:
   model: "gpt-4o-mini"
@@ -42,7 +42,7 @@ steps:
       file: "hello.gpt"
       inputs:
         language_count: 5
-    outputs: greeting
+    output: greeting
     saveas:
       path: "${output_dir}/hello.md"
 
@@ -52,7 +52,7 @@ steps:
       file: "reply.gpt"
       inputs:
         greeting_markdown: "${greeting}"
-    outputs: reply_block
+    output: reply_block
     saveas:
       path: "${output_dir}/responses.md"
 ```

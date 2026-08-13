@@ -9,14 +9,17 @@ import textwrap
 import pytest
 
 from llmflow import Pipeline, Step, load_pipeline
-from llmflow.pipeline_schema import PIPELINE_SCHEMA
+from llmflow.pipeline_schema import PIPELINE_SCHEMA, step_keys
 
-# Total, mechanical reserved-word rule: append "_" to Python keywords.
+# Total, mechanical attribute-name rule: hyphens become underscores, and Python keywords
+# get a trailing "_". Spelled out here rather than imported so the test is an independent
+# oracle for the model's generated names.
 RESERVED = {"in": "in_", "for": "for_"}
 
 
 def _api_name(key: str) -> str:
-    return RESERVED.get(key, key)
+    name = key.replace("-", "_")
+    return RESERVED.get(name, name)
 
 
 PIPELINE_YAML = textwrap.dedent("""
@@ -110,8 +113,9 @@ def test_pipeline_attributes_match_schema():
 
 
 def test_step_attributes_match_schema():
-    step_props = PIPELINE_SCHEMA["properties"]["steps"]["items"]["properties"]
-    schema_keys = {_api_name(k) for k in step_props}
+    # The model is flat and generic: it exposes the union of every step type's keys, while
+    # validation is per-type in the linter (design-schema-single-source.md, decision 1+3).
+    schema_keys = {_api_name(k) for k in step_keys()}
     api = _public_attrs(Step, _STEP_METHODS)
     missing = schema_keys - api
     invented = api - schema_keys

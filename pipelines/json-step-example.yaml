@@ -27,4 +27,4 @@ steps:
   - name: save_scene
     type: save
     content: "${scene}"
-    path: "output/json-step-example/scene.json"
+    path: "outputs/json-step-example/scene.json"

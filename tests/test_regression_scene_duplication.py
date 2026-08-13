@@ -66,7 +66,7 @@ def test_for_each_variable_isolation_minimal():
                     "name": "create_items",
                     "type": "function",
                     "function": "tests.test_regression_scene_duplication.create_simple_items",
-                    "outputs": "items",
+                    "output": "items",
                 },
                 {
                     "name": "process_each",
@@ -83,7 +83,7 @@ def test_for_each_variable_isolation_minimal():
                                 "item_id": "${item.id}",
                                 "item_name": "${item.name}",
                             },
-                            "outputs": "result",
+                            "output": "result",
                             "append_to": "results",
                         }
                     ],
@@ -140,7 +140,7 @@ def test_simple_for_each_context_contamination():
                     "name": "setup_items",
                     "type": "function",
                     "function": "tests.test_regression_scene_duplication.create_simple_items",
-                    "outputs": "items",
+                    "output": "items",
                 },
                 {
                     "name": "process_items",
@@ -157,7 +157,7 @@ def test_simple_for_each_context_contamination():
                                 "item_id": "${item.id}",
                                 "item_name": "${item.name}",
                             },
-                            "outputs": "captured_context",
+                            "output": "captured_context",
                             "append_to": "context_snapshots",
                         }
                     ],
@@ -215,7 +215,7 @@ def test_list_indexing_behavior():
                     "name": "create_test_list",
                     "type": "function",
                     "function": "tests.test_regression_scene_duplication.create_indexed_list",
-                    "outputs": "test_list",
+                    "output": "test_list",
                 },
                 {
                     "name": "test_list_access_patterns",
@@ -227,7 +227,7 @@ def test_list_indexing_behavior():
                         "last_item": "${test_list[-1]}",
                         "second_item": "${test_list[1]}",
                     },
-                    "outputs": "access_results",
+                    "output": "access_results",
                 },
                 {
                     "name": "process_with_for_each",
@@ -246,7 +246,7 @@ def test_list_indexing_behavior():
                                 "first_from_list": "${test_list[0]}",
                                 "last_from_list": "${test_list[-1]}",
                             },
-                            "outputs": "indexing_result",
+                            "output": "indexing_result",
                             "append_to": "indexing_results",
                         }
                     ],
@@ -311,7 +311,7 @@ def test_append_list_indexing():
                     "name": "create_scenes",
                     "type": "function",
                     "function": "tests.test_regression_scene_duplication.create_indexed_list",
-                    "outputs": "scene_list",
+                    "output": "scene_list",
                 },
                 {
                     "name": "process_scenes",
@@ -324,7 +324,7 @@ def test_append_list_indexing():
                             "type": "function",
                             "function": "tests.test_regression_scene_duplication.mock_joshfrost_generation",
                             "inputs": {"scene": "${scene}"},
-                            "outputs": "joshfrost_content",
+                            "output": "joshfrost_content",
                             "append_to": "joshfrost_list",
                         },
                         {
@@ -332,7 +332,7 @@ def test_append_list_indexing():
                             "type": "function",
                             "function": "tests.test_regression_scene_duplication.mock_bodies_generation",
                             "inputs": {"scene": "${scene}"},
-                            "outputs": "bodies_content",
+                            "output": "bodies_content",
                             "append_to": "bodies_list",
                         },
                         {
@@ -346,7 +346,7 @@ def test_append_list_indexing():
                                 "last_joshfrost": "${joshfrost_list[-1]}",
                                 "last_bodies": "${bodies_list[-1]}",
                             },
-                            "outputs": "append_test_result",
+                            "output": "append_test_result",
                             "append_to": "append_test_results",
                         },
                     ],

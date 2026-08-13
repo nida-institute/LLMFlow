@@ -57,7 +57,7 @@ steps:
     result = lint_pipeline_full(str(pipeline_file))
     assert not result.valid, "Pipeline with typo should fail validation"
     assert any("ouput" in err for err in result.errors), f"Should mention the typo, got: {result.errors}"
-    assert any("outputs" in err for err in result.errors), "Should suggest correction"
+    assert any("output" in err for err in result.errors), "Should suggest correction"
 
 
 def test_valid_pipeline_passes_full_linter(tmp_path):
@@ -72,7 +72,7 @@ steps:
       path: output.xml
     inputs:
       xml_string: "<root/>"
-    outputs:
+    output:
       - result
 """)
 

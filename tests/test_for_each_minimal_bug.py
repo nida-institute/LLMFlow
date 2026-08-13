@@ -32,7 +32,7 @@ def test_minimal_for_each_append_bug():
                     "type": "function",
                     "function": "test_minimal.track_and_return",
                     "inputs": {"object": "${item}"},
-                    "outputs": "result",
+                    "output": "result",
                     "append_to": "results",
                 }
             ],

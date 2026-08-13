@@ -33,7 +33,7 @@ def _capture_step(output_var, append_to=None):
             "first": "${loop.first}",
             "last":  "${loop.last}",
         },
-        "outputs": output_var,
+        "output": output_var,
     }
     if append_to:
         step["append_to"] = append_to
@@ -178,7 +178,7 @@ class TestNestedLoopVariable:
                                 "inner_index": "${loop.index}",
                                 "inner_total": "${loop.total}",
                             },
-                            "outputs": "snap",
+                            "output": "snap",
                             "append_to": "snaps",
                         }
                     ],

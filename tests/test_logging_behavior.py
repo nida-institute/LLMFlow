@@ -74,7 +74,7 @@ steps:
     function: llmflow.utils.data.identity
     inputs:
       value: "test"
-    outputs: result
+    output: result
 """)
 
     # Run pipeline
@@ -119,7 +119,7 @@ steps:
     function: llmflow.utils.data.identity
     inputs:
       value: "test"
-    outputs: result
+    output: result
     log: debug
 """)
 
@@ -156,7 +156,7 @@ steps:
     function: llmflow.utils.data.identity
     inputs:
       value: "test data"
-    outputs: result
+    output: result
     saveas: "{output_file}"
 """)
 

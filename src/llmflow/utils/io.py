@@ -271,7 +271,7 @@ def validate_all_templates(pipeline_config):
 
             # Check for templates in LLM step output formatting
             if step.get("type") == "llm":
-                template_path = step.get("template") or step.get("format_with")
+                template_path = step.get("template")
                 if template_path:
                     logger.debug(
                         f"Checking output template for step '{step_name}': {template_path}"
@@ -368,8 +368,8 @@ def extract_pipeline_variables(pipeline):
 
     # Add outputs from all steps
     for step in pipeline.get("steps", []):
-        if "outputs" in step:
-            available.update(step["outputs"])
+        if "output" in step:
+            available.update(step["output"])
 
     # Add special variables that are always available
     available.update(["passage", "source"])  # Add other globals as needed
@@ -404,8 +404,8 @@ def extract_pipeline_variables_at_step(pipeline, target_step_name):
         if step.get("name") == target_step_name:
             break  # Stop when we reach the target step
 
-        if "outputs" in step:
-            available.update(step["outputs"])
+        if "output" in step:
+            available.update(step["output"])
 
     return available
 

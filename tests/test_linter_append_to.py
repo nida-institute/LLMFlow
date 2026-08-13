@@ -24,7 +24,7 @@ def test_linter_passes_with_outputs_and_append_to():
                         "file": "test.md",  # ✅ This is already correct - relative to prompts_dir
                         "inputs": {"text": "test"},
                     },
-                    "outputs": ["result"],
+                    "output": ["result"],
                     "append_to": "content_list",
                 }
             ],
@@ -170,7 +170,7 @@ def test_linter_handles_empty_outputs_list():
                         "file": "test.md",
                         "inputs": {"text": "test"},
                     },
-                    "outputs": [],
+                    "output": [],
                     "append_to": "content_list",
                 }
             ],
@@ -241,7 +241,7 @@ def test_linter_allows_function_steps_with_outputs_and_append_to():
                     "name": "function_step",
                     "type": "function",
                     "function": "some.module.func",
-                    "outputs": ["func_result"],
+                    "output": ["func_result"],
                     "append_to": "results_list",
                 }
             ],
@@ -282,7 +282,7 @@ def test_linter_catches_multiple_append_to_violations():
                     "name": "step2",
                     "type": "function",
                     "function": "some.func",
-                    "outputs": [],
+                    "output": [],
                     "append_to": "list2",
                 },
                 {
@@ -385,7 +385,7 @@ def test_linter_allows_append_to_with_single_output():
                         "file": "test.md",
                         "inputs": {"text": "test"},
                     },
-                    "outputs": ["single_result"],
+                    "output": ["single_result"],
                     "append_to": "results",
                 }
             ],
@@ -434,7 +434,7 @@ def test_linter_allows_append_to_with_multiple_outputs():
                         "file": "test.md",
                         "inputs": {"text": "test"},
                     },
-                    "outputs": ["result1", "result2", "result3"],
+                    "output": ["result1", "result2", "result3"],
                     "append_to": "results",
                 }
             ],

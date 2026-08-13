@@ -530,7 +530,7 @@ class TestWindowFlowControl:
                 "type": "function",
                 "function": "llmflow.utils.data.identity",
                 "inputs": {"value": "${_window_index}"},
-                "outputs": "wi",
+                "output": "wi",
                 "condition": "window_num == 2",
                 "after": "exit",
             },
@@ -556,7 +556,7 @@ class TestWindowFlowControl:
                 "type": "function",
                 "function": "llmflow.utils.data.identity",
                 "inputs": {"value": "${_window_index}"},
-                "outputs": "_skip_dummy",
+                "output": "_skip_dummy",
                 "condition": "window_num == 2",
                 "after": "continue",
             },
@@ -589,7 +589,7 @@ class TestWindowFlowControl:
                 "type": "function",
                 "function": "llmflow.utils.data.identity",
                 "inputs": {"value": "0"},
-                "outputs": "_dummy",
+                "output": "_dummy",
                 "condition": "window_num == 3",
                 "after": "exit",
             },
@@ -806,7 +806,7 @@ class TestWindowOutputPropagation:
                     "type": "function",
                     "function": "llmflow.utils.data.identity",
                     "inputs": {"value": "${batch}"},
-                    "outputs": "last_window",
+                    "output": "last_window",
                 }
             ],
         }
@@ -865,14 +865,14 @@ class TestWindowOutputPropagation:
                     "type": "function",
                     "function": "llmflow.utils.data.identity",
                     "inputs": {"value": "${seen_count}"},
-                    "outputs": "_prev_count",
+                    "output": "_prev_count",
                 },
                 {
                     "name": "store_count",
                     "type": "function",
                     "function": "tests.test_helpers.add_one",
                     "inputs": {"value": "${_prev_count}"},
-                    "outputs": "seen_count",
+                    "output": "seen_count",
                 },
             ],
         }
@@ -1161,7 +1161,7 @@ class TestRunWindowStepToken:
                         "type": "function",
                         "function": "__tok_test_mod1.get_len",
                         "inputs": {"items": "${chunk}"},
-                        "outputs": "chunk_len",
+                        "output": "chunk_len",
                         "append_to": "lens",
                     }
                 ],
@@ -1285,7 +1285,7 @@ class TestWindowMerge:
                         "type": "function",
                         "function": "__merge_helper_1.pass_through",
                         "inputs": {"items": "${window}"},
-                        "outputs": "window_out",
+                        "output": "window_out",
                         "append_to": "collected",
                     }
                 ],
@@ -1293,7 +1293,7 @@ class TestWindowMerge:
                     "name": "merge_step",
                     "function": fn_path,
                     "inputs": {"items": "${collected}", "label": "${lbl}"},
-                    "outputs": "final",
+                    "output": "final",
                 },
             }
             run_window_step(step, context, {})
@@ -1335,7 +1335,7 @@ class TestWindowMerge:
                         "type": "function",
                         "function": "__merge_helper_2.get_len",
                         "inputs": {"items": "${window}"},
-                        "outputs": "wl",
+                        "output": "wl",
                         "append_to": "wlens",
                     }
                 ],
@@ -1343,7 +1343,7 @@ class TestWindowMerge:
                     "name": "merge",
                     "function": "__merge_test_2.merge_fn",
                     "inputs": {"items": "${wlens}"},
-                    "outputs": "summary",
+                    "output": "summary",
                 },
             }
             run_window_step(step, context, {})
@@ -1430,7 +1430,7 @@ class TestLintWindowStepToken:
             "name": "w", "type": "window",
             "size": 3,
             "steps": [{}],
-            "merge": {"function": "my.module.fn", "inputs": {}, "outputs": "result"},
+            "merge": {"function": "my.module.fn", "inputs": {}, "output": "result"},
         })
         assert errors == []
 
@@ -1448,6 +1448,6 @@ class TestLintWindowStepToken:
             "name": "w", "type": "window",
             "size": 3,
             "steps": [{}],
-            "merge": {"inputs": {}, "outputs": "result"},
+            "merge": {"inputs": {}, "output": "result"},
         })
         assert any("merge" in e and "function" in e for e in errors)

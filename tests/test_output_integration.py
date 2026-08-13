@@ -20,7 +20,7 @@ def test_execution_shows_progress_messages():
                 "name": "test_step",
                 "type": "function",
                 "function": "tests.test_output_integration.simple_test_func",
-                "outputs": ["result"],
+                "output": ["result"],
             }
         ],
     }
@@ -56,7 +56,7 @@ def test_verbose_flag_shows_debug_output():
                 "name": "step1",
                 "type": "function",
                 "function": "tests.test_output_integration.simple_test_func",
-                "outputs": ["result"],
+                "output": ["result"],
             }
         ],
     }
@@ -90,13 +90,13 @@ def test_dry_run_flag_accepted():
                 "name": "step1",
                 "type": "function",
                 "function": "tests.test_output_integration.simple_test_func",
-                "outputs": ["result"],
+                "output": ["result"],
             },
             {
                 "name": "step2",
                 "type": "function",
                 "function": "tests.test_output_integration.simple_test_func",
-                "outputs": ["result"],
+                "output": ["result"],
             },
         ],
     }
@@ -130,7 +130,7 @@ def test_plugin_loading_message():
                 "name": "unique",
                 "type": "function",
                 "function": "tests.test_output_integration.simple_test_func",
-                "outputs": ["result"],
+                "output": ["result"],
             }
         ],
     }
@@ -166,19 +166,19 @@ def test_pipeline_with_multiple_steps():
                 "name": "step1",
                 "type": "function",
                 "function": "tests.test_output_integration.simple_test_func",
-                "outputs": ["result1"],
+                "output": ["result1"],
             },
             {
                 "name": "step2",
                 "type": "function",
                 "function": "tests.test_output_integration.simple_test_func",
-                "outputs": ["result2"],
+                "output": ["result2"],
             },
             {
                 "name": "step3",
                 "type": "function",
                 "function": "tests.test_output_integration.simple_test_func",
-                "outputs": ["result3"],
+                "output": ["result3"],
             },
         ],
     }
@@ -213,7 +213,7 @@ def test_pipeline_with_variables():
                 "name": "var_step",
                 "type": "function",
                 "function": "tests.test_output_integration.simple_test_func",
-                "outputs": ["result"],
+                "output": ["result"],
             }
         ],
     }
@@ -247,7 +247,7 @@ def test_pipeline_with_cli_variables():
                 "name": "var_step",
                 "type": "function",
                 "function": "tests.test_output_integration.simple_test_func",
-                "outputs": ["result"],
+                "output": ["result"],
             }
         ],
     }
@@ -290,7 +290,7 @@ def test_skip_lint_flag():
                 "name": "lint_step",
                 "type": "function",
                 "function": "tests.test_output_integration.simple_test_func",
-                "outputs": ["result"],
+                "output": ["result"],
             }
         ],
     }
@@ -399,7 +399,7 @@ def test_pipeline_with_conditional_steps():
                 "name": "conditional_step",
                 "type": "function",
                 "function": "tests.test_output_integration.simple_test_func",
-                "outputs": ["result"],
+                "output": ["result"],
             }
         ],
     }

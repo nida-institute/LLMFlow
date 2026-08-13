@@ -48,7 +48,7 @@ def run(**kwargs):
                         "a": "${input_a}",
                         "b": "${input_b}"
                     },
-                    "outputs": "result"
+                    "output": "result"
                 }
             ]
         }
@@ -92,7 +92,7 @@ def render(**kwargs):
                     "type": "function",
                     "function": "custom_plugins.renderers.markdown.render",
                     "inputs": {"data": "${content}"},
-                    "outputs": "rendered"
+                    "output": "rendered"
                 }
             ]
         }

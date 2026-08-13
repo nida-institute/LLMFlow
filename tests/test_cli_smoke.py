@@ -36,7 +36,7 @@ steps:
     prompt:
       file: missing.gpt
       inputs: {}
-    outputs: content
+    output: content
 """, encoding="utf-8")
     cmd = [sys.executable, "-m", "llmflow.cli", "lint", "--pipeline", str(p)]
     r = subprocess.run(cmd, capture_output=True, text=True)

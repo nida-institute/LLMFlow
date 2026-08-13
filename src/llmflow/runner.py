@@ -70,7 +70,7 @@ _RETRY_MISSING = object()
 def _snapshot_retry_targets(step, context):
     snapshot = {"outputs": {}, "append_to": None}
 
-    outputs = step.get("outputs")
+    outputs = step.get("output")
     if isinstance(outputs, str):
         output_names = [outputs]
     elif isinstance(outputs, list):
@@ -260,7 +260,7 @@ def _resolve_saveas_path_for_resume(step: dict, context: dict) -> "Path | None":
 def _load_resume_output(step: dict, path: "Path", context: dict) -> None:
     """Load file content into the step's declared output variable in context."""
     content = path.read_text(encoding="utf-8")
-    outputs = step.get("outputs")
+    outputs = step.get("output")
     if isinstance(outputs, str):
         context[outputs] = content
     elif isinstance(outputs, list) and outputs:
@@ -367,7 +367,7 @@ def run_step(
 
             # Debug logging for guards
             if step.get("name") == "bodies" and "require" in step:
-                outputs = step.get("outputs")
+                outputs = step.get("output")
                 if outputs:
                     logger.debug(f"🔍 Bodies guard check - outputs key: {outputs}")
                     logger.debug(f"🔍 Value in context: {repr(context.get(outputs, 'NOT_FOUND'))[:200]}")

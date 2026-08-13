@@ -108,7 +108,7 @@ Calls a language model with a prompt template.
     inputs:                  # Variables to pass to template
       text: "${input_text}"
       context: "${background_info}"
-  outputs:
+  output:
     - result                 # Store response in ${result}
   saveas: outputs/result.txt # Optional: save to file
   log: info                  # Optional: debug, info, warning, error
@@ -149,7 +149,7 @@ Calls a Python function from a module.
   inputs:
     - "${input_text}"              # Positional arguments as list
     - "${options}"
-  outputs:
+  output:
     - processed                    # Store return value
 ```
 
@@ -177,7 +177,7 @@ Loops over a list, executing nested steps for each item.
         file: process-item.md
         inputs:
           content: "${item}"  # Access current item
-      outputs:
+      output:
         - result
       append_to: all_results  # Collect results across iterations
 ```
@@ -200,7 +200,7 @@ Queries XML documents using XPath.
     output_format: xml-string # xml-string, text, or count
     namespaces:               # Optional: XML namespaces
       tei: "http://www.tei-c.org/ns/1.0"
-  outputs:
+  output:
     - entries                 # List of matching elements
   log: debug
 ```
@@ -217,7 +217,7 @@ Reads TSV (tab-separated values) files.
     filter:                   # Optional: filter rows
       column: status
       value: active
-  outputs:
+  output:
     - rows                    # List of row dictionaries
 ```
 
@@ -319,7 +319,7 @@ steps:
       file: analyze.md
       inputs:
         text: "${input}"
-    outputs:
+    output:
       - analysis
 
   - name: summarize
@@ -328,7 +328,7 @@ steps:
       file: summarize.md
       inputs:
         analysis: "${analysis}"  # Use output from previous step
-    outputs:
+    output:
       - summary
 ```
 
@@ -340,7 +340,7 @@ steps:
     type: tsv
     inputs:
       path: data.tsv
-    outputs:
+    output:
       - items
 
   - name: process-each
@@ -354,7 +354,7 @@ steps:
           file: process.md
           inputs:
             data: "${item[column]}"
-        outputs:
+        output:
           - result
         append_to: all_results  # Builds list across iterations
         saveas: "outputs/${item[id]}.txt"  # Dynamic filename
@@ -385,7 +385,7 @@ steps:
     inputs:
       path: data.xml
       xpath: //entry
-    outputs:
+    output:
       - entries
 
   - name: process-entries
@@ -398,7 +398,7 @@ steps:
         function: mymodule.parse_entry
         inputs:
           - "${entry}"
-        outputs:
+        output:
           - parsed
 
       - name: generate-content
@@ -407,7 +407,7 @@ steps:
           file: expand.md
           inputs:
             data: "${parsed}"
-        outputs:
+        output:
           - expanded
         saveas: "outputs/${parsed[id]}.md"
 ```
@@ -581,7 +581,7 @@ inputs:
 # ✅ Fixed
 - name: collect
   type: llm
-  outputs: [result]
+  output: [result]
   append_to: results
 ```
 
@@ -673,7 +673,7 @@ steps:
       file: summarize.md
       inputs:
         text: "${input}"
-    outputs:
+    output:
       - summary
     saveas: outputs/summary.txt
 ```
@@ -701,7 +701,7 @@ steps:
       filter:
         column: status
         value: ready
-    outputs:
+    output:
       - entries
 
   - name: process-entries
@@ -717,7 +717,7 @@ steps:
           inputs:
             lemma: "${entry[lemma]}"
             gloss: "${entry[gloss]}"
-        outputs:
+        output:
           - expanded
         saveas: "outputs/${entry[lemma]}.md"
         append_to: all_entries
@@ -742,7 +742,7 @@ steps:
       xpath: //tei:entry
       namespaces:
         tei: "http://www.tei-c.org/ns/1.0"
-    outputs:
+    output:
       - entries
 
   - name: process-each-entry
@@ -755,7 +755,7 @@ steps:
         function: mymodule.extract_lemma
         inputs:
           - "${entry}"
-        outputs:
+        output:
           - lemma
 
       - name: generate-content
@@ -765,7 +765,7 @@ steps:
           inputs:
             xml: "${entry}"
             lemma: "${lemma}"
-        outputs:
+        output:
           - content
         saveas: "outputs/${lemma}.md"
 ```
@@ -808,7 +808,7 @@ steps:
     inputs:
       param1: "value1"
       param2: "${variable}"
-    outputs:
+    output:
       - result
 ```
 
@@ -885,7 +885,7 @@ steps:
         type: llm
         inputs:
           data: "${shared_data}"  # Deep copied (isolated per iteration)
-        outputs: [result]
+        output: [result]
         append_to: all_results    # Shared reference (accumulates across iterations)
 ```
 
@@ -938,7 +938,7 @@ steps:
   steps:
     - name: process
       type: llm
-      outputs: [result]
+      output: [result]
       append_to: all_results  # ✅ Accumulates across all iterations
 ```
 
@@ -963,7 +963,7 @@ steps:
   steps:
     - name: process
       type: function
-      outputs: [result]
+      output: [result]
       append_to: collected_results  # Changes accumulate
 ```
 
@@ -988,7 +988,7 @@ steps:
           inputs:
             v1: "${outer_item}"
             v2: "${inner_item}"
-          outputs: [result]
+          output: [result]
           append_to: all_results  # Accumulates across ALL iterations
 ```
 
@@ -1007,7 +1007,7 @@ steps:
 ```yaml
 steps:
   - name: collect
-    outputs: [result]
+    output: [result]
     append_to: all_results  # Shared across iterations
 ```
 

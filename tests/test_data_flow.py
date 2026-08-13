@@ -56,14 +56,14 @@ def test_data_flows_through_pipeline():
                 "name": "create_data",
                 "type": "function",
                 "function": "tests.test_data_flow.create_test_dict",
-                "outputs": ["data"],
+                "output": ["data"],
             },
             {
                 "name": "extract_value",
                 "type": "function",
                 "function": "tests.test_data_flow.get_item",
                 "inputs": {"obj": "${data}", "key": "value"},
-                "outputs": ["result"],
+                "output": ["result"],
             },
         ],
     }
@@ -90,14 +90,14 @@ def test_data_flow_with_nested_references():
                 "name": "create_nested",
                 "type": "function",
                 "function": "tests.test_data_flow.create_nested_dict",
-                "outputs": ["nested_data"],
+                "output": ["nested_data"],
             },
             {
                 "name": "access_nested",
                 "type": "function",
                 "function": "tests.test_data_flow.get_item",
                 "inputs": {"obj": "${nested_data}", "key": "outer"},
-                "outputs": ["outer_data"],
+                "output": ["outer_data"],
             },
         ],
     }
@@ -124,14 +124,14 @@ def test_data_flow_with_empty_lists():
                 "name": "create_empty_list",
                 "type": "function",
                 "function": "tests.test_data_flow.create_empty_list",
-                "outputs": ["empty_list"],
+                "output": ["empty_list"],
             },
             {
                 "name": "check_empty",
                 "type": "function",
                 "function": "tests.test_data_flow.get_length",
                 "inputs": {"obj": "${empty_list}"},
-                "outputs": ["list_length"],
+                "output": ["list_length"],
             },
         ],
     }
@@ -158,14 +158,14 @@ def test_data_flow_with_conditional_processing():
                 "name": "create_value",
                 "type": "function",
                 "function": "tests.test_data_flow.create_test_dict",
-                "outputs": ["data"],
+                "output": ["data"],
             },
             {
                 "name": "process_value",
                 "type": "function",
                 "function": "tests.test_data_flow.get_item",
                 "inputs": {"obj": "${data}", "key": "value"},
-                "outputs": ["result"],
+                "output": ["result"],
             },
         ],
     }
@@ -191,7 +191,7 @@ def test_data_flow_with_error_recovery():
                 "name": "safe_operation",
                 "type": "function",
                 "function": "tests.test_data_flow.create_test_dict",
-                "outputs": ["result"],
+                "output": ["result"],
             }
         ],
     }
@@ -217,7 +217,7 @@ def test_data_flow_with_deeply_nested_structures():
                 "name": "create_deep_structure",
                 "type": "function",
                 "function": "tests.test_data_flow.create_nested_dict",
-                "outputs": ["deep_data"],
+                "output": ["deep_data"],
             }
         ],
     }
@@ -243,14 +243,14 @@ def test_data_flow_with_large_datasets():
                 "name": "create_large_list",
                 "type": "function",
                 "function": "tests.test_data_flow.create_large_list",
-                "outputs": ["large_list"],
+                "output": ["large_list"],
             },
             {
                 "name": "get_length",
                 "type": "function",
                 "function": "tests.test_data_flow.get_length",
                 "inputs": {"obj": "${large_list}"},
-                "outputs": ["list_size"],
+                "output": ["list_size"],
             },
         ],
     }
@@ -278,7 +278,7 @@ def test_data_flow_with_variable_substitution_edge_cases():
                 "type": "function",
                 "function": "tests.test_data_flow.get_length",
                 "inputs": {"obj": "${special_chars}"},
-                "outputs": ["result"],
+                "output": ["result"],
             }
         ],
     }
@@ -304,7 +304,7 @@ def test_data_flow_with_circular_references():
                 "name": "create_data",
                 "type": "function",
                 "function": "tests.test_data_flow.create_test_dict",
-                "outputs": ["data"],
+                "output": ["data"],
             }
         ],
     }
@@ -340,7 +340,7 @@ class StepConfig(BaseModel):
     prompt: Optional[Union[str, Dict[str, Any]]] = None
     input: Optional[Any] = None
     inputs: Optional[Union[Dict[str, Any], List[Any]]] = None
-    outputs: Optional[Union[str, List[str]]] = None
+    output: Optional[Union[str, List[str]]] = None
     append_to: Optional[str] = None
     steps: Optional[List["StepConfig"]] = None
     item_var: Optional[str] = None

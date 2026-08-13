@@ -50,7 +50,7 @@ description: |
     sp run --pipeline pipelines/hello-llmflow.yaml
 variables:
   prompts_dir: "prompts"
-  output_dir: "output"
+  output_dir: "outputs"
 
 llm_config:
   model: "gpt-4o-mini"
@@ -64,7 +64,7 @@ steps:
       file: "hello.gpt"
       inputs:
         language_count: 5
-    outputs: greeting
+    output: greeting
     saveas:
       path: "${output_dir}/hello.md"
 
@@ -74,7 +74,7 @@ steps:
       file: "reply.gpt"
       inputs:
         greeting_markdown: "${greeting}"
-    outputs: reply_block
+    output: reply_block
     saveas:
       path: "${output_dir}/responses.md"
 """
@@ -84,7 +84,7 @@ description: |
   Minimal starter pipeline for LLMFlow.
   Run with: sp run --pipeline pipelines/hello.yaml
 variables:
-  output_dir: "output"
+  output_dir: "outputs"
 
 llm_config:
   model: "gpt-4o-mini"
@@ -98,7 +98,7 @@ steps:
       file: "hello.gpt"
       inputs:
         language_count: 5
-    outputs: greeting
+    output: greeting
     saveas:
       path: "${output_dir}/greeting.md"
 """
@@ -115,7 +115,7 @@ After running `sp init` in an empty directory, you should see:
 
 ```
 ./
-├── output/
+├── outputs/
 ├── pipelines/
 │   └── hello-llmflow.yaml
 └── prompts/
@@ -124,7 +124,7 @@ After running `sp init` in an empty directory, you should see:
 ```
 
 Pipelines live under `pipelines/`, prompt templates live under `prompts/`,
-and generated content is written into `output/`.
+and generated content is written into `outputs/`.
 
 ## 2. Tutorial pipeline
 
@@ -134,7 +134,7 @@ The tutorial pipeline is defined in `pipelines/hello-llmflow.yaml`:
 name: "Hello Multilingual Pipeline"
 variables:
   prompts_dir: "prompts"
-  output_dir: "output"
+  output_dir: "outputs"
 
 llm_config:
   model: "gpt-4o-mini"
@@ -147,7 +147,7 @@ steps:
       file: "hello.gpt"
       inputs:
         language_count: 5
-    outputs: greeting
+    output: greeting
     saveas:
       path: "${output_dir}/hello.md"
 
@@ -157,7 +157,7 @@ steps:
       file: "reply.gpt"
       inputs:
         greeting_markdown: "${greeting}"
-    outputs: reply_block
+    output: reply_block
     saveas:
       path: "${output_dir}/responses.md"
 ```
@@ -167,10 +167,10 @@ Highlights:
 - The `variables` block declares `output_dir`, which is referenced later
   in the `saveas.path` fields using `${output_dir}`.
 - The first step saves its LLM output into a pipeline variable called
-  `greeting` and also writes that markdown to `output/hello.md`.
+  `greeting` and also writes that markdown to `outputs/hello.md`.
 - The second step reads `${greeting}` and passes it into the `reply.gpt`
   prompt as `greeting_markdown`, then writes its result to
-  `output/responses.md`.
+  `outputs/responses.md`.
 
 ## 3. Running the tutorial
 
@@ -182,8 +182,8 @@ sp run --pipeline pipelines/hello-llmflow.yaml
 
 On success, you should see two files:
 
-- `output/hello.md` – the original multilingual greetings
-- `output/responses.md` – replies to each greeting
+- `outputs/hello.md` – the original multilingual greetings
+- `outputs/responses.md` – replies to each greeting
 
 Open them in your editor or viewer of choice and iterate on the prompts
 as needed.
@@ -214,7 +214,7 @@ description: |
   One-line or multi-line description of what this flow does.
 
 variables:
-  output_dir: "output"
+  output_dir: "outputs"
 
 llm_config:
   model: gpt-4o-mini
@@ -280,7 +280,7 @@ Runs a prompt through an LLM and stores the response.
     file: "template.gpt"
     inputs:
       topic: "${topic}"
-  outputs: draft
+  output: draft
   saveas:
     path: "${output_dir}/draft.md"
 ```
@@ -305,7 +305,7 @@ Calls a Python function as part of the flow.
   function: some.module:callable
   inputs:
     raw: "${raw_text}"
-  outputs: parsed
+  output: parsed
   saveas:
     path: "${output_dir}/parsed.json"
 ```
@@ -323,8 +323,8 @@ Loops over a list variable and runs nested steps for each item.
   for: item
   in: "${items}"
   parallel: 4                      # optional: run up to 4 iterations concurrently
-  group-by: "${item.category}"     # optional: group results by this field
-  order-by: "${item.sequence}"     # optional: sort results within groups
+  group_by: "${item.category}"     # optional: group results by this field
+  order_by: "${item.sequence}"     # optional: sort results within groups
   steps:
     - name: handle-item
       type: llm
@@ -332,7 +332,7 @@ Loops over a list variable and runs nested steps for each item.
         file: "item.gpt"
         inputs:
           item_text: "${item}"
-      outputs: item_result
+      output: item_result
       append_to: all_results
 ```
 
@@ -341,9 +341,9 @@ Loops over a list variable and runs nested steps for each item.
 - Use `append_to` in nested steps to build a list across iterations.
 - `parallel: N` runs N iterations concurrently; results are collected in
   input order regardless. Omit for sequential execution (default).
-- `group-by` and `order-by` accept `${expr}` expressions evaluated against
-  each item. `group-by` groups `append_to` results by the expression value;
-  `order-by` sorts within each group.
+- `group_by` and `order_by` accept `${expr}` expressions evaluated against
+  each item. `group_by` groups `append_to` results by the expression value;
+  `order_by` sorts within each group.
 
 ### type: `window`
 
@@ -365,7 +365,7 @@ steps on each slice. Useful when a list is too large to process at once.
         file: "process.gpt"
         inputs:
           chunk: "${window_content}"
-      outputs: window_result
+      output: window_result
       append_to: all_results
 
     # Optional: dynamic cursor — tell the engine where the next window starts.
@@ -380,7 +380,7 @@ steps on each slice. Useful when a list is too large to process at once.
         inputs:
           verse_sid: "${window_result.pericopes[-1].opening_verse_sid}"
           content: "${content_list}"
-        outputs: next_start
+        output: next_start
 ```
 
 - `size` — fixed item count per window.
@@ -417,7 +417,7 @@ appended by earlier iterations. This enables "rolling context" patterns:
           passage: "${pericope.canonical_reference}"
           # Only pass the last 10 summaries — prior_pericopes grows each iteration
           prior_context: "${prior_pericopes[-10:]}"
-      outputs: pericope_analysis
+      output: pericope_analysis
 
     - name: summarize
       type: function
@@ -425,7 +425,7 @@ appended by earlier iterations. This enables "rolling context" patterns:
       inputs:
         obj: "${pericope_analysis}"
         fields: ["title", "themes"]
-      outputs: summary
+      output: summary
       append_to: prior_pericopes   # visible to next iteration
 ```
 
@@ -464,7 +464,7 @@ Conditionally executes a block of steps.
         file: "detail.gpt"
         inputs:
           topic: "${topic}"
-      outputs: detail_text
+      output: detail_text
 ```
 
 - `condition` is evaluated first; if falsy the whole block is skipped.
@@ -482,7 +482,7 @@ Any step (any type) can be skipped individually:
     file: "optional.gpt"
     inputs:
       data: "${data}"
-  outputs: optional_result
+  output: optional_result
 ```
 
 The expression follows the same rules as `type: if` — variable reference,
@@ -499,7 +499,7 @@ Any step can write its primary output (or literal content) to a file:
     file: "report.gpt"
     inputs:
       data: "${analysis}"
-  outputs: report_md
+  output: report_md
   saveas:
     path: "${output_dir}/report.md"
 ```
@@ -524,7 +524,7 @@ To pass variables from the CLI:
 ```bash
 sp run --pipeline pipelines/my-pipeline.yaml \
   --var passage="Psalm 23" \
-  --var output_dir="output"
+  --var output_dir="outputs"
 ```
 
 To validate a pipeline without running it:
@@ -637,7 +637,7 @@ the AI implements (executes and provides analysis).
 
 - `pipelines/` — YAML pipeline definitions
 - `prompts/` — prompt templates (`.gpt` files) used by `llm` steps
-- `output/` — generated artifacts written by `saveas`
+- `outputs/` — generated artifacts written by `saveas`
 - `docs/ai-context/` — AI-facing documentation (read index.md first)
 
 ### Workflow guidelines
@@ -682,8 +682,8 @@ Do not declare output "production ready", "approved", or "suitable for use with 
 
 **CLAUDE.md belongs to the Captain.** The AI may propose additions or changes in conversation — showing exact content — but must never write to this file without explicit approval.
 
-**HARD PROHIBITION: Never modify any file under `docs/ai-context/`.**
-These are design documents under the Captain's authority. The AI reports findings and proposes changes in conversation. It does not write.
+**HARD PROHIBITION: Never modify the sp-generated files under `docs/ai-context/`** (`index.md`, `overview.md`, `rules.md`, `github-workflow.md`).
+These are generated by `sp init` and refreshed by `sp init --update`; the AI reports findings and proposes changes in conversation, it does not write them. **The one exception is `docs/ai-context/project.md`** — this repo's own context, which sp never overwrites. Project-specific AI context belongs there.
 
 **HARD PROHIBITION: Never create or modify files in the project memory directory without explicit approval.**
 Memory files belong to the Captain. Propose additions or deletions in conversation; never write them unilaterally.
@@ -842,7 +842,7 @@ It was initialized with the `sp init` command.
 
 - `pipelines/` – YAML pipeline definitions
 - `prompts/` – prompt templates used by `llm` steps
-- `output/` – generated artifacts written by `saveas`
+- `outputs/` – generated artifacts written by `saveas`
 - `docs/` – human- and AI-facing documentation
   - `docs/tutorial.md` – walkthrough of the starter pipeline
   - `docs/llmflow-language-quickref.md` – compact language reference
@@ -869,7 +869,7 @@ LLMFlow-based project.
 2. **Keep prompts and pipelines in sync.** If a prompt template expects
    a variable (e.g., `{{greeting_markdown}}`), ensure the corresponding
    pipeline step passes it via `prompt.inputs`.
-3. **Preserve human review.** Generated files under `output/` are
+3. **Preserve human review.** Generated files under `outputs/` are
    drafts. Do not assume they are final; humans review and edit them
    before publication.
 4. **Be explicit about paths.** When suggesting changes, reference
@@ -1058,6 +1058,44 @@ gh issue comment 96 --body-file ./tmp/comment.txt
 If auto-close doesn't work, use `gh issue close XX` manually.
 """
 
+AI_PROJECT_DOC = """\
+# Project-Specific AI Context
+
+**This file is yours.** `sp init` created it once and will **never overwrite it** — not even on
+`sp init --update`. It is the durable, repo-scoped memory every AI assistant working here should
+read and keep current. The generated files in `docs/ai-context/` (`index.md`, `overview.md`,
+`rules.md`, `github-workflow.md`) are refreshed by `sp init --update` — do not hand-edit them;
+anything you want to keep and evolve locally goes here, and `index.md` points assistants at it.
+
+**Discipline (for the AI):** record a non-obvious project fact here the moment you learn it — a
+data source, a convention, a trap that cost time. Keep it a scannable map, not a dump; prune
+what goes stale. This is the same idea as `/handoff` (session scope) and `~/.sp` (machine
+scope), at the repo scope.
+
+The sections below are a starting structure — adapt them to this repo, don't force them.
+
+## What this repo is
+
+<!-- One paragraph: what it does, its domain, who or what it serves. -->
+
+## Data sources & key artifacts
+
+<!-- Where the data lives; canonical files, schemas, pipelines; what is generated vs authored. -->
+
+## Local conventions
+
+<!-- Repo-specific rules not in sp's standard: naming, structure, review norms. -->
+
+## Gotchas / hard-won facts
+
+<!-- Traps and non-obvious facts, recorded as learned (with a file:line or a pointer). -->
+
+## Where active work lives
+
+<!-- Pointers: project/TODO.md (current state), project/plans/ (designs in flight). -->
+"""
+
+
 AI_INDEX_DOC = """<!-- Generated by sp init -->
 # AI Context Index
 
@@ -1068,6 +1106,10 @@ Don't read everything upfront. Use this index to find what you need for each spe
 ---
 
 ## Local Context (This Repo)
+
+### This Repo's Own Context
+- **project.md** — project-specific AI context owned by this repo (`sp` never overwrites it).
+  Read it for repo-specific facts, conventions, and gotchas; add to it as the project grows.
 
 ### Project Tracking
 - **../../project/TODO.md** - Active work, in-progress items, blocked work
@@ -1086,6 +1128,7 @@ Don't read everything upfront. Use this index to find what you need for each spe
 ### External References
 - [Engine language spec (canonical)](https://github.com/nida-institute/LLMFlow/blob/main/docs/llmflow-language.md) - Full YAML specification
 - [Engine tutorial](https://github.com/nida-institute/LLMFlow/blob/main/docs/tutorial.md) - Core tutorial
+- [Engine Python API](https://github.com/nida-institute/LLMFlow/blob/main/docs/python-api.md) - `import llmflow`: `load_pipeline` / `Pipeline` / `.resolve` / `.lint` / `.run` / `.schemas` / `.saveas`, plus `PIPELINE_SCHEMA` + `api_catalog()` — the machine-readable syntax↔API map. Use this to inspect or drive a pipeline from Python instead of re-parsing YAML.
 
 ---
 
@@ -1127,6 +1170,7 @@ Don't read everything upfront. Use this index to find what you need for each spe
 - **Auditing code** → `~/.sp/skills/audit-code/SKILL.md`
 - **Writing tests** → `../.github/copilot-instructions.md` TDD workflow
 - **CLI questions** → `../llmflow-language-quickref.md`
+- **Inspecting or driving a pipeline from Python** → [Engine Python API](https://github.com/nida-institute/LLMFlow/blob/main/docs/python-api.md) — `load_pipeline("…").resolve()/.lint()/.run()/.schemas()`; `PIPELINE_SCHEMA` + `api_catalog()` are the machine-readable map. Prefer this over re-parsing pipeline YAML.
 - **Architecture patterns** → `../.github/copilot-instructions.md`
 
 ---
@@ -1272,7 +1316,7 @@ The index tells you:
 This is an LLMFlow consumer project. It does NOT contain the LLMFlow engine source.
 - Pipelines live in `pipelines/`
 - Prompts live in `prompts/`
-- Generated outputs live in `output/`
+- Generated outputs live in `outputs/`
 - The LLMFlow engine is installed separately: https://github.com/nida-institute/LLMFlow
 
 ## Global Skills
@@ -1460,7 +1504,7 @@ Examples:
 ## What does not belong here
 
 - Pipeline YAML files → `pipelines/`
-- Generated artifacts → `output/`
+- Generated artifacts → `outputs/`
 - Active tasks → `project/TODO.md`
 """
 
@@ -1716,7 +1760,7 @@ def init_project(base_dir: Path, update: bool = False, no_examples: bool = False
     """
     prompts_dir = base_dir / "prompts"
     pipelines_dir = base_dir / "pipelines"
-    output_dir = base_dir / "output"
+    output_dir = base_dir / "outputs"
     docs_dir = base_dir / "docs"
     ai_context_dir = docs_dir / "ai-context"
     docs_audits_dir = docs_dir / "audits"
@@ -1745,6 +1789,7 @@ def init_project(base_dir: Path, update: bool = False, no_examples: bool = False
     ai_rules_path = ai_context_dir / "rules.md"
     ai_index_path = ai_context_dir / "index.md"
     ai_github_workflow_path = ai_context_dir / "github-workflow.md"
+    ai_project_path = ai_context_dir / "project.md"
     docs_audits_index_path = docs_audits_dir / "INDEX.md"
     audit_passage_path = docs_audits_dir / "audit-passage.md"
     audit_leadersguide_path = docs_audits_dir / "audit-leadersguide.md"
@@ -1842,6 +1887,13 @@ def init_project(base_dir: Path, update: bool = False, no_examples: bool = False
     else:
         logger.info("docs/ai-context/github-workflow.md already exists; leaving as-is.")
 
+    # project.md is the consumer's own lane — created once, never overwritten (even on --update).
+    if not ai_project_path.exists():
+        ai_project_path.write_text(AI_PROJECT_DOC, encoding="utf-8")
+        logger.info("Created docs/ai-context/project.md")
+    else:
+        logger.info("docs/ai-context/project.md already exists; leaving as-is (yours to own).")
+
     if not vscode_doc_path.exists():
         vscode_doc_path.write_text(VSCODE_DOC, encoding="utf-8")
         logger.info("Created docs/vscode.md")
@@ -1894,7 +1946,7 @@ def init_project(base_dir: Path, update: bool = False, no_examples: bool = False
     else:
         logger.info("docs/audits/audit-leadersguide.md already exists; leaving as-is.")
 
-    logger.info("Output directory ready at ./output")
+    logger.info("Output directory ready at ./outputs")
 
     # Install global conventions to ~/.sp/ (non-interactive, no machine-scoped UI needed)
     try:

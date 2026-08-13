@@ -10,6 +10,7 @@ from llmflow.cli_utils import (
     HELLO_REPLY_PROMPT,
     AI_INDEX_DOC,
     AI_OVERVIEW_DOC,
+    AI_PROJECT_DOC,
     AI_RULES_DOC,
     COPILOT_INSTRUCTIONS_DOC,
     DOCS_AUDITS_INDEX,
@@ -47,7 +48,7 @@ def test_init_environment_creates_files(tmp_path, caplog):
     prompt_path = tmp_path / "prompts" / "hello.gpt"
     reply_prompt_path = tmp_path / "prompts" / "reply.gpt"
     pipeline_path = tmp_path / "pipelines" / "hello-llmflow.yaml"
-    output_dir = tmp_path / "output"
+    output_dir = tmp_path / "outputs"
     docs_dir = tmp_path / "docs"
     ai_context_dir = docs_dir / "ai-context"
 
@@ -561,7 +562,7 @@ class TestNoExamples:
     STRUCTURAL_DIRS = [
         "prompts",
         "pipelines",
-        "output",
+        "outputs",
         "docs",
     ]
 
@@ -583,3 +584,42 @@ class TestNoExamples:
 
         for rel in self.EXAMPLE_FILES:
             assert not (tmp_path / rel).exists(), f"{rel} should not be created with --no-examples"
+
+
+# --- docs/ai-context/project.md: the consumer-owned lane ---
+
+def test_init_creates_project_md(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    main(["init"])
+    p = tmp_path / "docs" / "ai-context" / "project.md"
+    assert p.exists()
+    assert p.read_text(encoding="utf-8") == AI_PROJECT_DOC
+
+
+def test_init_update_never_overwrites_project_md(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    main(["init"])
+    p = tmp_path / "docs" / "ai-context" / "project.md"
+    p.write_text("# our project\nlocal facts\n", encoding="utf-8")
+    main(["init", "--update"])   # sp never touches project.md, even on --update
+    assert p.read_text(encoding="utf-8") == "# our project\nlocal facts\n"
+
+
+def test_index_references_project_md():
+    assert "project.md" in AI_INDEX_DOC
+
+
+def test_index_references_python_api():
+    # Project AIs must be able to discover the public Python API via their AI context.
+    assert "python-api" in AI_INDEX_DOC
+    assert "load_pipeline" in AI_INDEX_DOC
+    assert "api_catalog" in AI_INDEX_DOC
+
+
+def test_init_uses_outputs_not_singular_output_decoy(tmp_path, monkeypatch):
+    # sp init must scaffold the plural `outputs/` (matching sp's runtime default) and never
+    # plant a singular `output/` decoy next to it.
+    monkeypatch.chdir(tmp_path)
+    main(["init"])
+    assert (tmp_path / "outputs").is_dir()
+    assert not (tmp_path / "output").exists(), "sp init must not plant a singular output/ decoy"

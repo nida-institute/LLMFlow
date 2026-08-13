@@ -28,7 +28,7 @@ steps:
       value:
         name: "test"
         count: 42
-    outputs:
+    output:
       - data
     saveas: "{temp_output_dir}/dict.json"
 """
@@ -56,7 +56,7 @@ steps:
     function: llmflow.utils.data.identity
     inputs:
       value: '{{"segments": [{{"text": "hello"}}], "lemma": "test"}}'
-    outputs:
+    output:
       - json_string
     saveas: "{temp_output_dir}/xslt.json"
 """
@@ -90,7 +90,7 @@ steps:
     function: llmflow.utils.data.identity
     inputs:
       value: {double_encoded}
-    outputs:
+    output:
       - data
     saveas: "{temp_output_dir}/double.json"
 """
@@ -125,7 +125,7 @@ steps:
     function: llmflow.utils.data.identity
     inputs:
       value: '{json_string}'
-    outputs:
+    output:
       - data
     saveas: "{temp_output_dir}/unicode.json"
 """
@@ -154,7 +154,7 @@ steps:
       value:
         - first: 1
         - second: 2
-    outputs:
+    output:
       - items
     saveas: "{temp_output_dir}/list.json"
 """
@@ -191,7 +191,7 @@ steps:
     function: llmflow.utils.data.identity
     inputs:
       value: {complex_json}
-    outputs:
+    output:
       - data
     saveas: "{temp_output_dir}/complex.json"
 """
@@ -220,7 +220,7 @@ steps:
     function: llmflow.utils.data.identity
     inputs:
       value: '{json_string}'
-    outputs:
+    output:
       - data
     saveas: "{temp_output_dir}/data.txt"
 """
@@ -246,7 +246,7 @@ steps:
     inputs:
       value:
         nested: true
-    outputs:
+    output:
       - data
     saveas: "{temp_output_dir}/subdir/nested.json"
 """
@@ -280,7 +280,7 @@ steps:
         # Test Heading
 
         Paragraph text.
-    outputs:
+    output:
       - content
     saveas: "{temp_output_dir}/output.md"
 """
@@ -307,7 +307,7 @@ steps:
       value:
         key: "value"
         number: 123
-    outputs:
+    output:
       - data
     saveas: "{temp_output_dir}/formatted.json"
 """
@@ -344,7 +344,7 @@ steps:
         Line 1
         Line 2
         Line 3
-    outputs:
+    output:
       - text
     saveas: "{temp_output_dir}/multiline.txt"
 """
@@ -369,7 +369,7 @@ steps:
     function: llmflow.utils.data.identity
     inputs:
       value: ""
-    outputs:
+    output:
       - text
     saveas: "{temp_output_dir}/empty.txt"
 """
@@ -396,7 +396,7 @@ steps:
         active: true
         disabled: false
         nothing: null
-    outputs:
+    output:
       - flags
     saveas: "{temp_output_dir}/booleans.json"
 """
@@ -431,7 +431,7 @@ steps:
         float_val: 3.14159
         negative: -100
         zero: 0
-    outputs:
+    output:
       - numbers
     saveas: "{temp_output_dir}/numbers.json"
 """
@@ -460,7 +460,7 @@ steps:
     function: llmflow.utils.data.identity
     inputs:
       value: []
-    outputs:
+    output:
       - items
     saveas: "{temp_output_dir}/empty_array.json"
 """
@@ -487,7 +487,7 @@ steps:
     function: llmflow.utils.data.identity
     inputs:
       value: {{}}
-    outputs:
+    output:
       - obj
     saveas: "{temp_output_dir}/empty_object.json"
 """
@@ -514,7 +514,7 @@ steps:
     function: llmflow.utils.data.identity
     inputs:
       value: "test content"
-    outputs:
+    output:
       - text
     saveas: "{temp_output_dir}/file-with_special.chars.txt"
 """
@@ -549,7 +549,7 @@ steps:
     function: llmflow.utils.data.identity
     inputs:
       value: {json.dumps(nested_data)}
-    outputs:
+    output:
       - data
     saveas: "{temp_output_dir}/deep_nested.json"
 """
@@ -580,7 +580,7 @@ steps:
         - true
         - null
         - nested: "object"
-    outputs:
+    output:
       - mixed
     saveas: "{temp_output_dir}/mixed_array.json"
 """
@@ -614,7 +614,7 @@ steps:
     function: llmflow.utils.data.identity
     inputs:
       value: "new content"
-    outputs:
+    output:
       - text
     saveas: "{temp_output_dir}/overwrite.txt"
 """
@@ -640,7 +640,7 @@ steps:
       value:
         key1: "value1"
         key2: "value2"
-    outputs:
+    output:
       - data
     saveas: "{temp_output_dir}/indented.json"
 """
@@ -663,7 +663,7 @@ class TestHandleStepOutputs:
         context = {}
         step = {
             "name": "test",
-            "outputs": "content",
+            "output": "content",
             "saveas": str(tmp_path / "output.txt")
         }
         result = "Hello World"

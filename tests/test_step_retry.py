@@ -48,7 +48,7 @@ def test_llm_step_retries_until_condition_passes():
                     "name": "payload",
                     "type": "llm",
                     "prompt": {"file": str(prompt_file)},
-                    "outputs": "payload",
+                    "output": "payload",
                     "retry": {
                         "max_attempts": 3,
                         "delay_seconds": 0,
@@ -83,7 +83,7 @@ def test_llm_step_retry_condition_failure_raises():
                     "name": "payload",
                     "type": "llm",
                     "prompt": {"file": str(prompt_file)},
-                    "outputs": "payload",
+                    "output": "payload",
                     "retry": {
                         "max_attempts": 3,
                         "delay_seconds": 0,
@@ -114,7 +114,7 @@ def test_function_step_retries_on_exception_until_success():
                 "name": "flaky",
                 "type": "function",
                 "function": "tests.test_step_retry.flaky_function_no_inputs",
-                "outputs": "result",
+                "output": "result",
                 "retry": {
                     "max_attempts": 4,
                     "delay_seconds": 0,
@@ -141,7 +141,7 @@ def test_append_to_state_restored_when_retry_fails():
                 "name": "short-text",
                 "type": "function",
                 "function": "tests.test_step_retry.constant_short_text",
-                "outputs": "payload",
+                "output": "payload",
                 "append_to": "history",
                 "retry": {
                     "max_attempts": 2,

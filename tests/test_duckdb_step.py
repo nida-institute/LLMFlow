@@ -21,7 +21,7 @@ class TestDuckDBStepBasics:
             "name": "simple_query",
             "type": "duckdb",
             "query_file": "simple.sql",
-            "outputs": "result"
+            "output": "result"
         }
 
         run_step(step, context, {})
@@ -53,7 +53,7 @@ class TestDuckDBStepBasics:
             "inputs": {
                 "min_value": "${min_value}"
             },
-            "outputs": "filtered_result"
+            "output": "filtered_result"
         }
 
         run_step(step, context, {})
@@ -84,7 +84,7 @@ class TestDuckDBStepBasics:
             "inputs": {
                 "target_fruit": "${target_fruit}"
             },
-            "outputs": "fruit_result"
+            "output": "fruit_result"
         }
 
         run_step(step, context, {})
@@ -109,7 +109,7 @@ class TestDuckDBOutputFormats:
             "name": "test_query",
             "type": "duckdb",
             "query_file": "test.sql",
-            "outputs": "result"
+            "output": "result"
         }
 
         run_step(step, context, {})
@@ -134,7 +134,7 @@ class TestDuckDBOutputFormats:
             "type": "duckdb",
             "query_file": "test.sql",
             "format": "dict",
-            "outputs": "result"
+            "output": "result"
         }
 
         run_step(step, context, {})
@@ -159,7 +159,7 @@ class TestDuckDBOutputFormats:
             "type": "duckdb",
             "query_file": "test.sql",
             "format": "json",
-            "outputs": "result"
+            "output": "result"
         }
 
         run_step(step, context, {})
@@ -201,7 +201,7 @@ class TestDuckDBFileReading:
             "inputs": {
                 "csv_path": "${csv_path}"
             },
-            "outputs": "data"
+            "output": "data"
         }
 
         run_step(step, context, {})
@@ -238,7 +238,7 @@ class TestDuckDBFileReading:
             "inputs": {
                 "tsv_path": "${tsv_path}"
             },
-            "outputs": "verse_counts"
+            "output": "verse_counts"
         }
 
         run_step(step, context, {})
@@ -260,7 +260,7 @@ class TestDuckDBErrorHandling:
             "name": "missing_file",
             "type": "duckdb",
             "query_file": "nonexistent.sql",
-            "outputs": "result"
+            "output": "result"
         }
 
         with pytest.raises(FileNotFoundError) as exc_info:
@@ -280,7 +280,7 @@ class TestDuckDBErrorHandling:
             "name": "bad_query",
             "type": "duckdb",
             "query_file": "bad.sql",
-            "outputs": "result"
+            "output": "result"
         }
 
         with pytest.raises(Exception):  # DuckDB will raise an error
@@ -301,7 +301,7 @@ class TestDuckDBErrorHandling:
             "inputs": {
                 "missing_var": "${undefined_variable}"
             },
-            "outputs": "result"
+            "output": "result"
         }
 
         # Variable resolution should leave ${undefined_variable} as-is
@@ -332,7 +332,7 @@ class TestDuckDBIntegrationInPipeline:
             "name": "get_verbs",
             "type": "duckdb",
             "query_file": "frequency.sql",
-            "outputs": "verb_data"
+            "output": "verb_data"
         }
 
         run_step(duckdb_step, context, {})
@@ -373,7 +373,7 @@ class TestDuckDBIntegrationInPipeline:
             "name": "get_books",
             "type": "duckdb",
             "query_file": "base.sql",
-            "outputs": "books"
+            "output": "books"
         }
         run_step(step1, context, {})
 
@@ -386,7 +386,7 @@ class TestDuckDBIntegrationInPipeline:
             "inputs": {
                 "min_chapters": "${min_chapters}"
             },
-            "outputs": "big_books"
+            "output": "big_books"
         }
         run_step(step2, context, {})
 
@@ -418,7 +418,7 @@ class TestDuckDBAdvancedFeatures:
             "name": "cumulative",
             "type": "duckdb",
             "query_file": "running_total.sql",
-            "outputs": "totals"
+            "output": "totals"
         }
 
         run_step(step, context, {})
@@ -453,7 +453,7 @@ class TestDuckDBAdvancedFeatures:
             "name": "aggregate",
             "type": "duckdb",
             "query_file": "group_by.sql",
-            "outputs": "aggregates"
+            "output": "aggregates"
         }
 
         run_step(step, context, {})
@@ -477,7 +477,7 @@ class TestDuckDBAdvancedFeatures:
             "name": "empty_query",
             "type": "duckdb",
             "query_file": "empty.sql",
-            "outputs": "empty_result"
+            "output": "empty_result"
         }
 
         run_step(step, context, {})
@@ -500,7 +500,7 @@ class TestDuckDBStepConfiguration:
             "name": "absolute_path",
             "type": "duckdb",
             "query_file": str(query_file),
-            "outputs": "result"
+            "output": "result"
         }
 
         run_step(step, context, {})
@@ -523,7 +523,7 @@ class TestDuckDBStepConfiguration:
             "name": "save_query",
             "type": "duckdb",
             "query_file": "test.sql",
-            "outputs": "result",
+            "output": "result",
             "saveas": str(output_file),
             "format": "json"
         }

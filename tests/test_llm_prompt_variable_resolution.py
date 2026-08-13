@@ -245,7 +245,7 @@ def test_xpath_plugin_returns_list():
                         "path": "${xml_file}",
                         "xpath": "//entry[@n='word1']"
                     },
-                    "outputs": "entries"
+                    "output": "entries"
                 }
             ]
         }
@@ -354,7 +354,7 @@ Please expand this entry with semantic domain information."""
                     "inputs": {
                         "path": "${status_file}"
                     },
-                    "outputs": "status"
+                    "output": "status"
                 },
                 {
                     "name": "process-entries",
@@ -369,7 +369,7 @@ Please expand this entry with semantic domain information."""
                                 "path": "${lexicon_file}",
                                 "xpath": "//entry[@n='${row.lemma}']"
                             },
-                            "outputs": "entries"
+                            "output": "entries"
                         },
                         {
                             "name": "expand-entry",
@@ -382,7 +382,7 @@ Please expand this entry with semantic domain information."""
                                     "status": "${row.status}"
                                 }
                             },
-                            "outputs": "expanded_entry"
+                            "output": "expanded_entry"
                         }
                     ]
                 }

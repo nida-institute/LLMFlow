@@ -45,9 +45,9 @@ def run_load_step(step: Dict[str, Any], context: Dict[str, Any]) -> None:
 
     name = step.get("name", "unnamed")
     step_type = step.get("type", "")
-    output_var = step.get("output") or step.get("outputs")
+    output_var = step.get("output")
     if not output_var:
-        raise ValueError(f"loader step '{name}' requires an 'output' or 'outputs' key")
+        raise ValueError(f"loader step '{name}' requires an 'outputs' key")
     if isinstance(output_var, list):
         output_var = output_var[0]
 
