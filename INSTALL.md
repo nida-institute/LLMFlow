@@ -14,7 +14,11 @@ curl -fsSL https://raw.githubusercontent.com/nida-institute/LLMFlow/main/install
 irm https://raw.githubusercontent.com/nida-institute/LLMFlow/main/install.ps1 | iex
 ```
 
-After installing, run `sp --version` to confirm it worked, then `sp setup` to configure your API key for OpenAI, Anthropic, or Google Gemini. See the [Quickstart Tutorial](docs/tutorial.md) to run your first pipeline.
+After installing, run `sp --version` to confirm it worked.
+
+Then set your API key **as an environment variable** — see [Set your API key](#set-your-api-key) below. This step is required, not optional: several code paths read the key straight from the environment, so a pipeline will fail without it even if `sp setup` has been run.
+
+Once the key is set, see the [Quickstart Tutorial](docs/tutorial.md) to run your first pipeline.
 
 ---
 
@@ -23,7 +27,7 @@ After installing, run `sp --version` to confirm it worked, then `sp setup` to co
 **⬇️ [Download the latest release](https://github.com/nida-institute/LLMFlow/releases/latest)** — click Assets and pick the file for your platform.
 
 > **Prerequisites**
-> - An OpenAI, Anthropic, or Google Gemini API key (configured via `sp setup` after install).
+> - An OpenAI, Anthropic, or Google Gemini API key, set as an environment variable — see [Set your API key](#set-your-api-key).
 > - macOS 13+/Windows 11+/Ubuntu 22.04+ are the tested targets (other recent versions typically work, but aren’t guaranteed).
 
 ---
@@ -102,13 +106,16 @@ In PowerShell (persists for your user account):
 ```
 Close and reopen PowerShell, then confirm: `echo $env:OPENAI_API_KEY`
 
+This environment variable is **required** — see [Set your API key](#set-your-api-key) for why
+`sp setup` alone is not sufficient.
+
 #### Verify
 
 ```powershell
 sp --version
 ```
 
-You should see something like `sp 0.1.5.04`. You're ready — continue with the [Quickstart Tutorial](docs/tutorial.md).
+You should see the version printed, e.g. `llmflow 0.2.1.23`. You're ready — continue with the [Quickstart Tutorial](docs/tutorial.md).
 
 ### Linux
 1. Move the binary into `~/.local/bin` or `/usr/local/bin`:
@@ -124,16 +131,53 @@ You should see something like `sp 0.1.5.04`. You're ready — continue with the 
 
 Scripture Pipelines uses the [`llm`](https://llm.datasette.io/) package to call language models. The prebuilt binary ships with `llm` bundled, but you need to configure your API key and (optionally) install additional model plugins.
 
-### Set your OpenAI API key
+### Set your API key
 
-The simplest approach — store it once so `llm` uses it automatically:
+**Use an environment variable. This is required.**
+
+Scripture Pipelines calls models two ways: through the `llm` package, and — for steps using
+`response_format` (structured outputs) — through the provider's own client, which reads the key
+**straight from the environment**. So `llm keys set` / `sp setup` alone is not enough: those store
+the key in `llm`'s own keystore, and a structured-output step will still fail to authenticate.
+
+**macOS / Linux** — add to `~/.zshrc` (or `~/.bashrc`), then open a new terminal:
 
 ```bash
-llm keys set openai
-# Paste key here
+export OPENAI_API_KEY="sk-..."
 ```
 
-Or use an environment variable (see platform-specific steps above for how to set it permanently).
+**Windows (PowerShell)** — persists for your user account; close and reopen PowerShell after:
+
+```powershell
+[System.Environment]::SetEnvironmentVariable("OPENAI_API_KEY", "sk-...", "User")
+```
+
+Confirm it is set:
+
+```bash
+# macOS / Linux
+[ -n "$OPENAI_API_KEY" ] && echo "key is set"
+```
+```powershell
+# Windows
+echo $env:OPENAI_API_KEY
+```
+
+Use `ANTHROPIC_API_KEY` or `GEMINI_API_KEY` in place of `OPENAI_API_KEY` for those providers.
+
+> **Keeping the key out of a plaintext config file (macOS)** — store it in the login Keychain
+> once and have your shell read it, so it is not sitting in cleartext in `~/.zshrc`:
+> ```bash
+> security add-generic-password -a "$USER" -s OPENAI_API_KEY -w   # prompts for the value
+> ```
+> then in `~/.zshrc`:
+> ```bash
+> export OPENAI_API_KEY="$(security find-generic-password -s OPENAI_API_KEY -w 2>/dev/null)"
+> ```
+
+**`sp setup` is optional and complementary.** It writes the key into `llm`'s keystore
+(`llm keys set` under the hood), which is useful if you also use the `llm` CLI directly. It does
+**not** set the environment variable, so it does not replace the step above.
 
 ### Install additional model plugins (optional)
 
@@ -172,7 +216,7 @@ sp --version
 You should see output similar to:
 
 ```
-sp 0.9.0 (nuitka build 2026-02-18)
+llmflow 0.2.1.23
 ```
 
 If the command is not found, double-check that the binary is executable and that the containing directory is on your PATH.
