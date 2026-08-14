@@ -16,7 +16,7 @@ irm https://raw.githubusercontent.com/nida-institute/LLMFlow/main/install.ps1 | 
 
 After installing, run `sp --version` to confirm it worked.
 
-Then set your API key **as an environment variable** — see [Set your API key](#set-your-api-key) below. This step is required, not optional: several code paths read the key straight from the environment, so a pipeline will fail without it even if `sp setup` has been run.
+Then set your API key — see [Set your API key](#set-your-api-key) below. On 0.2.1.23 and earlier this must be an **environment variable**; `sp setup` alone is not enough, because several code paths read the key straight from the environment. From 0.2.1.24 either method works.
 
 Once the key is set, see the [Quickstart Tutorial](docs/tutorial.md) to run your first pipeline.
 
@@ -106,8 +106,9 @@ In PowerShell (persists for your user account):
 ```
 Close and reopen PowerShell, then confirm: `echo $env:OPENAI_API_KEY`
 
-This environment variable is **required** — see [Set your API key](#set-your-api-key) for why
-`sp setup` alone is not sufficient.
+On 0.2.1.23 and earlier this environment variable is **required** — see
+[Set your API key](#set-your-api-key) for why `sp setup` alone is not sufficient on those
+versions.
 
 #### Verify
 
@@ -133,12 +134,21 @@ Scripture Pipelines uses the [`llm`](https://llm.datasette.io/) package to call 
 
 ### Set your API key
 
-**Use an environment variable. This is required.**
+**Set an environment variable.** On **0.2.1.23 and earlier this is required**; from **0.2.1.24**
+either method works and you can use `sp setup` instead.
 
 Scripture Pipelines calls models two ways: through the `llm` package, and — for steps using
-`response_format` (structured outputs) — through the provider's own client, which reads the key
-**straight from the environment**. So `llm keys set` / `sp setup` alone is not enough: those store
-the key in `llm`'s own keystore, and a structured-output step will still fail to authenticate.
+`response_format` (structured outputs) — through the provider's own client.
+
+- **0.2.1.23 and earlier:** that second path reads the key **straight from the environment**, so
+  `llm keys set` / `sp setup` alone is not enough — those write `llm`'s own keystore, and a
+  structured-output step will still fail to authenticate.
+- **0.2.1.24 onwards:** both paths resolve keys the same way — explicit key, then `llm`'s
+  keystore, then the environment variable — so `sp setup` on its own is sufficient. The
+  environment variable continues to work.
+
+If you are unsure which you have, run `sp --version`. Setting the environment variable is correct
+on every version, so the instructions below are always safe.
 
 **macOS / Linux** — add to `~/.zshrc` (or `~/.bashrc`), then open a new terminal:
 
@@ -175,9 +185,12 @@ Use `ANTHROPIC_API_KEY` or `GEMINI_API_KEY` in place of `OPENAI_API_KEY` for tho
 > export OPENAI_API_KEY="$(security find-generic-password -s OPENAI_API_KEY -w 2>/dev/null)"
 > ```
 
-**`sp setup` is optional and complementary.** It writes the key into `llm`'s keystore
-(`llm keys set` under the hood), which is useful if you also use the `llm` CLI directly. It does
-**not** set the environment variable, so it does not replace the step above.
+**About `sp setup`.** It writes the key into `llm`'s keystore (`llm keys set` under the hood).
+
+- On **0.2.1.23 and earlier** it does **not** set the environment variable, so it does not replace
+  the step above.
+- From **0.2.1.24** it is sufficient on its own, and on Windows it also persists the environment
+  variable for your user account.
 
 ### Install additional model plugins (optional)
 
