@@ -27,11 +27,31 @@ import os
 from pathlib import Path
 
 
-try:
-    from importlib.metadata import version
-    __version__ = version("scripture-pipelines")
-except Exception:
-    __version__ = "unknown"
+#: Distribution names to look the version up under, current first. The project was renamed
+#: `llmflow` -> `scripture-pipelines` (f5e4d8f) but the console script is `sp` in both, so an
+#: older install still provides a working `sp` registered under the old name — and if it sits
+#: earlier on PATH it shadows the released binary. Asking only for the current name reported
+#: `unknown` on those machines.
+_DISTRIBUTION_NAMES = ("scripture-pipelines", "llmflow")
+
+
+def _resolve_version() -> str:
+    """Return the installed version, or an `unknown` string that says why."""
+    import importlib.metadata
+
+    for name in _DISTRIBUTION_NAMES:
+        try:
+            resolved = importlib.metadata.version(name)
+        except Exception:
+            continue
+        if resolved:
+            return resolved
+    # No distribution metadata at all — typically running from a source checkout that was
+    # never installed. Say so, rather than leaving a bare "unknown" to puzzle over.
+    return "unknown (no package metadata — running from source? try: pip install -e .)"
+
+
+__version__ = _resolve_version()
 
 from llmflow.cli_utils import init_project, list_pipelines
 

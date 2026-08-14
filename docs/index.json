@@ -754,6 +754,11 @@
           "doc": "Handle Ctrl+C at the CLI process level."
         },
         {
+          "name": "_resolve_version",
+          "signature": "_resolve_version() -> str",
+          "doc": "Return the installed version, or an `unknown` string that says why."
+        },
+        {
           "name": "list_pipelines",
           "signature": "list_pipelines(directory: str) -> list[str]",
           "doc": "List all YAML pipeline files in a directory."
@@ -3636,6 +3641,6 @@
   ],
   "summary": {
     "total_modules": 71,
-    "total_functions": 555
+    "total_functions": 556
   }
 }

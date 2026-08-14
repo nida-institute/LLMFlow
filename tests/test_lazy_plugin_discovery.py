@@ -95,3 +95,48 @@ class TestRegistryIsPopulatedInPlace:
             "discover_plugins must populate the existing dict, not replace it — "
             "otherwise modules that imported it early would see an empty registry"
         )
+
+
+class TestVersionSurvivesTheDistributionRename:
+    """The distribution was renamed `llmflow` -> `scripture-pipelines` (f5e4d8f), but the
+    console script is `sp` under both. Anyone with an older install still has a working
+    `sp` whose distribution is named `llmflow`, and if that copy is earlier on PATH it
+    shadows the released binary. Asking only for the new name yielded `unknown`.
+    """
+
+    def test_resolves_under_either_distribution_name(self, monkeypatch):
+        import importlib
+
+        seen = []
+
+        def fake_version(name):
+            seen.append(name)
+            if name == "llmflow":
+                return "0.2.1.18"
+            raise importlib.metadata.PackageNotFoundError(name)
+
+        monkeypatch.setattr("importlib.metadata.version", fake_version)
+        import llmflow.cli as cli
+
+        assert cli._resolve_version() == "0.2.1.18"
+        assert "scripture-pipelines" in seen, "must try the current name first"
+
+    def test_prefers_the_current_name(self, monkeypatch):
+        monkeypatch.setattr("importlib.metadata.version",
+                            lambda name: "9.9.9" if name == "scripture-pipelines" else None)
+        import llmflow.cli as cli
+
+        assert cli._resolve_version() == "9.9.9"
+
+    def test_unknown_says_why(self, monkeypatch):
+        """`unknown` alone is a dead end; it should hint at the cause."""
+        import importlib
+
+        def absent(name):
+            raise importlib.metadata.PackageNotFoundError(name)
+
+        monkeypatch.setattr("importlib.metadata.version", absent)
+        import llmflow.cli as cli
+
+        v = cli._resolve_version()
+        assert "unknown" in v and "source" in v.lower(), v
