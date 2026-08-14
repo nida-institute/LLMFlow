@@ -69,5 +69,8 @@ def list_plugins():
     return list(plugin_registry.keys())
 
 
-# Load plugins on module import
-discover_plugins()
+# NOTE: discovery is NOT run at import time. Plugins are loaded when a pipeline is
+# actually run — see runner.run_pipeline. Importing this module used to trigger it, so
+# `sp --version` and `sp --help` paid for it and printed the loading banner (LLMFlow#178).
+# Deferral is safe because discover_plugins() mutates plugin_registry in place, so any
+# module that imported the dict sees it populated later.

@@ -33,7 +33,6 @@ try:
 except Exception:
     __version__ = "unknown"
 
-import llmflow.plugins.loader  # noqa: F401 — trigger eager plugin discovery on CLI startup
 from llmflow.cli_utils import init_project, list_pipelines
 
 def list_pipelines(directory: str) -> list[str]:
@@ -50,7 +49,7 @@ def list_pipelines(directory: str) -> list[str]:
 
 
 def build_parser():
-    parser = argparse.ArgumentParser(prog="llmflow", description="LLMFlow CLI")
+    parser = argparse.ArgumentParser(prog="sp", description="Scripture Pipelines CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # run command

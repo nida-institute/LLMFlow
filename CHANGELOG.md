@@ -4,6 +4,26 @@
 
 ### Fixed
 
+- **Plugins load only when running a pipeline (#178)** — discovery ran at *import* time, and
+  twice: once from `plugins/loader.py` and again from `runner.py`. So `sp --version` and
+  `sp --help` printed two "Loading plugins…/Loaded N plugin(s)" pairs before doing anything, and
+  every command paid the cost. Discovery now happens inside `run_pipeline()`; `sp lint` does not
+  load plugins at all, because the linter never reads the registry. Reported by Benjamin Varghese.
+
+  Safe to defer because `discover_plugins()` populates `plugin_registry` **in place** rather than
+  rebinding it, so modules that imported the dict early see it filled later — pinned by a test.
+
+- **`sp --version` now says `sp`** — the parser's `prog` was still the old `llmflow` branding, so
+  the banner read `llmflow 0.2.1.23` for a command nobody types.
+
+### Documentation
+
+- **The `sp` name clash in PowerShell is documented** — PowerShell defines `sp` as an alias for
+  `Set-ItemProperty` and resolves aliases before programs, so `sp --version` runs the cmdlet and
+  reports a confusing parameter error. `INSTALL.md` now covers it in the quick-install section, as
+  its own Windows step (use `sp.exe`, use `cmd`, or override the alias in `$PROFILE`), and in the
+  troubleshooting table. Reported by Benjamin Varghese. macOS and Linux are unaffected.
+
 - **`sp setup` now configures the key the engine actually reads (#195)** — it wrote only
   `llm`'s keystore, while every structured-output step constructed the provider client
   directly and read `OPENAI_API_KEY` from the environment. So setup reported success and

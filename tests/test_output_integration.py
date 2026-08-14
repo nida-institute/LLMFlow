@@ -343,8 +343,10 @@ def test_version_command():
     )
 
     assert result.returncode == 0
-    # Just verify plugins loaded successfully (help output isn't fully implemented yet)
-    assert "Loading plugins" in result.stderr or "Loaded" in result.stderr
+    # --help does not run a pipeline, so it must NOT load plugins (LLMFlow#178). This
+    # assertion was inverted: it used to require the loading banner on --help.
+    assert "Loading plugins" not in result.stderr
+    assert "Usage" in result.stdout or "usage" in result.stdout
 
 
 def test_invalid_pipeline_path():

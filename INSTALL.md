@@ -74,7 +74,8 @@ Once the key is set, see the [Quickstart Tutorial](docs/tutorial.md) to run your
 
 1. Create the folder `C:\Tools\` (or any folder you prefer — just be consistent).
 2. Move `sp-windows.exe` from your Downloads folder into `C:\Tools\`.
-3. Rename it to `sp.exe` so you can type `sp` instead of `sp-windows`.
+3. Rename it to `sp.exe` so the command is `sp` rather than `sp-windows`. (In PowerShell
+   you will need to type `sp.exe` — see Step 6 for why.)
 
 #### Step 3 — Add `C:\Tools\` to your PATH
 
@@ -110,13 +111,40 @@ On 0.2.1.23 and earlier this environment variable is **required** — see
 [Set your API key](#set-your-api-key) for why `sp setup` alone is not sufficient on those
 versions.
 
+#### Step 6 — Know about the `sp` name clash in PowerShell
+
+> ⚠️ **In PowerShell, `sp` is already a built-in alias for `Set-ItemProperty`.** PowerShell
+> resolves aliases before programs, so typing `sp` runs *that*, not Scripture Pipelines — usually
+> producing a confusing parameter error rather than an obvious "wrong command" message.
+
+Three ways round it, in increasing order of convenience:
+
+1. **Use the full filename** — always works, nothing to configure:
+   ```powershell
+   sp.exe --version
+   ```
+   Aliases have no `.exe`, so the suffix reaches the real program.
+2. **Use Command Prompt (`cmd`) instead of PowerShell** — it has no aliases, so plain `sp` works.
+3. **Point `sp` at Scripture Pipelines in your PowerShell profile.** Run `notepad $PROFILE`
+   (creating the file if prompted) and add:
+   ```powershell
+   Remove-Item Alias:sp -Force -ErrorAction SilentlyContinue
+   Set-Alias sp "$env:USERPROFILE\bin\sp.exe"
+   ```
+   Open a new PowerShell window afterwards. Plain `sp` then behaves as the documentation
+   elsewhere assumes. Note this removes the `Set-ItemProperty` shorthand for your sessions; the
+   full cmdlet name keeps working.
+
+This affects macOS and Linux users not at all — only PowerShell defines that alias.
+
 #### Verify
 
 ```powershell
-sp --version
+sp.exe --version
 ```
 
-You should see the version printed, e.g. `llmflow 0.2.1.23`. You're ready — continue with the [Quickstart Tutorial](docs/tutorial.md).
+You should see the version printed, e.g. `sp 0.2.1.24`. You're ready — continue with the
+[Quickstart Tutorial](docs/tutorial.md).
 
 ### Linux
 1. Move the binary into `~/.local/bin` or `/usr/local/bin`:
@@ -252,6 +280,8 @@ If the command is not found, double-check that the binary is executable and that
 | `command not found` | PATH not updated | Add directory to PATH and reopen terminal |
 | Windows SmartScreen warning | App unsigned | Click "More info → Run anyway", or right-click exe → Properties → Unblock |
 | `sp` not found after PATH change (Windows) | Old terminal still open | Close and reopen PowerShell/Command Prompt |
+| `sp` gives an odd parameter error in PowerShell, e.g. about `-Path` or `-Name` | PowerShell's built-in `sp` alias for `Set-ItemProperty` ran instead | Use `sp.exe`, or override the alias — see [the `sp` name clash in PowerShell](#step-6--know-about-the-sp-name-clash-in-powershell) |
+| Plugin loading message appears twice | Fixed in 0.2.1.24 | Upgrade |
 | Missing API credentials | Environment variable not set | `export OPENAI_API_KEY=...` (macOS/Linux) / `[System.Environment]::SetEnvironmentVariable(...)` (Windows) |
 
 Once the CLI is on your PATH, continue with the [Quickstart Tutorial](docs/tutorial.md) to scaffold and run your first pipeline.

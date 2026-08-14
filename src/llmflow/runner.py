@@ -54,8 +54,6 @@ from llmflow.utils.io import sanitize_filename
 from llmflow.utils.rewind import StepRewindManager
 from datetime import datetime
 
-discover_plugins()
-
 # Single unified logger instance
 logger = Logger()
 
@@ -445,6 +443,9 @@ def run_pipeline(
         rewind_to: Optional step name to replay from saved artifacts instead of executing
         stop_after: Optional step name after which to halt execution
     """
+    # Plugins are needed only to execute a pipeline (LLMFlow#178).
+    discover_plugins()
+
     from pathlib import Path
     from pydantic import ValidationError
     from llmflow.pipeline_schema import PipelineConfig  # FIX: Correct module name
