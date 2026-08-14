@@ -86,6 +86,42 @@ def get_model(model_name: str):
 
 
 # ============================================================================
+# API key resolution — one path (LLMFlow#195)
+# ============================================================================
+
+# provider alias -> environment variable. Declared once; setup_command.PROVIDERS
+# carries the same mapping and a test asserts the two agree.
+PROVIDER_ENV_VARS = {
+    "openai": "OPENAI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+    "gemini": "GEMINI_API_KEY",
+}
+
+
+def resolve_provider_key(provider: str, explicit: str | None = None) -> str | None:
+    """Return the API key for *provider*, or None if none is configured.
+
+    Resolution order (via ``llm.get_key``): explicit argument -> the ``llm`` keystore
+    entry for this provider (what ``sp setup`` / ``llm keys set`` writes) -> the
+    provider's environment variable.
+
+    Steps that use ``response_format`` talk to the provider's client directly rather than
+    through the ``llm`` package. Those call sites used to construct the client with no key,
+    so it read the environment variable and nothing else — meaning ``sp setup`` could report
+    success and leave every structured-output step unauthenticated. Going through here gives
+    both routes one key source; the environment variable still works, it is just no longer
+    the only thing that does. See LLMFlow#195.
+    """
+    env_var = PROVIDER_ENV_VARS.get(provider)
+    if env_var is None:
+        raise ValueError(
+            f"Unknown provider {provider!r}. Known providers: "
+            f"{', '.join(sorted(PROVIDER_ENV_VARS))}"
+        )
+    return llm.get_key(explicit_key=explicit, key_alias=provider, env_var=env_var)
+
+
+# ============================================================================
 # Model Family Detection and Parameter Sets
 # ============================================================================
 
@@ -423,7 +459,8 @@ def _call_openai_with_response_format(prompt: str, config: Dict[str, Any], outpu
     """
     from openai import OpenAI
 
-    client = OpenAI()  # Uses OPENAI_API_KEY from environment
+    # One key source for both routes — keystore or env var (LLMFlow#195)
+    client = OpenAI(api_key=resolve_provider_key("openai"))
 
     model_name = config.get("model", "gpt-4o-2024-08-06")
 
@@ -551,7 +588,7 @@ async def _run_with_responses_api(
     from functools import partial
 
     # Responses API is only available in sync client, so we'll use it in a thread pool
-    client = OpenAI()
+    client = OpenAI(api_key=resolve_provider_key("openai"))
 
     # Initialize MCP session and get tools
     async with mcp_client as mcp:
@@ -830,7 +867,7 @@ async def _run_with_chat_completions(
     import json
     from openai import AsyncOpenAI
 
-    client = AsyncOpenAI()
+    client = AsyncOpenAI(api_key=resolve_provider_key("openai"))
 
     # Initialize MCP session and get tools
     async with mcp_client as mcp:

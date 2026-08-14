@@ -323,7 +323,7 @@ async def test_responses_api_moderation_block(monkeypatch):
         async def _async_call_tool(self, name, args):
             return "noop"
 
-    monkeypatch.setattr("openai.OpenAI", lambda: DummyClient())
+    monkeypatch.setattr("openai.OpenAI", lambda *a, **kw: DummyClient())
 
     with pytest.raises(ModerationError) as excinfo:
         await _run_with_responses_api(

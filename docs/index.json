@@ -928,6 +928,16 @@
           "doc": ""
         },
         {
+          "name": "_set_windows_user_env",
+          "signature": "_set_windows_user_env(name, value)",
+          "doc": "Persist a user-scoped environment variable in the Windows registry."
+        },
+        {
+          "name": "_persist_env_var",
+          "signature": "_persist_env_var(name, value)",
+          "doc": "Persist *name* for future shells. Returns True if it was written."
+        },
+        {
           "name": "run_setup",
           "signature": "run_setup(update = False)",
           "doc": ""
@@ -2385,6 +2395,11 @@
           "doc": "Get LLM model with caching."
         },
         {
+          "name": "resolve_provider_key",
+          "signature": "resolve_provider_key(provider: str, explicit: str | None = None) -> str | None",
+          "doc": "Return the API key for *provider*, or None if none is configured."
+        },
+        {
           "name": "get_model_family",
           "signature": "get_model_family(model_name: str) -> str",
           "doc": "Detect model family from model name."
@@ -3622,6 +3637,6 @@
   ],
   "summary": {
     "total_modules": 71,
-    "total_functions": 552
+    "total_functions": 555
   }
 }

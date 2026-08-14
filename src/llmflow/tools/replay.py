@@ -205,7 +205,10 @@ def call_model(prompt_text: str, schema: dict[str, Any], schema_name: str,
                model: str, temperature: float) -> dict[str, Any]:
     """One LLM call, verbatim prompt, json_schema-constrained. Returns parsed dict."""
     from openai import OpenAI
-    client = OpenAI()
+
+    from llmflow.utils.llm_runner import resolve_provider_key
+
+    client = OpenAI(api_key=resolve_provider_key("openai"))
     resp = client.chat.completions.create(
         model=model,
         temperature=temperature,

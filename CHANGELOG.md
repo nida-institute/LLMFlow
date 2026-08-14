@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **`sp setup` now configures the key the engine actually reads (#195)** — it wrote only
+  `llm`'s keystore, while every structured-output step constructed the provider client
+  directly and read `OPENAI_API_KEY` from the environment. So setup reported success and
+  left `response_format` steps unauthenticated — and with structured outputs now the
+  standard, that is most real pipelines.
+
+  Keys now resolve through **one** path, `resolve_provider_key()`, which delegates to
+  `llm.get_key`: explicit argument → the `llm` keystore entry for the provider → the
+  environment variable. All four direct-client call sites go through it
+  (`llm_runner.py:426,554,833`, `tools/replay.py:208`), for OpenAI, Anthropic and Gemini.
+  The environment variable still works; it is simply no longer the only thing that does.
+
+  On **Windows**, `sp setup` additionally persists the environment variable for the user
+  account, since a CLI can legitimately do that there. On macOS/Linux it does not pretend
+  to — a process cannot change its parent shell's environment — and no longer needs to.
+
+  The `"env"` field in `setup_command.PROVIDERS` had been declared and never read; it is
+  now the single provider→env-var mapping, with a test asserting it matches the resolver's.
+
 ## 0.2.1.23 — 2026-08-13
 
 ### New Features
