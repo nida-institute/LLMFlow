@@ -34,7 +34,7 @@ Nothing in the engine checks this before the call:
 `sp lint` never mentions `response_format`, `json_schema`, or `strict` — the words do not
 appear in `linter.py`.
 
-The failure therefore lands in the worst possible place. A pipeline lints clean, the
+The failure therefore lands in the worst possible place. A pipeline passes every check, the
 Captain runs it, the passage is fetched, three steps succeed, and step four dies on a 400
 whose message names a JSON path rather than a line in the YAML. The steps before it have
 already been paid for.
@@ -65,13 +65,22 @@ union, still listed in `required`.
 | `analyze_first_pericope` | `literary_features.items` | `significance` |
 | `generate_summary` | root | `genre_distribution` |
 
-The first call this pipeline makes should 400. The example that teaches structured outputs
-cannot itself run.
+The first call this pipeline would make should 400. The example that teaches structured
+outputs cannot itself run.
 
-*Verification note:* the defects above are established by reading the schemas against the
+*Correction (2026-08-15):* an earlier draft of this document said the example "lints clean
+today" and would then 400. It does **not** lint clean — it fails first, for an unrelated
+reason. All three steps write their prompt inline as `prompt.template`, a form
+`render_prompt()` does not implement, so `sp lint` rejects them with "No prompt file
+specified" and no model is ever called. Filed as #197. The schema defects above are
+unaffected and remain unreported by any check; the example is broken in two independent
+ways, not one.
+
+*Verification note:* the schema defects are established by reading the schemas against the
 documented rule. Confirming the exact 400 requires one live API call, which needs the
-Captain's authorization; the fix is not contingent on that confirmation, since the rule is
-documented and unambiguous.
+Captain's authorization — and currently also requires fixing #197 first, since the run
+cannot reach the provider. The fix is not contingent on that confirmation, since the rule
+is documented and unambiguous.
 
 ### Why now
 
