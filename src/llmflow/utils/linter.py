@@ -679,6 +679,104 @@ def validate_model_parameters(all_steps, pipeline_config):
     return errors
 
 
+def validate_structured_output_schemas(all_steps, pipeline_config, warnings):
+    """Check `response_format` schemas against OpenAI's strict subset (LLMFlow#196).
+
+    Prompt contracts are validated before any token is spent; this is the same promise for
+    the other half of the request. A schema outside the strict subset is rejected with an
+    HTTP 400 *at request time*, so without this the run dies partway through with a
+    provider error naming a JSON path rather than a line in the YAML — and the steps before
+    it have already been paid for.
+
+    Two gating decisions:
+
+    * ``strict: true`` gates the errors. OpenAI only enforces the subset under strict mode,
+      so without it the hard rules would be false positives — the schema gets a warning
+      saying the guarantee is not in force.
+    * ``response_format`` is the trigger, not the model name. ``response_format`` with
+      ``json_schema`` is OpenAI's API shape by construction; Gemini's equivalent is
+      ``response_schema`` (#191) and is not measured against OpenAI's rules.
+
+    Returns a list of error strings; warnings are appended to *warnings*.
+    """
+    import json as _json
+    from pathlib import Path as _Path
+
+    from llmflow.utils.schema_preflight import Severity, check_strict_schema
+
+    errors = []
+
+    linter_config = (pipeline_config or {}).get("linter_config", {}) or {}
+    if linter_config.get("skip_strict_schema_check"):
+        # Deliberate escape hatch: the rule table encodes a moving target, and a stale
+        # entry must never be able to block work the provider would accept.
+        logger.info("ℹ️  Strict-schema checking skipped by linter_config")
+        return errors
+
+    for step in all_steps:
+        if step.get("type") != "llm":
+            continue
+        response_format = step.get("response_format")
+        if not isinstance(response_format, dict):
+            continue
+        if response_format.get("type") != "json_schema":
+            continue  # json_object mode carries no schema to check
+
+        step_name = step.get("name", "unnamed")
+        json_schema = response_format.get("json_schema")
+        if not isinstance(json_schema, dict):
+            errors.append(
+                f"❌ Step '{step_name}': response_format.type is 'json_schema' but "
+                f"'json_schema' is missing or not a mapping"
+            )
+            continue
+
+        schema = json_schema.get("schema")
+        schema_file = json_schema.get("schema_file")
+        if schema_file:
+            try:
+                schema = _json.loads(_Path(schema_file).read_text(encoding="utf-8"))
+            except FileNotFoundError:
+                errors.append(
+                    f"❌ Step '{step_name}': schema_file not found: {schema_file}"
+                )
+                continue
+            except ValueError as exc:
+                errors.append(
+                    f"❌ Step '{step_name}': schema_file {schema_file} is not valid JSON: {exc}"
+                )
+                continue
+
+        if schema is None:
+            errors.append(
+                f"❌ Step '{step_name}': response_format declares json_schema but supplies "
+                f"neither 'schema' nor 'schema_file'"
+            )
+            continue
+
+        strict = json_schema.get("strict") is True
+        findings = check_strict_schema(schema)
+
+        if not strict:
+            warnings.append(
+                f"⚠️  Step '{step_name}': response_format is missing 'strict: true'. "
+                f"Without it the schema is advisory — the model may return a different "
+                f"shape, and the structured-output guarantee is not in force."
+            )
+            # Report the substance as warnings too: not enforced, but still probably wrong.
+            for finding in findings:
+                warnings.append(f"⚠️  Step '{step_name}': {finding}")
+            continue
+
+        for finding in findings:
+            if finding.severity == Severity.ERROR:
+                errors.append(f"❌ Step '{step_name}': {finding}")
+            else:
+                warnings.append(f"⚠️  Step '{step_name}': {finding}")
+
+    return errors
+
+
 def _validate_rewind_requirements(
     pipeline_config: dict,
     cli_vars: dict | None,
@@ -928,6 +1026,16 @@ def lint_pipeline_full(
             logger.error(error)
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     logger.info("✅ All model parameters are compatible")
+
+    # 1.7) Structured-output schema validation — before spend, like prompt contracts
+    logger.info("🔍 Validating structured-output schemas...")
+    schema_errors = validate_structured_output_schemas(all_steps, pipeline_config, all_warnings)
+    if schema_errors:
+        all_errors.extend(schema_errors)
+        for error in schema_errors:
+            logger.error(error)
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
+    logger.info("✅ Structured-output schemas are valid")
 
     # 2) Prompt contract validation
     errors, validated_count = validate_all_step_contracts(all_steps, log_and_screen, pipeline_config)

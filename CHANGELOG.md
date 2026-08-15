@@ -2,7 +2,74 @@
 
 ## Unreleased
 
+### New Features
+
+- **`sp lint` validates structured-output schemas before the run (#196)** — prompt contracts
+  were checked before any token was spent; the JSON Schema in the same request was not
+  checked at all. Under `strict: true` OpenAI accepts only a restricted subset and rejects
+  anything else with **HTTP 400 at request time**, so a pipeline could pass every check,
+  fetch its passage, complete three steps, and die on the fourth with a provider error
+  naming a JSON path rather than a line in the YAML — with the earlier steps already paid for.
+
+  `sp lint` now reports, per step and per schema path:
+
+  ```
+  ❌ Step 'segment_book': properties.pericopes.items: every property must be listed in
+     'required' under strict mode. Missing: start_verse, end_verse, pericope_type
+     Fix: add them to 'required'; if a field is genuinely optional, give it a nullable
+          type — {"type": ["string", "null"]} — and list it in 'required' anyway
+  ```
+
+  Errors: every property listed in `required`; `additionalProperties: false` on every
+  object; an object at the root; `$ref`s that resolve. Warnings: keywords outside the
+  supported subset, and the documented size limits — OpenAI has widened the subset several
+  times, and a stale rule table must not block work the provider would accept. The table is
+  data, in one place, carrying a `LAST_VERIFIED` date.
+
+  Gated two ways. `strict: true` gates the errors, since OpenAI does not enforce the subset
+  without it — a schema missing `strict` gets a warning that the guarantee is not in force.
+  And `response_format` is the trigger rather than the model name, so Gemini's
+  `response_schema` (#191) is not measured against OpenAI's rules. `schema_file` is loaded
+  and checked like an inline schema. `linter_config.skip_strict_schema_check: true` turns
+  it off.
+
+  The checker is pure — no network, no provider client, no key — so it cannot itself cost
+  anything.
+
+  **`pipelines/json-schema-example.yaml` was itself broken**, in all three steps, while
+  advertising "guaranteed schema compliance". Five objects listed properties that were
+  absent from `required`. It is fixed here, and passing its own lint is the acceptance test
+  for the feature.
+
 ### Fixed
+
+- **The `prompt` schema no longer accepts keys the renderer ignores (#197)** — `prompt` was
+  `oneOf: [string, object]` with `additionalProperties: true`, so any key validated and was
+  then discarded by `render_prompt()`, which reads only `file` and `inputs`. The step died
+  later with `ValueError: Prompt 'file' must be a string, got NoneType`.
+
+  The editor schema was worse: it advertised `prompt.text` — *"Inline prompt text. Supports
+  {{var}} substitution."* — and `prompt.system`, neither of which exists. That is almost
+  certainly where the mistake came from. Both schemas now declare `file` and `inputs`, with
+  `file` required and `additionalProperties: false`.
+
+  There is no inline prompt form; the prompt always lives in a file, because the contract
+  header the linter checks lives there too. `template` **is** a real keyword — at *step*
+  level, naming a file that formats the model's **output**.
+
+  Surveyed before closing: across every pipeline in every sibling repo, `prompt:` used only
+  `file` (185) and `inputs` (188). The three `template` uses were all the broken example.
+
+- **Output templates accept `{{ spaced }}` placeholders** — `render_markdown_template()`
+  built its placeholder by formatting `f"{{{{{key}}}}}"` and replaced it literally, so
+  `{{ content }}` never matched while `{{content}}` did. It did not warn: the literal text
+  landed in the rendered deliverable, so the run reported success and wrote the wrong file.
+  Prompt templates had always accepted spaces, so the same spelling behaved differently
+  depending on which kind of template it was in.
+
+  The single regex sweep also fixes an order-dependent bug: the old loop kept iterating
+  after substituting, so a model response containing `{{book}}` was itself interpolated if
+  `book` happened to come later in the dict.
 
 - **`basex` steps: `database:` now binds `$database` in the query (#189)** — the linter
   required `database:` and the engine then threw it away. Nothing passed it to BaseX, so

@@ -1600,6 +1600,11 @@
           "name": "__getattr__",
           "signature": "__getattr__(self, item)",
           "doc": ""
+        },
+        {
+          "name": "_substitute",
+          "signature": "_substitute(match)",
+          "doc": ""
         }
       ]
     },
@@ -2104,6 +2109,52 @@
       ]
     },
     {
+      "module": "llmflow.utils.schema_preflight",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "enum",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "check_strict_schema",
+          "signature": "check_strict_schema(schema: Any, path: str = '') -> list[Finding]",
+          "doc": "Check *schema* against OpenAI's strict structured-output subset."
+        },
+        {
+          "name": "_describe_root",
+          "signature": "_describe_root(schema: dict) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_walk",
+          "signature": "_walk(node: Any, path: str, walk: _Walk, depth: int) -> None",
+          "doc": "Recurse through a schema, collecting findings."
+        },
+        {
+          "name": "_check_object",
+          "signature": "_check_object(node: dict, path: str, walk: _Walk) -> None",
+          "doc": "The two rules that account for essentially every real strict-mode rejection."
+        },
+        {
+          "name": "_check_ref",
+          "signature": "_check_ref(node: dict, path: str, walk: _Walk, depth: int) -> None",
+          "doc": "Resolve a local ``$ref`` and continue, or report it as dangling."
+        },
+        {
+          "name": "_join",
+          "signature": "_join(path: str, part: str) -> str",
+          "doc": ""
+        },
+        {
+          "name": "__str__",
+          "signature": "__str__(self) -> str",
+          "doc": ""
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.linter",
       "imports": [
         "ast",
@@ -2223,6 +2274,11 @@
           "name": "validate_model_parameters",
           "signature": "validate_model_parameters(all_steps, pipeline_config)",
           "doc": "Validate that LLM parameters are compatible with the model being used."
+        },
+        {
+          "name": "validate_structured_output_schemas",
+          "signature": "validate_structured_output_schemas(all_steps, pipeline_config, warnings)",
+          "doc": "Check `response_format` schemas against OpenAI's strict subset (LLMFlow#196)."
         },
         {
           "name": "_validate_rewind_requirements",
@@ -3640,7 +3696,7 @@
     }
   ],
   "summary": {
-    "total_modules": 71,
-    "total_functions": 556
+    "total_modules": 72,
+    "total_functions": 565
   }
 }

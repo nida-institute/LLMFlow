@@ -194,10 +194,23 @@ _STEP_TYPE_PROPERTIES = [
     (
         ("llm",),
         {
+            # `prompt` is either a path or {file, inputs} — exactly what render_prompt()
+            # in steps/llm.py reads. Closed deliberately (LLMFlow#197): while this was
+            # open, `prompt.template` validated and was then ignored, and the step died
+            # with "Prompt 'file' must be a string, got NoneType". Adding a key here
+            # without teaching render_prompt() to read it recreates that hole.
             "prompt": {
                 "oneOf": [
                     {"type": "string"},
-                    {"type": "object", "additionalProperties": True},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "file": {"type": "string"},
+                            "inputs": {"type": "object", "additionalProperties": True},
+                        },
+                        "required": ["file"],
+                        "additionalProperties": False,
+                    },
                 ]
             },
             "llm_options": {"type": "object", "additionalProperties": True},

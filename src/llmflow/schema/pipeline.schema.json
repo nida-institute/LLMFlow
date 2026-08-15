@@ -860,27 +860,21 @@
     },
 
     "PromptConfig": {
-      "description": "Prompt configuration for an llm step.",
+      "description": "Prompt configuration for an llm step. The prompt always lives in a file: there is no inline form. Keys here must match what render_prompt() in steps/llm.py reads (LLMFlow#197).",
       "type": "object",
       "properties": {
         "file": {
           "type": "string",
           "description": "Path to a .gpt prompt file. Relative to the pipeline file."
         },
-        "text": {
-          "type": "string",
-          "description": "Inline prompt text. Supports {{var}} substitution."
-        },
-        "system": {
-          "type": "string",
-          "description": "System message override."
-        },
         "inputs": {
           "type": "object",
           "additionalProperties": true,
           "description": "Map of prompt variable name to value or ${expression}. Must satisfy the prompt file's requires: contract."
         }
-      }
+      },
+      "required": ["file"],
+      "additionalProperties": false
     },
 
     "LlmConfig": {

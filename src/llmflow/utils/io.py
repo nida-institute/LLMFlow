@@ -120,12 +120,30 @@ def render_markdown_template(template_path, variables, context=None):
     try:
         template_content = Path(template_path).read_text(encoding="utf-8")
 
-        # First pass: {{variable}} syntax
-        for key, value in variables.items():
-            placeholder = f"{{{{{key}}}}}"
-            if placeholder in template_content:
-                template_content = template_content.replace(placeholder, str(value))
+        # First pass: {{variable}} syntax.
+        #
+        # One regex sweep, matching render_template()'s pattern so the same spelling
+        # behaves the same in prompt and output templates. This used to be a loop of
+        # literal str.replace() calls building "{{key}}" by formatting, which meant
+        # `{{ content }}` with spaces silently never matched and the literal text landed
+        # in the rendered file.
+        #
+        # A single sweep also stops substituted values being re-scanned: the loop
+        # replaced {{content}} first, then kept iterating, so a model response containing
+        # "{{book}}" would itself be interpolated depending on dict order.
+        #
+        # Unknown placeholders are returned untouched — a template may legitimately
+        # contain literal braces.
+        def _substitute(match):
+            key = match.group(1).strip()
+            if key in variables:
                 logger.debug(f"Replaced {{{{ {key} }}}} with value")
+                return str(variables[key])
+            return match.group(0)
+
+        template_content = re.sub(
+            r"\{\{\s*([^\}]+?)\s*\}\}", _substitute, template_content
+        )
 
         # Second pass: ${variable} syntax with context resolution if available
         if context:

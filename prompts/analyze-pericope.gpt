@@ -1,0 +1,24 @@
+---
+requires:
+  - book
+  - title
+  - passage
+  - theme
+optional: []
+format: JSON
+description: Analyse one pericope's literary features, returned as a strict JSON schema.
+---
+user: |
+  Analyze this pericope from {{book}}:
+
+  Title: {{title}}
+  Passage: {{passage}}
+  Theme: {{theme}}
+
+  Identify:
+  1. Literary features (devices, patterns, structure) — for each, give the evidence
+     and why it matters for interpretation
+  2. Key interpretive questions
+  3. Possible applications for modern readers
+
+  Be specific and evidence-based.

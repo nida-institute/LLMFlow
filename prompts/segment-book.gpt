@@ -1,0 +1,20 @@
+---
+requires:
+  - book
+optional: []
+format: JSON
+description: Segment a book of the Bible into pericopes, returned as a strict JSON schema.
+---
+user: |
+  Segment the book of {{book}} into distinct pericopes (narrative or discourse units).
+
+  For each pericope, identify:
+  - A descriptive title
+  - The passage reference
+  - The starting and ending verse references
+  - The main theme
+  - The type (narrative, teaching, confrontation, etc.)
+
+  Provide a brief rationale for your segmentation approach.
+
+  Focus on natural breaks in the narrative or discourse flow.
