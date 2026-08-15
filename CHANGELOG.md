@@ -4,6 +4,55 @@
 
 ### Fixed
 
+- **`basex` steps: `database:` now binds `$database` in the query (#189)** — the linter
+  required `database:` and the engine then threw it away. Nothing passed it to BaseX, so
+  queries hardcoded the database name inside the XQuery or smuggled it through an ad-hoc
+  `inputs: db:` entry. Editing `database:` in a pipeline changed nothing at all.
+
+  The keyword and the XQuery variable are deliberately the same word:
+
+  ```yaml
+  - name: leitwort
+    type: basex
+    database: macula-sblgnt-lowfat     # -> -bdatabase=macula-sblgnt-lowfat
+    query_file: queries/leitwort-candidates.xq
+  ```
+  ```xquery
+  declare variable $database external;
+  collection($database)//w
+  ```
+
+  `database:` goes through `resolve()`, so `${...}` works in it like anywhere else.
+
+  Setting `database:` **and** `inputs: database:` is now an error in both the linter and
+  the step handler, rather than a precedence rule. BaseX accepts duplicate `-b` flags for
+  one variable, takes the last silently and exits 0 — verified on 12.3 — so a pipeline
+  could name one database while the query read another and still report success. The
+  linter catches it first; the runtime guard covers `--skip-lint` and the Python API.
+
+  `db` is now a recognised typo for `database`. BaseX drops bindings for variables a query
+  never declares, without warning and with exit 0, so a stale `db:` would otherwise fail
+  silently forever.
+
+- **`sp setup` now configures the key the engine actually reads (#195)** — it wrote only
+  `llm`'s keystore, while every structured-output step constructed the provider client
+  directly and read `OPENAI_API_KEY` from the environment. So setup reported success and
+  left `response_format` steps unauthenticated — and with structured outputs now the
+  standard, that is most real pipelines.
+
+  Keys now resolve through **one** path, `resolve_provider_key()`, which delegates to
+  `llm.get_key`: explicit argument → the `llm` keystore entry for the provider → the
+  environment variable. All four direct-client call sites go through it
+  (`llm_runner.py:426,554,833`, `tools/replay.py:208`), for OpenAI, Anthropic and Gemini.
+  The environment variable still works; it is simply no longer the only thing that does.
+
+  On **Windows**, `sp setup` additionally persists the environment variable for the user
+  account, since a CLI can legitimately do that there. On macOS/Linux it does not pretend
+  to — a process cannot change its parent shell's environment — and no longer needs to.
+
+  The `"env"` field in `setup_command.PROVIDERS` had been declared and never read; it is
+  now the single provider→env-var mapping, with a test asserting it matches the resolver's.
+
 - **Plugins load only when running a pipeline (#178)** — discovery ran at *import* time, and
   twice: once from `plugins/loader.py` and again from `runner.py`. So `sp --version` and
   `sp --help` printed two "Loading plugins…/Loaded N plugin(s)" pairs before doing anything, and
@@ -24,24 +73,10 @@
   its own Windows step (use `sp.exe`, use `cmd`, or override the alias in `$PROFILE`), and in the
   troubleshooting table. Reported by Benjamin Varghese. macOS and Linux are unaffected.
 
-- **`sp setup` now configures the key the engine actually reads (#195)** — it wrote only
-  `llm`'s keystore, while every structured-output step constructed the provider client
-  directly and read `OPENAI_API_KEY` from the environment. So setup reported success and
-  left `response_format` steps unauthenticated — and with structured outputs now the
-  standard, that is most real pipelines.
-
-  Keys now resolve through **one** path, `resolve_provider_key()`, which delegates to
-  `llm.get_key`: explicit argument → the `llm` keystore entry for the provider → the
-  environment variable. All four direct-client call sites go through it
-  (`llm_runner.py:426,554,833`, `tools/replay.py:208`), for OpenAI, Anthropic and Gemini.
-  The environment variable still works; it is simply no longer the only thing that does.
-
-  On **Windows**, `sp setup` additionally persists the environment variable for the user
-  account, since a CLI can legitimately do that there. On macOS/Linux it does not pretend
-  to — a process cannot change its parent shell's environment — and no longer needs to.
-
-  The `"env"` field in `setup_command.PROVIDERS` had been declared and never read; it is
-  now the single provider→env-var mapping, with a test asserting it matches the resolver's.
+- **The API-key instructions are version-aware** — `INSTALL.md` told everyone to export
+  `OPENAI_API_KEY`, which was the only thing that worked before #195. It now says that
+  `sp setup` alone is sufficient from 0.2.1.24 on, and keeps the environment-variable
+  route for anyone still on an earlier build.
 
 ## 0.2.1.23 — 2026-08-13
 

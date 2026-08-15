@@ -60,6 +60,10 @@ COMMON_TYPOS = {
     "timeout": "timeout_seconds",
     "group-by": "group_by",
     "order-by": "order_by",
+    # basex: the database was smuggled through an ad-hoc `db` binding before `database:`
+    # was wired up (LLMFlow#189). BaseX drops bindings for variables a query never
+    # declares — exit 0, no warning — so a stale `db` would fail silently forever.
+    "db": "database",
 }
 
 from llmflow.modules.logger import Logger
@@ -242,6 +246,15 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
                 errors.append(f"❌ Step '{step_name}': basex step requires 'database'")
             if not step.get("query") and not step.get("query_file"):
                 errors.append(f"❌ Step '{step_name}': basex step requires 'query' or 'query_file'")
+            # `database:` and `inputs.database` both bind $database. BaseX takes the last
+            # -b flag silently and exits 0, so the pipeline could name one database while
+            # the query reads another — and still report success (LLMFlow#189).
+            step_inputs = step.get("inputs") or {}
+            if step.get("database") and isinstance(step_inputs, dict) and "database" in step_inputs:
+                errors.append(
+                    f"❌ Step '{step_name}': 'database' is set both as a step key and in "
+                    f"'inputs' — both bind $database. Remove the 'inputs' entry."
+                )
 
         # Only validate contracts for LLM steps
         if step_type == "llm":
