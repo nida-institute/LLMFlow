@@ -663,7 +663,22 @@ async def _run_with_responses_api(
                     if step and context and pipeline_config:
                         if (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
                             filename = build_debug_filename(step, context, "response")
-                            resp_path = f"outputs/debug/{filename}"
+                            # Was a hardcoded "outputs/debug/{filename}", which ignored
+                            # both intermediate_file_directory and the per-pipeline,
+                            # per-run subdirectory — so these responses landed outside the
+                            # run's own audit trail (LLMFlow#198).
+                            from pathlib import Path
+
+                            from llmflow.utils.debug import _get_debug_dir
+                            resp_path = str(
+                                Path(_get_debug_dir(
+                                    pipeline_config,
+                                    context,
+                                    pipeline_config.get("_pipeline_name", "pipeline"),
+                                    pipeline_config.get("_debug_run_key"),
+                                ))
+                                / filename
+                            )
                             save_content_to_file(str(response), resp_path, format="text")
                             logger.debug(f"🗒️ Saved response to {resp_path}")
                 except Exception as e:

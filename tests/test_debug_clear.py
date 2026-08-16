@@ -1,4 +1,19 @@
-"""Tests for #145: runner clears outputs/debug/ at the start of every pipeline run."""
+"""Debug directory lifecycle at the start of a pipeline run.
+
+Originally #145: the runner emptied `outputs/debug/` on every run, so stale files from an
+earlier run could not be mistaken for this one's.
+
+**Reversed by #198.** The clear was `shutil.rmtree()` on a directory keyed by pipeline
+filename alone, so running the same pipeline for a second passage destroyed the first
+passage's requests, replies and run log — reported from Ears to Hear. Deleting the audit
+trail is a worse failure than leaving a stale file next to a fresh one, and #145's actual
+intent is served better by keeping runs apart: a run distinguished by `--var` now gets its
+own subdirectory, so it cannot be polluted by a different run in the first place.
+
+What remains from #145 is the guarantee that the directory exists. Re-running the *same*
+key writes over files in place, so a stale file from a previous run of that key can still
+linger — accepted deliberately, and the run manifest in #198 will make it unambiguous.
+"""
 
 import os
 from pathlib import Path
@@ -32,15 +47,31 @@ def _run(pipeline_file, **kwargs):
 
 
 class TestDebugDirCleared:
-    def test_stale_debug_files_removed_on_run(self, tmp_project):
+    def test_earlier_debug_files_survive_a_run(self, tmp_project):
+        """The #198 reversal: a run must not delete what a previous run recorded.
+
+        This asserted the opposite until #198 — that a stale file was removed at run
+        start. That clear was an rmtree of the whole directory, which is how a Ruth run's
+        evidence disappeared when Mark was run next.
+        """
         debug_dir = tmp_project / "outputs" / "debug" / "pipeline"
         debug_dir.mkdir(parents=True)
-        stale = debug_dir / "mark_1_old_request.txt"
-        stale.write_text("stale content")
+        earlier = debug_dir / "mark_1_old_request.txt"
+        earlier.write_text("recorded by an earlier run")
 
         _run(tmp_project / "pipeline.yaml")
 
-        assert not stale.exists(), "stale debug file should be removed at run start"
+        assert earlier.exists(), "a previous run's debug output was destroyed"
+        assert earlier.read_text() == "recorded by an earlier run"
+
+    def test_runs_with_different_vars_are_kept_apart(self, tmp_project):
+        """#145's intent — no confusion between runs — now achieved by separation."""
+        _run(tmp_project / "pipeline.yaml", vars={"book": "Ruth"})
+        _run(tmp_project / "pipeline.yaml", vars={"book": "Mark"})
+
+        base = tmp_project / "outputs" / "debug" / "pipeline"
+        assert (base / "book-Ruth").is_dir(), sorted(p.name for p in base.iterdir())
+        assert (base / "book-Mark").is_dir(), sorted(p.name for p in base.iterdir())
 
     def test_debug_dir_recreated_after_clear(self, tmp_project):
         debug_dir = tmp_project / "outputs" / "debug" / "pipeline"
@@ -56,12 +87,12 @@ class TestDebugDirCleared:
         assert not (tmp_project / "outputs" / "debug").exists()
         _run(tmp_project / "pipeline.yaml")
 
-    def test_dry_run_does_not_clear_debug(self, tmp_project):
+    def test_dry_run_does_not_touch_debug(self, tmp_project):
         debug_dir = tmp_project / "outputs" / "debug" / "pipeline"
         debug_dir.mkdir(parents=True)
-        stale = debug_dir / "keep_me.txt"
-        stale.write_text("keep")
+        keep = debug_dir / "keep_me.txt"
+        keep.write_text("keep")
 
         _run(tmp_project / "pipeline.yaml", dry_run=True)
 
-        assert stale.exists(), "dry_run should not clear debug files"
+        assert keep.exists(), "dry_run should not touch debug files"

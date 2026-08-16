@@ -2027,19 +2027,29 @@
       "imports": [
         "llmflow.utils.context",
         "pathlib",
-        "shutil",
+        "re",
         "typing"
       ],
       "functions": [
         {
+          "name": "_slug",
+          "signature": "_slug(text: str) -> str",
+          "doc": "Reduce a value to something safe as a single path segment."
+        },
+        {
+          "name": "run_key_for",
+          "signature": "run_key_for(cli_vars: Optional[Dict[str, Any]]) -> str",
+          "doc": "Name this run from the variables that distinguish it."
+        },
+        {
           "name": "_get_debug_dir",
-          "signature": "_get_debug_dir(pipeline_config: Dict[str, Any], context: Dict[str, Any], pipeline_name: str = 'pipeline') -> str",
-          "doc": "Return the debug output directory path."
+          "signature": "_get_debug_dir(pipeline_config: Dict[str, Any], context: Dict[str, Any], pipeline_name: str = 'pipeline', run_key: Optional[str] = None) -> str",
+          "doc": "Return the debug output directory for this run."
         },
         {
           "name": "_clear_debug_dir",
-          "signature": "_clear_debug_dir(pipeline_config: Dict[str, Any], context: Dict[str, Any], dry_run: bool, pipeline_name: str = 'pipeline') -> None",
-          "doc": "Clear this pipeline's debug subdirectory at pipeline start (skipped on dry_run)."
+          "signature": "_clear_debug_dir(pipeline_config: Dict[str, Any], context: Dict[str, Any], dry_run: bool, pipeline_name: str = 'pipeline', run_key: Optional[str] = None) -> None",
+          "doc": "Make sure this run's debug directory exists. Deletes nothing."
         }
       ]
     },
@@ -3697,6 +3707,6 @@
   ],
   "summary": {
     "total_modules": 72,
-    "total_functions": 565
+    "total_functions": 567
   }
 }

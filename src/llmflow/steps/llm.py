@@ -185,7 +185,12 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
         if (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
             filename = build_debug_filename(step, context, "request")
             prompt_path = str(
-                Path(_get_debug_dir(pipeline_config, context, pipeline_config.get("_pipeline_name", "pipeline")))
+                Path(_get_debug_dir(
+                    pipeline_config,
+                    context,
+                    pipeline_config.get("_pipeline_name", "pipeline"),
+                    pipeline_config.get("_debug_run_key"),
+                ))
                 / filename
             )
             save_content_to_file(rendered_prompt, prompt_path, format="text")
@@ -326,7 +331,12 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
             if response_content is not None and (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
                 filename = build_debug_filename(step, context, "response")
                 resp_path = str(
-                    Path(_get_debug_dir(pipeline_config, context, pipeline_config.get("_pipeline_name", "pipeline")))
+                    Path(_get_debug_dir(
+                    pipeline_config,
+                    context,
+                    pipeline_config.get("_pipeline_name", "pipeline"),
+                    pipeline_config.get("_debug_run_key"),
+                ))
                     / filename
                 )
                 save_content_to_file(

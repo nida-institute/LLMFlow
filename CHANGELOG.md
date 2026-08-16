@@ -43,6 +43,43 @@
 
 ### Fixed
 
+- **A second run no longer destroys the first run's audit trail (#198)** — the debug
+  directory was emptied with `shutil.rmtree()` at the start of every run, and it was keyed
+  by pipeline filename alone. So running the same pipeline for Ruth and then for Mark
+  deleted every captured request and unedited reply from the Ruth run. When
+  `intermediate_file_directory` was declared it took the run log too, because `llmflow.log`
+  is written into that same directory. Nothing warned; the run reported success. Reported
+  by Jonathan Robie from Ears to Hear.
+
+  This mattered more than an inconvenience: the engine's claim is that a conclusion can be
+  audited rather than taken on trust, and that a method can be applied across a whole
+  corpus. Do exactly that and the evidence survived for one passage — the last one.
+
+  Two changes, because they save different files:
+
+  - **The run's distinguishing variables name the directory** — CLI `--var` values, which
+    are by definition what varies between runs, so Ruth lands in `debug/<pipeline>/book-Ruth/`.
+    This is what saves `llmflow.log`, whose filename is fixed and would be overwritten
+    however carefully the rest were treated. A run with no `--var` gets no extra segment,
+    so existing layouts are unchanged.
+  - **Nothing is deleted** — files are written over in place. This is what saves the dumps,
+    whose names already carry the passage and so do not collide between passages.
+
+  This **reverses #145**, which introduced the clearing so stale files could not be mistaken
+  for fresh ones. That intent is now served by keeping runs apart rather than by deleting:
+  a run cannot be polluted by a different run in the first place. Re-running the *same* key
+  still writes over in place, so a stale file can linger — deliberately preferred to an
+  unrecoverable audit trail.
+
+  Also fixed here: one of the four debug write sites (`llm_runner.py`) used a hardcoded
+  `outputs/debug/{filename}`, ignoring both `intermediate_file_directory` and the
+  per-pipeline subdirectory, so those responses landed outside the run's own trail.
+
+  The larger layout redesign — sequence numbers, attempt numbers and a run manifest, so
+  that `sp tools replay` stops pairing files by sorting their names — remains open in #198.
+  Today two steps sharing one prompt file still produce the same debug filename, and a
+  retry still overwrites the attempt it retried.
+
 - **The `prompt` schema no longer accepts keys the renderer ignores (#197)** — `prompt` was
   `oneOf: [string, object]` with `additionalProperties: true`, so any key validated and was
   then discarded by `render_prompt()`, which reads only `file` and `inputs`. The step died

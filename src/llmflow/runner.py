@@ -569,12 +569,21 @@ def run_pipeline(
     context = build_run_context(pipeline_config, vars)
     logger.debug(f"Variables: {vars}")
 
-    # Clear this pipeline's debug subdirectory now that we can resolve intermediate_file_directory
-    _clear_debug_dir(pipeline_config, context, dry_run, pipeline_name)
+    # Name this run by the variables that distinguish it, so a second run does not write
+    # over the first one's audit trail (LLMFlow#198). Stored on pipeline_config because the
+    # step handlers reach the debug directory from there.
+    from llmflow.utils.debug import run_key_for
+    run_key = run_key_for(vars)
+    pipeline_config["_debug_run_key"] = run_key
+
+    # Ensure this run's debug subdirectory exists (it is no longer emptied)
+    _clear_debug_dir(pipeline_config, context, dry_run, pipeline_name, run_key)
 
     # Redirect llmflow.log into debug/{pipeline_name}/ when intermediate_file_directory is declared
     if pipeline_config.get("intermediate_file_directory") and not dry_run:
-        _debug_log = str(Path(_get_debug_dir(pipeline_config, context, pipeline_name)) / "llmflow.log")
+        _debug_log = str(
+            Path(_get_debug_dir(pipeline_config, context, pipeline_name, run_key)) / "llmflow.log"
+        )
         Logger.reset(log_file=_debug_log)
         _ = Logger()
         linter_cfg = pipeline_config.get("linter_config", {}) or {}
