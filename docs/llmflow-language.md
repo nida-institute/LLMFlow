@@ -256,6 +256,42 @@ Using `schema_file` keeps pipelines clean and allows schema reuse across multipl
 - **`additionalProperties: false`**: Prevents LLM from adding unexpected fields
 - **All required fields documented**: Use `description` fields to guide LLM
 
+##### Strict mode accepts only a subset of JSON Schema
+
+Under `strict: true`, OpenAI rejects a schema outside its supported subset with **HTTP 400 at
+request time** — not a worse answer, no answer. Since 0.2.1.24 `sp lint` checks these rules
+before the run ([#196](https://github.com/nida-institute/LLMFlow/issues/196)), so you find out
+before spending anything rather than partway through a pipeline.
+
+**Errors** — lint fails:
+
+| Rule | Notes |
+|---|---|
+| Every key in `properties` must appear in `required` | The most common mistake by far |
+| Every object needs `additionalProperties: false` | Including nested objects and array items |
+| The root must be an object | Not an array, not a scalar, not `anyOf` |
+| `$ref`s must resolve within the document | Recursive `$ref: "#"` is fine |
+
+**There are no optional fields.** A field you do not always want still goes in `required`; you
+make it *nullable* instead:
+
+```yaml
+segmentation_rationale:
+  type: ["string", "null"]     # optional in effect — but still listed in required
+```
+
+**Warnings** — reported, lint still passes: keywords outside the supported subset (`allOf`,
+`not`, `if`/`then`/`else`, `patternProperties`, `default`, …), `oneOf` where `anyOf` is meant,
+and the documented size limits. These are warnings rather than errors because OpenAI has
+widened the accepted subset several times, and a stale rule in LLMFlow must not block work the
+provider would in fact accept.
+
+Without `strict: true` the subset is not enforced, so the schema is advisory — lint says so
+rather than failing. If a rule is wrong for your case, `linter_config.skip_strict_schema_check:
+true` turns the check off.
+
+The rules live in one dated table in `src/llmflow/utils/schema_preflight.py`.
+
 **Basic JSON mode (less reliable):**
 
 For simple cases where you don't need schema validation:
@@ -598,20 +634,20 @@ Runs an XQuery against a local BaseX database via the `basex` CLI.
 ```yaml
 - name: query-verses
   type: basex
-  database: acai                        # see note below
+  database: acai                        # bound as $database in the query
   query_file: queries/get-passage.xq    # path to .xq file
   inputs:                               # bound as XQuery external variables
-    db: acai
     passage: "${passage}"
     source: "${source}"
-  timeout_seconds: 120                          # optional, seconds (default: 120)
+  timeout_seconds: 120                  # optional, seconds (default: 120)
   output: query_result
   saveas: "outputs/passages/${passage}.json"
 ```
 
 **Required Fields:**
+- `database`: Name of the BaseX database
 - `query_file`: Path to the `.xq` file
-- `outputs`: Variable name to store the result
+- `output`: Variable name to store the result
 
 **Optional Fields:**
 - `inputs`: Key-value pairs resolved from pipeline context and passed to BaseX as **external
@@ -619,22 +655,29 @@ Runs an XQuery against a local BaseX database via the `basex` CLI.
   `declare variable $passage external;`. The query file is never modified — no string
   substitution is performed, so XQuery curly braces (computed constructors, maps, arrays) are
   safe.
-- `timeout`: Seconds before the BaseX process is killed (default 120).
+- `timeout_seconds`: Seconds before the BaseX process is killed (default 120).
 - `saveas`: File path to save the output (supports `${var}` substitution).
 
-**Selecting the database:** open it inside the query, from an external variable you bind through
-`inputs`. See `queries/acai-verse-range.xq`:
+**Selecting the database.** `database:` is bound as the external variable `$database`. The
+keyword and the XQuery variable are deliberately the same word:
 
 ```xquery
-declare variable $db external := "acai";
+declare variable $database external;
 ...
-for $e in db:get($db)//entity
+for $e in collection($database)//entity
 ```
 
-The step-level `database:` key is currently required by the linter but is not read by the engine
-and does not select anything — see [#189](https://github.com/nida-institute/LLMFlow/issues/189).
-Until that is settled, declare it (to pass lint) *and* bind the real database name through
-`inputs`.
+Do not also pass `database` through `inputs` — both bind `$database`, and that is a lint
+error rather than a precedence rule. BaseX accepts duplicate `-b` flags for one variable,
+takes the last silently and exits 0, so a pipeline could name one database while the query
+read another and still report success.
+
+> **Changed in 0.2.1.24** ([#189](https://github.com/nida-institute/LLMFlow/issues/189)):
+> `database:` was previously required by the linter and then discarded, so queries hardcoded
+> the database name or smuggled it through an ad-hoc `inputs: db:` entry. If you have queries
+> declaring `$db`, rename the variable to `$database` and drop the `inputs` entry; `db` is now
+> reported as a typo for `database`. Note that BaseX silently ignores a binding for a variable
+> the query does not declare, so a stale `db:` fails quietly rather than loudly.
 
 **Prerequisites:** The `basex` executable must be on `PATH` with a running BaseX instance.
 
