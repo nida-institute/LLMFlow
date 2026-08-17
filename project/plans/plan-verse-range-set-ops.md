@@ -1,16 +1,29 @@
 # Plan: Verse Range Set Operations
 
-**Status:** Proposed — not built. Nothing in `src/` implements this. Requires the Captain's approval before any code.
+**Status:** Approved 2026-08-17 — **authoritative for the implementation** (names, signatures,
+files). The data model is `design-verse-range-operations.md`, which is authoritative for what the
+operations mean. Spec and work order, not two competing specs.
 
-Verified 2026-08-17: none of the proposed set operations exist in `utils/data.py`.
+No code yet — the Captain has approved the framing, not the build.
 
-Ends with an **unanswered "Open Question for the Captain"**, and overlaps with
-`design-verse-range-operations.md`. Which is authoritative is an open Captain decision — do
-not start from either without asking.
+**The open question at the foot of this file is closed by construction.** It asked whether
+`verse_range_union` should allow adjacent ranges, noting that the adjacent case needs a verse-count
+lookup. It only arose because an earlier draft of this plan dropped `adjacent()` and
+`verse_count()` from the design's operation set. With those restored, `union` does not decide:
+a caller asks `verse_range_adjacent()` first and unions if it wants. Both are back in scope.
 
-**Goal:** Add `overlaps()`, `contains()`, `union()`, and `intersect()` to `llmflow.utils.data`
-so pipeline Python functions can do range arithmetic on biblical references without
-reimplementing the comparison logic.
+**Carried over from the design, per the Captain's rulings 2026-08-17:**
+
+- **Six operations, not four** — `adjacent` and `verse_count` rejoin `overlaps`, `contains`,
+  `union`, `intersect`.
+- **Singleton-or-list inputs** — every reference argument accepts a string or a list of strings;
+  a bare string is a one-element set. Normalise at the top of each function. The two-string
+  signatures below need widening.
+- **Cross-book ranges never overlap** — `overlaps` returns False, `intersect` returns None.
+  `union` across books raises, since a range belongs to one book by definition.
+- **`verse_range_*` prefix stands**, this file's naming choice, for unambiguity at pipeline call
+  sites. Open naming detail: the design's `verse_count` becomes `verse_range_count` for
+  consistency — confirm, since `verse_range_verse_count` is the literal composition and reads badly.
 
 ---
 
@@ -111,12 +124,20 @@ No pipeline YAML changes. No changes to the engine runner, linter, or CLI.
 ## Out of Scope
 
 - A native pipeline step type wrapping these — callers use `type: function`
-- Multi-chapter union adjacency (deferred pending decision above)
+- ~~Multi-chapter union adjacency (deferred pending decision above)~~ — now in scope; see the resolved question below
 - Verse-level iteration (expanding a range to a list of verse strings)
 
 ---
 
-## Open Question for the Captain
+## Open Question for the Captain — RESOLVED 2026-08-17
 
-Should `verse_range_union` allow adjacent ranges (gap = 0), or require overlap (gap < 0)?
-The adjacent case requires a verse count lookup; the overlap-only case avoids it.
+> Should `verse_range_union` allow adjacent ranges (gap = 0), or require overlap (gap < 0)?
+> The adjacent case requires a verse count lookup; the overlap-only case avoids it.
+
+**Resolved by restoring the two operations this plan had dropped.** `verse_range_union` does not
+decide the adjacency policy at all: `verse_range_adjacent()` is a separate predicate, and
+`verse_range_count()` provides the verse-count lookup the question was trying to avoid. A caller
+that wants adjacent ranges merged tests for adjacency and then unions.
+
+The question was an artefact of cutting scope, not a real design fork — which is a reason to read
+`design-verse-range-operations.md` first.

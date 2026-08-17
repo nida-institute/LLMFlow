@@ -1,16 +1,24 @@
 # Design: Verse Range Operations
 
-**Status:** Proposed — not built. Nothing in `src/` implements this. Requires the Captain's approval before any code.
+**Status:** Approved 2026-08-17 — **authoritative for the data model.** Not a work order: the
+implementation is specified in `plan-verse-range-set-ops.md`, which is authoritative for names,
+signatures and files. Spec and work order, not two competing specs.
 
-Verified 2026-08-17: none of `overlaps`, `contains`, `intersection`, `union`, `adjacent`,
-`verse_count` exist in `utils/data.py`.
+No code yet — the Captain has approved the framing, not the build.
 
-**Overlaps with `plan-verse-range-set-ops.md`.** Which of the two is authoritative is an open
-Captain decision — do not start from either without asking.
+**Captain's rulings, 2026-08-17:**
 
-**Related issue:** GH #169 — Verse range overlap logic duplicated across multiple plugins
-
-**Context:** At least four plugins (`passage_extract.py`, `division_lookup.py`, `book_frameworks.py`, `extract_pericopes.py`) each implement their own verse-range overlap logic. No canonical utility exists. This document explores what a complete, well-designed verse range operation library would look like before any implementation begins.
+1. **Cross-book ranges never overlap.** Two ranges naming different books are non-overlapping —
+   `overlaps` returns False rather than raising, and `intersect` returns None. This answers
+   Question 1 below, which had proposed rejection as an alternative. Consequence to confirm at
+   implementation time: `union` across books cannot yield a valid single range, since a range
+   belongs to one book by definition, so it raises rather than returning a cross-book span.
+2. **This document's operation set stands** — six operations, `adjacent` and `verse_count`
+   included. They were dropped in an earlier draft of the plan, which is what left the plan's
+   union/adjacency question unanswerable.
+3. **Singleton-or-list inputs stand** (Question 3, "both"). A bare string is treated as a
+   one-element set, so `overlaps("Mark 1:1-10", scenes)` works whether `scenes` is one reference
+   or many. Iterating sets in caller code is the problem being solved.
 
 ---
 
@@ -55,6 +63,10 @@ A verse range is a contiguous span of scripture with a defined start and end. It
 The existing `filename_prefix` encoding (`042012005-042012019`) already encodes book + chapter + verse as a zero-padded integer triple, making string comparison equivalent to numeric comparison. This is the right internal representation for ordering and overlap detection.
 
 **Open question:** should a verse range be allowed to span books? Almost certainly not — a range that crosses from Malachi into Matthew is not a meaningful unit in any biblical scholarly context. Cross-book should be rejected or treated as always non-overlapping.
+
+**RESOLVED 2026-08-17 — the Captain's ruling: books never overlap.** Of the two alternatives above, the second: cross-book ranges are treated as **non-overlapping**, not rejected. `overlaps` returns False and `intersect` returns None for references naming different books — no exception, because "these are in different books" is a legitimate answer to "do these overlap?", and callers filtering a mixed-book set should not have to catch errors to do it.
+
+`union` is the exception, and only because of what a range *is*: a range belongs to one book, so there is no single range covering Malachi and Matthew. Cross-book `union` therefore raises rather than inventing one. Confirm at implementation time.
 
 ### Question 2: What is a "set of ranges"?
 
