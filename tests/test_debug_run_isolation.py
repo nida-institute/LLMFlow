@@ -62,44 +62,73 @@ class TestDebugDirIsPerRun:
         d = _get_debug_dir({"intermediate_file_directory": str(tmp_path)}, {}, "p")
         assert d.endswith(str(Path("debug") / "p"))
 
-    def test_a_run_with_no_vars_adds_no_segment(self, tmp_path):
-        """The subdirectory names what varied; when nothing varied, there is nothing to
-        name. Keeps the layout unchanged for pipelines that take no --var."""
+    def test_the_default_key_is_still_a_segment(self, tmp_path):
+        """Even a var-less run gets its own leaf directory.
+
+        The run directory is emptied at the start of a run. Without this segment that
+        delete would target debug/<pipeline>/, which holds the sibling run directories —
+        so one var-less run would wipe every per-book trail.
+        """
         d = _get_debug_dir({"intermediate_file_directory": str(tmp_path)}, {}, "p",
                            run_key=run_key_for({}))
-        assert d.endswith(str(Path("debug") / "p"))
+        assert d.endswith(str(Path("debug") / "p" / "default"))
 
 
-class TestNothingIsDeleted:
+class TestTheDeleteIsScopedToOneRun:
+    """A run directory holds that run and nothing else — but only that run's.
+
+    The clear is deliberate (#145: no leftovers to puzzle over). What #198 changed is its
+    scope: it used to empty the directory shared by every run of the pipeline.
+    """
+
     @pytest.fixture
     def cfg(self, tmp_path):
         return {"intermediate_file_directory": str(tmp_path)}
 
+    def _clear(self, cfg, key):
+        _clear_debug_dir(cfg, {}, dry_run=False, pipeline_name="p", run_key=key)
+        return Path(_get_debug_dir(cfg, {}, "p", run_key=key))
+
     def test_ruth_survives_a_mark_run(self, cfg):
         """The reported bug, end to end."""
-        ruth_dir = Path(_get_debug_dir(cfg, {}, "p", run_key="book-Ruth"))
-        _clear_debug_dir(cfg, {}, dry_run=False, pipeline_name="p", run_key="book-Ruth")
+        ruth_dir = self._clear(cfg, "book-Ruth")
         (ruth_dir / "Ruth_1_1_analyze_request.txt").write_text("ruth request")
         (ruth_dir / "llmflow.log").write_text("ruth log")
 
-        _clear_debug_dir(cfg, {}, dry_run=False, pipeline_name="p", run_key="book-Mark")
+        self._clear(cfg, "book-Mark")
 
         assert (ruth_dir / "Ruth_1_1_analyze_request.txt").read_text() == "ruth request"
         assert (ruth_dir / "llmflow.log").read_text() == "ruth log", "the run log was destroyed"
 
-    def test_rerunning_the_same_book_does_not_delete_its_own_history(self, cfg):
-        d = Path(_get_debug_dir(cfg, {}, "p", run_key="book-Ruth"))
-        _clear_debug_dir(cfg, {}, dry_run=False, pipeline_name="p", run_key="book-Ruth")
-        (d / "keep.txt").write_text("previous run")
+    def test_rerunning_the_same_key_starts_clean(self, cfg):
+        """Within one run key, the previous attempt is cleared — that is the point."""
+        d = self._clear(cfg, "book-Ruth")
+        (d / "leftover.txt").write_text("previous attempt")
 
-        _clear_debug_dir(cfg, {}, dry_run=False, pipeline_name="p", run_key="book-Ruth")
+        self._clear(cfg, "book-Ruth")
 
-        assert (d / "keep.txt").exists(), "rmtree is back"
+        assert not (d / "leftover.txt").exists(), "the run directory was not cleaned"
+
+    def test_a_varless_run_does_not_wipe_sibling_runs(self, cfg):
+        """The hazard the always-on run-key segment exists to prevent."""
+        ruth_dir = self._clear(cfg, "book-Ruth")
+        (ruth_dir / "evidence.txt").write_text("ruth")
+
+        self._clear(cfg, "default")
+
+        assert (ruth_dir / "evidence.txt").exists(), (
+            "a run with no --var deleted another run's trail"
+        )
 
     def test_directory_is_created(self, cfg):
-        _clear_debug_dir(cfg, {}, dry_run=False, pipeline_name="p", run_key="book-Ruth")
-        assert Path(_get_debug_dir(cfg, {}, "p", run_key="book-Ruth")).is_dir()
+        assert self._clear(cfg, "book-Ruth").is_dir()
 
     def test_dry_run_creates_nothing(self, cfg):
         _clear_debug_dir(cfg, {}, dry_run=True, pipeline_name="p", run_key="book-Ruth")
         assert not Path(_get_debug_dir(cfg, {}, "p", run_key="book-Ruth")).exists()
+
+    def test_dry_run_deletes_nothing(self, cfg):
+        d = self._clear(cfg, "book-Ruth")
+        (d / "keep.txt").write_text("keep")
+        _clear_debug_dir(cfg, {}, dry_run=True, pipeline_name="p", run_key="book-Ruth")
+        assert (d / "keep.txt").exists()

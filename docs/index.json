@@ -1051,7 +1051,7 @@
         {
           "name": "find_response_file",
           "signature": "find_response_file(request_path: str) -> str | None",
-          "doc": "Locate the saved response paired with a request file: same directory, same"
+          "doc": "Locate the saved response paired with a request file."
         },
         {
           "name": "load_schema",
@@ -2025,9 +2025,13 @@
     {
       "module": "llmflow.utils.debug",
       "imports": [
+        "dataclasses",
+        "datetime",
+        "json",
         "llmflow.utils.context",
         "pathlib",
         "re",
+        "shutil",
         "typing"
       ],
       "functions": [
@@ -2049,7 +2053,57 @@
         {
           "name": "_clear_debug_dir",
           "signature": "_clear_debug_dir(pipeline_config: Dict[str, Any], context: Dict[str, Any], dry_run: bool, pipeline_name: str = 'pipeline', run_key: Optional[str] = None) -> None",
-          "doc": "Make sure this run's debug directory exists. Deletes nothing."
+          "doc": "Empty **this run's** directory at the start of the run."
+        },
+        {
+          "name": "read_manifest",
+          "signature": "read_manifest(run_dir: Any) -> list",
+          "doc": "Read a run manifest, or return [] when there is none."
+        },
+        {
+          "name": "slug",
+          "signature": "slug(self) -> str",
+          "doc": ""
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, run_dir: Any, enabled: bool = True) -> None",
+          "doc": ""
+        },
+        {
+          "name": "begin",
+          "signature": "begin(self, step: str, prompt_file: str = '', model: str = '', passage: str = '', iteration: str = '') -> DebugCall",
+          "doc": "Allocate a sequence number and attempt number for a call about to be made."
+        },
+        {
+          "name": "save_request",
+          "signature": "save_request(self, call: DebugCall, content: str) -> Optional[str]",
+          "doc": ""
+        },
+        {
+          "name": "save_response",
+          "signature": "save_response(self, call: DebugCall, content: Any) -> Optional[str]",
+          "doc": "Save a response, as JSON when it is structured and text otherwise."
+        },
+        {
+          "name": "save_artifact",
+          "signature": "save_artifact(self, name: str, content: Any) -> Optional[str]",
+          "doc": "Save a supplementary file that is not itself a model call."
+        },
+        {
+          "name": "_write",
+          "signature": "_write(self, call: DebugCall, kind: str, content: str, ext: str) -> Optional[str]",
+          "doc": ""
+        },
+        {
+          "name": "finish",
+          "signature": "finish(self, call: DebugCall, **extras) -> None",
+          "doc": "Append this call's line to the manifest."
+        },
+        {
+          "name": "_relative",
+          "signature": "_relative(self, path: Optional[str]) -> Optional[str]",
+          "doc": ""
         }
       ]
     },
@@ -2946,6 +3000,11 @@
           "doc": "Render a prompt from a file with variable substitution."
         },
         {
+          "name": "_begin_debug_call",
+          "signature": "_begin_debug_call(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any])",
+          "doc": "Open a manifest entry for the call this step is about to make."
+        },
+        {
           "name": "apply_output_template",
           "signature": "apply_output_template(content: Any, template_path: Optional[str], context: Dict[str, Any]) -> str",
           "doc": "Apply an output template to format LLM response content."
@@ -3707,6 +3766,6 @@
   ],
   "summary": {
     "total_modules": 72,
-    "total_functions": 567
+    "total_functions": 578
   }
 }

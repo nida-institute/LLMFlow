@@ -576,8 +576,19 @@ def run_pipeline(
     run_key = run_key_for(vars)
     pipeline_config["_debug_run_key"] = run_key
 
-    # Ensure this run's debug subdirectory exists (it is no longer emptied)
+    # Empty this run's own directory — and only this run's (LLMFlow#198)
     _clear_debug_dir(pipeline_config, context, dry_run, pipeline_name, run_key)
+
+    # One recorder per run, shared by every debug write site so they agree on the sequence
+    # number and so the manifest describes the run as a whole (LLMFlow#198).
+    from llmflow.utils.debug import DebugRecorder
+    _debug_on = (pipeline_config.get("linter_config", {}) or {}).get(
+        "log_level", ""
+    ).lower() == "debug"
+    pipeline_config["_debug_recorder"] = DebugRecorder(
+        _get_debug_dir(pipeline_config, context, pipeline_name, run_key),
+        enabled=_debug_on and not dry_run,
+    )
 
     # Redirect llmflow.log into debug/{pipeline_name}/ when intermediate_file_directory is declared
     if pipeline_config.get("intermediate_file_directory") and not dry_run:

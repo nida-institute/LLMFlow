@@ -55,30 +55,57 @@
   audited rather than taken on trust, and that a method can be applied across a whole
   corpus. Do exactly that and the evidence survived for one passage — the last one.
 
-  Two changes, because they save different files:
+  **The clean stays** — a run directory should hold that run and nothing else, which was
+  #145's point. What changed is its *scope*: the run's distinguishing variables now name the
+  directory, taken from CLI `--var` values because those are by definition what varies
+  between runs. Ruth lands in `debug/<pipeline>/book-Ruth/`, and the clear empties that leaf
+  and nothing above it. The run-key segment is emitted even when it is `default`, precisely
+  so the delete can never reach a parent holding sibling runs — without it, one `--var`-less
+  run would wipe every per-book trail.
 
-  - **The run's distinguishing variables name the directory** — CLI `--var` values, which
-    are by definition what varies between runs, so Ruth lands in `debug/<pipeline>/book-Ruth/`.
-    This is what saves `llmflow.log`, whose filename is fixed and would be overwritten
-    however carefully the rest were treated. A run with no `--var` gets no extra segment,
-    so existing layouts are unchanged.
-  - **Nothing is deleted** — files are written over in place. This is what saves the dumps,
-    whose names already carry the passage and so do not collide between passages.
+  **New layout**: debug filenames were doing a database's job, and `sp tools replay` had to
+  parse them back out.
 
-  This **reverses #145**, which introduced the clearing so stale files could not be mistaken
-  for fresh ones. That intent is now served by keeping runs apart rather than by deleting:
-  a run cannot be polluted by a different run in the first place. Re-running the *same* key
-  still writes over in place, so a stale file can linger — deliberately preferred to an
-  unrecoverable audit trail.
+  ```
+  outputs/debug/<pipeline>/book-Ruth/
+    manifest.jsonl
+    0001-segment_book-request.txt
+    0001-segment_book-response.json
+    0002-analyze-attempt2-request.txt      # a retry no longer overwrites its predecessor
+    llmflow.log
+  ```
 
-  Also fixed here: one of the four debug write sites (`llm_runner.py`) used a hardcoded
+  Three defects this removes, each verified first:
+
+  - The step name was used **only when there was no prompt file**, so two steps sharing one
+    `.gpt` produced identical filenames and the second silently overwrote the first.
+  - A **retry** produced the identical name too, destroying the attempt worth reading.
+  - The timestamp appeared **only when `passage` was absent**, so the one field that could
+    establish ordering was missing exactly when there were most files to order.
+
+  `manifest.jsonl` carries one line per call — sequence, step, attempt, prompt file, the
+  model **actually called** (not the one declared, which differs whenever a default fills
+  in), passage, for-each position, start and finish, status, and which files belong
+  together. Paths are relative to the run directory, so a run can be archived or moved
+  intact.
+
+  `sp tools replay` now reads the pairing from the manifest instead of stripping timestamps,
+  globbing, and taking "the earliest response at or after the request" — a join by string
+  comparison that the two collision cases above could get wrong. Directories captured before
+  this release have no manifest, so the filename-matching path is retained for them; a
+  truncated manifest from an interrupted run falls back rather than making the directory
+  unreadable.
+
+  `build_debug_filename()` is deprecated, still exported, and no longer called by anything
+  in the engine.
+
+  Also fixed: one of the four debug write sites (`llm_runner.py`) wrote to a hardcoded
   `outputs/debug/{filename}`, ignoring both `intermediate_file_directory` and the
-  per-pipeline subdirectory, so those responses landed outside the run's own trail.
+  per-pipeline subdirectory, so those raw responses landed outside the run's own trail
+  entirely. They are now saved beside the call they belong to.
 
-  The larger layout redesign — sequence numbers, attempt numbers and a run manifest, so
-  that `sp tools replay` stops pairing files by sorting their names — remains open in #198.
-  Today two steps sharing one prompt file still produce the same debug filename, and a
-  retry still overwrites the attempt it retried.
+  Not yet recorded in the manifest: token counts and cost. Telemetry already collects both,
+  so this is plumbing rather than a design question.
 
 - **The `prompt` schema no longer accepts keys the renderer ignores (#197)** — `prompt` was
   `oneOf: [string, object]` with `additionalProperties: true`, so any key validated and was

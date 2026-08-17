@@ -23,6 +23,20 @@ def build_debug_filename(step: Dict[str, Any], context: Dict[str, Any], request_
 
     Format with passage: {passage}_{prompt_file}_{request_or_response}.txt
     Format without passage: {timestamp}_{prompt_file}_{request_or_response}.txt
+
+    .. deprecated:: 0.2.1.24
+       Superseded by :class:`llmflow.utils.debug.DebugRecorder`, which numbers each call and
+       records the facts in ``manifest.jsonl`` instead of encoding them in a filename. No
+       production code calls this any more.
+
+       It was replaced because the name could not stay unique: the step name was used only
+       when there was *no* prompt file, so two steps sharing one ``.gpt`` produced identical
+       names and the second overwrote the first; a retry did the same to the attempt it
+       retried; and the timestamp — the only field that could establish order — appeared
+       only when ``passage`` was absent.
+
+       Kept so that anything importing it keeps working, and to read directories captured
+       before 0.2.1.24. Do not wire it into new code.
     """
     parts = []
 
@@ -161,6 +175,51 @@ def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, 
     return str(rendered_prompt)
 
 
+def _begin_debug_call(step: Dict[str, Any], context: Dict[str, Any],
+                      pipeline_config: Dict[str, Any]):
+    """Open a manifest entry for the call this step is about to make.
+
+    Returns None when there is no recorder — the step handlers are reachable from tests and
+    from the Python API without a full run having set one up. Never raises: debug capture
+    must not be able to fail a pipeline.
+    """
+    recorder = pipeline_config.get("_debug_recorder")
+    if recorder is None:
+        return None
+    try:
+        prompt_config = step.get("prompt", {})
+        if isinstance(prompt_config, dict):
+            prompt_file = prompt_config.get("file", "")
+        elif isinstance(prompt_config, str):
+            prompt_file = prompt_config
+        else:
+            prompt_file = ""
+
+        passage = (
+            context.get("passage")
+            or context.get("Citation")
+            or (context.get("scene") or {}).get("Citation")
+            or ""
+        )
+
+        iteration = ""
+        stack = context.get("_for_each_stack")
+        meta = stack[-1] if isinstance(stack, list) and stack else context.get("_for_each_meta")
+        if meta:
+            iteration = f"{meta.get('variable', '')}={meta.get('label') or meta.get('value', '')}"
+
+        return recorder.begin(
+            step=str(step.get("name", "llm_step")),
+            prompt_file=str(prompt_file),
+            model=str(step.get("model") or pipeline_config.get("llm_config", {}).get("model") or ""),
+            passage=str(passage),
+            iteration=iteration,
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        logger.debug(f"(debug call not started: {e})")
+        return None
+
+
 def apply_output_template(content: Any, template_path: Optional[str], context: Dict[str, Any]) -> str:
     """Apply an output template to format LLM response content."""
     if not template_path:
@@ -181,20 +240,16 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
 
     rendered_prompt = render_prompt(step["prompt"], context)
 
+    # One call, one sequence number, recorded in the run manifest (LLMFlow#198). The
+    # recorder is a no-op when debug capture is off, so no log-level check is needed here.
+    debug_call = _begin_debug_call(step, context, pipeline_config)
+
     try:
-        if (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
-            filename = build_debug_filename(step, context, "request")
-            prompt_path = str(
-                Path(_get_debug_dir(
-                    pipeline_config,
-                    context,
-                    pipeline_config.get("_pipeline_name", "pipeline"),
-                    pipeline_config.get("_debug_run_key"),
-                ))
-                / filename
-            )
-            save_content_to_file(rendered_prompt, prompt_path, format="text")
-            logger.debug(f"📝 Saved request to {prompt_path}")
+        recorder = pipeline_config.get("_debug_recorder")
+        if recorder is not None and debug_call is not None:
+            saved = recorder.save_request(debug_call, rendered_prompt)
+            if saved:
+                logger.debug(f"📝 Saved request to {saved}")
     except Exception as e:
         logger.debug(f"(request debug save skipped: {e})")
 
@@ -328,23 +383,22 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
             )
 
         try:
-            if response_content is not None and (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
-                filename = build_debug_filename(step, context, "response")
-                resp_path = str(
-                    Path(_get_debug_dir(
-                    pipeline_config,
-                    context,
-                    pipeline_config.get("_pipeline_name", "pipeline"),
-                    pipeline_config.get("_debug_run_key"),
-                ))
-                    / filename
+            recorder = pipeline_config.get("_debug_recorder")
+            if recorder is not None and debug_call is not None:
+                if response_content is not None:
+                    saved = recorder.save_response(debug_call, response_content)
+                    if saved:
+                        logger.debug(f"🗒️ Saved response to {saved}")
+                # Closes the manifest entry whether or not a response arrived, so a call
+                # that produced nothing is still visible in the record.
+                recorder.finish(
+                    debug_call,
+                    status="ok" if response_content is not None else "empty",
+                    # The model recorded must be the one actually called, not the one the
+                    # step declared — those differ whenever a default or an llm_config
+                    # value fills in. Same reason telemetry starts after config merging.
+                    model=merged_config.get("model") or debug_call.model,
                 )
-                save_content_to_file(
-                    response_content if isinstance(response_content, str) else str(response_content),
-                    resp_path,
-                    format="text",
-                )
-                logger.debug(f"🗒️ Saved response to {resp_path}")
         except Exception as e:
             logger.debug(f"(response debug save skipped: {e})")
 

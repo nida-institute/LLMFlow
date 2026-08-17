@@ -581,7 +581,7 @@ async def _run_with_responses_api(
     pipeline_config: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """Execute LLM using Responses API (for GPT-5, O1)."""
-    from llmflow.runner import build_debug_filename, save_content_to_file
+    from llmflow.runner import save_content_to_file
     import json
     from openai import OpenAI
     import asyncio
@@ -658,29 +658,21 @@ async def _run_with_responses_api(
                     timeout=timeout_seconds
                 )
 
-                # Debug: save raw response
+                # Debug: save the provider's raw reply alongside the step's parsed response.
+                #
+                # This used to write to a hardcoded "outputs/debug/{filename}", ignoring
+                # both intermediate_file_directory and the per-pipeline subdirectory, so it
+                # landed outside the run's own audit trail entirely (LLMFlow#198). It is
+                # supplementary evidence for a call the step handler already recorded, so
+                # it takes no sequence number and no manifest line of its own.
                 try:
-                    if step and context and pipeline_config:
-                        if (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
-                            filename = build_debug_filename(step, context, "response")
-                            # Was a hardcoded "outputs/debug/{filename}", which ignored
-                            # both intermediate_file_directory and the per-pipeline,
-                            # per-run subdirectory — so these responses landed outside the
-                            # run's own audit trail (LLMFlow#198).
-                            from pathlib import Path
-
-                            from llmflow.utils.debug import _get_debug_dir
-                            resp_path = str(
-                                Path(_get_debug_dir(
-                                    pipeline_config,
-                                    context,
-                                    pipeline_config.get("_pipeline_name", "pipeline"),
-                                    pipeline_config.get("_debug_run_key"),
-                                ))
-                                / filename
-                            )
-                            save_content_to_file(str(response), resp_path, format="text")
-                            logger.debug(f"🗒️ Saved response to {resp_path}")
+                    recorder = (pipeline_config or {}).get("_debug_recorder")
+                    if recorder is not None and step:
+                        saved = recorder.save_artifact(
+                            f"{step.get('name', 'llm_step')}-raw-response", response
+                        )
+                        if saved:
+                            logger.debug(f"🗒️ Saved raw response to {saved}")
                 except Exception as e:
                     logger.debug(f"(response debug save skipped: {e})")
 
