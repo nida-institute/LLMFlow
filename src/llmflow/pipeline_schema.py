@@ -239,6 +239,16 @@ _STEP_TYPE_PROPERTIES = [
         },
     ),
     (
+        ("scripture",),
+        {
+            # A named edition, resolved through the registry — never a path here. See
+            # project/plans/design-scripture-editions.md (LLMFlow#200).
+            "edition": {"type": "string"},
+            "passage": {"type": "string"},
+            "format": {"type": "string", "enum": ["plain", "milestones"]},
+        },
+    ),
+    (
         ("basex",),
         {
             "database": {"type": "string"},
