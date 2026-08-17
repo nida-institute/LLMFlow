@@ -158,6 +158,7 @@
         "llmflow.steps.load",
         "llmflow.steps.plugin",
         "llmflow.steps.save",
+        "llmflow.steps.scripture",
         "llmflow.steps.window",
         "llmflow.utils.context",
         "llmflow.utils.debug",
@@ -2532,6 +2533,26 @@
           "doc": "Running text for *passage* in *edition* — the whole job in one call."
         },
         {
+          "name": "default_editions_dir",
+          "signature": "default_editions_dir() -> Path",
+          "doc": "``~/.sp/editions`` unless SP_HOME says otherwise."
+        },
+        {
+          "name": "load_registry_editions",
+          "signature": "load_registry_editions(editions_dir: Any = None) -> dict",
+          "doc": "Read every edition definition. Absence is normal; a fresh machine has none."
+        },
+        {
+          "name": "_usfm_passage_text",
+          "signature": "_usfm_passage_text(definition: Mapping[str, Any], passage: str, fmt: str) -> str",
+          "doc": "BSB and other USFM editions: passage -> USJ -> running text."
+        },
+        {
+          "name": "edition_text",
+          "signature": "edition_text(edition: str, passage: str, fmt: str = 'milestones', editions: Optional[Mapping[str, Any]] = None) -> str",
+          "doc": "Running text for *passage* in *edition*, whichever backend it needs."
+        },
+        {
           "name": "__str__",
           "signature": "__str__(self) -> str",
           "doc": ""
@@ -3254,6 +3275,23 @@
       ]
     },
     {
+      "module": "llmflow.steps.scripture",
+      "imports": [
+        "llmflow.modules.logger",
+        "llmflow.utils.context",
+        "llmflow.utils.scripture",
+        "llmflow.utils.step_outputs",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "run_scripture_step",
+          "signature": "run_scripture_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> None",
+          "doc": "Fetch running text for one passage in one edition."
+        }
+      ]
+    },
+    {
       "module": "llmflow.steps.function",
       "imports": [
         "importlib",
@@ -3829,7 +3867,7 @@
     }
   ],
   "summary": {
-    "total_modules": 73,
-    "total_functions": 589
+    "total_modules": 74,
+    "total_functions": 594
   }
 }

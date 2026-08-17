@@ -39,6 +39,13 @@ MILESTONE_TEMPLATE = "⌊{chapter}:{verse}⌋"
 #: verse records can derive them; the engine must not make that the easy path.
 FORMATS = ("plain", "milestones")
 
+#: USJ element types whose content is *apparatus*, not the text being read, and so must not
+#: reach a prompt. A footnote in BSB Mark 1:1 holds "ECM, NE, BYZ, and TR; SBL and WH the
+#: beginning of the gospel…" — flattened into the running text, a model would quote textual
+#: variants as though they were scripture. Inline ``char`` elements outside notes (``\nd`` for
+#: the divine name, ``\add`` for supplied words) are part of the reading and are kept.
+SKIP_USJ_TYPES = frozenset({"note", "figure", "sidebar", "ref"})
+
 
 class EditionNotRegistered(KeyError):
     """Raised when an edition has no registry entry, listing what is available."""
@@ -230,6 +237,8 @@ def usj_to_text(usj: Mapping[str, Any], fmt: str = "milestones") -> str:
         if not isinstance(node, Mapping):
             return
         kind = node.get("type")
+        if kind in SKIP_USJ_TYPES:
+            return  # apparatus, not text — see SKIP_USJ_TYPES
         if kind == "chapter":
             chapter["n"] = node.get("number")
             return
@@ -274,5 +283,113 @@ def passage_text(
             f"No text found for {passage!r} in edition {edition!r}. "
             f"Check the book code and that the edition covers it "
             f"(WLC is Old Testament only; SBLGNT is New Testament only)."
+        )
+    return rows_to_text(rows, fmt=fmt)
+
+
+# --------------------------------------------------------------------------------------
+# Edition registry
+#
+# One YAML file per edition under ``~/.sp/editions/``, so adding or changing a source never
+# means editing code. That matters beyond tidiness: the absolute paths written into
+# ears-to-hear and discourse-flow pipelines pin those pipelines to one machine, and a source
+# chosen in code is a source chosen by whoever wrote the code — which is the Captain's
+# decision, not an assistant's.
+#
+#   id: SBLGNT
+#   name: SBL Greek New Testament
+#   kind: tsv                 # tsv | usfm
+#   path: /path/to/macula-greek-SBLGNT.tsv
+#
+# For ``kind: usfm`` the fields are ``base_dir`` and ``project`` instead of ``path``, matching
+# what load_usfm_passage() takes.
+# --------------------------------------------------------------------------------------
+
+EDITIONS_DIRNAME = "editions"
+
+
+def default_editions_dir() -> Path:
+    """``~/.sp/editions`` unless SP_HOME says otherwise."""
+    import os
+
+    root = os.environ.get("SP_HOME")
+    base = Path(root) if root else Path.home() / ".sp"
+    return base / EDITIONS_DIRNAME
+
+
+def load_registry_editions(editions_dir: Any = None) -> dict:
+    """Read every edition definition. Absence is normal; a fresh machine has none.
+
+    A malformed file is skipped rather than allowed to make every edition unreadable — one
+    bad hand-edit should not take the whole registry down with it.
+    """
+    import yaml
+
+    directory = Path(editions_dir) if editions_dir is not None else default_editions_dir()
+    if not directory.is_dir():
+        return {}
+    out: dict = {}
+    for path in sorted(directory.glob("*.yaml")):
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except Exception:
+            continue  # a broken file hides itself, not its neighbours
+        if not isinstance(data, dict):
+            continue
+        name = data.get("id") or path.stem
+        out[str(name)] = data
+    return out
+
+
+def _usfm_passage_text(definition: Mapping[str, Any], passage: str, fmt: str) -> str:
+    """BSB and other USFM editions: passage -> USJ -> running text."""
+    from llmflow.utils.data import load_usfm_passage
+
+    base_dir = definition.get("base_dir")
+    project = definition.get("project")
+    if not base_dir or not project:
+        raise ValueError(
+            f"USFM edition {definition.get('id')!r} needs 'base_dir' and 'project' in its "
+            f"registry entry."
+        )
+    usj = load_usfm_passage(str(base_dir), str(project), passage, "usj")
+    if not isinstance(usj, Mapping):
+        raise ValueError(f"USFM loader returned {type(usj).__name__}, expected a USJ mapping")
+    return usj_to_text(usj, fmt=fmt)
+
+
+def edition_text(
+    edition: str,
+    passage: str,
+    fmt: str = "milestones",
+    editions: Optional[Mapping[str, Any]] = None,
+) -> str:
+    """Running text for *passage* in *edition*, whichever backend it needs.
+
+    The two backends exist because the Captain's chosen sources are not one shape: Macula
+    TSVs for WLC and SBLGNT, per-book USFM for BSB. Both return the same thing — running
+    text, verse positions marked.
+    """
+    definition = resolve_edition(edition, editions)
+    if isinstance(definition, str):  # bare path == a TSV, the common case
+        definition = {"id": edition, "kind": "tsv", "path": definition}
+    kind = str(definition.get("kind", "tsv")).lower()
+
+    if kind == "usfm":
+        return _usfm_passage_text(definition, passage, fmt)
+    if kind != "tsv":
+        raise ValueError(
+            f"Edition {edition!r} has unknown kind {kind!r}; expected 'tsv' or 'usfm'."
+        )
+
+    path = definition.get("path")
+    if not path:
+        raise ValueError(f"TSV edition {edition!r} needs a 'path' in its registry entry.")
+    ref = parse_passage_ref(passage)
+    rows = filter_rows(read_rows(path), ref)
+    if not rows:
+        raise ValueError(
+            f"No text found for {passage!r} in edition {edition!r}. Check the book code and "
+            f"that the edition covers it (WLC is Old Testament only; SBLGNT New Testament only)."
         )
     return rows_to_text(rows, fmt=fmt)

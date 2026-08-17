@@ -30,6 +30,7 @@ from llmflow.utils.step_outputs import handle_step_outputs, handle_step_saveas
 from llmflow.utils.debug import _get_debug_dir, _clear_debug_dir
 from llmflow.steps.plugin import run_plugin_step
 from llmflow.steps.basex import run_basex_step
+from llmflow.steps.scripture import run_scripture_step
 from llmflow.steps.function import run_function_step
 from llmflow.steps.duckdb import run_duckdb_step
 from llmflow.steps.json_step import run_json_step
@@ -320,6 +321,9 @@ def run_step(
                 result = run_duckdb_step(step, context, pipeline_config)
             elif step_type == "if":
                 local_after_action = run_if_step(step, context, pipeline_config, run_step)
+            elif step_type == "scripture":
+                run_scripture_step(step, context, pipeline_config)
+
             elif step_type == "basex":
                 run_basex_step(step, context, pipeline_config)
             elif step_type == "json":
