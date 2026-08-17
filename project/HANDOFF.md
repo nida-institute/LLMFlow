@@ -4,12 +4,18 @@ Supersedes the 2026-08-12 handoff entirely.
 
 ---
 
-## ⚠️ THIS FILE IS UNCOMMITTED — ON PURPOSE
+## ⚠️ COMMITTED LOCALLY, NOT PUSHED — ON PURPOSE
 
-`dev` sits on `cb72cb7`, the SHA whose three platform builds are green (including a 2h23m
-Windows build). **Committing anything to `dev` retargets PR #199 and starts a fresh build.** Do
-not commit this file until after the merge. It is also parked at the tag
-`wip/handoff-2026-08-17` (`055799d`) in case the working tree is reset again.
+`origin/dev` sits at `cb72cb7`, the SHA whose three platform builds are green — including a
+**2h23m Windows build**. **Pushing to `dev` retargets PR #199 and starts a fresh build.** That
+happened twice today by accident and cost two builds. So the handoff commits are local only:
+
+```bash
+git log --oneline origin/dev..dev     # expect 2 commits, both docs(handoff)
+```
+
+**Push them only after PR #199 is merged.** Also parked at `wip/handoff-2026-08-17` (`055799d`)
+in case the working tree is reset again.
 
 ---
 
