@@ -2736,6 +2736,74 @@
       ]
     },
     {
+      "module": "llmflow.utils.scripture",
+      "imports": [
+        "__future__",
+        "csv",
+        "dataclasses",
+        "pathlib",
+        "re",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "parse_passage_ref",
+          "signature": "parse_passage_ref(passage: str) -> PassageRef",
+          "doc": "Parse ``\"MRK 1:1-8\"`` and friends."
+        },
+        {
+          "name": "_split_ref",
+          "signature": "_split_ref(ref: str) -> tuple[str, Optional[int], Optional[int]]",
+          "doc": "``\"GEN 1:1!3\"`` -> ``(\"GEN\", 1, 1)``. The ``!n`` word index is discarded."
+        },
+        {
+          "name": "filter_rows",
+          "signature": "filter_rows(rows: Iterable[Mapping[str, Any]], ref: PassageRef) -> list[dict]",
+          "doc": "Keep the rows inside *ref*, in source order."
+        },
+        {
+          "name": "rows_to_text",
+          "signature": "rows_to_text(rows: Sequence[Mapping[str, Any]], fmt: str = 'milestones') -> str",
+          "doc": "Concatenate ``text + after`` into running text."
+        },
+        {
+          "name": "resolve_edition",
+          "signature": "resolve_edition(edition: str, registry_editions: Optional[Mapping[str, Any]] = None) -> Any",
+          "doc": "Return the definition for a named edition."
+        },
+        {
+          "name": "usj_to_text",
+          "signature": "usj_to_text(usj: Mapping[str, Any], fmt: str = 'milestones') -> str",
+          "doc": "Flatten a USJ document into running text."
+        },
+        {
+          "name": "read_rows",
+          "signature": "read_rows(tsv_path: str | Path) -> list[dict]",
+          "doc": "Read a Macula-style TSV. Only ``ref``, ``text`` and ``after`` are required here."
+        },
+        {
+          "name": "passage_text",
+          "signature": "passage_text(edition: str, passage: str, fmt: str = 'milestones', registry_editions: Optional[Mapping[str, str]] = None) -> str",
+          "doc": "Running text for *passage* in *edition* — the whole job in one call."
+        },
+        {
+          "name": "__str__",
+          "signature": "__str__(self) -> str",
+          "doc": ""
+        },
+        {
+          "name": "covers",
+          "signature": "covers(self, chapter: int, verse: int) -> bool",
+          "doc": ""
+        },
+        {
+          "name": "walk",
+          "signature": "walk(node: Any) -> None",
+          "doc": ""
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.content_diff",
       "imports": [
         "difflib",
@@ -4032,7 +4100,7 @@
     }
   ],
   "summary": {
-    "total_modules": 76,
-    "total_functions": 621
+    "total_modules": 77,
+    "total_functions": 632
   }
 }
