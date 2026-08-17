@@ -7,6 +7,20 @@
 
 ## 🔥 Active
 
+### 🧹 Delete the `jonathanrobie/examples.bsb` fork — **after** PR lands
+> Upstream PR: https://github.com/usfm-bible/examples.bsb/pull/7 (adds the missing `\id` to
+> Ecclesiastes, fixes their #4). The fork exists only to carry that branch.
+>
+> **Do not delete while the PR is open** — a fork PR depends on the fork's branch, so deleting
+> the fork closes the PR. Wait for merge (or a decision to abandon it), then:
+> `gh repo delete jonathanrobie/examples.bsb --yes`
+>
+> Note while it is unmerged: the local checkout at `~/github/usfm-bible/examples.bsb` is on
+> branch `dev`, and that patch is what makes all 66 books load. If the branch is
+> lost before upstream merges, BSB Ecclesiastes silently disappears again. Captain's decision
+> requested (2026-08-17).
+
+
 ### 🔁 for/in syntax migration (breaking — one syntax, no aliases)
 > See `project/plans/design-foreach-syntax-migration.md`. Systematic commits, one per repo.
 > Migration: `item_var:`→`for:`, `input:`/`over:`→`in:` (for before in). Old keys fail loud.
