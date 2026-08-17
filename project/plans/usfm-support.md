@@ -1,5 +1,12 @@
 # USFM/USX/USJ Support Design
 
+**Status:** Implemented in part — historical record. USFM/USJ handling exists in `utils/data.py`,
+`utils/file_io.py` and the loader steps (`tests/test_usfm_loaders.py`). Not everything sketched here
+was built; check the code before relying on any specific capability.
+
+Contains `output_dir`, a retired spelling — the declarations are now
+`intermediate_file_directory` / `output_file_directory`, and the directory is plural `outputs/`.
+
 _Status: Draft — under discussion_
 _Created: 2026-03-24_
 

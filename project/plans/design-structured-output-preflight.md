@@ -1,6 +1,8 @@
 # Design: Pre-flight Validation of Structured-Output Schemas
 
-## Status: Design — Awaiting Captain's Review
+## Status: Implemented in 0.2.1.24 — historical record
+
+Shipped as `utils/schema_preflight.py`, wired into `sp lint` as stage 1.7 (`tests/test_schema_preflight.py`, `tests/test_lint_structured_output.py`). The second defect recorded below — the `MODEL_FAMILIES` capability check at `llm_runner.py:322-329` — was **not** fixed and remains open.
 
 ---
 

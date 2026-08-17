@@ -1,5 +1,16 @@
 # Design: LLMFlow Pipeline JSON Schema and Schema-Driven Runner
 
+**Status:** Decisions implemented — historical record, and **the decision log is still binding.**
+
+The five ✅ DECIDED rulings in the "Open Questions" section were carried out in the one-syntax work
+(0.2.1.23) — notably §1, `output` singular for the step key. Read those rulings before proposing any
+keyword change: this file is where they were settled, and a session that skipped it chose `outputs`
+against §1 and paid for the reversal across roughly 1,100 sites in 15 repos.
+
+The body predates the migration, so example YAML in it may use retired spellings. The **rulings** are
+current; the **examples** are not. Check `pipeline_schema.py`, which is now the single source of the
+step vocabulary.
+
 ## Problem
 
 LLMFlow is a declarative pipeline language. But its language definition is not itself declarative — it lives in imperative Python scattered across `runner.py` (what is dispatched), `linter.py` (what is validated), and several Markdown files (what is described). These three sources can and do drift. There is no single artifact that says: "here is the language, completely and authoritatively."
