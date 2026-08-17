@@ -133,6 +133,16 @@ def _clear_debug_dir(
 MANIFEST_NAME = "manifest.jsonl"
 
 
+def _round_cost(value: Any) -> Optional[float]:
+    """Round a cost to micro-dollars, or return None when it is unknown."""
+    if value is None:
+        return None
+    try:
+        return round(float(value), 6)
+    except (TypeError, ValueError):
+        return None
+
+
 @dataclass
 class DebugCall:
     """One model call, and where its evidence lives."""
@@ -250,6 +260,15 @@ class DebugRecorder:
             "started": call.started,
             "finished": datetime.now().isoformat(timespec="seconds"),
             "status": extras.pop("status", "ok"),
+            # Always present, so the manifest can be queried without guarding on absence.
+            # Telemetry prints these to the console, where they are gone as soon as the
+            # terminal scrolls; here they stay with the call they describe.
+            "prompt_tokens": extras.pop("prompt_tokens", 0),
+            "completion_tokens": extras.pop("completion_tokens", 0),
+            "total_tokens": extras.pop("total_tokens", 0),
+            # Rounded to micro-dollars: binary floats otherwise serialise as
+            # 0.0063999999999999994, which is noise in a file meant to be read.
+            "cost_usd": _round_cost(extras.pop("cost_usd", None)),
             "request_file": self._relative(call.request_path),
             "response_file": self._relative(call.response_path),
         }

@@ -2056,6 +2056,11 @@
           "doc": "Empty **this run's** directory at the start of the run."
         },
         {
+          "name": "_round_cost",
+          "signature": "_round_cost(value: Any) -> Optional[float]",
+          "doc": "Round a cost to micro-dollars, or return None when it is unknown."
+        },
+        {
           "name": "read_manifest",
           "signature": "read_manifest(run_dir: Any) -> list",
           "doc": "Read a run manifest, or return [] when there is none."
@@ -2974,13 +2979,9 @@
     {
       "module": "llmflow.steps.llm",
       "imports": [
-        "datetime",
         "llmflow.modules.logger",
         "llmflow.modules.mcp",
         "llmflow.utils.context",
-        "llmflow.utils.debug",
-        "llmflow.utils.file_io",
-        "llmflow.utils.io",
         "llmflow.utils.llm_runner",
         "llmflow.utils.step_outputs",
         "pathlib",
@@ -2989,11 +2990,6 @@
         "typing"
       ],
       "functions": [
-        {
-          "name": "build_debug_filename",
-          "signature": "build_debug_filename(step: Dict[str, Any], context: Dict[str, Any], request_or_response: str) -> str",
-          "doc": "Build a debug filename from passage (or timestamp), prompt file, and request/response type."
-        },
         {
           "name": "render_prompt",
           "signature": "render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, Any]) -> str",

@@ -114,6 +114,32 @@ class TestManifest:
         assert line["status"] == "error" and line["error"] == "timeout"
         assert line["response_file"] is None
 
+    def test_records_tokens_and_cost(self, recorder, tmp_path):
+        """What a call cost belongs with the evidence of the call, not only in the summary.
+
+        Telemetry prints totals to the console and they are gone when the terminal scrolls.
+        In the manifest they can be queried per call, months later.
+        """
+        call = recorder.begin("analyze", prompt_file="p.gpt", model="gpt-4o")
+        recorder.save_request(call, "req")
+        recorder.finish(call, prompt_tokens=1200, completion_tokens=340,
+                        total_tokens=1540, cost_usd=0.0071)
+
+        line = _lines(tmp_path)[0]
+        assert line["prompt_tokens"] == 1200
+        assert line["completion_tokens"] == 340
+        assert line["total_tokens"] == 1540
+        assert line["cost_usd"] == pytest.approx(0.0071)
+
+    def test_token_fields_are_always_present(self, recorder, tmp_path):
+        """Every line carries the keys, so the manifest can be queried without guarding."""
+        call = recorder.begin("analyze", prompt_file="p.gpt")
+        recorder.finish(call)
+
+        line = _lines(tmp_path)[0]
+        for field_name in ("prompt_tokens", "completion_tokens", "total_tokens", "cost_usd"):
+            assert field_name in line, f"{field_name} missing from {line}"
+
     def test_paths_are_relative_to_the_run_directory(self, recorder, tmp_path):
         """So a run directory can be moved or archived without breaking the manifest."""
         call = recorder.begin("analyze", prompt_file="p.gpt")

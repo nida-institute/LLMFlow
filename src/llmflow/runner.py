@@ -35,7 +35,7 @@ from llmflow.steps.duckdb import run_duckdb_step
 from llmflow.steps.json_step import run_json_step
 from llmflow.steps.load import run_load_step
 from llmflow.steps.save import run_save_step
-from llmflow.steps.llm import render_prompt, build_debug_filename, apply_output_template, run_llm_step
+from llmflow.steps.llm import render_prompt, apply_output_template, run_llm_step
 from llmflow.steps.for_each import run_for_each_step
 from llmflow.steps.window import run_window_step, run_window_advance_step
 from llmflow.steps.if_step import run_if_step

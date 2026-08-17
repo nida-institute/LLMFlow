@@ -1,84 +1,17 @@
-"""LLM step handler — prompt rendering, debug filename building, LLM call."""
+"""LLM step handler — prompt rendering, LLM call, debug capture."""
 
 import re
 import time
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 from llmflow.modules.logger import Logger
 from llmflow.modules.mcp import init_mcp_client
 from llmflow.utils.context import resolve
-from llmflow.utils.debug import _get_debug_dir
-from llmflow.utils.file_io import save_content_to_file
-from llmflow.utils.io import sanitize_filename
 from llmflow.utils.llm_runner import call_llm, run_llm_with_mcp_tools
 from llmflow.utils.step_outputs import handle_step_outputs
 
 logger = Logger()
-
-
-def build_debug_filename(step: Dict[str, Any], context: Dict[str, Any], request_or_response: str) -> str:
-    """Build a debug filename from passage (or timestamp), prompt file, and request/response type.
-
-    Format with passage: {passage}_{prompt_file}_{request_or_response}.txt
-    Format without passage: {timestamp}_{prompt_file}_{request_or_response}.txt
-
-    .. deprecated:: 0.2.1.24
-       Superseded by :class:`llmflow.utils.debug.DebugRecorder`, which numbers each call and
-       records the facts in ``manifest.jsonl`` instead of encoding them in a filename. No
-       production code calls this any more.
-
-       It was replaced because the name could not stay unique: the step name was used only
-       when there was *no* prompt file, so two steps sharing one ``.gpt`` produced identical
-       names and the second overwrote the first; a retry did the same to the attempt it
-       retried; and the timestamp — the only field that could establish order — appeared
-       only when ``passage`` was absent.
-
-       Kept so that anything importing it keeps working, and to read directories captured
-       before 0.2.1.24. Do not wire it into new code.
-    """
-    parts = []
-
-    passage = context.get("passage") or context.get("Citation") or context.get("scene", {}).get("Citation")
-    if passage:
-        parts.append(sanitize_filename(str(passage)))
-    else:
-        parts.append(datetime.now().strftime("%Y-%m-%d-%H%M%S"))
-
-    prompt_config = step.get("prompt", {})
-    if isinstance(prompt_config, dict):
-        prompt_file = prompt_config.get("file", "")
-    elif isinstance(prompt_config, str):
-        prompt_file = prompt_config
-    else:
-        prompt_file = ""
-
-    if prompt_file:
-        parts.append(sanitize_filename(Path(prompt_file).stem))
-    else:
-        parts.append(sanitize_filename(step.get("name", "llm_step")))
-
-    iteration_meta = None
-    stack = context.get("_for_each_stack")
-    if isinstance(stack, list) and stack:
-        iteration_meta = stack[-1]
-    if iteration_meta is None:
-        iteration_meta = context.get("_for_each_meta")
-
-    if iteration_meta:
-        level = iteration_meta.get("level")
-        if level:
-            parts.append(f"lvl{level}")
-        var_name = iteration_meta.get("variable")
-        label_value = iteration_meta.get("label") or iteration_meta.get("value")
-        if var_name and label_value:
-            var_token = sanitize_filename(str(var_name)) or "item"
-            label_token = sanitize_filename(str(label_value)) or "value"
-            parts.append(f"{var_token}-{label_token}")
-
-    parts.append(request_or_response)
-    return "_".join(parts) + ".txt"
 
 
 def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, Any]) -> str:
@@ -391,13 +324,29 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
                         logger.debug(f"🗒️ Saved response to {saved}")
                 # Closes the manifest entry whether or not a response arrived, so a call
                 # that produced nothing is still visible in the record.
+                # Tokens and cost belong with the evidence of the call, not only in the
+                # console summary that scrolls away. Read after the estimate fallback above
+                # so the recorded figures are the ones cost was actually charged on.
+                _pt = int(usage.get("prompt_tokens", 0) or 0)
+                _ct = int(usage.get("completion_tokens", 0) or 0)
+                _model = merged_config.get("model") or debug_call.model
+                try:
+                    from llmflow.modules.telemetry import calculate_cost
+                    _cost = calculate_cost(_model, _pt, _ct)
+                except Exception:
+                    _cost = None  # unknown model: record the tokens, omit the price
+
                 recorder.finish(
                     debug_call,
                     status="ok" if response_content is not None else "empty",
                     # The model recorded must be the one actually called, not the one the
                     # step declared — those differ whenever a default or an llm_config
                     # value fills in. Same reason telemetry starts after config merging.
-                    model=merged_config.get("model") or debug_call.model,
+                    model=_model,
+                    prompt_tokens=_pt,
+                    completion_tokens=_ct,
+                    total_tokens=int(usage.get("total_tokens", 0) or 0) or (_pt + _ct),
+                    cost_usd=_cost,
                 )
         except Exception as e:
             logger.debug(f"(response debug save skipped: {e})")

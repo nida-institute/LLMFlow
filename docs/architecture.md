@@ -311,18 +311,21 @@ switch.
 - **`manifest.jsonl`:** one line per model call — `seq`, `step`, `attempt`,
   `prompt_file`, `model` (the model actually called, after config merging, not the
   one declared), `passage`, `iteration`, `started`, `finished`, `status`,
-  `request_file`, `response_file`. File paths are relative to the run directory so
+  `prompt_tokens`, `completion_tokens`, `total_tokens`, `cost_usd` (rounded to
+  micro-dollars, `null` when the model is unpriced), `request_file`,
+  `response_file`. File paths are relative to the run directory so
   a run can be archived or moved intact. `sp tools replay` reads the pairing from
   here rather than inferring it from filenames; directories captured before
   0.2.1.24 have no manifest and fall back to filename matching.
 - **Cleared per run:** `_clear_debug_dir` empties **this run's** directory at the
   start of the run (skipped on `--dry-run`), so a run directory reflects exactly
   one run. Sibling run directories are untouched.
-- **Superseded:** `steps/llm.py:build_debug_filename` produced
-  `<passage>_<prompt_stem>_(request|response).txt`. It is deprecated and no longer
-  called — the step name only appeared when there was no prompt file, so two steps
-  sharing a `.gpt` collided, and the timestamp appeared only when `passage` was
-  absent.
+- **Removed in 0.2.1.24:** `steps/llm.py:build_debug_filename` produced
+  `<passage>_<prompt_stem>_(request|response).txt`. The step name appeared only
+  when there was no prompt file, so two steps sharing a `.gpt` collided and the
+  second overwrote the first; a retry did the same; and the timestamp — the only
+  field that could order the files — appeared only when `passage` was absent. The
+  sequence number now guarantees uniqueness and order.
 - **Log co-location:** when `intermediate_file_directory` is declared,
   `llmflow.log` is redirected into `<debug_dir>/llmflow.log` (`runner.py`).
 - **Cleanup:** `sp clean --debug-only` deletes only the debug directory;

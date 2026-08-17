@@ -96,16 +96,19 @@
   truncated manifest from an interrupted run falls back rather than making the directory
   unreadable.
 
-  `build_debug_filename()` is deprecated, still exported, and no longer called by anything
-  in the engine.
-
   Also fixed: one of the four debug write sites (`llm_runner.py`) wrote to a hardcoded
   `outputs/debug/{filename}`, ignoring both `intermediate_file_directory` and the
   per-pipeline subdirectory, so those raw responses landed outside the run's own trail
   entirely. They are now saved beside the call they belong to.
 
-  Not yet recorded in the manifest: token counts and cost. Telemetry already collects both,
-  so this is plumbing rather than a design question.
+  Each line also carries `prompt_tokens`, `completion_tokens`, `total_tokens` and
+  `cost_usd`. Telemetry prints those to the console, where they are gone as soon as the
+  terminal scrolls; in the manifest they can be queried per call, months later. Tokens are
+  read after the Responses-API estimate fallback, so the figures recorded are the ones cost
+  was charged on, and `cost_usd` is `null` rather than a guess when the model is unpriced.
+
+  `build_debug_filename()` is **removed**, along with its tests and the demo script that
+  exercised it. Nothing in the engine called it.
 
 - **The `prompt` schema no longer accepts keys the renderer ignores (#197)** — `prompt` was
   `oneOf: [string, object]` with `additionalProperties: true`, so any key validated and was
