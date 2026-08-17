@@ -7,6 +7,16 @@
 
 ## 🔥 Active
 
+### ⚠️ Versification — a reference means different verses in different editions → #203
+> **Blocks OT use of `sil-translator-notes`.** `PSA 51:1` returns the superscription from WLC and
+> "Have mercy on me, O God" from BSB — a two-verse offset, reported as success. `MAL 4:1` does not
+> exist in the Hebrew at all. Any pipeline pairing an original-language text with a translation of
+> "the same" reference is silently comparing unrelated verses.
+>
+> Fix via the Copenhagen Alliance versification specification (now in `awesome-biblical-data`,
+> cloned at `~/github/copenhagen-alliance/versification-specification`). Editions must declare
+> their scheme; `type: scripture` must map before fetching.
+
 ### 🧹 Delete the `jonathanrobie/examples.bsb` fork — **after** PR lands
 > Upstream PR: https://github.com/usfm-bible/examples.bsb/pull/7 (adds the missing `\id` to
 > Ecclesiastes, fixes their #4). The fork exists only to carry that branch.
