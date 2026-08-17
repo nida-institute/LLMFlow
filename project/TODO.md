@@ -74,29 +74,54 @@
 
 #### 🎯 Doing now — bugs Paul hit setting up on his own machine → #204
 > Board 13: **In Progress**. Targets the **next** version, not the 0.2.1.24 release in flight.
-> Paul cloned `sil-translator-notes`, ran `sp init`, ran `/load-context`, and got **HTTP 400 with
-> no body**. Getting him to a working state took a hand-built zip of the portable parts of `~/.sp/`
-> (`tmp/sp-for-paul.zip`), copying `~/.sp/skills` → `~/.claude/skills`, hand-editing three edition
-> files to strip another machine's absolute paths, and patching a USFM file — and it still did not
-> work. Interim workaround, `sil-translator-notes` only: `CLAUDE.md.template` (`95955d9`).
+>
+> **Acceptance criterion (Captain, 2026-08-17):** a user clones a mentoring repository such as
+> `sil-translator-notes`, runs `sp init`, and `/load-context` works. Nothing hand-carried.
+>
+> Paul cloned the repo, ran `sp init`, ran `/load-context`, and got **HTTP 400 with no body**.
+> Getting him working took a hand-built zip of `~/.sp/`, copying `~/.sp/skills` →
+> `~/.claude/skills`, hand-editing three edition files to strip another machine's absolute paths,
+> and patching a USFM file — and it still did not work.
 
-Each item is its own bug:
-- [ ] **Nothing provides `CLAUDE.md`** — required by the skill, gitignored by convention, created
-      by nothing. `sp init` should scaffold it and never overwrite an existing one
-- [ ] **A missing file 400s instead of skipping cleanly** — an empty read yields an empty content
-      block the API rejects with no body. Unattributable: Paul saw an API error, not a missing file
-- [ ] **Skills are per-user and invisible** — they live in `~/.claude/skills/`, not the repo.
-      Nothing tells a contributor this is required and nothing verifies it worked
-- [ ] **Editions are not portable** — `~/.sp/editions/*.yaml` carry absolute paths and must be
-      hand-edited. There is no per-machine registration flow
-- [ ] **No verification step** — `sp doctor` or `sp init --check`: are skills installed, are
-      editions registered and resolvable, is `CLAUDE.md` present
-- [ ] **Decision needed:** `sp init` destroys hand-written AI context. It regenerates `index.md`,
-      `overview.md`, `rules.md` and `github-workflow.md`; only `project.md` is protected
-      (`cli_utils.py:1891`). Either merge instead of overwrite, or say plainly that everything
-      durable goes in `project.md`
-- [ ] **Nothing tests a clean machine** — 2620 tests pass and none caught any of the above. Needs a
-      run from a clone with an empty `HOME`, plus a committed fixture-edition TSV so `sp lint`'s
+**⚠️ The cause recorded in #204 is wrong.** Read against `cli_utils.py` on 2026-08-17:
+> #204 says *"`sp init` does not create `CLAUDE.md` — there is no code that creates one"* and
+> *"`sp init` overwrites hand-written AI context"*. **Both are false.** `_configure_claude_code`
+> (`cli_utils.py:756-761`) upserts a delimited block into `CLAUDE.md`, and every generated
+> ai-context file is guarded `if not exists → write / elif update and _is_generated → rewrite /
+> else → leave as-is` (`cli_utils.py:1854-1888`). Plain `sp init` overwrites nothing.
+> **#204 needs correcting before anything is built against it.**
+
+What actually blocks the acceptance criterion:
+- [ ] **`_configure_ai_assistants` returns silently when stdin is not a TTY**
+      (`cli_utils.py:805-806`). No `CLAUDE.md`, no skills, no message saying so
+- [ ] **"Claude Code" defaults to No** (`cli_utils.py:812`, `default=False`). A user pressing
+      Enter through the prompts gets no `CLAUDE.md` and no skills
+- [ ] **"Install Claude Code skills?" also defaults to No** (`cli_utils.py:777`) — and that
+      consent branch is the *only* path that copies into `~/.claude/skills/`, which is where
+      Claude Code actually reads. `~/.sp/skills/` is populated either way, and is the wrong place
+- [ ] **Most of `~/.sp/` is not in the package.** `templates/` ships only `sp-conventions/`
+      (5 files) and `sp-skills/` (10 skills). Missing, and therefore unobtainable by any
+      `sp init`: `drift-patterns.md`; the whole `user-context/` directory
+      (`filesystem-access.md`, `github-authority.md`, `consumer-repo-conventions.md`);
+      the conventions `design-authority.md`, `sp-debugging.md`, `sp-workflow.md`;
+      `editions/*.yaml.template`; and the 12 `ai-context/*.yaml` registry files.
+      **This is what the zip was carrying** — overlaps #181
+- [ ] **`/load-context` reads files that a fresh machine cannot have** — its step 5 runs
+      `cat ~/.sp/drift-patterns.md`, which the package does not ship. Skills must skip a missing
+      file cleanly and never emit an empty read (an empty content block is the bodyless 400)
+- [ ] **No verification step** — `sp doctor` or `sp init --check`: are skills in
+      `~/.claude/skills/`, are editions registered and resolvable, is `CLAUDE.md` present
+- [ ] **Editions are not portable** — `~/.sp/editions/*.yaml` carry absolute paths. Ship the
+      `.yaml.template` files and add a per-machine registration flow
+- [ ] **Confirm `~/.sp` creation.** `install_global_conventions`/`install_global_skills` run
+      non-interactively (`cli_utils.py:1952-1954`) and `mkdir(parents=True)`, so this appears
+      already satisfied — but the call is wrapped in a `try/except` that only *warns* on failure
+      (`cli_utils.py:1955-1956`), so a silent partial install is possible
+- [ ] **Hazard, `--update` only:** a file still carrying the `<!-- Generated by sp init -->`
+      first line is rewritten by `sp init --update` even if hand-edited. Only `project.md` is
+      exempt (`cli_utils.py:1890`)
+- [ ] **Nothing tests a clean machine** — 2620 tests pass and none caught any of the above. Needs
+      a run from a clone with an empty `HOME`, plus a committed fixture-edition TSV so `sp lint`'s
       "no text found" path can be tested
 
 #### Installers and setup
