@@ -34,6 +34,17 @@ the `pypi` environment gate, which is a manual GitHub approval, not PyPI.
 **Verify:** `gh pr view 199 --jq .headRefOid --json headRefOid` starts `cb72cb7`;
 `gh pr checks 199` shows three `Build on *` rows reading `pass`.
 
+**Expect `Build on windows-latest` to read `pending` for up to ~2h from 18:27 on 2026-08-17.**
+Three Build runs exist on `cb72cb7`: `32039870975` completed/success at 14:40 with all three
+artifacts intact (expiring 2026-08-24), plus two queued by force-pushes at 18:25 and 18:27.
+`32054871881` was cancelled; `32055000451` is authoritative. **The code is identical across all
+three — same SHA — so it will pass.** It is only a wait.
+
+**Lesson, because it cost two builds:** a force-push fires a `synchronize` event and queues a
+fresh run *even when the SHA is unchanged*. Reverting a PR head to a green SHA restores the check
+*display* but does not prevent a rebuild. Do not push to `dev` while a release PR is open unless
+the push is meant to be part of that release.
+
 ### Immediately after the merge
 
 **The scripture work (#200) is NOT on `dev`.** It is preserved at the **local** tag
