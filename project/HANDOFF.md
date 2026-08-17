@@ -42,6 +42,41 @@ git cherry-pick 05d75a5 34c7931                  # onto dev after the merge
 and apparatus fix; `0bb1d5b` is only `project/TODO.md`. **Both tags are local — push them or
 re-apply the commits before anything could garbage-collect them.**
 
+### Also for the next release: onboarding is broken for everyone but the author — #204
+
+**Wanted in the next build (Captain, 2026-08-17).** A new contributor cloned
+`sil-translator-notes`, ran `sp init`, ran `/load-context`, and got **HTTP 400 with no body**.
+
+**Cause:** the skill reads `CLAUDE.md` first. That file is line 1 of the `.gitignore`, is never
+committed (`git ls-files CLAUDE.md` → nothing), and **`sp init` does not create it**. So a fresh
+clone cannot have it, and a missing file yields an empty read, which the API rejects with a
+bodyless 400. Every consumer repo appeared to work only because its author had a local,
+uncommitted copy — **no collaborator has ever had a working `/load-context`.**
+
+**Workaround already shipped** for `sil-translator-notes`: `CLAUDE.md.template` committed as
+`95955d9`, so the contributor runs `cp CLAUDE.md.template CLAUDE.md`. That is a patch on one repo,
+not the fix.
+
+**The engine fix (#204) has four parts:** `sp init` scaffolds `CLAUDE.md` and never overwrites it;
+skills skip a missing file cleanly instead of emitting an empty read; a verification command
+(`sp doctor` / `sp init --check`); and a decision on how a mentor ships customised AI context,
+since `sp init` currently regenerates `index.md`, `overview.md`, `rules.md` and
+`github-workflow.md`, protecting only `project.md` (`cli_utils.py:1891`).
+
+**And the reason it survived — also in #204.** Nothing tests a clean machine. **2620 tests pass
+and not one would have caught this**, because the author's machine already has `CLAUDE.md`, skills
+in `~/.claude/skills/`, registered editions and cloned Macula. A test must start from a clone with
+an empty `HOME`. Most of it is reachable already: `install_global_skills(sp_home=...)`,
+`_install_claude_skills(claude_home=..., sp_home=...)` and `default_editions_dir()` (honours
+`SP_HOME`) all take overrides. Only the edition-resolution assertions need data — a dozen-row
+fixture TSV committed to the repo would cover them, and would also let `sp lint`'s unhelpful "no
+text found" error path be tested.
+
+The wider principle worth writing down somewhere durable: **anything whose correctness depends on
+machine state the author already has needs a test that does not have it.** Otherwise the first
+person to find the bug is always the newcomer, and the error they see has nothing to do with the
+cause — this contributor saw an API 400 and had no reason to suspect a missing markdown file.
+
 ### Then: the AI-context task the Captain asked for
 
 **The Captain's request, 2026-08-17:** make the AI ask him what he knows before speculating about
