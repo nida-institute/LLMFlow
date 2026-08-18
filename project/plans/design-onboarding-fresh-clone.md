@@ -92,11 +92,58 @@ content with the generated text.
 confirms D7-A already works today: stripping the marker protects a file. Which is precisely why the
 marker is load-bearing, and why the Captain's objection to depending on it stands.
 
-### Unverified
+## 2.2 T4 executed — the empty-read hypothesis is REFUTED
 
-The bodyless-400 mechanism. An empty read producing an empty content block that the API rejects is
-the most plausible explanation for what Paul saw, but **it has not been reproduced**. Reproducing it
-from an empty `HOME` is step 1 of the work, and it may turn out to be something else.
+Ran every read `/load-context` performs against a fresh git repo with a fresh `HOME` after `sp init`.
+
+| Read | Result on a clean machine |
+|---|---|
+| `git rev-parse --show-toplevel` | ok, 123 bytes |
+| `git status --short` | **EMPTY OUTPUT, rc=0** |
+| `cat CLAUDE.md` | ERROR rc=1 |
+| `cat docs/ai-context/index.md` | ok, 7253 bytes |
+| `cat docs/ai-context/rules.md` | ok, 3330 bytes |
+| `cat docs/ai-context/overview.md` | ok, 877 bytes |
+| `cat ~/.sp/conventions/*.md` | ok, 18742 bytes |
+| `cat ~/.sp/drift-patterns.md` | ERROR rc=1 |
+| `cat ~/.claude/projects/*/memory/MEMORY.md` | ERROR rc=1 |
+
+**The three missing files are not silent — they are loud.** Each exits 1 and prints
+"No such file or directory" to stderr. A missing file therefore produces a *non-empty* result, so it
+**cannot** be the empty content block that yields a bodyless 400. The hypothesis carried by #204 and
+by revision 1 of this plan is wrong.
+
+### What the same run did find
+
+**`git status --short` returns zero bytes with exit 0** — and it does so precisely when a checkout
+has no local changes, which is *exactly* a fresh clone. It is **step 1 of the skill, the first
+command run.**
+
+This is textbook author-machine blindness: during this entire session, this repository has never had
+a clean tree, so `git status --short` has never once been empty here. `git branch --show-current` is
+a second, narrower case — empty on a detached HEAD.
+
+### Still not proven
+
+**A 400 has not been reproduced.** What is established: (a) missing files are loud, not silent, so
+they are not the cause; (b) the skill contains a command that genuinely produces an empty result, in
+exactly the fresh-clone condition Paul was in. Whether an empty content block is what the API
+rejects remains unverified — that needs the step-9 clean-`HOME` run with a real Claude Code session.
+
+### Verified fix candidate
+
+`git status --short --branch` always emits a `##` header line — 19 bytes even on a clean detached
+checkout — and adds ahead/behind information that the orientation report wants anyway. One word.
+
+### Design impact — one ask changes
+
+"Skills must skip a missing file cleanly, never emit an empty read" was premised on missing files
+being silent. **They are not.** That ask survives only as hygiene — a `cat` error is noise in the
+transcript and the skill should tolerate absence gracefully — but it is **not** the fix for the 400,
+and it should stop being described as such. D3-A remains correct for its own reasons.
+
+**T4's real deliverable is `tests/test_skill_command_output.py`**: no command in a shipped skill may
+exit 0 with neither stdout nor stderr. It fails today on `git status --short`.
 
 ---
 
