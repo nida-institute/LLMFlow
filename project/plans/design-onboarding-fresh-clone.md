@@ -16,7 +16,7 @@ With one stated preference (Captain, 2026-08-17):
 > "If possible, I don't want to write to Claude memory at all, but I do need `/load-context` to
 > work and am willing to write to Claude memory if necessary."
 
-**Captain — is this the goal?** ☐ yes ☐ no, it is: ______________________
+**Confirmed by the Captain, 2026-08-18: this is the goal.**
 
 ---
 
@@ -55,6 +55,8 @@ from an empty `HOME` is step 1 of the work, and it may turn out to be something 
 
 ## 3. Open decisions — Captain's, not mine
 
+**Answer inline after each `=>`.**
+
 ### D1. Where does the `load-context` skill live?
 
 | | Approach | For | Against |
@@ -63,7 +65,7 @@ from an empty `HOME` is step 1 of the work, and it may turn out to be something 
 | **B** | **Home-scoped** — keep `~/.claude/skills/`, fix the consent defaults | No gitignore change; matches the current design; one copy serves every project | Writes to Claude memory, which you would rather avoid. Trainee's copy silently diverges from the mentor's |
 | **C** | **Both** — repo is source of truth, `sp init` also copies to `~/.claude/skills/` | Works whether or not the user starts Claude in the repo root | Two copies to keep in step; the shadowing problem gets worse, not better |
 
-**Captain's ruling:** ______________________
+=>
 
 ### D2. What about the `~/.sp/` content the skill reads?
 
@@ -78,7 +80,7 @@ gets 5 of 8 conventions and no drift-patterns.
 
 A and B are not exclusive — A is a robustness fix, B a completeness fix.
 
-**Captain's ruling:** ______________________
+=>
 
 ### D3. Does `/load-context` still read `CLAUDE.md`?
 
@@ -89,7 +91,7 @@ clone never has one. `docs/ai-context/` is committed and can carry the same cont
 - **B** — skill stops reading it entirely; `docs/ai-context/` becomes the sole contract
 - **C** — `sp init` scaffolds it after all (abandons the preference)
 
-**Captain's ruling:** ______________________
+=>
 
 ### D4. What should `sp init` do when stdin is not a TTY?
 
@@ -99,14 +101,14 @@ Currently: nothing, silently (`cli_utils.py:805-806`).
 - **B** — keep skipping but print what was skipped and how to get it
 - **C** — add an explicit flag (`--ai-assistant=claude`) for non-interactive use
 
-**Captain's ruling:** ______________________
+=>
 
 ### D5. Should `Claude Code` still default to No?
 
 `GitHub Copilot` defaults to Yes, `Claude Code` to No (`cli_utils.py:811-812`), and skills are a
 second No (`cli_utils.py:777`). A user pressing Enter throughout gets Copilot and no Claude setup.
 
-**Captain's ruling:** ______________________
+=>
 
 ### D6. Should your `~/.sp/user-context/` files ship?
 
@@ -118,7 +120,7 @@ it writable. It does not ship because it is *the user's own* context, which may 
 But you put `filesystem-access.md`, `github-authority.md` and `consumer-repo-conventions.md` in
 Paul's zip, so you wanted him to have them. Are they per-user, or should some ship as defaults?
 
-**Captain's ruling:** ______________________
+=>
 
 ### D7. Ownership of a generated file
 
@@ -129,7 +131,7 @@ one hand-edited, because the marker is the only test. A mentor has no way to say
 - **B** — `--update` merges rather than overwrites
 - **C** — document that everything durable goes in `project.md`
 
-**Captain's ruling:** ______________________
+=>
 
 ---
 
