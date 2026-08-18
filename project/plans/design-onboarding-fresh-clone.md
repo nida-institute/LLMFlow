@@ -1,8 +1,10 @@
 # Design — onboarding from a fresh clone (#204)
 
-**Status:** awaiting Captain's review. No code written.
+**Status:** D1–D7 ruled by the Captain 2026-08-18. **D1 has a blocking technical conflict — see D1.**
+No implementation code written yet.
 **Issue:** #204 (diagnosis corrected 2026-08-17) · related: #181, #32
-**Author:** AI, from code read at `c1e8829`. Every claim below cites `file:line` — verify any of them.
+**Author:** AI, from code read at `c1e8829` and from an actual `sp init` run against a fake `HOME`
+(§2.1). Every claim cites `file:line` or an observed command output — verify any of them.
 
 ---
 
@@ -44,6 +46,51 @@ These are read from the code, not inferred.
 | **Personal skills shadow project skills of the same name** | Claude Code docs: "`/deploy` runs the personal one" |
 | `sil-translator-notes` gitignores `CLAUDE.md` (line 1) and `.claude/` (line 4) | its `.gitignore` |
 | Its `docs/ai-context/` **is** committed | `git ls-files` → `index.md`, `project.md`, `rules.md` |
+| **`sp init` creates `~/.sp` AND registers the project**, non-interactively | `cli_utils.py:1962`, `_register_in_global_registry` at `1965-1988`; observed §2.1 |
+| Registration is idempotent — skips an already-registered project | `cli_utils.py:1984-1988` |
+| `sp init` also indexes `docs/ai-context/*.md` into `~/.sp/ai-context/` | `cli_utils.py:1990+`; observed §2.1 |
+| **Claude Code does not read skills from `~/.sp/`** — only `~/.claude/skills/` or `.claude/skills/` | Claude Code docs, "Skills" location table |
+
+The registration row was **missing from the first revision of this table** — the Captain caught it.
+
+## 2.1 Empirically verified, not just read
+
+Run: `env HOME=<fake> python -m llmflow.cli init` in an empty directory. stdin was not a TTY.
+
+**What `sp init` produced with no prior state:**
+
+```
+✓ Installed llmflow-pipeline-steps.md to ~/.sp/conventions/    (5 conventions)
+✓ Installed load-context skill to ~/.sp/skills/                (10 skills)
+Registered project 'freshclone' in ~/.sp/projects/
+Indexed index.md in ~/.sp/ai-context/                          (5 files indexed)
+```
+
+Created: `~/.sp/{conventions,skills,projects,ai-context,databases,datasets}`, the full
+`docs/ai-context/` set, `project/`, `docs/audits/`, `outputs/`.
+
+**Not created: `CLAUDE.md`. Not created: `~/.claude` at all.** The non-TTY silent return
+(`cli_utils.py:805-806`) is therefore observed behaviour, not inference.
+
+### The overwrite question — settled by experiment
+
+Three files were hand-edited, then `sp init` was run twice. This tests the claim that `sp init`
+"writes to the context and could overwrite it".
+
+| File | State before | Plain `sp init` | `sp init --update` |
+|---|---|---|---|
+| `index.md` | marker on line 1 | preserved | **OVERWRITTEN** — edit destroyed |
+| `rules.md` | marker stripped | preserved | preserved |
+| `project.md` | — | preserved | preserved ("yours to own") |
+
+Plain `sp init` reported `already exists; leaving as-is` for **every** ai-context file and changed
+none of them. `--update` reported `Updated docs/ai-context/index.md` and replaced the hand-written
+content with the generated text.
+
+**Conclusion:** the claim is **half right**. `sp init` *can* overwrite AI context — but only with
+`--update`, and only for a file still carrying the marker. Plain `sp init` never does. This also
+confirms D7-A already works today: stripping the marker protects a file. Which is precisely why the
+marker is load-bearing, and why the Captain's objection to depending on it stands.
 
 ### Unverified
 
@@ -65,7 +112,69 @@ from an empty `HOME` is step 1 of the work, and it may turn out to be something 
 | **B** | **Home-scoped** — keep `~/.claude/skills/`, fix the consent defaults | No gitignore change; matches the current design; one copy serves every project | Writes to Claude memory, which you would rather avoid. Trainee's copy silently diverges from the mentor's |
 | **C** | **Both** — repo is source of truth, `sp init` also copies to `~/.claude/skills/` | Works whether or not the user starts Claude in the repo root | Two copies to keep in step; the shadowing problem gets worse, not better |
 
-=>
+=>  We don't want to use ~/.claude anything if possible. It belongs in ~/.sp, but it should also invoke local project context found in project.md and files that it refers to.
+
+#### ⚠️ Blocker — the ruling cannot be implemented as literally stated
+
+**Claude Code does not read skills from `~/.sp/`.** Its documented locations are exactly two:
+
+| Type | Location | Available in |
+|---|---|---|
+| Personal | `~/.claude/skills/<name>/SKILL.md` | All your projects |
+| Project | `.claude/skills/<name>/SKILL.md` | This project only |
+
+`~/.sp/` is LLMFlow's own directory; Claude Code knows nothing about it. A skill sitting in
+`~/.sp/skills/load-context/` is **invisible** — `/load-context` does not exist as a command. That is
+exactly why `_install_claude_skills` copies `~/.sp/skills` → `~/.claude/skills` today
+(`cli_utils.py:778`): the copy is not redundancy, it is the only thing that makes the skill
+invocable.
+
+So `~/.sp/` can be the **canonical source**, but something must place a copy where Claude Code
+looks. There is no third option.
+
+**What is still possible, given the preference:**
+
+- **A′ — repo-scoped.** `sp init` copies `~/.sp/skills/` → the repo's `.claude/skills/`, committed.
+  **Nothing is written to your home `~/.claude`.** This is the only route that honours "no
+  `~/.claude` anything". It does still create a directory *named* `.claude`, inside the repo —
+  if the objection is to the name rather than to writing outside the project, this fails too and
+  `/load-context` cannot be a slash command at all.
+  Cost: carve `.claude/skills/` out of the `.claude/` gitignore line; and **a personal skill of the
+  same name shadows the project one**, so your machine will keep running your copy and cannot
+  verify the shipped one.
+- **B′ — home-scoped**, i.e. today's design with the consent defaults fixed. Invokes the stated
+  fallback: *"willing to write to Claude memory if necessary."* This is that case.
+
+**Captain — which? A′ or B′?** The second half of the ruling ("should also invoke local project
+context found in `project.md` and files it refers to") is unaffected and will be implemented either
+way: the skill reads `docs/ai-context/project.md` and follows its references.
+
+=> I can live with a minimal use of .claude, I think it should be project level, and it should load all of our ~/.sp skills and any local project skills.
+
+#### Ruled: A′ — project-level `.claude/skills/`, committed. Nothing in `~/.claude`.
+
+`sp init` populates `<repo>/.claude/skills/` from **both** sources:
+
+1. every skill in `~/.sp/skills/` — the 10 shipped ones, so a trainee gets the same set as the mentor
+2. any project-local skills the repo defines
+
+**Four consequences that follow, each needing work:**
+
+1. **`.gitignore` must change in consumer repos.** `.claude/` is currently ignored wholesale
+   (`sil-translator-notes/.gitignore:4`, commented *"local session state and AI memory (never
+   commit)"*). `.claude/skills/` must be carved out and committed while the rest of `.claude/`
+   — `settings.local.json` and session state — stays ignored. Both the engine's generated
+   `.gitignore` and existing consumer repos need this.
+2. **Collision policy is needed.** If `~/.sp/skills/load-context` and a project-local
+   `load-context` both exist, one wins. This is D7's catalog question again — the copy needs a
+   declared rule, not last-write-wins.
+3. **The Captain's machine cannot verify the result.** A personal skill shadows a project skill of
+   the same name, so `~/.claude/skills/load-context/` will keep winning here. Verification requires
+   a machine — or a test harness — with no personal copy. This is the single hardest thing about
+   testing this fix.
+4. **`.claude/skills/` becomes committed generated content** — a new category. It is generated by
+   `sp init` yet lives in git, so the D7 catalog must model "generated but committed" distinctly
+   from "generated, gitignored".
 
 ### D2. What about the `~/.sp/` content the skill reads?
 
@@ -80,7 +189,7 @@ gets 5 of 8 conventions and no drift-patterns.
 
 A and B are not exclusive — A is a robustness fix, B a completeness fix.
 
-=>
+=> `sp init` should make these available.
 
 ### D3. Does `/load-context` still read `CLAUDE.md`?
 
@@ -91,7 +200,7 @@ clone never has one. `docs/ai-context/` is committed and can carry the same cont
 - **B** — skill stops reading it entirely; `docs/ai-context/` becomes the sole contract
 - **C** — `sp init` scaffolds it after all (abandons the preference)
 
-=>
+=> A
 
 ### D4. What should `sp init` do when stdin is not a TTY?
 
@@ -101,12 +210,55 @@ Currently: nothing, silently (`cli_utils.py:805-806`).
 - **B** — keep skipping but print what was skipped and how to get it
 - **C** — add an explicit flag (`--ai-assistant=claude`) for non-interactive use
 
+=> Educate me.  I have no idea what to do here.
+
+**Answer.** Non-TTY happens in CI, Docker builds, `sp init < /dev/null`, and any scripted
+onboarding — so it is the exact path a "one command" story would take. Today it does nothing and
+says nothing, which is the worst of the options.
+
+The important thing the §2.1 run showed: **the gate is far narrower than it looks.** Everything
+substantial already happens non-interactively — all of `docs/ai-context/`, `project/`, `outputs/`,
+the whole of `~/.sp/`, and project registration. `_configure_ai_assistants` gates only:
+
+- four project-scoped files — the `CLAUDE.md` block, `.cursorrules`, `.windsurfrules`,
+  `.github/copilot-instructions.md`
+- the one machine-scoped action — copying skills into `~/.claude/skills/`
+
+Under D1 the machine-scoped action either moves into the repo (A′) or is the thing you've accepted
+as necessary (B′). Either way the gate ends up guarding **four harmless, idempotent, non-destructive
+project files** — §2.1 proved plain `sp init` cannot clobber them.
+
+**Recommended: A, and treat C as a convenience.** Write the project-scoped files unconditionally,
+print one line naming what was written and what was skipped. A prompt whose every answer is safe is
+pure friction, and its cost is a silently broken setup when someone presses Enter. Keep prompting
+for machine-scoped writes only. A flag (`--ai-assistant=claude`) is worth having for explicit
+scripted control, but the default path must work without it.
+
 =>
 
 ### D5. Should `Claude Code` still default to No?
 
 `GitHub Copilot` defaults to Yes, `Claude Code` to No (`cli_utils.py:811-812`), and skills are a
 second No (`cli_utils.py:777`). A user pressing Enter throughout gets Copilot and no Claude setup.
+
+=> Educate me. I don't know the right answer.
+
+**Answer.** Two things are wrong here, and only one is about the default.
+
+The narrow point: the defaults encode "Copilot yes, Claude Code no" for a project whose entire
+skill, convention and drift-pattern system is Claude Code. That is backwards. And because the
+consents nest, a user must say yes **twice** — miss either and there is no `CLAUDE.md` and no
+invocable skill.
+
+The broader point: **given D4, this question largely dissolves.** If the project-scoped writes are
+non-destructive and idempotent — proven in §2.1 — the fix is not to flip a default but to stop
+asking. Write the assistant files for all four assistants, or detect what the repo already uses.
+Prompting belongs only on machine-scoped writes, and D1 either removes those or makes them the
+accepted cost.
+
+**Recommended:** remove the first prompt entirely rather than flip it; keep a single prompt for the
+one genuinely machine-scoped action, if B′ is chosen at D1. If A′ is chosen, no prompt remains and
+`sp init` becomes fully non-interactive — which is what "one command" requires.
 
 =>
 
@@ -120,6 +272,31 @@ it writable. It does not ship because it is *the user's own* context, which may 
 But you put `filesystem-access.md`, `github-authority.md` and `consumer-repo-conventions.md` in
 Paul's zip, so you wanted him to have them. Are they per-user, or should some ship as defaults?
 
+=> Educate me. I'm inclined to think user context is not part of the product, only project context and global context.
+
+**Answer.** The principle holds. The refinement is that two of the three files are not user context
+at all — they are mislabelled.
+
+Three tiers, by **who owns the content**:
+
+| Tier | Owner | Ships? | Lives in |
+|---|---|---|---|
+| Product / global | the engine, versioned | yes | `templates/sp-conventions/` → `~/.sp/conventions/` |
+| Project | the repo, committed | n/a — travels with the clone | `docs/ai-context/` |
+| User / machine | the individual | **no** | `~/.sp/user-context/` |
+
+Now look at what is actually in `~/.sp/user-context/`:
+
+- `github-authority.md` — a policy about what an AI may do to someone's GitHub account. That should
+  bind **everyone on the team**, not just whoever wrote it. It is global content in the wrong tier.
+- `consumer-repo-conventions.md` — conventions for consumer repos. Also team-wide. Same.
+- `filesystem-access.md` — genuinely machine-specific. Correctly placed.
+
+**Recommended:** don't decide whether `user-context/` ships — **split it.** Promote the two policy
+files into shipped conventions (which also gets Paul what you wanted him to have), and leave the
+machine-specific one as the user's own, never shipped. Your principle survives intact and the
+directory keeps its meaning.
+
 =>
 
 ### D7. Ownership of a generated file
@@ -131,7 +308,31 @@ one hand-edited, because the marker is the only test. A mentor has no way to say
 - **B** — `--update` merges rather than overwrites
 - **C** — document that everything durable goes in `project.md`
 
-=>
+=> Relying on this marker is fragile. We need a catalog that says what files sp init works on. We have already had failures when subsequent versions of our software changed the exact text in that string.
+
+**Ruled: a catalog, not a magic string.** Confirmed by experiment — §2.1 shows the marker is the sole
+test, so a file whose marker text drifts becomes either permanently un-updatable or silently
+overwritable, depending on which side of the comparison changed. The stale help string already found
+in this session is the same class of failure: `cli.py:118-122` advertises
+`'<!-- Generated by llmflow init -->'` while the constant is `'<!-- Generated by sp init -->'`
+(`cli_utils.py:568`) — the two are already out of step in the shipped product.
+
+Design implication: a declared catalog of managed files with per-file policy
+(`generated` / `create-once` / `user-owned`), keyed by path rather than by content sniffing. Ownership
+becomes a property of the catalog entry, not a string inside the file. `project.md` is then simply a
+`create-once` entry rather than a special case in the code (`cli_utils.py:1890`).
+
+**Captain, 2026-08-18: `.claude` files belong in the catalog too, so we don't lose sight of them.**
+
+So the catalog's scope is every file `sp init` touches or places, **including everything under
+`.claude/`** — the copied `.claude/skills/*` (D1-A′), and any other `.claude` file the engine writes
+or expects. Rationale: `.claude/` is the one tree that is simultaneously generated, partly committed
+and partly gitignored, so it is exactly where untracked files go unnoticed. An entry per file also
+gives the collision policy of D1 consequence 2 somewhere to live, and lets the `.gitignore` carve-out
+of consequence 1 be *derived* from the catalog rather than hand-maintained in a second place.
+
+Minimum fields this implies per entry: path, policy, whether it is committed or ignored, and its
+source (packaged template, `~/.sp/`, or project-local).
 
 ---
 
@@ -145,8 +346,11 @@ Ordered by value. Every one of these fails today.
 | T2 | `sp init` with an empty `HOME`: assert every file `/load-context` reads either exists or is explicitly optional | The whole class of clean-machine bugs | Reachable now — `install_global_skills(sp_home=…)`, `_install_claude_skills(claude_home=…, sp_home=…)`, `default_editions_dir()` all take overrides |
 | T3 | Non-TTY `sp init` produces a stated, asserted outcome | The silent return at `cli_utils.py:805-806` | Shape depends on **D4** |
 | T4 | Reproduce Paul's failure from an empty `HOME` | Confirms or refutes the empty-read hypothesis | Do this **first** — the fix depends on the mechanism being what we think |
-| T5 | `sp init --update` leaves a file whose ownership was taken | The `--update` hazard | Shape depends on **D7** |
-| T6 | Skill/context files reachable from a clone with no `~/.sp` and no `~/.claude` | D1's premise | Shape depends on **D1** |
+| T5 | ~~`sp init --update` leaves a file whose ownership was taken~~ | — | **Superseded by T8.** D7 replaces marker-sniffing with a catalog, so the test asserts catalog policy, not marker behaviour |
+| T6 | After `sp init`, `<repo>/.claude/skills/` contains every `~/.sp/skills/` skill plus project-local ones, and `~/.claude` is never written | D1-A′ | Shape now known. §2.1 already gives the harness: fake `HOME`, assert `~/.claude` absent |
+| T7 | The generated `.gitignore` ignores `.claude/` but **not** `.claude/skills/` | D1 consequence 1 | Cheap, and catches the case where the skills are copied but never committed |
+| T8 | Catalog-driven ownership: a `user-owned` entry survives `--update`; a `generated` entry is refreshed; policy is keyed by path, not by marker text | D7 | Replaces T5. Must also assert the two marker strings in `cli.py:118-122` and `cli_utils.py:568` agree — they do not today |
+| T9 | **Every file `sp init` writes appears in the catalog, including all `.claude/` files** — a file written but uncatalogued fails the test | D7, Captain 2026-08-18 | The guard against losing sight of files. Same shape as T1's drift guard, applied to the catalog: the set of written paths must equal the set of catalogued paths |
 
 **Honest limit:** T1–T5 are pytest. **The skill's own behaviour is not unit-testable** — `SKILL.md`
 is markdown executed by a model, not code. "Skip a missing file cleanly" is a change to skill *text*;
@@ -158,23 +362,49 @@ be this machine**, because your personal skill shadows any repo copy.
 
 ## 5. Sequence
 
-1. **T4** — reproduce from an empty `HOME`. Confirm the mechanism before designing against it.
-2. **T1** — conventions drift guard. Independent of every decision above; safe to land first.
-3. Captain rules on D1–D7.
-4. **T2, T3, T5, T6** written to the ruled shapes — failing.
-5. Implement against them.
-6. `/commit-ready`: full suite, CHANGELOG, commit message with issue refs.
+D1–D7 are now ruled, so the sequence is unblocked end to end. Ordered so that each step's result can
+change the next — nothing later assumes an earlier step's outcome.
 
-**Steps 1 and 2 need no rulings** and could start on your word. Steps 3 onward are blocked on D1–D7.
+1. **T4 — reproduce from an empty `HOME`.** Confirm the bodyless-400 mechanism *before* designing
+   against it. §2.1 already built the harness. If the cause turns out not to be the empty read, D3
+   and the skip-missing-file work change shape, so this genuinely goes first.
+2. **T1 — conventions drift guard** (`EXPECTED_CONVENTIONS`). Independent of every ruling; the
+   cheapest real fix in the plan. Lands the three missing conventions with it.
+3. **D6 split** — promote `github-authority.md` and `consumer-repo-conventions.md` to shipped
+   conventions; leave `filesystem-access.md` user-owned. Falls out of step 2's work.
+4. **T8, T9 + the catalog** (D7). The catalog is a prerequisite for the `.claude/skills/` copy,
+   because the copy needs a declared collision policy (D1 consequence 2), and because every
+   `.claude/` file must be catalogued. Fix the two disagreeing marker strings here. T9 — every
+   written path is a catalogued path — is what stops files going missing later.
+5. **T7 + `.gitignore` carve-out** (D1 consequence 1) — engine-generated and consumer repos.
+6. **T6 + the `.claude/skills/` copy** (D1-A′), sourced from `~/.sp/skills/` plus project-local.
+7. **T3 + non-TTY / prompt removal** (D4, D5) — write project-scoped files unconditionally, report
+   what was written and skipped.
+8. **T2** — the full clean-machine assertion, last, because it is the acceptance test for
+   everything above.
+9. `/commit-ready`: full suite, CHANGELOG, commit message with issue refs.
+
+**Steps 1 and 2 need nothing further from the Captain** and are the natural starting point.
 
 ---
 
 ## 6. Constraints in force
 
 - **No push this session** (Captain). `origin/dev` stays at `cb72cb7` so PR #199 is not retargeted
-  and the ~2h Windows build is not restarted. Local commits are fine.
+  and the ~2h Windows build is not restarted. **Commit yes, push no.**
 - **CHANGELOG is frozen** while #199 is in flight; this work is for the version after 0.2.1.24.
 - **`.gitignore` changes land in consumer repos and in whatever `sp init` generates** — the engine
-  change and the mentoring-repo change are not the same edit. If D1 is A or C, both are needed.
+  change and the mentoring-repo change are not the same edit. D1-A′ means **both are needed.**
 - **This plan is not authorization.** Per `rules.md` #15, implementation waits on your explicit
   direction after reviewing it.
+
+=> Do add to CHANGELOG, just don't commit and push.  We may decide to merge this into the current version before merging to main, since we haven't shipped the one that built.
+
+**Ruled, 2026-08-18 — this supersedes the "CHANGELOG is frozen" bullet above.** Do add CHANGELOG
+entries as work lands. Do commit. **Do not push.** The version this ships under is deliberately left
+open: it may be folded into 0.2.1.24 before that merges to `main`, since the built release has not
+shipped yet. So a CHANGELOG entry should be written where it can be re-targeted — do not assume a new
+version heading.
+
+No CHANGELOG entry exists yet because no behaviour has changed; the commits so far are this plan,
+the corrected #204 diagnosis, and TODO.md.
