@@ -24,13 +24,59 @@ def get_skills_templates_dir() -> Path:
     return Path(llmflow.__file__).parent / "templates" / "sp-skills"
 
 
+# Commands that change state rather than report it. Producing no output is correct
+# for these, so they are not candidates for the empty-result bug.
+ACTION_COMMANDS = frozenset(
+    {
+        "sleep",
+        "rm",
+        "mkdir",
+        "rmdir",
+        "cp",
+        "mv",
+        "touch",
+        "chmod",
+        "chown",
+        "ln",
+        "export",
+        "cd",
+        "set",
+        "unset",
+        "kill",
+        "open",
+        "pip",
+        "hatch",
+        "sp",
+    }
+)
+
+# git subcommands that act rather than report.
+ACTION_GIT_SUBCOMMANDS = frozenset(
+    {"add", "commit", "push", "pull", "checkout", "switch", "merge", "rebase", "tag", "reset",
+     "fetch", "clone", "init", "cherry-pick", "stash", "restore"}
+)
+
+
+def is_action(command: str) -> bool:
+    """True when a command exists to change something, not to report something."""
+    parts = command.split()
+    if not parts:
+        return True
+    head = Path(parts[0]).name
+    if head in ACTION_COMMANDS:
+        return True
+    if head == "git" and len(parts) > 1 and parts[1] in ACTION_GIT_SUBCOMMANDS:
+        return True
+    return False
+
+
 def extract_shell_commands(skill_md: Path) -> list[str]:
-    """Return single-line shell commands from ```bash fences in a SKILL.md.
+    """Return single-line informational shell commands from ```bash fences in a SKILL.md.
 
     Deliberately conservative: skips continuations, comments, blank lines, and any
-    line containing a shell metacharacter that would need a real parser. The point
-    is to catch plain informational commands, which are the ones that can silently
-    return nothing.
+    line containing a shell metacharacter that would need a real parser. Action
+    commands are excluded — the target is informational commands, which are the ones
+    that can silently return nothing and produce an empty result block.
     """
     text = skill_md.read_text(encoding="utf-8")
     commands: list[str] = []
@@ -41,8 +87,16 @@ def extract_shell_commands(skill_md: Path) -> list[str]:
                 continue
             if any(ch in line for ch in "|<>$&\\") or line.endswith(("\\", "{", "(")):
                 continue
+            if is_action(line):
+                continue
             commands.append(line)
     return commands
+
+
+def all_shipped_skills() -> list[Path]:
+    return sorted(
+        d for d in get_skills_templates_dir().iterdir() if (d / "SKILL.md").exists()
+    )
 
 
 @pytest.fixture
@@ -61,15 +115,18 @@ def clean_clone(tmp_path: Path) -> Path:
     return repo
 
 
-def test_load_context_commands_never_yield_an_empty_result(clean_clone: Path):
-    """No command in load-context may exit 0 with neither stdout nor stderr.
+@pytest.mark.parametrize("skill_dir", all_shipped_skills(), ids=lambda d: d.name)
+def test_skill_commands_never_yield_an_empty_result(skill_dir: Path, clean_clone: Path):
+    """No informational command in a shipped skill may exit 0 with no output at all.
 
     An empty result becomes an empty content block, which the API rejects with a
     bodyless 400 — an error that names nothing and points at nothing.
+
+    The clean_clone fixture matters: `git status --short` is silent only when a
+    checkout has no local changes, which is exactly a new contributor's clone and
+    never a working machine mid-task.
     """
-    skill = get_skills_templates_dir() / "load-context" / "SKILL.md"
-    commands = extract_shell_commands(skill)
-    assert commands, f"No shell commands extracted from {skill} — the parser or the skill changed"
+    commands = extract_shell_commands(skill_dir / "SKILL.md")
 
     silent: list[str] = []
     for cmd in commands:
@@ -80,9 +137,32 @@ def test_load_context_commands_never_yield_an_empty_result(clean_clone: Path):
             silent.append(cmd)
 
     assert not silent, (
-        "These commands succeed with no output at all on a clean clone, producing an "
-        "empty content block:\n"
+        f"In {skill_dir.name}, these commands succeed with no output at all on a clean "
+        "clone, producing an empty result block:\n"
         + "\n".join(f"  {c}" for c in silent)
-        + "\n\nGuard each one so it always says something, e.g. "
-        '`git status --short || true` with a fallback message.'
+        + "\n\nMake each one always report something — e.g. `git status --short --branch`, "
+        "whose `##` header prints even when the tree is clean."
+    )
+
+
+def test_load_context_step_one_uses_branch_flag():
+    """Regression guard for #204: the fix must not be silently reverted.
+
+    `git status --short` without `--branch` prints nothing in a clean checkout. This
+    pins the flag so a later edit cannot quietly reintroduce the empty result.
+    """
+    skill = get_skills_templates_dir() / "load-context" / "SKILL.md"
+    text = skill.read_text(encoding="utf-8")
+
+    assert "git status --short --branch" in text, (
+        "load-context must use `git status --short --branch` — plain `--short` is "
+        "silent in a clean checkout (#204)"
+    )
+
+    # Only runnable code counts. Prose may legitimately mention the bare form when
+    # explaining why it is wrong — as this skill now does.
+    code = "\n".join(re.findall(r"```bash\n(.*?)```", text, re.DOTALL))
+    bare = re.findall(r"git status --short(?! --branch)", code)
+    assert not bare, (
+        f"Found {len(bare)} bare `git status --short` in a bash block — needs --branch (#204)"
     )

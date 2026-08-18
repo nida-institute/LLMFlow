@@ -42,10 +42,17 @@ not from memory.
 ### Step 1: Identify the Repo
 
 ```bash
-git rev-parse --show-toplevel    # repo root
-git branch --show-current        # current branch
-git status --short               # in-progress work
+git rev-parse --show-toplevel         # repo root
+git status --short --branch           # branch, ahead/behind, and in-progress work
 ```
+
+Each command above always produces output, whether run together or separately. That is a
+requirement, not a coincidence: a command that returns nothing yields an empty result block, which
+the API rejects with a bodyless 400 (LLMFlow#204).
+
+`--branch` is what guarantees it — plain `git status --short` prints nothing at all in a clean
+checkout. The `##` header always prints, and carries ahead/behind, which the orientation summary
+needs anyway. It also replaces `git branch --show-current`, which is silent on a detached HEAD.
 
 If there are uncommitted changes, note them — they represent work already in progress.
 
