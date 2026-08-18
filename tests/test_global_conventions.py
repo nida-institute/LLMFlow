@@ -13,6 +13,26 @@ from llmflow.cli_utils import (
     install_global_skills,
 )
 
+# Conventions the package must ship to ~/.sp/conventions/ (#204, #181).
+#
+# This set is the counterpart to EXPECTED_SKILLS below, and it exists because that
+# asymmetry caused a real bug: skills had a drift guard and conventions did not, so
+# three conventions present on the author's machine were never added to the package.
+# Nobody noticed until a new contributor's machine had 5 of 8 (#204).
+#
+# Adding a convention to ~/.sp/ without adding it here — or to templates/ without
+# listing it here — fails the test.
+EXPECTED_CONVENTIONS = {
+    "README.md",
+    "design-authority.md",
+    "llmflow-pipeline-steps.md",
+    "llmflow-project-tracking.md",
+    "llmflow-prompt-organization.md",
+    "sp-debugging.md",
+    "sp-workflow.md",
+    "surface-decisions.md",
+}
+
 EXPECTED_SKILLS = {
     "audit-code",
     "audit-output",
@@ -54,6 +74,67 @@ def test_project_tracking_convention_template_exists():
     pkg_root = Path(llmflow.__file__).parent
     template_file = pkg_root / "templates" / "sp-conventions" / "llmflow-project-tracking.md"
     assert template_file.exists(), f"Project tracking convention not found at {template_file}"
+
+
+def get_conventions_templates_dir() -> Path:
+    import llmflow
+
+    return Path(llmflow.__file__).parent / "templates" / "sp-conventions"
+
+
+@pytest.mark.parametrize("convention_name", sorted(EXPECTED_CONVENTIONS))
+def test_convention_template_shipped(convention_name):
+    """Every expected convention must exist in the templates directory."""
+    template = get_conventions_templates_dir() / convention_name
+    assert template.exists(), f"Convention template not shipped: {template}"
+
+
+def test_shipped_conventions_match_expected():
+    """Templates conventions set must equal EXPECTED_CONVENTIONS — drift guard (#204).
+
+    The counterpart to test_installed_skills_match_templates. Without this, a
+    convention can live on one machine and never reach the package — which is exactly
+    how design-authority.md, sp-debugging.md and sp-workflow.md went missing.
+    """
+    shipped = {p.name for p in get_conventions_templates_dir().glob("*.md")}
+    assert shipped == EXPECTED_CONVENTIONS, (
+        "Shipped conventions do not match EXPECTED_CONVENTIONS:\n"
+        f"  Extra in templates:   {sorted(shipped - EXPECTED_CONVENTIONS)}\n"
+        f"  Missing from templates: {sorted(EXPECTED_CONVENTIONS - shipped)}"
+    )
+
+
+def test_conventions_readme_indexes_every_convention():
+    """The conventions README must document every shipped convention.
+
+    Its own instructions say to "Add entry to this README" when adding a convention,
+    and it had drifted to listing 3 of 8 — the same silent-omission failure as the
+    missing templates, one level up. Enforced rather than trusted.
+    """
+    readme = get_conventions_templates_dir() / "README.md"
+    text = readme.read_text(encoding="utf-8")
+    undocumented = sorted(
+        name
+        for name in EXPECTED_CONVENTIONS
+        if name != "README.md" and name not in text
+    )
+    assert not undocumented, (
+        f"These conventions are shipped but not listed in {readme.name}: {undocumented}"
+    )
+
+
+def test_install_global_conventions_installs_every_expected_convention(tmp_path):
+    """A fresh machine must end up with all of them, not a subset (#204).
+
+    The bug this pins: a new contributor's ~/.sp/conventions/ had 5 of 8 files, so
+    /load-context silently loaded less guidance than the mentor's machine had.
+    """
+    sp_dir = tmp_path / ".sp"
+    install_global_conventions(sp_home=sp_dir)
+
+    installed = {p.name for p in (sp_dir / "conventions").glob("*.md")}
+    missing = EXPECTED_CONVENTIONS - installed
+    assert not missing, f"sp init left these conventions uninstalled: {sorted(missing)}"
 
 
 @pytest.mark.parametrize("skill_name", sorted(EXPECTED_SKILLS))

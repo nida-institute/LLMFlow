@@ -1,5 +1,38 @@
 # Changelog
 
+## Unreleased
+
+<!-- Version deliberately unset: this may be folded into 0.2.1.24 before that merges to
+     main, since the built release has not shipped yet. Retarget this heading rather than
+     assuming a new version. -->
+
+### Fixed
+
+- **`sp init` installed only 5 of 8 global conventions (#204, #181)** — `design-authority.md`,
+  `sp-debugging.md` and `sp-workflow.md` existed on the author's machine but were never added to
+  the package, so every other machine received a subset. A new contributor's `/load-context`
+  silently loaded less guidance than the mentor's, with nothing reporting the shortfall.
+
+  The three conventions now ship. The cause was an asymmetry in the test suite: `EXPECTED_SKILLS`
+  pinned the shipped skill set exactly, and conventions had no equivalent, so skills held while
+  conventions drifted. `EXPECTED_CONVENTIONS` now guards them the same way, and a further test
+  requires the conventions `README.md` to index every convention it ships — it had itself drifted
+  to listing 3 of 8.
+
+- **`/load-context` step 1 could return an empty result (#204)** — `git status --short` prints
+  nothing in a clean checkout, which is exactly a fresh clone, and a command that returns nothing
+  yields an empty result block. Replaced with `git status --short --branch`, whose `##` header
+  always prints and additionally reports ahead/behind. `git branch --show-current`, silent on a
+  detached HEAD, is dropped since the header supplies that information.
+
+  A new test asserts across **all ten shipped skills** that no informational command exits 0 with
+  neither stdout nor stderr. Commands that change state rather than report it are excluded —
+  silence is correct for those.
+
+  **This is not confirmed to be the cause of the bodyless HTTP 400 reported in #204.** Two
+  proposed mechanisms for that failure have been refuted by test, and the cause remains unknown;
+  see #204. This change is justified on its own merits.
+
 ## 0.2.1.24 — 2026-08-16
 
 ### New Features

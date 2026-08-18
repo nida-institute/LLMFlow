@@ -32,6 +32,30 @@ Surface genuine decisions to the Captain (whoever directs the project) and stop;
 
 **Key standard:** A genuine decision (scope boundary, design choice, anything with real consequence) → name it crisply, make sure the Captain sees it, and halt for the Captain's call. Mechanical/low-stakes work proceeds without gating. Streaming decisions past the Captain and acting on an assumption are both drift.
 
+### llmflow-project-tracking.md
+One rolling file per pipeline for audit findings and implementation plans.
+
+**Key standard:** `project/audits/audit-{pipeline}.md` and `project/plans/{pipeline}-plan.md`, updated in place. Dates go on individual items, never in filenames; git history is the audit trail, so dated copies do not accumulate. Audits record what was found; plans record what will be done — the two stay separate.
+
+### design-authority.md
+The user is the designer; the AI is not.
+
+**Key standard:** Only the user's design documents and explicit agreement carry design authority. Existing code behaviour, docstrings, AI-generated rationale, and prior AI choices carry none. Before writing code, name the design document that specifies it — if you cannot, stop and ask.
+
+**Source:** Originated in nida-institute/discourse-flow
+
+### sp-debugging.md
+Project-neutral debugging practice for any `sp` pipeline.
+
+**Key standard:** `linter_config.log_level: debug` makes every `type: llm` step dump its rendered request and raw response to disk — there is no `--debug` flag and no environment variable. Dumps land under `<intermediate_file_directory>/debug/<pipeline_name>/` and are cleared each run.
+
+**Source:** Generalized from nida-institute/ears-to-hear `docs/architecture/debugging.md`
+
+### sp-workflow.md
+Machine-global workflow rules for every `sp` project.
+
+**Key standard:** The CLI is `sp run` / `sp lint`, not `llmflow` — that prefix is stale. Never run `sp run` unasked; the human decides when pipelines run and pays for it. Prefer the file tools over bash, never `cd /path && command`, and never pipe git output. Audit findings need exact quotes and locations, and verdicts belong to the human.
+
 ---
 
 ## Adding New Conventions

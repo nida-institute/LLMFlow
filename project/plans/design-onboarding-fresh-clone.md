@@ -405,7 +405,7 @@ Ordered by value. Every one of these fails today.
 
 | # | Test | Catches | Notes |
 |---|---|---|---|
-| T1 | `EXPECTED_CONVENTIONS` set, mirroring `EXPECTED_SKILLS` | The three drifted conventions, and all future drift | **Smallest high-value test in this plan.** The asymmetry at `tests/test_global_conventions.py:16` is precisely why skills held and conventions drifted |
+| T1 | ✅ **DONE** — `EXPECTED_CONVENTIONS` mirroring `EXPECTED_SKILLS`, plus a README-index guard | The three drifted conventions, and all future drift | Landed `design-authority.md`, `sp-debugging.md`, `sp-workflow.md`. Verified on a fresh machine: 8 of 8 installed. Also found the conventions `README.md` had itself drifted to indexing 3 of 8 — now guarded |
 | T2 | `sp init` with an empty `HOME`: assert every file `/load-context` reads either exists or is explicitly optional | The whole class of clean-machine bugs | Reachable now — `install_global_skills(sp_home=…)`, `_install_claude_skills(claude_home=…, sp_home=…)`, `default_editions_dir()` all take overrides |
 | T3 | Non-TTY `sp init` produces a stated, asserted outcome | The silent return at `cli_utils.py:805-806` | Shape depends on **D4** |
 | T4 | Reproduce Paul's failure from an empty `HOME` | Confirms or refutes the empty-read hypothesis | Do this **first** — the fix depends on the mechanism being what we think |
