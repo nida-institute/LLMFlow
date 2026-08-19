@@ -256,8 +256,7 @@ def test_install_global_skills_creates_files(tmp_path):
     """install_global_skills installs all expected skills to ~/.sp/skills/."""
     sp_dir = tmp_path / ".sp"
 
-    with patch("llmflow.cli_utils._fetch_stand_down", return_value=None):
-        install_global_skills(sp_home=sp_dir)
+    install_global_skills(sp_home=sp_dir)
 
     for skill_name in EXPECTED_SKILLS:
         skill_file = sp_dir / "skills" / skill_name / "SKILL.md"
@@ -265,11 +264,20 @@ def test_install_global_skills_creates_files(tmp_path):
 
 
 def test_install_global_skills_content_matches_templates(tmp_path):
-    """Installed skill content must match the template (for non-fetched skills)."""
+    """Every installed skill matches the shipped template — stand-down included.
+
+    stand-down used to be fetched from human-at-the-helm at install time, with the
+    bundled template as a fallback, so its content was deliberately allowed to differ.
+    Removed 2026-08-19 (#204, plan D10): `sp doctor` now restores any sp-owned file whose
+    content has diverged from what the package ships, and a file fetched from elsewhere
+    diverges by design — doctor would have overwritten the fetched copy on every run.
+
+    Captain's ruling: *"Drop the fetch — ship stand-down like every other skill, one
+    source of truth."*
+    """
     sp_dir = tmp_path / ".sp"
 
-    with patch("llmflow.cli_utils._fetch_stand_down", return_value=None):
-        install_global_skills(sp_home=sp_dir)
+    install_global_skills(sp_home=sp_dir)
 
     for skill_name in EXPECTED_SKILLS:
         installed = sp_dir / "skills" / skill_name / "SKILL.md"
@@ -278,16 +286,24 @@ def test_install_global_skills_content_matches_templates(tmp_path):
             f"Installed {skill_name} does not match template"
 
 
-def test_install_global_skills_stand_down_uses_fetched_content(tmp_path):
-    """When fetch succeeds, stand-down uses fetched content not bundled fallback."""
-    sp_dir = tmp_path / ".sp"
-    fetched_content = "---\nname: stand-down\n---\n# Fetched version\n"
+def test_install_global_skills_makes_no_network_call(tmp_path, monkeypatch):
+    """Installing skills must not depend on the network (#204, plan D10).
 
-    with patch("llmflow.cli_utils._fetch_stand_down", return_value=fetched_content):
-        install_global_skills(sp_home=sp_dir)
+    The fetch made `sp init` fail differently offline than online, and made one skill's
+    installed content unpredictable. One source of truth means the package.
+    """
+    import urllib.request
 
-    installed = (sp_dir / "skills" / "stand-down" / "SKILL.md").read_text(encoding="utf-8")
-    assert installed == fetched_content
+    def explode(*args, **kwargs):
+        raise AssertionError("install_global_skills attempted a network call")
+
+    monkeypatch.setattr(urllib.request, "urlopen", explode)
+
+    install_global_skills(sp_home=tmp_path / ".sp")
+
+    stand_down = tmp_path / ".sp" / "skills" / "stand-down" / "SKILL.md"
+    template = get_skills_templates_dir() / "stand-down" / "SKILL.md"
+    assert stand_down.read_text(encoding="utf-8") == template.read_text(encoding="utf-8")
 
 
 def test_install_conventions_is_idempotent(tmp_path):
@@ -321,8 +337,7 @@ def test_sp_init_installs_global_resources(tmp_path, monkeypatch, caplog):
     project_dir.mkdir()
     monkeypatch.chdir(project_dir)
 
-    with patch("pathlib.Path.home", return_value=fake_home), \
-         patch("llmflow.cli_utils._fetch_stand_down", return_value=None):
+    with patch("pathlib.Path.home", return_value=fake_home):
         main(["init"])
 
     # Verify global conventions were installed

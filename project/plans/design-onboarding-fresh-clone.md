@@ -297,7 +297,37 @@ pure friction, and its cost is a silently broken setup when someone presses Ente
 for machine-scoped writes only. A flag (`--ai-assistant=claude`) is worth having for explicit
 scripted control, but the default path must work without it.
 
-=>
+=> a fresh clone must get skills
+
+=> A2
+
+**Ruled 2026-08-19 — A, with the three non-Claude assistant files reduced to pointers.**
+All four project-scoped files are written on every `sp init`, TTY or not.
+
+The second ruling came from examining what those files actually contain, against the Captain's
+stated test: *"stop LLMs from giving themselves permissions or setting up their own alternative
+workflows or duplicating what is already in the environment because they messed up. I want to keep
+overall memory clean and aligned."*
+
+**The finding that forced it.** `.cursorrules` and `.windsurfrules` are byte-identical by
+construction — `cli_utils.py:704` assigns `WINDSURFRULES_LLMFLOW_BLOCK = CURSORRULES_LLMFLOW_BLOCK`.
+That shared 6-line block **omits the `sp run` prohibition, the memory-file prohibition, and the
+`docs/ai-context/` prohibition**, all of which `COPILOT_INSTRUCTIONS_DOC` carries. An agent running
+in Cursor and reading `.cursorrules` as its rules finds nothing telling it that running a pipeline
+costs money and needs the Captain's say-so. That is an LLM taking a permission it was never
+granted, and it is shipped today. Writing that file unconditionally would ship the gap to every new
+repo.
+
+All of this content restates `docs/ai-context/`, which `sp init` already writes on every path. So
+the rules lived in one authoritative place plus three lossy copies, two of which had already
+drifted.
+
+**What A2 means:** `.cursorrules`, `.windsurfrules` and `.github/copilot-instructions.md` each
+become a short pointer — *the rules for this project are in `docs/ai-context/rules.md`, read it
+first, it is authoritative* — and carry no rules of their own. One copy, three signposts. A signpost
+cannot drift out of alignment because it holds nothing to drift. Rejected: A1 (write all four
+unchanged — keeps four homes for one rule) and A3 (drop the three — a Cursor user gets no signpost
+at all).
 
 ### D5. Should `Claude Code` still default to No?
 
@@ -323,7 +353,24 @@ accepted cost.
 one genuinely machine-scoped action, if B′ is chosen at D1. If A′ is chosen, no prompt remains and
 `sp init` becomes fully non-interactive — which is what "one command" requires.
 
-=>
+=> a fresh clone must get skills
+
+**Ruled 2026-08-19 — the prompts disappear entirely; `sp init` becomes fully non-interactive.**
+
+The prompt at `cli_utils.py:777` existed for a sound reason: skill installation wrote to
+`~/.claude/skills/`, outside the repo, affecting every Claude Code session on the machine. That is a
+permission only the machine's owner can grant, so asking was correct.
+
+**D1-A′ removes that reason.** The copy now goes to `<repo>/.claude/skills/`, and the machine-scoped
+write disappears. Every remaining write is inside the directory the user just ran `sp init` in, and
+is idempotent — §2.1 proved plain `sp init` cannot clobber these files. Nothing is left for a prompt
+to protect, so both `default=False` gates (`cli_utils.py:777`, `811-812`) come out and the non-TTY
+early return at `805-806` stops mattering.
+
+*Implementation note, not a decision:* `_install_claude_skills` copies only `SKILL.md` from each
+skill directory (`cli_utils.py:728-734`). All 10 shipped skills are single-file today, so it is
+correct now, but it would silently drop supporting files if a skill ever gained one. The copy
+becomes directory-wide.
 
 ### D6. Should your `~/.sp/user-context/` files ship?
 
@@ -428,6 +475,43 @@ of consequence 1 be *derived* from the catalog rather than hand-maintained in a 
 Minimum fields this implies per entry: path, policy, whether it is committed or ignored, and its
 source (packaged template, `~/.sp/`, or project-local).
 
+**Sequencing ruled 2026-08-19.** The AI proposed deferring the catalog to a follow-up and letting
+the skills copy proceed under D10's repair rule.
+
+=> Include the catalog
+
+**Built in this batch, before the `.claude/skills/` copy**, restoring §5's original order. Two
+things follow that the deferral would have lost:
+
+1. **The generated `.gitignore` of D9 is derived from the catalog**, not hand-written. Every entry
+   already records whether it is committed or ignored, so `.claude/skills/` staying out of the
+   ignore list becomes a consequence of its catalog entry rather than a second list to keep in
+   step. That is the same principle as D10 — one authoritative place per fact.
+2. **`doctor`'s ownership boundary is read from the catalog too.** The table under D10 is the same
+   information as the catalog's `policy` field; deriving it means the two cannot disagree.
+
+The collision policy the catalog was needed for is now settled independently: project skills are
+sp-owned, so D10 governs them — a diverged `<repo>/.claude/skills/<name>/` is overwritten from
+`~/.sp/skills/` with a warning that names it.
+
+**Form ruled 2026-08-19, correcting the first implementation.** The AI built the catalog as Python
+literals inside `file_catalog.py`.
+
+=> a file catalog is data, not embedded in code. let's be declarative and get it right, don't embed data in code
+
+**The catalog is `data/file-catalog.yaml`**; `src/llmflow/file_catalog.py` is only a loader. Shipped
+by the same `force-include` mechanism already used for `data/models.json`, and resolved the same way
+in both a wheel and a dev checkout.
+
+*Why this was the right correction:* the whole premise of this engine is declarative data, and a
+catalog whose entries are Python literals cannot be read or edited without reading code — which is
+most of what made the marker string fragile in the first place. Pinned by a test asserting the data
+file exists, that it is YAML, and that no managed path is hardcoded in the loader.
+
+Groups expand from what the package actually ships (`templates: "sp-conventions/*.md"`), so adding a
+template still needs no catalog edit — the derivation the previous session's `EXPECTED_CONVENTIONS`
+guard was written to protect.
+
 ### D8. The verification command — name and prerequisite
 
 Not a question I raised originally; it surfaced because #204's asks name `sp doctor` as though it
@@ -484,6 +568,78 @@ first claimed skill shadowing made the fix unverifiable (see D1 consequence 3). 
 that had just been written up was then treated as a constraint. That is circular authority: an
 AI-authored rationale acquiring the force of a design decision. Neither survived the Captain
 questioning it.
+
+---
+
+### D9. Does `sp init` generate a `.gitignore`?
+
+Raised 2026-08-19. Verified first: **there is no `.gitignore` handling anywhere in
+`src/llmflow/`** — a grep of the whole package returns only two unrelated mentions in
+`doctor.py`. Earlier notes describing a "carve-out in the generated `.gitignore`" were
+wrong; `sp init` has never written one, so there was nothing to carve.
+
+=> write a .gitignore if it does not exist, but do not overwrite an existing one
+
+**Ruled 2026-08-19.** Net-new behaviour, not a change to an existing code path.
+
+**Known consequence, accepted:** `sil-translator-notes` already has a `.gitignore` that ignores
+`.claude/` wholesale. Since `sp init` will not overwrite an existing file, that repo still needs a
+hand edit before a clone of it delivers skills. The engine change and the mentoring-repo change
+remain two separate edits, as §6 already states.
+
+Proposed contents, pending correction: `outputs/`, `llmflow.log`, `CLAUDE.md`. Deliberately **not**
+`.claude/` — committed project skills are the entire point of D1-A′.
+
+---
+
+### D10. `sp doctor` — presence only, or content?
+
+Raised 2026-08-19. The Captain's own `~/.sp/conventions/surface-decisions.md` is the stale
+**790-byte** copy against a shipped **3404 bytes**, so this fires on his machine the day it ships.
+`install_global_conventions` defaults to `force=False` and only `sp init --update` passes
+`force=True` (`cli_utils.py:1657`, `1985-1986`).
+
+=> check content, not just presence
+
+=> projects have a place to write their own context, and it's not in the standard context files that we write. we own those. they should not diverge. Report it with a warning and fix it, clearly saying that we are doing so.
+
+=> Warn, repair, and say you repaired it.
+
+**Ruled 2026-08-19.** This settles the question the previous session left open — whether a user
+might have edited a convention deliberately. They might, but that is not where their edits belong:
+a project writes its own context in `docs/ai-context/project.md`, which sp never overwrites
+(`cli_utils.py:686`). Divergence in an sp-owned file is therefore always a fault, never an intent
+to preserve.
+
+**Ownership boundary this establishes:**
+
+| Ours — restored when missing or diverged | Never touched |
+|---|---|
+| `~/.sp/conventions/*.md` | `docs/ai-context/project.md` |
+| `~/.sp/` root files (`drift-patterns.md`) | `~/.sp/user-context/` |
+| `~/.sp/skills/*/` | `CLAUDE.md` |
+| sp-generated `docs/ai-context/` — `index.md`, `overview.md`, `rules.md`, `github-workflow.md` | |
+
+**Behaviour:** missing or diverged → **WARNING**, repair from the shipped template, print which file
+was restored and why. Exit stays 0. ERROR is reserved for what `doctor` cannot fix — a build that
+ships no templates at all, or a repair that fails to write.
+
+**This reverses "read-only", and that rule had no authority.** `doctor.py:13` states *"Read-only.
+`doctor` reports; it never repairs. Running it is always safe."* Checked before treating it as a
+constraint: "read-only" appears in this document only inside the ✅ BUILT note under D8, describing
+what the previous session implemented. **D8 ruled the command's name and that it be built — nothing
+about repair.** So there was no prior ruling to reverse. `tests/test_doctor.py:165` pins the
+opposite (*"doctor diagnoses; it must not repair"*) and inverts.
+
+**Two consequences to carry into implementation:**
+
+1. **Exit codes change meaning.** Cases that exited 1 (missing conventions, missing root files,
+   missing skills) now exit 0 after self-repair. Anything scripted against `sp doctor`'s exit code
+   reads differently.
+2. **The read-only trap.** `install_global_conventions` locks its directory on exit — the hazard
+   recorded in §6 that already left the whole `~/.sp` tree read-only once and silently broke
+   `install_global_skills()`. Repair writes into that locked directory, so it must handle the lock
+   explicitly and fail loudly, not into a `try/except` that only warns.
 
 ---
 
@@ -578,3 +734,43 @@ version heading.
 
 No CHANGELOG entry exists yet because no behaviour has changed; the commits so far are this plan,
 the corrected #204 diagnosis, and TODO.md.
+
+---
+
+### The version question, settled 2026-08-19
+
+=> we have a bunch of deliverables I want to put in the next release, I'm going to add to the one we started rather than create two releases.  But don't push to the PR, I don't want to keep triggering builds.
+
+**This closes the split left open above.** `CHANGELOG.md:3` retargets from `## Unreleased` to
+**`0.2.1.24`** — the version already in `pyproject.toml:3` and already built by PR #199. There is no
+`0.2.1.25`; this work joins the release in flight.
+
+**PR #199 is therefore no longer the next action.** The handoff of 2026-08-19 opened with "merge
+release PR #199 — it is green and clean." That is now wrong. #199 waits until this work lands, so
+the release ships once rather than twice. The order becomes: finish the work → **one** push → one
+build → merge → tag → approve the `pypi` environment gate.
+
+**"Commit yes, push no" therefore still holds**, and for the original reason: a push retargets #199
+and restarts the ~2h Windows job. What changed is the expiry. The constraint no longer lifts when
+#199 merges — it lifts when this work is complete, and then exactly one push follows.
+
+---
+
+### The bodyless HTTP 400 — closed, not diagnosed
+
+=> I think this may have been user error - trying to use an API key to run Claude Code.
+
+=> at any rate, let's not worry about bodyless HTTP 400 until we encounter it in the wild again.
+
+**Dropped from the active threads 2026-08-19.** Three candidate mechanisms were raised across two
+sessions; two were refuted by test and the third — an API key used to run Claude Code — was never
+confirmed. **No cause is established.** It is not a live thread and no design decision depends on
+it; it reopens only if it recurs in the wild.
+
+**What this does not change.** #204's work rests on independently verified facts, not on the 400:
+skills genuinely are not in a location Claude Code reads, and three conventions genuinely were not
+shipped. Both were confirmed by direct inspection.
+
+**What it does change.** `doctor.py:3-6` opens by asserting that a missing markdown file produced
+the bodyless 400. That is an unverified causal claim stated as fact and comes out, leaving only what
+was verified — that nothing on the machine could answer *"is this set up correctly?"*

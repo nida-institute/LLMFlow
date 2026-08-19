@@ -534,11 +534,21 @@ def test_ai_index_doc_mentions_user_context():
     )
 
 
-def test_copilot_instructions_mentions_user_context():
-    """COPILOT_INSTRUCTIONS_DOC must instruct AI to read ~/.sp/user-context/ at session start."""
-    from llmflow.cli_utils import COPILOT_INSTRUCTIONS_DOC
-    assert "user-context" in COPILOT_INSTRUCTIONS_DOC, (
-        "COPILOT_INSTRUCTIONS_DOC must include user-context step so Copilot reads machine instructions"
+def test_copilot_instructions_point_at_the_authoritative_rules():
+    """Under plan D4/A2 the assistant files carry no rules of their own.
+
+    This test used to require COPILOT_INSTRUCTIONS_DOC to restate the `~/.sp/user-context/`
+    step. It no longer restates anything: that instruction lives in `AI_INDEX_DOC` (pinned
+    by `test_ai_index_mentions_user_context` directly above), and the pointer sends every
+    reader there. Three partial copies of one rule set is what A2 removed — the Cursor
+    copy had already lost the `sp run` prohibition entirely.
+    """
+    from llmflow.cli_utils import AI_INDEX_DOC, COPILOT_INSTRUCTIONS_DOC
+
+    assert "docs/ai-context/index.md" in COPILOT_INSTRUCTIONS_DOC
+    assert "docs/ai-context/rules.md" in COPILOT_INSTRUCTIONS_DOC
+    assert "user-context" in AI_INDEX_DOC, (
+        "the pointer is only safe while the authoritative doc still carries the instruction"
     )
 
 

@@ -26,6 +26,70 @@
       ]
     },
     {
+      "module": "llmflow.file_catalog",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "enum",
+        "importlib.resources",
+        "pathlib",
+        "typing",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "_templates_dir",
+          "signature": "_templates_dir() -> Path",
+          "doc": ""
+        },
+        {
+          "name": "catalog_path",
+          "signature": "catalog_path() -> Path",
+          "doc": "Locate file-catalog.yaml whether running from an installed wheel or a dev checkout."
+        },
+        {
+          "name": "_load",
+          "signature": "_load() -> dict[str, Any]",
+          "doc": ""
+        },
+        {
+          "name": "_entry_from",
+          "signature": "_entry_from(spec: dict[str, Any], path: str, template: Optional[str]) -> Entry",
+          "doc": ""
+        },
+        {
+          "name": "_expand_group",
+          "signature": "_expand_group(spec: dict[str, Any]) -> list[Entry]",
+          "doc": "Expand a group against what the package actually ships."
+        },
+        {
+          "name": "entries",
+          "signature": "entries() -> tuple[Entry, ...]",
+          "doc": "Every path `sp init` writes or places, with its ownership policy."
+        },
+        {
+          "name": "managed_by_doctor",
+          "signature": "managed_by_doctor() -> tuple[Entry, ...]",
+          "doc": "Entries `sp doctor` restores when they are missing or have diverged (D10)."
+        },
+        {
+          "name": "project_gitignore_lines",
+          "signature": "project_gitignore_lines() -> list[str]",
+          "doc": "The ignore list, derived from the catalog (D9)."
+        },
+        {
+          "name": "shipped_path",
+          "signature": "shipped_path(entry: Entry) -> Optional[Path]",
+          "doc": "The packaged file or directory backing `entry`, if it has one."
+        },
+        {
+          "name": "shipped_content",
+          "signature": "shipped_content(entry: Entry) -> Optional[str]",
+          "doc": "The text `entry` should hold, or None when it is not a single-file entry."
+        }
+      ]
+    },
+    {
       "module": "llmflow.cli_utils",
       "imports": [
         "click",
@@ -44,14 +108,19 @@
           "doc": "Return True if the file was created by sp init (has the generated marker)."
         },
         {
+          "name": "read_delimited_block",
+          "signature": "read_delimited_block(path: Path, block_name: str) -> Optional[str]",
+          "doc": "Return the content of a named llmflow-init block, or None if it is not there."
+        },
+        {
           "name": "_upsert_delimited_block",
           "signature": "_upsert_delimited_block(path: Path, block_name: str, content: str) -> str",
           "doc": "Append or replace a named llmflow-init block in a file."
         },
         {
           "name": "_install_claude_skills",
-          "signature": "_install_claude_skills(claude_home: Optional[Path] = None, sp_home: Optional[Path] = None) -> list[str]",
-          "doc": "Install skills from ~/.sp/skills/ into ~/.claude/skills/."
+          "signature": "_install_claude_skills(base_dir: Path, sp_home: Optional[Path] = None) -> list[str]",
+          "doc": "Copy skills from ~/.sp/skills/ into <repo>/.claude/skills/ (#204, plan D1-A′)."
         },
         {
           "name": "_configure_copilot",
@@ -61,7 +130,7 @@
         {
           "name": "_configure_claude_code",
           "signature": "_configure_claude_code(base_dir: Path, update: bool) -> None",
-          "doc": "Configure Claude Code: CLAUDE.md (project) and skills (machine-scoped)."
+          "doc": "Configure Claude Code: the CLAUDE.md block and the project's skills."
         },
         {
           "name": "_configure_cursor",
@@ -76,7 +145,12 @@
         {
           "name": "_configure_ai_assistants",
           "signature": "_configure_ai_assistants(base_dir: Path, update: bool = False) -> None",
-          "doc": "Interactive: select AI assistants and configure each with consent for machine-scoped actions."
+          "doc": "Write every assistant's configuration. Non-interactive by design (#204, D4/D5)."
+        },
+        {
+          "name": "_write_gitignore",
+          "signature": "_write_gitignore(base_dir: Path) -> None",
+          "doc": "Generate `.gitignore` when the project has none (#204, plan D9)."
         },
         {
           "name": "_lock_sp_dir",
@@ -102,11 +176,6 @@
           "name": "install_global_skills",
           "signature": "install_global_skills(sp_home: Optional[Path] = None, force: bool = False) -> None",
           "doc": "Install global skills to ~/.sp/skills/."
-        },
-        {
-          "name": "_fetch_stand_down",
-          "signature": "_fetch_stand_down() -> Optional[str]",
-          "doc": "Fetch stand-down SKILL.md from human-at-the-helm. Returns content or None on failure."
         },
         {
           "name": "init_project",
@@ -964,7 +1033,9 @@
         "__future__",
         "dataclasses",
         "enum",
+        "llmflow.file_catalog",
         "pathlib",
+        "shutil",
         "typing"
       ],
       "functions": [
@@ -976,7 +1047,7 @@
         {
           "name": "_shipped_names",
           "signature": "_shipped_names(subdir: str) -> set[str]",
-          "doc": "Names the package ships for a given template subdirectory."
+          "doc": ""
         },
         {
           "name": "_shipped_skill_names",
@@ -984,9 +1055,34 @@
           "doc": ""
         },
         {
+          "name": "_unlocked",
+          "signature": "_unlocked(path: Path)",
+          "doc": "Make `path`'s directory writable for a write, restoring the prior state after."
+        },
+        {
+          "name": "_restore",
+          "signature": "_restore(entry: Entry, target: Path) -> None",
+          "doc": "Write `entry`'s shipped content to `target`. Raises if it cannot."
+        },
+        {
+          "name": "_diverged",
+          "signature": "_diverged(entry: Entry, target: Path) -> bool",
+          "doc": "True when an existing target's content differs from what the package ships."
+        },
+        {
+          "name": "_repair_group",
+          "signature": "_repair_group(entries: list[Entry], root: Path, restore_when_absent: bool) -> tuple[list[str], list[str], list[str]]",
+          "doc": "Restore the entries that need it."
+        },
+        {
+          "name": "_group_check",
+          "signature": "_group_check(check_id: str, label: str, entries: list[Entry], root: Path, total: int, restore_when_absent: bool = True, remedy: str = 'Run `sp init --update`.') -> Check",
+          "doc": ""
+        },
+        {
           "name": "run_doctor",
           "signature": "run_doctor(sp_home: Optional[Path] = None, project_dir: Optional[Path] = None, claude_home: Optional[Path] = None) -> Report",
-          "doc": "Inspect the machine and return a Report. Writes nothing."
+          "doc": "Inspect the machine, repair what sp owns, and return a Report."
         },
         {
           "name": "doctor_command",
@@ -1006,6 +1102,11 @@
         {
           "name": "render",
           "signature": "render(self) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_ctx",
+          "signature": "_ctx()",
           "doc": ""
         }
       ]
@@ -3813,7 +3914,7 @@
     }
   ],
   "summary": {
-    "total_modules": 73,
-    "total_functions": 586
+    "total_modules": 74,
+    "total_functions": 603
   }
 }
