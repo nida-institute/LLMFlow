@@ -17,6 +17,33 @@ proceed silently.
 
 ---
 
+## A well-formed request for a decision
+
+> **If you don't give the information the Captain needs to decide, you haven't got a
+> well-formed request for a decision.**
+
+An ask that requires the Captain to first go find out what the options mean is not an
+ask — it is unfinished work handed over. Before presenting a decision, include:
+
+- what each option actually does, in concrete terms;
+- what it costs, and what changes if it is chosen;
+- which existing rule, file, or prior decision bears on it.
+
+**No jargon. Use the vocabulary of the project and of the Captain.** A term he has to
+decode is a term that blocks the decision. If a word needs explaining, explain it in
+plain language or do not use it. His words are authoritative — do not rename his
+concepts, and do not introduce new terms for things that already have names here.
+
+**The failure this prevents:** an option menu that looks like deference but actually
+offloads the work of understanding. That is drift wearing the costume of asking
+permission — and it is worse than deciding alone, because it also costs the Captain time
+to discover the ask is unanswerable.
+
+If a decision genuinely cannot be made without work you have not done, do the work
+first, or say plainly what is unknown and what it would take to find out.
+
+---
+
 ## Asking in a document — use `=>`, nothing else
 
 When a plan, design, or audit document asks the Captain to decide something, pose the
