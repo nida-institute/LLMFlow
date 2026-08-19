@@ -442,21 +442,31 @@ rule, but that rule is about `--update` specifically and does not bind here; `in
 reads as "check what init would do" rather than "is this machine healthy", and is undiscoverable
 unless you already know `init` exists.
 
-**Blocked on #205.** Two further rulings from the Captain, same day:
+**NOT blocked on #205 — an earlier revision of this plan claimed it was, and that was wrong.**
+The Captain challenged the dependency and it did not survive examination.
 
-> "I don't want to maintain so many alternative ways of saying the same thing."
+The claim was that adding `doctor` by hand would create "a sixth overlapping entry point". That was
+rhetoric. `doctor` is not a duplicate of anything — it is a new capability. Examined properly:
 
-> "I would like the same discipline for the CLI."
+- **Mechanically independent.** It needs an `add_parser`, a handler and tests. Nothing about that
+  requires #205's schema to exist first.
+- **One real question**, answerable without #205: where the boundary sits with `sp registry status`,
+  which today reports on `~/.sp/`. A decision, not a blocker.
+- **Cost of building now:** `doctor` becomes command #29 for #205 to migrate rather than #28.
+  Marginal.
+- **Cost of deferring, which was underweighted:** `doctor` is the part of #204 a *mentee* benefits
+  from. Everything else in this plan stops the failure happening; `doctor` is what makes it
+  self-diagnosing when it happens anyway. Parking it behind a CLI redesign delays the only
+  user-facing piece.
 
-`sp registry status` already partly does `doctor`'s job, three separate commands own
-`docs/ai-context/`, `sp transition` is orphaned from `sp content`, and `gui/backend/server.py`
-hand-maintains a second copy of the CLI's command names. Adding `doctor` by hand would make a sixth
-overlapping entry point. **#205 brings the CLI under the same declarative-schema discipline as
-pipeline steps; `sp doctor` should be the first command declared under it, not the last one
-hand-wired before it.**
+**Ruled: build `sp doctor` within #204.** #205 still governs the eventual schema migration and the
+`registry status` consolidation, but it is not a gate.
 
-Consequence for scope: `doctor` moves out of this plan's critical path. It is still a #204 ask, but
-it is delivered by #205's mechanism.
+*Process note, recorded because it recurred:* this is the second false blocker in one session — the
+first claimed skill shadowing made the fix unverifiable (see D1 consequence 3). Both times a concern
+that had just been written up was then treated as a constraint. That is circular authority: an
+AI-authored rationale acquiring the force of a design decision. Neither survived the Captain
+questioning it.
 
 ---
 
