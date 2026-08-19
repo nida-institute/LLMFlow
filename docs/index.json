@@ -959,6 +959,58 @@
       ]
     },
     {
+      "module": "llmflow.doctor",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "enum",
+        "pathlib",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "_templates_dir",
+          "signature": "_templates_dir() -> Path",
+          "doc": ""
+        },
+        {
+          "name": "_shipped_names",
+          "signature": "_shipped_names(subdir: str) -> set[str]",
+          "doc": "Names the package ships for a given template subdirectory."
+        },
+        {
+          "name": "_shipped_skill_names",
+          "signature": "_shipped_skill_names() -> set[str]",
+          "doc": ""
+        },
+        {
+          "name": "run_doctor",
+          "signature": "run_doctor(sp_home: Optional[Path] = None, project_dir: Optional[Path] = None, claude_home: Optional[Path] = None) -> Report",
+          "doc": "Inspect the machine and return a Report. Writes nothing."
+        },
+        {
+          "name": "doctor_command",
+          "signature": "doctor_command(project_dir: Optional[Path] = None) -> int",
+          "doc": "CLI entry point. Prints the report and returns an exit code."
+        },
+        {
+          "name": "ok",
+          "signature": "ok(self) -> bool",
+          "doc": ""
+        },
+        {
+          "name": "exit_code",
+          "signature": "exit_code(self) -> int",
+          "doc": ""
+        },
+        {
+          "name": "render",
+          "signature": "render(self) -> str",
+          "doc": ""
+        }
+      ]
+    },
+    {
       "module": "llmflow.load_db",
       "imports": [
         "llmflow.download_data",
@@ -3761,7 +3813,7 @@
     }
   ],
   "summary": {
-    "total_modules": 72,
-    "total_functions": 578
+    "total_modules": 73,
+    "total_functions": 586
   }
 }

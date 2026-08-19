@@ -133,6 +133,11 @@ def build_parser():
         help="Skip example files (hello.gpt, hello-llmflow.yaml, tutorial.md, etc.) — creates directories and structural files only",
     )
 
+    subparsers.add_parser(
+        "doctor",
+        help="Check that this machine is set up correctly (read-only; reports, never repairs)",
+    )
+
     setup_p = subparsers.add_parser("setup", help="Configure AI provider API keys")
     setup_p.add_argument(
         "--update",
@@ -445,6 +450,10 @@ def main(argv=None):
         if getattr(args, "sync", False):
             sync_ai_context_files(Path.cwd())
         return
+
+    if args.command == "doctor":
+        from llmflow.doctor import doctor_command
+        raise SystemExit(doctor_command(Path.cwd()))
 
     if args.command == "setup":
         from llmflow.setup_command import run_setup

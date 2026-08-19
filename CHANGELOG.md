@@ -6,6 +6,30 @@
      main, since the built release has not shipped yet. Retarget this heading rather than
      assuming a new version. -->
 
+### New Features
+
+- **`sp doctor` — verify that a machine is set up correctly (#204)** — nothing previously answered
+  "is this set up correctly?", so the first symptom of a missing markdown file was an API error that
+  named nothing. `doctor` checks `~/.sp/`, the conventions, the files skills read directly, the
+  installed skills, whether skills are anywhere Claude Code can actually find them, the project's
+  `docs/ai-context/`, and whether the project is registered. Every failure names a remedy.
+
+  Three design properties worth knowing:
+
+  - **Read-only.** It reports and never repairs, so running it is always safe. Pinned by a test that
+    fails if it creates or writes anything.
+  - **Expectations come from the shipped package, not a list inside `doctor`.** Adding a template
+    requires no change here. A second list would drift — which is exactly how three conventions went
+    unshipped for months.
+  - **It distinguishes absence from misconfiguration.** A missing `CLAUDE.md` is reported as
+    information, not a failure: it is gitignored by convention, so a clone never has one, and
+    committed context belongs in `docs/ai-context/`. A missing
+    `~/.sp/user-context/filesystem-access.md` is not reported at all, because it grants an AI read
+    access to a directory tree and only a machine's owner can grant that.
+
+  Known overlap with `sp registry status`, which also reports on `~/.sp/`. Whether `doctor` subsumes
+  it is tracked in #205; nothing is consolidated yet.
+
 ### Fixed
 
 - **`~/.sp/drift-patterns.md` was in no package and could not be obtained (#204)** — the

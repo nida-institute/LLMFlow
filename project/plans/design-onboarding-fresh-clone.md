@@ -462,6 +462,23 @@ rhetoric. `doctor` is not a duplicate of anything — it is a new capability. Ex
 **Ruled: build `sp doctor` within #204.** #205 still governs the eventual schema migration and the
 `registry status` consolidation, but it is not a gate.
 
+✅ **BUILT 2026-08-19** — `src/llmflow/doctor.py`, `tests/test_doctor.py` (8 tests), wired as
+`sp doctor`. Read-only, pinned by a test that fails if it writes anything. Expectations derive from
+the shipped `templates/` rather than a list inside `doctor`, so adding a template needs no change
+here. A missing `CLAUDE.md` reports as INFO (D3-A); `filesystem-access.md` is not checked at all (D6).
+
+**It isolates the remaining defect in one line.** On a fresh machine after `sp init`, every check
+passes except:
+
+```
+✗ No skills are where Claude Code can find them
+    ~/.sp/skills is not a location Claude Code reads. Slash commands such as
+    /load-context will not exist until skills are in .claude/skills.
+```
+
+That is exactly D1-A′, still unimplemented. `doctor` now names the failure that previously surfaced
+as a bodyless HTTP 400.
+
 *Process note, recorded because it recurred:* this is the second false blocker in one session — the
 first claimed skill shadowing made the fix unverifiable (see D1 consequence 3). Both times a concern
 that had just been written up was then treated as a constraint. That is circular authority: an
