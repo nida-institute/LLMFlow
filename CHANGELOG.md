@@ -121,6 +121,20 @@
 
 ### Fixed
 
+- **`commit-ready` gated only the Python suite, leaving the GUI's TypeScript tests invisible (#206)** —
+  `gui/frontend/` is a TypeScript project with seven Vitest test files, and CI has always run them
+  (`npm test -- --run`, `npx tsc --noEmit`). The skill that calls itself "the full LLMFlow definition
+  of done" named only `hatch run pytest`. So a change to `gui/frontend/src/App.tsx` could pass every
+  check the gate described, with 2677 Python tests green, and still turn the build red.
+
+  The gate now names the frontend commands, **conditionally** — a change touching no TypeScript does
+  not need Node installed to be committable. `tests/test_commit_ready_gate.py` reads the required
+  commands out of `.github/workflows/test.yml` rather than restating them, so a new CI step fails
+  the build until the gate gains it too. A second hand-written list is what let them drift apart.
+
+  Same shape as the `${var}` write guard (below) and the `.cursorrules` block: a check applied to one
+  of two paths, reading as complete because the path it covers is green.
+
 - **The install instructions named a package that is not on PyPI (#33)** — the project publishes as
   `scripture-pipelines`, but eleven places told users to run `pip install llmflow`, a name that
   returns 404. Anyone following the README got nothing, and an unclaimed name is one someone else

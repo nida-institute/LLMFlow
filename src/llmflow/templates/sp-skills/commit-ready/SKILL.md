@@ -3,7 +3,8 @@ name: commit-ready
 description: |
   **WORKFLOW SKILL** — Gate every commit/merge against the full LLMFlow definition of done:
   design or audit doc posted to a GH issue, TDD tests written and passing, full pytest suite
-  clean, CHANGELOG updated, commit message properly formatted with issue refs and version bump,
+  clean, the GUI's TypeScript suite clean when the change touches gui/frontend, CHANGELOG
+  updated, commit message properly formatted with issue refs and version bump,
   GitHub Actions passing after push, and branch merged + cleaned up.
   USE FOR: before committing; before merging a branch; before closing an issue.
   DO NOT USE FOR: auditing code quality (use audit-code/audit-pipeline); reviewing prompts.
@@ -77,6 +78,31 @@ Record the result — this line goes in the commit body:
 ```
 Test coverage: XXXX passed, YY skipped (Z new tests added)
 ```
+
+### The GUI's TypeScript suite
+
+`hatch run pytest` does not run it. `gui/frontend/` is a separate TypeScript project with
+its own Vitest tests, and CI runs them on every push — so a change there can pass every
+check on this page and still turn the build red.
+
+**If the change touches `gui/frontend/`, run what CI runs** (`.github/workflows/test.yml`):
+
+```bash
+cd gui/frontend
+npm ci
+npm test -- --run
+npx tsc --noEmit
+```
+
+- [ ] Frontend tests pass
+- [ ] `npx tsc --noEmit` reports no type errors
+
+Deliberately conditional: a change that touches no TypeScript does not need Node installed
+to be committable. Equally, a change that *does* touch it is not done because Python is
+green — that was the gap this closed (#206).
+
+Keep these commands identical to the workflow's. The local gate and CI describing the
+definition of done in two different ways is how they drifted apart in the first place.
 
 ---
 
