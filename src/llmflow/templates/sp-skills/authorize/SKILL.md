@@ -9,8 +9,9 @@ description: |
   DO NOT USE FOR: read-only tasks (audit, research, answering questions).
 applyTo:
   - "**/*.py"
+  - "**/*.ts"
+  - "**/*.tsx"
   - "**/*.yaml"
-  - "**/*.gpt"
   - "**/*.json"
 ---
 
@@ -61,7 +62,8 @@ If no issue exists for the design decision: file one before writing the comment.
 State exactly:
 
 **What will change:**
-- File: `path/to/file.py` — what specifically will be modified (function, lines, behavior)
+- File: `path/to/file.py` (or `.ts`, or whatever this project is written in) — what
+  specifically will be modified (function, lines, behavior)
 - File: `path/to/other.yaml` — what specifically will be modified
 
 **What will NOT change** (name things that might be tempting but are out of scope):
@@ -100,7 +102,7 @@ If the Captain says "yes" or "go ahead": proceed with exactly the declared scope
 Before touching any implementation file, determine whether the change is testable:
 
 - **If testable:** write the failing test first, confirm it fails, then implement.
-- **If not testable** (e.g. prompt files, pipeline YAML, documentation): state explicitly why testing doesn't apply before proceeding.
+- **If not testable** (e.g. documentation, configuration, template text): state explicitly why testing doesn't apply before proceeding.
 
 Do not skip this step silently.
 
@@ -137,7 +139,7 @@ If any deviation occurred: explain what happened and why before declaring done.
 > ✅ "I can't find the original. Where should I look, or do you want to recreate it?"
 
 **Regression by omission:** Consolidating code and silently dropping a feature.
-> ❌ Rewrites a pipeline step, leaving out a step that was there before.
+> ❌ Rewrites a multi-step process, leaving out a step that was there before.
 > ✅ Diffs the old and new version and flags any removed behavior for confirmation.
 
 ---
@@ -145,6 +147,9 @@ If any deviation occurred: explain what happened and why before declaring done.
 ## Related Skills
 
 - `/commit-ready` — Post-work gate: verify authorization, tests, changelog before committing
-- `/audit-prompts` — Run before editing any `.gpt` file
-- `/audit-pipeline` — Run when pipeline structure changes
-- `/audit-code` — Run before committing new plugins
+- `/stand-down` — When authorization has already been bypassed and the session needs resetting
+
+Projects add their own. Where a project has audit skills of its own, they belong in
+`docs/ai-context/`, which is where a project records what it has — not listed here. A
+shared skill that names skills a particular project happens to have sends every other
+reader after commands that do not exist.

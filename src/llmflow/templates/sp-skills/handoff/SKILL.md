@@ -45,7 +45,9 @@ action**, then the supporting map:
    - **state** — where it is now (honestly: done / in-flight / blocked),
    - **next step** — the immediate continuation,
    - **verify** — how the next instance *confirms* the state instead of trusting this file
-     (e.g. "`hatch run pytest tests/X` is RED", "`git log` shows `<sha>`", "read `docs/Y`").
+     (e.g. "`hatch run pytest tests/X` is RED", "`npm test -- --run` in `web/` is RED",
+     "`git log` shows `<sha>`", "read `docs/Y`"). Name the command this project actually
+     uses — a verification the next instance cannot run is not a verification.
 3. **In flight / not yet done** — uncommitted changes, drafts, open PRs (with CI status),
    anything started but unfinished. Name files, issue/PR numbers, commit SHAs, and the branch.
 4. **Decisions** — open decisions awaiting the Captain (that block progress) *and* decisions

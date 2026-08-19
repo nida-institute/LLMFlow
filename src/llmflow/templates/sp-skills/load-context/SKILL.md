@@ -1,16 +1,17 @@
 ---
 name: load-context
 description: |
-  **CONTEXT SKILL** — Orient the AI assistant for the current sp/LLMFlow project.
+  **CONTEXT SKILL** — Orient the AI assistant for the current project.
   Reads CLAUDE.md, docs/ai-context/index.md, rules.md, and overview.md to establish
   collaboration model, topic-to-file map, key rules, and common pitfalls.
-  USE FOR: starting a new session; switching to an unfamiliar pipeline or project;
+  USE FOR: starting a new session; switching to an unfamiliar project or subsystem;
   before making architectural decisions; when unsure where to look for something.
-  DO NOT USE FOR: auditing code (use audit-* skills); committing work (use commit-ready).
+  DO NOT USE FOR: auditing code; committing work (use commit-ready).
 applyTo:
   - "**/*.yaml"
   - "**/*.py"
-  - "**/*.gpt"
+  - "**/*.ts"
+  - "**/*.tsx"
   - "**/*.md"
 ---
 
@@ -26,7 +27,7 @@ not from memory.
 
 ## Collaboration Model
 
-**The Captain Kirk model is in effect for all sp/LLMFlow work.**
+**The Captain Kirk model is in effect for all work in this project.**
 
 - The user commands (decides strategy, sets direction, defines scope)
 - The AI implements (executes tactics, surfaces trade-offs, does the analytical work)
@@ -46,20 +47,24 @@ git rev-parse --show-toplevel         # repo root
 git status --short --branch           # branch, ahead/behind, and in-progress work
 ```
 
-Each command above always produces output, whether run together or separately. That is a
-requirement, not a coincidence: a command that returns nothing yields an empty result block, which
-the API rejects with a bodyless 400 (LLMFlow#204).
+Use `--branch`, not plain `git status --short`. Three reasons, all checkable:
 
-`--branch` is what guarantees it — plain `git status --short` prints nothing at all in a clean
-checkout. The `##` header always prints, and carries ahead/behind, which the orientation summary
-needs anyway. It also replaces `git branch --show-current`, which is silent on a detached HEAD.
+- plain `git status --short` prints **nothing at all** in a clean checkout, so you cannot
+  tell a clean tree from a command that failed
+- the `##` header always prints, and carries ahead/behind — which the orientation summary
+  needs anyway
+- it replaces `git branch --show-current`, which is silent on a detached HEAD
+
+Prefer commands that always produce output. A step whose success and failure look identical
+is a step you cannot verify.
 
 If there are uncommitted changes, note them — they represent work already in progress.
 
 ### Step 2: Read CLAUDE.md
 
 Read `CLAUDE.md` at the repo root. It is the authoritative source for:
-- Build and test commands (`hatch run pytest`, `sp lint`, etc.)
+- Build and test commands — whatever this project uses (`hatch run pytest`, `npm test`,
+  `make check`, …)
 - Architecture overview and key modules
 - Critical patterns (Logger singleton, telemetry ordering, variable syntax)
 - Common pitfalls specific to this repo
@@ -83,26 +88,37 @@ cat docs/ai-context/rules.md
 cat docs/ai-context/overview.md
 ```
 
-Key rules to internalize:
-1. **Consult the docs before guessing** — references are authoritative
-2. **Respect pipeline schema** — only use documented keys; no inventing fields
-3. **Preserve Logger/telemetry conventions** — use `Logger()` from `llmflow.modules.logger`; start telemetry only after config merging
-4. **Keep prompt contracts in sync** — every `prompt.requires` item must appear in `prompt.inputs`
-5. **Verses are milestones, not containers** — source text is continuous running text with inline verse markers (e.g. `⌊1:1⌋ Καὶ... ⌊1:2⌋ καὶ...`), never an array of verse objects. Representing source text as `{"verses": [{"verse_ref": "...", "text": "..."}]}` is wrong.
-6. **Every LLM step must have source text as an explicit named input** — no LLM is ever allowed to reason from a passage unless the actual text is right in front of it. A step missing `source_text` in its inputs is producing ungrounded output.
-7. **Outputs require human review** — do not claim "production ready" or "approved"
-8. **TDD** — write the failing test first; for bugs, write a test that reproduces the bug before fixing it
-9. **Scope discipline** — do not improve code outside the requested scope; note it, don't fix it
+**Read `rules.md` in full. It is authoritative, and this skill does not summarise it.**
 
-### Step 5: Read Global SP Conventions and Drift Patterns
+A summary here would be a second copy of the project's rules, drifting from the file you
+have just been told to read — and the shorter copy always wins by being closer to hand.
+Whatever `rules.md` says is the rule.
+
+Rules that hold in every project using this methodology, and that `rules.md` may not
+restate:
+
+1. **Consult the docs before guessing** — references are authoritative
+2. **Outputs require human review** — do not claim "production ready" or "approved"
+3. **TDD** — write the failing test first; for bugs, write a test that reproduces the bug
+   before fixing it
+4. **Scope discipline** — do not improve code outside the requested scope; note it, don't
+   fix it
+
+### Step 5: Read the Conventions and Drift Patterns
+
+Conventions live in one of two places depending on how this project was set up. Read
+whichever exists — both, if both do:
 
 ```bash
-cat ~/.sp/conventions/*.md
+cat docs/ai-context/conventions/*.md       # committed with the project
+cat docs/ai-context/drift-patterns.md
+
+cat ~/.sp/conventions/*.md                 # installed machine-wide
 cat ~/.sp/drift-patterns.md
 ```
 
-The conventions are machine-global rules that apply to every SP project — CLI commands,
-audit workflow, shell tooling, and file authority boundaries.
+The conventions are rules that hold across projects rather than being specific to this
+one — shell tooling, audit workflow, and the boundaries around files the human controls.
 
 The drift patterns catalog documents how AI collaboration fails: authority fabrication,
 framing drift, scope expansion, reporting bias, and persona performance. Internalize
@@ -128,20 +144,25 @@ Tell the user:
 
 ## What NOT to Do
 
-- Do not guess at file paths — read the pipeline YAML first; `${output_dir}` means paths are not literal
-- Do not invent pipeline keys or module names — check `docs/llmflow-language.md`
+- Do not guess at file paths — read the config that declares them; a path containing a
+  variable is not a literal path
+- Do not invent keys or module names — check the file the topic index points to
 - Do not start implementing before explaining the plan and waiting for approval
-- Do not use `logging.basicConfig()` — breaks pytest's `caplog` fixture
-- Do not confuse `${var}` (YAML pipeline) with `{{var}}` (template files)
-- Do not import Jinja2 — the project uses its own template resolution
-- Do not claim "build succeeded" based on `hatch build` alone — check all CI jobs
+- Do not claim "build succeeded" from one green step — check every job
+
+Project-specific pitfalls belong in `CLAUDE.md` and `docs/ai-context/`, which steps 2 and 4
+already read. This list stays short on purpose: a long one here becomes a competing copy of
+those files.
 
 ---
 
 ## Related Skills
 
-- `/audit-prompts` — Audit `.gpt` prompt files and pipeline YAML before committing changes
-- `/commit-ready` — Gate every commit against the full definition of done
 - `/authorize` — Run the authorization workflow before starting any non-trivial task
-- `/audit-pipeline` — Audit pipeline step contracts before committing new pipeline stages
-- `/audit-output` — Audit pipeline output quality before closing output-related issues
+- `/commit-ready` — Gate every commit against the full definition of done
+- `/handoff` — Capture session state when work is still in flight
+- `/stand-down` — Reset the working relationship when the AI has been steering
+
+Projects add their own. Where a project has audit or release skills, they belong in
+`docs/ai-context/` — naming them here would send readers of other projects after commands
+that do not exist.

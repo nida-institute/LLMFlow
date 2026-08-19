@@ -92,6 +92,34 @@
 
 ### Changed
 
+- **The five methodology skills no longer carry Scripture Pipelines vocabulary (human-at-the-helm#1)** —
+  `authorize`, `stand-down`, `handoff`, `load-context` and `commit-ready` are now one text serving
+  this repository and Human at the Helm alike. The engine-specific lines are gone rather than
+  duplicated: in `load-context` the "key rules to internalize" list was a paraphrase of
+  `docs/ai-context/rules.md` items that the skill's own Step 4 already reads, so a summary which
+  could drift from its source has been replaced by a pointer to the source. `audit-code` is
+  deliberately **not** shared — its engine content is the subject matter, not a duplicated summary —
+  and `audit-pipeline`, `audit-output`, `audit-prompts` and `release` stay here.
+
+  `load-context` Step 5 now reads conventions from **both** `docs/ai-context/conventions/` and
+  `~/.sp/conventions/`, whichever exist: a project set up by Human at the Helm has no `~/.sp`.
+
+  `tests/test_portable_skills.py` fails the build if a shared skill names this engine, names one
+  ecosystem's toolchain without the other's (`pytest` ↔ `vitest`), or sends a reader to
+  `~/.sp/conventions` without offering the project-local path. Without it, "this skill is general"
+  would be an assertion in a design document rather than something the build checks.
+
+- **A project rule that existed only inside a skill is now in `rules.md`** — *"Every LLM step must
+  have source text as an explicit named input"* lived in `load-context` and nowhere else;
+  `docs/ai-context/rules.md` had no rule about source text at all. Generalizing that skill would
+  have silently deleted a substantive rule about ungrounded output.
+
+- **`load-context` no longer states an unverified cause as fact** — it claimed a command returning
+  no output "yields an empty result block, which the API rejects with a bodyless 400". Two proposed
+  mechanisms for that failure were refuted by test and the cause remains unknown. The instruction to
+  use `git status --short --branch` is unchanged and now rests on three checkable reasons: plain
+  `--short` prints nothing in a clean checkout, the `##` header carries ahead/behind, and it
+  replaces `git branch --show-current`, which is silent on a detached HEAD.
 
 - **`sp doctor` now repairs what sp owns, not just reports it (#204)** — a convention that is
   missing, or whose content has diverged from the shipped version, is restored and the restoration

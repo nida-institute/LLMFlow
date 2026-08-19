@@ -1,13 +1,13 @@
 ---
 name: commit-ready
 description: |
-  **WORKFLOW SKILL** — Gate every commit/merge against the full LLMFlow definition of done:
+  **WORKFLOW SKILL** — Gate every commit/merge against this project's full definition of done:
   design or audit doc posted to a GH issue, TDD tests written and passing, full pytest suite
   clean, the GUI's TypeScript suite clean when the change touches gui/frontend, CHANGELOG
   updated, commit message properly formatted with issue refs and version bump,
   GitHub Actions passing after push, and branch merged + cleaned up.
   USE FOR: before committing; before merging a branch; before closing an issue.
-  DO NOT USE FOR: auditing code quality (use audit-code/audit-pipeline); reviewing prompts.
+  DO NOT USE FOR: auditing code quality — use this project's audit skills for that.
 applyTo:
   - "**/*.py"
   - "**/*.yaml"
@@ -36,12 +36,12 @@ Gate 7 (merge + cleanup) comes last.
   `docs/audits/`, or `tmp/` (to be moved before close)
 - [ ] The design/audit doc (or a summary of key decisions) has been posted as a
   comment on the issue — so the full trajectory is preserved in the issue thread
-- [ ] If the work required an audit first (new pipeline, new schema, new prompt contract),
-  confirm the relevant audit skill was run and findings addressed
+- [ ] If the work required an audit first, confirm the relevant audit skill was run and
+  findings addressed
 
-**What counts as "non-trivial":** new step types, new plugins, schema changes, prompt
-contract changes, new pipeline stages. Bug fixes with a clear root cause do not require
-a design doc.
+**What counts as "non-trivial":** a new subsystem, a new extension point, a schema or
+data-contract change, a new stage in an existing process. Bug fixes with a clear root cause
+do not require a design doc. Each project records its own list in `docs/ai-context/`.
 
 ---
 
@@ -276,7 +276,9 @@ gh api repos/{owner}/{repo}/git/refs/heads/<branch> -X DELETE
 
 ## Related Skills
 
-- `/audit-code` — Audit Python plugin internals before committing new plugins
-- `/audit-pipeline` — Audit pipeline contracts before committing new pipeline stages
-- `/audit-prompts` — Audit prompt files before committing prompt changes
-- `/audit-output` — Audit pipeline output quality before closing output-related issues
+- `/authorize` — Pre-work gate: declare scope and get sign-off before touching a file
+- `/handoff` — When the session ends with work still in flight
+
+Projects add their own audit skills. Where a project has them, they belong in
+`docs/ai-context/` — a shared gate that names skills a particular project happens to have
+sends every other reader after commands that do not exist.
