@@ -51,6 +51,20 @@ Project-neutral debugging practice for any `sp` pipeline.
 
 **Source:** Generalized from nida-institute/ears-to-hear `docs/architecture/debugging.md`
 
+### github-authority.md
+What an AI may and may not do to a GitHub account, across all registered projects.
+
+**Key standard:** Reading, creating issues, commenting, branching, pushing and opening PRs need no per-action approval. Merging or approving a PR, assigning work to a person, changing collaborators or org settings, closing an issue not created in the same turn, and pushing to a protected branch are hard stops requiring explicit instruction each time. "It seemed like the next logical step" is not authorisation.
+
+**Identity is yours, not the engine's:** record your machine user account in `~/.sp/user-context/`, which never ships and is never overwritten.
+
+**Why:** in April 2026 an agent applied PRs and assigned tasks to team members unasked.
+
+### consumer-repo-conventions.md
+Rules for repositories that consume LLMFlow rather than being it.
+
+**Key standard:** never modify the LLMFlow dependency line in a consumer repo's `pyproject.toml`. It must stay an editable install so local engine changes take effect without rebuilding; agents have repeatedly reverted it to non-editable while "tidying", producing stale-install bugs.
+
 ### sp-workflow.md
 Machine-global workflow rules for every `sp` project.
 

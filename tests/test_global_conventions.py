@@ -1,5 +1,6 @@
 """Tests for global conventions and skills installation (Issue #93, #164)."""
 import logging
+import re
 import stat
 import yaml
 from pathlib import Path
@@ -24,7 +25,9 @@ from llmflow.cli_utils import (
 # listing it here — fails the test.
 EXPECTED_CONVENTIONS = {
     "README.md",
+    "consumer-repo-conventions.md",
     "design-authority.md",
+    "github-authority.md",
     "llmflow-pipeline-steps.md",
     "llmflow-project-tracking.md",
     "llmflow-prompt-organization.md",
@@ -32,6 +35,9 @@ EXPECTED_CONVENTIONS = {
     "sp-workflow.md",
     "surface-decisions.md",
 }
+
+# Files installed at the root of ~/.sp/ rather than into a subdirectory.
+EXPECTED_SP_ROOT_FILES = {"drift-patterns.md"}
 
 EXPECTED_SKILLS = {
     "audit-code",
@@ -101,6 +107,60 @@ def test_shipped_conventions_match_expected():
         "Shipped conventions do not match EXPECTED_CONVENTIONS:\n"
         f"  Extra in templates:   {sorted(shipped - EXPECTED_CONVENTIONS)}\n"
         f"  Missing from templates: {sorted(EXPECTED_CONVENTIONS - shipped)}"
+    )
+
+
+@pytest.mark.parametrize("filename", sorted(EXPECTED_SP_ROOT_FILES))
+def test_sp_root_file_shipped(filename):
+    """Files belonging at the root of ~/.sp/ must ship in the package.
+
+    drift-patterns.md is read directly by the load-context skill, and was absent from
+    the package entirely — a fresh machine could not obtain it at all (#204).
+    """
+    import llmflow
+
+    template = Path(llmflow.__file__).parent / "templates" / "sp-root" / filename
+    assert template.exists(), f"Not shipped: {template}"
+
+
+@pytest.mark.parametrize("filename", sorted(EXPECTED_SP_ROOT_FILES))
+def test_install_places_sp_root_files(tmp_path, filename):
+    """install_global_conventions() must place root-level files at ~/.sp/<name>.
+
+    Not in ~/.sp/conventions/ — the load-context skill reads ~/.sp/drift-patterns.md
+    by that exact path.
+    """
+    sp_dir = tmp_path / ".sp"
+    install_global_conventions(sp_home=sp_dir)
+    assert (sp_dir / filename).exists(), f"sp init did not install ~/.sp/{filename}"
+
+
+def test_shipped_templates_carry_no_machine_specific_content():
+    """No shipped template may contain a personal address or an absolute home path.
+
+    github-authority.md was promoted from ~/.sp/user-context/ and named a specific bot
+    account; shipping that would have put one person's email on every user's machine.
+    The same class of defect made ~/.sp/editions/*.yaml non-portable (#204).
+    """
+    import llmflow
+
+    templates = Path(llmflow.__file__).parent / "templates"
+    offenders: list[str] = []
+    patterns = {
+        "email address": re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+"),
+        "absolute home path": re.compile(r"/(?:Users|home)/[A-Za-z0-9_.-]+"),
+    }
+    for path in sorted(templates.rglob("*.md")):
+        text = path.read_text(encoding="utf-8")
+        for label, pattern in patterns.items():
+            for hit in pattern.findall(text):
+                # A generic placeholder is fine; a real one is not.
+                if any(token in hit.lower() for token in ("example.com", "you@", "<", "your-")):
+                    continue
+                offenders.append(f"{path.relative_to(templates)}: {label} {hit!r}")
+
+    assert not offenders, "Machine-specific content in shipped templates:\n" + "\n".join(
+        f"  {o}" for o in offenders
     )
 
 

@@ -8,6 +8,24 @@
 
 ### Fixed
 
+- **`~/.sp/drift-patterns.md` was in no package and could not be obtained (#204)** — the
+  `load-context` skill reads it by that exact path, and no `sp init` on any machine could produce
+  it. It now ships and installs to the root of `~/.sp/`, alongside a new `templates/sp-root/`
+  location for files whose path is part of a contract rather than a convenience.
+
+- **Two machine-scoped policies promoted to shipped conventions (#204)** — `github-authority.md`
+  (what an AI may and may not do to a GitHub account) and `consumer-repo-conventions.md` (never
+  make the LLMFlow dependency non-editable) bound only their author's machine. Both are team
+  policy, so both now ship.
+
+  `github-authority.md` named a specific bot account; the shipped copy states the rule and directs
+  the reader to record their own account in `~/.sp/user-context/`, which never ships. A new test
+  fails the build if any shipped template contains an email address or an absolute home path.
+
+  `~/.sp/user-context/filesystem-access.md` deliberately does **not** ship: it grants an AI standing
+  read access to a directory tree, and only a machine's owner can grant that. Its absence is the
+  correct default, not a misconfiguration.
+
 - **`sp init` installed only 5 of 8 global conventions (#204, #181)** — `design-authority.md`,
   `sp-debugging.md` and `sp-workflow.md` existed on the author's machine but were never added to
   the package, so every other machine received a subset. A new contributor's `/load-context`

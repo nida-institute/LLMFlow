@@ -1685,6 +1685,38 @@ def install_global_conventions(sp_home: Optional[Path] = None, force: bool = Fal
             target_file.write_text(content, encoding="utf-8")
             logger.info(f"✓ Installed {template_file.name} to ~/.sp/conventions/")
 
+    # Files that belong at the root of ~/.sp/, not in a subdirectory (#204).
+    # drift-patterns.md is read by the load-context skill as ~/.sp/drift-patterns.md,
+    # so its location is part of a contract and cannot be moved under conventions/.
+    root_templates_dir = pkg_root / "templates" / "sp-root"
+    if root_templates_dir.is_dir():
+        sp_home.mkdir(parents=True, exist_ok=True)
+
+        # Deliberately NOT _sp_dir_writable(): that helper locks its directory on exit
+        # unconditionally, even when it was writable beforehand. Applied to the ~/.sp
+        # root it left the whole tree read-only, so the install_global_skills() call
+        # that follows in init_project() failed — and failed silently, because that
+        # call sits inside a try/except that only warns. Restore the prior state
+        # instead of imposing one.
+        was_locked = not os.access(sp_home, os.W_OK)
+        if was_locked:
+            _unlock_sp_dir(sp_home)
+        try:
+            for template_file in sorted(root_templates_dir.glob("*.md")):
+                target_file = sp_home / template_file.name
+
+                if target_file.exists() and not force:
+                    logger.info(f"{target_file.name} already exists in ~/.sp/; skipping")
+                    continue
+
+                target_file.write_text(
+                    template_file.read_text(encoding="utf-8"), encoding="utf-8"
+                )
+                logger.info(f"✓ Installed {template_file.name} to ~/.sp/")
+        finally:
+            if was_locked:
+                _lock_sp_dir(sp_home)
+
 
 def install_global_skills(sp_home: Optional[Path] = None, force: bool = False) -> None:
     """Install global skills to ~/.sp/skills/.

@@ -501,12 +501,16 @@ change the next — nothing later assumes an earlier step's outcome.
    and the skip-missing-file work change shape, so this genuinely goes first.
 2. **T1 — conventions drift guard** (`EXPECTED_CONVENTIONS`). Independent of every ruling; the
    cheapest real fix in the plan. Lands the three missing conventions with it.
-3. **D6 split** — promote `github-authority.md` and `consumer-repo-conventions.md` to shipped
-   conventions; leave `filesystem-access.md` user-owned, because it is a permission the user grants
-   and the engine must never pre-grant it. Falls out of step 2's work.
-3a. **Ship `drift-patterns.md`** — still absent after step 2, and it is the file `/load-context`
-   actually reads. Note it lives upstream in `human-at-the-helm`, so this intersects HATH#1's
-   question of where truth lives for shared content.
+3. ✅ **DONE — D6 split.** `github-authority.md` and `consumer-repo-conventions.md` now ship;
+   `filesystem-access.md` deliberately does not, because it is a permission the user grants.
+   The shipped `github-authority.md` had its bot-account line replaced by a pointer to
+   `~/.sp/user-context/`. Guarded by a test that fails if any shipped template contains an email
+   address or absolute home path.
+3a. ✅ **DONE — `drift-patterns.md` ships**, installed to the root of `~/.sp/` via a new
+   `templates/sp-root/` location for files whose path is a contract. Verified byte-identical to the
+   `human-at-the-helm` copy at time of vendoring, so HATH#1's "where truth lives" question is not
+   foreclosed. **Every read `/load-context` performs now succeeds on a clean machine except
+   `CLAUDE.md`**, which is D1/D4 work.
 4. **T8, T9 + the catalog** (D7). The catalog is a prerequisite for the `.claude/skills/` copy,
    because the copy needs a declared collision policy (D1 consequence 2), and because every
    `.claude/` file must be catalogued. Fix the two disagreeing marker strings here. T9 — every
