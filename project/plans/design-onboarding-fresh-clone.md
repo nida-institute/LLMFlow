@@ -337,6 +337,37 @@ Paul's zip, so you wanted him to have them. Are they per-user, or should some sh
 
 => Educate me. I'm inclined to think user context is not part of the product, only project context and global context.
 
+**Ruled 2026-08-18 (Captain agreed): split the three files.** Two ship, one never does.
+
+| File | Kind | Ships? |
+|---|---|---|
+| `github-authority.md` | policy constraining what an AI may do to a GitHub account | **yes** — should bind everyone, not only its author |
+| `consumer-repo-conventions.md` | shared convention for consumer repos | **yes** |
+| `filesystem-access.md` | **a permission the user grants** | **never** |
+
+`filesystem-access.md` in full — seven lines:
+
+```markdown
+# Filesystem Access
+
+All pipeline projects on this machine have full read access to:
+- `~/github/` and all subdirectories
+- `~/.sp/` and all subdirectories
+
+Read files from these paths freely without asking for permission.
+```
+
+The reason it must never ship is **not** that `~/github/` is a machine-specific layout, though it is.
+It is that the file is a **consent artifact**: it grants an AI standing permission to read a tree
+without asking. Only the owner of a machine can grant that. Shipping it as a default would have
+`sp init` hand the engine read access across every user's home directory on their behalf, without
+them having said anything — wrong on principle even if the paths were right. It is also wrong in the
+other direction: a mentee who is never asked never learns the grant exists.
+
+**Consequence for `sp doctor` (D8):** it must **not** check whether `filesystem-access.md` exists.
+Absence is the correct default state, not a misconfiguration. If `doctor` mentions it at all, it says
+this file is the user's to write if they want it.
+
 **Answer.** The principle holds. The refinement is that two of the three files are not user context
 at all — they are mislabelled.
 
@@ -397,6 +428,36 @@ of consequence 1 be *derived* from the catalog rather than hand-maintained in a 
 Minimum fields this implies per entry: path, policy, whether it is committed or ignored, and its
 source (packaged template, `~/.sp/`, or project-local).
 
+### D8. The verification command — name and prerequisite
+
+Not a question I raised originally; it surfaced because #204's asks name `sp doctor` as though it
+were settled. **It is not built and never was** — the name came from the previous session's wishlist
+and I had been repeating it as decided.
+
+**Ruled 2026-08-18: `sp doctor`.** Reason: discoverability is the feature. The failure this whole
+issue is about is someone hitting an error that names nothing, so they need a command they can
+*guess* — `doctor` is the conventional name for exactly that (`brew doctor`, `flutter doctor`).
+`sp init --check` was the alternative and matches the locked "`--update` is a flag on its parent"
+rule, but that rule is about `--update` specifically and does not bind here; `init --check` also
+reads as "check what init would do" rather than "is this machine healthy", and is undiscoverable
+unless you already know `init` exists.
+
+**Blocked on #205.** Two further rulings from the Captain, same day:
+
+> "I don't want to maintain so many alternative ways of saying the same thing."
+
+> "I would like the same discipline for the CLI."
+
+`sp registry status` already partly does `doctor`'s job, three separate commands own
+`docs/ai-context/`, `sp transition` is orphaned from `sp content`, and `gui/backend/server.py`
+hand-maintains a second copy of the CLI's command names. Adding `doctor` by hand would make a sixth
+overlapping entry point. **#205 brings the CLI under the same declarative-schema discipline as
+pipeline steps; `sp doctor` should be the first command declared under it, not the last one
+hand-wired before it.**
+
+Consequence for scope: `doctor` moves out of this plan's critical path. It is still a #204 ask, but
+it is delivered by #205's mechanism.
+
 ---
 
 ## 4. Test plan — written before any implementation
@@ -441,7 +502,11 @@ change the next — nothing later assumes an earlier step's outcome.
 2. **T1 — conventions drift guard** (`EXPECTED_CONVENTIONS`). Independent of every ruling; the
    cheapest real fix in the plan. Lands the three missing conventions with it.
 3. **D6 split** — promote `github-authority.md` and `consumer-repo-conventions.md` to shipped
-   conventions; leave `filesystem-access.md` user-owned. Falls out of step 2's work.
+   conventions; leave `filesystem-access.md` user-owned, because it is a permission the user grants
+   and the engine must never pre-grant it. Falls out of step 2's work.
+3a. **Ship `drift-patterns.md`** — still absent after step 2, and it is the file `/load-context`
+   actually reads. Note it lives upstream in `human-at-the-helm`, so this intersects HATH#1's
+   question of where truth lives for shared content.
 4. **T8, T9 + the catalog** (D7). The catalog is a prerequisite for the `.claude/skills/` copy,
    because the copy needs a declared collision policy (D1 consequence 2), and because every
    `.claude/` file must be catalogued. Fix the two disagreeing marker strings here. T9 — every
