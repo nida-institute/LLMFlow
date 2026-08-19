@@ -90,7 +90,7 @@ See [INSTALL.md](INSTALL.md) for manual install steps and Gatekeeper/SmartScreen
 ### Install via pip (for developers and power users)
 
 ```bash
-pip install llmflow
+pip install scripture-pipelines
 ```
 
 Scripture Pipelines uses the [`llm`](https://llm.datasette.io/) package to call language models. By default it supports OpenAI. To use other providers, install the corresponding plugin:

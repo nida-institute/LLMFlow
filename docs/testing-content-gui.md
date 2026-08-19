@@ -75,7 +75,7 @@ All core functionality is tested through pytest:
 
 ```python
 import pytest
-pytest.importorskip("flask", reason="GUI tests require: pip install llmflow[gui]")
+pytest.importorskip("flask", reason="GUI tests require: pip install scripture-pipelines")
 
 @pytest.fixture
 def content_client(tmp_path):

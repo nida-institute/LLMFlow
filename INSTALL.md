@@ -293,6 +293,6 @@ Once the CLI is on your PATH, continue with the [Quickstart Tutorial](docs/tutor
 If you are hacking on Scripture Pipelines itself **and** maintaining other repositories that depend on it, keep the environments isolated:
 
 1. In the Scripture Pipelines repo, enter the Hatch-managed environment (`hatch shell`) before running tests or scripts. Install the package editable-only inside that shell (`pip install -e .`) so downstream repos can consume your live copy.
-2. For each project that uses Scripture Pipelines, create its own virtual environment (Hatch, venv, Poetry, etc.) and install the dependency there—either from PyPI (`pip install llmflow`) or via `pip install -e /path/to/LLMFlow` when you need local changes.
+2. For each project that uses Scripture Pipelines, create its own virtual environment (Hatch, venv, Poetry, etc.) and install the dependency there—either from PyPI (`pip install scripture-pipelines`) or via `pip install -e /path/to/LLMFlow` when you need local changes.
 3. When you update the core repo, reinstall it in whichever consumer environment you’re working in so they stay in sync. This keeps dependency graphs clean and avoids “works on my machine” drift.
 

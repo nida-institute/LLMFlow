@@ -1,12 +1,9 @@
 # Changelog
 
-## 0.2.1.24
-
-<!-- Retargeted from `## Unreleased` on 2026-08-19. Captain: "we have a bunch of
-     deliverables I want to put in the next release, I'm going to add to the one we
-     started rather than create two releases." -->
+## 0.2.1.24 — 2026-08-16
 
 ### New Features
+
 
 - **A fresh clone now gets its skills (#204)** — `sp init` copies `~/.sp/skills/` into the
   repository's `.claude/skills/`, which is a location Claude Code actually reads. `~/.sp/skills/`
@@ -32,7 +29,69 @@
   only reads it. Both the generated `.gitignore` and `sp doctor`'s ownership boundary are derived
   from it, so the two cannot disagree.
 
+
+- **`sp doctor` — verify that a machine is set up correctly (#204)** — nothing previously answered
+  "is this set up correctly?", so the first symptom of a missing markdown file was an API error that
+  named nothing. `doctor` checks `~/.sp/`, the conventions, the files skills read directly, the
+  installed skills, whether skills are anywhere Claude Code can actually find them, the project's
+  `docs/ai-context/`, and whether the project is registered. Every failure names a remedy.
+
+  Three design properties worth knowing:
+
+  - **Read-only.** It reports and never repairs, so running it is always safe. Pinned by a test that
+    fails if it creates or writes anything.
+  - **Expectations come from the shipped package, not a list inside `doctor`.** Adding a template
+    requires no change here. A second list would drift — which is exactly how three conventions went
+    unshipped for months.
+  - **It distinguishes absence from misconfiguration.** A missing `CLAUDE.md` is reported as
+    information, not a failure: it is gitignored by convention, so a clone never has one, and
+    committed context belongs in `docs/ai-context/`. A missing
+    `~/.sp/user-context/filesystem-access.md` is not reported at all, because it grants an AI read
+    access to a directory tree and only a machine's owner can grant that.
+
+  Known overlap with `sp registry status`, which also reports on `~/.sp/`. Whether `doctor` subsumes
+  it is tracked in #205; nothing is consolidated yet.
+
+
+- **`sp lint` validates structured-output schemas before the run (#196)** — prompt contracts
+  were checked before any token was spent; the JSON Schema in the same request was not
+  checked at all. Under `strict: true` OpenAI accepts only a restricted subset and rejects
+  anything else with **HTTP 400 at request time**, so a pipeline could pass every check,
+  fetch its passage, complete three steps, and die on the fourth with a provider error
+  naming a JSON path rather than a line in the YAML — with the earlier steps already paid for.
+
+  `sp lint` now reports, per step and per schema path:
+
+  ```
+  ❌ Step 'segment_book': properties.pericopes.items: every property must be listed in
+     'required' under strict mode. Missing: start_verse, end_verse, pericope_type
+     Fix: add them to 'required'; if a field is genuinely optional, give it a nullable
+          type — {"type": ["string", "null"]} — and list it in 'required' anyway
+  ```
+
+  Errors: every property listed in `required`; `additionalProperties: false` on every
+  object; an object at the root; `$ref`s that resolve. Warnings: keywords outside the
+  supported subset, and the documented size limits — OpenAI has widened the subset several
+  times, and a stale rule table must not block work the provider would accept. The table is
+  data, in one place, carrying a `LAST_VERIFIED` date.
+
+  Gated two ways. `strict: true` gates the errors, since OpenAI does not enforce the subset
+  without it — a schema missing `strict` gets a warning that the guarantee is not in force.
+  And `response_format` is the trigger rather than the model name, so Gemini's
+  `response_schema` (#191) is not measured against OpenAI's rules. `schema_file` is loaded
+  and checked like an inline schema. `linter_config.skip_strict_schema_check: true` turns
+  it off.
+
+  The checker is pure — no network, no provider client, no key — so it cannot itself cost
+  anything.
+
+  **`pipelines/json-schema-example.yaml` was itself broken**, in all three steps, while
+  advertising "guaranteed schema compliance". Five objects listed properties that were
+  absent from `required`. It is fixed here, and passing its own lint is the acceptance test
+  for the feature.
+
 ### Changed
+
 
 - **`sp doctor` now repairs what sp owns, not just reports it (#204)** — a convention that is
   missing, or whose content has diverged from the shipped version, is restored and the restoration
@@ -60,31 +119,21 @@
   bundled version is the later of the two: it carries "Propose a Fix" — wait for approval before
   writing any file — and a checkpoint step the upstream copy does not.
 
-### New Features (previously recorded)
-
-- **`sp doctor` — verify that a machine is set up correctly (#204)** — nothing previously answered
-  "is this set up correctly?", so the first symptom of a missing markdown file was an API error that
-  named nothing. `doctor` checks `~/.sp/`, the conventions, the files skills read directly, the
-  installed skills, whether skills are anywhere Claude Code can actually find them, the project's
-  `docs/ai-context/`, and whether the project is registered. Every failure names a remedy.
-
-  Three design properties worth knowing:
-
-  - **Read-only.** It reports and never repairs, so running it is always safe. Pinned by a test that
-    fails if it creates or writes anything.
-  - **Expectations come from the shipped package, not a list inside `doctor`.** Adding a template
-    requires no change here. A second list would drift — which is exactly how three conventions went
-    unshipped for months.
-  - **It distinguishes absence from misconfiguration.** A missing `CLAUDE.md` is reported as
-    information, not a failure: it is gitignored by convention, so a clone never has one, and
-    committed context belongs in `docs/ai-context/`. A missing
-    `~/.sp/user-context/filesystem-access.md` is not reported at all, because it grants an AI read
-    access to a directory tree and only a machine's owner can grant that.
-
-  Known overlap with `sp registry status`, which also reports on `~/.sp/`. Whether `doctor` subsumes
-  it is tracked in #205; nothing is consolidated yet.
-
 ### Fixed
+
+- **The install instructions named a package that is not on PyPI (#33)** — the project publishes as
+  `scripture-pipelines`, but eleven places told users to run `pip install llmflow`, a name that
+  returns 404. Anyone following the README got nothing, and an unclaimed name is one someone else
+  can register. Several also requested a `[gui]` extra that does not exist: there is no
+  `[project.optional-dependencies]` section at all and Flask is a hard dependency, so the extra was
+  never needed. Corrected across `README.md`, `INSTALL.md`, `docs/GPT_CONTEXT.md`,
+  `docs/testing-content-gui.md`, `gui/QUICKSTART.md`, `gui/README.md`, `src/llmflow/gui_launcher.py`
+  and three test skip messages. `CHANGELOG.md` history is left as written.
+
+  `tests/test_install_instructions.py` now reads the package name from `pyproject.toml` and fails
+  the build if any document or source file names a package we do not publish, or an extra we do not
+  declare. This trap was already recorded in `CLAUDE.md` and shipped regardless — a note in a
+  pitfalls list does not fail a build.
 
 - **`~/.sp/drift-patterns.md` was in no package and could not be obtained (#204)** — the
   `load-context` skill reads it by that exact path, and no `sp init` on any machine could produce
@@ -129,48 +178,6 @@
   proposed mechanisms for that failure have been refuted by test, and the cause remains unknown;
   see #204. This change is justified on its own merits.
 
-## 0.2.1.24 — 2026-08-16
-
-### New Features
-
-- **`sp lint` validates structured-output schemas before the run (#196)** — prompt contracts
-  were checked before any token was spent; the JSON Schema in the same request was not
-  checked at all. Under `strict: true` OpenAI accepts only a restricted subset and rejects
-  anything else with **HTTP 400 at request time**, so a pipeline could pass every check,
-  fetch its passage, complete three steps, and die on the fourth with a provider error
-  naming a JSON path rather than a line in the YAML — with the earlier steps already paid for.
-
-  `sp lint` now reports, per step and per schema path:
-
-  ```
-  ❌ Step 'segment_book': properties.pericopes.items: every property must be listed in
-     'required' under strict mode. Missing: start_verse, end_verse, pericope_type
-     Fix: add them to 'required'; if a field is genuinely optional, give it a nullable
-          type — {"type": ["string", "null"]} — and list it in 'required' anyway
-  ```
-
-  Errors: every property listed in `required`; `additionalProperties: false` on every
-  object; an object at the root; `$ref`s that resolve. Warnings: keywords outside the
-  supported subset, and the documented size limits — OpenAI has widened the subset several
-  times, and a stale rule table must not block work the provider would accept. The table is
-  data, in one place, carrying a `LAST_VERIFIED` date.
-
-  Gated two ways. `strict: true` gates the errors, since OpenAI does not enforce the subset
-  without it — a schema missing `strict` gets a warning that the guarantee is not in force.
-  And `response_format` is the trigger rather than the model name, so Gemini's
-  `response_schema` (#191) is not measured against OpenAI's rules. `schema_file` is loaded
-  and checked like an inline schema. `linter_config.skip_strict_schema_check: true` turns
-  it off.
-
-  The checker is pure — no network, no provider client, no key — so it cannot itself cost
-  anything.
-
-  **`pipelines/json-schema-example.yaml` was itself broken**, in all three steps, while
-  advertising "guaranteed schema compliance". Five objects listed properties that were
-  absent from `required`. It is fixed here, and passing its own lint is the acceptance test
-  for the feature.
-
-### Fixed
 
 - **A second run no longer destroys the first run's audit trail (#198)** — the debug
   directory was emptied with `shutil.rmtree()` at the start of every run, and it was keyed
@@ -329,6 +336,7 @@
   the banner read `llmflow 0.2.1.23` for a command nobody types.
 
 ### Documentation
+
 
 - **The `sp` name clash in PowerShell is documented** — PowerShell defines `sp` as an alias for
   `Set-ItemProperty` and resolves aliases before programs, so `sp --version` runs the cmdlet and

@@ -59,7 +59,7 @@ Open in browser: **http://localhost:5173**
 
 ```bash
 # Install GUI dependencies
-pip install llmflow[gui]
+pip install scripture-pipelines
 
 # Launch GUI
 sp-gui

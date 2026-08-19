@@ -610,7 +610,7 @@ outputs/
 
 ```bash
 # Install LLMFlow
-pip install llmflow
+pip install scripture-pipelines
 
 # Or from source
 cd LLMFlow

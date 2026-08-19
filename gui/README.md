@@ -92,5 +92,5 @@ Users who don't need the GUI are not impacted - the dependencies are optional.
 
 For development or if GUI not bundled in your binary:
 ```bash
-pip install llmflow[gui]
+pip install scripture-pipelines
 ```
