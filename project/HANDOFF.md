@@ -1,294 +1,148 @@
-# HANDOFF — 2026-08-17
+# HANDOFF — 2026-08-19
 
-Supersedes the 2026-08-12 handoff entirely.
+Supersedes the 2026-08-17 handoff entirely.
 
 ---
 
-## ⚠️ COMMITTED LOCALLY, NOT PUSHED — ON PURPOSE
+## ⚠️ 18 COMMITS COMMITTED LOCALLY, NOT PUSHED — ON PURPOSE
 
-`origin/dev` sits at `cb72cb7`, the SHA whose three platform builds are green — including a
-**2h23m Windows build**. **Pushing to `dev` retargets PR #199 and starts a fresh build.** That
-happened twice today by accident and cost two builds. So the handoff commits are local only:
+`origin/dev` sits at `cb72cb7`. **Do not push.** Captain's standing instruction, 2026-08-18:
+*"committing is safe, push is not"* — pushing to `dev` retargets release PR #199 and starts a fresh
+build, including a ~2h Windows job. That happened twice by accident on 2026-08-17 and cost two builds.
 
 ```bash
-git log --oneline origin/dev..dev     # expect 2 commits, both docs(handoff)
+git log --oneline origin/dev..dev | wc -l    # expect 18
+git rev-parse --short origin/dev             # expect cb72cb7
 ```
 
-**Push them only after PR #199 is merged.** Also parked at `wip/handoff-2026-08-17` (`055799d`)
-in case the working tree is reset again.
+Push only after PR #199 is merged.
 
 ---
 
 ## ▶ NEXT ACTION
 
-**Merge PR #199 and tag it. Release 0.2.1.24 is ready; its build is green.**
+**D1-A′: copy skills into `<repo>/.claude/skills/`.** It is the last substantive piece of #204, and
+`sp doctor` now names it as the only remaining failure on a clean machine:
 
-`dev` was reset to `cb72cb7` on 2026-08-17 so the release could merge *without* the scripture
-work — the Captain wanted the current version shipped before the next is implemented.
-
-**Per RELEASE_CHECKLIST:** confirm the fast test jobs are green (the three platform builds were
-reused, not re-run) → merge with a **merge commit**, not squash or rebase, so `release.yml` can
-resolve `HEAD^2` → **tag the merge commit**, deleting any stale tag of that name first → approve
-the `pypi` environment gate, which is a manual GitHub approval, not PyPI.
-
-**Verify:** `gh pr view 199 --jq .headRefOid --json headRefOid` starts `cb72cb7`;
-`gh pr checks 199` shows three `Build on *` rows reading `pass`.
-
-**Expect `Build on windows-latest` to read `pending` for up to ~2h from 18:27 on 2026-08-17.**
-Three Build runs exist on `cb72cb7`: `32039870975` completed/success at 14:40 with all three
-artifacts intact (expiring 2026-08-24), plus two queued by force-pushes at 18:25 and 18:27.
-`32054871881` was cancelled; `32055000451` is authoritative. **The code is identical across all
-three — same SHA — so it will pass.** It is only a wait.
-
-**Lesson, because it cost two builds:** a force-push fires a `synchronize` event and queues a
-fresh run *even when the SHA is unchanged*. Reverting a PR head to a green SHA restores the check
-*display* but does not prevent a rebuild. Do not push to `dev` while a release PR is open unless
-the push is meant to be part of that release.
-
-### Immediately after the merge
-
-**The scripture work (#200) is NOT on `dev`.** It is preserved at the **local** tag
-`wip/scripture-200` (`0bb1d5b`):
-
-```bash
-git log --oneline cb72cb7..wip/scripture-200      # 05d75a5, 34c7931, 0bb1d5b
-git cherry-pick 05d75a5 34c7931                  # onto dev after the merge
+```
+✗ No skills are where Claude Code can find them
+    ~/.sp/skills is not a location Claude Code reads. Slash commands such as
+    /load-context will not exist until skills are in .claude/skills.
 ```
 
-`05d75a5` is `utils/scripture.py` + tests; `34c7931` is the step, schema branch, editions registry
-and apparatus fix; `0bb1d5b` is only `project/TODO.md`. **Both tags are local — push them or
-re-apply the commits before anything could garbage-collect them.**
-
-### Also for the next release: onboarding is broken for everyone but the author — #204
-
-**Wanted in the next build (Captain, 2026-08-17).** A new contributor cloned
-`sil-translator-notes`, ran `sp init`, ran `/load-context`, and got **HTTP 400 with no body**.
-
-**Cause:** the skill reads `CLAUDE.md` first. That file is line 1 of the `.gitignore`, is never
-committed (`git ls-files CLAUDE.md` → nothing), and **`sp init` does not create it**. So a fresh
-clone cannot have it, and a missing file yields an empty read, which the API rejects with a
-bodyless 400. Every consumer repo appeared to work only because its author had a local,
-uncommitted copy — **no collaborator has ever had a working `/load-context`.**
-
-**Workaround already shipped** for `sil-translator-notes`: `CLAUDE.md.template` committed as
-`95955d9`, so the contributor runs `cp CLAUDE.md.template CLAUDE.md`. That is a patch on one repo,
-not the fix.
-
-**The engine fix (#204) has four parts:** `sp init` scaffolds `CLAUDE.md` and never overwrites it;
-skills skip a missing file cleanly instead of emitting an empty read; a verification command
-(`sp doctor` / `sp init --check`); and a decision on how a mentor ships customised AI context,
-since `sp init` currently regenerates `index.md`, `overview.md`, `rules.md` and
-`github-workflow.md`, protecting only `project.md` (`cli_utils.py:1891`).
-
-**And the reason it survived — also in #204.** Nothing tests a clean machine. **2620 tests pass
-and not one would have caught this**, because the author's machine already has `CLAUDE.md`, skills
-in `~/.claude/skills/`, registered editions and cloned Macula. A test must start from a clone with
-an empty `HOME`. Most of it is reachable already: `install_global_skills(sp_home=...)`,
-`_install_claude_skills(claude_home=..., sp_home=...)` and `default_editions_dir()` (honours
-`SP_HOME`) all take overrides. Only the edition-resolution assertions need data — a dozen-row
-fixture TSV committed to the repo would cover them, and would also let `sp lint`'s unhelpful "no
-text found" error path be tested.
-
-The wider principle worth writing down somewhere durable: **anything whose correctness depends on
-machine state the author already has needs a test that does not have it.** Otherwise the first
-person to find the bug is always the newcomer, and the error they see has nothing to do with the
-cause — this contributor saw an API 400 and had no reason to suspect a missing markdown file.
-
-### Then: the AI-context task the Captain asked for
-
-**The Captain's request, 2026-08-17:** make the AI ask him what he knows before speculating about
-domain matters. He is the expert; a previous instance repeatedly inferred instead of asking. Four
-instances from that session:
-
-| The assistant did | The Captain said | Cost |
-|---|---|---|
-| Estimated "about a day" to reconstruct running text from per-word rows | *"straight concatenation, using the @after attribute"* | The hard problem did not exist |
-| Analysed a TEI whitespace "dialect trap" | The TSV carries `after` as a column | Solved a problem the right source does not have |
-| Searched GitHub and proposed UGNT/UHB as text sources | *"UGNT is garbage"* | Nearly built on a rejected text |
-| Named `usfm-bible/examples.bsb` as *the* BSB source | *"DO NOT PICK NEW RELIABLE RESOURCES FOR ME"* | It is now in a public list on the assistant's judgement |
-
-Speculation did not stay in conversation: it reached issues, a design doc, an awesome-list commit,
-and an effort estimate he nearly acted on.
-
-**Proposed rule, for the Captain to review and place — do not write it unilaterally.** The
-governing principle is his, verbatim (2026-08-17):
-
-> **Assume any Captain understands his/her data better than you do.**
-
-It is a default, not a checklist item. What follows is how to act on it:
-
-> Before writing code that reads an unfamiliar data format, estimating how hard something will be,
-> or naming a source as authoritative — **ask**. These are the Captain's domain: which edition or
-> corpus is authoritative; what a format actually contains and how practitioners read it; whether a
-> resource is good quality; domain conventions (versification, book codes, milestones); and whether
-> an existing internal resource already solves it.
->
-> **Report what you found; do not rank it.** "Three candidates, with licence, format and maintainer"
-> is useful. "X is the source" is a decision taken.
->
-> The asymmetry: asking costs one message; speculating costs an artifact that looks authoritative
-> and is wrong.
-
-The **effort-estimate trigger** is the earliest warning: the moment an estimate is being written,
-a decision to solve it alone has already been taken.
-
-Candidate homes, the Captain's choice: `~/.sp/conventions/` (applies to every `sp` project),
-`~/.sp/drift-patterns.md` (it is a drift pattern — *speculation displacing the expert*), or
-`CLAUDE.md`. He suggested `conventions/` for the rule and `drift-patterns.md` for the diagnosis.
-**Both are Captain-owned; propose, do not write.**
-
-This is a Captain's decision. The facts:
-
-- `dev` is **19 commits** ahead of `origin/main`, head `0bb1d5b`, everything pushed.
-- `pyproject.toml` says `0.2.1.24`; `CHANGELOG.md` line 3 says `## 0.2.1.24 — 2026-08-16`.
-- That section documents **four fixes** (#189, #195, #196/#197, #178). It does **not** mention
-  the three scripture commits (`05d75a5`, `34c7931`) or the debug-manifest work — grep
-  `CHANGELOG.md` for "scripture": one incidental hit.
-- So the branch carries more than the CHANGELOG claims. Shipping as-is publishes an
-  undocumented feature.
-
-Two ways out:
-
-1. **Ship it all as 0.2.1.24** — add the scripture entries under the existing dated section.
-2. **Split** — add a fresh `## Unreleased` above line 3, bump `pyproject.toml` to `0.2.1.25`,
-   and move the scripture entries there.
-
-**Verify before acting:** `git log --oneline origin/main..dev | wc -l` → 19;
-`grep -n "^## " CHANGELOG.md | head -2` → `0.2.1.24` then `0.2.1.23`, i.e. no `Unreleased`.
+**But three questions are open and are the Captain's** — see "Open decisions" below. D1-A′ cannot be
+finished without at least the first.
 
 ---
 
-## Active threads
+## What was done 2026-08-18/19
 
-### 1. Release PR #199 (dev → main) — **in flight, CI running**
+All of it on #204. Every claim below was verified by running commands, not by reading code.
 
-- **Goal:** ship the release.
-- **State:** PR head is `0bb1d5b` (same as `dev` — every push retargeted it). Build **succeeded**
-  on `7767db9` and `cb72cb7`; it is **in progress** on `0bb1d5b`. Tests pending on that SHA.
-- **Next step:** the decision above, then wait for green on the final head.
-- **Verify:** `gh pr checks 199 --repo nida-institute/LLMFlow` and
-  `gh run list --repo nida-institute/LLMFlow --workflow=build.yml --limit 3`.
-- **Merge discipline (RELEASE_CHECKLIST):** merge commit, **not** squash or rebase, so
-  `release.yml` can resolve `HEAD^2`; tag **the merge commit**; the `pypi` environment gate needs
-  manual GitHub approval.
-
-### 2. Scripture editions — #200 — **core done, wiring incomplete**
-
-- **Goal:** the engine serves named editions so consumer repos stop each building their own
-  loader (measured: 118 files across three repos).
-- **State:** `utils/scripture.py` and `steps/scripture.py` built and tested. **2620 tests pass.**
-  Verified against real data in Hebrew, Greek and English. Three editions registered in
-  `~/.sp/editions/{WLC,SBLGNT,BSB}.yaml`.
-- **Next step:** the **pericope reader** and **docs** (`docs/llmflow-language.md`,
-  `docs/architecture.md`) — neither started. Design: `project/plans/design-scripture-editions.md`.
-- **Verify:** `hatch run pytest tests/test_scripture_text.py tests/test_scripture_step.py` → 34
-  pass; `grep -c scripture docs/llmflow-language.md` → 0, i.e. undocumented.
-
-### 3. Versification — #203 — **blocker, not started**
-
-- **Goal:** a reference must mean the same verse in every edition.
-- **State:** confirmed broken. `PSA 51:1` returns the superscription from WLC and *"Have mercy on
-  me, O God"* from BSB — two verses apart. `MAL 4:1` does not exist in the Hebrew. **The run
-  reports success.**
-- **Next step:** map schemes using the Copenhagen Alliance specification (cloned at
-  `~/github/copenhagen-alliance/versification-specification`). Editions must declare their scheme;
-  `type: scripture` must map before fetching.
-- **Verify:** run the two references through `run_scripture_step` for WLC and BSB and compare.
-- **This blocks Old Testament use of `sil-translator-notes`.** Top of `project/TODO.md`.
-
-### 4. `sil-translator-notes` (Paul's repo) — **usable, three gaps deliberate**
-
-- **State:** created private in the org, pushed, `aa73408`. `sp lint` passes. Issues #1–#4 filed
-  and on project board 19 in "Thinking about…".
-- **Next step:** Paul's, not ours. #4 carries Terry Wardlaw's real scope and may want splitting.
-- **Verify:** `gh issue list --repo nida-institute/sil-translator-notes`.
-
----
-
-## In flight / not yet done
-
-| Item | State |
+| Done | Evidence |
 |---|---|
-| PR #199 | head `0bb1d5b`, build in progress |
-| `usfm-bible/examples.bsb` **PR #7** | open upstream; adds the missing `\id` to Ecclesiastes, closes their #4 |
-| Pericope reader, `type: scripture` docs | not started (#200) |
-| Versification | not started (#203) |
+| `git status --short` → `--branch` in `load-context` | `git status --short` returns 0 bytes on a clean clone; `--branch` always emits `##` |
+| Test: no skill command may return an empty result | `tests/test_skill_command_output.py`, all 10 shipped skills |
+| Shipped 3 missing conventions + `EXPECTED_CONVENTIONS` drift guard | fresh machine went 5/8 → 10/10 |
+| Conventions `README.md` index guard | it had drifted to listing 3 of 8 |
+| Shipped `drift-patterns.md` via new `templates/sp-root/` | was in no package at all |
+| Promoted `github-authority.md`, `consumer-repo-conventions.md` | D6 split |
+| Guard: no shipped template may contain an email or absolute home path | `github-authority.md` had named a personal bot account |
+| **`sp doctor`** — `src/llmflow/doctor.py`, 8 tests | isolates the remaining defect in one line |
 
-**Nothing is uncommitted.** `dev` clean, 0 unpushed. `sil-translator-notes` clean, 0 unpushed.
-`awesome-biblical-data` clean (`4b6f739`).
+**Suite: 2621 passed, 13 skipped.** `ruff` clean. CHANGELOG entries are under `## Unreleased` with
+the version deliberately unset — the Captain may fold this into 0.2.1.24 before it merges to main,
+so **retarget that heading rather than assuming a new version.**
 
----
+### Every read `/load-context` performs, on a clean machine
 
-## Decisions settled this session — do not reopen
-
-- **Text sources are the Captain's.** WLC and SBLGNT from the Macula **TSVs** (`text` + `after`);
-  BSB from `usfm-bible/examples.bsb` (USFM). **UGNT and UHB were rejected.** An assistant must not
-  substitute a source it judges better — this was stated twice, after I twice proposed sources
-  unasked.
-- **TSV, not TEI or lowfat**, for WLC/SBLGNT: the TEI carries no `@after`, so joining would need
-  whitespace inference with different rules per language. The TSVs make joining *data*.
-- **Chunk on pericopes, not chapters.** A chapter silently under-covers: the prompt scans 19
-  mostly clause-level categories, the model returns what fits its output budget, and nothing says
-  what it skipped.
-- **`discourse-flow` pericopes are authoritative** (11 books); BSB `\s1` headings are the interim
-  fallback (66 books). They differ — John: 84 vs 69. Record which was used (#202).
-- **Join on the three-letter book code. Book numbers are not authoritative** (BSB has MAT=41,
-  discourse-flow has MAT=40).
-- **Directory is `outputs/` (plural); step keyword is `output:` (singular).** The migration plan
-  said the opposite and was marked SUPERSEDED.
-- **The debug clean stays**, scoped to one run directory. The run-key segment is emitted even when
-  it is `default`, so the `rmtree` can never reach a parent holding sibling runs.
-- **A single `dev` branch, no feature branches.** Renaming a branch with a live cross-fork PR
-  **closes that PR** — it happened; #6 died and #7 replaced it.
-
-## Open decisions blocking progress
-
-1. The release split — see NEXT ACTION.
-2. **#200 overlaps five existing issues** — #38 (BaseX collections), #39/#172 (Scripture Burrito),
-   #40 (Paratext 9.x XML), #41 (LXX). The Captain ruled **today's work closes none of them**, but
-   whether #200 supersedes any of them, or should merely cross-reference, is unresolved. I filed
-   #200 without checking for prior art.
-3. `~/.sp/editions/*.yaml` were seeded with **absolute paths on this machine**. Fine here, wrong
-   for anyone else. How editions get registered per machine is undecided.
-4. `usfm-bible/examples.bsb` has **no licence file**. BSB text is freely usable; the repo's terms
-   are unconfirmed, and the engine now depends on it.
+| Read | Before | Now |
+|---|---|---|
+| `git status --short` | EMPTY, rc=0 | ok (`--branch`) |
+| `~/.sp/drift-patterns.md` | ERROR rc=1 | ok, 24928 bytes |
+| `~/.sp/conventions/*.md` | 5 files | 10 files |
+| `CLAUDE.md` | ERROR rc=1 | ERROR rc=1 — **by design**, see D3-A |
 
 ---
 
-## Do NOT / deferred
+## Open decisions — Captain's, blocking
 
-- **Do not delete the `jonathanrobie/examples.bsb` fork while PR #7 is open** — a fork PR depends
-  on the fork's branch, so deleting it closes the PR. Command and reasoning in `project/TODO.md`.
-- **Do not reset `~/github/usfm-bible/examples.bsb` off its `dev` branch.** That branch carries the
-  `\id ECC` patch. Without it Ecclesiastes silently vanishes and `ECC 3:1` returns "no text found",
-  which reads like a bad reference. Verify: `git -C ~/github/usfm-bible/examples.bsb branch --show-current` → `dev`.
-- **Do not work on Old Testament passages in `sil-translator-notes`** until #203 lands.
-- **`discourse-flow` and `discourse-flow-hebrew` have their own AI.** Left out of the `outputs/`
-  migration on purpose; both still declare `output/intermediate` and a singular `${output_dir}`.
-- **`semdom-greek-lexicon`: leave alone** (Captain's instruction). It declares an Obsidian vault
-  root, not a directory named `output`.
-- **Looks like a next step but isn't:** adding a surrounding-chapter context step to Paul's
-  pipeline. Deriving "the chapter containing this passage" needs an engine helper that does not
-  exist; a step re-fetching `${passage}` would just duplicate `fetch_bsb`. Left out rather than
-  faked — see the comment where step 3 would go.
-- **GitHub's API was intermittently 503-ing all session.** It caused me to report two issue edits
-  that never applied. **Read results back; do not trust exit codes.**
+**1. D4 / D5 — the interactive gate.** Still unruled. The Captain said *"educate me"* on both; the
+plan contains recommendations, and **an AI recommendation is not a ruling.** This blocks D1-A′,
+because `_configure_ai_assistants` returns silently when stdin is not a TTY
+(`cli_utils.py:805-806`), and Claude Code setup sits behind two `default=False` prompts
+(`cli_utils.py:777`, `811-812`). A fresh clone therefore gets no skills copied.
+
+What still needs a decision: whether the other three assistants' files (`.cursorrules`,
+`.windsurfrules`, `copilot-instructions.md`) are written unconditionally, and whether the prompts
+disappear entirely.
+
+**2. `.gitignore` — `sp init` writes none at all.** Verified: a fresh `sp init` produces no
+`.gitignore` and no `.claude/`. Earlier notes described a "carve-out in the generated `.gitignore`";
+there is nothing to carve. `sil-translator-notes` ignores `.claude/` wholesale, so committing
+`.claude/skills/` needs a hand edit there. **Does `sp init` start generating a `.gitignore`, or does
+the mentor edit theirs?** If the engine never writes one, "clone and it works" depends on the
+mentoring repo having been hand-configured — the class of problem #204 exists to remove.
+
+**3. Release split.** Unchanged from the last handoff and still unresolved.
 
 ---
 
-## Key files & links
+## Do NOT
 
-**Design / tracking**
-- `project/plans/design-scripture-editions.md` — the live design; every ruling recorded
-- `project/TODO.md` — #203 at the top, plus the fork-deletion note
-- `project/plans/plan-migrate-pipeline-directories.md` — executed; survey of all 14 repos at the foot
+- **Do not push.** See the top of this file.
+- **Do not treat the bodyless 400 as diagnosed.** Two mechanisms were proposed and **both refuted by
+  test.** Missing files exit non-zero and print to stderr, so they are loud, not silent. `git status
+  --short` returning nothing is a *candidate*, not a conclusion — no 400 has been reproduced. #204
+  now says the cause is unknown. Do not let a third theory quietly become the story.
+- **Do not ship `filesystem-access.md`.** It grants an AI standing read access to a directory tree;
+  only the machine's owner can grant that. Its absence is correct, and `sp doctor` deliberately does
+  not check for it.
+- **Do not put personal information in `templates/`.** A test fails the build on any email address or
+  absolute home path, added after `github-authority.md` was found naming a personal bot account.
+- **Do not use `_sp_dir_writable()` on the `~/.sp` root.** It locks its directory on exit
+  *unconditionally*, even when it was writable before. Doing so left the whole tree read-only and
+  silently broke `install_global_skills()` — the call sits in a `try/except` that only warns. See the
+  comment in `install_global_conventions`.
+- **`sp doctor` is not blocked on #205.** An earlier revision of the plan and of #205 both claimed it
+  was; retracted in both. `doctor` is built.
 
-**Engine code**
-- `src/llmflow/utils/scripture.py` — extraction, editions registry, both backends
-- `src/llmflow/steps/scripture.py` — the step
-- `src/llmflow/utils/schema_preflight.py` — strict-schema checking (#196), dated rule table
-- `src/llmflow/utils/debug.py` — per-run isolation and `manifest.jsonl` (#198)
+---
 
-**Issues** — #200 editions · #201 dataset versioning · #202 pericope sources · #203 versification
-**PRs** — nida-institute/LLMFlow#199 (release) · usfm-bible/examples.bsb#7 (upstream `\id` fix)
-**Boards** — LLMFlow: project 13 · `sil-translator-notes`: project 19
+## Two process failures worth remembering
+
+Recorded because both nearly cost scope the Captain had not asked to give up, and both were caught by
+him rather than by me.
+
+1. **Claimed skill shadowing made the fix unverifiable.** It does not — `env HOME=<tmpdir> claude`
+   gives a clean run, and the automated tests never touch skill resolution. The Captain was about to
+   relax a design constraint on the strength of it.
+2. **Claimed `sp doctor` was blocked on #205.** It never was; `doctor` needed an `add_parser`, a
+   handler and tests. He asked why, and the dependency did not survive the question.
+
+Both times a concern I had just written up was then treated as a constraint — an AI-authored
+rationale acquiring the force of a design decision. That is circular authority, and the tell is that
+the "blocker" always appeared immediately after I had finished documenting something.
+
+---
+
+## New issues filed
+
+- **#205** — bring the CLI under the same declarative-schema discipline as pipeline steps. Captain's
+  rulings: *"I don't want to maintain so many alternative ways of saying the same thing"* and *"the
+  same discipline for the CLI."* Six questions open. Evidence: three commands own `docs/ai-context/`,
+  `sp update-ai-context` violates the locked `--update` rule, `sp transition` is orphaned from
+  `sp content`, and `gui/backend/server.py` hand-maintains a second copy of the CLI's command names.
+  Board 13, Todo.
+- **human-at-the-helm#1** — upgrade HATH to current functionality: an installer, the full skill set,
+  support for pure-Python projects. **The goal after this release.** Board 13, Todo position 1.
+  Provenance recorded: HATH came first and inspired the AI context here, then fell behind, so the
+  origin is now the less advanced text. Questions deferred by the Captain until the goal starts.
+
+## Key files
+
+- `project/plans/design-onboarding-fresh-clone.md` — the live design. D1–D8 with the Captain's
+  answers inline after each `=>`. **Answer format: a bare `=>` line, never checkboxes or blanks.**
+- `src/llmflow/doctor.py` · `tests/test_doctor.py`
+- `tests/test_skill_command_output.py` · `tests/test_global_conventions.py`
+- `src/llmflow/templates/sp-root/` — new; files whose path is part of a contract
