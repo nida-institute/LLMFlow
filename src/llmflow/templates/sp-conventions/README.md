@@ -32,6 +32,8 @@ Surface genuine decisions to the Captain (whoever directs the project) and stop;
 
 **Key standard:** A genuine decision (scope boundary, design choice, anything with real consequence) → name it crisply, make sure the Captain sees it, and halt for the Captain's call. Mechanical/low-stakes work proceeds without gating. Streaming decisions past the Captain and acting on an assumption are both drift.
 
+**Asking in a document:** pose the question, then leave a line containing only `=>` for the answer. Never checkboxes or underline blanks — neither is fillable by someone editing the file. Once the Captain has written after a `=>`, that text is the ruling: quote it, never reword it.
+
 ### llmflow-project-tracking.md
 One rolling file per pipeline for audit findings and implementation plans.
 
