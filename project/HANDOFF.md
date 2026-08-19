@@ -86,6 +86,21 @@ mentoring repo having been hand-configured — the class of problem #204 exists 
 
 **3. Release split.** Unchanged from the last handoff and still unresolved.
 
+**4. `sp doctor` checks presence, not content — and the Captain's own machine is stale.**
+The `=>` answer-slot convention was added to `templates/sp-conventions/surface-decisions.md`
+(2109 bytes). The Captain's installed copy is the old **790-byte** version with zero `=>`
+occurrences, because `install_global_conventions` uses `force=False` and skips existing files.
+
+```bash
+sp init --update      # the only thing that will refresh it
+```
+
+The general gap: a machine can pass every `doctor` check while holding stale convention *content*.
+Adding a content comparison is not obviously right — a user may have edited a convention
+deliberately, and flagging that as a fault would be wrong — so the severity and whether to do it at
+all is the Captain's call. This is the same silent-drift class as the unshipped conventions, one
+level down.
+
 ---
 
 ## Do NOT
