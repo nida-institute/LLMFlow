@@ -17,6 +17,7 @@
 - [docs/llmflow-language.md](../llmflow-language.md) – YAML grammar, step types, variables, `for-each` semantics.
 - [docs/architecture.md](../architecture.md) – module map, runner lifecycle, plugin strategy.
 - [docs/why-llmflow.md](../why-llmflow.md) – motivation and comparison to LangChain/Haystack.
+- [docs/python-api.md](../python-api.md) – the public Python API — `load_pipeline`, the `Pipeline` methods, and `call_llm` for direct model access.
 - [docs/moderation-handling.md](../moderation-handling.md) – moderation failure diagnostics plus prompt mitigation checklist.
 
         ## Runtime Snapshot

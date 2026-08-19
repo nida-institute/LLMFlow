@@ -11,6 +11,7 @@ Use this map to decide which reference to consult when answering questions.
 | YAML grammar & step types | [docs/llmflow-language.md](../llmflow-language.md) | `llm` / `function` / `for-each`, variables, `append_to` |
 | Architecture & modules | [docs/architecture.md](../architecture.md) | CLI, runner, linter, telemetry, plugin hooks |
 | Philosophy & comparisons | [docs/why-llmflow.md](../why-llmflow.md) | When/why to use LLMFlow vs other frameworks |
+| Python API — drive the engine in-process | [docs/python-api.md](../python-api.md) | `import llmflow`: `load_pipeline(...)` then `.resolve()` / `.lint()` / `.run()` / `.schemas()` / `.saveas()`; `call_llm(prompt, config)` for direct model access; `PIPELINE_SCHEMA` + `api_catalog()` are the machine-readable syntax↔API map. Prefer this over re-parsing pipeline YAML or shelling out to `sp` (#175) |
 | AI persona & tone | [docs/ai-context/rules.md](rules.md) | Guardrails for assistant responses |
 | Moderation handling | [docs/moderation-handling.md](../moderation-handling.md) | OpenAI Responses blocks, Bible-text mitigation checklist |
 | Versification systems | [Copenhagen Alliance Versification spec](https://github.com/Copenhagen-Alliance/versification-specification) | Canonical spec for mapping between verse systems (KJV, LXX, Vulgate, etc.); derived from Paratext .vrs files, which are semantically compatible; use for any cross-versification pipeline work |
