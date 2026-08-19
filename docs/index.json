@@ -1680,6 +1680,11 @@
           "doc": "Validate all templates referenced in a pipeline configuration."
         },
         {
+          "name": "_ensure_writable_path",
+          "signature": "_ensure_writable_path(value, what: str) -> None",
+          "doc": "Refuse to create a directory named after an unresolved variable."
+        },
+        {
           "name": "save_markdown_as",
           "signature": "save_markdown_as(text, passage, format = 'md', output_dir = 'outputs')",
           "doc": "Save text content as a file with custom naming and directory."
@@ -2047,7 +2052,7 @@
         {
           "name": "_ensure_path_resolved",
           "signature": "_ensure_path_resolved(self, value: Any, original: Any, step: Dict[str, Any]) -> None",
-          "doc": ""
+          "doc": "Delegates to the shared check in `utils.context`."
         }
       ]
     },
@@ -2077,6 +2082,16 @@
         "typing"
       ],
       "functions": [
+        {
+          "name": "has_unresolved_variables",
+          "signature": "has_unresolved_variables(value: Any) -> bool",
+          "doc": "True when `value` still carries a `${var}` or `{var}` placeholder."
+        },
+        {
+          "name": "ensure_saveas_path_resolved",
+          "signature": "ensure_saveas_path_resolved(value: Any, original: Any, step: Dict[str, Any]) -> None",
+          "doc": "Raise if a step's resolved `saveas` path still contains a placeholder."
+        },
         {
           "name": "build_run_context",
           "signature": "build_run_context(pipeline_config: Dict[str, Any], vars: Optional[Dict[str, Any]] = None) -> Dict[str, Any]",
@@ -2515,7 +2530,7 @@
         {
           "name": "_ensure_path_resolved_for_lint",
           "signature": "_ensure_path_resolved_for_lint(resolved_value: Any, original: Any, step: dict) -> None",
-          "doc": ""
+          "doc": "Delegates to the shared check in `utils.context`."
         },
         {
           "name": "_build_module_func_map",
@@ -3915,6 +3930,6 @@
   ],
   "summary": {
     "total_modules": 74,
-    "total_functions": 603
+    "total_functions": 606
   }
 }

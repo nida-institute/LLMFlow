@@ -1,19 +1,20 @@
 import ast
-from dataclasses import dataclass
-from typing import Any, List, Set
 import re
+from dataclasses import dataclass
 from difflib import unified_diff
 from pathlib import Path
+from typing import Any, List, Set
 
 import click
 import yaml
 from pydantic import ValidationError
-from llmflow.yaml_loader import load_pipeline_config
-from llmflow.pipeline_schema import PipelineConfig, allowed_step_keys, step_keys
+
 from llmflow.exceptions import StepRewindError
-from llmflow.utils.llm_runner import validate_model_parameter, get_model_family
-from llmflow.utils.get_prefix_directory import get_prefix_directory
+from llmflow.pipeline_schema import PipelineConfig, allowed_step_keys, step_keys
 from llmflow.utils.context import build_run_context
+from llmflow.utils.get_prefix_directory import get_prefix_directory
+from llmflow.utils.llm_runner import validate_model_parameter
+from llmflow.yaml_loader import load_pipeline_config
 
 
 def _identifiers_in_expr(expr: str) -> Set[str]:
@@ -837,7 +838,6 @@ def _resolve_save_paths_for_lint(step: dict, context: dict) -> List[str]:
     from llmflow.runner import resolve
 
     saveas_config = step.get("saveas")
-    paths: List[str] = []
 
     if isinstance(saveas_config, str):
         path = resolve(saveas_config, context)
@@ -872,12 +872,16 @@ def _resolve_save_paths_for_lint(step: dict, context: dict) -> List[str]:
 
 
 def _ensure_path_resolved_for_lint(resolved_value: Any, original: Any, step: dict) -> None:
-    path_str = str(resolved_value)
-    if "${" in path_str or "{" in path_str:
-        raise StepRewindError(
-            f"Saveas path for step '{step.get('name', 'unnamed')}' contains unresolved variables: {original}",
-            step_name=step.get("name") or "",
-        )
+    """Delegates to the shared check in `utils.context`.
+
+    This was a byte-identical copy of `rewind.StepRewindManager._ensure_path_resolved`,
+    down to the message and the exception type. Both guarded a path that does not write;
+    the one that does had no check at all, which is how an unresolved `${var}` became a
+    directory on disk.
+    """
+    from llmflow.utils.context import ensure_saveas_path_resolved
+
+    ensure_saveas_path_resolved(resolved_value, original, step)
 
 
 def _build_module_func_map(module_ast: ast.Module) -> dict:
@@ -1244,7 +1248,10 @@ def validate_step_prompt_contract(step, prompt_file, step_name):
     unexpected_inputs = step_inputs - (required_inputs | optional_inputs)
     if unexpected_inputs:
         for unexpected in sorted(unexpected_inputs):
-            errors.append(f"⚠️  Step '{step_name}': Unexpected input '{unexpected}' for prompt '{prompt_file}' (not declared)")
+            errors.append(
+                f"⚠️  Step '{step_name}': Unexpected input '{unexpected}' "
+                f"for prompt '{prompt_file}' (not declared)"
+            )
 
     return errors
 
@@ -1338,7 +1345,8 @@ def _lint_window_step(step: dict, errors: list) -> None:
             )
         if "include_partial" in step:
             errors.append(
-                f"Window step '{name}': 'include_partial' is only valid with 'size' or 'size_by_tokens', not 'start_when'"
+                f"Window step '{name}': 'include_partial' is only valid with "
+                f"'size' or 'size_by_tokens', not 'start_when'"
             )
         if "stride_by_tokens" in step:
             errors.append(
