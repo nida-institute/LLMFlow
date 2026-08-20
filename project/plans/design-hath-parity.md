@@ -393,6 +393,48 @@ fails if `sp-workflow.md` loses the prohibition on running a pipeline unasked, o
 `~/.sp/conventions/llmflow-project-tracking.md`, which no longer exists. That directory is under the
 Captain's authority, so the stale pointer is reported rather than fixed.
 
+### H6. The word, and what a session reads — ruled 2026-08-20
+
+**D5 — one word for these documents, in both repositories.**
+
+=> I like 'disciplines' for each, any reason to go with conventions?
+
+=> recommend one convention for both
+
+**Ruled: `disciplines`, and Scripture Pipelines is the side that renamed.** HATH has published
+`disciplines/` on a public unversioned `main`, linked from its README and `adopting.md`, so its
+paths break adopters if changed (§8); `~/.sp/conventions/` was created by an installer and
+nobody links to it. Naming for methodology material comes from the methodology's home — the
+reverse is this engine's internal vocabulary colonizing the published methodology. Measured
+first: 19 files, ~155 lines, ~100 of them in two test files because the installer function name
+is part of it. Landed in `a8d7c15`; `~/.sp/conventions/` is left behind on existing machines and
+must be deleted by hand.
+
+**D6 — do the essays install, and are they read every session?**
+
+=> C
+
+**Ruled C: install all nine; `load-context` reads the operational rules each session and treats
+the essays as reference.** The mechanism is `disciplines/README.md`, the index that ships beside
+the files — not a list inside the skill, which would be a second copy of the shipped set.
+
+**The multi-tool question, asked while step 5 was being written:**
+
+=> can people install with a gpt client like chatgpt, or only with a command line tool?
+
+Answered in the README rather than by a ruling, because it is a fact rather than a preference:
+any assistant with local file access can be pointed at `manifest.yaml`, which names no tool; a
+browser-only chat client cannot, because it has no filesystem and what it prints for pasting is
+an imitation of a file rather than the file. Three adoption paths are now documented.
+
+**Still open, flagged not decided:** whether HATH should ship per-tool pointer files
+(`.cursor/rules`, `.github/copilot-instructions.md`, `AGENTS.md`) so its skills reach Cursor,
+Copilot and Codex users. This engine already generates that shape, so the pattern exists — but
+it is four more manifest entries and a support claim for tools neither the Captain nor the AI
+has tested.
+
+=>
+
 ### H2. Where do the conventions and `drift-patterns.md` live in the repo?
 
 Q4 says they live in the project repo. `load-context` has to read them from a fixed path.
@@ -556,7 +598,10 @@ Ordered so each step's result can change the next.
    the specification the other two execute and verify against. `/install` lives in HATH's own
    `.claude/skills/` and is never copied to a target; `/hath-check` is shipped to targets. Both are
    written against the manifest rather than against each other, so a target can be verified by a
-   checker that never saw the installer run.
+   checker that never saw the installer run. **Done 2026-08-20** (HATH `d8a3642`), preceded by the
+   content transfer (`24fd64f`) after ruling D3-A moved it ahead of the manifest: a manifest
+   written against directories that do not yet exist cannot be tested against reality, which is
+   H1's stated risk.
 6. **The sync mechanism** (H3), last — it can only be written once there is a stable set to sync.
 7. **Acceptance, manual and not optional:** a real Claude Code session in a plain Python repo with
    no `~/.sp` and no pipelines, running `/load-context`. The only check where a model reads the
