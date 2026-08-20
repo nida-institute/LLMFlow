@@ -25,7 +25,7 @@ It must encode three things, or it will "fix" work that was done on purpose:
 
 ```bash
 hatch run pytest tests/test_portable_skills.py tests/test_portable_disciplines.py  # expect 39 passed
-git log --oneline -1                                     # expect a6d5d3b
+git log --oneline -1                                     # expect the HANDOFF commit on dev
 git -C ~/github/nida-institute/human-at-the-helm log --oneline -1   # expect d47ceee
 ```
 
@@ -57,11 +57,11 @@ code to recover.
 - **Verify:** `hatch run pytest tests/test_portable_disciplines.py` → 18 passed.
   `git -C ~/github/nida-institute/human-at-the-helm log --oneline -3`.
 
-### 2. Release 0.2.1.24 — **`dev` is 34 ahead of `origin/dev`, unpushed.**
+### 2. Release 0.2.1.24 — **`dev` is 37 ahead of `origin/dev`, unpushed.**
 
 - **State:** PR #199 is `OPEN`, head still `cb72cb7` — it does **not** contain any of this work.
 - **Next step:** nothing until the Captain says the release contents are complete.
-- **Verify:** `git log --oneline origin/dev..dev | wc -l` → 34. `gh pr view 199 --json headRefOid`.
+- **Verify:** `git log --oneline origin/dev..dev | wc -l` → 37. `gh pr view 199 --json headRefOid`.
 - Suite: **2724 passed, 13 skipped** (was 2705 at yesterday's handoff).
 
 ### 3. #204 fresh-clone onboarding — **two pieces left, unchanged today.**
@@ -130,7 +130,7 @@ real user of one of those tools to confirm it, not bolted on from documentation 
   `~/.sp/disciplines/` (current, 11 files) and nothing removes the old directory, because `sp
   doctor` iterates what the package ships and never enumerates what is present. **Delete it by
   hand.** `~/.sp/skills/` is current.
-- **Finding, not fixed and not yet filed: the test suite writes to the real `~/.sp/`.**
+- **Filed but not fixed — #207, the test suite writes to the real `~/.sp/`.**
   `tests/test_init.py:32` and several others call `main(["init"])` having patched only the working
   directory (`monkeypatch.chdir`), not `Path.home()`. That is how this machine's `~/.sp/` was
   rewritten twice today. **Filed as #207** with the evidence and a suggested `conftest.py` fixture
@@ -187,7 +187,8 @@ real user of one of those tools to confirm it, not bolted on from documentation 
 - `README.md`, `adopting.md` — three adoption paths, five skills
 
 **Issues** — human-at-the-helm#1 · #204 onboarding · #205 CLI schema · #200 editions ·
-#201 dataset versioning · #203 versification · #192 implement `else` · #33 missing project files
+#201 dataset versioning · #203 versification · #192 implement `else` · #33 missing project files ·
+#207 the suite writes to the real ~/.sp
 
 **PRs** — nida-institute/LLMFlow#199 (release, OPEN, head `cb72cb7`, does not contain this work)
 
