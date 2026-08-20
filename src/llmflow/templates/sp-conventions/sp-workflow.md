@@ -1,6 +1,8 @@
 # SP Workflow Conventions
 
-Rules that apply to every SP project on this machine.
+Rules specific to Scripture Pipelines projects. The general practice they sit on top of —
+shell commands, audit workflow, files the human controls — is in `workflow.md`, which applies
+to every project on this machine whatever it is written in.
 
 ---
 
@@ -18,47 +20,37 @@ Never run `sp run` without being asked. The human decides when pipelines run and
 
 ---
 
-## Shell Commands
+## Project Tracking
 
-**Prefer tools over bash.** The Read, Edit, Write, and Grep tools never require approval. Use them for file reads, edits, and searches before reaching for bash.
+The rolling-file structure is in `project-tracking.md`. Here the unit it rolls per is the
+**pipeline**:
 
-**Never use `cd /path && command`.** Most tools accept a path directly — use that instead. `cd` before a command triggers approval hooks and is almost never necessary:
+```
+project/
+  audits/
+    audit-{pipeline-name}.md    # findings, updated in place
+  plans/
+    {pipeline-name}-plan.md     # tasks, checked off when done
+```
 
-- `git -C /path/to/repo <command>` — not `cd /path && git`
-- `grep -r pattern /path/` — not `cd /path && grep -r pattern .`
-- `find /path/ -name ...` — not `cd /path && find . -name ...`
-- `pytest /path/tests/` — not `cd /path && pytest`
-- `ruff check /path/src/` — not `cd /path && ruff`
-- `ls /path/` — not `cd /path && ls`
+**Examples:** `project/audits/audit-leadersguide.md`, `project/audits/audit-build-book.md`,
+`project/plans/leadersguide-plan.md`, `project/plans/build-book-plan.md`.
 
-If a tool genuinely has no path argument, use a subshell: `(cd /path && command)` — this does not change the shell's working directory and does not trigger the hook.
+**Distinct from per-artifact records.** A per-pipeline file tracks one pipeline's ongoing
+health and tasks. A per-artifact record (e.g. `project/audits/audit-MRK-6-14-29.md`) records
+findings for a specific passage or output and follows the naming convention in
+`audits-pattern.md`.
 
-**Git — no piping.** Never pipe git output (`git log ... | grep ...`, `git status | head ...`). Run the git command alone; use the Grep tool or Read tool to filter results.
-
-**Bash inline Python — use heredoc, not `-c`.** Use `hatch run python << 'EOF'` for inline Python. Never `python3 -c "..."` or `hatch run python -c "..."` with multiline content — these trigger the approval hook. Use `jq` for JSON queries where possible.
-
----
-
-## Audit Workflow
-
-**Results require specific evidence.** Provide exact quotes and file locations for every finding — not just pass/fail. The human reads what you cite and decides whether they agree.
-
-**Verdicts belong to the human.** Never write "Approved," "Needs attention," "Requires revision," or any verdict. Leave Overall fields blank or mark `_(reviewer to assess)_`. Audits report facts; the human decides what to do with them.
-
----
-
-## Design and Code Conventions
-
-**Design comments must reference GH issues.** Any comment explaining why something is done a certain way must cite a GH issue number. Without an issue reference, future sessions cannot tell whether the comment reflects an intentional decision or a stale assumption.
-
-**Checklists state what to do, not what to avoid.** Positive framing only. Every "no X, no Y" exception list is a positive rule that already excludes everything failing it — write the positive rule and delete the list.
+| File | Purpose | Lifecycle |
+|------|---------|-----------|
+| `project/audits/audit-{pipeline}.md` | Pipeline-level findings (rolling) | Updated in place; items removed when resolved |
+| `project/audits/audit-{PASSAGE}.md` | Artifact-level findings | One file per artifact; retained as record |
+| `project/plans/{pipeline}-plan.md` | Implementation tasks (rolling) | Updated in place; items removed when done |
 
 ---
 
-## Files the Human Controls
+## Where the Machine User Account Is Recorded
 
-**Never modify `docs/ai-context/` without explicit approval.** These are design documents. Report findings and propose changes in conversation; do not write unilaterally.
-
-**Never create or modify project memory files without explicit approval.** Show proposed content in conversation and wait for approval before writing.
-
-**CLAUDE.md belongs to the human.** Propose additions in conversation — showing exact content — but never write to it without explicit approval.
+`github-authority.md` says to keep the AI's GitHub account details somewhere that belongs to
+you alone. Here that place is `~/.sp/user-context/` — that directory is never shipped and
+`sp init` never overwrites it.

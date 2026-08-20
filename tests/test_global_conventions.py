@@ -23,17 +23,22 @@ from llmflow.cli_utils import (
 #
 # Adding a convention to ~/.sp/ without adding it here — or to templates/ without
 # listing it here — fails the test.
+# `workflow.md` and `sp-workflow.md` are the two halves of one former file, and
+# `project-tracking.md` was `llmflow-project-tracking.md` before the general half of each was
+# separated out for Human at the Helm (human-at-the-helm#1, plan step 4). Which side of that
+# line each file sits on is enforced by tests/test_portable_conventions.py.
 EXPECTED_CONVENTIONS = {
     "README.md",
     "consumer-repo-conventions.md",
     "design-authority.md",
     "github-authority.md",
     "llmflow-pipeline-steps.md",
-    "llmflow-project-tracking.md",
     "llmflow-prompt-organization.md",
+    "project-tracking.md",
     "sp-debugging.md",
     "sp-workflow.md",
     "surface-decisions.md",
+    "workflow.md",
 }
 
 # Files installed at the root of ~/.sp/ rather than into a subdirectory.
@@ -78,7 +83,7 @@ def test_project_tracking_convention_template_exists():
     """Rolling-file convention template must exist in package."""
     import llmflow
     pkg_root = Path(llmflow.__file__).parent
-    template_file = pkg_root / "templates" / "sp-conventions" / "llmflow-project-tracking.md"
+    template_file = pkg_root / "templates" / "sp-conventions" / "project-tracking.md"
     assert template_file.exists(), f"Project tracking convention not found at {template_file}"
 
 
@@ -241,7 +246,7 @@ def test_install_global_conventions_creates_files(tmp_path):
 
     convention_file = sp_dir / "conventions" / "llmflow-prompt-organization.md"
     readme_file = sp_dir / "conventions" / "README.md"
-    tracking_file = sp_dir / "conventions" / "llmflow-project-tracking.md"
+    tracking_file = sp_dir / "conventions" / "project-tracking.md"
 
     assert convention_file.exists()
     assert readme_file.exists()
@@ -343,7 +348,7 @@ def test_sp_init_installs_global_resources(tmp_path, monkeypatch, caplog):
     # Verify global conventions were installed
     assert (fake_home / ".sp" / "conventions" / "llmflow-prompt-organization.md").exists()
     assert (fake_home / ".sp" / "conventions" / "README.md").exists()
-    assert (fake_home / ".sp" / "conventions" / "llmflow-project-tracking.md").exists()
+    assert (fake_home / ".sp" / "conventions" / "project-tracking.md").exists()
 
     # Verify all expected skills were installed
     for skill_name in {"audit-prompts", "load-context", "authorize", "stand-down"}:

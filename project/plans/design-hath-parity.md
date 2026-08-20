@@ -357,6 +357,42 @@ three.
 **Consequence for §4:** the skill set becomes **eight** — six transferred, plus `/hath-check`, plus
 `/install`, the last living only in HATH's own repo and never copied to a target.
 
+### H5. The conventions split — two names, ruled 2026-08-20
+
+Step 4 needed two names before it could be executed. Both were put with a recommendation.
+
+**D1 — the name of the general half of `sp-workflow.md`:** `workflow.md`, `session-conventions.md`,
+or `ai-workflow.md`.
+
+=> D1 - A.
+
+**D2 — where the per-pipeline half of project tracking goes:** folded into `sp-workflow.md`, or kept
+as an engine-side `llmflow-project-tracking.md` beside a general `project-tracking.md`.
+
+=> D2 - A.
+
+**Ruled: `workflow.md`, and one engine file rather than two tracking files.**
+
+Executed the same day. What the split produced:
+
+| File | |
+|---|---|
+| `workflow.md` | **new, transfers** — shell commands, audit workflow, design-comment rules, files the human controls. Tooling examples gained their TypeScript counterparts per §6 5a. |
+| `sp-workflow.md` | **stays** — the CLI rules, the per-pipeline tracking unit, and where the machine user account is recorded. |
+| `project-tracking.md` | **transfers**, renamed from `llmflow-project-tracking.md`; rolling files per subsystem, the project naming its own unit. |
+| `github-authority.md` | **transfers** — four lines generalized; the policy itself untouched. |
+| `design-authority.md`, `surface-decisions.md` | **transfer unedited** — measured clean of engine vocabulary before the work started. |
+| `README.md` | **rewritten** — general and engine conventions under separate headings. |
+
+`tests/test_portable_conventions.py` is the guard, importing its patterns from
+`test_portable_skills.py`. Two of its tests are about the *move* rather than the vocabulary: one
+fails if `sp-workflow.md` loses the prohibition on running a pipeline unasked, one fails if
+`workflow.md` keeps a heading whose content went to the other file.
+
+**Left for the Captain, not done here:** `docs/ai-context/audits-pattern.md:31` points at
+`~/.sp/conventions/llmflow-project-tracking.md`, which no longer exists. That directory is under the
+Captain's authority, so the stale pointer is reported rather than fixed.
+
 ### H2. Where do the conventions and `drift-patterns.md` live in the repo?
 
 Q4 says they live in the project repo. `load-context` has to read them from a fixed path.
@@ -514,7 +550,8 @@ Ordered so each step's result can change the next.
    classification in §4 falsifiable rather than a claim in a document.
 3. **Generalize the six transferring skills**, one at a time, each landing green against test 5.
 4. **The conventions split** (H2), including breaking `sp-workflow.md` into its general and
-   engine-specific halves.
+   engine-specific halves. **Done 2026-08-20** — see H5 for the two names it needed and what it
+   produced.
 5. **The manifest, then `/install`, then `/hath-check`** — in that order, because the manifest is
    the specification the other two execute and verify against. `/install` lives in HATH's own
    `.claude/skills/` and is never copied to a target; `/hath-check` is shipped to targets. Both are

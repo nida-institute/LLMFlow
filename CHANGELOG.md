@@ -109,6 +109,33 @@
   `~/.sp/conventions` without offering the project-local path. Without it, "this skill is general"
   would be an assertion in a design document rather than something the build checks.
 
+- **The conventions are split into general practice and engine practice (human-at-the-helm#1)** —
+  step 4 of `project/plans/design-hath-parity.md`. `sp-workflow.md` mixed the two: shell command
+  discipline, audit workflow, design-comment rules and "files the human controls" hold in any
+  repository in any language, while `sp run` / `sp lint` do not. Its general half is now
+  `workflow.md`; `sp-workflow.md` keeps the CLI rules — including the prohibition on running a
+  pipeline unasked, which a test now pins because `.cursorrules` lost that exact line in a move and
+  the loss was invisible. `llmflow-project-tracking.md` becomes `project-tracking.md`, stating the
+  rolling audit/plan file structure for any subsystem; that the subsystem here is the pipeline moved
+  to `sp-workflow.md`. `github-authority.md` no longer says "All Scripture Pipeline Projects" or
+  names `~/.sp/user-context/` — the policy is unchanged, and where this project keeps the machine
+  user account is stated in `sp-workflow.md`. `design-authority.md` and `surface-decisions.md`
+  needed no edit; `llmflow-pipeline-steps.md`, `llmflow-prompt-organization.md`, `sp-debugging.md`
+  and `consumer-repo-conventions.md` stay here.
+
+  The conventions README now separates the two kinds explicitly, so a reader can tell shipped
+  methodology from engine practice at a glance.
+
+  `tests/test_portable_conventions.py` is the counterpart to `test_portable_skills.py` one level
+  down: it fails if a shared convention names this engine, shows Python tooling without its
+  TypeScript counterpart, or is added without being classified. Its patterns are imported from the
+  skills test rather than restated, since a second definition of "engine vocabulary" is the failure
+  this work exists to end.
+
+  **Note for anyone who has already run `sp init`:** `sp doctor` installs the two new files but does
+  not delete the renamed `llmflow-project-tracking.md` from `~/.sp/conventions/`, which stays behind
+  as a stale copy until removed by hand.
+
 - **A project rule that existed only inside a skill is now in `rules.md`** — *"Every LLM step must
   have source text as an explicit named input"* lived in `load-context` and nowhere else;
   `docs/ai-context/rules.md` had no rule about source text at all. Generalizing that skill would
