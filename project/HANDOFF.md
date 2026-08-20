@@ -133,8 +133,8 @@ real user of one of those tools to confirm it, not bolted on from documentation 
 - **Finding, not fixed and not yet filed: the test suite writes to the real `~/.sp/`.**
   `tests/test_init.py:32` and several others call `main(["init"])` having patched only the working
   directory (`monkeypatch.chdir`), not `Path.home()`. That is how this machine's `~/.sp/` was
-  rewritten twice today. It deserves an issue and a `conftest.py` fixture that isolates HOME for
-  the whole suite; neither exists yet.
+  rewritten twice today. **Filed as #207** with the evidence and a suggested `conftest.py` fixture
+  isolating HOME for the whole suite. Not fixed.
 - **Lint:** 23 pre-existing ruff errors in the test files touched today (verified identical against
   `HEAD` before the work) and ~49 in `src/llmflow/utils/`. Untouched deliberately — sweeping them
   would bury correctness changes in an unreviewable diff. Offer as its own commit.
