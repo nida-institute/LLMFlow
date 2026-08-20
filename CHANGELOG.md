@@ -109,6 +109,14 @@
   `~/.sp/conventions` without offering the project-local path. Without it, "this skill is general"
   would be an assertion in a design document rather than something the build checks.
 
+- **`load-context` reads the operational rules every session and the essays once** — Human at
+  the Helm's disciplines directory holds two genres: short checkable rules, and longer documents
+  explaining the failure modes behind them. The essays are written to be read in full by a person
+  adopting the methodology, not re-read at every session start, so Step 5 now reads that
+  directory's README first and treats what it marks as an essay as reference. Where no README
+  draws the distinction — which is the case in this repository, where every shipped discipline is
+  operational — every file is read as before.
+
 - **`~/.sp/conventions/` is now `~/.sp/disciplines/` (human-at-the-helm#1)** — one word for these
   documents across both repositories, ruled by the Captain: *"I like 'disciplines' for each."* Human
   at the Helm has published `disciplines/` on a public unversioned `main` since before this engine

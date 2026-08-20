@@ -104,12 +104,13 @@ restate:
 4. **Scope discipline** — do not improve code outside the requested scope; note it, don't
    fix it
 
-### Step 5: Read the Conventions and Drift Patterns
+### Step 5: Read the Disciplines and Drift Patterns
 
-Conventions live in one of two places depending on how this project was set up. Read
+Disciplines live in one of two places depending on how this project was set up. Read
 whichever exists — both, if both do:
 
 ```bash
+cat docs/ai-context/disciplines/README.md  # the index, when there is one
 cat docs/ai-context/disciplines/*.md       # committed with the project
 cat docs/ai-context/drift-patterns.md
 
@@ -119,6 +120,13 @@ cat ~/.sp/drift-patterns.md
 
 The disciplines are rules that hold across projects rather than being specific to this
 one — shell tooling, audit workflow, and the boundaries around files the human controls.
+
+**Read the operational rules every session. Read the essays once.** Where that directory
+has a README, it separates the two: short checkable rules a session is held to, and
+longer documents explaining the failure modes behind them. The essays are written to be
+read in full by a person adopting the methodology, not re-read at every session start —
+so on a routine start, read the rules and treat the essays as reference. When the README
+makes no such distinction, every file in the directory is a rule.
 
 The drift patterns catalog documents how AI collaboration fails: authority fabrication,
 framing drift, scope expansion, reporting bias, and persona performance. Internalize
