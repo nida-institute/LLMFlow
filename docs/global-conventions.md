@@ -10,7 +10,7 @@ LLMFlow provides a globally-shared convention for organizing `.gpt` prompt files
 
 ### 1. Prompt Organization Convention
 
-**Location:** `~/.sp/conventions/llmflow-prompt-organization.md`
+**Location:** `~/.sp/disciplines/llmflow-prompt-organization.md`
 
 A standard structure for transformation-heavy prompts that enforces:
 - **Verifiable transformations** — explicit mapping from input fields to output fields
@@ -56,7 +56,7 @@ sp init
 ```
 
 This automatically:
-- Creates `~/.sp/conventions/` with the convention and README
+- Creates `~/.sp/disciplines/` with the shipped disciplines and their README
 - Creates `~/.sp/skills/audit-prompts/` with the skill file
 - Logs what was installed
 

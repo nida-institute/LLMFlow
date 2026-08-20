@@ -1,16 +1,16 @@
-# Global Conventions
+# Global Disciplines
 
-This directory contains shared conventions used across multiple projects.
+This directory contains shared disciplines used across multiple projects.
 
-They come in two kinds, and the split is deliberate. **General conventions** are practice that
+They come in two kinds, and the split is deliberate. **General disciplines** are practice that
 holds in any repository in any language; they are the ones shared with Human at the Helm.
-**Scripture Pipelines conventions** are about this engine — its CLI, its prompt files, its
-pipeline YAML — and stay here. A convention that mixes the two gets split rather than filed
+**Scripture Pipelines disciplines** are about this engine — its CLI, its prompt files, its
+pipeline YAML — and stay here. A discipline that mixes the two gets split rather than filed
 under whichever half is larger; that is what `sp-workflow.md` and `workflow.md` are.
 
 ---
 
-## General Conventions
+## General Disciplines
 
 ### workflow.md
 Workflow rules that hold in every project on this machine, whatever it is written in.
@@ -49,7 +49,7 @@ One rolling file per subsystem for audit findings and implementation plans.
 
 ---
 
-## Scripture Pipelines Conventions
+## Scripture Pipelines Disciplines
 
 ### sp-workflow.md
 The rules specific to this engine, on top of `workflow.md`.
@@ -93,12 +93,12 @@ Rules for repositories that consume LLMFlow rather than being it.
 
 ---
 
-## Adding New Conventions
+## Adding New Disciplines
 
-When creating a new global convention:
+When creating a new global discipline:
 1. Document it in a descriptive `.md` file
 2. Decide which kind it is — general, or specific to this engine. If it is both, write two files rather than one mixed one.
 3. Add entry to this README, under the matching heading
-4. Classify it in `tests/test_portable_conventions.py`, which fails on an unclassified file
+4. Classify it in `tests/test_portable_disciplines.py`, which fails on an unclassified file
 5. Update relevant skills to reference it
 6. Note the originating project in the header

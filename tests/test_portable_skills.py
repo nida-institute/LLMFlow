@@ -67,12 +67,12 @@ ENGINE_VOCABULARY = {
 }
 
 # `~/.sp` is not in the list above, deliberately. A shared skill may name it — an sp
-# session must still read machine-wide conventions — but only alongside the project-local
+# session must still read machine-wide disciplines — but only alongside the project-local
 # location, since a project set up by Human at the Helm has no `~/.sp` at all (Q4). Naming
 # a path that will not exist is harmless when the instruction says "read whichever exists";
 # naming it *instead of* the one that does exist is not. Enforced by its own test below.
-SP_HOME_CONVENTIONS = re.compile(r"~/\.sp/conventions")
-PROJECT_CONVENTIONS = re.compile(r"docs/ai-context/conventions")
+SP_HOME_DISCIPLINES = re.compile(r"~/\.sp/disciplines")
+PROJECT_DISCIPLINES = re.compile(r"docs/ai-context/disciplines")
 
 # HATH must serve a TypeScript project as readily as a Python one (Captain, 2026-08-19:
 # "I am using this on a typescript project too" … "it would be nice to provision this for
@@ -152,22 +152,22 @@ def test_shared_skill_serves_both_ecosystems(skill: str):
 
 
 @pytest.mark.parametrize("skill", SHARED_WITH_HATH)
-def test_shared_skill_never_names_only_the_machine_wide_conventions(skill: str):
+def test_shared_skill_never_names_only_the_machine_wide_disciplines(skill: str):
     """Conventions live in `~/.sp/` for an sp project and in the repo for a HATH one.
 
     A shared skill may name both — "read whichever exists" misleads nobody. It may not
-    name only `~/.sp/conventions`, because a project set up by Human at the Helm has no
+    name only `~/.sp/disciplines`, because a project set up by Human at the Helm has no
     such directory and its reader would be sent to an empty path with no alternative
     offered (Q4).
     """
     text = (_skills_dir() / skill / "SKILL.md").read_text(encoding="utf-8")
 
-    if not SP_HOME_CONVENTIONS.search(text):
+    if not SP_HOME_DISCIPLINES.search(text):
         return
 
-    assert PROJECT_CONVENTIONS.search(text), (
-        f"{skill}/SKILL.md sends the reader to ~/.sp/conventions without offering "
-        "docs/ai-context/conventions, which is where they live in a project that has no ~/.sp"
+    assert PROJECT_DISCIPLINES.search(text), (
+        f"{skill}/SKILL.md sends the reader to ~/.sp/disciplines without offering "
+        "docs/ai-context/disciplines, which is where they live in a project that has no ~/.sp"
     )
 
 

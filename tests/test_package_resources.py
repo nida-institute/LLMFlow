@@ -31,7 +31,7 @@ IMPORTLIB_RESOURCE_PATHS = [
 # ── Paths that code accesses via Path(llmflow.__file__).parent / ... ─────────
 # These must live inside src/llmflow/ — they are packaged automatically.
 PACKAGE_INTERNAL_TEMPLATES = [
-    "templates/sp-conventions",
+    "templates/sp-disciplines",
     "templates/sp-skills/audit-prompts",
     "templates/sp-skills/release",
 ]

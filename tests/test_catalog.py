@@ -66,7 +66,7 @@ def test_the_catalog_is_data_not_code():
 
     module = Path(__import__("llmflow.file_catalog", fromlist=["_"]).__file__)
     source = module.read_text(encoding="utf-8")
-    for path_literal in (".cursorrules", "docs/ai-context/index.md", "conventions/"):
+    for path_literal in (".cursorrules", "docs/ai-context/index.md", "disciplines/"):
         assert f'"{path_literal}"' not in source and f"'{path_literal}'" not in source, (
             f"{path_literal!r} is hardcoded in the loader; it belongs in the data file"
         )
@@ -196,19 +196,19 @@ def test_sp_owned_context_files_are_generated():
         assert entry.policy is Policy.GENERATED, f"docs/ai-context/{name} should be sp-owned"
 
 
-def test_conventions_derive_from_shipped_templates():
+def test_disciplines_derive_from_shipped_templates():
     """Adding a template must not require editing the catalog by hand.
 
     This is the same rule doctor already follows. A second hardcoded list is how three
-    conventions went unshipped for months (#204, #181).
+    disciplines went unshipped for months (#204, #181).
     """
-    shipped = {p.name for p in (_templates() / "sp-conventions").glob("*.md")}
+    shipped = {p.name for p in (_templates() / "sp-disciplines").glob("*.md")}
     catalogued = {
         Path(e.path).name
         for e in entries()
-        if e.scope is Scope.SP_HOME and e.path.startswith("conventions/")
+        if e.scope is Scope.SP_HOME and e.path.startswith("disciplines/")
     }
-    assert shipped, "the package ships no conventions; this build looks incomplete"
+    assert shipped, "the package ships no disciplines; this build looks incomplete"
     assert shipped == catalogued, (
         f"catalog and templates disagree — only in catalog: {catalogued - shipped}; "
         f"only shipped: {shipped - catalogued}"

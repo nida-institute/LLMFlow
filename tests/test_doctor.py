@@ -9,7 +9,7 @@ Design constraints these tests pin:
 - Expectations are derived from the shipped package, never from a second hardcoded
   list. Adding a template must not require editing doctor.
 - A missing `CLAUDE.md` is INFO, not a failure — the skill reads it only if present
-  (plan D3-A), and it is gitignored by convention so a clone never has one.
+  (plan D3-A), and it is gitignored by discipline so a clone never has one.
 - A missing `~/.sp/user-context/filesystem-access.md` is not reported as a problem at
   all. It grants an AI read access to a tree; only the machine's owner can grant that,
   so its absence is the correct default (plan D6).
@@ -73,7 +73,7 @@ def test_untouched_machine_is_repaired_not_merely_reported(empty_home: Path, pro
     report = run_doctor(sp_home=sp_home, project_dir=project)
 
     checks = _by_id(report)
-    for check_id in ("conventions", "sp_root_files", "skills_installed"):
+    for check_id in ("disciplines", "sp_root_files", "skills_installed"):
         assert checks[check_id].severity is Severity.WARNING, (
             f"{check_id} is {checks[check_id].severity}; a file sp owns and restored is "
             "not a machine fault"
@@ -108,8 +108,8 @@ def test_repair_actually_writes_the_files(empty_home: Path, project: Path):
     sp_home = empty_home / ".sp"
     run_doctor(sp_home=sp_home, project_dir=project)
 
-    installed = {p.name for p in (sp_home / "conventions").glob("*.md")}
-    shipped = {p.name for p in (_templates() / "sp-conventions").glob("*.md")}
+    installed = {p.name for p in (sp_home / "disciplines").glob("*.md")}
+    shipped = {p.name for p in (_templates() / "sp-disciplines").glob("*.md")}
     assert shipped <= installed, f"claimed repair left these missing: {sorted(shipped - installed)}"
 
 
@@ -128,16 +128,16 @@ def test_every_check_explains_what_to_do(empty_home: Path, project: Path):
 
 
 def test_configured_machine_passes(tmp_path: Path, project: Path):
-    """After install_global_conventions + install_global_skills, the ~/.sp checks pass."""
-    from llmflow.cli_utils import install_global_conventions, install_global_skills
+    """After install_global_disciplines + install_global_skills, the ~/.sp checks pass."""
+    from llmflow.cli_utils import install_global_disciplines, install_global_skills
 
     sp_home = tmp_path / ".sp"
-    install_global_conventions(sp_home=sp_home)
+    install_global_disciplines(sp_home=sp_home)
     install_global_skills(sp_home=sp_home)
 
     checks = _by_id(run_doctor(sp_home=sp_home, project_dir=project))
 
-    for check_id in ("sp_home", "conventions", "sp_root_files", "skills_installed"):
+    for check_id in ("sp_home", "disciplines", "sp_root_files", "skills_installed"):
         assert checks[check_id].severity is not Severity.ERROR, (
             f"{check_id} still failing after install: {checks[check_id].detail}"
         )
@@ -147,36 +147,36 @@ def test_expectations_come_from_the_package_not_a_hardcoded_list(tmp_path: Path,
     """Doctor must derive expected files from shipped templates.
 
     Otherwise doctor becomes a third place the file set is written down, and drifts —
-    which is the exact failure that left three conventions unshipped (#204, #181).
+    which is the exact failure that left three disciplines unshipped (#204, #181).
     """
-    from llmflow.cli_utils import install_global_conventions
+    from llmflow.cli_utils import install_global_disciplines
 
     sp_home = tmp_path / ".sp"
-    install_global_conventions(sp_home=sp_home)
+    install_global_disciplines(sp_home=sp_home)
 
-    # Remove one shipped convention from the installed set; doctor must notice by
+    # Remove one shipped discipline from the installed set; doctor must notice by
     # comparing against the package, and must name the file it is missing.
-    # install_global_conventions locks the directory read-only, so unlock to simulate
+    # install_global_disciplines locks the directory read-only, so unlock to simulate
     # the drift.
-    victim = sorted((_templates() / "sp-conventions").glob("*.md"))[0].name
-    conventions = sp_home / "conventions"
-    conventions.chmod(0o755)
-    (conventions / victim).chmod(0o644)
-    (conventions / victim).unlink()
+    victim = sorted((_templates() / "sp-disciplines").glob("*.md"))[0].name
+    disciplines = sp_home / "disciplines"
+    disciplines.chmod(0o755)
+    (disciplines / victim).chmod(0o644)
+    (disciplines / victim).unlink()
 
-    check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["conventions"]
+    check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["disciplines"]
     assert check.severity is Severity.WARNING
     assert check.repaired
     assert victim in check.detail
-    assert (conventions / victim).exists(), "the missing convention was named but not restored"
+    assert (disciplines / victim).exists(), "the missing discipline was named but not restored"
 
 
 def test_missing_claude_md_is_informational_not_a_failure(tmp_path: Path, project: Path):
     """Plan D3-A: the skill reads CLAUDE.md only if present, so absence is not an error."""
-    from llmflow.cli_utils import install_global_conventions, install_global_skills
+    from llmflow.cli_utils import install_global_disciplines, install_global_skills
 
     sp_home = tmp_path / ".sp"
-    install_global_conventions(sp_home=sp_home)
+    install_global_disciplines(sp_home=sp_home)
     install_global_skills(sp_home=sp_home)
 
     check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["claude_md"]
@@ -198,10 +198,10 @@ def test_reports_where_claude_code_can_actually_find_skills(tmp_path: Path, proj
     populated ~/.sp/skills and neither of those has no working slash commands, which is
     precisely the reported failure — so this must be surfaced, not passed over.
     """
-    from llmflow.cli_utils import install_global_conventions, install_global_skills
+    from llmflow.cli_utils import install_global_disciplines, install_global_skills
 
     sp_home = tmp_path / ".sp"
-    install_global_conventions(sp_home=sp_home)
+    install_global_disciplines(sp_home=sp_home)
     install_global_skills(sp_home=sp_home)
 
     checks = _by_id(
@@ -316,7 +316,7 @@ def test_sp_init_then_sp_doctor_through_the_cli(tmp_path: Path, monkeypatch, cap
 
 
 def test_cli_doctor_repairs_and_says_so(tmp_path: Path, monkeypatch, capsys):
-    """A drifted convention is restored, and the user is told which file changed.
+    """A drifted discipline is restored, and the user is told which file changed.
 
     Captain: *"Report it with a warning and fix it, clearly saying that we are doing
     so."* A silent repair is worse than none — the user cannot tell what changed on
@@ -336,9 +336,9 @@ def test_cli_doctor_repairs_and_says_so(tmp_path: Path, monkeypatch, capsys):
     main(["init"])
     capsys.readouterr()
 
-    victim = sorted((_templates() / "sp-conventions").glob("*.md"))[0]
-    installed = home / ".sp" / "conventions" / victim.name
-    (home / ".sp" / "conventions").chmod(0o755)
+    victim = sorted((_templates() / "sp-disciplines").glob("*.md"))[0]
+    installed = home / ".sp" / "disciplines" / victim.name
+    (home / ".sp" / "disciplines").chmod(0o755)
     installed.chmod(0o644)
     installed.write_text("# stale hand-edit\n", encoding="utf-8")
 
@@ -355,22 +355,22 @@ def test_cli_doctor_repairs_and_says_so(tmp_path: Path, monkeypatch, capsys):
 def test_diverged_content_is_repaired_not_just_noticed(tmp_path: Path, project: Path):
     """D10, the ruling this test exists for: 'check content, not just presence'.
 
-    The Captain's own ~/.sp/conventions/surface-decisions.md was the stale 790-byte copy
+    The Captain's own ~/.sp/disciplines/surface-decisions.md was the stale 790-byte copy
     against a shipped 3404 bytes, and presence-only checking called that machine healthy.
     """
-    from llmflow.cli_utils import install_global_conventions
+    from llmflow.cli_utils import install_global_disciplines
 
     sp_home = tmp_path / ".sp"
-    install_global_conventions(sp_home=sp_home)
+    install_global_disciplines(sp_home=sp_home)
 
-    victim = sorted((_templates() / "sp-conventions").glob("*.md"))[0]
-    conventions = sp_home / "conventions"
-    conventions.chmod(0o755)
-    installed = conventions / victim.name
+    victim = sorted((_templates() / "sp-disciplines").glob("*.md"))[0]
+    disciplines = sp_home / "disciplines"
+    disciplines.chmod(0o755)
+    installed = disciplines / victim.name
     installed.chmod(0o644)
     installed.write_text("# hand-edited, and stale\n", encoding="utf-8")
 
-    check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["conventions"]
+    check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["disciplines"]
 
     assert check.severity is Severity.WARNING
     assert check.repaired
@@ -387,10 +387,10 @@ def test_repair_never_touches_files_the_project_owns(tmp_path: Path, project: Pa
     never overwrites it. A repair pass that widened ownership to cover it would delete
     the one file a project is invited to write.
     """
-    from llmflow.cli_utils import install_global_conventions, install_global_skills
+    from llmflow.cli_utils import install_global_disciplines, install_global_skills
 
     sp_home = tmp_path / ".sp"
-    install_global_conventions(sp_home=sp_home)
+    install_global_disciplines(sp_home=sp_home)
     install_global_skills(sp_home=sp_home)
 
     ai_context = project / "docs" / "ai-context"
@@ -411,29 +411,29 @@ def test_repair_never_touches_files_the_project_owns(tmp_path: Path, project: Pa
 
 
 def test_repair_survives_the_read_only_lock(tmp_path: Path, project: Path):
-    """`install_global_conventions` locks its directory on exit (`cli_utils.py:1644-1654`).
+    """`install_global_disciplines` locks its directory on exit (`cli_utils.py:1644-1654`).
 
     Repair writes into that locked directory. This is the trap that already left the whole
     ~/.sp tree read-only once and broke `install_global_skills()` silently, because the
     call sat in a try/except that only warned. A repair that cannot write must not report
     success.
     """
-    from llmflow.cli_utils import install_global_conventions
+    from llmflow.cli_utils import install_global_disciplines
 
     sp_home = tmp_path / ".sp"
-    install_global_conventions(sp_home=sp_home)
+    install_global_disciplines(sp_home=sp_home)
 
-    victim = sorted((_templates() / "sp-conventions").glob("*.md"))[0]
-    installed = sp_home / "conventions" / victim.name
+    victim = sorted((_templates() / "sp-disciplines").glob("*.md"))[0]
+    installed = sp_home / "disciplines" / victim.name
 
-    # Leave the lock exactly as install_global_conventions left it, then drift the file.
-    (sp_home / "conventions").chmod(0o755)
+    # Leave the lock exactly as install_global_disciplines left it, then drift the file.
+    (sp_home / "disciplines").chmod(0o755)
     installed.chmod(0o644)
     installed.write_text("drifted\n", encoding="utf-8")
-    (sp_home / "conventions").chmod(0o555)
+    (sp_home / "disciplines").chmod(0o555)
     installed.chmod(0o444)
 
-    check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["conventions"]
+    check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["disciplines"]
 
     assert check.repaired, "repair gave up against the lock it is expected to handle"
     assert installed.read_text(encoding="utf-8") == victim.read_text(encoding="utf-8")
@@ -442,16 +442,16 @@ def test_repair_survives_the_read_only_lock(tmp_path: Path, project: Path):
 def test_a_failed_repair_is_an_error_not_a_silent_pass(tmp_path: Path, project: Path, monkeypatch):
     """ERROR is reserved for what doctor cannot fix. A repair that fails is exactly that."""
     from llmflow import doctor as doctor_module
-    from llmflow.cli_utils import install_global_conventions
+    from llmflow.cli_utils import install_global_disciplines
 
     sp_home = tmp_path / ".sp"
-    install_global_conventions(sp_home=sp_home)
+    install_global_disciplines(sp_home=sp_home)
 
-    victim = sorted((_templates() / "sp-conventions").glob("*.md"))[0]
-    conventions = sp_home / "conventions"
-    conventions.chmod(0o755)
-    (conventions / victim.name).chmod(0o644)
-    (conventions / victim.name).unlink()
+    victim = sorted((_templates() / "sp-disciplines").glob("*.md"))[0]
+    disciplines = sp_home / "disciplines"
+    disciplines.chmod(0o755)
+    (disciplines / victim.name).chmod(0o644)
+    (disciplines / victim.name).unlink()
 
     def refuse(*args, **kwargs):
         raise PermissionError("simulated read-only filesystem")
@@ -459,7 +459,7 @@ def test_a_failed_repair_is_an_error_not_a_silent_pass(tmp_path: Path, project: 
     monkeypatch.setattr(doctor_module, "_restore", refuse)
 
     report = run_doctor(sp_home=sp_home, project_dir=project)
-    check = _by_id(report)["conventions"]
+    check = _by_id(report)["disciplines"]
 
     assert check.severity is Severity.ERROR
     assert not check.repaired

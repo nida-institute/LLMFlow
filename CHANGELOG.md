@@ -109,7 +109,26 @@
   `~/.sp/conventions` without offering the project-local path. Without it, "this skill is general"
   would be an assertion in a design document rather than something the build checks.
 
-- **The conventions are split into general practice and engine practice (human-at-the-helm#1)** —
+- **`~/.sp/conventions/` is now `~/.sp/disciplines/` (human-at-the-helm#1)** — one word for these
+  documents across both repositories, ruled by the Captain: *"I like 'disciplines' for each."* Human
+  at the Helm has published `disciplines/` on a public unversioned `main` since before this engine
+  had the directory at all, and its paths are linked from its README; `~/.sp/conventions/` is a
+  directory an installer creates and nobody links to. Two words for one thing is what the split in
+  the entry below exists to prevent, so the engine's internal name gives way rather than the
+  methodology's published one.
+
+  Renamed: `templates/sp-conventions/` → `templates/sp-disciplines/`, the catalog group and its
+  install path, `install_global_conventions()` → `install_global_disciplines()`, `sp doctor`'s check,
+  and the path in the `load-context` and `audit-prompts` skills. `consumer-repo-conventions.md`
+  keeps its file name — the ruling was about what the category is called, not about renaming files
+  whose subject happens to be a convention.
+
+  **On upgrade, delete `~/.sp/conventions/` by hand.** `sp doctor` creates and fills
+  `~/.sp/disciplines/`, but it only ever iterates what the package ships — it never enumerates what
+  is already present, so the old directory is left behind untouched. Nothing reads it after this
+  release.
+
+- **The disciplines are split into general practice and engine practice (human-at-the-helm#1)** —
   step 4 of `project/plans/design-hath-parity.md`. `sp-workflow.md` mixed the two: shell command
   discipline, audit workflow, design-comment rules and "files the human controls" hold in any
   repository in any language, while `sp run` / `sp lint` do not. Its general half is now

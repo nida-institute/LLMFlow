@@ -1200,7 +1200,7 @@ Don't read everything upfront. Use this index to find what you need for each spe
   (filesystem access, personal workflow preferences, machine-specific paths).
 
 ### Conventions (shared across all projects)
-- **~/.sp/conventions/llmflow-prompt-organization.md** - Standard 8-section structure for .gpt files
+- **~/.sp/disciplines/llmflow-prompt-organization.md** - Standard 8-section structure for .gpt files
   - Input data grounding requirements
   - Example formatting rules
   - No markdown fences in JSON examples
@@ -1223,7 +1223,7 @@ Don't read everything upfront. Use this index to find what you need for each spe
 3. Read `../.github/copilot-instructions.md` (workflow, explain-before-implementing)
 
 ### Specific Tasks
-- **Writing .gpt prompts** → `~/.sp/conventions/llmflow-prompt-organization.md`
+- **Writing .gpt prompts** → `~/.sp/disciplines/llmflow-prompt-organization.md`
 - **Pipeline YAML** → `../llmflow-language-quickref.md`
 - **Debugging pipeline errors** → `rules.md` section on common pitfalls
 - **Auditing prompts** → `~/.sp/skills/audit-prompts/SKILL.md`
@@ -1626,8 +1626,8 @@ def _sp_dir_writable(path: Path):
             _lock_sp_dir(path)
 
 
-def install_global_conventions(sp_home: Optional[Path] = None, force: bool = False) -> None:
-    """Install global conventions to ~/.sp/conventions/.
+def install_global_disciplines(sp_home: Optional[Path] = None, force: bool = False) -> None:
+    """Install global disciplines to ~/.sp/disciplines/.
 
     Args:
         sp_home: Override ~/.sp directory (for testing). Defaults to Path.home() / ".sp"
@@ -1636,30 +1636,30 @@ def install_global_conventions(sp_home: Optional[Path] = None, force: bool = Fal
     if sp_home is None:
         sp_home = Path.home() / ".sp"
 
-    conventions_dir = sp_home / "conventions"
-    with _sp_dir_writable(conventions_dir):
-        conventions_dir.mkdir(parents=True, exist_ok=True)
+    disciplines_dir = sp_home / "disciplines"
+    with _sp_dir_writable(disciplines_dir):
+        disciplines_dir.mkdir(parents=True, exist_ok=True)
 
         # Get templates from package
         import llmflow
         pkg_root = Path(llmflow.__file__).parent
-        templates_dir = pkg_root / "templates" / "sp-conventions"
+        templates_dir = pkg_root / "templates" / "sp-disciplines"
 
         # Copy convention files
         for template_file in templates_dir.glob("*.md"):
-            target_file = conventions_dir / template_file.name
+            target_file = disciplines_dir / template_file.name
 
             if target_file.exists() and not force:
-                logger.info(f"{target_file.name} already exists in ~/.sp/conventions/; skipping")
+                logger.info(f"{target_file.name} already exists in ~/.sp/disciplines/; skipping")
                 continue
 
             content = template_file.read_text(encoding="utf-8")
             target_file.write_text(content, encoding="utf-8")
-            logger.info(f"✓ Installed {template_file.name} to ~/.sp/conventions/")
+            logger.info(f"✓ Installed {template_file.name} to ~/.sp/disciplines/")
 
     # Files that belong at the root of ~/.sp/, not in a subdirectory (#204).
     # drift-patterns.md is read by the load-context skill as ~/.sp/drift-patterns.md,
-    # so its location is part of a contract and cannot be moved under conventions/.
+    # so its location is part of a contract and cannot be moved under disciplines/.
     root_templates_dir = pkg_root / "templates" / "sp-root"
     if root_templates_dir.is_dir():
         sp_home.mkdir(parents=True, exist_ok=True)
@@ -1939,9 +1939,9 @@ def init_project(base_dir: Path, update: bool = False, no_examples: bool = False
 
     logger.info("Output directory ready at ./outputs")
 
-    # Install global conventions to ~/.sp/ (non-interactive, no machine-scoped UI needed)
+    # Install global disciplines to ~/.sp/ (non-interactive, no machine-scoped UI needed)
     try:
-        install_global_conventions(force=update)
+        install_global_disciplines(force=update)
         install_global_skills(force=update)
     except Exception as e:
         logger.warning(f"Could not install global resources to ~/.sp/: {e}")

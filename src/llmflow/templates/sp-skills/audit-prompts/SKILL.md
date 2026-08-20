@@ -79,7 +79,7 @@ Use this skill when:
 Read the prompt organization convention to understand the standard organization pattern.
 
 **Convention location (check in order):**
-1. `~/.sp/conventions/llmflow-prompt-organization.md` (global default)
+1. `~/.sp/disciplines/llmflow-prompt-organization.md` (global default)
 2. `docs/prompt-organization-convention.md` (repo-specific override)
 
 Use global convention by default; use local version if project has customized standards.

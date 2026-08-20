@@ -168,9 +168,9 @@
           "doc": "Unlock a protected ~/.sp/ directory for writing, then re-lock when done."
         },
         {
-          "name": "install_global_conventions",
-          "signature": "install_global_conventions(sp_home: Optional[Path] = None, force: bool = False) -> None",
-          "doc": "Install global conventions to ~/.sp/conventions/."
+          "name": "install_global_disciplines",
+          "signature": "install_global_disciplines(sp_home: Optional[Path] = None, force: bool = False) -> None",
+          "doc": "Install global disciplines to ~/.sp/disciplines/."
         },
         {
           "name": "install_global_skills",

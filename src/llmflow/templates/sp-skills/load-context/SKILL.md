@@ -110,14 +110,14 @@ Conventions live in one of two places depending on how this project was set up. 
 whichever exists — both, if both do:
 
 ```bash
-cat docs/ai-context/conventions/*.md       # committed with the project
+cat docs/ai-context/disciplines/*.md       # committed with the project
 cat docs/ai-context/drift-patterns.md
 
-cat ~/.sp/conventions/*.md                 # installed machine-wide
+cat ~/.sp/disciplines/*.md                 # installed machine-wide
 cat ~/.sp/drift-patterns.md
 ```
 
-The conventions are rules that hold across projects rather than being specific to this
+The disciplines are rules that hold across projects rather than being specific to this
 one — shell tooling, audit workflow, and the boundaries around files the human controls.
 
 The drift patterns catalog documents how AI collaboration fails: authority fabrication,

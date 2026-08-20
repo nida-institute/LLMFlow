@@ -30,16 +30,16 @@
 #   block      delimiter name when sp owns only a block of the file, not all of it
 #
 # `groups` expand from what the package actually ships, so adding a template needs no
-# edit here. A second hand-kept list is how three conventions went unshipped for months.
+# edit here. A second hand-kept list is how three disciplines went unshipped for months.
 # ---------------------------------------------------------------------------
 
 version: 1
 
 groups:
-  - id: conventions
-    label: Conventions
-    templates: "sp-conventions/*.md"
-    path: "conventions/{name}"
+  - id: disciplines
+    label: Disciplines
+    templates: "sp-disciplines/*.md"
+    path: "disciplines/{name}"
     scope: sp-home
     policy: generated
     source: template
@@ -143,7 +143,7 @@ files:
     committed: true
 
   # Belongs to the Captain. sp upserts its block on init, doctor never repairs it, and
-  # it is gitignored by convention (D3-A) so a clone never has one.
+  # it is gitignored by discipline (D3-A) so a clone never has one.
   - path: CLAUDE.md
     scope: project
     policy: create-once

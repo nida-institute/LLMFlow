@@ -140,7 +140,7 @@ def _shipped_skill_names() -> set[str]:
 def _unlocked(path: Path):
     """Make `path`'s directory writable for a write, restoring the prior state after.
 
-    `install_global_conventions` locks `~/.sp/conventions` on exit, so a repair writes
+    `install_global_disciplines` locks `~/.sp/disciplines` on exit, so a repair writes
     into a read-only directory. Restoring the previous state rather than imposing one is
     deliberate: unconditionally re-locking is what left the whole `~/.sp` tree read-only
     and broke `install_global_skills()` silently.
@@ -350,14 +350,14 @@ def run_doctor(
             )
         )
 
-    # --- conventions, root files, skills ------------------------------------
+    # --- disciplines, root files, skills ------------------------------------
     add(
         _group_check(
-            "conventions",
+            "disciplines",
             "Conventions",
-            [e for e in sp_entries if e.path.startswith("conventions/")],
+            [e for e in sp_entries if e.path.startswith("disciplines/")],
             sp_home,
-            total=len(_shipped_names("sp-conventions")),
+            total=len(_shipped_names("sp-disciplines")),
         )
     )
     add(
