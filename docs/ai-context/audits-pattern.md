@@ -28,7 +28,7 @@ project/plans/         ← Implementation tasks (per-pipeline rolling files)
   - **Per-pipeline rolling files** (`audit-{pipeline-name}.md`) — one file per pipeline, updated in place; items removed when resolved; git history is the audit trail
 - `project/plans/` = **what will be done** (`{pipeline-name}-plan.md`) — tasks checked off and removed when done
 
-See `~/.sp/conventions/llmflow-project-tracking.md` (installed by `sp init`) for the full rolling-file convention.
+See `~/.sp/disciplines/project-tracking.md` (installed by `sp init`) for the full rolling-file convention, and `~/.sp/disciplines/sp-workflow.md` for the pipeline being the unit it rolls per.
 
 ---
 
