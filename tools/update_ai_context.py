@@ -9,6 +9,9 @@ import sys
 from pathlib import Path
 from textwrap import dedent
 
+from llmflow.ai_rules import render_numbered
+from llmflow.ai_rules import rules as _rules
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 AI_CONTEXT_DIR = REPO_ROOT / "docs" / "ai-context"
 INDEX_PATH = AI_CONTEXT_DIR / "index.md"
@@ -64,25 +67,11 @@ DESIGN_ETHOS = (
     "Documentation-first: every major behavior is described in `docs/` and mirrored here for AI assistants.",
 )
 
-RULES = (
-    "**Consult the docs before guessing.** The references listed in `index.md` are authoritative for syntax, architecture, and workflows.",
-    "**Respect pipeline schema.** Only use documented keys (`name`, `type`, `prompt`, `inputs`, `outputs`, `llm_options`, etc.). No inventing fields.",
-    "**Preserve logging/telemetry conventions.** Always use `Logger()` from `llmflow.modules.logger` and start telemetry only after config merging, per `docs/architecture.md`.",
-    "**Keep prompts and templates in sync.** Ensure every `prompt.requires` item appears in the pipeline’s `prompt.inputs`. Cite `docs/llmflow-language.md` when clarifying contracts.",
-    "**Model-specific features must be justified.** For example, `response_format` is OpenAI-only (GPT-4o/4.1 families); reference capability tables when advising users.",
-    "**Highlight human-in-the-loop expectations.** Remind users that outputs are edited in resource repos/Obsidian vaults; do not hand-wave manual review.",
-    "**Tone:** technical clarity with interpretive awareness. Explain *why* a change matters, not just *what* to type.",
-    "**When requirements conflict, ask.** Use clarifying questions rather than assuming—especially before large edits.",
-    "**Cite files explicitly.** When referencing code/docs, point to `path/file` (and line numbers if known) so humans can verify quickly.",
-    "**Stay within policy.** Follow repository security constraints, avoid leaking secrets, and decline harmful requests.",
-    "**Project boards use four columns.** All GitHub project boards for this organisation must have exactly these columns in order: Backlog → Todo → Doing → Done. Do not suggest or create boards with different column names or structures.",
-    "**Verses are milestones, not units.** In all Scripture pipeline designs, treat verse references as location markers only — never as the basis for structural or semantic decisions. Do not divide scenes, passages, or content blocks by verse count (e.g., 'group into 3-verse units'). Pericope boundaries, scene structure, and semantic cohesion must be determined by narrative/discourse analysis, not by verse numbers. For cross-versification work (mapping between KJV, LXX, Vulgate, etc.) use the Copenhagen Alliance Versification specification (see `index.md` → 'Versification systems'). Paratext `.vrs` files are semantically compatible with the Copenhagen spec (Copenhagen is derived from them) and can be used interchangeably for versification mapping.",
-    "**Every LLM step must have source text as an explicit named input.** No LLM is ever allowed to reason from a passage unless the actual text is right in front of it. A step missing `source_text` in its inputs is producing ungrounded output — it is answering from training data about the passage rather than from the passage. This rule lived only inside the `load-context` skill until 2026-08-19, when generalizing that skill for human-at-the-helm#1 was about to delete it; it is recorded here because rules belong in the rules file, not inside a procedure that reads it.",
-    "**File organisation.** Plans go in `project/plans/` (design-*.md, plan-*.md). Audits go in `project/audits/`. Use `tmp/` only for truly throwaway files (temp scripts, issue drafts before posting to GitHub). Never place design docs or plans in `tmp/` or the repo root.",
-    "**Authorization workflow (mandatory).** Before editing any file: (1) state the authorization — GH issue, explicit Captain instruction, or audit finding, quoted exactly; (2) declare scope — every file that will change and what specifically will change in each; (3) list what will NOT change; (4) ask the Captain whether a plan file in `project/plans/`, a GH issue, or neither is needed — always ask, never decide alone; (5) wait for explicit Captain sign-off; (6) before touching implementation files, write the failing test first if the change is testable — if not testable, state explicitly why. Invoke with `/authorize`.",
-    "**Plans before implementation.** Non-trivial features or changes require either a plan file in `project/plans/` or a GH issue before any code is written. Either must be reviewed and approved by the Captain. Implementation that begins without an approved plan or issue is unauthorized.",
-    "**Audits are diagnostic, not mandatory gates.** Running `/audit-prompts` or `/audit-pipeline` is a tool for understanding what needs to change — it often produces the plan or GH issues that then authorize implementation. Audits are not required before every edit; they are invoked when the Captain wants a systematic assessment before deciding what to do.",
-)
+# Read from `data/ai-rules.yaml`, never copied here (2026-08-21). This used to be the list
+# itself, while `llmflow.cli_utils` held a different one — so which rules a project was held
+# to depended on which generator last ran. Captain: "why have multiple generators at all?
+# single source of truth ..."
+RULES = _rules()
 
 LAST_UPDATED_SOURCES = (
     Path("INSTALL.md"),
@@ -195,7 +184,10 @@ def _build_overview_content(last_updated: str) -> str:
 
 
 def _build_rules_content() -> str:
-    rules_lines = "\n".join(f"{idx}. {text}" for idx, text in enumerate(RULES, start=1))
+    # Rendered by llmflow.ai_rules, not formatted here. Building the list locally was how
+    # the `note:` fields silently failed to appear in this document while appearing in the
+    # copy `sp init` writes — one source of rules, two renderers, same defect one level down.
+    rules_lines = render_numbered()
     return dedent(
         f"""\
         <!-- Generated by tools/update_ai_context.py -->

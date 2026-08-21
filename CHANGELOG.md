@@ -1,5 +1,66 @@
 # Changelog
 
+## Unreleased
+
+Heading deliberately unset: this may be folded into 0.2.1.24 before it merges, so it is meant
+to be retargeted rather than assumed.
+
+### Fixed
+
+- **The cursor example we ship taught a form that silently loses content.**
+  `LANGUAGE_QUICKREF_DOC` — which `sp init` writes into every project as
+  `docs/llmflow-language-quickref.md`, and which four shipped AI-context documents name as the
+  pipeline-YAML reference — set the window cursor from the *dropped* last unit's own opening.
+  When a model leaves a gap between the last kept unit and the dropped one, the cursor skips
+  it and no later window sees it. Measured twice in John by the reporting repo. It now resumes
+  from the trailing edge of the last unit **kept**, and names both halves of the pattern:
+  discard the last unit of a non-final window *and* resume from what you kept. Reported from
+  `nida-institute/discourse-flow`.
+
+- **`window_num` worked at run time and failed `sp lint`.** The linter's available-variable set
+  knew none of the five variables a window step injects. It now injects `window_num`,
+  `_window_index`, `_window_first`, `_window_last` and `_window_cursor`, making `window`
+  symmetric with `for-each`.
+
+- **One rule set, not two.** `docs/ai-context/rules.md` was written by two generators holding
+  two independently maintained texts — 17 rules in `tools/update_ai_context.py`, a *different*
+  12 in `llmflow.cli_utils`. Which rules a project was held to depended on which generator ran
+  last, and `sp doctor` would silently replace one set with the other. `data/ai-rules.yaml` is
+  now the only place they are written; both generators render from it.
+
+### New Features
+
+- **`size` and `stride` accept a variable**, resolved once at step entry — before the first
+  iteration, so the partition stays constant for the loop and reproducible under `--rewind-to`.
+  A `--var` string coerces; anything that does not resolve to a positive integer fails at step
+  entry naming what it resolved to. `sp lint` warns that it cannot verify a variable's value.
+  Per-iteration resolution remains unsupported, and `docs/llmflow-language.md` now explains why.
+
+- **`tools/sync_hath.py` and `data/hath-sync.yaml`** — the shared set with Human at the Helm is
+  now recorded with hashes and rulings, checked on CI against what the package ships and
+  additionally against a clone when one is present. Reports by default; copies only under
+  `--apply`; never touches a divergence that carries a ruling.
+
+### Documentation
+
+- **`docs/llmflow-language.md` explains windowing semantics**, not just its mechanics:
+  physical block versus logical units, why a fixed `stride` asserts knowledge you do not have,
+  the discard-and-resume corollary, and an explicit statement that the engine enforces none of
+  it — that discipline is pipeline-side and a run that gets it wrong loses content silently.
+
+- **Two rules added at the Captain's direction** — data moves between steps through the
+  pipeline context and nowhere else, and pipeline logic belongs in the pipeline language rather
+  than reimplemented in Python. Neither existed; the only prior statement was one descriptive
+  sentence in `docs/architecture.md`.
+
+- **`disciplines/surface-decisions.md`: only the Captain writes after a `=>`.** An AI filling in
+  its own answer slot manufactures the authority it was asking for, and nothing distinguishes
+  the two afterwards.
+
+- **`disciplines/github-authority.md`: identity in three levels.** A git author is a string, not
+  a login; a second hosting-service account covers only the service-facing half; a paid seat,
+  org role or extra AI-tool account is never required.
+
 ## 0.2.1.24 — 2026-08-16
 
 ### New Features

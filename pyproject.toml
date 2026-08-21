@@ -63,6 +63,7 @@ packages = ["src/llmflow"]
 "docs/audits" = "llmflow/docs/audits"
 "data/models.json" = "llmflow/data/models.json"
 "data/file-catalog.yaml" = "llmflow/data/file-catalog.yaml"
+"data/ai-rules.yaml" = "llmflow/data/ai-rules.yaml"
 
 [project.scripts]
 sp = "llmflow.cli:main"

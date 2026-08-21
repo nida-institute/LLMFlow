@@ -1,0 +1,159 @@
+# The AI assistant rules for this project — the ONLY place they are written.
+#
+# Two generators render this list, and neither holds a copy of it:
+#   tools/update_ai_context.py  -> docs/ai-context/rules.md   (this repository's own context)
+#   llmflow.cli_utils           -> AI_RULES_DOC, which `sp init` writes into a new project
+#
+# Why this file exists (2026-08-21). Those two generators each held their own hand-written
+# text — 17 rules here, a different 12 there — so which rules a project was held to depended
+# on which generator last ran, and `sp doctor` would silently replace one set with the other.
+# A project scaffolded by `sp init` was missing the authorization workflow and the
+# source-text rule; this repository was missing five the shipped set had.
+#
+# Captain, 2026-08-21: "we need to fix this NOW, not file an issue for later." And:
+# "why have multiple generators at all? single source of truth ..."
+#
+# ---------------------------------------------------------------------------
+# Editing
+#
+# The rules are the Captain's. An AI proposes changes in conversation and never edits this
+# file without approval — the same standing rule as CLAUDE.md and docs/ai-context/.
+#
+# Order is significant: it is the numbering readers cite. Append rather than reorder.
+#
+# Fields per entry:
+#   id     stable slug. Cite this, not the number — collapsing or adding a rule renumbers.
+#   rule   the instruction, opening with a **bolded lead phrase** that names it.
+#   note   provenance or detail that would otherwise compete with the imperative.
+#          Rendered beneath its rule, never inside the sentence.
+# ---------------------------------------------------------------------------
+
+version: 1
+rules:
+- id: read-the-docs
+  rule: '**Consult the docs before guessing.** The references listed in `index.md` are authoritative
+    for syntax, architecture and workflows. Read the file rather than recalling it.'
+- id: pipeline-schema
+  rule: '**Respect the pipeline schema.** Use only documented keys — `name`, `type`, `prompt`, `inputs`,
+    `outputs`, `llm_config`, `saveas`, `append_to`, and the rest in `docs/llmflow-language.md`.
+    Never invent a field.'
+- id: logging-telemetry
+  rule: '**Preserve logging and telemetry conventions.** Always use `Logger()` from `llmflow.modules.logger`,
+    and start telemetry only after config merging, per `docs/architecture.md`.'
+- id: prompts-in-sync
+  rule: '**Keep prompts and pipelines in sync.** Every `requires:` entry in a `.gpt` file must be
+    passed by the step that calls it, via `prompt.inputs`. Cite `docs/llmflow-language.md` when
+    explaining a contract.'
+- id: model-capabilities
+  rule: '**Stay within documented model capabilities.** Use a provider-specific feature only where
+    the docs say it is supported — `response_format` is OpenAI-only (GPT-4o/4.1 families) — and
+    name the capability table you checked.'
+- id: output-is-draft
+  rule: '**Generated output is a draft.** Files under `outputs/` are drafts until a human has reviewed
+    and edited them, in a resource repo or Obsidian vault. Never call them final, approved, or ready
+    for use, and never hand-wave the review step.'
+- id: clarity
+  rule: '**Write with technical clarity and interpretive awareness.** Explain *why* a change matters,
+    not just *what* to type.'
+- id: ask-on-conflict
+  rule: '**When requirements conflict, ask.** Use clarifying questions rather than assuming — especially
+    before large edits.'
+- id: cite-paths
+  rule: '**Cite concrete paths.** Point at real files — `pipelines/hello-llmflow.yaml`, `prompts/hello.gpt`
+    — with line numbers where you know them, so a human can verify a claim in one step.'
+- id: policy
+  rule: '**Stay within policy.** Follow repository security constraints, avoid leaking secrets,
+    and decline harmful requests.'
+- id: project-boards
+  rule: '**Project boards use four columns.** Backlog → Todo → Doing → Done, in that order, for
+    every board in this organisation. Do not propose or create boards with different columns.'
+- id: verses-are-milestones
+  rule: '**Verses are milestones, not units.** Treat verse references as location markers only —
+    never as the basis for a structural or semantic decision. Do not divide scenes, passages or
+    content blocks by verse count. Pericope boundaries, scene structure and semantic cohesion are
+    determined by narrative and discourse analysis.'
+  note: For cross-versification work (KJV, LXX, Vulgate and others) use the Copenhagen Alliance
+    Versification specification, listed in `index.md` under "Versification systems". Paratext `.vrs`
+    files are semantically compatible with it — Copenhagen is derived from them — and the two can
+    be used interchangeably.
+- id: source-text-required
+  rule: '**Every LLM step must have source text as an explicit named input.** No LLM may reason
+    about a passage unless the text is in front of it. A step without `source_text` in its inputs
+    is producing ungrounded output — answering from training data about the passage rather than
+    from the passage.'
+  note: This rule lived only inside the `load-context` skill until 2026-08-19, when generalizing
+    that skill for human-at-the-helm#1 was about to delete it. It is recorded in the rules because
+    rules belong in the rules file, not inside a procedure that reads it.
+- id: file-organisation
+  rule: '**File organisation.** Plans go in `project/plans/` (`design-*.md`, `plan-*.md`). Audits
+    go in `project/audits/`. Use `tmp/` only for genuinely throwaway files. Never put a design doc
+    or plan in `tmp/` or the repo root.'
+- id: authorization-workflow
+  rule: '**Authorization workflow (mandatory).** Before editing any file: state the authorization
+    — GH issue, explicit Captain instruction, or audit finding, quoted exactly; declare scope, naming
+    every file that will change and what changes in each; list what will not change; ask whether
+    a plan file, a GH issue, or neither is needed — always ask, never decide alone; wait for explicit
+    sign-off; and write the failing test first if the change is testable, or state why it is not.
+    Invoke with `/authorize`.'
+- id: plans-first
+  rule: '**Plans before implementation.** A non-trivial change requires a plan file in `project/plans/`
+    or a GH issue, reviewed and approved by the Captain, before any code is written. Implementation
+    without one is unauthorized.'
+- id: audits-are-diagnostic
+  rule: '**Audits are diagnostic, not mandatory gates.** An audit is how you find out what needs
+    to change, and it often produces the plan or the issues that then authorize work. It is not
+    required before every edit; it is run when the Captain wants a systematic assessment.'
+- id: additive-to-authored
+  rule: '**Prefer additive change to authored work.** Add steps, prompts, pipelines or docs rather
+    than deleting or rewriting existing ones, unless deletion is what was asked for. Authored work
+    is anything a human wrote or approved: code, pipelines, prompts, schemas, docs, plans.'
+- id: stale-output-is-a-defect
+  rule: '**Stale generated output is a defect, not an asset.** Output is derived, never precious.
+    When the pipeline, prompts or schema that produced a file have changed since it was written,
+    that file is wrong: say so plainly, delete it, and say what regenerates it. Never reason from
+    an artifact whose inputs have changed, and never present a result built from one. Deleting derived
+    output is not a destructive change. The test is reproducibility: if you can name the pipeline
+    that regenerates a file, deleting it costs a run and nothing else — if you cannot name what
+    produces it, it is not derived, so leave it and ask. Regenerating still needs the Captain''s
+    word, because a run costs money.'
+- id: todo-is-the-session-cache
+  rule: '**`project/TODO.md` is the session cache.** Read it before anything else. Active is what
+    is in flight, Backlog is what is next, Done is recent context. Link issues as `→ #N` and fetch
+    the issue only when the link is not enough. Never duplicate issue content into it.'
+- id: design-authority
+  rule: '**Nothing is intentional unless the human says so.** Do not infer intent from code, comments,
+    or a prior session''s choices. If you cannot name the design document or the instruction that
+    specifies what you are about to build, stop — you are going rogue. The order is: agree on requirements
+    → agree on approach → write tests → implement, never skipped or reordered. See `disciplines/design-authority.md`.'
+- id: issues-need-approval
+  rule: '**Draft GitHub Issues for approval.** Write the title and body and show them; run `gh issue
+    create` only after explicit approval. Never create an issue silently.'
+- id: context-is-the-only-channel
+  rule: '**Data moves between steps through the pipeline context, nowhere else.** A step reads its
+    inputs from `inputs:` and `${var}`, and returns results through `outputs:`, `append_to:` or
+    `saveas:`. A function or plugin must not write a file for a later step to read, stash state
+    in a module global, or reach for a path the pipeline never declared. A side write is invisible
+    to `sp lint`, to `--dry-run`, to `--rewind-to` and to telemetry, so a pipeline that depends
+    on one cannot be reproduced or reasoned about from its YAML. If a step needs something an earlier
+    step produced, name it in the YAML.'
+- id: use-the-pipeline-language
+  rule: '**Express pipeline logic in the pipeline language, not in Python.** Iteration is `for-each`;
+    chunking is `window`; branching is `if` and `condition:`; assembling a structure is `json`;
+    writing a file is `saveas`; substitution is `${var}` and `{{var}}`. A `function` step is for
+    what the language has no construct for — parsing, computation, I/O at a declared boundary. A
+    Python loop over steps, an inline template renderer, or a plugin that decides what runs next
+    moves the pipeline out of the YAML into code the linter cannot see. Read `docs/llmflow-language.md`
+    before writing a plugin; if the language is genuinely missing something, say so and propose
+    it rather than working around it.'
+- id: ask-about-the-data
+  rule: '**Assume the Captain knows the data; ask before speculating.** The texts, lexicons, entity
+    data and versification files are his domain. When a field''s meaning or a dataset''s structure
+    is unclear, ask — a guess about what data means is indistinguishable from knowledge once it
+    reaches the output.'
+- id: transfer-the-expertise
+  rule: '**When the Captain says he does not know a dataset, or cannot answer a question about it,
+    teaching him is the work.** His word is the trigger, not the AI''s estimate. He needs enough
+    to decide, not enough to approve: what it holds, what it omits, where it conflicts with other
+    sources, what is uncertain. Expect several passes. **Never be the only party who understands
+    a dataset he has to decide about.** When he cannot yet check the reasoning, say so and keep
+    explaining. Never proceed on the strength of being the one who knows.'
