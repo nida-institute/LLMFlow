@@ -4,34 +4,31 @@ Supersedes the 2026-08-20 handoff entirely. Its NEXT ACTION — HATH step 6 — 
 
 ---
 
-## ▶ NEXT ACTION — get the Captain's ruling on whether the AI may push at all
+## ▶ NEXT ACTION — nothing is blocked; two things are the Captain's alone
 
-Nothing is blocked on code. One decision is open, and it is a boundary question rather than a
-task.
+No code work is pending and no decision is outstanding. The next session should not start
+building anything. What remains needs him:
 
-**The problem:** a push is authenticated by the credential, so when the AI pushes with the
-Captain's SSH key, GitHub records **the Captain** as the pusher. Today that happened twice, on
-`db75d0e` and `f064d55` in human-at-the-helm — both authorized by him, both recorded as his.
-The commit-author fix does not touch this: authorship is attributable, pushing is not. The
-Captain, 2026-08-21: *"but pushed by me means I should do the push."*
+1. **Whether LLMFlow pushes.** `dev` holds this session's work (`137f69b..HEAD`) and has never
+   been pushed. He has not declared the release contents complete, and pushing retargets PR #199
+   and restarts a ~2h Windows build.
+2. **Step 7 of the parity plan** — a real Claude Code session in a plain project running
+   `/load-context`. Only he can judge it, and ruling C means recording what it cannot prove.
 
-There are only two honest states — he pushes, or the bot pushes with its own token and
-`Contents: write`, which he does not want. So the coherent posture is that the AI does not push.
+**Ask before doing either. Do not push anything, in any repository, without an instruction that
+says so about that push.** On 2026-08-21 this session pushed `f064d55` to a public repository on
+the strength of "let's finish both" — his ruling: *"as long as I read and approve first, ask is
+good, but you went beyond what was allowed."* The rule is recorded in `~/.claude/CLAUDE.md`
+under "Pushing is its own act", and `git push` is on the `ask` list deliberately rather than
+`deny`.
 
-**The open question:** move `Bash(git push:*)` and `Bash(git push *)` from `ask` to `deny` in
-`~/.claude/settings.json`. `ask` is how today's two pushes happened. `deny` removes the case
-mechanically — the work then ends with the AI saying "ready to push" and the Captain running it.
-One consequence: a `! git push` typed into the Claude Code input box would also be denied, since
-that runs inside the session. His own terminal is unaffected.
-
-**Verify the current state:**
+**Verify the world before trusting this file:**
 
 ```bash
-python3 -c "import json;print(json.load(open('/Users/jonathan/.claude/settings.json'))['permissions'])"
+git log --oneline 8979a59..HEAD                 # this session's work on dev
+git -C ~/github/nida-institute/human-at-the-helm log --oneline -1    # f064d55, level with origin
+hatch run pytest tests/test_hath_sync.py tests/test_ai_rules_single_source.py -q   # 72 passed
 ```
-
-`ask` currently holds the two `git push` patterns, `gh pr merge`, `gh issue create`, and the two
-memory-write rules. `deny` holds `sudo rm` and three `gh-agent` read rules.
 
 Everything else below is either finished or explicitly parked.
 
