@@ -18,11 +18,11 @@ Workflow rules that hold in every project on this machine, whatever it is writte
 **Key standard:** Prefer the file tools over bash; never `cd /path && command` — pass the path as an argument; never pipe git output. Audit findings need exact quotes and locations, and verdicts belong to the human. Design comments cite a GH issue. `docs/ai-context/`, project memory files and CLAUDE.md belong to the human and are never written without approval.
 
 ### design-authority.md
-The user is the designer; the AI is not.
+The human is the designer; the AI is not.
 
-**Key standard:** Only the user's design documents and explicit agreement carry design authority. Existing code behaviour, docstrings, AI-generated rationale, and prior AI choices carry none. Before writing code, name the design document that specifies it — if you cannot, stop and ask.
+**Key standard:** Only what the human wrote or agreed to carries design authority — design documents, GH issues and PR bodies they authored, explicit agreement in conversation. Existing code behaviour, docstrings, AI-generated rationale and prior unreviewed AI choices carry none. Before implementing, name the authority; if you cannot, stop and ask. When the human contradicts a comment the AI wrote, the human is right.
 
-**Source:** Originated in nida-institute/discourse-flow
+**Source:** nida-institute/human-at-the-helm, which is upstream for this file. This engine carried a 49-line summary of it until 2026-08-21; HATH `24fd64f` had already grafted the two points that summary added, on the principle that one subject must not live in two documents.
 
 ### surface-decisions.md
 Surface genuine decisions to the Captain (whoever directs the project) and stop; never proceed on an assumption.

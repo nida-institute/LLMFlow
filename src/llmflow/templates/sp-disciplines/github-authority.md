@@ -4,9 +4,22 @@ These rules apply to every AI session on this machine, in every project.
 
 ## Identity
 
-All AI-initiated GitHub actions should use a designated machine user account so that AI actions are clearly distinguishable from human actions in the audit log.
+The goal is an audit trail in which AI actions are distinguishable from yours. There are three levels, and only the first is available to everyone.
 
-**Recording which account is yours, not the tooling's.** Put the machine user's address and GitHub username somewhere that belongs to you alone — an untracked file, or a directory outside the repository — so that no install or update step overwrites it and nothing ships it to anyone else. Point `env.GH_CONFIG_DIR` in your Claude Code settings at that account's `gh` configuration so AI sessions authenticate as it rather than as you.
+**Free, and needs no account of any kind: the git author.** A git author is a name and an email string in the commit object, not a login — nothing validates it. Give AI commits a distinct one and `git log` tells you at a glance which changes were the AI's:
+
+```bash
+git config user.name  "Claude (AI agent)"
+git config user.email "you+agent@example.com"
+```
+
+Set it per repository where the AI works, or pass `-c user.name=… -c user.email=…` on the commit. This works on any machine, on any plan, with no permissions and nothing to provision.
+
+**Optional, and free: a second account on the hosting service**, so AI-initiated issues and pull requests appear under the agent rather than under you. Where your tooling supports it, point its credential configuration at that account — in Claude Code, `env.GH_CONFIG_DIR`.
+
+**Never required: a paid seat, an organisation role, or an additional account for your AI tool.** Many people cannot create these — managed plans, personal plans, employer policy. If that is you, the git author above, plus the co-author trailer on commits, is a sufficient trail. Say so plainly rather than treating this policy as unmet.
+
+**Record which identity is the AI's, not the tooling's.** Put the details somewhere that belongs to you alone — an untracked file, or a directory outside the repository — so that no install or update step overwrites it and nothing ships it to anyone else.
 
 ## What AI may do without asking
 

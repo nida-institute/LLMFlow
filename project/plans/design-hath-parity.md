@@ -427,13 +427,148 @@ any assistant with local file access can be pointed at `manifest.yaml`, which na
 browser-only chat client cannot, because it has no filesystem and what it prints for pasting is
 an imitation of a file rather than the file. Three adoption paths are now documented.
 
-**Still open, flagged not decided:** whether HATH should ship per-tool pointer files
-(`.cursor/rules`, `.github/copilot-instructions.md`, `AGENTS.md`) so its skills reach Cursor,
-Copilot and Codex users. This engine already generates that shape, so the pattern exists — but
-it is four more manifest entries and a support claim for tools neither the Captain nor the AI
-has tested.
+**The per-tool pointer files — ruled 2026-08-20:** whether HATH should ship per-tool pointer
+files (`.cursor/rules`, `.github/copilot-instructions.md`, `AGENTS.md`) so its skills reach
+Cursor, Copilot and Codex users. This engine already generates that shape, so the pattern exists
+— but it is four more manifest entries and a support claim for tools neither the Captain nor the
+AI has tested.
 
-=>
+=> no.
+
+**Ruled: HATH ships no per-tool pointer files.** The manifest stays at its 23 resolved targets
+and names no tool; the three adoption paths documented in `README.md` and `adopting.md` remain
+the whole of what HATH claims to support. Step 6's sync check therefore has no pointer files to
+watch on either side.
+
+### H7. Step 6 — the sync mechanism, ruled 2026-08-20
+
+H3-B settled *that* there is a script and a test. Two things it did not settle had to be put
+before either could be written.
+
+**D7 — what does the test compare against where there is no clone?** CI has no
+`human-at-the-helm` checkout, so a test that reads the clone directly cannot run there.
+
+=> c
+
+**Ruled C: a record file checked everywhere, plus a live comparison when a clone is present.**
+`data/hath-sync.yaml` holds one entry per shared file with the hash of this repository's copy
+and either `identical` or the ruling that permits a difference. The recorded half runs on CI,
+so editing a shared skill here without syncing fails the build; the live half additionally
+reads HATH's actual files, which is what catches an edit made over there. Rejected A — skip
+when the clone is absent — because a guard that only ever runs on one machine and passes green
+everywhere else is the #204 failure exactly.
+
+**Consequence for `test_portable_skills.py`.** Its `SHARED_WITH_HATH` constant was annotated
+"step 6 replaces it with the shipped manifest". It stays. The record is checked *against* the
+classification, so sourcing the classification *from* the record would make the check circular
+— and HATH's manifest globs directories that CI cannot see. The comment now says so.
+
+**D8 — when the script finds a difference, does it write to HATH?**
+
+=> a
+
+**Ruled A: report by default, copy only under `--apply`**, on H3-B's own words "run
+deliberately".
+
+**D9 — `design-authority.md` is a third divergence, found by building the check.** The two
+repositories ship a file of that name whose texts are entirely different: HATH's is one of the
+five essays its `disciplines/README.md` lists as the disciplines proper, and this engine's is a
+short operational rule. Neither the issue nor the earlier handoffs record this — they count
+four matching disciplines, which is correct, and do not say why the fifth does not match.
+
+- **A** — record it as a name collision, synced neither way; both sides keep their own text and
+  the record states why, so nobody "fixes" it. Nothing moves.
+- **B** — two documents deserve two names; rename one side. Permanent clarity, but HATH's path
+  is public and linked from its own README (§8), and this engine's installs into every
+  `~/.sp/disciplines/`. A rename breaks one of the two.
+- **C** — HATH's essay is upstream for this file and this engine drops its short rule. One
+  text, at the cost of moving a rule `load-context` reads every session (D6-C) into the
+  read-once essay genre.
+
+The AI's read was A, on the understanding that these were two peers. **That was wrong on the
+facts, and the Captain supplied them:** HATH's is the original and this engine's is a derivative
+that was shortened. A then blesses a summary that lost three operational sentences — the
+instruction for when the human contradicts an AI comment, GH issues and PR bodies as authority,
+and "a prior session established this pattern" as an invalid answer. That is the same defect the
+plan already names twice (`load-context:88-90`, and `.cursorrules` losing the `sp run`
+prohibition).
+
+=> shouldn't we use HATH in both places? Why keep the divergence?
+
+**Ruled C: HATH's text, in both places.** And C turned out not to be a new decision. HATH
+`24fd64f` had already done the merge and said so in its own message: *"design-authority.md is
+NOT a second file. Scripture Pipelines carries a 49-line convention on the same subject;
+compared line by line, the 85-line discipline here already covered all of it but two points,
+which are grafted in … **One subject must not live in two documents.**"* HATH's 99-line file is
+the merged superset — which is why both texts carry the order-of-work sentence. The other half of
+that decision, retiring this engine's 49-line convention, was never carried out; the divergence
+was unfinished work rather than a choice.
+
+**Checked while ruling it:** the other four shared disciplines were *created* in HATH by
+`24fd64f` and had no originals to overwrite. Only `design-authority.md` had prior history there,
+and that history is what made it the exception.
+
+**This file's upstream is HATH, against Q3's general direction.** No machinery records the
+exception: once both copies are the same text, edits flow LLMFlow → HATH as everywhere else. The
+`Source:` line in `sp-disciplines/README.md` carries the fact.
+
+**Step 6 built, 2026-08-21, green.** `tests/test_hath_sync.py` (70 checks),
+`data/hath-sync.yaml`, `tools/sync_hath.py`, plus this engine adopting HATH's
+`design-authority.md`. The check found the divergence it was written to find, before it was
+enforced.
+
+**Noted, not acted on:** this engine's retired copy claimed `Source: nida-institute/discourse-
+flow` while HATH's history has the discipline originating in HATH (`0afc1ed`). One of the two
+provenance claims is wrong. Adopting HATH's text drops the claim rather than resolving it.
+
+### H8. Step 7 on one machine — ruled 2026-08-21
+
+Step 7 asks for a session in a project with **no `~/.sp`**. The Captain, 2026-08-21: *"I have
+~/.sp on this machine and no other machine to test with."*
+
+**Run here, the step cannot fail.** Three things on this machine carry it whether or not the
+install worked:
+
+| | |
+|---|---|
+| `~/.sp/disciplines/` exists | the shipped `load-context` reads it as well as the project copy |
+| `~/.claude/skills/load-context/` exists | byte-identical to HATH's shipped copy, so the slash command resolves even if the install wrote `SKILL.md` to a path Claude Code never reads — the silent failure `/hath-check` exists for |
+| `~/.sp/drift-patterns.md` exists | as the first |
+
+**D10 — how does step 7 get run?** A: quarantine those three paths for one session, restore
+after. B: a cloud session, which starts with neither directory. C: run it here and record what
+that leaves unproven.
+
+=> Let's do C.
+
+**Ruled C.** What the acceptance run will therefore establish, and what it will not:
+
+- **Establishes:** that a model reads the shipped files and behaves accordingly; that the texts
+  are usable in a project which is not this one; that nothing in them is incoherent to a session
+  encountering them fresh.
+- **Does not establish:** that the project-local install is *sufficient on its own*. On this
+  machine a session can satisfy `load-context` from `~/.sp/` and from user-level
+  `~/.claude/skills/`, so a project-local install that landed nothing would still look right.
+  **This is the one thing step 7 was originally for, and it stays unproven.** Options A and B
+  remain open to anyone who later has a clean machine or a cloud session; nothing forecloses
+  them.
+
+**D11 — the `~/.sp` line in the shared `load-context`.** Its Step 5 tells every adopter to
+`cat ~/.sp/disciplines/*.md`, a path belonging to another project's tool. The guard permits it
+(the project-local path appears beside it, so nobody is sent to an empty directory with no
+alternative), but permitted is not the same as right for a public copy.
+
+=> can we add some conditional text, "if you are running this in a Scripture Pipelines context …"
+
+**Ruled: conditional text, phrased without naming the engine.** The literal words would fail
+`ENGINE_VOCABULARY` in `test_portable_skills.py:59-67`, which rejects `scripture` and
+`pipelines` in a shared skill; `~/.sp` itself is deliberately exempt (lines 69-74). So Step 5
+now splits into two blocks — the project-local paths unconditionally, then *"If this machine also
+carries a machine-wide install at `~/.sp/` … an absent `~/.sp/` means nothing is missing."* Same
+instruction, and it reads correctly for someone who has never heard of this engine.
+
+**One text, not a divergence.** The conditional is written to serve both copies, so
+`load-context` stays byte-identical either side and the sync has nothing new to watch.
 
 ### H2. Where do the conventions and `drift-patterns.md` live in the repo?
 
@@ -603,9 +738,12 @@ Ordered so each step's result can change the next.
    written against directories that do not yet exist cannot be tested against reality, which is
    H1's stated risk.
 6. **The sync mechanism** (H3), last — it can only be written once there is a stable set to sync.
+   **Built 2026-08-20**, see H7 for the two rulings it needed (D7-C, D8-A). Green except for the
+   one file D9 is about; unblocked by that answer, not by more code.
 7. **Acceptance, manual and not optional:** a real Claude Code session in a plain Python repo with
    no `~/.sp` and no pipelines, running `/load-context`. The only check where a model reads the
-   files, and the same step LLMFlow#204 still owes.
+   files, and the same step LLMFlow#204 still owes. **Amended 2026-08-21 — see H8. The "no `~/.sp`"
+   half is not available and the step runs without it, with what that leaves unproven recorded.**
 
 ---
 

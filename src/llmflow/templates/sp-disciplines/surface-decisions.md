@@ -71,6 +71,12 @@ the ruling. Do not reword it, summarise it, or fold it into prose — quote it a
 what follows from it separately. Add a new `=>` below if the answer raises a further
 question.
 
+**Only the Captain writes after a `=>`.** An AI never fills a slot in unless he explicitly
+authorizes it in the current conversation. Otherwise the two are indistinguishable to every
+later session: text in the slot *is* the ruling, so an AI that answers its own question has
+manufactured the authority it was supposed to be asking for. What follows *from* an answer
+goes in a paragraph beneath the slot, never inside it.
+
 **Why this pairs with the rule above:** "one crisp ask, halt" describes *when* to stop.
 This describes *how* to leave room for the answer, so the halt has somewhere to land
 instead of scrolling away in a conversation.

@@ -46,9 +46,10 @@ from pathlib import Path
 
 import pytest
 
-# Source of truth for this list: design-hath-parity.md §4. Step 6 of that plan replaces it
-# with the shipped manifest, at which point this constant goes away rather than becoming a
-# second list to maintain.
+# Source of truth for this list: design-hath-parity.md §4. An earlier note here expected step
+# 6 to replace it with HATH's shipped manifest; ruling D7-C is why it stays. `hath-sync.yaml`
+# is checked *against* this classification, so sourcing the classification *from* the record
+# would make the check circular — and HATH's manifest globs directories no CI runner can see.
 SHARED_WITH_HATH = ("authorize", "stand-down", "handoff", "load-context", "commit-ready")
 
 FORKED = ("audit-code",)

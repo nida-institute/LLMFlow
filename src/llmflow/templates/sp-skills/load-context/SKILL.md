@@ -113,7 +113,14 @@ whichever exists — both, if both do:
 cat docs/ai-context/disciplines/README.md  # the index, when there is one
 cat docs/ai-context/disciplines/*.md       # committed with the project
 cat docs/ai-context/drift-patterns.md
+```
 
+**If this machine also carries a machine-wide install at `~/.sp/`**, read that too — the
+project it belongs to keeps disciplines there rather than in the repository. A project
+whose disciplines are committed alongside its code is complete without it, so an absent
+`~/.sp/` means nothing is missing:
+
+```bash
 cat ~/.sp/disciplines/*.md                 # installed machine-wide
 cat ~/.sp/drift-patterns.md
 ```
