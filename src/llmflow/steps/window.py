@@ -180,6 +180,64 @@ def _propagate_window_outputs(
             context[output_var] = iteration_context[output_var]
 
 
+def is_expression(value: object) -> bool:
+    """True when a YAML value is a `${...}` expression rather than a literal.
+
+    A quoted literal such as `size: "10"` is deliberately *not* an expression: coercing it
+    would hide a typo instead of reporting it.
+    """
+    return isinstance(value, str) and "${" in value
+
+
+def resolve_pre_loop_int(
+    raw: object, context: Dict[str, Any], field: str, step_name: str
+) -> object:
+    """Resolve an integer window field once, before the first iteration.
+
+    `size` and `stride` shape the partition, so the partition has to be knowable at the
+    start of the loop: `sp lint` can then check the shape before a call is made, and two
+    runs over the same input divide it the same way. Resolving here — the same place `in:`
+    is resolved — satisfies that by construction, because nothing has iterated yet.
+
+    Captain, 2026-08-21: *"being able to compute this at the start of a 'loop' is also
+    helpful for the implementation … a variable that changes during loop execution is going
+    to be harder to debug, that's what the cursor is for."* And, marking his own argument's
+    limit: *"my argument doesn't reach variables that can be resolved before the 'loop'
+    begins."* Per-iteration resolution remains unsupported and is a different feature.
+
+    A literal passes through untouched, so the caller's existing validation still produces
+    the plain "must be a positive integer" for a genuine typo. Only an expression is
+    resolved, and only its result is coerced — `--var window_size=50` arrives as the string
+    `"50"`.
+    """
+    if not is_expression(raw):
+        return raw
+
+    value = resolve(raw, context)
+
+    if isinstance(value, str):
+        if is_expression(value):
+            raise ValueError(
+                f"Window step '{step_name}': '{field}' is {raw}, and nothing defines that "
+                "variable. Set it in the pipeline or pass it with --var."
+            )
+        text = value.strip()
+        if text.isdigit():
+            return int(text)
+        raise ValueError(
+            f"Window step '{step_name}': '{field}' is {raw}, which resolved to "
+            f"{value!r} — not a positive integer."
+        )
+
+    # bool is an int in Python, and `size: true` is never what anyone meant.
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(
+            f"Window step '{step_name}': '{field}' is {raw}, which resolved to "
+            f"{value!r} ({type(value).__name__}) — not a positive integer."
+        )
+    return value
+
+
 def run_window_advance_step(
     step: Dict[str, Any],
     context: Dict[str, Any],
@@ -321,8 +379,10 @@ def run_window_step(
 
     item_var: str = str(step["for"])
     steps = step.get("steps", [])
-    size = step.get("size")
-    stride = step.get("stride", size)
+    # Resolved here, before the first iteration, and never again — see
+    # `resolve_pre_loop_int`. `stride` defaults to the *resolved* size.
+    size = resolve_pre_loop_int(step.get("size"), context, "size", step_name)
+    stride = resolve_pre_loop_int(step.get("stride", size), context, "stride", step_name)
     include_partial = step.get("include_partial", True)
     start_when = step.get("start_when")
     end_when = step.get("end_when")

@@ -11,6 +11,11 @@ from pydantic import ValidationError
 
 from llmflow.exceptions import StepRewindError
 from llmflow.pipeline_schema import PipelineConfig, allowed_step_keys, step_keys
+
+# `size`/`stride` accept an expression resolved once before the loop starts. The test for
+# what counts as an expression comes from the module that resolves them, so lint and run
+# time cannot disagree about which values are variables.
+from llmflow.steps.window import is_expression
 from llmflow.utils.context import build_run_context
 from llmflow.utils.get_prefix_directory import get_prefix_directory
 from llmflow.utils.llm_runner import validate_model_parameter
@@ -539,6 +544,23 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
         # for-each injects loop context variables into nested steps
         if step_type == "for-each":
             current_item_vars.update({"_for_each_index", "_for_each_meta", "_for_each_stack", "loop"})
+
+        # A window step injects these into every iteration context (`steps/window.py`, both
+        # the static and the cursor-driven path). The linter knew none of them, so
+        # `${window_num}` failed lint while working at run time — reported from
+        # discourse-flow, 2026-08-21, and ruled D2-A: teach the linter rather than remove
+        # working behaviour. Keep this list matching what the runtime actually sets; a name
+        # here that the runtime does not provide is worse than the omission it replaced.
+        if step_type == "window":
+            current_item_vars.update({
+                "window_num",
+                "_window_index",
+                "_window_first",
+                "_window_last",
+                "_window_cursor",
+                "_for_each_meta",
+                "_for_each_stack",
+            })
 
         available = _build_available_context(
             pipeline_vars,
@@ -1274,8 +1296,29 @@ def _lint_conditional_rules(step, errors, key: str):
             if k not in {"if", "message"}:
                 errors.append(f"Step '{step.get('name','unnamed')}': unknown '{key}' key '{k}'")
 
-def _lint_window_step(step: dict, errors: list) -> None:
-    """Validate window step configuration."""
+def _warn_unverifiable(step_name: str, field: str, raw: object, warnings: list | None) -> None:
+    """Say what lint checked and what it could not.
+
+    The variable's *name* is still validated — the linter's generic reference check walks
+    every string in the step, so `${typo}` is an error already. What cannot be checked is the
+    *value*, which is why this is a warning and not silence.
+    """
+    if warnings is None:
+        return
+    warnings.append(
+        f"⚠️  Window step '{step_name}': '{field}' is {raw}, so lint cannot verify it is a "
+        "positive integer. A bad value fails at run time, when the step starts."
+    )
+
+
+def _lint_window_step(step: dict, errors: list, warnings: list | None = None) -> None:
+    """Validate window step configuration.
+
+    `warnings` is optional so that existing callers passing only `errors` keep working. It
+    carries the one thing lint cannot decide: whether a variable `size`/`stride` will hold a
+    positive integer at run time. Captain, 2026-08-21: *"lint can warn that it can't
+    determine if it's a positive integer or not, and that runtime errors are possible."*
+    """
     name = step.get("name", "<unnamed>")
     has_size = "size" in step
     has_size_by_tokens = "size_by_tokens" in step
@@ -1298,12 +1341,16 @@ def _lint_window_step(step: dict, errors: list) -> None:
 
     if has_size:
         size = step["size"]
-        if not isinstance(size, int) or size < 1:
+        if is_expression(size):
+            _warn_unverifiable(name, "size", size, warnings)
+        elif not isinstance(size, int) or size < 1:
             errors.append(f"Window step '{name}': 'size' must be a positive integer")
 
         if "stride" in step:
             stride = step["stride"]
-            if not isinstance(stride, int) or stride < 1:
+            if is_expression(stride):
+                _warn_unverifiable(name, "stride", stride, warnings)
+            elif not isinstance(stride, int) or stride < 1:
                 errors.append(f"Window step '{name}': 'stride' must be a positive integer")
 
         if "end_when" in step:
@@ -1552,7 +1599,7 @@ def lint_pipeline_steps(steps, warnings=None):
         if step.get("type") in _LOADER_STEP_TYPES:
             _lint_loader_step(step, errors)
         if step.get("type") == "window":
-            _lint_window_step(step, errors)
+            _lint_window_step(step, errors, warnings)
         if step.get("type") == "for-each":
             _lint_for_each_parallel(step, errors)
             _lint_for_each_group_by(step, errors)

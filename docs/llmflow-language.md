@@ -512,6 +512,94 @@ single item — useful for chunking long inputs (e.g. by token budget) before an
       append_to: summaries
 ```
 
+#### Physical windows, logical units
+
+`size` and `size_by_tokens` bound a **physical** block — items or tokens, arithmetic on the
+input list, knowable before the call. What the LLM finds inside that block — pericopes,
+clauses, sections — is **logical**, and knowable only after the call returns. So where the
+next window should begin cannot be computed in advance: it depends on where the logical units
+fell, which is an output, not an input.
+
+You can decide in advance to read the next fifty pages. You cannot decide in advance to stop
+at the end of a chapter, because you do not know where the chapter ends until you have read
+it.
+
+**A fixed `stride` asserts knowledge you do not have.** It is right when list items are
+independent — summarise every 10 reviews, embed every 500 tokens. It is wrong whenever the
+LLM's job is to find structure *inside* the block, because a fixed cut lands mid-unit and the
+model must either split a unit across two calls or drop it. For that case, use
+`!window_advance` and drive the next start from the model's own output.
+
+**The corollary is the load-bearing half.** In a non-final window the last logical unit the
+model returns is untrustworthy — the physical cut may have truncated it, so its beginning is
+known and its end is not. Therefore:
+
+1. **Discard the last logical unit** from your accumulated output.
+2. **Resume from the trailing edge of the last unit you kept** — never from the opening of
+   the unit you dropped. Those two positions coincide only when the model's output has no
+   gaps, and a model that can leave gaps will. When it does, a cursor set to the dropped
+   unit's opening skips the uncovered region and no later window ever sees it.
+3. **The final window keeps everything** — nothing truncated it.
+
+Half of this is worse than none: a cursor without the discard accumulates a unit and then
+re-processes it, producing duplicates; the discard without a cursor loses it.
+
+**The engine does not enforce any of step 1–3.** It advances the cursor you give it and
+raises only on a cursor that is not a non-negative integer, or that fails to advance beyond
+the current start. Keeping the right units is pipeline-side discipline, and a run that gets
+it wrong loses content silently — the guards will not catch it.
+
+The cursor is **a list index into `in:`**, not a domain identifier. Converting a domain
+boundary (a verse id, a section name) to a position is the pipeline's job.
+
+#### `size` and `stride` are resolved once, before the loop starts
+
+`size` and `stride` accept a literal or a `${...}` expression. An expression is resolved
+**once, at step entry** — the same point `in:` is resolved, before anything has iterated — and
+never again. `include_partial`, `size_by_tokens` and `stride_by_tokens` remain literal-only.
+
+**Why resolution happens there and nowhere later.** These fields describe the partition, and
+the partition has to be knowable at the start of the loop: `sp lint` can then check the shape
+before a single call is made, and a reader can see from the YAML how the input will be divided.
+A value that changed *during* loop execution would make the partition depend on state
+accumulated by earlier iterations — and because each iteration's `outputs` overwrite the outer
+variable (last-iteration-wins, see below), that state is not visible in the pipeline file. Two
+runs of the same pipeline over the same input could then window it differently, and
+`--rewind-to` could replay it differently again. A variable fixed before the loop cannot do
+that: it is still a constant for the loop.
+
+**What lint can and cannot verify.** The variable's *name* is checked as usual — an undefined
+`${typo}` is an error. Its *value* cannot be, so lint emits a warning saying so and naming the
+run-time consequence:
+
+| `size:` | `sp lint` |
+|---|---|
+| `50` | silent — verified |
+| `"${window_size}"`, name defined | **warning** — cannot verify it is a positive integer; a bad value fails when the step starts |
+| `"${typo}"`, name undefined | **error** |
+| `0` | **error** — must be a positive integer |
+| `"10"` | **error** — a quoted literal is not an expression, and is not coerced; coercing it would hide a typo |
+
+A `--var` value arrives as a string, so `--var window_size=50` resolves to `"50"` and is
+coerced to `50`. Anything that does not resolve to a positive integer fails at step entry,
+before the first call, naming both the expression and what it resolved to.
+
+**Variation from what a run discovers has its own mechanism, and it is guarded.**
+`!window_advance` is how the partition depends on the model's output. It is auditable — the
+cursor is one named value, computed by one declared step, per iteration — and the engine
+rejects a cursor that is not a non-negative integer or that fails to advance. Resolving `size`
+per iteration would be a second, unguarded route to the same effect, which is why resolution
+is pinned to step entry and not repeated.
+
+So the rule is: **the physical block is declared before the loop; the logical boundary is
+discovered inside it.** A variable may set the block, because a value fixed before the first
+iteration is still declared. Nothing may change the block once iteration has begun. Keep those
+two apart and a misbehaving run has one place to look.
+
+If that changes, the safe form is narrow and stays narrow: resolve **once, at step entry,
+from values fixed before the run** — never per iteration. Per-iteration resolution is a
+different feature with a different argument to win.
+
 **Fields:**
 
 | Field | Type | Meaning |
