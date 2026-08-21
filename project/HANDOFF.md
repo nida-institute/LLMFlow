@@ -59,11 +59,12 @@ Everything else below is either finished or explicitly parked.
 - **State:** `main` level with `origin/main` at `db75d0e`; five commits public.
 - **Remaining:** step 7 — a real Claude Code session in a plain project running `/load-context`.
   Ruled C: run it here and record what it cannot prove (see Decisions).
-- **In flight there:** `ai-accounts.md` is **modified and uncommitted** — a drafted correction
-  saying that a token must not go in `settings.json` if you version `~/.claude`, pointing at
-  `GH_CONFIG_DIR` instead. Drafted at the Captain's request; never reviewed by him.
-- **Verify:** `git -C ~/github/nida-institute/human-at-the-helm status --short` → ` M ai-accounts.md`.
-  `hatch run pytest tests/test_hath_sync.py` → 70 passed.
+- **`ai-accounts.md` corrected and pushed** (`f064d55`): the file claimed
+  `~/.claude/settings.json` "is never committed to any repository" and told adopters to put the
+  bot's `GH_TOKEN` there — a conflict with versioning `~/.claude`, which this methodology now
+  encourages. The path now goes in settings and the credential goes in its own `GH_CONFIG_DIR`.
+- **Verify:** `git -C ~/github/nida-institute/human-at-the-helm log --oneline -1` → `f064d55`,
+  tree clean, level with `origin/main`. `hatch run pytest tests/test_hath_sync.py` → 70 passed.
 
 ### 3. The machine user account — **built; two follow-ups, both the Captain's.**
 
@@ -92,7 +93,7 @@ Everything else below is either finished or explicitly parked.
 ## In flight / not committed
 
 - **LLMFlow: clean.** All four commits above are in; nothing staged or dirty.
-- **HATH: `ai-accounts.md` modified**, drafted not reviewed (thread 2).
+- **HATH: clean and pushed** through `f064d55`.
 - **discourse-flow: `collab/` is untracked** and three files are modified
   (`pipelines/experiments/clause-relations-windowed.yaml`,
   `plugins/check_prompt_compliance.py`, `tests/test_check_prompt_compliance.py`).
