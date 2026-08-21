@@ -36,7 +36,7 @@ Everything else below is either finished or explicitly parked.
 
 ## Active threads
 
-### 1. LLMFlow `dev` — **41 ahead of `origin/dev`, four commits from today, unpushed.**
+### 1. LLMFlow `dev` — **ahead of `origin/dev` and unpushed. Today's work is `137f69b..HEAD`.**
 
 - **Goal:** the release the Captain has not yet declared complete.
 - **State:** working tree clean. Today's four:
@@ -49,14 +49,15 @@ Everything else below is either finished or explicitly parked.
 | `b75da26` | one source for the AI rules, and 26 of them |
 
 - **Next step:** nothing until the Captain says the release contents are complete.
-- **Verify:** `git log --oneline origin/dev..dev | wc -l` → 41. `gh pr view 199 --json headRefOid`
-  (PR #199 is OPEN, head `cb72cb7`, contains none of this).
+- **Verify:** `git log --oneline 8979a59..HEAD` — everything after `8979a59` is this session.
+  `gh pr view 199 --repo nida-institute/LLMFlow --json headRefOid` → `cb72cb7`, which contains
+  none of it.
 - **CHANGELOG** has an `## Unreleased` section with the heading deliberately unset, per the
   convention in `ee28721`, so it can be folded into 0.2.1.24 or retargeted.
 
 ### 2. human-at-the-helm#1 — **steps 1–6 done and pushed. Step 7 is the Captain's.**
 
-- **State:** `main` level with `origin/main` at `db75d0e`; five commits public.
+- **State:** `main` level with `origin/main` at `f064d55`; six commits public.
 - **Remaining:** step 7 — a real Claude Code session in a plain project running `/load-context`.
   Ruled C: run it here and record what it cannot prove (see Decisions).
 - **`ai-accounts.md` corrected and pushed** (`f064d55`): the file claimed
