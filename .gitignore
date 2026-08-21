@@ -17,7 +17,11 @@ llmflow.log
 .idea/
 
 # Claude Code — local session state and AI memory (never commit)
-.claude/
+.claude/*
+# ...except the reviewed permission set. Committed on purpose (2026-08-21): an allowlist
+# that nobody can diff is how `git push:*`, `gh pr *` and `gh issue:*` came to be granted
+# here while CLAUDE.md called all three hard stops. settings.local.json stays ignored.
+!.claude/settings.json
 
 # VSCode (allow settings.json for Copilot integration)
 .vscode/*

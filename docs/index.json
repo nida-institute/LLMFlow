@@ -153,6 +153,16 @@
           "doc": "Generate `.gitignore` when the project has none (#204, plan D9)."
         },
         {
+          "name": "ai_rules_doc",
+          "signature": "ai_rules_doc() -> str",
+          "doc": "The rules document `sp init` writes, rendered from `data/ai-rules.yaml`."
+        },
+        {
+          "name": "__getattr__",
+          "signature": "__getattr__(name: str)",
+          "doc": "Render `AI_RULES_DOC` on first access from the single source (2026-08-21)."
+        },
+        {
           "name": "_lock_sp_dir",
           "signature": "_lock_sp_dir(path: Path) -> None",
           "doc": "Remove write permission from path and all contents (owner, group, others)."
@@ -978,6 +988,38 @@
           "name": "constructor",
           "signature": "constructor(loader, node)",
           "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "llmflow.ai_rules",
+      "imports": [
+        "__future__",
+        "functools",
+        "importlib.resources",
+        "pathlib",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "rules_path",
+          "signature": "rules_path() -> Path",
+          "doc": "Locate the rules file whether running from an installed wheel or a dev checkout."
+        },
+        {
+          "name": "entries",
+          "signature": "entries() -> tuple[dict, ...]",
+          "doc": "Every rule as recorded: `id`, `rule`, and an optional `note`."
+        },
+        {
+          "name": "rules",
+          "signature": "rules() -> tuple[str, ...]",
+          "doc": "Just the instructions, in order."
+        },
+        {
+          "name": "render_numbered",
+          "signature": "render_numbered() -> str",
+          "doc": "The rules as a markdown ordered list, each note indented beneath its rule."
         }
       ]
     },
@@ -2401,6 +2443,7 @@
         "llmflow.exceptions",
         "llmflow.modules.logger",
         "llmflow.pipeline_schema",
+        "llmflow.steps.window",
         "llmflow.utils.context",
         "llmflow.utils.get_prefix_directory",
         "llmflow.utils.llm_runner",
@@ -2573,8 +2616,13 @@
           "doc": ""
         },
         {
+          "name": "_warn_unverifiable",
+          "signature": "_warn_unverifiable(step_name: str, field: str, raw: object, warnings: list | None) -> None",
+          "doc": "Say what lint checked and what it could not."
+        },
+        {
           "name": "_lint_window_step",
-          "signature": "_lint_window_step(step: dict, errors: list) -> None",
+          "signature": "_lint_window_step(step: dict, errors: list, warnings: list | None = None) -> None",
           "doc": "Validate window step configuration."
         },
         {
@@ -3077,6 +3125,16 @@
           "name": "_propagate_window_outputs",
           "signature": "_propagate_window_outputs(context: Dict[str, Any], iteration_context: Dict[str, Any], append_to_targets: set, output_vars: set) -> None",
           "doc": "Copy per-iteration results back to the parent context."
+        },
+        {
+          "name": "is_expression",
+          "signature": "is_expression(value: object) -> bool",
+          "doc": "True when a YAML value is a `${...}` expression rather than a literal."
+        },
+        {
+          "name": "resolve_pre_loop_int",
+          "signature": "resolve_pre_loop_int(raw: object, context: Dict[str, Any], field: str, step_name: str) -> object",
+          "doc": "Resolve an integer window field once, before the first iteration."
         },
         {
           "name": "run_window_advance_step",
@@ -3929,7 +3987,7 @@
     }
   ],
   "summary": {
-    "total_modules": 74,
-    "total_functions": 606
+    "total_modules": 75,
+    "total_functions": 615
   }
 }
