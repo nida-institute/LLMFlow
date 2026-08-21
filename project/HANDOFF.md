@@ -4,31 +4,34 @@ Supersedes the 2026-08-20 handoff entirely. Its NEXT ACTION — HATH step 6 — 
 
 ---
 
-## ▶ NEXT ACTION — ask the Captain whether to narrow the bot's GitHub token
+## ▶ NEXT ACTION — get the Captain's ruling on whether the AI may push at all
 
-The machine user account `jonathanrobie-ai-agent` was built today and works. One decision was
-left with him and nothing else is blocked on anything:
+Nothing is blocked on code. One decision is open, and it is a boundary question rather than a
+task.
 
-**Its fine-grained PAT reaches all 33 repos in `nida-institute`, not the four intended** — it was
-generated with *All repositories*. It is read-only (`push: false` verified on four repos), so
-nothing can be changed, but every private repo in the org is readable by any session. Narrowing
-it is an edit to the token's *Repository access* in the bot's browser; it may re-enter pending
-approval, and it needs no re-login and no new credential file.
+**The problem:** a push is authenticated by the credential, so when the AI pushes with the
+Captain's SSH key, GitHub records **the Captain** as the pusher. Today that happened twice, on
+`db75d0e` and `f064d55` in human-at-the-helm — both authorized by him, both recorded as his.
+The commit-author fix does not touch this: authorship is attributable, pushing is not. The
+Captain, 2026-08-21: *"but pushed by me means I should do the push."*
 
-**Verify before raising it:**
+There are only two honest states — he pushes, or the bot pushes with its own token and
+`Contents: write`, which he does not want. So the coherent posture is that the AI does not push.
+
+**The open question:** move `Bash(git push:*)` and `Bash(git push *)` from `ask` to `deny` in
+`~/.claude/settings.json`. `ask` is how today's two pushes happened. `deny` removes the case
+mechanically — the work then ends with the AI saying "ready to push" and the Captain running it.
+One consequence: a `! git push` typed into the Claude Code input box would also be denied, since
+that runs inside the session. His own terminal is unaffected.
+
+**Verify the current state:**
 
 ```bash
-GH_CONFIG_DIR=~/.config/gh-agent gh api user -q .login          # jonathanrobie-ai-agent
-GH_CONFIG_DIR=~/.config/gh-agent gh api user/repos --paginate -q '.[].full_name' | wc -l   # 33
-GH_CONFIG_DIR=~/.config/gh-agent gh api repos/nida-institute/LLMFlow -q .permissions.push   # false
+python3 -c "import json;print(json.load(open('/Users/jonathan/.claude/settings.json'))['permissions'])"
 ```
 
-`GH_CONFIG_DIR` and `GIT_AUTHOR_*`/`GIT_COMMITTER_*` are in `~/.claude/settings.json`, and they
-were **already in effect for shells spawned after the settings were written** — not only from
-the next session, as first assumed. So **plain `gh` is the bot**, with org-read-only reach: `gh`
-calls that worked as the Captain (org admin endpoints, `biblica/*`) now 404. And **a plain
-`git commit` is authored `Claude (AI agent)`** — this file's commit is the first in LLMFlow to
-carry that author. The Captain's own terminal is unaffected.
+`ask` currently holds the two `git push` patterns, `gh pr merge`, `gh issue create`, and the two
+memory-write rules. `deny` holds `sudo rm` and three `gh-agent` read rules.
 
 Everything else below is either finished or explicitly parked.
 
@@ -72,7 +75,10 @@ Everything else below is either finished or explicitly parked.
 - **State:** `jonathanrobie-ai-agent`, org member, 2FA via Google Authenticator on his phone,
   fine-grained PAT approved under the org policy, credentials in `~/.config/gh-agent`.
   `~/.claude/settings.json` carries `GH_CONFIG_DIR` plus `GIT_AUTHOR_*`/`GIT_COMMITTER_*`.
-- **Follow-ups:** narrow the token (NEXT ACTION); decide whether the bot ever gets
+- **Token breadth is settled — do not narrow it.** It reaches all 33 org repos, read-only,
+  and that is the ruling: *"I'm fine with the agent having access to all repos, I am often
+  asked to step in on a repo."* Narrowing would mean a token edit each time that happens.
+- **Follow-up:** decide whether the bot ever gets
   `Contents: write`, without which **it cannot open pull requests** — creating one needs a
   pushed branch. Issues and PR comments work.
 - **Verify:** `cat ~/.claude/settings.json` — `env` has five variables; `deny` has `sudo rm` and
