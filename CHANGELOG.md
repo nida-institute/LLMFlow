@@ -41,7 +41,38 @@ to be retargeted rather than assumed.
   additionally against a clone when one is present. Reports by default; copies only under
   `--apply`; never touches a divergence that carries a ruling.
 
+- **`tools/update_plans_index.py`** generates `project/plans/README.md` — every design and plan
+  document with its declared status and the issues it names. The status lines already existed and
+  were already universal; nothing collected them, so reading the directory meant opening 25 files.
+  `--check` exits 1 when the index is stale. Kept outside `src/llmflow/` so it is not part of the
+  installed package, and it writes only inside `project/plans/`, so nothing it produces can reach
+  a project created by `sp init`. Its Issues column is a mention scrape rather than a declaration
+  — a document that cross-references an issue looks like that issue's design — recorded as a known
+  defect in #163 rather than papered over.
+
 ### Documentation
+
+- **Rule 27: the commit, the push and the merge are the human's.** Nothing `sp init` installed
+  said who may commit. The five shipped context documents and the 26 rules contained no mention
+  of `git commit`, `git push` or `git merge` — absent text, not wrong text — which left the
+  machine-wide `commit-ready` skill, whose gates have the agent committing, pushing, merging and
+  deleting branches, as the only voice a session in a client project heard on the subject. An
+  agent now runs the gates, writes the message to a file, and hands over the command. Passing the
+  gates is not authorization. The skill itself still contradicts this and sits in a store an agent
+  may not change.
+
+- **The topic map points at the design documents.** `docs/ai-context/index.md` did not mention
+  `project/plans/`, so an assistant following the canonical map never learned the documents
+  existed — and twelve of them named no issue, so one could be stranded without anyone noticing.
+  That is how `design-scripture-editions.md` came to exist only on a local tag while
+  `project/TODO.md` pointed at it. Verified not to reach consumer repositories: this repository's
+  topic map and the one `sp init` installs are separate artifacts with no shared source.
+
+- **`project/plans/design-scripture-representations.md`** specifies the representation half of
+  #200 — what each serialisation carries and drops, the `xml:id`/`ref` alignment spine and why
+  one source cannot join to it by id, the measured cost of each form sent to a model, and four
+  questions awaiting a ruling. Records that Lowfat departs from document order in roughly 40% of
+  Mark's verses, which makes naive text extraction wrong in a way that survives casual testing.
 
 - **`docs/llmflow-language.md` explains windowing semantics**, not just its mechanics:
   physical block versus logical units, why a fixed `stride` asserts knowledge you do not have,

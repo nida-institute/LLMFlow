@@ -157,3 +157,12 @@ rules:
     sources, what is uncertain. Expect several passes. **Never be the only party who understands
     a dataset he has to decide about.** When he cannot yet check the reasoning, say so and keep
     explaining. Never proceed on the strength of being the one who knows.'
+- id: commit-authority
+  rule: '**The commit, the push and the merge are the human''s.** An agent runs the gates, writes
+    the commit message to a file, and hands over the exact command. It does not run `git commit`,
+    `git push` or `git merge`. Passing the gates is not authorization.'
+  note: 'Added 2026-08-22. Nothing `sp init` installed said who may commit: the five shipped
+    context documents and these rules contained no mention of `git commit`, `git push` or
+    `git merge` — not wrong text, absent text. So the machine-wide `commit-ready` skill, whose
+    gates have the agent committing, pushing, merging and deleting branches, was the only voice
+    a session in a client project heard on the subject.'
