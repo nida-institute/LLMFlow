@@ -114,6 +114,131 @@ can drift; a derived one cannot.
 
 ---
 
+### 4.3 The JSON representation — where the extra fields live
+
+Checked against the USFM Technical Committee source, `usfm-bible/tcdocs` at `2fde7302`
+("Merge branch '3.1.2'"). Not against BridgeConn's `usfm-grammar`, which carries a copy whose
+own `$id` points back at tcdocs.
+
+**Three of the annotations we want are spec attributes, and the rest have no spec home.**
+`\w` — a `char` element with `marker: "w"` — takes exactly three:
+
+```
+grammar/usfm.ext:1325    \marker w
+                         \attributes lemma? srcloc? strong?
+                         \defattrib lemma
+grammar/usx.rnc:965      usfm:propattribs="lemma? strong? srcloc?"
+```
+
+So `srcloc` is **not** a custom field. discourse-flow's use of it for the Macula `xml:id` is the
+spec's own attribute used as intended. Same for `lemma` and `strong`. Every other marker's
+attribute list is likewise a closed enumeration — `\rb` takes `gloss`, `\fig` takes
+`src size ref alt? loc? copy?`, `\qt` takes `who?`.
+
+**There is no general custom-attribute mechanism.** No `x-` convention, no namespacing, nothing
+matching "custom attribute" or "user-defined" anywhere in `usx.rnc`, `usfm.ext` or `usfm_sb.sty`.
+
+**The USJ schema does permit extra keys.** `grammar/usj.js` is 86 lines of draft-07 and declares
+`additionalProperties` nowhere, which defaults it to `true`. `markerObject` requires only `type`;
+the document requires `type`, `version`, `content`. A marker object carrying extra keys validates.
+
+So the split is one the spec drew, not one we chose:
+
+| | spec home | survives USJ → USX → USFM |
+|---|---|---|
+| `ids` | `srcloc` on `\w` | **yes** |
+| lemma, Strong's | `lemma`, `strong` | **yes** |
+| the parse — `morph`, case, tense, voice, mood | none | no |
+| senses, domains — `domain`, `ln`, `sdbh` | none | no |
+| glosses | `gloss`, but only on `\rb` | no |
+| referents — `frame`, `subjref` | none | no |
+
+**Ruled (Captain, 2026-08-23): one container, `scripture_pipelines`, holding all our extensions
+as children.** Spec attributes stay in their spec places; everything else goes in the container.
+
+```json
+{
+  "type": "char", "marker": "w",
+  "srcloc": "n41001001001", "lemma": "ἀρχή", "strong": "746",
+  "content": ["Ἀρχὴ"],
+  "scripture_pipelines": {
+    "morph": "N-NSF",
+    "domain": "033005"
+  }
+}
+```
+
+*Why a container rather than flat keys:* it is strippable in one operation rather than by a
+field-by-field allowlist, and it can never be mistaken for spec content by a later reader or tool.
+The counter-example is on this machine — discourse-flow puts `levinsohn_features` and
+`genre_markers` as flat keys on verse elements, which works and cannot be stripped without knowing
+every name in advance.
+
+*Why underscores.* The Captain's name for it is "scripture pipelines". The key is spelled
+`scripture_pipelines` because `get_from_context` matches each dotted part against
+`^([a-zA-Z0-9_]+)` (`utils/context.py:148`), so a space or hyphen ends the match early **and
+returns a sentinel object rather than raising**. Measured:
+
+```
+${w.scripture pipelines.morph}    -> <object object>   silent miss
+${w.scripture-pipelines.morph}    -> <object object>   silent miss
+${w['scripture pipelines'].morph} -> 'N-NSF'           works
+${w.scripture_pipelines.morph}    -> 'N-NSF'           works
+```
+
+The form a pipeline author would naturally type is the one that fails, and it fails without an
+error — the defect class #208 exists for.
+
+*On "never serialized".* Nothing round-trips this to USX or USFM, so no standards question arises.
+It *is* written to disk as JSON by `saveas`, intermediate files and checkpoints — as
+discourse-flow's `input/annotated/*-annotated-usj.json` already are — so the container is durable
+on disk and will be read back by later steps and by people. Design it to be read.
+
+### 4.4 `include` members
+
+**Ruled (Captain, 2026-08-23): families, not columns.** Five members. Fine-grained members
+(`lemma`, `strong`, `case`) would make `include` a column picker, which is what the TSV already is;
+families keep the list short enough to document and coarse enough that an author picks by intent.
+
+| member | Greek columns | Hebrew columns | lands in |
+|---|---|---|---|
+| `ids` | `xml:id` | `xml:id` | `srcloc` — **spec attribute** |
+| `morphology` | `lemma`, `strong` | `lemma`, `strongnumberx`, `stronglemma` | `lemma`, `strong` — **spec attributes** |
+| | `morph`, `normalized`, `person`, `number`, `gender`, `case`, `tense`, `voice`, `mood`, `degree`, `role`, `class`, `type` | `morph`, `pos`, `stem`, `state`, `person`, `gender`, `number`, `lang`, `type` | container |
+| `senses` | `domain`, `ln` | `lexdomain`, `contextualdomain`, `coredomain`, `sdbh`, `sensenumber` | container |
+| `glosses` | `gloss`, `english`, `mandarin` | `gloss`, `english`, `mandarin` | container |
+| `referents` | `frame`, `subjref`, `referent` | `frame`, `subjref`, `participantref` | container |
+
+`morphology` deliberately straddles both homes: `lemma` and `strong` are spec attributes on `\w`
+and go where the spec puts them, while the parse has no spec home and goes in the container. A
+caller asking for `morphology` gets both without having to know which is which.
+
+`glosses` is separate from `senses` because a Louw-Nida domain, an SDBH sense and an English gloss
+are not interchangeable — a step doing lexical work may want the domain and not the gloss.
+
+**The Greek/Hebrew asymmetry — proposed, not ruled.** One member name means different fields per
+edition: `include: [senses]` yields `{domain, ln}` on SBLGNT and
+`{lexdomain, contextualdomain, coredomain, sdbh, sensenumber}` on WLC.
+
+Proposal: **the member name is stable across editions; the fields inside carry the source's own
+column names, unnormalised, and the difference is documented per edition.** Normalising would mean
+inventing an equivalence — Hebrew's three domain kinds do not collapse into one Greek `domain` —
+and rule 25 puts that judgement in the Captain's domain, not an assistant's. A caller that needs
+one shape across both languages can map it; a caller handed a normalised shape cannot recover what
+was lost.
+
+=>
+
+### 4.5 What `include` does not carry
+
+The **Lowfat syntax tree** (`wg` groups — 4,009 clauses in Mark) and **paragraph structure** are
+not `include` members. Neither is a field on a word: USJ has nowhere to put a constituency tree,
+and paragraphs change the `para` elements themselves rather than annotating anything inside them.
+Both are shape, not payload — which is what #200's format table implied by listing `tokens`,
+`syntax`, `senses` and `entities` as *formats*.
+
+Where they go is unsettled. `format: syntax` is the obvious guess and is not a decision.
+
 ## 5. Prior art — reference, not baseline
 
 Per the Captain's instruction, `ears-to-hear` and `discourse-flow` are consulted as evidence.
@@ -197,6 +322,9 @@ matches, while `design-scripture-editions.md` specifies three formats including 
 | Nestle1904 out of scope; HOT is BHS and WLC, minimal diffs, the only two in widespread use | 2026-08-22 |
 | Both representations, produced per pipeline according to need | 2026-08-22 |
 | Two knobs, not one: `format:` for the shape, **`include:`** for what rides along | 2026-08-23 |
+| `include:` takes a **list** | 2026-08-23 |
+| Extensions live in one container, **`scripture_pipelines`**; spec attributes stay in their spec places | 2026-08-23 |
+| `include` members are **families, not columns**: `ids`, `morphology`, `senses`, `glosses`, `referents` | 2026-08-23 |
 
 ### 7.1 Purpose → representation (Captain, 2026-08-22)
 

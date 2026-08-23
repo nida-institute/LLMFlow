@@ -1,296 +1,222 @@
-# HANDOFF — 2026-08-22
+# HANDOFF — 2026-08-23
 
-Supersedes the 2026-08-21 handoff. Its two open items are resolved: `dev` is pushed and level
-with `origin/dev`, and HATH step 7 is untouched but no longer blocking.
+Supersedes the 2026-08-22 handoff.
 
 ---
 
-## ▶ NEXT ACTION — commit three files, then get the ruling on Q1; build nothing until then
+## ▶ NEXT ACTION
 
-**Most of today is committed and pushed: `505c257` on `dev`, 10 files, 750 insertions.** Three
-files remain uncommitted — see "In flight" below.
+**1. Commit two files.** `project/plans/design-scripture-representations.md` (§4.3 the JSON
+representation, §4.4 the `include` members, §4.5 what `include` does not carry) and this file.
+Rule 27 makes the commit the Captain's; gates green — `hatch run pytest
+tests/test_plan_docs_index.py` → 67 passed, 13 skipped.
 
-Two things, and neither is code.
+**2. `format: usj` is now implementable.** Shape, payload, container, member names and text
+authority are all ruled. Start from the parked `wip/scripture-200` work — but read §4.4's open
+`=>` first: the Greek/Hebrew asymmetry is a *proposal*, not a ruling. It is implementable as
+written (source column names, unnormalised, documented per edition); if the Captain wants a
+normalised shape instead, the payload changes and code written now is wrong.
 
-**First, commit the three uncommitted files** — rule 28, the regenerated `docs/ai-context/rules.md`,
-and this file. Guard is green. Rule 27 makes the commit the Captain's.
-
-**Then the ruling that unblocks work: Q1 in
-`project/plans/design-scripture-representations.md` §8 — one knob or two — gates the `format: usj`
-work**, and Q2 and Q4 gate the apparatus and paragraph questions behind it. Until Q1 is answered,
-`type: scripture` cannot be extended without guessing at the schema.
-
-**Also awaiting him, not blocking code:** where `project_ears_to_hear_structure` should live, his
-own reading of `feedback_call_your_own_drift`, and whether to audit the remaining 70 memory files
-— see thread 6.
-
-Do not start implementing. The parked code on `wip/scripture-200` is not authorization either —
-see Do NOT.
+**3. The documentation is part of the work, not after it** — see thread 2. He said twice that this
+must reach the AI environment, most recently of the member names specifically.
 
 **Verify before trusting this file:**
 
 ```bash
-git -C . log --oneline -1                    # 505c257
-git -C . status --short --branch             # clean, level with origin/dev
-grep -c '^=>' project/plans/design-scripture-representations.md   # 4, all empty
-hatch run pytest tests/test_ai_rules_single_source.py tests/test_plan_docs_index.py -q
+git -C . log --oneline -3                         # c7aa0d2, a725932, 505c257
+git -C . rev-list --left-right --count origin/dev...dev   # 0  2  — unpushed
+git -C . status --short                           # design-scripture-representations.md only
+grep -c '^=>' project/plans/design-scripture-representations.md   # 4, all still empty
+hatch run pytest tests/test_plan_docs_index.py tests/test_catalog_covers_init.py -q
 ```
 
-The last is 66 passed, 13 skipped. The full suite has **not** been run — #207.
+---
 
 ## Active threads
 
-### 1. Scripture representations — design document written, four questions open
+### 1. Scripture representations (#200) — design settled except the member names
 
-- **Goal:** #200, rewritten today as the epic. Serve named editions in several representations,
-  query Lowfat in BaseX, and settle what reaches a model.
-- **State:** `project/plans/design-scripture-representations.md` (265 lines, committed in
-  `505c257`). Sources, precedence and representation shape are ruled; the schema shape is open.
-- **Next step:** the Captain answers the four `=>` slots in §8. **Q1 gates implementation.**
-- **Verify:** `gh issue view 200 --repo nida-institute/LLMFlow --json title` → title has no
-  leading space and begins `Epic: scripture editions`. `grep -c '^=>' project/plans/design-scripture-representations.md` → 4.
+**Ruled and recorded** in `project/plans/design-scripture-representations.md` §7:
 
-### 2. Pipeline-language guidance — #208 created, nothing built
+| | |
+|---|---|
+| shape | `format: milestones \| plain \| usj` |
+| payload | `include: [...]` — a **list**, valid only with `format: usj` |
+| USJ for TSV editions | **synthesised** from the TSV: verses and text, no structure |
+| spec attributes | `srcloc`, `lemma`, `strong` stay in their spec places |
+| everything else | one container per word, **`scripture_pipelines`** |
+| text authority | **Macula Greek rules**, even where SBLGNT (LogosBible) has a variant |
+| editions | Nestle1904 out of scope; HOT is BHS and WLC |
 
-- **Goal:** one source for the language reference; step sections that state semantics and failure
-  modes; examples checked for meaning, not spelling.
-- **State:** issue created today, no work started. Four open questions recorded in it.
-- **Verify:** `gh issue view 208 --repo nida-institute/LLMFlow --json number,state`.
+**Member names ruled (§4.4): families, not columns** — `ids`, `morphology`, `senses`, `glosses`,
+`referents`. `morphology` straddles both homes deliberately: `lemma` and `strong` are spec
+attributes and go where the spec puts them, the parse goes in the container, and a caller asking
+for `morphology` gets both. `glosses` is separate from `senses` because a Louw-Nida domain, an SDBH
+sense and an English gloss are not interchangeable.
 
-### 3. Plan-document index — landed, with a known defect
+**One open `=>` in §4.4: the Greek/Hebrew asymmetry.** `include: [senses]` yields `{domain, ln}` on
+SBLGNT and `{lexdomain, contextualdomain, coredomain, sdbh, sensenumber}` on WLC. The proposal
+recorded there is that the member name stays stable while the fields keep the source's own column
+names, unnormalised — because normalising means inventing an equivalence that does not exist, and
+rule 25 puts that in his domain. **Implementable as proposed; a normalising ruling would change the
+payload.**
 
-- **State:** `tools/update_plans_index.py`, generated `project/plans/README.md`,
-  `tests/test_plan_docs_index.py`, and a `Design & plan documents` row in
-  `tools/update_ai_context.py`. All committed in `505c257`.
-- **Known defect, recorded in #163:** the index's Issues column is a **mention scrape**, not a
-  declaration — a document that merely cross-references an issue looks like that issue's design.
-  `design-scripture-representations.md` names #38, #52, #201, #203, #208 while being the design
-  for #200 alone. Proposed fix (needs his approval, because it means adding a line to 25
-  documents he wrote): each document declares `Issue: #200` beside its status, and the generator
-  reads the declaration.
-- **Verify:** `hatch run python tools/update_plans_index.py --check` → exits 0.
-  `hatch run pytest tests/test_plan_docs_index.py -q` → 64 passed, 13 skipped.
+**Also open, none of which blocks:** Q2 apparatus step type · Q3 default when unspecified · Q4
+paragraph source. `syntax` and `paragraphs` do not fit `include` at all — USJ has nowhere to put a
+constituency tree — so they are probably a different `format:`, which is what #200's table implied.
 
-### 4. Commit authority — rule 27 landed; the louder voice still contradicts it
+**Verify:** `sed -n '/^### 4.3/,/^## 5/p' project/plans/design-scripture-representations.md`.
 
-- **State:** rule 27 is in `data/ai-rules.yaml`, renders as #27 in both renderers, and is in the
-  regenerated `docs/ai-context/rules.md`.
-- **Outstanding and consequential:** `~/.sp/skills/commit-ready/` still tells every session in
-  every repo on this machine that the agent commits, pushes, merges and deletes branches
-  (its Gate 5, 6 and 7). `~/.sp` is `dr-xr-xr-x`, locked by `_lock_sp_dir()`. **Only the Captain
-  unlocks it** — the procedure is in `~/.claude/CLAUDE.md` under "Restoring a store".
-- **Verify:** `grep -c "commit, the push and the merge" docs/ai-context/rules.md` → 1.
-  `ls -ld ~/.sp` → `dr-xr-xr-x`.
+### 2. The documentation requirement — stated twice, and part of the work
 
-### 5. Parked, untouched today
+The Captain, 2026-08-23, of the JSON representation and again of the member names: this **needs
+adequate documentation in the AI context**. A design document is a record, not a delivery channel —
+nothing an assistant reads at session start points at `project/plans/`. When `type: scripture`
+ships, its section in `docs/llmflow-language.md` must carry:
 
-`#203` versification · `#200`'s parked code on the **local** tag `wip/scripture-200`
-(`05d75a5`, `34c7931`) — still not on `dev`, and `project/plans/design-scripture-editions.md`
-still exists **only there** · `#201` dataset versions · `#204`'s last piece (`_is_generated` by
-marker string rather than `data/file-catalog.yaml`) · `#192` · `#33` · `#207`.
+- the cost table — milestone form is +7% over bare text; the USJ container is **4.26x** before any
+  metadata; word ids **5.67x**; one repo's annotations **11.78x** (measured on all of Mark)
+- the choosing test — *if the model's output must reference individual words, the input must carry
+  word identity*
+- the `scripture_pipelines` container, and that spec attributes stay in their spec places
+- the constraint that the milestone form is **derived from** USJ, never produced independently
+- the Lowfat ordering failure mode (§6.1)
+- the five `include` members and what each yields per edition, including the asymmetry
 
+Written to whatever standard #208 sets, because scripture will be the first section written to it.
+Cross-cutting parts belong in `data/ai-rules.yaml`, the only channel that reaches every project
+automatically.
 
-### 6. `~/.claude` memory stores — 81 files deleted on purpose, triage part-done
+**Blocked on:** the step existing, and #208's standard. Not startable yet.
 
-- **State:** the Captain deleted every `~/.claude/projects/*/memory/` file — **81 across 12
-  projects** — deliberately, because they were unreviewed AI artifacts loaded into every session's
-  context ahead of the documents that do carry authority, invisible to him in any repository.
-  **Not committed:** the store shows 81 ` D` entries. Recoverable from `8678309` indefinitely,
-  since git keeps the blobs even after the deletion is committed.
-- **Audit done for this repo's 11.** Seven were second copies of authored sources (rule 14,
-  `disciplines/surface-decisions.md`, `design-vocabulary.md`, `consumer-repo-conventions.md`,
-  `docs/getting-started.md:85-99`, `RELEASE_CHECKLIST.md`). **One contradicted the record:**
-  `project_ai_github_account` told sessions to set `GH_CONFIG_DIR=~/.sp/gh-ai-config`; the actual
-  value is `/Users/jonathan/.config/gh-agent` and the `~/.sp` variant is superseded. Three held
-  something real.
-- **Of those three:** `feedback_dev_branch` is promoted — it is now **rule 28**.
-  `project_ears_to_hear_structure` (ears-to-hear's project root is its `LLMFlow/` subdirectory;
-  do not blanket-exclude `/LLMFlow/` when working across repos) **has no home decided**.
-  `feedback_call_your_own_drift` awaits the Captain's own reading — its trigger is his question,
-  its countable threshold ("twice on the same class, or three times on anything") is the AI's, and
-  an AI arguing for a rule that governs it is the circular-authority shape.
-- **discourse-flow's 28 audited, none promoted.** Far richer than this repo's, because
-  LLMFlow's rules absorbed its memories over time and discourse-flow's never did. Six duplicate
-  authored sources (`branch_workflow` is now rule 28; `git_commands`, `design_authority`,
-  `test_runner`, `pyproject_toml`, and `plan_vs_design` — which cites
-  `~/.sp/conventions/llmflow-project-tracking.md`, a path that no longer exists). **Fourteen are
-  domain or project knowledge with no home anywhere**, including: Levinsohn signals mark openings
-  not closings — which is *why* windowing drops the last pericope, and whose own text complains it
-  "has been explained to LLMs at least 3 times"; verses-as-milestones-never-arrays with the
-  specific schema rulings; the discourse-vs-narrative repo boundary; `tradition_comparison` as the
-  single designated freelancing zone; board **17** with its field IDs and the note that `Next Up`
-  *is* the TODO column; Hebrew `ref` non-injectivity at ~50% of words. **Five are workflow
-  constraints stricter than the shared rules** — prompt edits shown as a diff and approved before
-  applying; no pipeline commit until it runs clean on a book (Philemon); never italicise anything
-  that could hold Hebrew; `/tmp` not authorized, use `./tmp`; never implement windowing in Python.
-  Three overlap partially with specifics the shared version lacks.
-- **Two of them conflict with how this session behaved**, both discourse-flow-scoped:
-  `feedback_no_recommending` forbids recommending design choices, and this session recommended
-  throughout (the Captain asked for advice directly); `feedback_filesystem_access` says `/tmp` is
-  not authorized, while this session wrote to `/private/tmp/claude-501/...` per its own
-  configuration. Neither is resolved.
-- **Not audited:** 46 files across ten other projects.
-- **The mechanism is unfixed.** This repository's `CLAUDE.md` requires approval before writing a
-  memory file; the machine-wide default does not, which is how twelve projects accumulated 81.
-  Emptying the store does not stop sessions refilling it.
-- **Verify:** `cgit status --short | grep -c "^ D"` → 81.
-  `cgit show 8678309:projects/<project>/memory/<file>.md` reads any of them without restoring.
+### 3. Pipeline-language guidance (#208) — filed, nothing built, evidence accumulating
 
----
+Four open questions in the issue. Since filing, **three more instances arrived unprompted**, all
+from discourse-flow sessions: the `gpt-4.1` gate, the fenced prompt template, and `sp doctor` not
+refreshing the quickref. All three fixed; none recorded in #208 yet.
 
-### 7. Two reports from discourse-flow's AI, both about shipped guidance being wrong
+### 4. `~/.sp` is derived — the lesson from today, not yet written down anywhere durable
 
-- **Reported 2026-08-22 by discourse-flow's AI session:** the `audit-prompts` skill flags
-  `gpt-4.1` as incompatible with strict `json_schema`. Contradicted by evidence — four arms, 200+
-  calls on `gpt-4.1` with strict `json_schema`, zero schema failures. It asked that the skill be
-  corrected rather than the pipeline.
-- **This repository's own rules already agree with the report.** `docs/ai-context/rules.md` rule 5
-  says `response_format` is OpenAI-only, "**GPT-4o/4.1 families**".
-- **Three places contradict rule 5:** `~/.sp/skills/audit-prompts/SKILL.md:565,584,634,702` ·
-  `docs/llmflow-language.md:254` ("Must use `gpt-4o-2024-08-06` or later (not `gpt-4.1` — uses
-  different API)") · `docs/ai-context/json-reliability.md:19,26`. Two of those sit inside
-  `docs/ai-context/` contradicting each other.
-- **Nothing changed.** The wording that replaces it should name what actually gates structured
-  outputs rather than swapping one model list for another, so OpenAI's capability table wants
-  checking first. The skill is in the locked `~/.sp` store and is the Captain's.
-- **This is a fifth instance of #208's thesis**, arriving unprompted from another repository hours
-  after the issue was filed. **Not yet added to #208.**
-- **Verify:** `grep -rn "not .gpt-4.1" docs/` → 1 hit in `llmflow-language.md`.
-  `grep -n "GPT-4o/4.1" docs/ai-context/rules.md` → rule 5.
+A hand-edit to `~/.sp/disciplines/llmflow-prompt-organization.md` was **silently reverted** by
+`sp doctor` restoring the packaged copy. The `gpt-4.1` fix survived the same run **because the
+package had been fixed too**. Same store, same run, no error either way.
 
-**7b. The prompt template forbids markdown fences and then fences its own example.**
-`~/.sp/disciplines/llmflow-prompt-organization.md` §8: line 128 of the template says "Output a
-single valid JSON object. No markdown fences, no commentary before or after"; lines 131-135 show
-the schema example inside a ```json fence. A prompt built by copying the template reproduces the
-fence — which is the "one code fence inside OUTPUT SCHEMA in each prompt" the audit skill then
-flags. The standard causes the finding.
+**So: a fix belongs in `src/llmflow/templates/`. `~/.sp/disciplines/` and `~/.sp/skills/` record
+what arrived, not what was decided.** `~/.claude/CLAUDE.md`'s `~/.sp` section explains the
+versioning and the lock but never says most of the store is generated. Worth a line there — the
+Captain's file, so propose, don't write.
 
-- Line 142 carries a disclaimer, and it does not resolve it: it says where the *instruction*
-  should sit, never that the fence should be dropped, and it sits after the template rather than
-  beside it. Prompt text, template and checklist disagree three ways.
-- **Severity is low and the reason matters:** with `strict: true` the shape is enforced at the API
-  boundary, so a fenced example costs no parse failures. The cost is false audit findings on every
-  prompt, indefinitely.
-- Both the standard and the skill are in the locked `~/.sp` store — the Captain's.
-- **Verify:** `sed -n '124,142p' ~/.sp/disciplines/llmflow-prompt-organization.md`.
-- **Not recorded in any issue.** Same class as #208 — shipped guidance that is itself the defect —
-  but a different document in a different store.
+**Verify:** `git --git-dir=$HOME/.sp-git --work-tree=$HOME/.sp log --oneline -1` → `c662291`,
+whose message records the experiment.
+
+### 5. `~/.claude` memory stores — 81 files deleted, triage done, nothing carried out
+
+Deleted deliberately by the Captain: unreviewed AI artifacts, invisible in any repository, loaded
+into every session ahead of the documents that carry authority. **Still uncommitted** — 81 ` D`
+entries — and readable from `8678309` indefinitely.
+
+`project/plans/plan-memory-recovery.md` preserves the 22 items worth keeping from the 39 audited,
+each with a proposed destination. **None has been carried out.** One item was promoted before that
+document existed: `feedback_dev_branch` → rule 28.
+
+42 files across ten projects remain unaudited.
+
+### 6. Done today, no follow-up needed
+
+- **`sp doctor` could not refresh the quickref** (#204). Four files `sp init` writes were absent
+  from `data/file-catalog.yaml`; `managed_by_doctor()` returns only catalogued entries, so
+  `c1647af`'s cursor fix could not reach a project. Fixed in `a725932`, with
+  `tests/test_catalog_covers_init.py` closing the class. **Eight further files sit in that test's
+  `AWAITING_CATALOG_RULING` set** — the four hello-world examples and four audit documents, all
+  `generated` at their write sites. They need one ruling: `generated` means `sp init --update`
+  rewrites a user's edited example pipeline.
+- **`gpt-4.1` is not incompatible with structured outputs.** Corrected in four places including
+  the packaged skill. `docs/ai-context/json-reliability.md:254` still carries it — that directory
+  needs per-file approval.
+- **The prompt template forbade fences and fenced its own example.** Fixed in the package
+  (`c7aa0d2`) after the store fix was reverted.
 
 ---
 
-## In flight / not committed
+## In flight
 
-**Three files, uncommitted** — `data/ai-rules.yaml` (rule 28), the regenerated
-`docs/ai-context/rules.md`, and this file. `dev` is otherwise level with `origin/dev` at
-`505c257`. The guard `tests/test_ai_rules_single_source.py` passes (2 passed), so the source and
-the generated file agree. The commit is the Captain's — rule 27, and a drafted message is at
-`tmp/commit-msg.txt` (untracked; delete after use).
+**LLMFlow `dev`:** `c7aa0d2`, **two commits ahead of `origin/dev` and unpushed.** One file
+uncommitted: `project/plans/design-scripture-representations.md`.
 
-What that commit contains: rule 27 in `data/ai-rules.yaml` and the regenerated
-`docs/ai-context/{rules,index}.md` · `tools/update_plans_index.py` and the generated
-`project/plans/README.md` · `tests/test_plan_docs_index.py` · the topic-map row in
-`tools/update_ai_context.py` · `project/plans/design-scripture-representations.md` · CHANGELOG
-entries under `## Unreleased` · an earlier revision of this file.
+**`~/.sp`:** clean, committed at `c662291`.
 
-**GitHub, done 2026-08-22:** #208 created · #200 retitled and its body replaced · #163 commented
-(`issuecomment-5381015360`).
+**`~/.claude`:** 81 deletions pending, deliberately.
 
-**Two design pointers still missing.** #200's only `project/plans/` mention is the parked-work
-line about `design-scripture-editions.md`; the pointer to the current design document is absent.
-#169 has none. Both need a manual edit — the machine user has `pull` only and cannot edit an
-issue the Captain authored.
+---
 
-## Decisions settled today — do not reopen
+## Decisions settled — do not reopen
 
-- **Nestle1904 out of scope.** Present in `macula-greek` alongside SBLGNT; not wanted.
-- **HOT is BHS and WLC** — minimal diffs, the only two in widespread use.
-- **Macula Greek's text rules**, even where SBLGNT (LogosBible) carries a variant reading. The
-  apparatus is information *about* the text, never a competing text to use. *Why it matters:* an
-  LLM handed both could treat a variant as an alternative reading to adopt.
-- **`format: usj` for TSV editions is synthesised from the TSV** — verses and text, no structure.
-  Ruled after being shown that `LogosBible/SBLGNT` has real paragraphs the TSV lacks.
-- **Both representations, produced per pipeline according to need.**
-- **Documents stay in the repo and the issue links to them, plus a generated index** (B + D).
-  *Why not paste documents into issue bodies:* two independently maintained texts for one
-  subject, the failure `b75da26` fixed for the AI rules and #208 exists for in the language
-  reference. #200's own body was carrying a duplicated survey and a superseded TEI decision
-  until today.
-- **Rule 28: work on a single `dev` branch**, feature branches only when asked, `main` for what
-  is released — with an explicit clause that a project may declare a different workflow and that
-  decision governs locally. *Why the branch is named:* a first draft declined to name one, to avoid
-  imposing this repository's convention; the Captain overruled it because a default that names
-  nothing tells an agent nothing when a project declares nothing.
-- **Memory files are not a place for guidance.** Unreviewed, invisible in the repositories, and
-  loaded ahead of authored documents. What survives goes where it can be reviewed:
-  `data/ai-rules.yaml`, `project/plans/`, `~/.sp/disciplines/`, `~/.sp/user-context/`.
-- **The convention work is tracked in #163**, not a new issue.
-- **`llmflow.md` deepening is its own epic (#208)**, not folded into #200.
-
-**Naming, corrected by the Captain:** *edition* (SBLGNT, WLC, BHS, BSB), *source repository*
-(`Clear-Bible/macula-greek`, `LogosBible/SBLGNT`), *serialisation* (`tsv`, `lowfat`, `tei`, USFM).
-Collapsing these into labels like "Macula" or "Logos" is what he corrected — `macula-greek` holds
-two editions, so "Macula" is not an edition. Use "SBLGNT (macula-greek)" and "SBLGNT (LogosBible)".
+- **Two knobs, `format:` and `include:`.** *Why:* the measurement says payload dominates container
+  — 4.26x for the container before any metadata, 11.78x with one repo's annotations. The dimension
+  worth controlling separately is the payload. Invalid pairings (`milestones` + ids) are rejected
+  by the `allOf`/`if` pattern `pipeline_schema.py` already uses per step type.
+- **`include` over `carry`.** The Captain: *"context disambiguates it from, say, an include file."*
+  Rejected: `with` (reads as step arguments to anyone from GitHub Actions), `layers` (means
+  analytical layers in discourse-flow), `detail`/`level` (a scalar ladder that stops working once
+  senses and syntax are independently selectable).
+- **One container, `scripture_pipelines`, underscored.** *Why a container:* strippable in one
+  operation, and never mistakable for spec content. *Why underscores:* `get_from_context` matches
+  each dotted part against `^([a-zA-Z0-9_]+)` (`utils/context.py:148`), so a space or hyphen
+  returns a **sentinel object rather than raising** — the natural `${w.scripture pipelines.morph}`
+  fails silently.
+- **Macula Greek's text rules** even against a LogosBible variant. The apparatus is information
+  *about* the text, never a competing text to use.
+- **Rule 28 names `dev` explicitly.** A first draft declined to name a branch; he overruled it
+  because a default that names nothing tells an agent nothing when a project declares nothing.
+- **`project/TODO.md` is `create-once` in the catalog**, not `generated` — its write site has no
+  `--update` branch and rule 20 makes it a file people edit. Marking it `generated` would have had
+  `doctor` overwrite it.
 
 ---
 
 ## Do NOT / deferred
 
-- **Do not commit or push.** Rule 27. Draft the message, hand over the command.
-- **Do not restore the deleted memory files, and do not commit `~/.claude`.** The deletion was
-  deliberate. Triage is per-file and the Captain's; `~/.claude/CLAUDE.md` says a dirty store is
-  reported with the diff, never committed by an agent.
-- **Do not write a memory file.** Not for this session's findings either.
-- **Do not promote any discourse-flow memory** — 28 were read and classified, none was moved. The
-  ruling is the Captain's, per file.
-- **Do not reword the `gpt-4.1` guidance before checking OpenAI's capability table.** Four
-  locations disagree; changing three of them from memory would replace one stale claim with
-  another.
-- **Do not run the full test suite casually.** #207 — it writes to the real `~/.sp/`. Today's work
-  is verified by targeted runs only.
-- **Do not unlock `~/.sp`.** The `commit-ready` fix is his procedure, not an agent's.
-- **Do not build against design-document Q1** (one knob or two) until it is answered. Same for
-  Q2 (apparatus step type) and Q4 (paragraph source).
-- **Do not add `Issue: #N` lines to the 25 plan documents** unasked — proposed, not approved.
-- **Do not trust the plans index's Issues column** as a design relationship; see thread 3.
-- **The machine user cannot read project boards.** Confirmed exhausted today: the fine-grained
-  PAT reaches all 33 org repos but `organization.projectV2` is FORBIDDEN for every one of the 19
-  boards. `project/TODO.md`'s board annotations are the only bridge, and nothing verifies them.
-  Ask the Captain for column state rather than inferring it.
-- **The machine user has `pull` only** — `{"admin":false,"maintain":false,"pull":true,"push":false,"triage":false}`.
-  It can create issues and edit its own; **it cannot edit an issue the Captain authored.** Write
-  is the minimum role for that, and Write also permits pushing, so granting it for an issue edit
-  is a bad trade.
-- **`gh` identity collision, unresolved.** The Captain's own `gh` config and the agent config
-  present **the same token fingerprint** (`github_pat_11CMGLR2A0LfXLCQL1QrHk_`), so his terminal
-  authenticates as the bot and hits the same refusals. Diagnostic:
-  `env -u GH_CONFIG_DIR gh api /user --jq '.login'`. Fix is his: `env -u GH_CONFIG_DIR gh auth login`,
-  browser rather than a pasted token.
-- **`sp doctor` is still dangerous in this repo** — it would revert `docs/ai-context/*` to the
-  packaged constants, including today's regeneration.
-- **`#205` was closed during this session**, by someone other than this session. HANDOFF-2026-08-21
-  listed it as parked with six questions awaiting the Captain. State change noted, cause unknown.
-- **Looks like a next step but isn't:** a lint check for the Lowfat ordering trap. The evidence
-  supports it (§6.1 of the design document), the Captain has not asked for it, and he declined to
-  choose an option for the analogous rules 23/24 guard.
+- **Do not commit or push.** Rules 27 and 28. Two commits are unpushed; that is his call.
+- **Do not run the full test suite casually** — #207, it writes to the real `~/.sp/`.
+- **Do not hand-edit `~/.sp/disciplines/` or `~/.sp/skills/`.** Derived; `sp doctor` reverts it.
+  Fix `src/llmflow/templates/` instead. See thread 4.
+- **Do not run `sp doctor` from this repository** — it reverts `docs/ai-context/*` to the packaged
+  constants, which would undo rule 28. Run it from a consumer repo or a scratch directory.
+- **Do not restore the deleted memory files, and do not commit `~/.claude`.**
+- **Do not write a memory file.**
+- **Do not promote anything from `plan-memory-recovery.md`** without a per-item ruling.
+- **Do not fill in a `=>`.** Four remain empty in the scripture design document; Q1's ruling is
+  recorded *beneath* its slot, per the discipline.
+- **Do not edit `docs/ai-context/`** — including `json-reliability.md:254`, which still carries
+  the stale `gpt-4.1` claim and needs his word for that file specifically.
+- **The machine user cannot read project boards, and has `pull` only** — it can create issues and
+  edit its own, never one the Captain authored.
+- **`gh` identity collision, unresolved.** His own `gh` config and the agent config present the
+  same token fingerprint, so his terminal authenticates as the bot. Diagnostic:
+  `env -u GH_CONFIG_DIR gh api /user --jq '.login'`.
+- **Looks like a next step but isn't:** a lint check for the Lowfat ordering trap. Evidence
+  supports it; he has not asked; he declined to choose an option for the analogous rules 23/24
+  guard.
 
 ---
 
 ## Key files & links
 
-**New today** — `project/plans/design-scripture-representations.md` ·
-`tools/update_plans_index.py` · `tests/test_plan_docs_index.py` · `project/plans/README.md`
+**Design** — `project/plans/design-scripture-representations.md` (§2 the serialisations, §3 the
+alignment spine, §4 what reaches the model, **§4.3 the JSON representation**, §6 traps, §7 rulings,
+§8 four open questions) · `plan-memory-recovery.md` · `design-scripture-editions.md`, which still
+exists **only** on the local tag `wip/scripture-200`
 
-**Measured facts worth not re-deriving** (all in the design document with commands):
-Lowfat departs from document order in ~40% of Mark's verses (334 transitions, 268 verses);
-`sort`/`uniq` under a UTF-8 locale merge `⸀ ⸂ ⸁` and need `LC_ALL=C`; USJ costs 4.26× a milestone
-string before any metadata and 11.78× as discourse-flow ships it; `tei` is referenced by zero
-files across the three consumer repos; only four `.xq` files exist across them.
+**Measured facts, so they are not re-derived** — Lowfat departs from document order in ~40% of
+Mark's verses (334 transitions, 268 verses) · `sort`/`uniq` under a UTF-8 locale merge
+`⸀ ⸂ ⸁`, needing `LC_ALL=C` · USJ costs 4.26x a milestone string before metadata, 11.78x as
+discourse-flow ships it · `tei` is referenced by zero files across the three consumer repos · only
+four `.xq` files exist across them · `srcloc`/`lemma`/`strong` are spec attributes
+(`usfm.ext:1325`, `usx.rnc:965`); the USJ schema declares `additionalProperties` nowhere
 
-**Issues** — #200 (epic, rewritten) · #208 (new epic) · #163 (convention, commented) · #159
-(overlaps #163, untouched) · #38 vs #52 (BaseX naming, in conflict) · #201 · #203 · #204 · #207
+**Issues** — #200 (epic) · #208 (guidance) · #163 (conventions, commented) · #204 · #38 vs #52
+(BaseX naming, in conflict) · #201 · #203 · #207
 
 **External** — `discourse-flow/project/plans/per-verse-representation-defect-design.md` (453 lines,
-14 ratified decisions, the prior art) · `discourse-flow/plugins/milestone_content.py` (builds USJ
-from Macula morphology with `srcloc`) · `discourse-flow#75`, `#26`, `#43`
-
-**Board** — 13 (LLMFlow Roadmap), unreadable by any AI session on this machine.
+14 ratified decisions) · `discourse-flow/plugins/milestone_content.py` (builds USJ from Macula with
+`srcloc`) · `usfm-bible/tcdocs` (the TC source; **not** BridgeConn's copy)
