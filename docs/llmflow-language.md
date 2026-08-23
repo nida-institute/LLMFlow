@@ -251,7 +251,13 @@ Using `schema_file` keeps pipelines clean and allows schema reuse across multipl
 | ❌ Manual JSON formatting rules in prompts | ✅ Schema enforced by API |
 
 **Key requirements:**
-- **Model:** Must use `gpt-4o-2024-08-06` or later (not `gpt-4.1` — uses different API)
+- **Model:** `gpt-4o-2024-08-06` or later. OpenAI's guide names the `gpt-4o-mini`,
+  `gpt-4o-mini-2024-07-18` and `gpt-4o-2024-08-06` snapshots "and later", and does not
+  enumerate later families either way. **`gpt-4.1` works** — four arms, 200+ calls, strict
+  `json_schema`, zero schema failures, measured 2026-08-22 in `nida-institute/discourse-flow`.
+  A revision of this line before that date claimed `gpt-4.1` was incompatible because it "uses
+  a different API"; that was wrong, and `docs/ai-context/rules.md` rule 5 already said
+  "GPT-4o/4.1 families".
 - **`strict: true`** (recommended): Enables strict schema adherence
 - **`additionalProperties: false`**: Prevents LLM from adding unexpected fields
 - **All required fields documented**: Use `description` fields to guide LLM

@@ -557,13 +557,28 @@ awk "NR==$json_line,NR==$json_line+20" [pipeline].yaml | grep -q "response_forma
 awk "NR==$json_line,NR==$json_line+30" [pipeline].yaml | grep -A 2 "response_format:" | grep -q "type: json_schema"
 ```
 
+### Model support — do not gate on a hardcoded list
+
+OpenAI's Structured Outputs guide states that `response_format: {type: "json_schema", ...}` is
+"only supported with the `gpt-4o-mini`, `gpt-4o-mini-2024-07-18`, and `gpt-4o-2024-08-06` model
+snapshots and later", and does not enumerate later families either way.
+
+**`gpt-4.1` works.** Measured 2026-08-22 in `nida-institute/discourse-flow`: four arms, 200+ calls,
+strict `json_schema`, zero schema failures. Revisions of this skill before that date asserted
+`gpt-4.1` was incompatible because it "uses the Responses API", and instructed auditors to change
+the model. That was wrong, and because this skill is installed machine-wide it produced the same
+false finding in every project.
+
+**What to do instead:** report the model, and check it against the provider's current capability
+table together with the project's own run evidence. A model name is not a verdict.
+
 **Check C: Model supports structured outputs?**
 ```bash
 # Extract model from step or global llm_config
 model=$(awk "NR==$json_line,NR==$json_line+20" [pipeline].yaml | grep "model:" | head -1 | awk '{print $2}')
 
-# Verify model is gpt-4o-2024-08-06 or later (not gpt-4.1)
-echo "$model" | grep -qE "gpt-4o-2024-08-06|gpt-4o-mini-2024"
+# Report the model. Do NOT gate on a hardcoded allowlist — see "Model support" below.
+echo "model: $model"
 ```
 
 #### What to Report
@@ -581,7 +596,7 @@ echo "$model" | grep -qE "gpt-4o-2024-08-06|gpt-4o-mini-2024"
 ```yaml
 - name: segment_chunk
   type: llm
-  model: gpt-4o-2024-08-06  # MUST be 2024-08-06 or later
+  model: gpt-4o-2024-08-06  # or any later snapshot; gpt-4.1 also works — see "Model support"
   output_type: json
   response_format:
     type: json_schema
@@ -629,9 +644,10 @@ echo "$model" | grep -qE "gpt-4o-2024-08-06|gpt-4o-mini-2024"
 ❌ **WRONG MODEL FOR STRUCTURED OUTPUTS**
 
 **Step:** `extract_data` (line 200)
-**Model:** `gpt-4.1`
-**Problem:** GPT-4.1 uses Responses API (different structured output mechanism)
-**Fix:** Change to `gpt-4o-2024-08-06` or later
+**Model:** `gpt-4o` (a snapshot older than 2024-08-06)
+**Problem:** the snapshot predates `json_schema` support, so `response_format` is ignored
+**Fix:** pin a snapshot from `gpt-4o-2024-08-06` onward. **Do not report `gpt-4.1` as
+incompatible** — see "Model support".
 ```
 
 #### Summary Stats
@@ -699,7 +715,7 @@ Provide:
 **Pipeline Structured Outputs:** (CRITICAL - for pipeline YAML files)
 - JSON steps without `response_format` (legacy/unreliable approach)
 - JSON steps using `json_object` vs `json_schema` mode
-- Model compatibility (requires gpt-4o-2024-08-06+, not gpt-4.1)
+- Model compatibility (see "Model support" — never fail a prompt on the model name alone)
 - Project-wide adoption stats (% using structured outputs)
 - Risk Level: Low / Medium / High / CRITICAL
 

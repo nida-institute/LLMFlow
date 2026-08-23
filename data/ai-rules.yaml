@@ -166,3 +166,15 @@ rules:
     `git merge` — not wrong text, absent text. So the machine-wide `commit-ready` skill, whose
     gates have the agent committing, pushing, merging and deleting branches, was the only voice
     a session in a client project heard on the subject.'
+- id: branching-workflow
+  rule: '**Work on a single `dev` branch.** That is the default: commit to `dev`, and do not open
+    a feature branch unless asked for one. `main` holds what has been released, and reaches it by
+    a `dev` -> `main` pull request. **A project may choose a different workflow and say so in its
+    own AI context; that decision governs locally** — this rule is the default, not an override.'
+  note: 'Added 2026-08-22 at the Captain''s direction, who specified a single `dev` branch as the
+    default explicitly. Agents repeatedly opened `feat/*` branches unasked in repositories whose
+    working branch is `dev`, which caused confusion and left work stranded where nobody looked for
+    it. A first draft of this rule declined to name a branch, on the reasoning that doing so would
+    impose one project''s convention on the rest; the Captain overruled it, because a default that
+    names nothing tells an agent nothing when a project declares nothing. The override clause is
+    explicit so a project that does use feature branches is not held to this.'

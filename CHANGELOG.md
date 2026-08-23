@@ -28,6 +28,27 @@ to be retargeted rather than assumed.
   last, and `sp doctor` would silently replace one set with the other. `data/ai-rules.yaml` is
   now the only place they are written; both generators render from it.
 
+- **`sp doctor` could not refresh the document whose bad example had already cost content.**
+  `docs/llmflow-language-quickref.md` was absent from `data/file-catalog.yaml`, and
+  `managed_by_doctor()` returns only catalogued entries — so when `c1647af` fixed the window-cursor
+  example inside `LANGUAGE_QUICKREF_DOC`, `doctor` had no way to push the fix into an existing
+  project. Only `sp init --update` reached it, and only while the file still carried the generated
+  marker. Reported from `nida-institute/discourse-flow`. Four files `sp init` writes were missing:
+  `docs/tutorial.md`, `docs/llmflow-language-quickref.md` and `docs/vscode.md` as `generated`, and
+  `project/TODO.md` as `create-once` — the last deliberately, because its write site has no
+  `--update` branch and rule 20 makes it a file people edit. `tests/test_catalog_covers_init.py`
+  now fails if `sp init` writes anything the catalog does not list; eight further files are listed
+  there as awaiting a policy ruling rather than silently passing.
+
+- **`gpt-4.1` was wrongly reported as incompatible with structured outputs.** The `audit-prompts`
+  skill, its packaged copy in `src/llmflow/templates/`, and `docs/llmflow-language.md` all told
+  auditors that `gpt-4.1` could not use strict `json_schema` and to change the model —
+  contradicting `docs/ai-context/rules.md` rule 5, which already said "GPT-4o/4.1 families".
+  Measured in `nida-institute/discourse-flow`: four arms, 200+ calls, strict `json_schema`, zero
+  schema failures. The hardcoded model allowlist is replaced by a "Model support" note: report the
+  model and check it against the provider's capability table and the project's own run evidence. A
+  model name is not a verdict.
+
 ### New Features
 
 - **`size` and `stride` accept a variable**, resolved once at step entry — before the first
@@ -51,6 +72,26 @@ to be retargeted rather than assumed.
   defect in #163 rather than papered over.
 
 ### Documentation
+
+- **Rule 28: work on a single `dev` branch**, feature branches only when asked, `main` for what is
+  released — with an explicit clause that a project may declare a different workflow in its own AI
+  context and that decision governs locally. The only prior record of this was an unreviewed memory
+  file in `~/.claude`, invisible in every repository.
+
+- **`project/plans/plan-memory-recovery.md`** — the transfer record for the `~/.claude` memory
+  stores, which the Captain emptied on 2026-08-22: 81 files across 12 projects, unreviewed,
+  invisible in any repository, and loaded into every session ahead of the documents that carry
+  design authority. 39 were audited. Thirteen were second copies of authored sources, one
+  contradicted the record by pointing `GH_CONFIG_DIR` at a superseded path, and 22 items with no
+  home anywhere are preserved in the plan with proposed destinations. Every file remains readable
+  from `8678309`.
+
+- **The scripture step takes two parameters, not one.** `format:` for the shape
+  (`milestones` | `plain` | `usj`) and **`include:`** for what rides along. Measured on the whole of
+  Mark: the USJ container costs 4.26x a milestone string before any metadata, word ids take it to
+  5.67x, and one repo's annotations to 11.78x — so the dimension worth controlling separately is
+  the payload, not the container. Recorded in
+  `project/plans/design-scripture-representations.md` (#200).
 
 - **Rule 27: the commit, the push and the merge are the human's.** Nothing `sp init` installed
   said who may commit. The five shipped context documents and the 26 rules contained no mention

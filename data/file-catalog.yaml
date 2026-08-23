@@ -116,6 +116,42 @@ files:
     constant: AI_PROJECT_DOC
     committed: true
 
+  # Documents sp init writes outside docs/ai-context/. Absent from this catalog until
+  # 2026-08-23, which meant `sp doctor` could not see them: when c1647af fixed the
+  # window-cursor example inside LANGUAGE_QUICKREF_DOC — an example that had already cost
+  # real content in a consumer repo — doctor had no way to push the fix out. Reported from
+  # nida-institute/discourse-flow. Policies below match what each write site actually does.
+  - path: docs/tutorial.md
+    scope: project
+    policy: generated
+    source: constant
+    constant: TUTORIAL_DOC
+    committed: true
+
+  - path: docs/llmflow-language-quickref.md
+    scope: project
+    policy: generated
+    source: constant
+    constant: LANGUAGE_QUICKREF_DOC
+    committed: true
+
+  - path: docs/vscode.md
+    scope: project
+    policy: generated
+    source: constant
+    constant: VSCODE_DOC
+    committed: true
+
+  # Written only when absent — cli_utils.py has no `--update` branch for it, and it is a
+  # file people edit constantly (rule 20 makes it the session cache). create-once, so
+  # `sp doctor` will never overwrite it.
+  - path: project/TODO.md
+    scope: project
+    policy: create-once
+    source: constant
+    constant: PROJECT_TODO
+    committed: true
+
   # A2: pointers at docs/ai-context/rules.md, carrying no rules of their own. The two
   # rules files are block-managed, so a project may keep its own content around sp's
   # block; the Copilot document is written whole.

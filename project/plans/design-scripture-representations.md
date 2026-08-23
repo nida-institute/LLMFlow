@@ -196,6 +196,7 @@ matches, while `design-scripture-editions.md` specifies three formats including 
 | Macula Greek's text rules, even where SBLGNT (LogosBible) carries a variant reading | 2026-08-22 |
 | Nestle1904 out of scope; HOT is BHS and WLC, minimal diffs, the only two in widespread use | 2026-08-22 |
 | Both representations, produced per pipeline according to need | 2026-08-22 |
+| Two knobs, not one: `format:` for the shape, **`include:`** for what rides along | 2026-08-23 |
 
 ### 7.1 Purpose → representation (Captain, 2026-08-22)
 
@@ -229,6 +230,34 @@ Answer inline after each `=>`.
   `pipeline_schema.py` already uses per step type, so an invalid pairing fails `sp lint`.
 
 =>
+
+**Ruled (Captain, 2026-08-23): two knobs — B. The second parameter is `include`.**
+
+On the name: `carry:` and `include:` were the finalists. He chose `include`, with the reason —
+*"context disambiguates it from, say, an include file."* Considered and rejected: `with:` (reads
+as step arguments to anyone arriving from GitHub Actions), `layers:` (already means analytical
+layers in discourse-flow), `detail:`/`level:` (a scalar ladder, which stops working once
+`senses` and `syntax` become independently selectable), `annotations:` (wrong for word ids,
+which are identity rather than annotation).
+
+Note `include_partial` is an existing key on the `window` step with an unrelated meaning. The two
+are one underscore apart in the same namespace; that was raised and accepted.
+
+So the step reads:
+
+```yaml
+- name: fetch_source
+  type: scripture
+  edition: SBLGNT
+  passage: "${passage}"
+  format: usj            # milestones | plain | usj
+  include: [ids]         # valid only when format: usj
+  outputs: source_text
+```
+
+Still to settle before implementation: whether `include` takes a list or a single word, and the
+exact member names. The cost ladder measured `ids` and `ids+annotations`; #200's format table
+implies `senses`, `syntax`, `entities` and `tokens` follow later, which argues for a list.
 
 ### Q2. Does the apparatus get its own step type?
 
