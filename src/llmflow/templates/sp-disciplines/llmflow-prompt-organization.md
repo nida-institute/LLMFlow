@@ -128,18 +128,29 @@ TODO sections for examples that need manual writing
 Output a single valid JSON object. No markdown fences, no commentary before or after.
 
 **Schema definition with example:**
-\```json
 {
   "field": "value"
 }
-\```
 
 ## Field Rules
 - field1: description
 - field2: description
 ```
 
-**Note:** The example above shows JSON in fences for documentation purposes. In actual prompts, the "No markdown fences" instruction should appear immediately before the example, and the Guardrails section should reinforce it.
+**Note:** the JSON example above is deliberately **unfenced**, and must stay that way.
+
+Revisions before 2026-08-23 wrapped it in a fence four lines below the "No markdown fences"
+instruction. Because this template is copied into real prompts, that put a fence in the
+OUTPUT SCHEMA section of every prompt built from it — which `audit-prompts` then reported as a
+checklist violation, so the standard was generating the finding it flagged. The fence was also
+written escaped (`\```json`) so it would not close the surrounding block, meaning a literal
+backslash could reach a prompt.
+
+Corrected after a session in `nida-institute/discourse-flow` reported the contradiction.
+Severity was low and the reason is worth keeping: with `strict: true` the response shape is
+enforced at the API boundary, so the fence caused no parse failures. The cost was a false audit
+finding on every prompt, indefinitely. The "No markdown fences" instruction still belongs
+immediately before the example, and the Guardrails section should reinforce it.
 
 ### 9. DOMAIN-SPECIFIC RULES
 ```markdown
