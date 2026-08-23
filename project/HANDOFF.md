@@ -6,28 +6,32 @@ Supersedes the 2026-08-22 handoff.
 
 ## ▶ NEXT ACTION
 
-**1. Commit two files.** `project/plans/design-scripture-representations.md` (§4.3 the JSON
-representation, §4.4 the `include` members, §4.5 what `include` does not carry) and this file.
-Rule 27 makes the commit the Captain's; gates green — `hatch run pytest
-tests/test_plan_docs_index.py` → 67 passed, 13 skipped.
+**1. `format: usj` is implementable — that is the work.** Everything it needs is ruled and
+committed through `f93e9ca`: the shape (`format:`), the payload (`include:`, a list), the container
+(`scripture_pipelines`), the five member families, and that Macula Greek's text rules. Start from
+the parked commits on the local tag `wip/scripture-200`.
 
-**2. `format: usj` is now implementable.** Shape, payload, container, member names and text
-authority are all ruled. Start from the parked `wip/scripture-200` work — but read §4.4's open
-`=>` first: the Greek/Hebrew asymmetry is a *proposal*, not a ruling. It is implementable as
-written (source column names, unnormalised, documented per edition); if the Captain wants a
-normalised shape instead, the payload changes and code written now is wrong.
+**2. Read the open `=>` in §4.4 first.** The Greek/Hebrew asymmetry is a *proposal*, not a ruling:
+`include: [senses]` returns `{domain, ln}` on SBLGNT and
+`{lexdomain, contextualdomain, coredomain, sdbh, sensenumber}` on WLC. The proposal is to keep the
+source's own column names, unnormalised. It is implementable as written — but if the Captain rules
+for a normalised shape, the payload changes and code written now is wrong.
 
-**3. The documentation is part of the work, not after it** — see thread 2. He said twice that this
-must reach the AI environment, most recently of the member names specifically.
+**3. The documentation is part of the work, not after it.** See thread 2: he said so twice, most
+recently of the member names specifically. Nothing an assistant reads at session start points at
+`project/plans/`, so the design document alone reaches nobody.
+
+**Also outstanding, and his alone:** the 81 deleted `~/.claude` memory files are still
+uncommitted. `dev` is pushed and level with `origin/dev` at `f93e9ca`.
 
 **Verify before trusting this file:**
 
 ```bash
-git -C . log --oneline -3                         # c7aa0d2, a725932, 505c257
-git -C . rev-list --left-right --count origin/dev...dev   # 0  2  — unpushed
-git -C . status --short                           # design-scripture-representations.md only
-grep -c '^=>' project/plans/design-scripture-representations.md   # 4, all still empty
-hatch run pytest tests/test_plan_docs_index.py tests/test_catalog_covers_init.py -q
+git -C . log --oneline -4      # f93e9ca, c7aa0d2, a725932, 505c257
+git -C . status --short        # clean, or HANDOFF.md alone if this edit is uncommitted
+git -C . rev-list --left-right --count origin/dev...dev            # 0  0  — pushed
+grep -c '^=>' project/plans/design-scripture-representations.md    # 5 — four in section 8, one in 4.4
+hatch run pytest tests/test_plan_docs_index.py tests/test_catalog_covers_init.py -q   # 78 passed, 21 skipped
 ```
 
 ---
@@ -140,8 +144,8 @@ document existed: `feedback_dev_branch` → rule 28.
 
 ## In flight
 
-**LLMFlow `dev`:** `c7aa0d2`, **two commits ahead of `origin/dev` and unpushed.** One file
-uncommitted: `project/plans/design-scripture-representations.md`.
+**LLMFlow `dev`:** `f93e9ca`, pushed and level with `origin/dev`. Clean, apart from this file
+if the commit recording these corrections has not been made.
 
 **`~/.sp`:** clean, committed at `c662291`.
 
@@ -176,7 +180,7 @@ uncommitted: `project/plans/design-scripture-representations.md`.
 
 ## Do NOT / deferred
 
-- **Do not commit or push.** Rules 27 and 28. Two commits are unpushed; that is his call.
+- **Do not commit or push.** Rules 27 and 28. `dev` is currently pushed and clean; the next commit, whenever there is one, is still his.
 - **Do not run the full test suite casually** — #207, it writes to the real `~/.sp/`.
 - **Do not hand-edit `~/.sp/disciplines/` or `~/.sp/skills/`.** Derived; `sp doctor` reverts it.
   Fix `src/llmflow/templates/` instead. See thread 4.
@@ -185,8 +189,9 @@ uncommitted: `project/plans/design-scripture-representations.md`.
 - **Do not restore the deleted memory files, and do not commit `~/.claude`.**
 - **Do not write a memory file.**
 - **Do not promote anything from `plan-memory-recovery.md`** without a per-item ruling.
-- **Do not fill in a `=>`.** Four remain empty in the scripture design document; Q1's ruling is
-  recorded *beneath* its slot, per the discipline.
+- **Do not fill in a `=>`.** Five remain empty in the scripture design document — four in
+  section 8, one in 4.4 (the Greek/Hebrew asymmetry). Q1's ruling is recorded *beneath* its
+  slot, per the discipline.
 - **Do not edit `docs/ai-context/`** — including `json-reliability.md:254`, which still carries
   the stale `gpt-4.1` claim and needs his word for that file specifically.
 - **The machine user cannot read project boards, and has `pull` only** — it can create issues and
