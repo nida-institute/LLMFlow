@@ -1,10 +1,10 @@
-"""`docs/ai-context/rules.md` must have one source, not two.
+"""`docs/ai-context/sp/rules.md` must have one source, not two.
 
 Found 2026-08-21 while checking what `sp doctor` would overwrite. Two generators in this
 repository write the same file from two independently hand-maintained texts:
 
 - `tools/update_ai_context.py` — its `RULES` list, 17 items, produces this repo's
-  `docs/ai-context/rules.md`
+  `docs/ai-context/sp/rules.md`
 - `llmflow.cli_utils.AI_RULES_DOC` — a *different* 12 items, and what `sp init` writes into
   every new project
 
@@ -37,7 +37,7 @@ from pathlib import Path
 from llmflow.cli_utils import AI_RULES_DOC
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-GENERATED_RULES = REPO_ROOT / "docs" / "ai-context" / "rules.md"
+GENERATED_RULES = REPO_ROOT / "docs" / "ai-context" / "sp" / "rules.md"
 
 # A rule is a numbered list item. Both texts are markdown ordered lists, and the leading
 # `**Bold lead.**` is what makes two phrasings of the same rule recognisable as one rule.
@@ -69,7 +69,7 @@ def test_a_project_and_this_repository_are_held_to_the_same_rules():
     only_generated = sorted(set(generated) - set(shipped))
 
     assert not only_shipped and not only_generated, (
-        "docs/ai-context/rules.md is written from two independent texts.\n"
+        "docs/ai-context/sp/rules.md is written from two independent texts.\n"
         f"  in cli_utils.AI_RULES_DOC only ({len(only_shipped)}): {only_shipped}\n"
         f"  in the generated file only ({len(only_generated)}): {only_generated}\n"
         "A project scaffolded by `sp init` is held to the first; this repository to the "

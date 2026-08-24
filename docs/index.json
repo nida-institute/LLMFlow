@@ -3456,9 +3456,15 @@
         "subprocess",
         "sys",
         "threading",
+        "typing",
         "webbrowser"
       ],
       "functions": [
+        {
+          "name": "find_pipelines_dir",
+          "signature": "find_pipelines_dir(project_path: Path) -> Optional[Path]",
+          "doc": "Locate a project's `pipelines/` directory, at its root or one level down."
+        },
         {
           "name": "create_app",
           "signature": "create_app()",
@@ -3998,6 +4004,6 @@
   ],
   "summary": {
     "total_modules": 75,
-    "total_functions": 617
+    "total_functions": 618
   }
 }

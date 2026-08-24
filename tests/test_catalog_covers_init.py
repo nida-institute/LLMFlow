@@ -34,6 +34,8 @@ DIRS = {
     "pipelines_dir": "pipelines",
     "docs_dir": "docs",
     "ai_context_dir": "docs/ai-context",
+    "sp_context_dir": "docs/ai-context/sp",
+    "project_context_dir": "docs/ai-context/project",
     "docs_audits_dir": "docs/audits",
     "project_dir": "project",
     "audits_dir": "project/audits",

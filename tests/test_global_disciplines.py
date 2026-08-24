@@ -37,6 +37,7 @@ EXPECTED_DISCIPLINES = {
     "project-tracking.md",
     "sp-debugging.md",
     "sp-workflow.md",
+    "tests-and-audits.md",
     "surface-decisions.md",
     "workflow.md",
 }

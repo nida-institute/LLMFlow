@@ -138,7 +138,7 @@ def test_assistant_files_point_at_the_authoritative_rules(sandbox: Path, relativ
     init_project(sandbox)
 
     content = (sandbox / relative_path).read_text(encoding="utf-8")
-    assert "docs/ai-context/rules.md" in content, (
+    assert "docs/ai-context/sp/rules.md" in content, (
         f"{relative_path} does not point at the authoritative rules"
     )
 

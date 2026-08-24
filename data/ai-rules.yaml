@@ -1,7 +1,7 @@
 # The AI assistant rules for this project — the ONLY place they are written.
 #
 # Two generators render this list, and neither holds a copy of it:
-#   tools/update_ai_context.py  -> docs/ai-context/rules.md   (this repository's own context)
+#   tools/update_ai_context.py  -> docs/ai-context/sp/rules.md   (this repository's own context)
 #   llmflow.cli_utils           -> AI_RULES_DOC, which `sp init` writes into a new project
 #
 # Why this file exists (2026-08-21). Those two generators each held their own hand-written
@@ -31,7 +31,7 @@
 version: 1
 rules:
 - id: read-the-docs
-  rule: '**Consult the docs before guessing.** The references listed in `sp-index.md` are authoritative
+  rule: '**Consult the docs before guessing.** The references listed in `sp/index.md` are authoritative
     for syntax, architecture and workflows. Read the file rather than recalling it.'
 - id: pipeline-schema
   rule: '**Respect the pipeline schema.** Use only documented keys — `name`, `type`, `prompt`, `inputs`,
@@ -71,9 +71,15 @@ rules:
   rule: '**Verses are milestones, not units.** Treat verse references as location markers only —
     never as the basis for a structural or semantic decision. Do not divide scenes, passages or
     content blocks by verse count. Pericope boundaries, scene structure and semantic cohesion are
-    determined by narrative and discourse analysis.'
+    determined by narrative and discourse analysis. **This constrains data structures, not only
+    reasoning.** A verse may be a milestone *on* a structure, never an element *of* one —
+    strictest for anything an LLM sees. Verse-centric data is a mapping keyed by verse
+    identifier, not a list: a list of verse objects invites the model to treat the list as the
+    unit and reason per verse, which is the failure this rule exists to prevent. A coverage
+    anchor discarded before assembly is the one tolerated exception, tolerated because nothing
+    downstream consumes it.'
   note: For cross-versification work (KJV, LXX, Vulgate and others) use the Copenhagen Alliance
-    Versification specification, listed in `sp-index.md` under "Versification systems". Paratext `.vrs`
+    Versification specification, listed in `sp/index.md` under "Versification systems". Paratext `.vrs`
     files are semantically compatible with it — Copenhagen is derived from them — and the two can
     be used interchangeably.
 - id: source-text-required
@@ -227,3 +233,66 @@ rules:
     hand-authored content in a consumer repo was overwritten. Appended rather than inserted beside
     `one-design` because rules are cited by position across this repository, and inserting
     mid-list would falsify every one of those citations.'
+- id: no-stakeholder-speculation
+  rule: '**Do not name customers, partners or stakeholders, and do not speculate about their
+    needs or their politics.** In issues, documents, commit messages and anything else shared,
+    write "downstream consumers" or "use cases" generically. Name a specific organisation,
+    system or person only where the human has asked for it in that context. The AI does not
+    know who the customers are, what they have been promised, or what is contested between
+    them — and a guess in a shared artifact is indistinguishable from a statement of fact to
+    the people who read it.'
+  note: 'Added 2026-08-24, recovered from a deleted `~/.claude` memory file during the audit of
+    the memory store. The Captain, in the words that memory recorded: "DO NOT PRESUME TO KNOW
+    THE CUSTOMERS OR POLITICS AND DO NOT WRITE ABOUT THEM IN OUR ISSUES." The harm is
+    contractual, reputational and relational, and it falls on people who never see the artifact
+    — which is why this is a rule rather than a matter of tone. Appended rather than inserted,
+    because rules are cited by position across this repository.'
+- id: no-italics-in-non-italic-scripts
+  rule: '**Never italicise text in a script that has no italic tradition.** Hebrew, Arabic,
+    Syriac, Ethiopic, Devanagari, Khmer, Thai and most non-Latin scripts have no italic form, so
+    an italic style is produced by *algorithmically slanting the glyphs*. The result is not
+    emphasis, it is damage: letterforms distort, Arabic joining behaviour breaks, and pointed or
+    vocalised Hebrew becomes unreadable where the points collide with the slanted stems. Latin,
+    Greek and Cyrillic have genuine italic forms and are unaffected. Use colour, weight or size
+    instead. This is absolute, and it applies wherever such text *could* appear — templates,
+    stylesheets and table cells that will be filled later, not only the places it appears today.'
+  note: 'Added 2026-08-24, recovered from a deleted `~/.claude` memory file. The Captain stated
+    it of Hebrew as "never, ever", then broadened it: "broaden it to other languages without an
+    italic tradition, the typography is horrible if you ignore it." It bears directly on the
+    minority-language correctness this work treats as first-class — Amharic and Tigrinya are
+    Ethiopic, Khmer is Khmer script — where a slanted rendering is not a stylistic choice but a
+    defect a reader of that language sees immediately and a reader of English does not.'
+- id: lxml-for-xml
+  rule: '**Use `lxml` for XML in plugins, not `xml.etree.ElementTree`.** ElementTree supports
+    only a subset of XPath, handles namespaces awkwardly, and cannot run XSLT — and this
+    engine''s XML work is XPath- and XSLT-shaped. A plugin that starts with ElementTree is
+    rewritten as soon as it needs a real XPath expression.'
+  note: Added 2026-08-24, recovered from a deleted `~/.claude` memory file written in
+    Clear/macula-greek.
+- id: separate-output-from-intermediates
+  rule: '**Declare output and intermediates as separate directories, so a sane commit is
+    possible.** A pipeline declares both — `output_file_directory` for the deliverable,
+    `intermediate_file_directory` for what a run leaves on the way there — and `.gitignore`
+    should follow those declarations rather than anyone''s memory: the output directory is
+    committable, its siblings are ignored. Never write a deliverable and an intermediate into
+    the same directory; that single choice is what makes the ignore rules unwritable and forces
+    the all-or-nothing outcome. Neither extreme is right — ignoring everything discards the one
+    artifact a reviewer can diff, and committing everything fills the history with churn nobody
+    reads. Debug dumps, checkpoints, logs, generated inputs and `tmp/` are always intermediates.
+    Clear them with `sp clean --pipeline <file>`, which deletes only the declared
+    `intermediate_file_directory` and cannot reach the deliverable. **The commit itself is the
+    human''s** (see `commit-authority`): the AI''s job is to leave a directory structure and an
+    ignore list in which the human''s commit is obviously correct.'
+  note: 'Added 2026-08-24, recovered from a deleted `~/.claude` memory file written in
+    nida-institute/discourse-flow, which recorded the practice — track `output/book-discourse/`,
+    leave `output/intermediate/`, `outputs/`, generated `input/annotated/` and logs untracked —
+    and the ruling behind it: a blanket "untrack all output" proposal was rejected by the
+    Captain on 2026-08-10. His framing, 2026-08-24: "you want to be able to commit output, but
+    not the intermediate files", and "this rule is about setting up directory structures to make
+    sane commits possible and proper use of .gitignore together with the YAML declarations."
+    A committed artifact carries an obligation the untracked ones do not — it looks
+    authoritative and survives `sp clean` — so `stale-output-is-a-defect` applies to it most
+    sharply. `sp clean` requires `--pipeline` today, so cleaning a whole project is one command
+    per pipeline; filed separately. The declarative form — deriving `.gitignore` from the two
+    YAML keys — is the same machinery #212 needs so that output from client-owned material
+    defaults to uncommitted, and should be designed once, there.'

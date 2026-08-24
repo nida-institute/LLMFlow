@@ -45,6 +45,11 @@ SHARED_WITH_HELM = (
 
 ENGINE_ONLY = (
     "consumer-repo-conventions.md",
+    # The principle — tests answer "does the code work?", audits answer "how good is this
+    # output?" — is general, but this rendering names outputs/, prompts and schemas, and a
+    # shared discipline may carry no engine vocabulary. Filed here rather than split into two
+    # near-identical files; a neutral version can be contributed upstream if it is ever wanted.
+    "tests-and-audits.md",
     "llmflow-pipeline-steps.md",
     "llmflow-prompt-organization.md",
     "sp-debugging.md",

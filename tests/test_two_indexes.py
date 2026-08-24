@@ -8,10 +8,10 @@ the path `policy: generated`.
 
 The split, in the Captain's words: *"let's use two indexes."*
 
-- **`docs/ai-context/project-index.md`** — `create-once`. The project's map, opened first,
+- **`docs/ai-context/project/index.md`** — `create-once`. The project's map, opened first,
   free to name a HANDOFF, design documents with their warnings, a field reference. sp cannot
   generate it: *"we can't know what files a project has created in advance."*
-- **`docs/ai-context/sp-index.md`** — `generated`, and **derived from the catalog** rather
+- **`docs/ai-context/sp/index.md`** — `generated`, and **derived from the catalog** rather
   than held in a constant. Each catalogued document carries a `purpose:`; the index is
   rendered from those. A hand-kept second list is what `file_catalog.py` blames for three
   conventions going unshipped for months, so the index that lists sp's documents is not
@@ -30,8 +30,8 @@ from llmflow import file_catalog as fc
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CATALOG = REPO_ROOT / "data" / "file-catalog.yaml"
 
-PROJECT_INDEX = "docs/ai-context/project-index.md"
-SP_INDEX = "docs/ai-context/sp-index.md"
+PROJECT_INDEX = "docs/ai-context/project/index.md"
+SP_INDEX = "docs/ai-context/sp/index.md"
 
 
 def _entries_by_path() -> dict[str, fc.Entry]:
@@ -99,7 +99,7 @@ def test_nothing_shipped_still_points_at_the_old_index():
     rules = yaml.safe_load((REPO_ROOT / "data" / "ai-rules.yaml").read_text(encoding="utf-8"))
     for rule in rules.get("rules", []):
         blob = f"{rule.get('rule', '')} {rule.get('note', '')}"
-        if re.search(r"(?<!project-)(?<!sp-)\bindex\.md", blob):
+        if re.search(r"(?<!project-)(?<!sp-)(?<!project/)(?<!sp/)\bindex\.md", blob):
             offenders.append(f"ai-rules.yaml:{rule['id']}")
 
     # The `load-context` skill is exempt, deliberately and with an end condition. It reads all
@@ -108,6 +108,8 @@ def test_nothing_shipped_still_points_at_the_old_index():
     # survive, name who depends on it and when it ends." Who depends on it: every project
     # scaffolded before the split. When it ends: when those projects have a `project-index.md`,
     # at which point the third `cat` comes out of the skill and this exemption goes with it.
+    # (The layout moved from `project-index.md` to `project/index.md` the same day; the skill
+    # reads both new paths plus the pre-split name.)
     skill = REPO_ROOT / "src/llmflow/templates/sp-skills/load-context/SKILL.md"
     if skill.is_file():
         text = skill.read_text(encoding="utf-8")
@@ -118,17 +120,17 @@ def test_nothing_shipped_still_points_at_the_old_index():
 
     assert not offenders, (
         "These still name the retired `index.md`:\n     " + "\n     ".join(offenders) + "\n"
-        "   'Start here' pointers go to project-index.md; references to sp's own reference "
-        "map go to sp-index.md. The two are not interchangeable."
+        "   'Start here' pointers go to project/index.md; references to sp's own reference "
+        "map go to sp/index.md. The two are not interchangeable."
     )
 
 
 def test_this_repository_lives_under_the_design():
     """This repo is sp, so it has an sp index and no project index (it has no project.md)."""
-    assert (REPO_ROOT / "docs" / "ai-context" / "sp-index.md").is_file(), (
-        "this repository's own docs/ai-context/sp-index.md is missing — shipping the design "
+    assert (REPO_ROOT / "docs" / "ai-context" / "sp" / "index.md").is_file(), (
+        "this repository's own docs/ai-context/sp/index.md is missing — shipping the design "
         "without living under it is how the two-audiences bug happened in the first place"
     )
     assert not (REPO_ROOT / "docs" / "ai-context" / "index.md").exists(), (
-        "docs/ai-context/index.md still exists here; it was renamed to sp-index.md"
+        "docs/ai-context/index.md still exists here; it moved to sp/index.md"
     )

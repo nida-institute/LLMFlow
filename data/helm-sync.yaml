@@ -35,7 +35,7 @@ files:
   status: identical
 - set: disciplines
   name: github-authority.md
-  sha256: aac6e6359acc6f487a4a641e01845a2cfa80518b1df8dc9cde1877476a99eccf
+  sha256: a23d737cfe9c472ce771879533f5c06bb44a5f29b119da03bf044a51d66033b7
   status: identical
 - set: disciplines
   name: project-tracking.md
@@ -61,19 +61,19 @@ files:
   name: commit-ready
   sha256: 8d653e8fef9a739ac916cf535752b73c3d9da843087dcfb1bb4084542cd22b56
   status: differs
-  ruling: 'Captain, 2026-08-20: "strip it out of [Human at the Helm]''s commit-ready". This
-    repository''s copy names gui/frontend, pytest.ini and the Logger singleton rule — furniture no
-    other project has. Helm d47ceee removed them. The live guard still requires Helm''s copy to
-    carry no engine vocabulary. (Brackets mark an editorial substitution: the quotation as
-    recorded carried an AI-coined abbreviation the Captain retired on 2026-08-24, twice asking
-    what it meant. His words are otherwise untouched.)'
+  ruling: 'Captain, 2026-08-20: "strip it out of [Human at the Helm]''s commit-ready". This repository''s
+    copy names gui/frontend, pytest.ini and the Logger singleton rule — furniture no other project
+    has. Helm d47ceee removed them. The live guard still requires Helm''s copy to carry no engine
+    vocabulary. (Brackets mark an editorial substitution: the quotation as recorded carried an AI-coined
+    abbreviation the Captain retired on 2026-08-24, twice asking what it meant. His words are otherwise
+    untouched.)'
 - set: skills
   name: handoff
   sha256: 97adae19af50c73b0904719f27b392d288b02ab676c6bc6d88eab54dcec27a08
   status: identical
 - set: skills
   name: load-context
-  sha256: d638df40599b79d9987d970950a910548bca609a4ba67dda95a021ef32005357
+  sha256: e13685ac8624f14f6f8860ed600f2b6175da0a163f3ce6cad8d8434eacf69bee
   status: differs
   ruling: 'Captain, 2026-08-24: "I permit this difference." Two indexes are a Scripture Pipelines
     concept — `docs/ai-context/project-index.md` is the project''s own map and `sp-index.md` is rendered

@@ -54,9 +54,9 @@ def test_init_environment_creates_files(tmp_path, caplog):
 
     tutorial_doc_path = docs_dir / "tutorial.md"
     language_quickref_path = docs_dir / "llmflow-language-quickref.md"
-    ai_overview_path = ai_context_dir / "overview.md"
-    ai_rules_path = ai_context_dir / "rules.md"
-    ai_project_index_path = ai_context_dir / "project-index.md"
+    ai_overview_path = ai_context_dir / "project" / "overview.md"
+    ai_rules_path = ai_context_dir / "sp" / "rules.md"
+    ai_project_index_path = ai_context_dir / "project" / "index.md"
 
     assert prompt_path.read_text(encoding="utf-8") == HELLO_PROMPT
     assert reply_prompt_path.read_text(encoding="utf-8") == HELLO_REPLY_PROMPT
@@ -384,7 +384,7 @@ class TestAiContextConsistency:
         rendered = render_sp_index()
         assert "docs/tutorial.md" in rendered, "sp-index must list the tutorial"
         assert "docs/llmflow-language-quickref.md" in rendered, "sp-index must list the quickref"
-        assert "docs/ai-context/sp-index.md" in AI_INDEX_DOC, (
+        assert "sp/index.md" in AI_INDEX_DOC, (
             "the project's starter map must point at sp's inventory"
         )
 
@@ -468,10 +468,10 @@ def test_init_registers_project_in_registry(tmp_path, monkeypatch):
     # ai-context files should be indexed
     ai_contexts = registry.ai_context.list()
     indexed_files = {ctx["file"] for ctx in ai_contexts}
-    assert "overview.md" in indexed_files, "overview.md should be indexed in ~/.sp/ai-context/"
-    assert "rules.md" in indexed_files, "rules.md should be indexed in ~/.sp/ai-context/"
-    assert "project-index.md" in indexed_files, "project-index.md should be indexed in ~/.sp/ai-context/"
-    assert "sp-index.md" in indexed_files, "sp-index.md should be indexed in ~/.sp/ai-context/"
+    assert "project-overview.md" in indexed_files, "project/overview.md should be indexed in ~/.sp/ai-context/"
+    assert "sp-rules.md" in indexed_files, "sp/rules.md should be indexed in ~/.sp/ai-context/"
+    assert "project-index.md" in indexed_files, "project/index.md should be indexed in ~/.sp/ai-context/"
+    assert "sp-index.md" in indexed_files, "sp/index.md should be indexed in ~/.sp/ai-context/"
     for ctx in ai_contexts:
         assert ctx["project"] == "my-project"
         assert "ai-context" in ctx["topics"]
@@ -553,8 +553,8 @@ def test_copilot_instructions_point_at_the_authoritative_rules():
     """
     from llmflow.cli_utils import AI_INDEX_DOC, ASSISTANT_RULES_POINTER
 
-    assert "docs/ai-context/project-index.md" in ASSISTANT_RULES_POINTER
-    assert "docs/ai-context/rules.md" in ASSISTANT_RULES_POINTER
+    assert "docs/ai-context/project/index.md" in ASSISTANT_RULES_POINTER
+    assert "docs/ai-context/sp/rules.md" in ASSISTANT_RULES_POINTER
     assert "user-context" in AI_INDEX_DOC, (
         "the pointer is only safe while the authoritative doc still carries the instruction"
     )
@@ -572,9 +572,9 @@ class TestNoExamples:
     ]
     STRUCTURAL_FILES = [
         "docs/llmflow-language-quickref.md",
-        "docs/ai-context/overview.md",
-        "docs/ai-context/rules.md",
-        "docs/ai-context/project-index.md",
+        "docs/ai-context/project/overview.md",
+        "docs/ai-context/sp/rules.md",
+        "docs/ai-context/project/index.md",
         "project/TODO.md",
     ]
     STRUCTURAL_DIRS = [
@@ -609,7 +609,7 @@ class TestNoExamples:
 def test_init_creates_project_md(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     main(["init"])
-    p = tmp_path / "docs" / "ai-context" / "project.md"
+    p = tmp_path / "docs" / "ai-context" / "project" / "project.md"
     assert p.exists()
     assert p.read_text(encoding="utf-8") == AI_PROJECT_DOC
 
@@ -617,7 +617,7 @@ def test_init_creates_project_md(tmp_path, monkeypatch):
 def test_init_update_never_overwrites_project_md(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     main(["init"])
-    p = tmp_path / "docs" / "ai-context" / "project.md"
+    p = tmp_path / "docs" / "ai-context" / "project" / "project.md"
     p.write_text("# our project\nlocal facts\n", encoding="utf-8")
     main(["init", "--update"])   # sp never touches project.md, even on --update
     assert p.read_text(encoding="utf-8") == "# our project\nlocal facts\n"

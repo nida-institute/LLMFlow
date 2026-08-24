@@ -78,8 +78,8 @@ If no CLAUDE.md exists at the repo root, check parent directories or note its ab
 # Two indexes: the project's own map, and the inventory of what its tooling ships.
 # `index.md` is the pre-split single index — projects created before 2026-08-24 still
 # have it, and it is the one to read there. Read whichever are present.
-cat docs/ai-context/project-index.md 2>/dev/null
-cat docs/ai-context/sp-index.md 2>/dev/null
+cat docs/ai-context/project/index.md 2>/dev/null
+cat docs/ai-context/sp/index.md 2>/dev/null
 cat docs/ai-context/index.md 2>/dev/null
 ```
 
@@ -89,7 +89,7 @@ Never paraphrase from memory when the canonical doc is available.
 ### Step 4: Read Rules and Overview
 
 ```bash
-cat docs/ai-context/rules.md
+cat docs/ai-context/sp/rules.md 2>/dev/null || cat docs/ai-context/rules.md
 cat docs/ai-context/overview.md
 ```
 

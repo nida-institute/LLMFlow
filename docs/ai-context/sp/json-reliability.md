@@ -255,16 +255,16 @@ When users report JSON failures or ask about reliability:
 > 2. Add `response_format` with a JSON schema matching your OUTPUT SCHEMA
 > 3. Remove JSON formatting rules from the prompt (no longer needed)
 >
-> See [docs/llmflow-language.md "Structured JSON Output"](../llmflow-language.md#structured-json-output-recommended-for-production) for full syntax and examples.
+> See [docs/llmflow-language.md "Structured JSON Output"](../../llmflow-language.md#structured-json-output-recommended-for-production) for full syntax and examples.
 >
 > Run `@workspace /audit-prompts pipelines/your-pipeline.yaml` to audit all JSON steps.
 
 ## Testing & Validation
 
 The infrastructure is tested and production-ready:
-- ✅ `response_format` parameter supported: [llm_runner.py:743](../../src/llmflow/utils/llm_runner.py#L743)
-- ✅ Schema validation tested: [test_model_specific_parameters.py:205-214](../../tests/test_model_specific_parameters.py#L205-L214)
-- ✅ Working examples: [pipelines/semlex-singlepass.yaml:86](../../pipelines/semlex-singlepass.yaml#L86), [pipelines/json-response-openai.yaml](../../pipelines/json-response-openai.yaml)
+- ✅ `response_format` parameter supported: [llm_runner.py:743](../../../src/llmflow/utils/llm_runner.py#L743)
+- ✅ Schema validation tested: [test_model_specific_parameters.py:205-214](../../../tests/test_model_specific_parameters.py#L205-L214)
+- ✅ Working examples: [pipelines/semlex-singlepass.yaml:86](../../../pipelines/semlex-singlepass.yaml#L86), [pipelines/json-response-openai.yaml](../../../pipelines/json-response-openai.yaml)
 
 ## Common Pitfalls
 
@@ -313,7 +313,7 @@ Always specify `required` arrays at every object level to enforce mandatory fiel
 
 ## Reference
 
-- **Full documentation:** [docs/llmflow-language.md](../llmflow-language.md#structured-json-output-recommended-for-production)
+- **Full documentation:** [docs/llmflow-language.md](../../llmflow-language.md#structured-json-output-recommended-for-production)
 - **OpenAI Structured Outputs docs:** https://platform.openai.com/docs/guides/structured-outputs
 - **Issue #95 discussion:** https://github.com/nida-institute/LLMFlow/issues/95
 - **Real-world case:** discourse-flow project (40-60% failure rate → 100% success after migration)

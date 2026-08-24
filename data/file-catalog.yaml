@@ -85,7 +85,7 @@ files:
   #
   # The project's map. create-once: sp cannot generate it — the Captain, on why: "we can't
   # know what files a project has created in advance."
-  - path: docs/ai-context/project-index.md
+  - path: docs/ai-context/project/index.md
     scope: project
     policy: create-once
     source: constant
@@ -97,7 +97,7 @@ files:
   # sp's inventory, rendered from this file. `source: derived` rather than a constant,
   # because a constant would be a second hand-kept list of sp's own documents — the failure
   # file_catalog.py's docstring blames for three conventions going unshipped for months.
-  - path: docs/ai-context/sp-index.md
+  - path: docs/ai-context/sp/index.md
     scope: project
     policy: generated
     source: derived
@@ -106,16 +106,20 @@ files:
       The documents Scripture Pipelines ships, and what each is for. Rendered from
       data/file-catalog.yaml, so it cannot go stale.
 
-  - path: docs/ai-context/overview.md
+  # Renamed from `overview.md` on 2026-08-24 (#210). That name was serving two documents: the
+  # project-facing one below, and this engine's own overview written by
+  # `tools/update_ai_context.py` — so `sp doctor` run in the engine repo would have replaced one
+  # with the other. Same split and same naming as project-index.md / sp-index.md.
+  - path: docs/ai-context/project/overview.md
     scope: project
-    policy: generated
+    policy: create-once
     source: constant
     constant: AI_OVERVIEW_DOC
     committed: true
     purpose: >-
       What this project is and how its pipelines are organised.
 
-  - path: docs/ai-context/rules.md
+  - path: docs/ai-context/sp/rules.md
     scope: project
     policy: generated
     source: constant
@@ -124,7 +128,7 @@ files:
     purpose: >-
       The rules every AI session in this project is held to. Authoritative.
 
-  - path: docs/ai-context/github-workflow.md
+  - path: docs/ai-context/sp/github-workflow.md
     scope: project
     policy: generated
     source: constant
@@ -136,7 +140,29 @@ files:
   # The one file a project is invited to write for itself. Captain, on D10: "projects
   # have a place to write their own context, and it's not in the standard context files
   # that we write." sp creates it if absent and never touches it again.
-  - path: docs/ai-context/project.md
+  # Added 2026-08-24 with the mirrored layout: the same functions exist on both sides, so both
+  # sides carry an overview and rules. sp's overview is generated; the project's rules are the
+  # project's, created once. This is the gap that sent project-specific constraints into an
+  # invisible memory store, for want of a file to put them in.
+  - path: docs/ai-context/sp/overview.md
+    scope: project
+    policy: generated
+    source: constant
+    constant: SP_OVERVIEW_DOC
+    committed: true
+    purpose: >-
+      What Scripture Pipelines is, and where the rest of its documentation lives.
+
+  - path: docs/ai-context/project/rules.md
+    scope: project
+    policy: create-once
+    source: constant
+    constant: PROJECT_RULES_DOC
+    committed: true
+    purpose: >-
+      Constraints that hold in this project and nowhere else. Yours to write.
+
+  - path: docs/ai-context/project/project.md
     scope: project
     policy: create-once
     source: constant

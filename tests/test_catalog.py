@@ -168,11 +168,11 @@ def test_project_md_is_user_owned_and_never_repaired():
     """
     from llmflow.file_catalog import managed_by_doctor
 
-    entry = _by_path().get("docs/ai-context/project.md")
+    entry = _by_path().get("docs/ai-context/project/project.md")
     assert entry is not None, "project.md is not catalogued"
     assert entry.policy is not Policy.GENERATED
 
-    assert "docs/ai-context/project.md" not in {e.path for e in managed_by_doctor()}
+    assert "docs/ai-context/project/project.md" not in {e.path for e in managed_by_doctor()}
 
 
 def test_user_context_and_claude_md_are_never_repaired():
@@ -190,7 +190,7 @@ def test_user_context_and_claude_md_are_never_repaired():
 def test_sp_owned_context_files_are_generated():
     """The four sp-generated docs/ai-context files are ours and are restored on drift."""
     catalog = _by_path()
-    for name in ("sp-index.md", "overview.md", "rules.md", "github-workflow.md"):
+    for name in ("sp/index.md", "sp/rules.md", "sp/github-workflow.md", "sp/overview.md"):
         entry = catalog.get(f"docs/ai-context/{name}")
         assert entry is not None, f"docs/ai-context/{name} is not catalogued"
         assert entry.policy is Policy.GENERATED, f"docs/ai-context/{name} should be sp-owned"

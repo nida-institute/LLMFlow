@@ -1,27 +1,15 @@
 # GitHub Issue & Commit Workflow
 
-## AI GitHub Authority — Hard Boundaries
+## AI GitHub authority
 
-These rules apply in every AI session in this repository. The machine-level version lives in `~/.sp/user-context/github-authority.md` and applies to all registered pipeline projects.
+Not restated here. The rules live in `disciplines/github-authority.md`, which ships with the
+package and is the single authority for what an AI may do to a GitHub account.
 
-**AI may do without asking:**
-- Read issues, PRs, code, and project boards
-- Create issues
-- Comment on issues or PRs
-- Create branches and push commits
-- **Create pull requests** for human review (completed, tested work only — not drafts or works-in-progress)
-
-**Never without an explicit per-action instruction from the user:**
-- Merge or apply a pull request
-- Approve a pull request
-- Assign an issue or task to any person
-- Add or remove collaborators
-- Close an issue not created in the current conversation turn
-- Push to a protected branch (main, dev)
-
-"It seemed like the next logical step" is not authorisation. Ask.
-
-All AI GitHub actions should use a designated machine user account, not the repository owner's personal account, so AI actions are clearly distinguishable in the audit log.
+A copy in this file would drift from the discipline, and had already begun to: it omitted the
+requirement to verify actual state when a destructive action is interrupted, and it named
+`~/.sp/user-context/github-authority.md` as "the machine-level version" — a longer variant that
+belongs to the machine's owner, not to sp, and that nothing keeps in step with the discipline.
+Removed 2026-08-24 (#210).
 
 ---
 

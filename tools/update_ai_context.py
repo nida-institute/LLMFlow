@@ -13,34 +13,34 @@ from llmflow.ai_rules import render_numbered
 from llmflow.ai_rules import rules as _rules
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-AI_CONTEXT_DIR = REPO_ROOT / "docs" / "ai-context"
-INDEX_PATH = AI_CONTEXT_DIR / "sp-index.md"
+AI_CONTEXT_DIR = REPO_ROOT / "docs" / "ai-context" / "sp"
+INDEX_PATH = AI_CONTEXT_DIR / "index.md"
 OVERVIEW_PATH = AI_CONTEXT_DIR / "overview.md"
 RULES_PATH = AI_CONTEXT_DIR / "rules.md"
 
 INDEX_ENTRIES = (
-    ("Installation & binaries", "INSTALL.md", "../../INSTALL.md", "Standalone executables, Gatekeeper/SmartScreen steps"),
-    ("Quickstart walkthrough", "docs/tutorial.md", "../tutorial.md", "`llmflow init`, greeting pipeline, multi-step example"),
-    ("Engine setup & CLI basics", "docs/getting-started.md", "../getting-started.md", "Env vars, linting, resource repo pattern"),
-    ("YAML grammar & step types", "docs/llmflow-language.md", "../llmflow-language.md", "`llm` / `function` / `for-each`, variables, `append_to`"),
-    ("Architecture & modules", "docs/architecture.md", "../architecture.md", "CLI, runner, linter, telemetry, plugin hooks"),
-    ("Design & plan documents", "project/plans/README.md", "../../project/plans/README.md", "Generated index of every design and plan document with its declared status and the issues it names. Consult before proposing a design. A document marked `Implemented — historical record` explains why code looks as it does; one marked `Proposed` is not authorization to build. Regenerate with `tools/update_plans_index.py` (#163)"),
-    ("Philosophy & comparisons", "docs/why-llmflow.md", "../why-llmflow.md", "When/why to use Scripture Pipelines vs other frameworks"),
-    ("Python API — drive the engine in-process", "docs/python-api.md", "../python-api.md", "`import llmflow`: `load_pipeline(...)` then `.resolve()` / `.lint()` / `.run()` / `.schemas()` / `.saveas()`; `call_llm(prompt, config)` for direct model access; `PIPELINE_SCHEMA` + `api_catalog()` are the machine-readable syntax↔API map. Prefer this over re-parsing pipeline YAML or shelling out to `sp` (#175)"),
+    ("Installation & binaries", "INSTALL.md", "../../../INSTALL.md", "Standalone executables, Gatekeeper/SmartScreen steps"),
+    ("Quickstart walkthrough", "docs/tutorial.md", "../../tutorial.md", "`llmflow init`, greeting pipeline, multi-step example"),
+    ("Engine setup & CLI basics", "docs/getting-started.md", "../../getting-started.md", "Env vars, linting, resource repo pattern"),
+    ("YAML grammar & step types", "docs/llmflow-language.md", "../../llmflow-language.md", "`llm` / `function` / `for-each`, variables, `append_to`"),
+    ("Architecture & modules", "docs/architecture.md", "../../architecture.md", "CLI, runner, linter, telemetry, plugin hooks"),
+    ("Design & plan documents", "project/plans/README.md", "../../../project/plans/README.md", "Generated index of every design and plan document with its declared status and the issues it names. Consult before proposing a design. A document marked `Implemented — historical record` explains why code looks as it does; one marked `Proposed` is not authorization to build. Regenerate with `tools/update_plans_index.py` (#163)"),
+    ("Philosophy & comparisons", "docs/why-scripture-pipelines.md", "../../why-scripture-pipelines.md", "When/why to use Scripture Pipelines vs other frameworks"),
+    ("Python API — drive the engine in-process", "docs/python-api.md", "../../python-api.md", "`import llmflow`: `load_pipeline(...)` then `.resolve()` / `.lint()` / `.run()` / `.schemas()` / `.saveas()`; `call_llm(prompt, config)` for direct model access; `PIPELINE_SCHEMA` + `api_catalog()` are the machine-readable syntax↔API map. Prefer this over re-parsing pipeline YAML or shelling out to `sp` (#175)"),
     ("AI persona & tone", "docs/ai-context/rules.md", "rules.md", "Guardrails for assistant responses"),
-    ("Moderation handling", "docs/moderation-handling.md", "../moderation-handling.md", "OpenAI Responses blocks, Bible-text mitigation checklist"),
+    ("Moderation handling", "docs/moderation-handling.md", "../../moderation-handling.md", "OpenAI Responses blocks, Bible-text mitigation checklist"),
     ("Versification systems", "Copenhagen Alliance Versification spec", "https://github.com/Copenhagen-Alliance/versification-specification", "Canonical spec for mapping between verse systems (KJV, LXX, Vulgate, etc.); derived from Paratext .vrs files, which are semantically compatible; use for any cross-versification pipeline work"),
 )
 
 FOUNDATIONAL_DOCS = (
-    ("INSTALL.md", "../../INSTALL.md", "how to install the prebuilt CLI on Windows/macOS/Linux."),
-    ("docs/tutorial.md", "../tutorial.md", "quickstart using `llmflow init` and a two-step greeting pipeline."),
-    ("docs/getting-started.md", "../getting-started.md", "engine + resource-repo workflow, env vars, linting."),
-    ("docs/llmflow-language.md", "../llmflow-language.md", "YAML grammar, step types, variables, `for-each` semantics."),
-    ("docs/architecture.md", "../architecture.md", "module map, runner lifecycle, plugin strategy."),
-    ("docs/why-llmflow.md", "../why-llmflow.md", "motivation and comparison to LangChain/Haystack."),
-    ("docs/python-api.md", "../python-api.md", "the public Python API — `load_pipeline`, the `Pipeline` methods, and `call_llm` for direct model access."),
-    ("docs/moderation-handling.md", "../moderation-handling.md", "moderation failure diagnostics plus prompt mitigation checklist."),
+    ("INSTALL.md", "../../../INSTALL.md", "how to install the prebuilt CLI on Windows/macOS/Linux."),
+    ("docs/tutorial.md", "../../tutorial.md", "quickstart using `llmflow init` and a two-step greeting pipeline."),
+    ("docs/getting-started.md", "../../getting-started.md", "engine + resource-repo workflow, env vars, linting."),
+    ("docs/llmflow-language.md", "../../llmflow-language.md", "YAML grammar, step types, variables, `for-each` semantics."),
+    ("docs/architecture.md", "../../architecture.md", "module map, runner lifecycle, plugin strategy."),
+    ("docs/why-scripture-pipelines.md", "../../why-scripture-pipelines.md", "motivation and comparison to LangChain/Haystack."),
+    ("docs/python-api.md", "../../python-api.md", "the public Python API — `load_pipeline`, the `Pipeline` methods, and `call_llm` for direct model access."),
+    ("docs/moderation-handling.md", "../../moderation-handling.md", "moderation failure diagnostics plus prompt mitigation checklist."),
 )
 
 RUNTIME_SNAPSHOT = (
@@ -80,7 +80,7 @@ LAST_UPDATED_SOURCES = (
     Path("docs/getting-started.md"),
     Path("docs/llmflow-language.md"),
     Path("docs/architecture.md"),
-    Path("docs/why-llmflow.md"),
+    Path("docs/why-scripture-pipelines.md"),
 )
 
 DATE_PATTERN = re.compile(r"_Last updated:\s*(\d{4}-\d{2}-\d{2})_")
@@ -157,7 +157,7 @@ def _build_overview_content(last_updated: str) -> str:
 
         _Last updated: {last_updated}_
 
-        Scripture Pipelines is a declarative workflow engine for LLM-assisted scholarship and publishing. Pipelines are written in YAML, validated with strict prompt contracts, and executed via the `sp` CLI (standalone binaries documented in [INSTALL.md](../../INSTALL.md)).
+        Scripture Pipelines is a declarative workflow engine for LLM-assisted scholarship and publishing. Pipelines are written in YAML, validated with strict prompt contracts, and executed via the `sp` CLI (standalone binaries documented in [INSTALL.md](../../../INSTALL.md)).
 
         ## Essence
         - **Purpose:** Compose reproducible reasoning pipelines that mix LLM calls, deterministic functions, and file outputs.

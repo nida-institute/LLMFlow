@@ -3,7 +3,7 @@
 
         _Last updated: 2026-08-24_
 
-        Scripture Pipelines is a declarative workflow engine for LLM-assisted scholarship and publishing. Pipelines are written in YAML, validated with strict prompt contracts, and executed via the `sp` CLI (standalone binaries documented in [INSTALL.md](../../INSTALL.md)).
+        Scripture Pipelines is a declarative workflow engine for LLM-assisted scholarship and publishing. Pipelines are written in YAML, validated with strict prompt contracts, and executed via the `sp` CLI (standalone binaries documented in [INSTALL.md](../../../INSTALL.md)).
 
         ## Essence
         - **Purpose:** Compose reproducible reasoning pipelines that mix LLM calls, deterministic functions, and file outputs.
@@ -11,14 +11,14 @@
         - **Core idea:** A "flow" is an ordered list of steps, each with well-defined inputs/outputs, so humans can inspect every transformation.
 
         ## Foundational Docs
-        - [INSTALL.md](../../INSTALL.md) – how to install the prebuilt CLI on Windows/macOS/Linux.
-- [docs/tutorial.md](../tutorial.md) – quickstart using `llmflow init` and a two-step greeting pipeline.
-- [docs/getting-started.md](../getting-started.md) – engine + resource-repo workflow, env vars, linting.
-- [docs/llmflow-language.md](../llmflow-language.md) – YAML grammar, step types, variables, `for-each` semantics.
-- [docs/architecture.md](../architecture.md) – module map, runner lifecycle, plugin strategy.
-- [docs/why-llmflow.md](../why-llmflow.md) – motivation and comparison to LangChain/Haystack.
-- [docs/python-api.md](../python-api.md) – the public Python API — `load_pipeline`, the `Pipeline` methods, and `call_llm` for direct model access.
-- [docs/moderation-handling.md](../moderation-handling.md) – moderation failure diagnostics plus prompt mitigation checklist.
+        - [INSTALL.md](../../../INSTALL.md) – how to install the prebuilt CLI on Windows/macOS/Linux.
+- [docs/tutorial.md](../../tutorial.md) – quickstart using `llmflow init` and a two-step greeting pipeline.
+- [docs/getting-started.md](../../getting-started.md) – engine + resource-repo workflow, env vars, linting.
+- [docs/llmflow-language.md](../../llmflow-language.md) – YAML grammar, step types, variables, `for-each` semantics.
+- [docs/architecture.md](../../architecture.md) – module map, runner lifecycle, plugin strategy.
+- [docs/why-scripture-pipelines.md](../../why-scripture-pipelines.md) – motivation and comparison to LangChain/Haystack.
+- [docs/python-api.md](../../python-api.md) – the public Python API — `load_pipeline`, the `Pipeline` methods, and `call_llm` for direct model access.
+- [docs/moderation-handling.md](../../moderation-handling.md) – moderation failure diagnostics plus prompt mitigation checklist.
 
         ## Runtime Snapshot
         - Python 3.10+, packaged binaries via Nuitka.

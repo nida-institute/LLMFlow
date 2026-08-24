@@ -267,13 +267,13 @@ def test_repair_preserves_a_projects_own_content_around_the_block(tmp_path: Path
 
     # Corrupt sp's block only.
     text = cursorrules.read_text(encoding="utf-8")
-    cursorrules.write_text(text.replace("docs/ai-context/rules.md", "GONE"), encoding="utf-8")
+    cursorrules.write_text(text.replace("docs/ai-context/sp/rules.md", "GONE"), encoding="utf-8")
 
     run_doctor(sp_home=home / ".sp", project_dir=proj, claude_home=home / ".claude")
 
     restored = cursorrules.read_text(encoding="utf-8")
     assert mine in restored, "repair discarded content the project owned"
-    assert "docs/ai-context/rules.md" in restored, "repair did not restore sp's block"
+    assert "docs/ai-context/sp/rules.md" in restored, "repair did not restore sp's block"
 
 
 def test_sp_init_then_sp_doctor_through_the_cli(tmp_path: Path, monkeypatch, capsys):

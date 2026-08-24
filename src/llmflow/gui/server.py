@@ -15,6 +15,7 @@ import sys
 import threading
 import webbrowser
 from pathlib import Path
+from typing import Optional
 
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -41,6 +42,39 @@ except ImportError:
 from llmflow.utils.content_status import get_content_status as get_content_status_util
 from llmflow.utils.content_stages_loader import get_content_stages_config
 from llmflow.utils.content_list import list_content
+
+
+#: Directories that are never a project's own, so a `pipelines/` inside them is not the one.
+_NOT_THE_PROJECTS = {".venv", "venv", "node_modules", "__pycache__", ".git", "site-packages"}
+
+
+def find_pipelines_dir(project_path: Path) -> Optional[Path]:
+    """Locate a project's `pipelines/` directory, at its root or one level down.
+
+    Consumer repositories often keep the working tree in a subdirectory of their own
+    choosing. This used to be a hardcoded list naming one of them — `LLMFlow/`, which
+    `ears-to-hear` renamed to `scriptorium/` on 2026-07-14, leaving the engine looking in an
+    untracked husk that holds a single file. Naming consumer directories here means going
+    stale whenever a consumer renames a folder, so the directory is found by shape.
+
+    The project root wins over a subdirectory; otherwise the first match in sorted order is
+    returned, so the answer does not depend on filesystem ordering.
+    """
+    root = Path(project_path)
+    at_root = root / "pipelines"
+    if at_root.is_dir():
+        return at_root
+    try:
+        children = sorted(p for p in root.iterdir() if p.is_dir())
+    except OSError:
+        return None
+    for child in children:
+        if child.name in _NOT_THE_PROJECTS or child.name.startswith("."):
+            continue
+        candidate = child / "pipelines"
+        if candidate.is_dir():
+            return candidate
+    return None
 
 
 def create_app():
@@ -160,18 +194,7 @@ def create_app():
             if not project_path:
                 return jsonify({'error': 'Project path not found'}), 404
 
-            # Find pipelines directory - check multiple possible locations
-            pipelines_dir = None
-            possible_dirs = [
-                Path(project_path) / 'pipelines',
-                Path(project_path) / 'LLMFlow' / 'pipelines',
-            ]
-
-            for possible_dir in possible_dirs:
-                if possible_dir.exists():
-                    pipelines_dir = possible_dir
-                    break
-
+            pipelines_dir = find_pipelines_dir(Path(project_path))
             if not pipelines_dir:
                 return jsonify({'pipelines': []})
 

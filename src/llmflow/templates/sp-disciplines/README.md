@@ -79,6 +79,19 @@ Convention for documenting pipeline steps, including the `description:` field.
 
 **Key standard:** Use `description: |` (YAML block scalar) on steps for multi-line human commentary. The `description` field is whitelisted by the linter and ignored by the runner. YAML `#` comments are reserved for short inline notes and section dividers only.
 
+### tests-and-audits.md
+Tests and audits answer different questions, and must not be blurred.
+
+**Key standard:** unit tests under `tests/` answer *"does the code work?"* against small
+synthetic fixtures; audit scripts under `scripts/` answer *"how good is this output?"* against
+real generated artifacts. A test that loads a built artifact from `outputs/` is the
+anti-pattern — it is slow, it breaks when a better prompt changes the output, it cannot run on
+a fresh clone, and it treats derived output as a specification. The test to apply: *would
+regenerating the output with a better prompt make this fail?* If yes, it is an audit.
+
+**Source:** recovered 2026-08-24 from a deleted `~/.claude` memory file written in
+nida-institute/ears-to-hear.
+
 ### sp-debugging.md
 Project-neutral debugging practice for any `sp` pipeline.
 

@@ -41,6 +41,16 @@ Set it per repository where the AI works, or pass `-c user.name=… -c user.emai
 
 "It seemed like the next logical step" is not authorisation. Workflow patterns and prior context are not authorisation. Ask.
 
+## When an action is interrupted, verify before reporting
+
+A destructive or hard-to-reverse action that fails, is cancelled, or is interrupted has not
+necessarily done nothing. Check the actual state — `gh pr view`, `git log`, the API — and report
+what you find. Never report "nothing was changed" from the fact that the command did not finish.
+
+This is the second half of the rule above. The first half says what may not be attempted; this
+says what is owed once something was attempted and the outcome is unknown. An unverified
+"nothing happened" is the more damaging of the two failures, because it closes the question.
+
 ## Why this policy exists
 
 An AI acting on a user's GitHub account can affect colleagues' work and professional reputation without their knowledge. In April 2026 an agent applied PRs and assigned tasks to team members without being asked. This policy exists to prevent recurrence.
