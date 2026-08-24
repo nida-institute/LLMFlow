@@ -1,0 +1,38 @@
+refactor: one design, one vocabulary — rules 18 and 29, and two renames (#209)
+
+Two rule changes, in data/ai-rules.yaml (the single source; docs/ai-context/rules.md
+regenerated from it):
+
+- Rule 18 `additive-to-authored` -> `one-design`, "Carry one design." The old wording gave
+  existing artifacts a presumption of survival that disciplines/design-authority.md denies
+  them, so a rule meant to protect the human's decisions was shielding the AI's prior output
+  from correction — and other projects had begun citing it to keep legacy cruft. The
+  replacement keeps the one protection that was load-bearing: the record keeps its own words.
+- Rule 29 `design-is-declarative` added: state the design as data, syntax and semantics
+  together, and have the code read it. Appended rather than inserted, because rules are cited
+  by position. A pipeline is one such form.
+
+Both carry note: provenance. Only 4 of 28 rules did before; new and changed rules now must.
+
+Two renames follow from rule 18:
+
+- `hath` -> `helm` as the shortname for Human at the Helm. An AI-introduced abbreviation
+  nobody chose, which had reached a tool, a data file, a test, a design document, a skill
+  directory and a shipped README. HELM_REPO replaces HATH_REPO with no dual-name transition.
+- Prose says Scripture Pipelines, not LLMFlow, per project/plans/design-vocabulary.md, which
+  had ruled this and was being ignored in 43 markdown files and the shipped cli_utils
+  constants — so every project sp init touched inherited the deprecated name. URLs, paths,
+  identifiers and the llmflow namespace are unchanged; the repository rename is #209.
+
+Left standing deliberately, in three places in design-helm-parity.md: the Captain's own words,
+two of them answers written after a `=>`. A sweep rewrote them and they were restored
+byte-for-byte.
+
+Guards, written before the sweeps and failing first:
+- tests/test_shortname_is_helm.py
+- tests/test_product_name_in_prose.py
+
+Tests: 547 passed in a targeted run plus 234 across the affected suites; ruff unchanged at its
+42-error baseline. The full suite was not run — it writes to the real ~/.sp (#207).
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>

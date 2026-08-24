@@ -1,6 +1,6 @@
 # Test Suite Summary for Output and Logging
 
-This document summarizes the test files that should be added to the LLMFlow test suite to ensure proper output and logging functionality.
+This document summarizes the test files that should be added to the Scripture Pipelines test suite to ensure proper output and logging functionality.
 
 ## New Test Files Created
 

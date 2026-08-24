@@ -170,7 +170,7 @@ exit 0 with neither stdout nor stderr. It fails today on `git status --short`.
 | Personal | `~/.claude/skills/<name>/SKILL.md` | All your projects |
 | Project | `.claude/skills/<name>/SKILL.md` | This project only |
 
-`~/.sp/` is LLMFlow's own directory; Claude Code knows nothing about it. A skill sitting in
+`~/.sp/` is Scripture Pipelines's own directory; Claude Code knows nothing about it. A skill sitting in
 `~/.sp/skills/load-context/` is **invisible** — `/load-context` does not exist as a command. That is
 exactly why `_install_claude_skills` copies `~/.sp/skills` → `~/.claude/skills` today
 (`cli_utils.py:778`): the copy is not redundancy, it is the only thing that makes the skill
@@ -691,7 +691,7 @@ change the next — nothing later assumes an earlier step's outcome.
    address or absolute home path.
 3a. ✅ **DONE — `drift-patterns.md` ships**, installed to the root of `~/.sp/` via a new
    `templates/sp-root/` location for files whose path is a contract. Verified byte-identical to the
-   `human-at-the-helm` copy at time of vendoring, so HATH#1's "where truth lives" question is not
+   `human-at-the-helm` copy at time of vendoring, so Helm#1's "where truth lives" question is not
    foreclosed. **Every read `/load-context` performs now succeeds on a clean machine except
    `CLAUDE.md`**, which is D1/D4 work.
 4. **T8, T9 + the catalog** (D7). The catalog is a prerequisite for the `.claude/skills/` copy,

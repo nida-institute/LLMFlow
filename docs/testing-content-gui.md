@@ -210,7 +210,7 @@ test('renders stage name', () => {
 
 **Status**: Not implemented, optional for future
 
-**Tool**: Playwright (not currently used anywhere in LLMFlow — this would be a new addition)
+**Tool**: Playwright (not currently used anywhere in Scripture Pipelines — this would be a new addition)
 
 **What to Test**:
 - Full workflow: Dashboard → Select file → View status → Diff → Transition

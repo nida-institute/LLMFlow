@@ -5,6 +5,48 @@
 Heading deliberately unset: this may be folded into 0.2.1.24 before it merges, so it is meant
 to be retargeted rather than assumed.
 
+### Changed
+
+- **Rule 18 replaced: "Carry one design."** The old rule, *"Prefer additive change to authored
+  work"*, gave existing artifacts a presumption of survival that
+  `disciplines/design-authority.md` explicitly denies them — running code is not designed code
+  — so a rule meant to protect the human's decisions was shielding the AI's prior output from
+  correction, and other projects had begun citing it to keep legacy cruft. The replacement
+  requires a design change to be completed in one pass, requires an older path that must
+  survive to name who depends on it and when it ends, and keeps the one protection that was
+  genuinely load-bearing: the record keeps its own words. Its test is *"does changing this make
+  a statement about the past false?"* Id changed from `additive-to-authored` to `one-design`.
+
+- **New rule 29: "Express the design declaratively, syntax and semantics together."** Where a
+  design can be stated as data — a schema, a catalog, a manifest, an enum, a pipeline — it is
+  stated once there and the code reads it. The declaration carries meaning, not only shape.
+  Appended rather than inserted beside rule 18 because rules are cited by position across the
+  repository. A pipeline is one such form, which makes this the engine holding itself to what
+  it sells.
+
+- **The shortname for Human at the Helm is `helm`, not `hath`.** `hath` was an AI-introduced
+  abbreviation that nobody chose; it had reached a tool name, a data file, a test, a design
+  document, a skill directory and a shipped README before anyone noticed, and it also reads as
+  archaic English for "has" in a Bible-software project. Renamed: `tools/sync_helm.py`,
+  `data/helm-sync.yaml`, `tests/test_helm_sync.py`,
+  `project/plans/design-helm-parity.md`, and the `HELM_REPO` environment variable — which
+  **breaks cleanly**, with no dual-name transition, per rule 18. In the sibling repository,
+  `skills/hath-check` became `skills/helm-check` and the manifest target became
+  `helm-manifest.yaml`. Guarded by `tests/test_shortname_is_helm.py`.
+
+- **Prose says Scripture Pipelines, not LLMFlow.** `project/plans/design-vocabulary.md` has
+  ruled since it was written that Scripture Pipelines is the product name, that `llmflow` is
+  the Python package and import namespace *only*, and that LLMFlow is deprecated as a product
+  name. The ruling was being violated in 43 markdown files plus the shipped `cli_utils`
+  constants, which meant every project `sp init` touched inherited the deprecated name. Swept,
+  including the four generated `docs/ai-context/` files by way of their sources. Left standing
+  deliberately: URLs and repository slugs, filesystem paths, identifiers such as
+  `_LLMFlowLoader`, the `llmflow` namespace, and lines quoting the Captain. Renaming the
+  repository itself is tracked in #209. Guarded by `tests/test_product_name_in_prose.py`.
+
+- **The generated project overview named the wrong CLI.** It said pipelines are *"executed via
+  the `llmflow` CLI"*; the command is `sp`, and the `llmflow` prefix is stale.
+
 ### Fixed
 
 - **The cursor example we ship taught a form that silently loses content.**

@@ -1,4 +1,4 @@
-# LLMFlow Pipeline Step Documentation Convention
+# Scripture Pipelines Pipeline Step Documentation Convention
 
 ## The description Field
 

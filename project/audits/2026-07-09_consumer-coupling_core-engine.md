@@ -1,7 +1,7 @@
 # Audit: consumer-specific coupling in the core engine
 
 **Date:** 2026-07-09
-**Scope:** `src/llmflow/` — code that couples the general-purpose LLMFlow engine to a
+**Scope:** `src/llmflow/` — code that couples the general-purpose Scripture Pipelines engine to a
 specific consumer project (primarily nida-institute/ears-to-hear and its "storyflow"
 pipelines).
 **Method:** grep sweep for consumer-domain terms (`bodies`, `scene`, `Citation`,
@@ -14,7 +14,7 @@ classify. Reachability checked via caller grep.
 
 ## Important distinction: domain vs. consumer
 
-LLMFlow is *for* biblical/linguistic scholarship, so **biblical reference parsing is
+Scripture Pipelines is *for* biblical/linguistic scholarship, so **biblical reference parsing is
 legitimate core** and is NOT flagged below:
 - `utils/data.py` / `utils/bible_data.py` — book codes, verse counts, Psalms, USFM parsing.
   This is the engine's stated domain.

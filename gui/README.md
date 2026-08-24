@@ -38,7 +38,7 @@ To stop: Press `Ctrl+C` in the terminal.
 Build and test the bundled version:
 
 ```bash
-# From LLMFlow root directory
+# From Scripture Pipelines root directory
 python build_gui.py
 sp gui
 ```

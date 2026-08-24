@@ -27,7 +27,7 @@ This document proposes XQuery-based analytics for the Macula Greek Lowfat tree c
 2. [Use Cases](#use-cases)
 3. [Architecture](#architecture)
 4. [XQuery Examples](#xquery-examples)
-5. [Integration with LLMFlow](#integration-with-llmflow)
+5. [Integration with Scripture Pipelines](#integration-with-llmflow)
 6. [Performance Considerations](#performance-considerations)
 
 ---
@@ -368,11 +368,11 @@ return <chapter ref="{$chapter_ref}"
 
 ---
 
-## Integration with LLMFlow
+## Integration with Scripture Pipelines
 
 ### BaseX Step Type
 
-LLMFlow already supports `type: basex` for running XQuery:
+Scripture Pipelines already supports `type: basex` for running XQuery:
 
 ```yaml
 steps:
@@ -529,7 +529,7 @@ basex -c "OPEN macula-greek; CREATE INDEX @ref; CREATE INDEX @lemma; CREATE INDE
 3. **Parallel corpus queries:** Compare SBLGNT and Nestle1904 syntactic differences
 4. **Semantic network generation:** Build word co-occurrence graphs from clause data
 
-### LLMFlow Pipeline Features
+### Scripture Pipelines Pipeline Features
 
 1. **XQuery step result caching:** Cache expensive queries between runs
 2. **Incremental XQuery updates:** Re-run only for changed verses

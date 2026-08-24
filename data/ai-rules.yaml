@@ -103,10 +103,30 @@ rules:
   rule: '**Audits are diagnostic, not mandatory gates.** An audit is how you find out what needs
     to change, and it often produces the plan or the issues that then authorize work. It is not
     required before every edit; it is run when the Captain wants a systematic assessment.'
-- id: additive-to-authored
-  rule: '**Prefer additive change to authored work.** Add steps, prompts, pipelines or docs rather
-    than deleting or rewriting existing ones, unless deletion is what was asked for. Authored work
-    is anything a human wrote or approved: code, pipelines, prompts, schemas, docs, plans.'
+- id: one-design
+  rule: '**Carry one design.** The system has a single current design, and a change to it is
+    completed in one pass: new names replace old ones, the superseded path goes, tests and docs
+    move in the same change. State the choice and say what it replaces. Where an older path must
+    survive, name who depends on it and when it ends — a migration with a stated end, not an
+    accretion. Declining to choose is not caution: a second mechanism kept beside the first is
+    paid for by everyone who reads the code afterwards, not by the change that avoided deciding,
+    and two half-migrated conventions cost more than either would alone. The record keeps its own
+    words — what was said, decided or shipped is corrected by adding alongside, dated, never by
+    rewording. The test: **does changing this make a statement about the past false?** If yes it
+    is record, so add to it. If no it is the design, so change it properly.'
+  note: 'Replaced "Prefer additive change to authored work" on 2026-08-24 at the Captain''s
+    direction, id changed from `additive-to-authored`. The old wording gave existing artifacts a
+    presumption of survival that `disciplines/design-authority.md` explicitly denies them —
+    running code is not designed code — so a rule meant to protect the human''s decisions was
+    shielding the AI''s prior output from correction, and other projects had begun citing it to
+    justify preserving legacy cruft. It also broke `disciplines/workflow.md`''s positive-framing
+    standard. The Captain: "I think I want a rule that actively says let''s have one and only one
+    design, and not drag legacy designs along with the actual design, and not be timid about
+    making clear design choices." And: "We have very few users now, this is the time to make clean
+    changes before it''s too late." Nothing is lost by dropping the old protection: capricious
+    deletion is already blocked by `authorization-workflow`, `plans-first`, `design-authority` and
+    `commit-authority` — this was the weakest of four locks, and the only one being cited against
+    cleanup.'
 - id: stale-output-is-a-defect
   rule: '**Stale generated output is a defect, not an asset.** Output is derived, never precious.
     When the pipeline, prompts or schema that produced a file have changed since it was written,
@@ -178,3 +198,32 @@ rules:
     impose one project''s convention on the rest; the Captain overruled it, because a default that
     names nothing tells an agent nothing when a project declares nothing. The override clause is
     explicit so a project that does use feature branches is not held to this.'
+- id: design-is-declarative
+  rule: '**Express the design declaratively, syntax and semantics together.** Where a design can
+    be stated as data — a schema, a catalog, a manifest, an enum, a pipeline — state it once there
+    and have the code read it, rather than encoding it a second time in logic. The declaration
+    carries meaning and not only shape: each field says what it governs, what it forbids, and
+    which ruling decided it, so a reader can act on it without reading the implementation. Derive
+    everything that needs the same fact from that one place; two encodings of one fact are the
+    defect, because they agree until they silently do not, and the disagreement surfaces as lost
+    work rather than as an error. **A pipeline is one such form** — the YAML states what runs, in
+    what order, on what inputs, which is why `sp lint`, `--dry-run` and `--rewind-to` can each
+    reason about a pipeline without running it, and its semantic half lives in `description:` and
+    the prompt `requires:` contract. `use-the-pipeline-language` is this rule applied to
+    pipelines.'
+  note: 'Added 2026-08-24 at the Captain''s direction: "the design should also be available in
+    some declarative form - annotated schemas, data structures, etc. - whenever possible,
+    including both syntax and semantics," and then: "note that a pipeline is one instance of a
+    declarative form." That second remark is why this rule is general rather than a note about
+    schemas: Scripture Pipelines''s whole premise is that a declarative pipeline beats imperative glue, so a
+    rule requiring the design to be declarative is the engine holding itself to what it sells.
+    Already the house style — `PIPELINE_SCHEMA` states the language''s syntax,
+    `data/file-catalog.yaml` states file ownership as data and derives both the generated
+    `.gitignore` and `sp doctor`''s boundary from it, `data/ai-rules.yaml` is the single source for
+    these rules, and Human at the Helm''s `manifest.yaml` says of itself "THIS FILE IS THE
+    INSTALLER." The failure it names is not hypothetical: on 2026-08-23 the question "does sp own
+    this file?" had two encodings — a `<!-- Generated by sp init -->` marker read by
+    `sp init --update`, and the `policy` field read by `sp doctor` — they disagreed, and
+    hand-authored content in a consumer repo was overwritten. Appended rather than inserted beside
+    `one-design` because rules are cited by position across this repository, and inserting
+    mid-list would falsify every one of those citations.'

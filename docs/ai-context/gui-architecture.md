@@ -2,7 +2,7 @@
 
 ## Dual-Location Design
 
-The LLMFlow GUI uses a **two-location architecture** to support both development and production workflows:
+The Scripture Pipelines GUI uses a **two-location architecture** to support both development and production workflows:
 
 - **Development:** `gui/backend/` - edit code here, run dev servers
 - **Production:** `src/llmflow/gui/` - synced by build script, bundled in package

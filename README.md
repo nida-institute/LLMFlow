@@ -132,7 +132,7 @@ Scripture Pipelines is designed to work across multiple independent projects. In
 ```bash
 # Clone the Scripture Pipelines repository
 git clone https://github.com/nida-institute/LLMFlow.git
-cd LLMFlow
+cd Scripture Pipelines
 
 # Install in editable mode
 pip install -e .
@@ -272,7 +272,7 @@ sp --help
 
 ### Global Conventions & Skills
 
-LLMFlow provides globally-shared resources that improve prompt engineering quality and AI assistant effectiveness:
+Scripture Pipelines provides globally-shared resources that improve prompt engineering quality and AI assistant effectiveness:
 
 **Prompt Organization Convention** (`~/.sp/conventions/`)
 - Standard structure for `.gpt` prompt files

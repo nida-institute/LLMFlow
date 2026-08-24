@@ -1,9 +1,9 @@
-# LLMFlow Prompt Organization Convention
+# Scripture Pipelines Prompt Organization Convention
 
 **Status:** ACTIVE
 **Date:** March 29, 2026
 **Last Updated:** April 1, 2026
-**Scope:** Global convention for all LLMFlow .gpt prompt files
+**Scope:** Global convention for all Scripture Pipelines .gpt prompt files
 **Source:** Originated in nida-institute/ears-to-hear repository
 
 > **Note:** This is the global convention used by the audit-prompts skill. Individual repositories can override by providing their own `docs/prompt-organization-convention.md`.

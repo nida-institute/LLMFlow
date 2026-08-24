@@ -1,12 +1,12 @@
-# LLMFlow System Context for AI Assistants
+# Scripture Pipelines System Context for AI Assistants
 
-**For AI assistants helping with LLMFlow development and pipelines.**
-This file provides comprehensive context about LLMFlow's architecture,
+**For AI assistants helping with Scripture Pipelines development and pipelines.**
+This file provides comprehensive context about Scripture Pipelines's architecture,
 conventions, and common patterns.
 
-## What is LLMFlow?
+## What is Scripture Pipelines?
 
-LLMFlow is a YAML-based pipeline orchestration tool designed for LLM-powered workflows. It enables users to chain together LLM calls, data processing, file operations, and custom functions into reproducible pipelines.
+Scripture Pipelines is a YAML-based pipeline orchestration tool designed for LLM-powered workflows. It enables users to chain together LLM calls, data processing, file operations, and custom functions into reproducible pipelines.
 
 **Key Features:**
 
@@ -25,7 +25,7 @@ To get effective help from GPT when creating or debugging pipelines:
 2. **Share any error messages** from the terminal
 3. **Share the log file** (`llmflow.log` in your project directory)
 4. **Describe what you want to achieve** in plain language
-5. **Share this context file** so GPT understands LLMFlow
+5. **Share this context file** so GPT understands Scripture Pipelines
 
 **Quick Command:** Run `sp context` to generate this file automatically.
 
@@ -264,7 +264,7 @@ Writes messages to the log file.
 
 ## Variable Substitution
 
-LLMFlow uses `${variable}` syntax for variable substitution:
+Scripture Pipelines uses `${variable}` syntax for variable substitution:
 
 ### Basic Variables
 ```yaml
@@ -609,11 +609,11 @@ outputs/
 ### Installation
 
 ```bash
-# Install LLMFlow
+# Install Scripture Pipelines
 pip install scripture-pipelines
 
 # Or from source
-cd LLMFlow
+cd Scripture Pipelines
 pip install -e .
 ```
 
@@ -862,7 +862,7 @@ A: Prompts use `{{variable}}` syntax similar to Jinja2, but it's a simpler syste
 ---
 
 **Last Updated:** November 2, 2025
-**LLMFlow Version:** Current development version
+**Scripture Pipelines Version:** Current development version
 
 ---
 

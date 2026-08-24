@@ -10,7 +10,7 @@ Verified 2026-08-17: no `jmespath` reference anywhere in `src/`.
 
 ## The Problem
 
-The LLMFlow variable resolver can navigate JSON structures and slice by position, but it cannot filter by value or project specific fields. When a pipeline needs to extract a subset of a list — keep only threads whose id appears in a given set, select specific fields from each object, flatten nested arrays — the only current options are a `type: function` step with custom Python or accepting the full structure and letting the LLM sort it out.
+The Scripture Pipelines variable resolver can navigate JSON structures and slice by position, but it cannot filter by value or project specific fields. When a pipeline needs to extract a subset of a list — keep only threads whose id appears in a given set, select specific fields from each object, flatten nested arrays — the only current options are a `type: function` step with custom Python or accepting the full structure and letting the LLM sort it out.
 
 Both options are worse than a simple declarative expression.
 

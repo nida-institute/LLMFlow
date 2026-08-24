@@ -1,4 +1,4 @@
-# Design: LLMFlow Pipeline JSON Schema and Schema-Driven Runner
+# Design: Scripture Pipelines Pipeline JSON Schema and Schema-Driven Runner
 
 **Status:** Decisions implemented — historical record, and **the decision log is still binding.**
 
@@ -13,7 +13,7 @@ step vocabulary.
 
 ## Problem
 
-LLMFlow is a declarative pipeline language. But its language definition is not itself declarative — it lives in imperative Python scattered across `runner.py` (what is dispatched), `linter.py` (what is validated), and several Markdown files (what is described). These three sources can and do drift. There is no single artifact that says: "here is the language, completely and authoritatively."
+Scripture Pipelines is a declarative pipeline language. But its language definition is not itself declarative — it lives in imperative Python scattered across `runner.py` (what is dispatched), `linter.py` (what is validated), and several Markdown files (what is described). These three sources can and do drift. There is no single artifact that says: "here is the language, completely and authoritatively."
 
 The consequence is ad-hoc growth. Each new step type adds code to the runner, adds conditions to the linter, and optionally adds prose to the language reference — with no formal relationship between them. This is how odd hack languages develop over time: the real definition is the implementation, not the specification.
 
@@ -21,7 +21,7 @@ The runner compounds this problem. Its core is a large `elif` chain — one bran
 
 ## Goal
 
-Define the LLMFlow pipeline language formally, once, in a machine-readable schema. The schema is not just a specification artifact — it is an **executable specification**. The runner reads the schema at startup and uses it to dispatch, validate, resolve, and bind every step. Adding a new step type means adding a schema entry and a handler function. The runner itself does not change.
+Define the Scripture Pipelines pipeline language formally, once, in a machine-readable schema. The schema is not just a specification artifact — it is an **executable specification**. The runner reads the schema at startup and uses it to dispatch, validate, resolve, and bind every step. Adding a new step type means adding a schema entry and a handler function. The runner itself does not change.
 
 ---
 
@@ -558,7 +558,7 @@ A script (`tools/generate_schema_docs.py`) renders the schema into a Markdown re
 
 ### 4. SchemaStore submission (later)
 
-Once stable, submit to [SchemaStore](https://www.schemastore.org/json/) so that any editor (JetBrains, Neovim, etc.) automatically associates `*.yaml` files containing LLMFlow pipeline structure with the schema.
+Once stable, submit to [SchemaStore](https://www.schemastore.org/json/) so that any editor (JetBrains, Neovim, etc.) automatically associates `*.yaml` files containing Scripture Pipelines pipeline structure with the schema.
 
 ---
 
@@ -594,7 +594,7 @@ for tumbling window $w in $items start … end …     (windowed)
 for sliding window $w in $items start … end …      (sliding)
 ```
 
-LLMFlow matches this with `for:`/`in:` on both step types:
+Scripture Pipelines matches this with `for:`/`in:` on both step types:
 
 ```yaml
 - type: for-each          - type: window
@@ -615,7 +615,7 @@ The `window` step has a specific semantic that is not fully captured by `size`/`
 - **Start is fixed** — each window begins at a defined position (determined by the stride from the previous window's start).
 - **End is not always known in advance** — a step inside the window can emit `!window_advance` to signal "the boundary is here; start the next window from this point." The window ends when that signal is received, not at a fixed size.
 
-This is the correct model: the pipeline processes the window and discovers the boundary during processing. `!window_advance` is the current mechanism for that signal. In XQuery terms, this corresponds to `end … when` — a condition evaluated during processing — but LLMFlow's model is simpler: any step inside the window can trigger advancement rather than requiring a declarative condition expression.
+This is the correct model: the pipeline processes the window and discovers the boundary during processing. `!window_advance` is the current mechanism for that signal. In XQuery terms, this corresponds to `end … when` — a condition evaluated during processing — but Scripture Pipelines's model is simpler: any step inside the window can trigger advancement rather than requiring a declarative condition expression.
 
 This semantic must be captured in the schema's `x-semantics` annotation for `window` and documented in the step reference. The `for`/`in` field naming decision is independent of this design.
 

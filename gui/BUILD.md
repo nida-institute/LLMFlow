@@ -13,7 +13,7 @@ The Scripture Pipelines GUI is designed to be bundled into the nuitka binary for
 ### 1. Build Frontend to Static Files
 
 ```bash
-cd LLMFlow
+cd Scripture Pipelines
 python build_gui.py
 ```
 

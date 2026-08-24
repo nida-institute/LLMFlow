@@ -6,6 +6,15 @@ and added rule 25. `data/ai-rules.yaml` holds all 25; both generators render fro
 
 **Found** 2026-08-21, while checking what `sp doctor` would overwrite in this repo.
 
+**Addendum, 2026-08-24 — rule 18 replaced, and a 29th rule added.** This document records what
+was approved on 2026-08-21, and the table in §6 is left exactly as written. Since then, at the
+Captain's direction: rule 18 `additive-to-authored` ("Prefer additive change to authored work")
+was replaced by `one-design` ("Carry one design"), because the old wording gave existing
+artifacts a presumption of survival that `disciplines/design-authority.md` denies them and other
+projects had begun citing it to preserve legacy cruft; and `design-is-declarative` was appended
+as rule 29. Both carry `note:` provenance in `data/ai-rules.yaml`. Recorded by adding here rather
+than by editing §6 — which is what `one-design` requires of a record.
+
 ---
 
 ## 1. What was wrong
@@ -78,7 +87,7 @@ ships no design-authority rule and that test fails. The retired 12 are kept verb
    awareness"* reads as a heading.
 
 **Stable slugs.** Each rule gets an `id` in the YAML so citations stop depending on position.
-Only two numbered citations exist today, both in `design-hath-parity.md`, so renumbering is
+Only two numbered citations exist today, both in `design-helm-parity.md`, so renumbering is
 cheap now and will not be later.
 
 ---
@@ -183,8 +192,8 @@ with Human at the Helm and byte-identical both sides, so the correction touches 
 | | |
 |---|---|
 | `src/llmflow/templates/sp-disciplines/github-authority.md` | the shipped copy; edited here, since this repo is upstream (Q3) |
-| `~/github/nida-institute/human-at-the-helm/disciplines/github-authority.md` | via `tools/sync_hath.py --apply` — this changes the **public** methodology, not just this engine |
-| `data/hath-sync.yaml` | hash refreshed |
+| `~/github/nida-institute/human-at-the-helm/disciplines/github-authority.md` | via `tools/sync_helm.py --apply` — this changes the **public** methodology, not just this engine |
+| `data/helm-sync.yaml` | hash refreshed |
 | `~/.sp/disciplines/github-authority.md` | the Captain's machine copy, refreshed by `sp doctor` from a scratch directory |
 
 The change itself: "Create GitHub issues" moves from *what AI may do without asking* to a new
@@ -217,7 +226,7 @@ code"* and offers no guidance on when a function step is the wrong instrument.
 `CLAUDE.md`'s *"Never import Jinja2"* is an instance of this rule that lives only in CLAUDE.md.
 
 **Ruled: `sp` only, not Human at the Helm.** Captain, 2026-08-21: *"add both to sp only, not to
-HATH."* Structurally already the case — HATH ships its own `templates/ai-context/rules.md` as a
+Helm."* Structurally already the case — Helm ships its own `templates/ai-context/rules.md` as a
 `create-only` template and the rules file is not in the shared set, so nothing propagates. Added
 as rules 23 and 24 above.
 

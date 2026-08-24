@@ -1,6 +1,6 @@
 """The shared set must not diverge from Human at the Helm without a ruling.
 
-Plan: `project/plans/design-hath-parity.md` §7 step 6, ruling H3-B — *"a sync script …
+Plan: `project/plans/design-helm-parity.md` §7 step 6, ruling H3-B — *"a sync script …
 run deliberately, with a test that fails when the two sides diverge unexpectedly."*
 
 `test_portable_skills.py` and `test_portable_disciplines.py` make the *classification*
@@ -11,13 +11,13 @@ diverged, with nothing watching them).
 
 Two halves, ruled D7-C:
 
-1. **The record** — `data/hath-sync.yaml` holds one entry per shared file with its hash and
+1. **The record** — `data/helm-sync.yaml` holds one entry per shared file with its hash and
    either `identical` or the ruling that permits it to differ. These tests run everywhere,
-   including CI, where no clone of HATH exists. Editing a shared file in this repo without
-   re-running `tools/sync_hath.py` fails the build, so divergence arrives as a reviewable
+   including CI, where no clone of Helm exists. Editing a shared file in this repo without
+   re-running `tools/sync_helm.py` fails the build, so divergence arrives as a reviewable
    diff rather than as a machine-local surprise.
 2. **The live comparison** — when a clone is present, the same entries are checked against
-   HATH's actual files. This is what catches an edit made over there. It skips when the
+   Helm's actual files. This is what catches an edit made over there. It skips when the
    clone is absent, which is why half 1 is not optional.
 
 **What the record is not.** It is not a second list of what is shared. The shared set is
@@ -37,14 +37,14 @@ import pytest
 import yaml
 
 from tests.test_portable_disciplines import (
-    SHARED_WITH_HATH as SHARED_DISCIPLINES,
+    SHARED_WITH_HELM as SHARED_DISCIPLINES,
 )
 from tests.test_portable_skills import ENGINE_VOCABULARY, _offenders
 from tests.test_portable_skills import (
     FORKED as FORKED_SKILLS,
 )
 from tests.test_portable_skills import (
-    SHARED_WITH_HATH as SHARED_SKILLS,
+    SHARED_WITH_HELM as SHARED_SKILLS,
 )
 
 # `sp-root/` ships one file today and it is shared. Classified explicitly rather than
@@ -53,12 +53,12 @@ from tests.test_portable_skills import (
 SHARED_ROOT_FILES = ("drift-patterns.md",)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-RECORD_PATH = REPO_ROOT / "data" / "hath-sync.yaml"
+RECORD_PATH = REPO_ROOT / "data" / "helm-sync.yaml"
 
 # Where the clone lives, when the record does not say. Defined here rather than in the
-# script so the two cannot disagree about it; `$HATH_REPO` is for a clone kept elsewhere.
-HATH_ENV_VAR = "HATH_REPO"
-DEFAULT_HATH_CLONE = "~/github/nida-institute/human-at-the-helm"
+# script so the two cannot disagree about it; `$HELM_REPO` is for a clone kept elsewhere.
+HELM_ENV_VAR = "HELM_REPO"
+DEFAULT_HELM_CLONE = "~/github/nida-institute/human-at-the-helm"
 
 
 def _templates_dir() -> Path:
@@ -104,10 +104,10 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _hath_root() -> Path | None:
+def _helm_root() -> Path | None:
     """The clone, or None. Identified by its `manifest.yaml` — that file *is* its installer."""
-    configured = os.environ.get(HATH_ENV_VAR) or _load_record().get(
-        "hath_clone_default", DEFAULT_HATH_CLONE
+    configured = os.environ.get(HELM_ENV_VAR) or _load_record().get(
+        "helm_clone_default", DEFAULT_HELM_CLONE
     )
     candidate = Path(configured).expanduser()
     return candidate if (candidate / "manifest.yaml").is_file() else None
@@ -115,9 +115,9 @@ def _hath_root() -> Path | None:
 
 RECORD = _record_entries()
 NEEDS_CLONE = pytest.mark.skipif(
-    _hath_root() is None,
+    _helm_root() is None,
     reason=(
-        f"no Human at the Helm clone found — set ${HATH_ENV_VAR} to run the live half. "
+        f"no Human at the Helm clone found — set ${HELM_ENV_VAR} to run the live half. "
         "The recorded half above still ran."
     ),
 )
@@ -135,10 +135,10 @@ def test_the_record_covers_exactly_the_shared_set():
     entry here would be synced by nobody and watched by nothing.
     """
     assert set(RECORD) == _derived_shared_set(), (
-        "data/hath-sync.yaml must hold one entry per shared file.\n"
+        "data/helm-sync.yaml must hold one entry per shared file.\n"
         f"  shared but unrecorded: {sorted(_derived_shared_set() - set(RECORD))}\n"
         f"  recorded but not shared: {sorted(set(RECORD) - _derived_shared_set())}\n"
-        "Re-run tools/sync_hath.py, or record the ruling that explains the difference."
+        "Re-run tools/sync_helm.py, or record the ruling that explains the difference."
     )
 
 
@@ -147,7 +147,7 @@ def test_the_recorded_hash_matches_the_shipped_file(key: str):
     """Editing a shared file here without re-running the script fails the build.
 
     This is the whole reason the record exists off the Captain's machine: it turns "someone
-    changed a shared skill and forgot HATH" into a failing test on CI.
+    changed a shared skill and forgot Helm" into a failing test on CI.
     """
     entry = RECORD[key]
     path = _source_path(entry)
@@ -157,8 +157,8 @@ def test_the_recorded_hash_matches_the_shipped_file(key: str):
         f"{key} has changed since the record was written.\n"
         f"  recorded: {entry['sha256']}\n"
         f"  shipped:  {_sha256(path)}\n"
-        "Run `hatch run python tools/sync_hath.py` to see what differs, then "
-        "`--apply` to copy it to HATH and refresh the record."
+        "Run `hatch run python tools/sync_helm.py` to see what differs, then "
+        "`--apply` to copy it to Helm and refresh the record."
     )
 
 
@@ -180,19 +180,19 @@ def test_every_divergence_carries_a_ruling(key: str):
 
     ruling = (entry.get("ruling") or "").strip()
     assert ruling, (
-        f"{key} is recorded as differing from HATH with no ruling. Either it is drift — "
+        f"{key} is recorded as differing from Helm with no ruling. Either it is drift — "
         "sync it — or a decision was taken and its words belong here."
     )
 
 
 @pytest.mark.parametrize("skill", FORKED_SKILLS)
 def test_a_forked_skill_is_absent_from_the_record(skill: str):
-    """`audit-code` is forked (H4-A): HATH has no counterpart at all.
+    """`audit-code` is forked (H4-A): Helm has no counterpart at all.
 
     Recording it would invite a sync that creates one. Its absence here is the ruling.
     """
     assert f"skills/{skill}" not in RECORD, (
-        f"{skill} is forked, not shared — H4-A gives HATH no counterpart. An entry here "
+        f"{skill} is forked, not shared — H4-A gives Helm no counterpart. An entry here "
         "would make the script create one."
     )
 
@@ -206,7 +206,7 @@ def test_drift_patterns_must_be_byte_identical():
     assert "root/drift-patterns.md" in RECORD, "drift-patterns.md is not recorded at all"
     entry = RECORD["root/drift-patterns.md"]
     assert entry["status"] == "identical", (
-        "drift-patterns.md is recorded as differing from HATH. Plan §8 requires it to be "
+        "drift-patterns.md is recorded as differing from Helm. Plan §8 requires it to be "
         "byte-identical both sides — this is the exact failure the parity work exists to "
         "end, and it is not a divergence a ruling can permit."
     )
@@ -217,21 +217,21 @@ def test_drift_patterns_must_be_byte_identical():
 # ---------------------------------------------------------------------------
 
 
-def _target_path(entry: dict, hath: Path) -> Path:
+def _target_path(entry: dict, helm: Path) -> Path:
     layout = {
         "skills": "skills/{name}/SKILL.md",
         "disciplines": "disciplines/{name}",
         "root": "{name}",
     }
-    return hath / layout[entry["set"]].format(name=entry["name"])
+    return helm / layout[entry["set"]].format(name=entry["name"])
 
 
 @NEEDS_CLONE
 @pytest.mark.parametrize("key", sorted(RECORD))
-def test_the_shared_file_is_present_in_hath(key: str):
-    """A recorded file missing over there is the silent failure `/hath-check` was built for."""
-    target = _target_path(RECORD[key], _hath_root())
-    assert target.is_file(), f"{key} is recorded as shared but absent from HATH at {target}"
+def test_the_shared_file_is_present_in_helm(key: str):
+    """A recorded file missing over there is the silent failure `/helm-check` was built for."""
+    target = _target_path(RECORD[key], _helm_root())
+    assert target.is_file(), f"{key} is recorded as shared but absent from Helm at {target}"
 
 
 @NEEDS_CLONE
@@ -242,12 +242,12 @@ def test_the_two_sides_agree_where_the_record_says_they_do(key: str):
     if entry["status"] != "identical":
         return
 
-    source, target = _source_path(entry), _target_path(entry, _hath_root())
+    source, target = _source_path(entry), _target_path(entry, _helm_root())
     assert _sha256(target) == _sha256(source), (
         f"{key} is recorded as identical but the two copies differ.\n"
         f"  this repo: {source}\n"
-        f"  HATH:      {target}\n"
-        "Run tools/sync_hath.py to see the difference. If the difference is deliberate, it "
+        f"  Helm:      {target}\n"
+        "Run tools/sync_helm.py to see the difference. If the difference is deliberate, it "
         "needs a ruling in the record; if not, --apply copies this repo's copy over."
     )
 
@@ -264,7 +264,7 @@ def test_a_recorded_divergence_still_diverges(key: str):
     if entry["status"] != "differs":
         return
 
-    source, target = _source_path(entry), _target_path(entry, _hath_root())
+    source, target = _source_path(entry), _target_path(entry, _helm_root())
     assert _sha256(target) != _sha256(source), (
         f"{key} is recorded as deliberately differing, but the two copies are now "
         "identical. Drop the entry's ruling and record it as identical."
@@ -273,45 +273,45 @@ def test_a_recorded_divergence_still_diverges(key: str):
 
 @NEEDS_CLONE
 @pytest.mark.parametrize("key", sorted(RECORD))
-def test_a_divergent_copy_in_hath_still_carries_no_engine_vocabulary(key: str):
+def test_a_divergent_copy_in_helm_still_carries_no_engine_vocabulary(key: str):
     """A permitted difference is not a licence to ship `sp` vocabulary to a mentee.
 
     `commit-ready` differs precisely because this repo's copy names `gui/frontend`,
-    `pytest.ini` and the Logger rule. The guard that matters is that HATH's copy names
+    `pytest.ini` and the Logger rule. The guard that matters is that Helm's copy names
     none of it — and only the live half can check the file that actually shipped.
     """
     entry = RECORD[key]
     if entry["status"] != "differs":
         return
 
-    target = _target_path(entry, _hath_root())
+    target = _target_path(entry, _helm_root())
     offenders = _offenders(target.read_text(encoding="utf-8"), ENGINE_VOCABULARY)
     assert not offenders, (
-        f"HATH's copy of {key} names this engine:\n  " + "\n  ".join(offenders)
+        f"Helm's copy of {key} names this engine:\n  " + "\n  ".join(offenders)
     )
 
 
 @NEEDS_CLONE
-def test_hath_ships_nothing_the_record_cannot_explain():
-    """HATH's own material is listed; anything else is unexplained.
+def test_helm_ships_nothing_the_record_cannot_explain():
+    """Helm's own material is listed; anything else is unexplained.
 
-    HATH is not a mirror — it has skills and essays of its own (`hath-check`, and the five
+    Helm is not a mirror — it has skills and essays of its own (`helm-check`, and the five
     essays its README calls the disciplines proper). Those are declared in the record's
-    `hath_only` section. A file in neither section is one nobody has classified, which is
+    `helm_only` section. A file in neither section is one nobody has classified, which is
     the state this whole plan was called in to fix.
     """
-    hath = _hath_root()
+    helm = _helm_root()
     record = _load_record()
 
     present = {
-        f"skills/{p.name}" for p in (hath / "skills").iterdir() if (p / "SKILL.md").is_file()
-    } | {f"disciplines/{p.name}" for p in (hath / "disciplines").glob("*.md")}
+        f"skills/{p.name}" for p in (helm / "skills").iterdir() if (p / "SKILL.md").is_file()
+    } | {f"disciplines/{p.name}" for p in (helm / "disciplines").glob("*.md")}
 
-    accounted = set(RECORD) | {e["path"] for e in (record.get("hath_only") or ())}
+    accounted = set(RECORD) | {e["path"] for e in (record.get("helm_only") or ())}
 
     assert present <= accounted, (
-        "HATH ships files the record does not explain: "
+        "Helm ships files the record does not explain: "
         f"{sorted(present - accounted)}\n"
-        "Either they are shared — record them — or they are HATH's own, and belong in the "
-        "record's hath_only section with a line saying what they are."
+        "Either they are shared — record them — or they are Helm's own, and belong in the "
+        "record's helm_only section with a line saying what they are."
     )

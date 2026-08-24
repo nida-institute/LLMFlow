@@ -1,7 +1,7 @@
 ---
 name: release
 description: |
-  **WORKFLOW SKILL** — Execute LLMFlow release process with mandatory build verification.
+  **WORKFLOW SKILL** — Execute Scripture Pipelines release process with mandatory build verification.
   USE FOR: cutting new releases; tagging versions; verifying Nuitka builds actually succeeded on all platforms.
   CRITICAL: NEVER claim "build succeeded" without running verification commands. Check GitHub Actions logs directly.
   DO NOT USE FOR: hotfixes without full verification; skipping build checks; assuming success.
@@ -13,11 +13,11 @@ applyTo:
   - ".github/workflows/build-release.yml"
 ---
 
-# LLMFlow Release Skill
+# Scripture Pipelines Release Skill
 
 ## Purpose
 
-Execute LLMFlow releases with **mandatory verification** that Nuitka builds actually succeeded on all three platforms (Linux, macOS, Windows).
+Execute Scripture Pipelines releases with **mandatory verification** that Nuitka builds actually succeeded on all three platforms (Linux, macOS, Windows).
 
 **CRITICAL LESSON LEARNED:** Multiple releases failed for a week because builds were never verified. AI claimed success without checking. This skill prevents that.
 

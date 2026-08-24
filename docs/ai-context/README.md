@@ -1,6 +1,6 @@
 # AI Context Bundle
 
-This folder provides the "pinned context" we share with GPT/Claude when they help on the LLMFlow project. It summarizes the repo's purpose, doc index, and guardrails so assistants start with the same baseline.
+This folder provides the "pinned context" we share with GPT/Claude when they help on the Scripture Pipelines project. It summarizes the repo's purpose, doc index, and guardrails so assistants start with the same baseline.
 
 ## How to Use
 1. **Pin these files in order** when opening a new chat with an AI assistant:

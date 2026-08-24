@@ -1,9 +1,9 @@
 """Skills shared with Human at the Helm must carry no Scripture Pipelines vocabulary.
 
-Plan: `project/plans/design-hath-parity.md`, ruling H4.
+Plan: `project/plans/design-helm-parity.md`, ruling H4.
 
 The Captain, 2026-08-19: *"our ai context here is now more advanced than the original
-HATH, by quite a bit. I want HATH to have the same level of maturity, without whatever is
+Helm, by quite a bit. I want Helm to have the same level of maturity, without whatever is
 specific to Scripture Pipelines."*
 
 H4 ruled **one shared text** for five skills rather than a generalized fork: the
@@ -32,7 +32,7 @@ Two exclusions, both deliberate:
 
 - **`audit-code` is forked, not shared** (H4-A). Its `sp` content is not a duplicated
   summary but the actual subject matter — plugin determinism, local plugins reimplementing
-  LLMFlow core utilities. There is no authoritative file elsewhere to move it to, so HATH
+  LLMFlow core utilities. There is no authoritative file elsewhere to move it to, so Helm
   gets a different skill rather than a generalization of this one.
 - **`audit-pipeline`, `audit-output`, `audit-prompts` and `release` stay here** (§4). Each
   is about the engine. `release` in particular was guessed to be general methodology in
@@ -46,11 +46,11 @@ from pathlib import Path
 
 import pytest
 
-# Source of truth for this list: design-hath-parity.md §4. An earlier note here expected step
-# 6 to replace it with HATH's shipped manifest; ruling D7-C is why it stays. `hath-sync.yaml`
+# Source of truth for this list: design-helm-parity.md §4. An earlier note here expected step
+# 6 to replace it with Helm's shipped manifest; ruling D7-C is why it stays. `helm-sync.yaml`
 # is checked *against* this classification, so sourcing the classification *from* the record
-# would make the check circular — and HATH's manifest globs directories no CI runner can see.
-SHARED_WITH_HATH = ("authorize", "stand-down", "handoff", "load-context", "commit-ready")
+# would make the check circular — and Helm's manifest globs directories no CI runner can see.
+SHARED_WITH_HELM = ("authorize", "stand-down", "handoff", "load-context", "commit-ready")
 
 FORKED = ("audit-code",)
 ENGINE_ONLY = ("audit-pipeline", "audit-output", "audit-prompts", "release")
@@ -75,7 +75,7 @@ ENGINE_VOCABULARY = {
 SP_HOME_DISCIPLINES = re.compile(r"~/\.sp/disciplines")
 PROJECT_DISCIPLINES = re.compile(r"docs/ai-context/disciplines")
 
-# HATH must serve a TypeScript project as readily as a Python one (Captain, 2026-08-19:
+# Helm must serve a TypeScript project as readily as a Python one (Captain, 2026-08-19:
 # "I am using this on a typescript project too" … "it would be nice to provision this for
 # both Python and Typescript, with pytest and a good Typescript test framework in mind").
 #
@@ -109,9 +109,9 @@ def _offenders(text: str, patterns: dict[str, re.Pattern]) -> list[str]:
     return sorted(found)
 
 
-@pytest.mark.parametrize("skill", SHARED_WITH_HATH)
+@pytest.mark.parametrize("skill", SHARED_WITH_HELM)
 def test_shared_skill_carries_no_engine_vocabulary(skill: str):
-    """A skill shared with HATH must not mention this engine.
+    """A skill shared with Helm must not mention this engine.
 
     Where the removed text was project rules, it belongs in `docs/ai-context/rules.md`,
     which `load-context` already reads. Nothing is lost by deleting it from the skill.
@@ -127,7 +127,7 @@ def test_shared_skill_carries_no_engine_vocabulary(skill: str):
     )
 
 
-@pytest.mark.parametrize("skill", SHARED_WITH_HATH)
+@pytest.mark.parametrize("skill", SHARED_WITH_HELM)
 def test_shared_skill_serves_both_ecosystems(skill: str):
     """A shared skill may name concrete tooling — but not only one ecosystem's.
 
@@ -147,14 +147,14 @@ def test_shared_skill_serves_both_ecosystems(skill: str):
     missing = set(ECOSYSTEM_MARKERS) - present
     assert not missing, (
         f"{skill}/SKILL.md shows {', '.join(sorted(present))} tooling but not "
-        f"{', '.join(sorted(missing))}. HATH serves both; name the counterpart command "
+        f"{', '.join(sorted(missing))}. Helm serves both; name the counterpart command "
         f"beside it (pytest ↔ vitest, hatch ↔ npm/pnpm)."
     )
 
 
-@pytest.mark.parametrize("skill", SHARED_WITH_HATH)
+@pytest.mark.parametrize("skill", SHARED_WITH_HELM)
 def test_shared_skill_never_names_only_the_machine_wide_disciplines(skill: str):
-    """Conventions live in `~/.sp/` for an sp project and in the repo for a HATH one.
+    """Conventions live in `~/.sp/` for an sp project and in the repo for a Helm one.
 
     A shared skill may name both — "read whichever exists" misleads nobody. It may not
     name only `~/.sp/disciplines`, because a project set up by Human at the Helm has no
@@ -183,16 +183,16 @@ def test_engine_only_skills_are_still_shipped_here(skill: str):
 
 
 def test_every_shipped_skill_is_classified():
-    """No skill may be added without deciding whether HATH gets it.
+    """No skill may be added without deciding whether Helm gets it.
 
     An unclassified skill is one nobody has asked the governing question about, and it
     would silently miss the guard above.
     """
     shipped = {p.name for p in _skills_dir().iterdir() if (p / "SKILL.md").exists()}
-    classified = set(SHARED_WITH_HATH) | set(FORKED) | set(ENGINE_ONLY)
+    classified = set(SHARED_WITH_HELM) | set(FORKED) | set(ENGINE_ONLY)
 
     assert shipped == classified, (
-        "design-hath-parity.md §4 classifies every skill as shared, forked or engine-only.\n"
+        "design-helm-parity.md §4 classifies every skill as shared, forked or engine-only.\n"
         f"  shipped but unclassified: {sorted(shipped - classified)}\n"
         f"  classified but not shipped: {sorted(classified - shipped)}"
     )
@@ -204,7 +204,7 @@ def test_audit_code_is_deliberately_not_shared():
     If someone later generalizes audit-code, that is a decision to be taken and recorded,
     not one to arrive by editing.
     """
-    assert "audit-code" not in SHARED_WITH_HATH
+    assert "audit-code" not in SHARED_WITH_HELM
     text = (_skills_dir() / "audit-code" / "SKILL.md").read_text(encoding="utf-8")
     assert _offenders(text, ENGINE_VOCABULARY), (
         "audit-code no longer contains engine vocabulary — if it was generalized, "

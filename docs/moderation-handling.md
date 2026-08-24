@@ -1,8 +1,8 @@
 # Handling OpenAI Moderation Blocks
 
-OpenAI's Responses API occasionally blocks Scripture-heavy passages, historical violence, or sensitive terminology even when the material is scholarly. LLMFlow now surfaces these events explicitly as `ModerationError` so operators can diagnose the issue instead of receiving empty completions.
+OpenAI's Responses API occasionally blocks Scripture-heavy passages, historical violence, or sensitive terminology even when the material is scholarly. Scripture Pipelines now surfaces these events explicitly as `ModerationError` so operators can diagnose the issue instead of receiving empty completions.
 
-## What LLMFlow Does
+## What Scripture Pipelines Does
 - Detects `status: incomplete` payloads whose `incomplete_details.reason` is `content_filter` or any `status: blocked` payload.
 - Raises `ModerationError` immediately with the model name, step, explanation, and OpenAI filter metadata.
 - Points back to this memo from the CLI so humans understand why retries will not succeed until the prompt changes.
@@ -27,4 +27,4 @@ OpenAI's Responses API occasionally blocks Scripture-heavy passages, historical 
 - Keep alternate phrasings (e.g., “put to death” → “executed”) in a shared glossary for sensitive lexemes that still capture meaning.
 
 ## When to Escalate
-If repeated attempts with scholarly framing fail and the passage is indispensable (e.g., lectionary reading), open a support ticket with OpenAI referencing the model, request IDs, and a justification that the usage is theological research. Include the moderation metadata logged by LLMFlow under `content_filter_results`.
+If repeated attempts with scholarly framing fail and the passage is indispensable (e.g., lectionary reading), open a support ticket with OpenAI referencing the model, request IDs, and a justification that the usage is theological research. Include the moderation metadata logged by Scripture Pipelines under `content_filter_results`.

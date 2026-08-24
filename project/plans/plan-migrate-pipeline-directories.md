@@ -20,7 +20,7 @@ That survey has since been run and the migration carried out — **the per-repo 
 superseded by the "Survey and execution — 2026-08-17" section at the foot of this file.** Read that
 first; the sections below record what was believed true when the plan was written.
 
-Within the LLMFlow repo itself the migration appears complete: every pipeline declares
+Within the Scripture Pipelines repo itself the migration appears complete: every pipeline declares
 `output_file_directory: "outputs..."`.
 
 ---
@@ -28,7 +28,7 @@ Within the LLMFlow repo itself the migration appears complete: every pipeline de
 ## Background
 
 `design-clean-command.md` introduced `intermediate_file_directory` and `output_file_directory` as
-top-level pipeline YAML keys. A previous session updated 9 pipelines in the LLMFlow repo and all
+top-level pipeline YAML keys. A previous session updated 9 pipelines in the Scripture Pipelines repo and all
 pipelines in discourse-flow and discourse-flow-hebrew before being interrupted.
 
 This plan covers:
@@ -64,7 +64,7 @@ data into `output/` to match a wrong declaration is the opposite of the fix.
 
 ## Section 1: YAML-Only Changes (no data moves)
 
-### LLMFlow repo — `pipelines/`
+### Scripture Pipelines repo — `pipelines/`
 
 | File | Declaration(s) to add |
 |------|----------------------|

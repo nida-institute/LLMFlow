@@ -14,7 +14,7 @@ _Created: 2026-03-24_
 
 ## Goal
 
-Give LLMFlow pipelines first-class access to USFM/USX/USJ Scripture data — specifically Paratext-sourced projects — at any granularity: whole project, single book, or passage (chapter initially, verse range later).
+Give Scripture Pipelines pipelines first-class access to USFM/USX/USJ Scripture data — specifically Paratext-sourced projects — at any granularity: whole project, single book, or passage (chapter initially, verse range later).
 
 A common use case is **multi-project comparison**: set `base_dir` once as a pipeline global variable, then load the same passage from several translation projects for comparison (e.g. a 3-way semantic comparison among translations).
 
@@ -64,7 +64,7 @@ steps:
       text_c: "${text_c}"
 ```
 
-This pattern also supports iterating a list of project names driven by a variable, once LLMFlow loop support is available.
+This pattern also supports iterating a list of project names driven by a variable, once Scripture Pipelines loop support is available.
 
 ---
 
@@ -94,7 +94,7 @@ Two formats are supported, selected by `format=` parameter:
 
 **Reading:** `usfmtc` handles older USFM/USX versions gracefully — encountering them in real Paratext projects is common and expected. No version validation on input.
 
-**Writing:** LLMFlow always outputs USX/USJ **3.1**. Older versions are never written.
+**Writing:** Scripture Pipelines always outputs USX/USJ **3.1**. Older versions are never written.
 
 ---
 
@@ -112,7 +112,7 @@ Scans for `*.sfm` / `*.usfm`. Fast — reads only enough of each file to extract
 
 1. **Preserve project book numbers in output filenames.** When writing processed results (e.g. `export_usx`), the output filename keeps the same numeric prefix the project uses (e.g. `41LUKPRJ.usx` not `LUK.usx`). This ensures round-trip compatibility and avoids breaking Paratext's own tooling.
 
-2. **Always use 3-letter book codes to identify books in LLMFlow.** All function parameters, pipeline YAML, and API surfaces use codes (`"LUK"`, `"GEN"`) not numbers. Numbers are treated as opaque file-naming artifacts belonging to the source project.
+2. **Always use 3-letter book codes to identify books in Scripture Pipelines.** All function parameters, pipeline YAML, and API surfaces use codes (`"LUK"`, `"GEN"`) not numbers. Numbers are treated as opaque file-naming artifacts belonging to the source project.
 
 ```yaml
 - name: books
@@ -316,7 +316,7 @@ A typical Paratext project directory contains:
 - `Notes/*.xml` — checking notes, consultant notes (separate files per note type/book)
 - `*.license` — Paratext license/registration info
 
-For LLMFlow, the most useful are:
+For Scripture Pipelines, the most useful are:
 1. **Settings.xml / metadata.json** (language info, versification)
 2. **BiblicalTerms.xml** (key term renderings)
 3. **Scripture files** (already handled by `load_usfm_*` functions)
@@ -472,7 +472,7 @@ Notes and progress files are less commonly needed in automated workflows.
 
 **Cons:**
 - Overhead if metadata not needed
-- Multiple outputs from single step (uncommon in LLMFlow)
+- Multiple outputs from single step (uncommon in Scripture Pipelines)
 - Unclear what `include_metadata` scope is (Settings.xml only? or also Biblical Terms?)
 
 ### Open Design Questions
@@ -483,7 +483,7 @@ Notes and progress files are less commonly needed in automated workflows.
 
 3. **When to load?** Explicit function call (current) vs bundled with text load vs automatic on first project access?
 
-4. **Caching?** If a pipeline loads multiple books from the same project, should metadata be cached? (LLMFlow runner doesn't currently cache function results across steps)
+4. **Caching?** If a pipeline loads multiple books from the same project, should metadata be cached? (Scripture Pipelines runner doesn't currently cache function results across steps)
 
 5. **Biblical Terms access pattern?** Separate function `load_biblical_terms(base_dir, project_name, format=...)` returning XML or parsed dict?
 
@@ -558,7 +558,7 @@ Then access via XPath or convert to dict:
 - **XML files**: Must extract values in pipeline steps, then use simple variables in templates
   - **Python (in pipeline code)**: `element.find('.//LanguageName').text` — `.text` is an attribute
   - **XPath**: `element.xpath('.//LanguageName/text()')[0]` — `text()` is XPath function
-  - **LLMFlow templates**: Cannot call methods — extract in pipeline, pass simple vars
+  - **Scripture Pipelines templates**: Cannot call methods — extract in pipeline, pass simple vars
   - **Passing to LLM**: lxml Elements must be serialized first (e.g., `lxml.etree.tostring(element)` or convert to dict)
 
 **Phase 2: Helper for XML→dict conversion (optional)**
@@ -579,7 +579,7 @@ For XML files where dict access is preferred:
 
 ### Usage Examples
 
-**Important:** LLMFlow uses custom template substitution (not Jinja2). Templates support simple variable access but **cannot call methods**. When working with XML:
+**Important:** Scripture Pipelines uses custom template substitution (not Jinja2). Templates support simple variable access but **cannot call methods**. When working with XML:
 - **lxml Elements cannot be passed to LLM directly** — they must be serialized or values extracted first
 - Extract values in pipeline steps (using XPath or Python helpers)
 - Pass simple string/dict variables to templates
@@ -760,12 +760,12 @@ ISO Code: {{iso}}
 Please back-translate the following {{language}} text...
 ```
 
-**Note:** LLMFlow templates use custom substitution, not full Python. Extract values in pipeline steps first, then pass simple variables to templates.
+**Note:** Scripture Pipelines templates use custom substitution, not full Python. Extract values in pipeline steps first, then pass simple variables to templates.
 
 ```yaml
   - name: extract_language_python
     type: function
-    function: python_eval  # if LLMFlow supports inline Python
+    function: python_eval  # if Scripture Pipelines supports inline Python
     code: "settings.find('.//LanguageName').text"
     inputs:
       settings: "${settings}"
@@ -862,7 +862,7 @@ steps:
       iso: "${language_iso}"
 ```
 
-**Note:** Since LLMFlow uses custom template resolution (not Jinja2), prefer **extracting values in pipeline steps** rather than calling methods or using conditionals in templates. Templates should receive simple string/dict variables.
+**Note:** Since Scripture Pipelines uses custom template resolution (not Jinja2), prefer **extracting values in pipeline steps** rather than calling methods or using conditionals in templates. Templates should receive simple string/dict variables.
 
 #### Example 4: Multi-project comparison with language metadata
 

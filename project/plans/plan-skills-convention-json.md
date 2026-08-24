@@ -68,7 +68,7 @@ Copy these files into `src/llmflow/templates/sp-skills/`:
 | `authorize/SKILL.md` | `~/.sp/skills/authorize/SKILL.md` |
 | `commit-ready/SKILL.md` | `~/.sp/skills/commit-ready/SKILL.md` |
 | `load-context/SKILL.md` | `~/.sp/skills/load-context/SKILL.md` |
-| `stand-down/SKILL.md` | LLMFlow-specific fork (see below) |
+| `stand-down/SKILL.md` | Scripture Pipelines-specific fork (see below) |
 
 ### Step 2 — stand-down installation
 
@@ -79,7 +79,7 @@ During `install_global_skills()`, for `stand-down` specifically:
 2. On success, write fetched content to `~/.sp/skills/stand-down/SKILL.md`
 3. On failure (network error, timeout), fall back to the bundled version in `src/llmflow/templates/sp-skills/stand-down/SKILL.md`
 
-The bundled fallback is still needed for offline installs. Its content: the `../../drift-patterns.md` reference replaced with the relevant drift patterns inline, and `docs/ai-context/rules.md` referenced as the LLMFlow rules source.
+The bundled fallback is still needed for offline installs. Its content: the `../../drift-patterns.md` reference replaced with the relevant drift patterns inline, and `docs/ai-context/rules.md` referenced as the Scripture Pipelines rules source.
 
 ### Step 3 — Fix `install_global_skills()`
 
@@ -211,7 +211,7 @@ Yes — new `tests/test_json_step.py`. Key cases:
 | `src/llmflow/templates/sp-skills/authorize/SKILL.md` | New (copied from installed) |
 | `src/llmflow/templates/sp-skills/commit-ready/SKILL.md` | New (copied from installed) |
 | `src/llmflow/templates/sp-skills/load-context/SKILL.md` | New (copied from installed) |
-| `src/llmflow/templates/sp-skills/stand-down/SKILL.md` | New (LLMFlow fork) |
+| `src/llmflow/templates/sp-skills/stand-down/SKILL.md` | New (Scripture Pipelines fork) |
 | `src/llmflow/cli_utils.py` | Fix `install_global_skills()` — dynamic iteration |
 | `src/llmflow/runner.py` | Add `type: json` step dispatch + `run_json_step()` |
 | `src/llmflow/utils/linter.py` | Register `json` as valid step type |

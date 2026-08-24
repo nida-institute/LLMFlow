@@ -1,4 +1,4 @@
-# LLMFlow Project Tutorial
+# Scripture Pipelines Project Tutorial
 
 This repository was initialized with `sp init`.
 It includes a minimal, working example that shows how to declare variables,

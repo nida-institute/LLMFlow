@@ -22,7 +22,7 @@ The human is the designer; the AI is not.
 
 **Key standard:** Only what the human wrote or agreed to carries design authority — design documents, GH issues and PR bodies they authored, explicit agreement in conversation. Existing code behaviour, docstrings, AI-generated rationale and prior unreviewed AI choices carry none. Before implementing, name the authority; if you cannot, stop and ask. When the human contradicts a comment the AI wrote, the human is right.
 
-**Source:** nida-institute/human-at-the-helm, which is upstream for this file. This engine carried a 49-line summary of it until 2026-08-21; HATH `24fd64f` had already grafted the two points that summary added, on the principle that one subject must not live in two documents.
+**Source:** nida-institute/human-at-the-helm, which is upstream for this file. This engine carried a 49-line summary of it until 2026-08-21; Helm `24fd64f` had already grafted the two points that summary added, on the principle that one subject must not live in two documents.
 
 ### surface-decisions.md
 Surface genuine decisions to the Captain (whoever directs the project) and stop; never proceed on an assumption.
@@ -57,11 +57,11 @@ The rules specific to this engine, on top of `workflow.md`.
 **Key standard:** The CLI is `sp run` / `sp lint`, not `llmflow` — that prefix is stale. Never run `sp run` unasked; the human decides when pipelines run and pays for it. The unit project tracking rolls per is the pipeline. The machine user account is recorded in `~/.sp/user-context/`.
 
 ### llmflow-prompt-organization.md
-Standard organization pattern for LLMFlow `.gpt` prompt files.
+Standard organization pattern for Scripture Pipelines `.gpt` prompt files.
 
 **Used by:**
 - audit-prompts skill (`~/.sp/skills/audit-prompts/`)
-- Any project using LLMFlow for prompt engineering
+- Any project using Scripture Pipelines for prompt engineering
 
 **Override:** Projects can provide their own `docs/prompt-organization-convention.md` to customize standards.
 
@@ -87,9 +87,9 @@ Project-neutral debugging practice for any `sp` pipeline.
 **Source:** Generalized from nida-institute/ears-to-hear `docs/architecture/debugging.md`
 
 ### consumer-repo-conventions.md
-Rules for repositories that consume LLMFlow rather than being it.
+Rules for repositories that consume Scripture Pipelines rather than being it.
 
-**Key standard:** never modify the LLMFlow dependency line in a consumer repo's `pyproject.toml`. It must stay an editable install so local engine changes take effect without rebuilding; agents have repeatedly reverted it to non-editable while "tidying", producing stale-install bugs.
+**Key standard:** never modify the Scripture Pipelines dependency line in a consumer repo's `pyproject.toml`. It must stay an editable install so local engine changes take effect without rebuilding; agents have repeatedly reverted it to non-editable while "tidying", producing stale-install bugs.
 
 ---
 

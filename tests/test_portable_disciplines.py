@@ -1,6 +1,6 @@
 """Disciplines shared with Human at the Helm must carry no Scripture Pipelines vocabulary.
 
-Plan: `project/plans/design-hath-parity.md` §4 (classification) and §7 step 4 (the split).
+Plan: `project/plans/design-helm-parity.md` §4 (classification) and §7 step 4 (the split).
 
 The counterpart to `test_portable_skills.py`, one level down. That file makes the skill
 classification falsifiable; this one does the same for the disciplines, which are the other
@@ -35,7 +35,7 @@ from tests.test_portable_skills import (
     _offenders,
 )
 
-SHARED_WITH_HATH = (
+SHARED_WITH_HELM = (
     "design-authority.md",
     "github-authority.md",
     "project-tracking.md",
@@ -61,7 +61,7 @@ def _disciplines_dir() -> Path:
     return Path(llmflow.__file__).parent / "templates" / "sp-disciplines"
 
 
-@pytest.mark.parametrize("discipline", SHARED_WITH_HATH)
+@pytest.mark.parametrize("discipline", SHARED_WITH_HELM)
 def test_shared_discipline_carries_no_engine_vocabulary(discipline: str):
     """A discipline shared with Human at the Helm must not mention this engine.
 
@@ -80,7 +80,7 @@ def test_shared_discipline_carries_no_engine_vocabulary(discipline: str):
     )
 
 
-@pytest.mark.parametrize("discipline", SHARED_WITH_HATH)
+@pytest.mark.parametrize("discipline", SHARED_WITH_HELM)
 def test_shared_discipline_serves_both_toolchains(discipline: str):
     """A shared discipline may name concrete tooling — but not only Python's.
 
@@ -109,10 +109,10 @@ def test_every_shipped_discipline_is_classified():
     would silently miss the guard above.
     """
     shipped = {p.name for p in _disciplines_dir().glob("*.md")}
-    classified = set(SHARED_WITH_HATH) | set(ENGINE_ONLY) | set(REWRITTEN)
+    classified = set(SHARED_WITH_HELM) | set(ENGINE_ONLY) | set(REWRITTEN)
 
     assert shipped == classified, (
-        "design-hath-parity.md §4 classifies every discipline as shared, engine-only or "
+        "design-helm-parity.md §4 classifies every discipline as shared, engine-only or "
         "rewritten.\n"
         f"  shipped but unclassified: {sorted(shipped - classified)}\n"
         f"  classified but not shipped: {sorted(classified - shipped)}"

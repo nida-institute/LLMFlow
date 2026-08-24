@@ -190,7 +190,7 @@
         {
           "name": "init_project",
           "signature": "init_project(base_dir: Path, update: bool = False, no_examples: bool = False) -> None",
-          "doc": "Initialize a new LLMFlow project structure."
+          "doc": "Initialize a new Scripture Pipelines project structure."
         },
         {
           "name": "_register_in_global_registry",
@@ -205,7 +205,7 @@
         {
           "name": "sync_ai_context_files",
           "signature": "sync_ai_context_files(base_dir: Path) -> None",
-          "doc": "Copy ai-context files from the installed LLMFlow package to the consumer repo."
+          "doc": "Copy ai-context files from the installed Scripture Pipelines package to the consumer repo."
         }
       ]
     },

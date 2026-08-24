@@ -6,7 +6,7 @@ description: |
   Core focus: verifying plugins are deterministic, that identifier normalization goes
   through canonical helpers (not inline reimplementations), that data contracts are
   enforced at plugin boundaries, and that local plugins don't silently reimplement
-  LLMFlow core utilities (which diverge from core over time as core is updated).
+  Scripture Pipelines core utilities (which diverge from core over time as core is updated).
   DO NOT USE FOR: pipeline YAML structure, identifier lifecycle across pipeline stages,
   JSON schema coverage, prompt field contracts — use audit-pipeline for those.
   DO NOT USE FOR: modifying code; running pipelines.
@@ -70,11 +70,11 @@ lifecycle across stages, JSON schema coverage, and prompt field contracts, use
 
 ### Core Reimplementation Check
 
-Local plugins that reimplement LLMFlow core utilities are harder to maintain and less
+Local plugins that reimplement Scripture Pipelines core utilities are harder to maintain and less
 well-tested than the core. They also silently diverge over time as core is updated — the
 local version keeps the old behavior while core fixes bugs or adds edge case handling.
 
-**Step 1: Find the LLMFlow core API surface**
+**Step 1: Find the Scripture Pipelines core API surface**
 
 ```bash
 # Installed package (what the project actually runs against)
@@ -141,7 +141,7 @@ Any plugin function that:
 - Parses or validates JSON/XML structure
 
 These are all candidates for core utilities. If the function exists locally and does
-general-purpose work (not project-specific logic), ask: does LLMFlow core already do this?
+general-purpose work (not project-specific logic), ask: does Scripture Pipelines core already do this?
 
 ---
 
@@ -174,7 +174,7 @@ grep -n "subprocess\.\|Popen(" plugins/*.py
 [findings with file:line references]
 
 ## Core Reimplementations
-[any local code duplicating LLMFlow core utilities, with risk assessment]
+[any local code duplicating Scripture Pipelines core utilities, with risk assessment]
 
 ## Red Flags
 [specific grep results that need human review]

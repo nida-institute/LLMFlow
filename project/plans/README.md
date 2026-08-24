@@ -12,7 +12,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-cli-dev-tools.md](design-cli-dev-tools.md) | Partly implemented. replay shipped as sp tools replay; the wider family of dev | #175 #176 #177 #198 |
 | [design-foreach-syntax-migration.md](design-foreach-syntax-migration.md) | Proposed — awaiting Captain review | #153 |
 | [design-format-keyword-split.md](design-format-keyword-split.md) | Design note — not approved, nothing built. Requested 2026-08-12 as item 4 of the | — |
-| [design-hath-parity.md](design-hath-parity.md) | awaiting the Captain's review. Not authorization to implement (rules.md #15). | #15 #195 #204 |
+| [design-helm-parity.md](design-helm-parity.md) | awaiting the Captain's review. Not authorization to implement (rules.md #15). | #15 #195 #204 |
 | [design-jmespath-step.md](design-jmespath-step.md) | Proposed — not built. Nothing in src/ implements this. Requires the Captain's approval before … | #167 #168 |
 | [design-loader-steps.md](design-loader-steps.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
 | [design-onboarding-fresh-clone.md](design-onboarding-fresh-clone.md) | D1–D7 ruled by the Captain 2026-08-18. D1 has a blocking technical conflict — see D1. | #15 #28 #29 #32 #181 #199 #204 #205 |
@@ -26,6 +26,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-verse-range-operations.md](design-verse-range-operations.md) | Approved 2026-08-17 — authoritative for the data model. Not a work order: the | #168 |
 | [design-vocabulary.md](design-vocabulary.md) | Draft, but in force. The "use X, not Y" list is authoritative for user-facing text | — |
 | [plan-ai-rules-single-source.md](plan-ai-rules-single-source.md) | complete, 2026-08-21. The Captain approved §5 and §6 (*"I approve these rules"*) | — |
+| [plan-init-doctor-unification.md](plan-init-doctor-unification.md) | Six rulings recorded from the Captain, 2026-08-23 (§3, and Q1 in §5). Five | #75 #204 #207 |
 | [plan-memory-recovery.md](plan-memory-recovery.md) | transfer record, 2026-08-22. The memory files are deleted and uncommitted in | #64 #163 #200 |
 | [plan-migrate-pipeline-directories.md](plan-migrate-pipeline-directories.md) | Rule corrected and executed 2026-08-17 — see the survey section at the foot for what was done, … | — |
 | [plan-scripture-pipelines-articles.md](plan-scripture-pipelines-articles.md) | Proposed — not built. A documentation plan; no articles from it have been written. | — |
@@ -34,4 +35,4 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-window-semantics.md](plan-window-semantics.md) | complete, 2026-08-21. Items 1 and 3 landed; item 2's two decisions were ruled and | #175 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-26 documents.
+27 documents.

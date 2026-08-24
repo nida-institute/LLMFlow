@@ -195,6 +195,6 @@ steps:
 
 ## Versification
 
-LLMFlow uses the Copenhagen Alliance versification system. See `parse_bible_reference()` in `llmflow.utils.data` for canonical book codes, chapter/verse padding, and cross-versification helpers.
+Scripture Pipelines uses the Copenhagen Alliance versification system. See `parse_bible_reference()` in `llmflow.utils.data` for canonical book codes, chapter/verse padding, and cross-versification helpers.
 
 Full spec: https://github.com/Copenhagen-Alliance/versification-specification

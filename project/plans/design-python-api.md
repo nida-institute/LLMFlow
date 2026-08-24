@@ -1,4 +1,4 @@
-# Design: LLMFlow Public Python API — an object model that mirrors the pipeline
+# Design: Scripture Pipelines Public Python API — an object model that mirrors the pipeline
 
 **Status:** Implemented — historical record. Describes why the code looks as it does; do not rebuild from it. Verify against the code before relying on any detail.
 

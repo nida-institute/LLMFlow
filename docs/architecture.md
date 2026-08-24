@@ -1,8 +1,8 @@
-# LLMFlow Architecture
+# Scripture Pipelines Architecture
 
 ## 1. Purpose
 
-LLMFlow is a declarative YAML-driven execution engine for LLM-assisted content
+Scripture Pipelines is a declarative YAML-driven execution engine for LLM-assisted content
 pipelines. It standardizes prompt contracts, variable resolution, iteration, and
 output persistence while enabling domain-specific extensions and multi-repository
 content management.
@@ -50,7 +50,7 @@ implementation of any step type.
 
 ### 3.3 Steps Layer — `steps/`
 
-This is the **executable semantics** of the LLMFlow pipeline language. Each
+This is the **executable semantics** of the Scripture Pipelines pipeline language. Each
 file defines exactly what one step type means when it executes. Reading
 `steps/for_each.py` is the authoritative answer to the question "what does
 `type: for-each` do?"
@@ -211,7 +211,7 @@ lookup, lexicon queries).
 
 ## 11. AI Context — Navigating the Codebase
 
-This section is specifically for AI assistants working on the LLMFlow engine.
+This section is specifically for AI assistants working on the Scripture Pipelines engine.
 
 **To understand what a step type does:** read `src/llmflow/steps/<type>.py`.
 That file is the authoritative definition. The language documentation describes
@@ -291,7 +291,7 @@ switch.
   this run, built from CLI `--var` values — `book-Ruth`, or `default` when there
   are none. The segment is always present, including for `default`: the directory
   is emptied at the start of a run, and without it that delete would target
-  `debug/<pipeline_name>/`, wiping every sibling run (LLMFlow#198).
+  `debug/<pipeline_name>/`, wiping every sibling run (Scripture Pipelines#198).
 - **Layout** (`utils/debug.py:DebugRecorder`):
 
   ```

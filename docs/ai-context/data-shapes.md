@@ -1,4 +1,4 @@
-# LLMFlow Intermediate Artifact Data Shapes
+# Scripture Pipelines Intermediate Artifact Data Shapes
 
 > **Use this file for:** intermediate artifact data shapes — `create_json_dictionary`, step input/output contracts, consumer-project artifact schemas (pericope_payload, book_flow_json, etc.).
 > **Budget: 150 lines / 5KB.** If adding content would push past this, split and add a row to `index.md`.
@@ -27,7 +27,7 @@ def create_json_dictionary(**kwargs):
 
 ## Consumer-project artifacts (`package_pericope_payload`, etc.)
 
-`package_pericope_payload`, `pericope_package`, `book_flow_json`, `pericope_results` and similar names **do not exist in this repo.** They are artifacts defined in consumer projects (e.g., `ears-to-hear`, `discourse-flow`) that use LLMFlow as an engine.
+`package_pericope_payload`, `pericope_package`, `book_flow_json`, `pericope_results` and similar names **do not exist in this repo.** They are artifacts defined in consumer projects (e.g., `ears-to-hear`, `discourse-flow`) that use Scripture Pipelines as an engine.
 
 To find their schemas:
 - Look at the consumer project's pipeline YAML for the step that calls `create_json_dictionary` (or similar) and read its `inputs:` block.

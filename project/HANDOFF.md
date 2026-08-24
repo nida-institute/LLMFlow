@@ -144,7 +144,7 @@ document existed: `feedback_dev_branch` → rule 28.
 
 ## In flight
 
-**LLMFlow `dev`:** `f93e9ca`, pushed and level with `origin/dev`. Clean, apart from this file
+**Scripture Pipelines `dev`:** `f93e9ca`, pushed and level with `origin/dev`. Clean, apart from this file
 if the commit recording these corrections has not been made.
 
 **`~/.sp`:** clean, committed at `c662291`.

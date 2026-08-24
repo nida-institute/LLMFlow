@@ -18,14 +18,14 @@ projects were not.**
 
 ## What the audit found
 
-| | LLMFlow (11) | discourse-flow (28) |
+| | Scripture Pipelines (11) | discourse-flow (28) |
 |---|---|---|
 | duplicated an authored source | 7 | 6 |
 | contradicted the authored record | 1 | 0 |
 | index file | 1 | 1 |
 | carried something with no home | 2 | 21 |
 
-LLMFlow's memories were mostly duplicates because its rules absorbed them over time.
+Scripture Pipelines's memories were mostly duplicates because its rules absorbed them over time.
 discourse-flow's never were absorbed, so its memories hold most of the real content.
 
 **The one contradiction:** `project_ai_github_account` told sessions to set
