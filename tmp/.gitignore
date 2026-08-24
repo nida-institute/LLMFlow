@@ -1,7 +1,16 @@
-# Temporary files - not tracked in git
-*.pyc
-__pycache__/
-*.log
+# tmp/ is for throwaway files (CLAUDE.md: "ALWAYS use tmp/ for throwaway files").
+#
+# Nothing here is tracked by default, so a `git add -A` cannot sweep a scratch file into
+# history. That is not hypothetical: 9b09195 committed tmp/commit-msg-sp.txt and
+# tmp/commit-msg-helm.txt — two commit-message drafts — because this file listed only
+# *.pyc, __pycache__/ and *.log, and CLAUDE.md's cleanup rule was a convention nothing
+# enforced. Rule `design-is-declarative`: state it where the tool reads it.
+#
+# To track something here deliberately, add a negation below and say why.
+*
 
-# Keep release tracking files
+# This file itself, so the rule travels with the directory.
+!.gitignore
+
+# Release tracking files, kept from the previous version of this ignore list.
 !release-*.md
