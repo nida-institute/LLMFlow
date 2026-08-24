@@ -73,6 +73,16 @@
           "doc": "Entries `sp doctor` restores when they are missing or have diverged (D10)."
         },
         {
+          "name": "documents",
+          "signature": "documents() -> tuple[Entry, ...]",
+          "doc": "Catalogued paths that carry a `purpose:` — the reading list `sp-index.md` renders."
+        },
+        {
+          "name": "render_sp_index",
+          "signature": "render_sp_index() -> str",
+          "doc": "Render `docs/ai-context/sp-index.md` from the catalog."
+        },
+        {
           "name": "project_gitignore_lines",
           "signature": "project_gitignore_lines() -> list[str]",
           "doc": "The ignore list, derived from the catalog (D9)."
@@ -125,7 +135,7 @@
         {
           "name": "_configure_copilot",
           "signature": "_configure_copilot(base_dir: Path, update: bool) -> None",
-          "doc": "Configure GitHub Copilot instructions file."
+          "doc": "Configure GitHub Copilot instructions via a delimited block."
         },
         {
           "name": "_configure_claude_code",
@@ -3988,6 +3998,6 @@
   ],
   "summary": {
     "total_modules": 75,
-    "total_functions": 615
+    "total_functions": 617
   }
 }

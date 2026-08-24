@@ -78,12 +78,33 @@ groups:
 
 files:
   # The four sp-generated context documents. Ours; restored when they drift.
-  - path: docs/ai-context/index.md
+  # Two indexes, ruled 2026-08-24 (Q1). One `index.md` claimed to be the whole map and
+  # invited a project to add its own entry documents to a file sp owned; doctor then
+  # overwrote them. The split puts the derivable half under sp and the authored half under
+  # the project, because one file could not be both.
+  #
+  # The project's map. create-once: sp cannot generate it — the Captain, on why: "we can't
+  # know what files a project has created in advance."
+  - path: docs/ai-context/project-index.md
     scope: project
-    policy: generated
+    policy: create-once
     source: constant
     constant: AI_INDEX_DOC
     committed: true
+    purpose: >-
+      This project's own map — read first. Yours to write; sp never overwrites it.
+
+  # sp's inventory, rendered from this file. `source: derived` rather than a constant,
+  # because a constant would be a second hand-kept list of sp's own documents — the failure
+  # file_catalog.py's docstring blames for three conventions going unshipped for months.
+  - path: docs/ai-context/sp-index.md
+    scope: project
+    policy: generated
+    source: derived
+    committed: true
+    purpose: >-
+      The documents Scripture Pipelines ships, and what each is for. Rendered from
+      data/file-catalog.yaml, so it cannot go stale.
 
   - path: docs/ai-context/overview.md
     scope: project
@@ -91,6 +112,8 @@ files:
     source: constant
     constant: AI_OVERVIEW_DOC
     committed: true
+    purpose: >-
+      What this project is and how its pipelines are organised.
 
   - path: docs/ai-context/rules.md
     scope: project
@@ -98,6 +121,8 @@ files:
     source: constant
     constant: AI_RULES_DOC
     committed: true
+    purpose: >-
+      The rules every AI session in this project is held to. Authoritative.
 
   - path: docs/ai-context/github-workflow.md
     scope: project
@@ -105,6 +130,8 @@ files:
     source: constant
     constant: GITHUB_WORKFLOW_DOC
     committed: true
+    purpose: >-
+      Issue references, version numbering, CHANGELOG and gh CLI conventions.
 
   # The one file a project is invited to write for itself. Captain, on D10: "projects
   # have a place to write their own context, and it's not in the standard context files
@@ -115,6 +142,8 @@ files:
     source: constant
     constant: AI_PROJECT_DOC
     committed: true
+    purpose: >-
+      This project's own context — facts, conventions and gotchas. Yours to own.
 
   # Documents sp init writes outside docs/ai-context/. Absent from this catalog until
   # 2026-08-23, which meant `sp doctor` could not see them: when c1647af fixed the
@@ -127,6 +156,8 @@ files:
     source: constant
     constant: TUTORIAL_DOC
     committed: true
+    purpose: >-
+      Step-by-step walkthrough: variables, saveas, and a two-step pipeline.
 
   - path: docs/llmflow-language-quickref.md
     scope: project
@@ -134,6 +165,8 @@ files:
     source: constant
     constant: LANGUAGE_QUICKREF_DOC
     committed: true
+    purpose: >-
+      The pipeline YAML reference — step types, variables, window and for-each.
 
   - path: docs/vscode.md
     scope: project
@@ -141,6 +174,85 @@ files:
     source: constant
     constant: VSCODE_DOC
     committed: true
+    purpose: >-
+      VS Code setup for editing pipelines and prompts.
+
+  # The hello-world example. Ruled 2026-08-24, Q3 of
+  # `project/plans/plan-init-doctor-unification.md`: "sp init creates them by default; with
+  # --update, it refreshes them if they are present and does nothing if they are absent."
+  # `generated` at project scope is exactly that — `doctor` restores a project file only when
+  # it is present and has diverged (`doctor.py:384-398`), and never creates one. So the ruling
+  # needs no example-specific code: these four rows are the whole of it.
+  - path: prompts/hello.gpt
+    scope: project
+    policy: generated
+    source: constant
+    constant: HELLO_PROMPT
+    committed: true
+    purpose: >-
+      Starter prompt for the hello-world example.
+
+  - path: prompts/reply.gpt
+    scope: project
+    policy: generated
+    source: constant
+    constant: HELLO_REPLY_PROMPT
+    committed: true
+
+  - path: pipelines/hello-llmflow.yaml
+    scope: project
+    policy: generated
+    source: constant
+    constant: HELLO_PIPELINE
+    committed: true
+
+  - path: pipelines/hello.yaml
+    scope: project
+    policy: generated
+    source: constant
+    constant: HELLO_YAML
+    committed: true
+    purpose: >-
+      Smallest runnable pipeline — one llm step.
+
+  # The audit scaffolding. Ruled 2026-08-24, Q4-Q6: `create-once` for all four. A project
+  # adapts its own checklists and index, and `sp doctor` never overwrites them —
+  # `managed_by_doctor()` returns only `generated` entries.
+  - path: project/audits/README.md
+    scope: project
+    policy: create-once
+    source: constant
+    constant: PROJECT_AUDITS_README
+    committed: true
+    purpose: >-
+      How audit findings are recorded for this project.
+
+  - path: docs/audits/INDEX.md
+    scope: project
+    policy: create-once
+    source: constant
+    constant: DOCS_AUDITS_INDEX
+    committed: true
+    purpose: >-
+      Index of the audit checklists this project uses.
+
+  - path: docs/audits/audit-passage.md
+    scope: project
+    policy: create-once
+    source: constant
+    constant: AUDIT_PASSAGE_CHECKLIST
+    committed: true
+    purpose: >-
+      Checklist for auditing one passage's generated output.
+
+  - path: docs/audits/audit-leadersguide.md
+    scope: project
+    policy: create-once
+    source: constant
+    constant: AUDIT_LEADERSGUIDE_CHECKLIST
+    committed: true
+    purpose: >-
+      Checklist for auditing a leaders-guide artifact.
 
   # Written only when absent — cli_utils.py has no `--update` branch for it, and it is a
   # file people edit constantly (rule 20 makes it the session cache). create-once, so
@@ -151,6 +263,8 @@ files:
     source: constant
     constant: PROJECT_TODO
     committed: true
+    purpose: >-
+      Active work, what is in flight, and what not to touch. Read before anything else.
 
   # A2: pointers at docs/ai-context/rules.md, carrying no rules of their own. The two
   # rules files are block-managed, so a project may keep its own content around sp's
@@ -171,11 +285,16 @@ files:
     block: workflow
     committed: true
 
+  # Block-managed from 2026-08-24 (Q2), so a project keeps its own Copilot instructions
+  # around sp's block — the same treatment its two siblings already had. Written whole until
+  # then, which is why `sp doctor` replaced 72 lines of a consumer repo's instructions with
+  # the pointer while `.cursorrules` and `.windsurfrules` survived untouched.
   - path: .github/copilot-instructions.md
     scope: project
     policy: generated
     source: constant
-    constant: COPILOT_INSTRUCTIONS_DOC
+    constant: ASSISTANT_RULES_POINTER
+    block: workflow
     committed: true
 
   # Belongs to the Captain. sp upserts its block on init, doctor never repairs it, and

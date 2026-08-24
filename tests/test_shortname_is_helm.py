@@ -10,14 +10,15 @@ clean sweep.
 This test is what stops it coming back. A term with no author and no note is exactly what
 this repository has no way to audit later, so the guard is code rather than a convention.
 
-**Two exemptions, both deliberate, both the Captain's ruling of 2026-08-24.** The sweep
-removes *cruft* — names that only have to be consistent. It does not rewrite *records* —
-statements about what was said or what shipped. Renaming inside a record does not clean it,
-it makes it wrong:
+**One exemption.** `CHANGELOG.md` names the files that shipped in past releases, so
+rewriting it would make a record of the past false rather than cleaning anything.
 
-- `CHANGELOG.md` names the files that shipped in past releases.
-- `data/helm-sync.yaml` quotes the Captain verbatim in its `ruling:` fields, and
-  `disciplines/surface-decisions.md` forbids rewording a recorded answer.
+Where the term appeared inside a quotation — `data/helm-sync.yaml`'s `ruling:` field, and
+three lines of `design-helm-parity.md` — it was replaced with a **bracketed editorial
+substitution** rather than exempted or silently reworded. The Captain retired the name
+outright on 2026-08-24 (*"stop using that name!"*), having twice asked what it meant, which
+is itself the evidence that the quotation had been paraphrased with an AI's abbreviation
+inside the quote marks.
 
 Anything else containing the old term is a miss, and this test names it.
 """
@@ -32,13 +33,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 #: Records, not cruft. See the module docstring.
 EXEMPT_FILES = {
     "CHANGELOG.md",
-    "data/helm-sync.yaml",
     "tests/test_shortname_is_helm.py",  # this file names the old term to forbid it
-    # Three lines quote the Captain verbatim, two of them answers written after a `=>`
-    # (lines 20, 86, 496). A sweep rewrote them on 2026-08-24 and they were restored
-    # byte-for-byte. Everything in this file that is a *pointer* — `/helm-check`, the
-    # filename — was swept; only his words were left standing.
-    "project/plans/design-helm-parity.md",
 }
 
 #: Directories with nothing authored in them.

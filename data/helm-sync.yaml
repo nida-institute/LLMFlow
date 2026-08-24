@@ -61,17 +61,26 @@ files:
   name: commit-ready
   sha256: 8d653e8fef9a739ac916cf535752b73c3d9da843087dcfb1bb4084542cd22b56
   status: differs
-  ruling: 'Captain, 2026-08-20: "strip it out of HATH''s commit-ready". This repository''s copy names
-    gui/frontend, pytest.ini and the Logger singleton rule — furniture no other project has. HATH
-    d47ceee removed them. The live guard still requires HATH''s copy to carry no engine vocabulary.'
+  ruling: 'Captain, 2026-08-20: "strip it out of [Human at the Helm]''s commit-ready". This
+    repository''s copy names gui/frontend, pytest.ini and the Logger singleton rule — furniture no
+    other project has. Helm d47ceee removed them. The live guard still requires Helm''s copy to
+    carry no engine vocabulary. (Brackets mark an editorial substitution: the quotation as
+    recorded carried an AI-coined abbreviation the Captain retired on 2026-08-24, twice asking
+    what it meant. His words are otherwise untouched.)'
 - set: skills
   name: handoff
   sha256: 97adae19af50c73b0904719f27b392d288b02ab676c6bc6d88eab54dcec27a08
   status: identical
 - set: skills
   name: load-context
-  sha256: 0d46cdf28374f34592b8239eed7c04b78f608b9eebf1f163128d955e46733d3b
-  status: identical
+  sha256: d638df40599b79d9987d970950a910548bca609a4ba67dda95a021ef32005357
+  status: differs
+  ruling: 'Captain, 2026-08-24: "I permit this difference." Two indexes are a Scripture Pipelines
+    concept — `docs/ai-context/project-index.md` is the project''s own map and `sp-index.md` is rendered
+    from the file catalog — and Human at the Helm has no catalog and no second index, so its copy
+    should not inherit the instruction. This repository''s copy reads both, plus the pre-split `index.md`
+    for projects created before 2026-08-24. The live guard still requires the shared copy to carry
+    no engine vocabulary, which is why the comment names neither the product nor the CLI.'
 - set: skills
   name: stand-down
   sha256: 0e6412267b719b98a410b6f4539fa09161872fdf358b0dc8823450642e2d0d64

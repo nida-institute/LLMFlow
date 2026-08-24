@@ -14,7 +14,7 @@ from llmflow.ai_rules import rules as _rules
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 AI_CONTEXT_DIR = REPO_ROOT / "docs" / "ai-context"
-INDEX_PATH = AI_CONTEXT_DIR / "index.md"
+INDEX_PATH = AI_CONTEXT_DIR / "sp-index.md"
 OVERVIEW_PATH = AI_CONTEXT_DIR / "overview.md"
 RULES_PATH = AI_CONTEXT_DIR / "rules.md"
 

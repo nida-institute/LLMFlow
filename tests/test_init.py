@@ -12,7 +12,7 @@ from llmflow.cli_utils import (
     AI_OVERVIEW_DOC,
     AI_PROJECT_DOC,
     AI_RULES_DOC,
-    COPILOT_INSTRUCTIONS_DOC,
+    ASSISTANT_RULES_POINTER,
     DOCS_AUDITS_INDEX,
     AUDIT_PASSAGE_CHECKLIST,
     AUDIT_LEADERSGUIDE_CHECKLIST,
@@ -56,7 +56,7 @@ def test_init_environment_creates_files(tmp_path, caplog):
     language_quickref_path = docs_dir / "llmflow-language-quickref.md"
     ai_overview_path = ai_context_dir / "overview.md"
     ai_rules_path = ai_context_dir / "rules.md"
-    ai_index_path = ai_context_dir / "index.md"
+    ai_project_index_path = ai_context_dir / "project-index.md"
 
     assert prompt_path.read_text(encoding="utf-8") == HELLO_PROMPT
     assert reply_prompt_path.read_text(encoding="utf-8") == HELLO_REPLY_PROMPT
@@ -67,7 +67,7 @@ def test_init_environment_creates_files(tmp_path, caplog):
     assert language_quickref_path.read_text(encoding="utf-8") == LANGUAGE_QUICKREF_DOC
     assert ai_overview_path.read_text(encoding="utf-8") == AI_OVERVIEW_DOC
     assert ai_rules_path.read_text(encoding="utf-8") == AI_RULES_DOC
-    assert ai_index_path.read_text(encoding="utf-8") == AI_INDEX_DOC
+    assert ai_project_index_path.read_text(encoding="utf-8") == AI_INDEX_DOC
 
     vscode_doc_path = docs_dir / "vscode.md"
     project_todo_path = tmp_path / "project" / "TODO.md"
@@ -88,7 +88,7 @@ def test_init_environment_creates_files(tmp_path, caplog):
     assert language_quickref_path.read_text(encoding="utf-8") == LANGUAGE_QUICKREF_DOC
     assert ai_overview_path.read_text(encoding="utf-8") == AI_OVERVIEW_DOC
     assert ai_rules_path.read_text(encoding="utf-8") == AI_RULES_DOC
-    assert ai_index_path.read_text(encoding="utf-8") == AI_INDEX_DOC
+    assert ai_project_index_path.read_text(encoding="utf-8") == AI_INDEX_DOC
     # project/TODO.md must never be overwritten — it's hand-edited from first run
     project_todo_path.write_text("# my hand-edited TODO\n", encoding="utf-8")
     init_environment(tmp_path)
@@ -255,12 +255,12 @@ class TestSpCliName:
         )
 
     def test_copilot_instructions_uses_sp_not_llmflow(self):
-        """COPILOT_INSTRUCTIONS_DOC must say 'sp lint/run ...', not 'llmflow lint/run ...'."""
-        assert "llmflow run" not in COPILOT_INSTRUCTIONS_DOC, (
-            "COPILOT_INSTRUCTIONS_DOC must not reference 'llmflow run'"
+        """ASSISTANT_RULES_POINTER must say 'sp lint/run ...', not 'llmflow lint/run ...'."""
+        assert "llmflow run" not in ASSISTANT_RULES_POINTER, (
+            "ASSISTANT_RULES_POINTER must not reference 'llmflow run'"
         )
-        assert "llmflow lint" not in COPILOT_INSTRUCTIONS_DOC, (
-            "COPILOT_INSTRUCTIONS_DOC must not reference 'llmflow lint'"
+        assert "llmflow lint" not in ASSISTANT_RULES_POINTER, (
+            "ASSISTANT_RULES_POINTER must not reference 'llmflow lint'"
         )
 
     def test_generated_marker_uses_sp(self):
@@ -373,37 +373,44 @@ class TestHelloYaml:
 class TestAiContextConsistency:
     """AI context files must be consistent and up-to-date."""
 
-    def test_ai_index_references_existing_templates(self):
-        """AI_INDEX_DOC must reference actual template constants that exist."""
-        # Check that AI_INDEX_DOC mentions the key templates
-        assert "TUTORIAL_DOC" in AI_INDEX_DOC or "tutorial.md" in AI_INDEX_DOC, (
-            "AI_INDEX_DOC should reference tutorial documentation"
-        )
-        assert "LANGUAGE_QUICKREF" in AI_INDEX_DOC or "llmflow-language-quickref.md" in AI_INDEX_DOC, (
-            "AI_INDEX_DOC should reference language quickref"
+    def test_sp_index_references_the_documents_sp_ships(self):
+        """The inventory claim belongs to sp-index.md, not the project's own starter map.
+
+        Moved 2026-08-24 with the two-index split (Q1): AI_INDEX_DOC is now a short starter
+        the project owns, and the list of what sp ships is rendered from the file catalog.
+        """
+        from llmflow.file_catalog import render_sp_index
+
+        rendered = render_sp_index()
+        assert "docs/tutorial.md" in rendered, "sp-index must list the tutorial"
+        assert "docs/llmflow-language-quickref.md" in rendered, "sp-index must list the quickref"
+        assert "docs/ai-context/sp-index.md" in AI_INDEX_DOC, (
+            "the project's starter map must point at sp's inventory"
         )
 
     def test_copilot_instructions_has_read_index_first(self):
-        """COPILOT_INSTRUCTIONS_DOC must emphasize reading index first"""
-        assert "Read Index First" in COPILOT_INSTRUCTIONS_DOC or "index.md" in COPILOT_INSTRUCTIONS_DOC, (
-            "COPILOT_INSTRUCTIONS_DOC must tell AI to read index.md first"
+        """ASSISTANT_RULES_POINTER must emphasize reading index first"""
+        assert "Read Index First" in ASSISTANT_RULES_POINTER or "index.md" in ASSISTANT_RULES_POINTER, (
+            "ASSISTANT_RULES_POINTER must tell AI to read index.md first"
         )
 
     def test_variable_syntax_consistency(self):
-        """All docs must consistently document ${var} for YAML, {{var}} for templates."""
-        # AI_INDEX_DOC should mention both syntaxes
-        has_dollar_brace = "${" in AI_INDEX_DOC
-        has_double_brace = "{{" in AI_INDEX_DOC
+        """${var} in YAML, {{var}} in templates — documented where syntax belongs.
 
-        assert has_dollar_brace or has_double_brace, (
-            "AI_INDEX_DOC should document variable syntax (${var} or {{var}})"
-        )
+        This used to require AI_INDEX_DOC to carry it. After the two-index split the project's
+        starter map carries no reference material, so the claim moved to the quickref, which is
+        the document the catalog describes as the pipeline YAML reference.
+        """
+        from llmflow.cli_utils import LANGUAGE_QUICKREF_DOC
+
+        assert "${" in LANGUAGE_QUICKREF_DOC, "the quickref must document ${var}"
+        assert "{{" in LANGUAGE_QUICKREF_DOC, "the quickref must document {{var}}"
 
     def test_logger_pattern_documented(self):
         """Logger singleton pattern must be documented for AI."""
         # Check that one of the docs mentions the Logger pattern
         mentions_logger = (
-            "Logger()" in COPILOT_INSTRUCTIONS_DOC or
+            "Logger()" in ASSISTANT_RULES_POINTER or
             "Logger()" in AI_RULES_DOC or
             "Logger()" in AI_INDEX_DOC or
             "logger" in AI_OVERVIEW_DOC.lower()
@@ -463,7 +470,8 @@ def test_init_registers_project_in_registry(tmp_path, monkeypatch):
     indexed_files = {ctx["file"] for ctx in ai_contexts}
     assert "overview.md" in indexed_files, "overview.md should be indexed in ~/.sp/ai-context/"
     assert "rules.md" in indexed_files, "rules.md should be indexed in ~/.sp/ai-context/"
-    assert "index.md" in indexed_files, "index.md should be indexed in ~/.sp/ai-context/"
+    assert "project-index.md" in indexed_files, "project-index.md should be indexed in ~/.sp/ai-context/"
+    assert "sp-index.md" in indexed_files, "sp-index.md should be indexed in ~/.sp/ai-context/"
     for ctx in ai_contexts:
         assert ctx["project"] == "my-project"
         assert "ai-context" in ctx["topics"]
@@ -537,16 +545,16 @@ def test_ai_index_doc_mentions_user_context():
 def test_copilot_instructions_point_at_the_authoritative_rules():
     """Under plan D4/A2 the assistant files carry no rules of their own.
 
-    This test used to require COPILOT_INSTRUCTIONS_DOC to restate the `~/.sp/user-context/`
+    This test used to require ASSISTANT_RULES_POINTER to restate the `~/.sp/user-context/`
     step. It no longer restates anything: that instruction lives in `AI_INDEX_DOC` (pinned
     by `test_ai_index_mentions_user_context` directly above), and the pointer sends every
     reader there. Three partial copies of one rule set is what A2 removed — the Cursor
     copy had already lost the `sp run` prohibition entirely.
     """
-    from llmflow.cli_utils import AI_INDEX_DOC, COPILOT_INSTRUCTIONS_DOC
+    from llmflow.cli_utils import AI_INDEX_DOC, ASSISTANT_RULES_POINTER
 
-    assert "docs/ai-context/index.md" in COPILOT_INSTRUCTIONS_DOC
-    assert "docs/ai-context/rules.md" in COPILOT_INSTRUCTIONS_DOC
+    assert "docs/ai-context/project-index.md" in ASSISTANT_RULES_POINTER
+    assert "docs/ai-context/rules.md" in ASSISTANT_RULES_POINTER
     assert "user-context" in AI_INDEX_DOC, (
         "the pointer is only safe while the authoritative doc still carries the instruction"
     )
@@ -566,7 +574,7 @@ class TestNoExamples:
         "docs/llmflow-language-quickref.md",
         "docs/ai-context/overview.md",
         "docs/ai-context/rules.md",
-        "docs/ai-context/index.md",
+        "docs/ai-context/project-index.md",
         "project/TODO.md",
     ]
     STRUCTURAL_DIRS = [
@@ -620,10 +628,18 @@ def test_index_references_project_md():
 
 
 def test_index_references_python_api():
-    # Project AIs must be able to discover the public Python API via their AI context.
-    assert "python-api" in AI_INDEX_DOC
-    assert "load_pipeline" in AI_INDEX_DOC
-    assert "api_catalog" in AI_INDEX_DOC
+    """Project AIs must be able to discover the public Python API from their AI context.
+
+    The pointers moved from AI_INDEX_DOC to the rendered sp index with the two-index split
+    (Q1, 2026-08-24): they describe what the *engine* offers, so they belong in sp's
+    inventory rather than in the map a project writes for itself.
+    """
+    from llmflow.file_catalog import render_sp_index
+
+    rendered = render_sp_index()
+    assert "python-api" in rendered
+    assert "load_pipeline" in rendered
+    assert "api_catalog" in rendered
 
 
 def test_init_uses_outputs_not_singular_output_decoy(tmp_path, monkeypatch):

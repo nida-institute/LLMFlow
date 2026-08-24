@@ -2,7 +2,7 @@
 name: load-context
 description: |
   **CONTEXT SKILL** — Orient the AI assistant for the current project.
-  Reads CLAUDE.md, docs/ai-context/index.md, rules.md, and overview.md to establish
+  Reads CLAUDE.md, the docs/ai-context indexes, rules.md and overview.md to establish
   collaboration model, topic-to-file map, key rules, and common pitfalls.
   USE FOR: starting a new session; switching to an unfamiliar project or subsystem;
   before making architectural decisions; when unsure where to look for something.
@@ -75,7 +75,12 @@ If no CLAUDE.md exists at the repo root, check parent directories or note its ab
 ### Step 3: Load the Topic Index
 
 ```bash
-cat docs/ai-context/index.md
+# Two indexes: the project's own map, and the inventory of what its tooling ships.
+# `index.md` is the pre-split single index — projects created before 2026-08-24 still
+# have it, and it is the one to read there. Read whichever are present.
+cat docs/ai-context/project-index.md 2>/dev/null
+cat docs/ai-context/sp-index.md 2>/dev/null
+cat docs/ai-context/index.md 2>/dev/null
 ```
 
 This table maps every topic to the authoritative file. Consult it before guessing.

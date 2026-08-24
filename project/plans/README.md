@@ -26,7 +26,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-verse-range-operations.md](design-verse-range-operations.md) | Approved 2026-08-17 — authoritative for the data model. Not a work order: the | #168 |
 | [design-vocabulary.md](design-vocabulary.md) | Draft, but in force. The "use X, not Y" list is authoritative for user-facing text | — |
 | [plan-ai-rules-single-source.md](plan-ai-rules-single-source.md) | complete, 2026-08-21. The Captain approved §5 and §6 (*"I approve these rules"*) | — |
-| [plan-init-doctor-unification.md](plan-init-doctor-unification.md) | Six rulings recorded from the Captain, 2026-08-23 (§3, and Q1 in §5). Five | #75 #204 #207 |
+| [plan-init-doctor-unification.md](plan-init-doctor-unification.md) | All six catalog questions ruled — Q1 reopened and re-ruled 2026-08-24 (two | #75 #204 #207 |
 | [plan-memory-recovery.md](plan-memory-recovery.md) | transfer record, 2026-08-22. The memory files are deleted and uncommitted in | #64 #163 #200 |
 | [plan-migrate-pipeline-directories.md](plan-migrate-pipeline-directories.md) | Rule corrected and executed 2026-08-17 — see the survey section at the foot for what was done, … | — |
 | [plan-scripture-pipelines-articles.md](plan-scripture-pipelines-articles.md) | Proposed — not built. A documentation plan; no articles from it have been written. | — |

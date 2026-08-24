@@ -3,7 +3,7 @@
 
         These guardrails apply to any language model collaborating on Scripture Pipelines tasks.
 
-        1. **Consult the docs before guessing.** The references listed in `index.md` are authoritative for syntax, architecture and workflows. Read the file rather than recalling it.
+        1. **Consult the docs before guessing.** The references listed in `sp-index.md` are authoritative for syntax, architecture and workflows. Read the file rather than recalling it.
 2. **Respect the pipeline schema.** Use only documented keys — `name`, `type`, `prompt`, `inputs`, `outputs`, `llm_config`, `saveas`, `append_to`, and the rest in `docs/llmflow-language.md`. Never invent a field.
 3. **Preserve logging and telemetry conventions.** Always use `Logger()` from `llmflow.modules.logger`, and start telemetry only after config merging, per `docs/architecture.md`.
 4. **Keep prompts and pipelines in sync.** Every `requires:` entry in a `.gpt` file must be passed by the step that calls it, via `prompt.inputs`. Cite `docs/llmflow-language.md` when explaining a contract.
@@ -15,7 +15,7 @@
 10. **Stay within policy.** Follow repository security constraints, avoid leaking secrets, and decline harmful requests.
 11. **Project boards use four columns.** Backlog → Todo → Doing → Done, in that order, for every board in this organisation. Do not propose or create boards with different columns.
 12. **Verses are milestones, not units.** Treat verse references as location markers only — never as the basis for a structural or semantic decision. Do not divide scenes, passages or content blocks by verse count. Pericope boundaries, scene structure and semantic cohesion are determined by narrative and discourse analysis.
-   - _For cross-versification work (KJV, LXX, Vulgate and others) use the Copenhagen Alliance Versification specification, listed in `index.md` under "Versification systems". Paratext `.vrs` files are semantically compatible with it — Copenhagen is derived from them — and the two can be used interchangeably._
+   - _For cross-versification work (KJV, LXX, Vulgate and others) use the Copenhagen Alliance Versification specification, listed in `sp-index.md` under "Versification systems". Paratext `.vrs` files are semantically compatible with it — Copenhagen is derived from them — and the two can be used interchangeably._
 13. **Every LLM step must have source text as an explicit named input.** No LLM may reason about a passage unless the text is in front of it. A step without `source_text` in its inputs is producing ungrounded output — answering from training data about the passage rather than from the passage.
    - _This rule lived only inside the `load-context` skill until 2026-08-19, when generalizing that skill for human-at-the-helm#1 was about to delete it. It is recorded in the rules because rules belong in the rules file, not inside a procedure that reads it._
 14. **File organisation.** Plans go in `project/plans/` (`design-*.md`, `plan-*.md`). Audits go in `project/audits/`. Use `tmp/` only for genuinely throwaway files. Never put a design doc or plan in `tmp/` or the repo root.

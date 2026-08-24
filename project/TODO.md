@@ -7,6 +7,40 @@
 
 ## 🔥 Active
 
+### ▶ Do these in this order — set by the Captain, 2026-08-24
+
+1. **`overview.md` is two documents sharing one path → #210.** Small: a rename in *this* repo
+   plus an audit of the other three `docs/ai-context/` files. It is why `sp doctor` must not be
+   run here.
+2. **21 shipped documents from Python constants to `source: template` → #211.** Wide and
+   mechanical. Blocked on #210: naming a template while `overview.md`'s reader is ambiguous
+   means naming it wrong and moving it twice. Finishing it is what makes `sp doctor` safe here.
+3. **`format: usj` → #200.** Everything it needs is ruled through `f93e9ca`. Start from the
+   parked local tag `wip/scripture-200`.
+
+> **Before starting 3, one ruling is needed** — §4.4 of
+> `project/plans/design-scripture-representations.md`, the Greek/Hebrew asymmetry. Five `=>`
+> slots there are empty; that one blocks. `include: [senses]` yields `{domain, ln}` on SBLGNT and
+> `{lexdomain, contextualdomain, coredomain, sdbh, sensenumber}` on WLC. The recorded
+> unnormalised position is a **proposal, not a ruling** — implementable as written, but a
+> normalising ruling changes the payload and anything built first is wrong.
+
+> **Insurance worth taking:** `wip/scripture-200` is a **local tag with no remote**, and
+> `project/plans/design-scripture-editions.md` exists nowhere else — not on `dev`, not in the
+> working tree. `git push origin wip/scripture-200` costs nothing and removes a single point of
+> failure. A push is the Captain's act.
+
+> **Deliberately not scheduled:** #209, the repository rename. Filed with its migration detail
+> and an order of operations, to be picked up when the Captain chooses.
+
+### ✅ Settled 2026-08-24 — the #204 catalog questions are all ruled
+> `project/plans/plan-init-doctor-unification.md` Q1–Q6. **Built:** nine catalog rows (the four
+> hello-world examples `generated`, the four audit documents `create-once`),
+> `.github/copilot-instructions.md` now block-managed like its two siblings, and the two-index
+> split — `project-index.md` (`create-once`, the project's own map) and `sp-index.md`
+> (`generated`, **rendered from the catalog's new `purpose:` field**, so it cannot go stale).
+> **Not built:** §4.1–4.3, the `sp init --update` → `sp doctor` unification itself.
+
 ### ⚠️ Versification — a reference means different verses in different editions → #203
 > **Blocks OT use of `sil-translator-notes`.** WLC and BSB disagree by two verses on `PSA 51:1`
 > and the run reports success. Fix via the Copenhagen Alliance specification, cloned at
@@ -15,7 +49,9 @@
 ### 📖 Scripture editions — core landed, wiring incomplete → #200
 > Commits are parked on the **local** tag `wip/scripture-200` (`05d75a5`, `34c7931`) and are
 > **not on `dev`**, which was reset to `cb72cb7` so the release could ship without them.
-> Cherry-pick after PR #199 merges. Design: `project/plans/design-scripture-editions.md`.
+> Cherry-pick after PR #199 merges. Design: `design-scripture-editions.md`, which exists **only
+> on that tag** — not on `dev` and not in the working tree, so read it with
+> `git show wip/scripture-200:project/plans/design-scripture-editions.md`.
 - [ ] Pericope reader
 - [ ] Docs — `docs/llmflow-language.md` and `docs/architecture.md` currently never mention it
 - [ ] Decide whether #200 supersedes or merely cross-references #38, #39/#172, #40, #41

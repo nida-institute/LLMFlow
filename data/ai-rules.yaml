@@ -31,7 +31,7 @@
 version: 1
 rules:
 - id: read-the-docs
-  rule: '**Consult the docs before guessing.** The references listed in `index.md` are authoritative
+  rule: '**Consult the docs before guessing.** The references listed in `sp-index.md` are authoritative
     for syntax, architecture and workflows. Read the file rather than recalling it.'
 - id: pipeline-schema
   rule: '**Respect the pipeline schema.** Use only documented keys — `name`, `type`, `prompt`, `inputs`,
@@ -73,7 +73,7 @@ rules:
     content blocks by verse count. Pericope boundaries, scene structure and semantic cohesion are
     determined by narrative and discourse analysis.'
   note: For cross-versification work (KJV, LXX, Vulgate and others) use the Copenhagen Alliance
-    Versification specification, listed in `index.md` under "Versification systems". Paratext `.vrs`
+    Versification specification, listed in `sp-index.md` under "Versification systems". Paratext `.vrs`
     files are semantically compatible with it — Copenhagen is derived from them — and the two can
     be used interchangeably.
 - id: source-text-required

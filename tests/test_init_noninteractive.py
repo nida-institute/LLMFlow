@@ -153,7 +153,7 @@ def test_assistant_files_do_not_restate_the_rules(sandbox: Path, relative_path: 
     `.cursorrules` and `.windsurfrules` are byte-identical by construction
     (`cli_utils.py:704`), and that shared 6-line block omitted the `sp run` prohibition,
     the memory-file prohibition and the `docs/ai-context/` prohibition — all of which
-    `COPILOT_INSTRUCTIONS_DOC` carried. An agent reading `.cursorrules` as its rules
+    `ASSISTANT_RULES_POINTER` carried. An agent reading `.cursorrules` as its rules
     found nothing saying that running a pipeline costs money and needs the Captain's
     say-so: an LLM taking a permission it was never granted.
 

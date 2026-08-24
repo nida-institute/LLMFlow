@@ -17,7 +17,7 @@ should own its own plans, say so and it moves.
 
 The Captain, 2026-08-19:
 
-> *"our ai context here is now more advanced than the original HATH, by quite a bit. I want HATH to
+> *"our ai context here is now more advanced than the original [Human at the Helm], by quite a bit. I want [Human at the Helm] to
 > have the same level of maturity, without whatever is specific to Scripture Pipelines."*
 
 So this is not "add an installer to Helm". It is **bring the methodology across at its current
@@ -83,7 +83,7 @@ Answers verbatim. Consequences recorded separately below each.
 
 ### The governing principle
 
-=> our ai context here is now more advanced than the original HATH, by quite a bit. I want HATH to have the same level of maturity, without whatever is specific to Scripture Pipelines.
+=> our ai context here is now more advanced than the original [Human at the Helm], by quite a bit. I want [Human at the Helm] to have the same level of maturity, without whatever is specific to Scripture Pipelines.
 
 This is the test every file is measured against in §4. It also settles Q2 without a separate
 ruling: which skills transfer is decided by whether they are Scripture-specific, not by taste.
@@ -493,7 +493,7 @@ and "a prior session established this pattern" as an invalid answer. That is the
 plan already names twice (`load-context:88-90`, and `.cursorrules` losing the `sp run`
 prohibition).
 
-=> shouldn't we use HATH in both places? Why keep the divergence?
+=> shouldn't we use [Human at the Helm] in both places? Why keep the divergence?
 
 **Ruled C: Helm's text, in both places.** And C turned out not to be a new decision. Helm
 `24fd64f` had already done the merge and said so in its own message: *"design-authority.md is

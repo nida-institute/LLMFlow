@@ -40,18 +40,12 @@ DIRS = {
     "plans_dir": "project/plans",
 }
 
-#: Written by `sp init`, not yet in the catalog, awaiting the Captain's ruling on policy.
-#: Entries come off this list as he rules; the list is not a licence to add new ones.
-AWAITING_CATALOG_RULING = {
-    "prompts/hello.gpt",
-    "prompts/reply.gpt",
-    "pipelines/hello-llmflow.yaml",
-    "pipelines/hello.yaml",
-    "project/audits/README.md",
-    "docs/audits/INDEX.md",
-    "docs/audits/audit-passage.md",
-    "docs/audits/audit-leadersguide.md",
-}
+#: The eight files that used to sit here — the four hello-world examples and the four audit
+#: documents — were ruled on 2026-08-24 (Q3-Q6 of
+#: `project/plans/plan-init-doctor-unification.md`) and are now catalogued. The list itself is
+#: gone rather than left empty: rule `one-design` says the superseded path goes, and an empty
+#: allowlist is an invitation to refill it. An uncatalogued file now fails this suite loudly,
+#: which is the behaviour the list was suppressing.
 
 
 def _written_paths() -> dict[str, str]:
@@ -85,8 +79,6 @@ def test_init_writes_something():
 
 @pytest.mark.parametrize("path", sorted(_written_paths()), ids=lambda p: p)
 def test_written_file_is_in_the_catalog(path):
-    if path in AWAITING_CATALOG_RULING:
-        pytest.skip("written by sp init; catalog policy awaiting the Captain's ruling")
     assert path in _catalog_paths(), (
         f"`sp init` writes {path} but `data/file-catalog.yaml` does not list it.\n"
         f"   Consequence: `sp doctor` cannot see, check, or restore it — only "
@@ -97,8 +89,33 @@ def test_written_file_is_in_the_catalog(path):
     )
 
 
-def test_awaiting_list_is_not_stale():
-    """Anything on the awaiting list must still be written by `sp init`."""
+def test_the_catalog_names_no_path_sp_init_stopped_writing():
+    """The converse guard: a catalogued project path that `sp init` no longer writes.
+
+    Replaces `test_awaiting_list_is_not_stale`, which policed the allowlist that Q3-Q6
+    retired. Only project-scoped `constant` entries are checked — those are the ones this
+    file's parser can see; templates and `~/.sp` entries are covered by the sync record and
+    by `sp doctor`'s own group checks.
+    """
+    import yaml
+
+    data = yaml.safe_load(CATALOG.read_text(encoding="utf-8"))
     written = set(_written_paths())
-    stale = AWAITING_CATALOG_RULING - written
-    assert not stale, f"AWAITING_CATALOG_RULING names paths sp init no longer writes: {sorted(stale)}"
+    constant_project_paths = {
+        f["path"] for f in data.get("files", [])
+        if f.get("scope") == "project" and f.get("source") == "constant"
+    }
+    # The three assistant files are written by `_upsert_delimited_block`, not by a
+    # `<var>_path.write_text(CONSTANT)` call, so this parser cannot see them. Their `block:`
+    # field is what identifies them. `.github/copilot-instructions.md` joined them on
+    # 2026-08-24 (Q2) and no longer needs naming as a special case.
+    block_written = {
+        f["path"] for f in data.get("files", []) if f.get("block")
+    }
+    orphans = constant_project_paths - written - block_written
+    assert not orphans, (
+        "The catalog claims these project files but `sp init` writes none of them:\n   "
+        + "\n   ".join(sorted(orphans))
+        + "\n   Either sp stopped writing them — remove the entry — or the write site moved "
+        "and this parser can no longer see it."
+    )

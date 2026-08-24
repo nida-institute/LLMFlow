@@ -190,7 +190,7 @@ def test_user_context_and_claude_md_are_never_repaired():
 def test_sp_owned_context_files_are_generated():
     """The four sp-generated docs/ai-context files are ours and are restored on drift."""
     catalog = _by_path()
-    for name in ("index.md", "overview.md", "rules.md", "github-workflow.md"):
+    for name in ("sp-index.md", "overview.md", "rules.md", "github-workflow.md"):
         entry = catalog.get(f"docs/ai-context/{name}")
         assert entry is not None, f"docs/ai-context/{name} is not catalogued"
         assert entry.policy is Policy.GENERATED, f"docs/ai-context/{name} should be sp-owned"
