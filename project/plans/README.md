@@ -7,6 +7,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 
 | Document | Status | Issues |
 | --- | --- | --- |
+| [design-ai-context-layout.md](design-ai-context-layout.md) | In progress, 2026-08-25. Eleven rulings recorded from the Captain (§2). | #204 #210 #211 |
 | [design-ai-drift-control.md](design-ai-drift-control.md) | Draft — awaiting Captain review | — |
 | [design-clean-command.md](design-clean-command.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
 | [design-cli-dev-tools.md](design-cli-dev-tools.md) | Partly implemented. replay shipped as sp tools replay; the wider family of dev | #175 #176 #177 #198 |
@@ -16,12 +17,14 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-jmespath-step.md](design-jmespath-step.md) | Proposed — not built. Nothing in src/ implements this. Requires the Captain's approval before … | #167 #168 |
 | [design-loader-steps.md](design-loader-steps.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
 | [design-onboarding-fresh-clone.md](design-onboarding-fresh-clone.md) | D1–D7 ruled by the Captain 2026-08-18. D1 has a blocking technical conflict — see D1. | #15 #28 #29 #32 #181 #199 #204 #205 |
+| [design-one-source-for-shipped-files.md](design-one-source-for-shipped-files.md) | Proposed, 2026-08-25. Nothing built. Four questions in §4 await a ruling. | #211 |
 | [design-pipeline-schema.md](design-pipeline-schema.md) | Decisions implemented — historical record, and the decision log is still binding. | — |
 | [design-pr-build-promote.md](design-pr-build-promote.md) | Proposed — awaiting Captain review | #173 |
 | [design-prompt-mixins.md](design-prompt-mixins.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
 | [design-python-api.md](design-python-api.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | #175 #186 #187 |
 | [design-schema-single-source.md](design-schema-single-source.md) | Approved 2026-08-12 — (1) hybrid (per-type schema + per-type linter, generic-flat | #187 |
 | [design-scripture-representations.md](design-scripture-representations.md) | sources and precedence ruled; representation shape ruled; the schema shape and several | #38 #52 #200 #201 #203 #208 |
+| [design-shipping-the-audit-method.md](design-shipping-the-audit-method.md) | Proposed, 2026-08-25. All four questions in §7 are answered — Q1 (templates mirror | #211 #214 |
 | [design-source-licensing.md](design-source-licensing.md) | Proposed, 2026-08-24. Four rulings recorded from the Captain (§3); six questions | #201 |
 | [design-structured-output-preflight.md](design-structured-output-preflight.md) | Implemented in 0.2.1.24 — historical record | #191 #197 |
 | [design-verse-range-operations.md](design-verse-range-operations.md) | Approved 2026-08-17 — authoritative for the data model. Not a work order: the | #168 |
@@ -36,4 +39,4 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-window-semantics.md](plan-window-semantics.md) | complete, 2026-08-21. Items 1 and 3 landed; item 2's two decisions were ruled and | #175 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-28 documents.
+31 documents.
