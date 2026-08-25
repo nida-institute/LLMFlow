@@ -47,7 +47,7 @@ from tests.test_portable_skills import (
     SHARED_WITH_HELM as SHARED_SKILLS,
 )
 
-# `sp-root/` ships one file today and it is shared. Classified explicitly rather than
+# The sp mirror's root ships one file today and it is shared. Classified explicitly rather than
 # globbed, so adding a second root file is a decision somebody takes instead of a file
 # that silently starts syncing.
 SHARED_ROOT_FILES = ("drift-patterns.md",)
@@ -93,9 +93,9 @@ def _derived_shared_set() -> set[str]:
 
 def _source_path(entry: dict) -> Path:
     layout = {
-        "skills": "sp-skills/{name}/SKILL.md",
-        "disciplines": "sp-disciplines/{name}",
-        "root": "sp-root/{name}",
+        "skills": "sp/skills/{name}/SKILL.md",
+        "disciplines": "sp/disciplines/{name}",
+        "root": "sp/{name}",
     }
     return _templates_dir() / layout[entry["set"]].format(name=entry["name"])
 
@@ -198,7 +198,7 @@ def test_a_forked_skill_is_absent_from_the_record(skill: str):
 
 
 def test_drift_patterns_must_be_byte_identical():
-    """§8: `drift-patterns.md` byte-identical, or the `sp-root/` vendoring starts drifting.
+    """§8: `drift-patterns.md` byte-identical, or the vendoring of the sp mirror's root starts drifting.
 
     This is the one file with no permission to differ, so it is pinned by name rather than
     left to the generic rule above.

@@ -7,111 +7,128 @@ to be retargeted rather than assumed.
 
 ### Changed
 
-- **Rule 18 replaced: "Carry one design."** The old rule, *"Prefer additive change to authored
-  work"*, gave existing artifacts a presumption of survival that
-  `disciplines/design-authority.md` explicitly denies them — running code is not designed code
-  — so a rule meant to protect the human's decisions was shielding the AI's prior output from
-  correction, and other projects had begun citing it to keep legacy cruft. The replacement
-  requires a design change to be completed in one pass, requires an older path that must
-  survive to name who depends on it and when it ends, and keeps the one protection that was
-  genuinely load-bearing: the record keeps its own words. Its test is *"does changing this make
-  a statement about the past false?"* Id changed from `additive-to-authored` to `one-design`.
+- **Rule 18 is now "Carry one design"**, replacing *"Prefer additive change to authored work"* —
+  a design change is completed in one pass, and an older path that must survive names who depends
+  on it and when it ends. The record still keeps its own words. Id changed from
+  `additive-to-authored` to `one-design`.
 
-- **New rule 29: "Express the design declaratively, syntax and semantics together."** Where a
+- **New rule 29: express the design declaratively, syntax and semantics together.** Where a
   design can be stated as data — a schema, a catalog, a manifest, an enum, a pipeline — it is
-  stated once there and the code reads it. The declaration carries meaning, not only shape.
-  Appended rather than inserted beside rule 18 because rules are cited by position across the
-  repository. A pipeline is one such form, which makes this the engine holding itself to what
-  it sells.
+  stated once there and the code reads it.
 
-- **The shortname for Human at the Helm is `helm`, not `hath`.** `hath` was an AI-introduced
-  abbreviation that nobody chose; it had reached a tool name, a data file, a test, a design
-  document, a skill directory and a shipped README before anyone noticed, and it also reads as
-  archaic English for "has" in a Bible-software project. Renamed: `tools/sync_helm.py`,
-  `data/helm-sync.yaml`, `tests/test_helm_sync.py`,
-  `project/plans/design-helm-parity.md`, and the `HELM_REPO` environment variable — which
-  **breaks cleanly**, with no dual-name transition, per rule 18. In the sibling repository,
-  `skills/hath-check` became `skills/helm-check` and the manifest target became
-  `helm-manifest.yaml`. Guarded by `tests/test_shortname_is_helm.py`.
+- **The shortname for Human at the Helm is `helm`.** Renamed `tools/sync_helm.py`,
+  `data/helm-sync.yaml`, `tests/test_helm_sync.py`, `project/plans/design-helm-parity.md` and the
+  `HELM_REPO` environment variable, with no dual-name transition. Guarded by
+  `tests/test_shortname_is_helm.py`.
 
-- **Prose says Scripture Pipelines, not LLMFlow.** `project/plans/design-vocabulary.md` has
-  ruled since it was written that Scripture Pipelines is the product name, that `llmflow` is
-  the Python package and import namespace *only*, and that LLMFlow is deprecated as a product
-  name. The ruling was being violated in 43 markdown files plus the shipped `cli_utils`
-  constants, which meant every project `sp init` touched inherited the deprecated name. Swept,
-  including the four generated `docs/ai-context/` files by way of their sources. Left standing
-  deliberately: URLs and repository slugs, filesystem paths, identifiers such as
-  `_LLMFlowLoader`, the `llmflow` namespace, and lines quoting the Captain. Renaming the
-  repository itself is tracked in #209. Guarded by `tests/test_product_name_in_prose.py`.
+- **Prose uses the ruled product name, Scripture Pipelines.** `llmflow` remains the Python
+  package and import namespace only. Swept from 43 markdown files and the shipped `cli_utils`
+  constants, which had been passing the deprecated name into every project `sp init` touched.
+  URLs, paths, identifiers and quotations are left as they are; renaming the repository is
+  tracked separately. Guarded by `tests/test_product_name_in_prose.py`. (#209)
 
-- **The generated project overview named the wrong CLI.** It said pipelines are *"executed via
-  the `llmflow` CLI"*; the command is `sp`, and the `llmflow` prefix is stale.
+- **The generated project overview named the wrong CLI** — it said `llmflow`; the command is `sp`.
+
+- **`docs/ai-context/` splits into `sp/` and `project/` halves** — three standard documents each
+  (a map, a self-description, constraints). sp regenerates its half; the project's half is created
+  once and never overwritten. `README.md` folded into `sp/overview.md`, `json-reliability.md`
+  removed, `project/index.md` hand-authored. (#210)
+
+- **`sp init` writes what `data/file-catalog.yaml` declares** — one loop replacing 21
+  hand-written per-document blocks, keyed on each entry's `policy` rather than on the
+  `<!-- Generated by sp init -->` marker, so `sp init --update` and `sp doctor` now agree on
+  which files sp owns. (#211, #214)
+
+- **`sp init --update` leaves unchanged files in place** instead of rewriting every shipped
+  document.
+
+- **Templates mirror their destination paths** — `templates/sp/` for what lands in `~/.sp`,
+  `templates/project/` for what lands in a project, replacing the flattened `sp-*` prefixes.
+
+- **sp's block in a shared file carries a warning, and sits at the top.** `CLAUDE.md`,
+  `.cursorrules`, `.windsurfrules` and `.github/copilot-instructions.md` are files sp writes into
+  but does not own, and nothing in them said so — the delimiters read as ordinary generated-code
+  markers. Each block now opens with a warning that only `sp` may write there, that edits are
+  lost, and that changing it breaks how an assistant finds the project's rules. The project's own
+  content belongs below the block, and a block that was previously appended at the bottom is
+  relocated to the top on the next run.
+
+- **The catalog holds only what sp itself specifies.** `docs/ai-context/project/project.md` and
+  the three `docs/audits/` checklists were shipped to every project though they are one project's
+  documents; they are no longer created or managed, and a project reaches its own files by naming
+  them in `docs/ai-context/project/index.md`. Existing copies are untouched.
 
 ### Fixed
 
-- **The cursor example we ship taught a form that silently loses content.**
-  `LANGUAGE_QUICKREF_DOC` — which `sp init` writes into every project as
-  `docs/llmflow-language-quickref.md`, and which four shipped AI-context documents name as the
-  pipeline-YAML reference — set the window cursor from the *dropped* last unit's own opening.
-  When a model leaves a gap between the last kept unit and the dropped one, the cursor skips
-  it and no later window sees it. Measured twice in John by the reporting repo. It now resumes
-  from the trailing edge of the last unit **kept**, and names both halves of the pattern:
-  discard the last unit of a non-final window *and* resume from what you kept. Reported from
+- **The shipped window-cursor example lost content.** `docs/llmflow-language-quickref.md` set the
+  cursor from the *dropped* last unit's opening, so any gap between the last kept unit and the
+  dropped one was skipped by every later window. It now resumes from the trailing edge of the last
+  unit **kept**. Reported from `nida-institute/discourse-flow`.
+
+- **`window_num` worked at run time and failed `sp lint`.** The linter now injects all five
+  variables a window step provides — `window_num`, `_window_index`, `_window_first`,
+  `_window_last`, `_window_cursor` — making `window` symmetric with `for-each`.
+
+- **One rule set, not two.** `docs/ai-context/rules.md` was written by two generators holding two
+  independently maintained texts, so which rules a project was held to depended on which generator
+  ran last. `data/ai-rules.yaml` is now the single source; both generators render from it.
+
+- **`sp doctor` could not refresh four documents `sp init` writes.** `docs/tutorial.md`,
+  `docs/llmflow-language-quickref.md`, `docs/vscode.md` and `project/TODO.md` were absent from
+  `data/file-catalog.yaml`, and `managed_by_doctor()` returns only catalogued entries — so a fix to
+  a shipped document could not reach an existing project. Now catalogued, with a test that fails if
+  `sp init` writes anything the catalog does not declare. Reported from
   `nida-institute/discourse-flow`.
 
-- **`window_num` worked at run time and failed `sp lint`.** The linter's available-variable set
-  knew none of the five variables a window step injects. It now injects `window_num`,
-  `_window_index`, `_window_first`, `_window_last` and `_window_cursor`, making `window`
-  symmetric with `for-each`.
-
-- **One rule set, not two.** `docs/ai-context/rules.md` was written by two generators holding
-  two independently maintained texts — 17 rules in `tools/update_ai_context.py`, a *different*
-  12 in `llmflow.cli_utils`. Which rules a project was held to depended on which generator ran
-  last, and `sp doctor` would silently replace one set with the other. `data/ai-rules.yaml` is
-  now the only place they are written; both generators render from it.
-
-- **`sp doctor` could not refresh the document whose bad example had already cost content.**
-  `docs/llmflow-language-quickref.md` was absent from `data/file-catalog.yaml`, and
-  `managed_by_doctor()` returns only catalogued entries — so when `c1647af` fixed the window-cursor
-  example inside `LANGUAGE_QUICKREF_DOC`, `doctor` had no way to push the fix into an existing
-  project. Only `sp init --update` reached it, and only while the file still carried the generated
-  marker. Reported from `nida-institute/discourse-flow`. Four files `sp init` writes were missing:
-  `docs/tutorial.md`, `docs/llmflow-language-quickref.md` and `docs/vscode.md` as `generated`, and
-  `project/TODO.md` as `create-once` — the last deliberately, because its write site has no
-  `--update` branch and rule 20 makes it a file people edit. `tests/test_catalog_covers_init.py`
-  now fails if `sp init` writes anything the catalog does not list; eight further files are listed
-  there as awaiting a policy ruling rather than silently passing.
-
 - **`gpt-4.1` was wrongly reported as incompatible with structured outputs.** The `audit-prompts`
-  skill, its packaged copy in `src/llmflow/templates/`, and `docs/llmflow-language.md` all told
-  auditors that `gpt-4.1` could not use strict `json_schema` and to change the model —
-  contradicting `docs/ai-context/rules.md` rule 5, which already said "GPT-4o/4.1 families".
-  Measured in `nida-institute/discourse-flow`: four arms, 200+ calls, strict `json_schema`, zero
-  schema failures. The hardcoded model allowlist is replaced by a "Model support" note: report the
-  model and check it against the provider's capability table and the project's own run evidence. A
-  model name is not a verdict.
+  skill and `docs/llmflow-language.md` told auditors to change the model, contradicting rule 5.
+  Measured elsewhere at 200+ calls with strict `json_schema` and zero failures. The hardcoded model
+  allowlist is replaced by guidance to check the provider's capability table and the project's own
+  run evidence.
+
+- **`sp doctor --help` claimed to be read-only** — it restores any `policy: generated` file that
+  is missing or has diverged, which cost a consumer repository two hand-authored files on
+  2026-08-23. The help text now says it writes and what it overwrites.
+
+- **The test suite wrote outside the project** — every init test registered its pytest temp
+  directory as a permanent project in the real `~/.sp/`, and moving the store to pytest's default
+  temp root then left tens of megabytes a run in the machine's temp area, including directories
+  its cleanup could not remove. `$SP_HOME` is now redirected per test with a guard that fails the
+  run if the real store is touched, intermediates go to `tmp/pytest/` inside the repository
+  (declared in `pytest.ini`, git-ignored, announced at startup), and only failing tests'
+  directories survive a run. (#207)
+
+- **A test wrote `llmflow.log` into `/private/tmp` on every run.** `test_gui_cors_config.py` handed
+  the executor a literal `/tmp` as the project path, and the executor runs with `cwd` set to it.
+  It now uses a per-test directory, guarded by a check that no test hands a shared system
+  directory to the executor and by a fixture that fails any test leaving the working directory
+  changed. (#207)
 
 ### New Features
 
-- **`size` and `stride` accept a variable**, resolved once at step entry — before the first
-  iteration, so the partition stays constant for the loop and reproducible under `--rewind-to`.
-  A `--var` string coerces; anything that does not resolve to a positive integer fails at step
-  entry naming what it resolved to. `sp lint` warns that it cannot verify a variable's value.
-  Per-iteration resolution remains unsupported, and `docs/llmflow-language.md` now explains why.
+- **`size` and `stride` accept a variable**, resolved once at step entry so the partition stays
+  constant for the loop and reproducible under `--rewind-to`. Anything that does not resolve to a
+  positive integer fails at step entry; `sp lint` warns that it cannot verify a variable's value.
 
-- **`tools/sync_hath.py` and `data/hath-sync.yaml`** — the shared set with Human at the Helm is
-  now recorded with hashes and rulings, checked on CI against what the package ships and
-  additionally against a clone when one is present. Reports by default; copies only under
-  `--apply`; never touches a divergence that carries a ruling.
+- **`tools/sync_helm.py` and `data/helm-sync.yaml`** — the set shared with Human at the Helm is
+  recorded with hashes and rulings and checked on CI. Reports by default, copies only under
+  `--apply`, and never touches a divergence that carries a ruling.
 
-- **`tools/update_plans_index.py`** generates `project/plans/README.md` — every design and plan
-  document with its declared status and the issues it names. The status lines already existed and
-  were already universal; nothing collected them, so reading the directory meant opening 25 files.
-  `--check` exits 1 when the index is stale. Kept outside `src/llmflow/` so it is not part of the
-  installed package, and it writes only inside `project/plans/`, so nothing it produces can reach
-  a project created by `sp init`. Its Issues column is a mention scrape rather than a declaration
-  — a document that cross-references an issue looks like that issue's design — recorded as a known
-  defect in #163 rather than papered over.
+- **`tools/update_plans_index.py`** generates `project/plans/README.md` from each document's
+  declared status and the issues it names, with `--check` exiting 1 when the index is stale. Kept
+  outside `src/llmflow/`, so nothing it produces reaches a project. Its Issues column is a mention
+  scrape rather than a declaration. (#163)
+
+- **`sp init` ships the audit method**, not only the `/audit-*` skills —
+  `docs/ai-context/sp/audits-pattern.md` covers which skill answers which question, tracing an
+  output field back to the request that produced it, and testing a prompt fix with
+  `sp tools replay`. It carries measured cases from real runs rather than general advice. The
+  first project-scoped `source: template` entry, so its content is a reviewable markdown file
+  rather than a Python string. (#214)
+
+- **`$SP_HOME` relocates the store** — one resolver in `src/llmflow/paths.py`, replacing eleven
+  call sites that each computed `~/.sp` independently, with a test that fails if any module
+  computes it again. For tests, containers and CI. (#207)
 
 ### Documentation
 

@@ -73,14 +73,26 @@ files:
   status: identical
 - set: skills
   name: load-context
-  sha256: e13685ac8624f14f6f8860ed600f2b6175da0a163f3ce6cad8d8434eacf69bee
+  sha256: 048a4a726c4158675ee80deb40386775fc61015d1504b901bc5e23b41dbf8899
   status: differs
   ruling: 'Captain, 2026-08-24: "I permit this difference." Two indexes are a Scripture Pipelines
     concept — `docs/ai-context/project-index.md` is the project''s own map and `sp-index.md` is rendered
     from the file catalog — and Human at the Helm has no catalog and no second index, so its copy
     should not inherit the instruction. This repository''s copy reads both, plus the pre-split `index.md`
     for projects created before 2026-08-24. The live guard still requires the shared copy to carry
-    no engine vocabulary, which is why the comment names neither the product nor the CLI.'
+    no engine vocabulary, which is why the comment names neither the product nor the CLI.
+
+
+    Added 2026-08-25, not a rewording — the quotation above is the Captain''s and stands. Two
+    things have changed under it since it was written. First, the paths it names were retired the
+    same evening by `8d8ac2a`: the two indexes are now `docs/ai-context/project/index.md` and
+    `docs/ai-context/sp/index.md`, directories rather than filename prefixes. Second, the
+    divergence has widened past the indexes. Rule R5 of
+    `project/plans/design-ai-context-layout.md` establishes the standard set as three documents —
+    a map, a self-description, constraints — mirrored on both halves, so this repository''s copy
+    now reads six ai-context files rather than three, and guards every read. Human at the Helm has
+    one half and no catalog, so none of that transfers. Whether the permission still covers the
+    wider difference is the Captain''s to say.'
 - set: skills
   name: stand-down
   sha256: 0e6412267b719b98a410b6f4539fa09161872fdf358b0dc8823450642e2d0d64

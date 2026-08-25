@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from llmflow.cli_utils import init_project
+from llmflow.cli_utils import SP_BLOCK_WARNING, init_project
 
 
 @pytest.fixture
@@ -26,6 +26,7 @@ def sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("SP_HOME", str(home / ".sp"))
     project = tmp_path / "project"
     project.mkdir()
     return project
@@ -162,7 +163,12 @@ def test_assistant_files_do_not_restate_the_rules(sandbox: Path, relative_path: 
     init_project(sandbox)
 
     content = (sandbox / relative_path).read_text(encoding="utf-8")
-    assert len(content.splitlines()) <= 20, (
+
+    # The cap is on the signpost, not on sp's do-not-edit notice: the notice carries no
+    # rules and is byte-identical in all three files, so counting it would measure the
+    # wrong thing.
+    signpost = content.replace(SP_BLOCK_WARNING, "")
+    assert len(signpost.splitlines()) <= 20, (
         f"{relative_path} is long enough to be a copy of the rules, not a pointer"
     )
     assert "production ready" not in content.lower(), (

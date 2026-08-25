@@ -86,7 +86,7 @@ def test_socketio_accepts_production_origin(app):
     client.disconnect()
 
 
-def test_socketio_execute_pipeline_event_exists(app):
+def test_socketio_execute_pipeline_event_exists(app, tmp_path):
     """
     Verify 'execute_pipeline' event handler is registered.
 
@@ -103,7 +103,9 @@ def test_socketio_execute_pipeline_event_exists(app):
     client.emit('execute_pipeline', {
         'execution_id': 'test-123',
         'pipeline_path': '/nonexistent.yaml',  # Will error, but handler should exist
-        'project_path': '/tmp',
+        # The executor runs with cwd = project_path (`gui/backend/server.py:250`), so a
+        # literal /tmp here put llmflow.log outside the repository on every run.
+        'project_path': str(tmp_path),
         'variables': {}
     })
 

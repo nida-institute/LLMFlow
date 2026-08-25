@@ -98,7 +98,7 @@ ECOSYSTEM_MARKERS = {
 def _skills_dir() -> Path:
     import llmflow
 
-    return Path(llmflow.__file__).parent / "templates" / "sp-skills"
+    return Path(llmflow.__file__).parent / "templates" / "sp" / "skills"
 
 
 def _offenders(text: str, patterns: dict[str, re.Pattern]) -> list[str]:

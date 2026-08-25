@@ -135,7 +135,11 @@ def build_parser():
 
     subparsers.add_parser(
         "doctor",
-        help="Check that this machine is set up correctly (read-only; reports, never repairs)",
+        help=(
+            "Check this machine's setup and RESTORE any file sp owns that is missing or has "
+            "diverged. Not read-only: it overwrites `policy: generated` files from the shipped "
+            "version. Commit or stash first."
+        ),
     )
 
     setup_p = subparsers.add_parser("setup", help="Configure AI provider API keys")

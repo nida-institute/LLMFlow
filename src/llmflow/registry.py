@@ -6,6 +6,8 @@ Tracks projects, datasets, and databases in ~/.sp/ for AI context and resource d
 import os
 import yaml
 from pathlib import Path
+
+from llmflow import paths as _paths
 from datetime import datetime
 from typing import Optional, Dict, List, Any
 
@@ -418,7 +420,7 @@ class Registry:
             if env_path:
                 registry_path = Path(env_path)
             else:
-                registry_path = Path.home() / ".sp"
+                registry_path = _paths.sp_home()
 
         self.path = Path(registry_path)
         self.path.mkdir(parents=True, exist_ok=True)

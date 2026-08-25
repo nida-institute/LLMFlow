@@ -5,6 +5,8 @@ import re
 import stat
 from contextlib import contextmanager
 from pathlib import Path
+
+from llmflow import paths as _paths
 from typing import Optional
 
 import click
@@ -622,13 +624,11 @@ def read_delimited_block(path: Path, block_name: str) -> Optional[str]:
 
 
 def _upsert_delimited_block(path: Path, block_name: str, content: str) -> str:
-    """Append or replace a named llmflow-init block in a file.
+    """Put sp's block at the top of the file, with the project's content below it.
 
-    If the file does not exist, creates it with just the block.
-    If the file exists but has no matching block, appends the block.
-    If the file exists and has a matching block, replaces only that block.
-
-    Returns "created", "appended", or "updated".
+    The block is removed from wherever it currently sits and written at position 0, so a
+    file that received it at the bottom is relocated on the next run. Returns "created",
+    "updated" or "unchanged".
     """
     begin = LLMFLOW_BLOCK_BEGIN.format(name=block_name)
     end = LLMFLOW_BLOCK_END.format(name=block_name)
@@ -643,21 +643,39 @@ def _upsert_delimited_block(path: Path, block_name: str, content: str) -> str:
         re.escape(begin) + r".*?" + re.escape(end) + r"\n?",
         re.DOTALL,
     )
-    if pattern.search(existing):
-        updated = pattern.sub(block, existing)
-        path.write_text(updated, encoding="utf-8")
-        return "updated"
-    else:
-        sep = "\n" if existing.endswith("\n") else "\n\n"
-        path.write_text(existing + sep + block, encoding="utf-8")
-        return "appended"
+    theirs = pattern.sub("", existing, count=1).lstrip("\n")
+    updated = block + ("\n" + theirs if theirs else "")
+    if updated == existing:
+        return "unchanged"
+    path.write_text(updated, encoding="utf-8")
+    return "updated"
 
 
 # ---------------------------------------------------------------------------
 # AI assistant configuration content blocks
 # ---------------------------------------------------------------------------
 
-CLAUDE_MD_LLMFLOW_BLOCK = """\
+#: Heads every delimited block sp writes into a file it does not own (#204).
+SP_BLOCK_WARNING = """\
+> ⚠️ **WARNING — DO NOT CHANGE THIS SECTION. ONLY `sp` MAY WRITE HERE.**
+>
+> Everything between the BEGIN and END markers belongs to Scripture Pipelines. `sp` can
+> change it at any time, and anything you write here is lost without warning.
+>
+> **Changing it also breaks how the system behaves.** This section is what tells an AI
+> assistant where this project's rules live. Edit it and a session can be held to rules
+> that do not exist, miss the ones that do, or follow a stale copy — and nothing reports
+> the problem. Delete the markers and `sp` adds a second copy of this section rather than
+> updating this one, leaving two sets of instructions and no way to tell which is live.
+>
+> **Put your own content below the block.** Everything after the END marker is yours and
+> `sp` never touches it. Do not write above the block — this section must be the first
+> thing in the file, so an assistant reads it before anything else.
+
+"""
+
+
+CLAUDE_MD_LLMFLOW_BLOCK = SP_BLOCK_WARNING + """\
 ## Scripture Pipelines Project
 
 This project uses the Scripture Pipelines declarative pipeline engine (`sp` CLI).
@@ -743,7 +761,7 @@ Memory files belong to the Captain. Propose additions or deletions in conversati
 #
 # Three lossy copies of one rule set is how that happens. A signpost cannot drift out of
 # alignment with the rules because it carries none of them.
-ASSISTANT_RULES_POINTER = """\
+ASSISTANT_RULES_POINTER = SP_BLOCK_WARNING + """\
 ## Scripture Pipelines project rules
 
 This project uses the Scripture Pipelines pipeline engine (`sp` CLI).
@@ -782,7 +800,7 @@ def _install_claude_skills(base_dir: Path, sp_home: Optional[Path] = None) -> li
     Returns the names of the skills installed.
     """
     if sp_home is None:
-        sp_home = Path.home() / ".sp"
+        sp_home = _paths.sp_home()
 
     sp_skills_dir = sp_home / "skills"
     if not sp_skills_dir.is_dir():
@@ -801,7 +819,11 @@ def _install_claude_skills(base_dir: Path, sp_home: Optional[Path] = None) -> li
                 continue
             target = target_dir / source.relative_to(skill_dir)
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(source.read_bytes())
+            payload = source.read_bytes()
+            # Compared before writing so a re-run leaves mtimes alone; skills are copied
+            # as bytes because a skill directory may hold more than markdown.
+            if not target.exists() or target.read_bytes() != payload:
+                target.write_bytes(payload)
         installed.append(skill_dir.name)
 
     return installed
@@ -837,7 +859,7 @@ def _configure_claude_code(base_dir: Path, update: bool) -> None:
     action = _upsert_delimited_block(claude_md, "workflow", CLAUDE_MD_LLMFLOW_BLOCK)
     click.echo(f"  {action.capitalize()} CLAUDE.md (llmflow-init block)")
 
-    sp_home = Path.home() / ".sp"
+    sp_home = _paths.sp_home()
     installed = _install_claude_skills(base_dir, sp_home=sp_home)
     if not installed:
         click.echo("  No skills found in ~/.sp/skills/ — none copied into .claude/skills/.")
@@ -1140,9 +1162,21 @@ YAML is the design, not a wrapper around code hidden elsewhere — which is why 
 
 ## Where the rest of it is
 
-- **`sp/index.md`** — every document Scripture Pipelines ships, and what each is for
-- **`sp/rules.md`** — the rules an AI session in this project is held to
-- **`project/`** — this project's own map, description and rules. Yours, not sp's.
+Three documents make up the standard set, on each side. Read them in this order at the start of
+a session — an overview, a map, then the constraints:
+
+| | Scripture Pipelines' | this project's |
+|---|---|---|
+| what it is | `sp/overview.md` (this file) | `project/overview.md` |
+| what documents exist | `sp/index.md` | `project/index.md` |
+| what the rules are | `sp/rules.md` | `project/rules.md` |
+
+`sp/index.md` lists every document Scripture Pipelines ships and is rendered from the file
+catalog, so it cannot go stale. `project/index.md` is yours: sp cannot know what documents a
+project has, so nothing generates it and nothing overwrites it.
+
+Everything else — `sp/audits-pattern.md`, `sp/github-workflow.md`, `project/project.md`, and
+whatever this project adds — is reached through one of the two indexes.
 
 Full documentation lives in the engine repository. This file is a pointer, not a manual: it is
 regenerated by `sp`, so anything written here is lost on the next update. Project-specific notes
@@ -1179,45 +1213,6 @@ quietly dropped when it becomes inconvenient.
 _(none yet — add them as they are learned)_
 """
 
-AI_PROJECT_DOC = """\
-# Project-Specific AI Context
-
-**This file is yours.** `sp init` created it once and will **never overwrite it** — not even on
-`sp init --update`. It is the durable, repo-scoped memory every AI assistant working here should
-read and keep current. The generated files in `docs/ai-context/` (`sp/index.md`, `project/overview.md`,
-`rules.md`, `github-workflow.md`) are refreshed by `sp init --update` — do not hand-edit them;
-anything you want to keep and evolve locally goes here or elsewhere under `project/`, which is also
-yours and which points assistants at it.
-
-**Discipline (for the AI):** record a non-obvious project fact here the moment you learn it — a
-data source, a convention, a trap that cost time. Keep it a scannable map, not a dump; prune
-what goes stale. This is the same idea as `/handoff` (session scope) and `~/.sp` (machine
-scope), at the repo scope.
-
-The sections below are a starting structure — adapt them to this repo, don't force them.
-
-## What this repo is
-
-<!-- One paragraph: what it does, its domain, who or what it serves. -->
-
-## Data sources & key artifacts
-
-<!-- Where the data lives; canonical files, schemas, pipelines; what is generated vs authored. -->
-
-## Local conventions
-
-<!-- Repo-specific rules not in sp's standard: naming, structure, review norms. -->
-
-## Gotchas / hard-won facts
-
-<!-- Traps and non-obvious facts, recorded as learned (with a file:line or a pointer). -->
-
-## Where active work lives
-
-<!-- Pointers: project/TODO.md (current state), project/plans/ (designs in flight). -->
-"""
-
-
 AI_INDEX_DOC = """<!-- Created once by sp init. This file is yours; sp never overwrites it. -->
 # This project's map
 
@@ -1227,7 +1222,6 @@ to it freely.
 ## Start here, every session
 
 - `project/TODO.md` — active work, what is in flight, what not to touch
-- `docs/ai-context/project/project.md` — this project's facts, conventions and gotchas
 - `docs/ai-context/project/rules.md` — constraints that hold in this project and nowhere else
 - `docs/ai-context/sp/rules.md` — the rules every Scripture Pipelines session is held to
 
@@ -1236,7 +1230,7 @@ to it freely.
 | | |
 |---|---|
 | **`sp/`** | Scripture Pipelines' own documents. Regenerated — do not hand-edit. `sp/index.md` lists them all. |
-| **`project/`** | Yours. This map, `overview.md`, `rules.md` and `project.md`. `sp` creates each once and never touches it again. |
+| **`project/`** | Yours. This map, `overview.md` and `rules.md`. `sp` creates each once and never touches it again. |
 
 The split exists because one directory of mixed ownership meant a project's own notes were
 overwritten by an update. Anything you write belongs under `project/`.
@@ -1244,8 +1238,10 @@ overwritten by an update. Anything you write belongs under `project/`.
 ## This project's own entry documents
 
 Add them here as the project grows: a HANDOFF, design documents and the warnings that go with
-them, a field reference, data notes. Anything a session must read before working here belongs in
-this list, or in `project/project.md`, or in a document one of them points to.
+them, a field reference, data notes, audit checklists this project uses. Anything a session must
+read before working here belongs in this list, or in a document it points to. **Files this project
+creates for itself are reachable because this map names them — `sp` does not know about them and
+will not list them for you.**
 
 - _(add yours here)_
 
@@ -1387,123 +1383,6 @@ Examples:
 - Active tasks → `project/TODO.md`
 """
 
-DOCS_AUDITS_INDEX = """<!-- Generated by sp init -->
-# Audit Dispatch
-
-**What this file does:** Maps artifact types to their audit checklist files. When you need to audit something, find its row below, use the trigger phrase listed, and the AI assistant will open the corresponding procedure file before evaluating your artifact.
-
-## Dispatch Table
-
-| What you have | Say | Open |
-|---|---|---|
-| Passage output `.md` | "audit this passage" | `audit-passage.md` |
-| Leader's guide `.md` | "audit this per the checklist" | `audit-leadersguide.md` |
-
-## Adding New Audit Procedures
-
-1. Create a new checklist file in this directory (e.g. `audit-my-artifact.md`)
-2. Keep it 20–60 lines max
-3. Use `- [ ]` checkbox format only — no explanatory prose
-4. Put STOP conditions in bold at the top
-5. Add a row to the table above with the trigger phrase
-
-## Audit Records
-
-Audit findings go in `project/audits/`, not here. One file per audit run:
-- `project/audits/audit-MRK-6-14-29.md`
-- `project/audits/audit-LUK-1-full-pipeline.md`
-
-This directory (`docs/audits/`) contains only **procedures** (version-controlled, reusable). Records (`project/audits/`) are **findings** (per-run, not committed).
-"""
-
-AUDIT_PASSAGE_CHECKLIST = """<!-- Generated by sp init -->
-# Audit Checklist: Passage Output
-
-**STOP conditions (abort if any fail):**
-- **STOP** if passage reference is missing or malformed
-- **STOP** if output file is empty or contains only template markers
-
-## Structure & Completeness
-
-- [ ] Passage reference is correct (book, chapter, verses)
-- [ ] All expected sections are present (introduction, analysis, application, etc.)
-- [ ] No placeholder text remains (e.g., `[TODO]`, `[FILL IN]`)
-- [ ] Section headings match pipeline specification
-
-## Content Quality
-
-- [ ] Introduction accurately summarizes the passage
-- [ ] Analysis addresses the key theological or narrative points
-- [ ] Application is contextually appropriate
-- [ ] Cross-references are accurate (if present)
-- [ ] Cultural notes are factually correct (if present)
-
-## Format & Rendering
-
-- [ ] Markdown syntax is valid (no broken links, malformed headers)
-- [ ] Scripture quotations are properly formatted
-- [ ] Lists and bullets render correctly
-- [ ] No LLM artifacts (e.g., "As an AI assistant...")
-
-## Pipeline Metadata
-
-- [ ] Output filename matches expected pattern
-- [ ] File saved to correct directory per pipeline spec
-- [ ] Timestamp or version info is present (if required)
-
-## Record findings in `project/audits/audit-<passage>-<date>.md`
-"""
-
-AUDIT_LEADERSGUIDE_CHECKLIST = """<!-- Generated by sp init -->
-# Audit Checklist: Leader's Guide
-
-**STOP conditions (abort if any fail):**
-- **STOP** if passage reference is missing
-- **STOP** if file contains only boilerplate/"coming soon" text
-- **STOP** if critical sections (Discussion Questions) are missing
-
-## Structural Completeness
-
-- [ ] Passage reference is correct
-- [ ] Introduction/Overview section is present
-- [ ] Discussion questions section is present
-- [ ] Application section is present
-- [ ] Closing/Prayer section is present (if required)
-
-## Discussion Questions
-
-- [ ] At least 3 discussion questions provided
-- [ ] Questions are open-ended (not yes/no)
-- [ ] Questions connect to passage content
-- [ ] Questions appropriate for target audience
-- [ ] No leading or tendentious questions
-
-## Content Accuracy
-
-- [ ] Introduction accurately summarizes passage
-- [ ] No theological errors or misrepresentations
-- [ ] Cultural/historical notes are factually correct
-- [ ] Cross-references are accurate
-- [ ] Application is contextually appropriate
-
-## Usability for Leaders
-
-- [ ] Language is accessible (no jargon without explanation)
-- [ ] Instructions for group leader are clear
-- [ ] Timing estimates are realistic (if provided)
-- [ ] Materials list is complete (if provided)
-
-## Format & Polish
-
-- [ ] Markdown syntax is valid
-- [ ] No LLM artifacts ("As an AI...")
-- [ ] Scripture quotations properly formatted
-- [ ] Headings follow project style guide
-
-## Record findings in `project/audits/audit-leadersguide-<passage>-<date>.md`
-"""
-
-
 def _lock_sp_dir(path: Path) -> None:
     """Remove write permission from path and all contents (owner, group, others)."""
     if not path.exists():
@@ -1533,15 +1412,38 @@ def _sp_dir_writable(path: Path):
             _lock_sp_dir(path)
 
 
+def _write_if_changed(target: Path, content: str, *, label: str) -> bool:
+    """Write `content` to `target` only when it differs. Returns True if written.
+
+    Captain, 2026-08-25: *"perhaps if the ~/.sp files match exactly, we simply leave them in
+    place instead of overwriting, so as not to change the file dates? that might be easier for
+    the user and cleaner."*
+
+    The point is not tidiness. `~/.sp` is a version-controlled store, and a dirty working tree
+    is how an unreviewed write gets noticed. When every `--update` rewrites all 23 files, a real
+    change is invisible in the crowd. `sp doctor` has always compared content — it reports
+    conventions as "present and unchanged" — so this makes `sp init --update` agree with it.
+    """
+    if target.exists():
+        try:
+            if target.read_text(encoding="utf-8") == content:
+                logger.debug(f"{label} unchanged; left in place")
+                return False
+        except OSError:
+            pass
+    target.write_text(content, encoding="utf-8")
+    return True
+
+
 def install_global_disciplines(sp_home: Optional[Path] = None, force: bool = False) -> None:
     """Install global disciplines to ~/.sp/disciplines/.
 
     Args:
-        sp_home: Override ~/.sp directory (for testing). Defaults to Path.home() / ".sp"
+        sp_home: Override ~/.sp directory (for testing). Defaults to _paths.sp_home()
         force: If True, overwrite existing files. If False, skip existing files.
     """
     if sp_home is None:
-        sp_home = Path.home() / ".sp"
+        sp_home = _paths.sp_home()
 
     disciplines_dir = sp_home / "disciplines"
     with _sp_dir_writable(disciplines_dir):
@@ -1550,7 +1452,7 @@ def install_global_disciplines(sp_home: Optional[Path] = None, force: bool = Fal
         # Get templates from package
         import llmflow
         pkg_root = Path(llmflow.__file__).parent
-        templates_dir = pkg_root / "templates" / "sp-disciplines"
+        templates_dir = pkg_root / "templates" / "sp" / "disciplines"
 
         # Copy convention files
         for template_file in templates_dir.glob("*.md"):
@@ -1561,13 +1463,13 @@ def install_global_disciplines(sp_home: Optional[Path] = None, force: bool = Fal
                 continue
 
             content = template_file.read_text(encoding="utf-8")
-            target_file.write_text(content, encoding="utf-8")
-            logger.info(f"✓ Installed {template_file.name} to ~/.sp/disciplines/")
+            if _write_if_changed(target_file, content, label=template_file.name):
+                logger.info(f"✓ Installed {template_file.name} to ~/.sp/disciplines/")
 
     # Files that belong at the root of ~/.sp/, not in a subdirectory (#204).
     # drift-patterns.md is read by the load-context skill as ~/.sp/drift-patterns.md,
     # so its location is part of a contract and cannot be moved under disciplines/.
-    root_templates_dir = pkg_root / "templates" / "sp-root"
+    root_templates_dir = pkg_root / "templates" / "sp"
     if root_templates_dir.is_dir():
         sp_home.mkdir(parents=True, exist_ok=True)
 
@@ -1588,10 +1490,12 @@ def install_global_disciplines(sp_home: Optional[Path] = None, force: bool = Fal
                     logger.info(f"{target_file.name} already exists in ~/.sp/; skipping")
                     continue
 
-                target_file.write_text(
-                    template_file.read_text(encoding="utf-8"), encoding="utf-8"
-                )
-                logger.info(f"✓ Installed {template_file.name} to ~/.sp/")
+                if _write_if_changed(
+                    target_file,
+                    template_file.read_text(encoding="utf-8"),
+                    label=template_file.name,
+                ):
+                    logger.info(f"✓ Installed {template_file.name} to ~/.sp/")
         finally:
             if was_locked:
                 _lock_sp_dir(sp_home)
@@ -1601,15 +1505,15 @@ def install_global_skills(sp_home: Optional[Path] = None, force: bool = False) -
     """Install global skills to ~/.sp/skills/.
 
     Args:
-        sp_home: Override ~/.sp directory (for testing). Defaults to Path.home() / ".sp"
+        sp_home: Override ~/.sp directory (for testing). Defaults to _paths.sp_home()
         force: If True, overwrite existing files. If False, skip existing files.
     """
     if sp_home is None:
-        sp_home = Path.home() / ".sp"
+        sp_home = _paths.sp_home()
 
     import llmflow
     pkg_root = Path(llmflow.__file__).parent
-    templates_dir = pkg_root / "templates" / "sp-skills"
+    templates_dir = pkg_root / "templates" / "sp" / "skills"
     skills_dir = sp_home / "skills"
 
     with _sp_dir_writable(skills_dir):
@@ -1628,8 +1532,10 @@ def install_global_skills(sp_home: Optional[Path] = None, force: bool = False) -
                 logger.info(f"{skill_dir.name} already exists in ~/.sp/skills/; skipping")
                 continue
 
-            target.write_text(skill_file.read_text(encoding="utf-8"), encoding="utf-8")
-            logger.info(f"✓ Installed {skill_dir.name} skill to ~/.sp/skills/")
+            if _write_if_changed(
+                target, skill_file.read_text(encoding="utf-8"), label=skill_dir.name
+            ):
+                logger.info(f"✓ Installed {skill_dir.name} skill to ~/.sp/skills/")
 
 
 # `_fetch_stand_down` used to pull stand-down/SKILL.md from human-at-the-helm at install
@@ -1643,6 +1549,83 @@ def install_global_skills(sp_home: Optional[Path] = None, force: bool = False) -
 #
 # The bundled template is the later of the two — it carries "Propose a Fix" (wait for
 # approval before writing any file) and a Step 3 that the upstream copy does not.
+
+
+#: The starter examples `sp init --no-examples` skips. Paths, not constants, because the
+#: catalog addresses documents by path and a second list keyed on constant names would be the
+#: hand-kept list this loop exists to delete.
+_EXAMPLE_PATHS = frozenset({
+    "prompts/hello.gpt",
+    "prompts/reply.gpt",
+    "pipelines/hello-llmflow.yaml",
+    "pipelines/hello.yaml",
+    "docs/tutorial.md",
+})
+
+
+def _write_catalogued_files(base_dir: Path, *, update: bool, no_examples: bool) -> None:
+    """Write every project file the catalog declares (#214).
+
+    This replaced 21 hand-written `if not exists / elif update / else` blocks, one per
+    document, each naming its own constant. That shape is why `docs/ai-context/sp/audits-pattern.md`
+    could be catalogued, rendered into `sp/index.md` and repairable by `sp doctor` while
+    `sp init` never created it: adding a catalog row did nothing until somebody also wrote a
+    block, and nothing failed when they did not.
+
+    Three kinds of entry are skipped, because something else owns the write:
+      - `block:` entries — `_configure_ai_assistants` upserts sp's block into a file sp does
+        not own, so writing the whole file here would discard the project's content
+      - `source: sp-home` — `.claude/skills/`, copied by `_install_claude_skills`
+      - `source: none` — no content to write
+
+    **Ownership is decided by `policy`, not by the generated marker.** The marker cannot carry
+    it: measured 2026-08-25, only 5 of 12 `generated` documents begin with it, while 5 of 9
+    `create-once` documents do. Keying `--update` on the marker therefore skipped seven
+    documents sp owns and would have clobbered five it does not. Captain, 2026-08-18:
+    *"Relying on this marker is fragile. We need a catalog that says what files sp init works
+    on."* This is that catalog, used for the decision it was built for, and it makes `sp init
+    --update` agree with `sp doctor`, which has always keyed on `policy`.
+    """
+    from llmflow import file_catalog as fc
+
+    for entry in sorted(fc.entries(), key=lambda e: e.path):
+        if entry.scope is not fc.Scope.PROJECT:
+            continue
+        if entry.block or entry.source in (fc.Source.SP_HOME, fc.Source.NONE):
+            continue
+        if no_examples and entry.path in _EXAMPLE_PATHS:
+            continue
+
+        content = fc.shipped_content(entry)
+        if content is None:
+            logger.warning(
+                f"{entry.path} is catalogued but has no shipped content; not written."
+            )
+            continue
+
+        target = base_dir / entry.path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        current = target.read_text(encoding="utf-8") if target.is_file() else None
+
+        # Derived content is rendered from the catalog on every run and carries
+        # "Do not hand-edit", so it is kept in step rather than gated on --update.
+        if entry.source is fc.Source.DERIVED:
+            if current != content:
+                target.write_text(content, encoding="utf-8")
+                logger.info(f"Wrote {entry.path} (rendered from the file catalog)")
+            continue
+
+        if current is None:
+            target.write_text(content, encoding="utf-8")
+            logger.info(f"Created {entry.path}")
+        elif update and entry.policy is fc.Policy.GENERATED:
+            if current == content:
+                logger.debug(f"{entry.path} unchanged; left in place")
+            else:
+                target.write_text(content, encoding="utf-8")
+                logger.info(f"Updated {entry.path}")
+        else:
+            logger.info(f"{entry.path} already exists; leaving as-is.")
 
 
 def init_project(base_dir: Path, update: bool = False, no_examples: bool = False) -> None:
@@ -1663,7 +1646,6 @@ def init_project(base_dir: Path, update: bool = False, no_examples: bool = False
     ai_context_dir = docs_dir / "ai-context"
     sp_context_dir = ai_context_dir / "sp"
     project_context_dir = ai_context_dir / "project"
-    docs_audits_dir = docs_dir / "audits"
     project_dir = base_dir / "project"
     audits_dir = project_dir / "audits"
     vscode_dir = base_dir / ".vscode"
@@ -1675,203 +1657,11 @@ def init_project(base_dir: Path, update: bool = False, no_examples: bool = False
     ai_context_dir.mkdir(parents=True, exist_ok=True)
     sp_context_dir.mkdir(parents=True, exist_ok=True)
     project_context_dir.mkdir(parents=True, exist_ok=True)
-    docs_audits_dir.mkdir(parents=True, exist_ok=True)
     project_dir.mkdir(parents=True, exist_ok=True)
     audits_dir.mkdir(parents=True, exist_ok=True)
     vscode_dir.mkdir(parents=True, exist_ok=True)
 
-    prompt_path = prompts_dir / "hello.gpt"
-    reply_prompt_path = prompts_dir / "reply.gpt"
-    pipeline_path = pipelines_dir / "hello-llmflow.yaml"
-    hello_yaml_path = pipelines_dir / "hello.yaml"
-    tutorial_doc_path = docs_dir / "tutorial.md"
-    language_quickref_path = docs_dir / "llmflow-language-quickref.md"
-    vscode_doc_path = docs_dir / "vscode.md"
-    ai_overview_path = project_context_dir / "overview.md"
-    ai_rules_path = sp_context_dir / "rules.md"
-    ai_project_index_path = project_context_dir / "index.md"
-    sp_index_path = sp_context_dir / "index.md"
-    ai_github_workflow_path = sp_context_dir / "github-workflow.md"
-    ai_project_path = project_context_dir / "project.md"
-    sp_overview_path = sp_context_dir / "overview.md"
-    project_rules_path = project_context_dir / "rules.md"
-    docs_audits_index_path = docs_audits_dir / "INDEX.md"
-    audit_passage_path = docs_audits_dir / "audit-passage.md"
-    audit_leadersguide_path = docs_audits_dir / "audit-leadersguide.md"
-    project_todo_path = project_dir / "TODO.md"
-    project_audits_readme_path = audits_dir / "README.md"
-
-    if not no_examples:
-        if not prompt_path.exists():
-            prompt_path.write_text(HELLO_PROMPT, encoding="utf-8")
-            logger.info("Created prompts/hello.gpt")
-        elif update and _is_generated(prompt_path):
-            prompt_path.write_text(HELLO_PROMPT, encoding="utf-8")
-            logger.info("Updated prompts/hello.gpt")
-        else:
-            logger.info("prompts/hello.gpt already exists; leaving as-is.")
-
-        if not reply_prompt_path.exists():
-            reply_prompt_path.write_text(HELLO_REPLY_PROMPT, encoding="utf-8")
-            logger.info("Created prompts/reply.gpt")
-        elif update and _is_generated(reply_prompt_path):
-            reply_prompt_path.write_text(HELLO_REPLY_PROMPT, encoding="utf-8")
-            logger.info("Updated prompts/reply.gpt")
-        else:
-            logger.info("prompts/reply.gpt already exists; leaving as-is.")
-
-        if not pipeline_path.exists():
-            pipeline_path.write_text(HELLO_PIPELINE, encoding="utf-8")
-            logger.info("Created pipelines/hello-llmflow.yaml")
-        elif update and _is_generated(pipeline_path):
-            pipeline_path.write_text(HELLO_PIPELINE, encoding="utf-8")
-            logger.info("Updated pipelines/hello-llmflow.yaml")
-        else:
-            logger.info("pipelines/hello-llmflow.yaml already exists; leaving as-is.")
-
-        if not hello_yaml_path.exists():
-            hello_yaml_path.write_text(HELLO_YAML, encoding="utf-8")
-            logger.info("Created pipelines/hello.yaml")
-        elif update and _is_generated(hello_yaml_path):
-            hello_yaml_path.write_text(HELLO_YAML, encoding="utf-8")
-            logger.info("Updated pipelines/hello.yaml")
-        else:
-            logger.info("pipelines/hello.yaml already exists; leaving as-is.")
-
-        if not tutorial_doc_path.exists():
-            tutorial_doc_path.write_text(TUTORIAL_DOC, encoding="utf-8")
-            logger.info("Created docs/tutorial.md")
-        elif update and _is_generated(tutorial_doc_path):
-            tutorial_doc_path.write_text(TUTORIAL_DOC, encoding="utf-8")
-            logger.info("Updated docs/tutorial.md")
-        else:
-            logger.info("docs/tutorial.md already exists; leaving as-is.")
-
-    if not language_quickref_path.exists():
-        language_quickref_path.write_text(LANGUAGE_QUICKREF_DOC, encoding="utf-8")
-        logger.info("Created docs/llmflow-language-quickref.md")
-    elif update and _is_generated(language_quickref_path):
-        language_quickref_path.write_text(LANGUAGE_QUICKREF_DOC, encoding="utf-8")
-        logger.info("Updated docs/llmflow-language-quickref.md")
-    else:
-        logger.info("docs/llmflow-language-quickref.md already exists; leaving as-is.")
-
-    if not ai_overview_path.exists():
-        ai_overview_path.write_text(AI_OVERVIEW_DOC, encoding="utf-8")
-        logger.info("Created docs/ai-context/project-overview.md")
-    elif update and _is_generated(ai_overview_path):
-        ai_overview_path.write_text(AI_OVERVIEW_DOC, encoding="utf-8")
-        logger.info("Updated docs/ai-context/project-overview.md")
-    else:
-        logger.info("docs/ai-context/project-overview.md already exists; leaving as-is.")
-
-    if not ai_rules_path.exists():
-        ai_rules_path.write_text(ai_rules_doc(), encoding="utf-8")
-        logger.info("Created docs/ai-context/sp/rules.md")
-    elif update and _is_generated(ai_rules_path):
-        ai_rules_path.write_text(ai_rules_doc(), encoding="utf-8")
-        logger.info("Updated docs/ai-context/sp/rules.md")
-    else:
-        logger.info("docs/ai-context/sp/rules.md already exists; leaving as-is.")
-
-    # project/index.md is the project's own map — created once, never overwritten (Q1).
-    if not ai_project_index_path.exists():
-        ai_project_index_path.write_text(AI_INDEX_DOC, encoding="utf-8")
-        logger.info("Created docs/ai-context/project/index.md")
-    else:
-        logger.info("docs/ai-context/project/index.md already exists; leaving as-is (yours to own).")
-
-    # sp/index.md is rendered from data/file-catalog.yaml, so there is no second list.
-    from llmflow.file_catalog import render_sp_index
-
-    sp_index_text = render_sp_index()
-    if not sp_index_path.exists() or sp_index_path.read_text(encoding="utf-8") != sp_index_text:
-        sp_index_path.write_text(sp_index_text, encoding="utf-8")
-        logger.info("Wrote docs/ai-context/sp/index.md (rendered from the file catalog)")
-
-    if not ai_github_workflow_path.exists():
-        ai_github_workflow_path.write_text(GITHUB_WORKFLOW_DOC, encoding="utf-8")
-        logger.info("Created docs/ai-context/github-workflow.md")
-    elif update and _is_generated(ai_github_workflow_path):
-        ai_github_workflow_path.write_text(GITHUB_WORKFLOW_DOC, encoding="utf-8")
-        logger.info("Updated docs/ai-context/github-workflow.md")
-    else:
-        logger.info("docs/ai-context/github-workflow.md already exists; leaving as-is.")
-
-    # sp's own overview: ours, refreshed like the rest of sp/.
-    if not sp_overview_path.exists():
-        sp_overview_path.write_text(SP_OVERVIEW_DOC, encoding="utf-8")
-        logger.info("Created docs/ai-context/sp/overview.md")
-    elif update:
-        sp_overview_path.write_text(SP_OVERVIEW_DOC, encoding="utf-8")
-        logger.info("Updated docs/ai-context/sp/overview.md")
-
-    # The project's own rules — created once, never overwritten. The file whose absence sent
-    # project-specific constraints into an invisible memory store.
-    if not project_rules_path.exists():
-        project_rules_path.write_text(PROJECT_RULES_DOC, encoding="utf-8")
-        logger.info("Created docs/ai-context/project/rules.md")
-    else:
-        logger.info("docs/ai-context/project/rules.md already exists; leaving as-is (yours to own).")
-
-    # project.md is the consumer's own lane — created once, never overwritten (even on --update).
-    if not ai_project_path.exists():
-        ai_project_path.write_text(AI_PROJECT_DOC, encoding="utf-8")
-        logger.info("Created docs/ai-context/project/project.md")
-    else:
-        logger.info("docs/ai-context/project/project.md already exists; leaving as-is (yours to own).")
-
-    if not vscode_doc_path.exists():
-        vscode_doc_path.write_text(VSCODE_DOC, encoding="utf-8")
-        logger.info("Created docs/vscode.md")
-    elif update and _is_generated(vscode_doc_path):
-        vscode_doc_path.write_text(VSCODE_DOC, encoding="utf-8")
-        logger.info("Updated docs/vscode.md")
-    else:
-        logger.info("docs/vscode.md already exists; leaving as-is.")
-
-    # project/TODO.md — never overwritten; hand-edited from first run
-    if not project_todo_path.exists():
-        project_todo_path.write_text(PROJECT_TODO, encoding="utf-8")
-        logger.info("Created project/TODO.md")
-    else:
-        logger.info("project/TODO.md already exists; leaving as-is.")
-
-    if not project_audits_readme_path.exists():
-        project_audits_readme_path.write_text(PROJECT_AUDITS_README, encoding="utf-8")
-        logger.info("Created project/audits/README.md")
-    elif update and _is_generated(project_audits_readme_path):
-        project_audits_readme_path.write_text(PROJECT_AUDITS_README, encoding="utf-8")
-        logger.info("Updated project/audits/README.md")
-    else:
-        logger.info("project/audits/README.md already exists; leaving as-is.")
-
-    if not docs_audits_index_path.exists():
-        docs_audits_index_path.write_text(DOCS_AUDITS_INDEX, encoding="utf-8")
-        logger.info("Created docs/audits/INDEX.md")
-    elif update and _is_generated(docs_audits_index_path):
-        docs_audits_index_path.write_text(DOCS_AUDITS_INDEX, encoding="utf-8")
-        logger.info("Updated docs/audits/INDEX.md")
-    else:
-        logger.info("docs/audits/INDEX.md already exists; leaving as-is.")
-
-    if not audit_passage_path.exists():
-        audit_passage_path.write_text(AUDIT_PASSAGE_CHECKLIST, encoding="utf-8")
-        logger.info("Created docs/audits/audit-passage.md")
-    elif update and _is_generated(audit_passage_path):
-        audit_passage_path.write_text(AUDIT_PASSAGE_CHECKLIST, encoding="utf-8")
-        logger.info("Updated docs/audits/audit-passage.md")
-    else:
-        logger.info("docs/audits/audit-passage.md already exists; leaving as-is.")
-
-    if not audit_leadersguide_path.exists():
-        audit_leadersguide_path.write_text(AUDIT_LEADERSGUIDE_CHECKLIST, encoding="utf-8")
-        logger.info("Created docs/audits/audit-leadersguide.md")
-    elif update and _is_generated(audit_leadersguide_path):
-        audit_leadersguide_path.write_text(AUDIT_LEADERSGUIDE_CHECKLIST, encoding="utf-8")
-        logger.info("Updated docs/audits/audit-leadersguide.md")
-    else:
-        logger.info("docs/audits/audit-leadersguide.md already exists; leaving as-is.")
+    _write_catalogued_files(base_dir, update=update, no_examples=no_examples)
 
     logger.info("Output directory ready at ./outputs")
 
@@ -1902,7 +1692,7 @@ def _register_in_global_registry(base_dir: Path) -> None:
     try:
         from llmflow.registry import Registry
 
-        registry_dir = Path.home() / ".sp"
+        registry_dir = _paths.sp_home()
         projects_dir = registry_dir / "projects"
         registry = Registry(registry_dir)
 

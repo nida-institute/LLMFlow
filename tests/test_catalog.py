@@ -160,21 +160,6 @@ def test_doctor_ownership_is_read_from_the_catalog():
         )
 
 
-def test_project_md_is_user_owned_and_never_repaired():
-    """D10, Captain: 'projects have a place to write their own context... we own those.'
-
-    `docs/ai-context/project.md` is that place. sp never overwrites it
-    (`cli_utils.py:686`), so doctor must never restore it either.
-    """
-    from llmflow.file_catalog import managed_by_doctor
-
-    entry = _by_path().get("docs/ai-context/project/project.md")
-    assert entry is not None, "project.md is not catalogued"
-    assert entry.policy is not Policy.GENERATED
-
-    assert "docs/ai-context/project/project.md" not in {e.path for e in managed_by_doctor()}
-
-
 def test_user_context_and_claude_md_are_never_repaired():
     """D10's 'never touched' column, pinned so a later edit cannot quietly widen ownership."""
     from llmflow.file_catalog import managed_by_doctor
@@ -202,7 +187,7 @@ def test_disciplines_derive_from_shipped_templates():
     This is the same rule doctor already follows. A second hardcoded list is how three
     disciplines went unshipped for months (#204, #181).
     """
-    shipped = {p.name for p in (_templates() / "sp-disciplines").glob("*.md")}
+    shipped = {p.name for p in (_templates() / "sp" / "disciplines").glob("*.md")}
     catalogued = {
         Path(e.path).name
         for e in entries()
@@ -216,7 +201,7 @@ def test_disciplines_derive_from_shipped_templates():
 
 
 def test_skills_derive_from_shipped_templates():
-    shipped = {p.name for p in (_templates() / "sp-skills").iterdir() if (p / "SKILL.md").exists()}
+    shipped = {p.name for p in (_templates() / "sp" / "skills").iterdir() if (p / "SKILL.md").exists()}
     catalogued = {
         Path(e.path).parts[1]
         for e in entries()

@@ -110,7 +110,7 @@ def test_nothing_shipped_still_points_at_the_old_index():
     # at which point the third `cat` comes out of the skill and this exemption goes with it.
     # (The layout moved from `project-index.md` to `project/index.md` the same day; the skill
     # reads both new paths plus the pre-split name.)
-    skill = REPO_ROOT / "src/llmflow/templates/sp-skills/load-context/SKILL.md"
+    skill = REPO_ROOT / "src/llmflow/templates/sp/skills/load-context/SKILL.md"
     if skill.is_file():
         text = skill.read_text(encoding="utf-8")
         assert "pre-split single index" in text, (

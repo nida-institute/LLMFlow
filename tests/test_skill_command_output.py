@@ -21,7 +21,7 @@ import pytest
 def get_skills_templates_dir() -> Path:
     import llmflow
 
-    return Path(llmflow.__file__).parent / "templates" / "sp-skills"
+    return Path(llmflow.__file__).parent / "templates" / "sp" / "skills"
 
 
 # Commands that change state rather than report it. Producing no output is correct

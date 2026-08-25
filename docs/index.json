@@ -104,6 +104,7 @@
       "imports": [
         "click",
         "contextlib",
+        "llmflow",
         "logging",
         "os",
         "pathlib",
@@ -125,7 +126,7 @@
         {
           "name": "_upsert_delimited_block",
           "signature": "_upsert_delimited_block(path: Path, block_name: str, content: str) -> str",
-          "doc": "Append or replace a named llmflow-init block in a file."
+          "doc": "Put sp's block at the top of the file, with the project's content below it."
         },
         {
           "name": "_install_claude_skills",
@@ -188,6 +189,11 @@
           "doc": "Unlock a protected ~/.sp/ directory for writing, then re-lock when done."
         },
         {
+          "name": "_write_if_changed",
+          "signature": "_write_if_changed(target: Path, content: str, label: str) -> bool",
+          "doc": "Write `content` to `target` only when it differs. Returns True if written."
+        },
+        {
           "name": "install_global_disciplines",
           "signature": "install_global_disciplines(sp_home: Optional[Path] = None, force: bool = False) -> None",
           "doc": "Install global disciplines to ~/.sp/disciplines/."
@@ -196,6 +202,11 @@
           "name": "install_global_skills",
           "signature": "install_global_skills(sp_home: Optional[Path] = None, force: bool = False) -> None",
           "doc": "Install global skills to ~/.sp/skills/."
+        },
+        {
+          "name": "_write_catalogued_files",
+          "signature": "_write_catalogued_files(base_dir: Path, update: bool, no_examples: bool) -> None",
+          "doc": "Write every project file the catalog declares (#214)."
         },
         {
           "name": "init_project",
@@ -361,9 +372,25 @@
       ]
     },
     {
+      "module": "llmflow.paths",
+      "imports": [
+        "__future__",
+        "os",
+        "pathlib"
+      ],
+      "functions": [
+        {
+          "name": "sp_home",
+          "signature": "sp_home() -> Path",
+          "doc": "The store directory — `$SP_HOME` if set, otherwise `~/.sp`."
+        }
+      ]
+    },
+    {
       "module": "llmflow.registry",
       "imports": [
         "datetime",
+        "llmflow",
         "os",
         "pathlib",
         "typing",
@@ -758,6 +785,7 @@
       "module": "llmflow.download_data",
       "imports": [
         "io",
+        "llmflow",
         "llmflow.modules.logger",
         "os",
         "pathlib",
@@ -1085,6 +1113,7 @@
         "__future__",
         "dataclasses",
         "enum",
+        "llmflow",
         "llmflow.file_catalog",
         "pathlib",
         "shutil",
@@ -4003,7 +4032,7 @@
     }
   ],
   "summary": {
-    "total_modules": 75,
-    "total_functions": 618
+    "total_modules": 76,
+    "total_functions": 621
   }
 }

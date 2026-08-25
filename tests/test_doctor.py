@@ -109,7 +109,7 @@ def test_repair_actually_writes_the_files(empty_home: Path, project: Path):
     run_doctor(sp_home=sp_home, project_dir=project)
 
     installed = {p.name for p in (sp_home / "disciplines").glob("*.md")}
-    shipped = {p.name for p in (_templates() / "sp-disciplines").glob("*.md")}
+    shipped = {p.name for p in (_templates() / "sp" / "disciplines").glob("*.md")}
     assert shipped <= installed, f"claimed repair left these missing: {sorted(shipped - installed)}"
 
 
@@ -158,7 +158,7 @@ def test_expectations_come_from_the_package_not_a_hardcoded_list(tmp_path: Path,
     # comparing against the package, and must name the file it is missing.
     # install_global_disciplines locks the directory read-only, so unlock to simulate
     # the drift.
-    victim = sorted((_templates() / "sp-disciplines").glob("*.md"))[0].name
+    victim = sorted((_templates() / "sp" / "disciplines").glob("*.md"))[0].name
     disciplines = sp_home / "disciplines"
     disciplines.chmod(0o755)
     (disciplines / victim).chmod(0o644)
@@ -238,6 +238,7 @@ def test_a_freshly_initialised_project_has_nothing_to_repair(tmp_path: Path, mon
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("SP_HOME", str(home / ".sp"))
     proj = tmp_path / "fresh"
     proj.mkdir()
 
@@ -257,6 +258,7 @@ def test_repair_preserves_a_projects_own_content_around_the_block(tmp_path: Path
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("SP_HOME", str(home / ".sp"))
     proj = tmp_path / "fresh"
     proj.mkdir()
     init_project(proj)
@@ -292,7 +294,7 @@ def test_sp_init_then_sp_doctor_through_the_cli(tmp_path: Path, monkeypatch, cap
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
-    monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
+    monkeypatch.setenv("SP_HOME", str(home / ".sp"))
 
     project_dir = tmp_path / "repo"
     project_dir.mkdir()
@@ -327,7 +329,7 @@ def test_cli_doctor_repairs_and_says_so(tmp_path: Path, monkeypatch, capsys):
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
-    monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
+    monkeypatch.setenv("SP_HOME", str(home / ".sp"))
 
     project_dir = tmp_path / "repo"
     project_dir.mkdir()
@@ -336,7 +338,7 @@ def test_cli_doctor_repairs_and_says_so(tmp_path: Path, monkeypatch, capsys):
     main(["init"])
     capsys.readouterr()
 
-    victim = sorted((_templates() / "sp-disciplines").glob("*.md"))[0]
+    victim = sorted((_templates() / "sp" / "disciplines").glob("*.md"))[0]
     installed = home / ".sp" / "disciplines" / victim.name
     (home / ".sp" / "disciplines").chmod(0o755)
     installed.chmod(0o644)
@@ -363,7 +365,7 @@ def test_diverged_content_is_repaired_not_just_noticed(tmp_path: Path, project: 
     sp_home = tmp_path / ".sp"
     install_global_disciplines(sp_home=sp_home)
 
-    victim = sorted((_templates() / "sp-disciplines").glob("*.md"))[0]
+    victim = sorted((_templates() / "sp" / "disciplines").glob("*.md"))[0]
     disciplines = sp_home / "disciplines"
     disciplines.chmod(0o755)
     installed = disciplines / victim.name
@@ -423,7 +425,7 @@ def test_repair_survives_the_read_only_lock(tmp_path: Path, project: Path):
     sp_home = tmp_path / ".sp"
     install_global_disciplines(sp_home=sp_home)
 
-    victim = sorted((_templates() / "sp-disciplines").glob("*.md"))[0]
+    victim = sorted((_templates() / "sp" / "disciplines").glob("*.md"))[0]
     installed = sp_home / "disciplines" / victim.name
 
     # Leave the lock exactly as install_global_disciplines left it, then drift the file.
@@ -447,7 +449,7 @@ def test_a_failed_repair_is_an_error_not_a_silent_pass(tmp_path: Path, project: 
     sp_home = tmp_path / ".sp"
     install_global_disciplines(sp_home=sp_home)
 
-    victim = sorted((_templates() / "sp-disciplines").glob("*.md"))[0]
+    victim = sorted((_templates() / "sp" / "disciplines").glob("*.md"))[0]
     disciplines = sp_home / "disciplines"
     disciplines.chmod(0o755)
     (disciplines / victim.name).chmod(0o644)

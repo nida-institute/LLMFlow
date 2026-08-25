@@ -69,14 +69,14 @@ def get_template_content(relative_path: str) -> str:
 
 def get_skills_templates_dir() -> Path:
     import llmflow
-    return Path(llmflow.__file__).parent / "templates" / "sp-skills"
+    return Path(llmflow.__file__).parent / "templates" / "sp" / "skills"
 
 
 def test_discipline_template_exists():
     """Convention template file must exist in package."""
     import llmflow
     pkg_root = Path(llmflow.__file__).parent
-    template_file = pkg_root / "templates" / "sp-disciplines" / "llmflow-prompt-organization.md"
+    template_file = pkg_root / "templates" / "sp" / "disciplines" / "llmflow-prompt-organization.md"
     assert template_file.exists(), f"Convention template not found at {template_file}"
 
 
@@ -84,14 +84,14 @@ def test_project_tracking_discipline_template_exists():
     """Rolling-file discipline template must exist in package."""
     import llmflow
     pkg_root = Path(llmflow.__file__).parent
-    template_file = pkg_root / "templates" / "sp-disciplines" / "project-tracking.md"
+    template_file = pkg_root / "templates" / "sp" / "disciplines" / "project-tracking.md"
     assert template_file.exists(), f"Project tracking discipline not found at {template_file}"
 
 
 def get_disciplines_templates_dir() -> Path:
     import llmflow
 
-    return Path(llmflow.__file__).parent / "templates" / "sp-disciplines"
+    return Path(llmflow.__file__).parent / "templates" / "sp" / "disciplines"
 
 
 @pytest.mark.parametrize("discipline_name", sorted(EXPECTED_DISCIPLINES))
@@ -125,7 +125,7 @@ def test_sp_root_file_shipped(filename):
     """
     import llmflow
 
-    template = Path(llmflow.__file__).parent / "templates" / "sp-root" / filename
+    template = Path(llmflow.__file__).parent / "templates" / "sp" / filename
     assert template.exists(), f"Not shipped: {template}"
 
 
@@ -227,7 +227,7 @@ def test_installed_skills_match_templates():
 
 def test_skill_has_valid_yaml_frontmatter():
     """Skill YAML frontmatter must parse correctly."""
-    content = get_template_content("sp-skills/audit-prompts/SKILL.md")
+    content = get_template_content("sp/skills/audit-prompts/SKILL.md")
 
     assert content.startswith("---\n")
     parts = content.split("---\n", 2)
@@ -254,7 +254,7 @@ def test_install_global_disciplines_creates_files(tmp_path):
     assert tracking_file.exists()
 
     # Verify content matches templates
-    template_discipline = get_template_content("sp-disciplines/llmflow-prompt-organization.md")
+    template_discipline = get_template_content("sp/disciplines/llmflow-prompt-organization.md")
     assert discipline_file.read_text(encoding="utf-8") == template_discipline
 
 
@@ -338,6 +338,7 @@ def test_sp_init_installs_global_resources(tmp_path, monkeypatch, caplog):
 
     fake_home = tmp_path / "home"
     fake_home.mkdir()
+    monkeypatch.setenv("SP_HOME", str(fake_home / ".sp"))
 
     project_dir = tmp_path / "project"
     project_dir.mkdir()

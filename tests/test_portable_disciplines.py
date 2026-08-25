@@ -63,7 +63,7 @@ REWRITTEN = ("README.md",)
 def _disciplines_dir() -> Path:
     import llmflow
 
-    return Path(llmflow.__file__).parent / "templates" / "sp-disciplines"
+    return Path(llmflow.__file__).parent / "templates" / "sp" / "disciplines"
 
 
 @pytest.mark.parametrize("discipline", SHARED_WITH_HELM)

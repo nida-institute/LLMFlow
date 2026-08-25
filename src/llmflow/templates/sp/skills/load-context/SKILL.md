@@ -88,10 +88,30 @@ Never paraphrase from memory when the canonical doc is available.
 
 ### Step 4: Read Rules and Overview
 
+The standard set is three documents — a map, a self-description, and constraints — and each half
+carries all three. Step 3 read both maps; these are the other four, plus the pre-split flat
+names for projects created before 2026-08-24. Every read is guarded, because a project has
+whichever layout it has and a missing file must be skipped in silence.
+
 ```bash
-cat docs/ai-context/sp/rules.md 2>/dev/null || cat docs/ai-context/rules.md
-cat docs/ai-context/overview.md
+# Constraints: what the tooling holds every session to, then what this project alone adds.
+cat docs/ai-context/sp/rules.md 2>/dev/null
+cat docs/ai-context/project/rules.md 2>/dev/null
+cat docs/ai-context/rules.md 2>/dev/null
+
+# Self-description: what the tooling is, then what this project is.
+cat docs/ai-context/sp/overview.md 2>/dev/null
+cat docs/ai-context/project/overview.md 2>/dev/null
+cat docs/ai-context/overview.md 2>/dev/null
 ```
+
+**Read the project's half as carefully as the tooling's.** `docs/ai-context/project/rules.md`
+holds constraints that apply in this project and nowhere else, and it is the file whose absence
+used to send project-specific rules into a memory store nobody read.
+
+**Everything else is reached through the index, not through this skill.** Topic documents are
+named by their side's `index.md`. This skill never lists them: a list here would be a second copy
+of the index, drifting from it, and the shorter copy always wins by being closer to hand.
 
 **Read `rules.md` in full. It is authoritative, and this skill does not summarise it.**
 
@@ -115,9 +135,9 @@ Disciplines live in one of two places depending on how this project was set up. 
 whichever exists — both, if both do:
 
 ```bash
-cat docs/ai-context/disciplines/README.md  # the index, when there is one
-cat docs/ai-context/disciplines/*.md       # committed with the project
-cat docs/ai-context/drift-patterns.md
+cat docs/ai-context/disciplines/README.md 2>/dev/null   # the index, when there is one
+cat docs/ai-context/disciplines/*.md 2>/dev/null        # committed with the project
+cat docs/ai-context/drift-patterns.md 2>/dev/null
 ```
 
 **If this machine also carries a machine-wide install at `~/.sp/`**, read that too — the
@@ -126,8 +146,8 @@ whose disciplines are committed alongside its code is complete without it, so an
 `~/.sp/` means nothing is missing:
 
 ```bash
-cat ~/.sp/disciplines/*.md                 # installed machine-wide
-cat ~/.sp/drift-patterns.md
+cat ~/.sp/disciplines/*.md 2>/dev/null     # installed machine-wide
+cat ~/.sp/drift-patterns.md 2>/dev/null
 ```
 
 The disciplines are rules that hold across projects rather than being specific to this

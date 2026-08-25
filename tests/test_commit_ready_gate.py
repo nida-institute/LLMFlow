@@ -40,7 +40,7 @@ def _skill_text() -> str:
     path = (
         Path(llmflow.__file__).parent
         / "templates"
-        / "sp-skills"
+        / "sp" / "skills"
         / "commit-ready"
         / "SKILL.md"
     )

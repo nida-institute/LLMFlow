@@ -45,6 +45,8 @@ import enum
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from llmflow import paths as _paths
 from typing import Optional
 
 from llmflow.file_catalog import Entry, Scope, Source, managed_by_doctor, shipped_content, shipped_path
@@ -131,7 +133,7 @@ def _shipped_names(subdir: str) -> set[str]:
 
 
 def _shipped_skill_names() -> set[str]:
-    d = _templates_dir() / "sp-skills"
+    d = _templates_dir() / "sp" / "skills"
     if not d.is_dir():
         return set()
     return {p.name for p in d.iterdir() if (p / "SKILL.md").exists()}
@@ -321,11 +323,11 @@ def run_doctor(
     """Inspect the machine, repair what sp owns, and return a Report.
 
     Args:
-        sp_home: the ~/.sp directory. Defaults to Path.home() / ".sp".
+        sp_home: the ~/.sp directory. Defaults to _paths.sp_home().
         project_dir: the repository to check. Defaults to the working directory.
         claude_home: the ~/.claude directory. Defaults to Path.home() / ".claude".
     """
-    sp_home = sp_home or Path.home() / ".sp"
+    sp_home = sp_home or _paths.sp_home()
     project_dir = project_dir or Path.cwd()
     claude_home = claude_home or Path.home() / ".claude"
 
@@ -357,7 +359,7 @@ def run_doctor(
             "Conventions",
             [e for e in sp_entries if e.path.startswith("disciplines/")],
             sp_home,
-            total=len(_shipped_names("sp-disciplines")),
+            total=len(_shipped_names("sp/disciplines")),
         )
     )
     add(
@@ -366,7 +368,7 @@ def run_doctor(
             "Root files",
             [e for e in sp_entries if "/" not in e.path],
             sp_home,
-            total=len(_shipped_names("sp-root")),
+            total=len(_shipped_names("sp")),
         )
     )
     add(

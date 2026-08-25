@@ -31,7 +31,7 @@ def _make_sp_dirs(tmp_path: Path) -> None:
 
 @pytest.fixture()
 def sp_home(tmp_path, monkeypatch):
-    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    monkeypatch.setenv("SP_HOME", str(tmp_path / ".sp"))
     _make_sp_dirs(tmp_path)
     return tmp_path
 
