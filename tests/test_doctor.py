@@ -63,6 +63,18 @@ def _by_id(report):
     return {check.id: check for check in report.checks}
 
 
+def _why_not_ok(report) -> str:
+    """Name the checks that make a report fail, since only ERROR does.
+
+    A bare `assert report.ok` prints a truncated repr of every check, which says nothing about
+    which one failed — and the answer is what a CI-only failure needs.
+    """
+    errors = [c for c in report.checks if c.severity is Severity.ERROR]
+    if not errors:
+        return "no ERROR check, so `ok` should have been True"
+    return "; ".join(f"{c.id}: {c.title} — {c.detail}" for c in errors)
+
+
 def test_untouched_machine_is_repaired_not_merely_reported(empty_home: Path, project: Path):
     """D10: missing files are warned about, repaired, and the repair is stated.
 
@@ -80,7 +92,7 @@ def test_untouched_machine_is_repaired_not_merely_reported(empty_home: Path, pro
         )
         assert checks[check_id].repaired, f"{check_id} was reported but not repaired"
 
-    assert report.ok, "self-repaired warnings must not fail the run"
+    assert report.ok, f"self-repaired warnings must not fail the run: {_why_not_ok(report)}"
     assert report.exit_code == 0
 
 
@@ -181,7 +193,8 @@ def test_missing_claude_md_is_informational_not_a_failure(tmp_path: Path, projec
 
     check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["claude_md"]
     assert check.severity is Severity.INFO
-    assert run_doctor(sp_home=sp_home, project_dir=project).ok
+    report = run_doctor(sp_home=sp_home, project_dir=project)
+    assert report.ok, _why_not_ok(report)
 
 
 def test_filesystem_access_is_never_reported(empty_home: Path, project: Path):

@@ -107,5 +107,12 @@ def test_the_generated_context_files_are_covered():
     that work was outstanding; it was deleted once empty, per rule `one-design`.
     """
     checked = {str(p.relative_to(REPO_ROOT)) for p in _prose_files()} - EXEMPT
-    assert "CLAUDE.md" in checked
     assert any(p.startswith("docs/ai-context/") for p in checked)
+
+    # `CLAUDE.md` is gitignored, so it is present in a working tree and absent from a clean
+    # checkout. Asserting it exists made this test unpassable in CI; asserting it is not
+    # exempted keeps the coverage the test is for.
+    if (REPO_ROOT / "CLAUDE.md").exists():
+        assert "CLAUDE.md" in checked
+    else:
+        assert "CLAUDE.md" not in EXEMPT

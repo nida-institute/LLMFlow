@@ -657,6 +657,11 @@ def edition_text(
     edition's own, the reference is mapped before any text is read — a reference is not a
     location until a scheme is named, and fetching first would fetch the wrong verses.
     """
+    # Before any filesystem work: an unusable format is a mistake in the pipeline, and
+    # reporting it should not depend on the edition's data being present.
+    if fmt not in FORMATS:
+        raise ValueError(f"unknown format {fmt!r}; expected one of {', '.join(FORMATS)}")
+
     definition = resolve_edition(edition, editions)
     passage = resolve_passage(
         passage,
