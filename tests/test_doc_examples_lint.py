@@ -44,9 +44,16 @@ def _iter_yaml_blocks():
 
 
 def _walk_steps(node):
-    """Yield every dict that looks like a pipeline step (type in KNOWN_STEP_TYPES)."""
+    """Yield every dict that looks like a pipeline step (type in KNOWN_STEP_TYPES).
+
+    `type` is not always a step type or even a string: the docs also contain JSON Schema
+    fragments, where `type: ["string", "null"]` is the documented way to spell an optional
+    field under OpenAI strict mode. Guard the membership test, or an unhashable list
+    raises TypeError here.
+    """
     if isinstance(node, dict):
-        if node.get("type") in KNOWN_STEP_TYPES:
+        node_type = node.get("type")
+        if isinstance(node_type, str) and node_type in KNOWN_STEP_TYPES:
             yield node
         for v in node.values():
             yield from _walk_steps(v)

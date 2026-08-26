@@ -1,10 +1,12 @@
-"""CLI utility functions for LLMFlow project initialization."""
+"""CLI utility functions for Scripture Pipelines project initialization."""
 import logging
 import os
 import re
 import stat
 from contextlib import contextmanager
 from pathlib import Path
+
+from llmflow import paths as _paths
 from typing import Optional
 
 import click
@@ -79,9 +81,9 @@ steps:
       path: "${output_dir}/responses.md"
 """
 
-HELLO_YAML = """name: "Hello LLMFlow"
+HELLO_YAML = """name: "Hello Scripture Pipelines"
 description: |
-  Minimal starter pipeline for LLMFlow.
+  Minimal starter pipeline for Scripture Pipelines.
   Run with: sp run --pipeline pipelines/hello.yaml
 variables:
   output_dir: "outputs"
@@ -103,7 +105,7 @@ steps:
       path: "${output_dir}/greeting.md"
 """
 
-TUTORIAL_DOC = """# LLMFlow Project Tutorial
+TUTORIAL_DOC = """# Scripture Pipelines Project Tutorial
 
 This repository was initialized with `sp init`.
 It includes a minimal, working example that shows how to declare variables,
@@ -197,9 +199,9 @@ as needed.
   saves it to another file using `saveas`.
 """
 
-LANGUAGE_QUICKREF_DOC = """# LLMFlow Language Quick Reference
+LANGUAGE_QUICKREF_DOC = """# Scripture Pipelines Language Quick Reference
 
-This file is a compact, self-contained reference to the LLMFlow
+This file is a compact, self-contained reference to the Scripture Pipelines
 pipeline language for day-to-day work in this repository.
 
 If you have access to the engine repo, the full specification lives
@@ -370,25 +372,44 @@ steps on each slice. Useful when a list is too large to process at once.
 
     # Optional: dynamic cursor — tell the engine where the next window starts.
     # Without this, windows advance by the full size (tumbling / non-overlapping).
+    #
+    # Two halves, and half is worse than none:
+    #   1. DISCARD the last logical unit of a non-final window. The physical cut may
+    #      have truncated it, so its end is not known. The next window re-decides it.
+    #   2. RESUME from the trailing edge of the last unit you KEPT — never from the
+    #      opening of the unit you dropped. If the model left a gap between them, a
+    #      cursor set to the dropped unit's opening skips it and nothing sees it again.
+    # The final window keeps everything: nothing truncated it.
     - !window_advance
       name: advance_cursor
-      cursor: next_start      # variable that holds the next start position
+      cursor: next_start      # a LIST INDEX into `in:` — not a domain identifier
       step:
         name: compute_next
         type: function
         function: plugins.windowing.content_index_of_sid
         inputs:
-          verse_sid: "${window_result.pericopes[-1].opening_verse_sid}"
+          # [-2] is the last unit kept, because [-1] was discarded as possibly cut.
+          # Its trailing edge, not its opening.
+          verse_sid: "${window_result.pericopes[-2].first_verse_sid_after_pericope}"
           content: "${content_list}"
+          # A domain boundary has to be converted to a position; that is all this
+          # function does.
         output: next_start
 ```
 
-- `size` — fixed item count per window.
+- `size` — fixed item count per window. Required even in cursor mode, where it bounds
+  how far each window may reach.
 - `size_by_tokens` — token-aware; requires `model` key (inherits from `llm_config`).
 - `include_partial: true` — process the final window even if it is shorter than `size`.
 - `!window_advance` — when present, switches to dynamic (cursor-driven) mode.
   The inner `step` runs each iteration; if its `cursor` variable is `null`
   the loop stops after the current window.
+- Two guards, both raising rather than misbehaving: a cursor that is not a non-negative
+  integer is rejected, and a cursor that does not advance beyond the current start raises
+  instead of looping forever.
+- Use `size`/`stride` when list items are independent (summarise every 10 reviews); use a
+  cursor whenever the LLM is finding structure *inside* the block. See "Physical windows,
+  logical units" in the Scripture Pipelines language reference for why.
 
 ### Cross-iteration state in `for-each` and `window`
 
@@ -440,7 +461,7 @@ Writes literal content to disk without calling an LLM.
 - name: write-confirmation
   type: save
   content: |
-    ✅ LLMFlow is installed and running.
+    ✅ Scripture Pipelines is installed and running.
     2 + 2 = ${total}
   saveas:
     path: "${output_dir}/hello-llmflow.txt"
@@ -581,14 +602,33 @@ LLMFLOW_BLOCK_BEGIN = "<!-- BEGIN llmflow-init: {name} -->"
 LLMFLOW_BLOCK_END = "<!-- END llmflow-init: {name} -->"
 
 
+def read_delimited_block(path: Path, block_name: str) -> Optional[str]:
+    """Return the content of a named llmflow-init block, or None if it is not there.
+
+    The counterpart to `_upsert_delimited_block`. `sp doctor` needs it because sp owns
+    its *block* in `.cursorrules` and `.windsurfrules`, not the whole file — comparing
+    the file against the bare constant reports permanent divergence and would strip a
+    project's own content along with the delimiters (#204, plan D10).
+    """
+    if not path.is_file():
+        return None
+
+    begin = LLMFLOW_BLOCK_BEGIN.format(name=block_name)
+    end = LLMFLOW_BLOCK_END.format(name=block_name)
+    match = re.search(
+        re.escape(begin) + r"\n(.*?)\n" + re.escape(end),
+        path.read_text(encoding="utf-8"),
+        re.DOTALL,
+    )
+    return match.group(1) if match else None
+
+
 def _upsert_delimited_block(path: Path, block_name: str, content: str) -> str:
-    """Append or replace a named llmflow-init block in a file.
+    """Put sp's block at the top of the file, with the project's content below it.
 
-    If the file does not exist, creates it with just the block.
-    If the file exists but has no matching block, appends the block.
-    If the file exists and has a matching block, replaces only that block.
-
-    Returns "created", "appended", or "updated".
+    The block is removed from wherever it currently sits and written at position 0, so a
+    file that received it at the bottom is relocated on the next run. Returns "created",
+    "updated" or "unchanged".
     """
     begin = LLMFLOW_BLOCK_BEGIN.format(name=block_name)
     end = LLMFLOW_BLOCK_END.format(name=block_name)
@@ -603,24 +643,42 @@ def _upsert_delimited_block(path: Path, block_name: str, content: str) -> str:
         re.escape(begin) + r".*?" + re.escape(end) + r"\n?",
         re.DOTALL,
     )
-    if pattern.search(existing):
-        updated = pattern.sub(block, existing)
-        path.write_text(updated, encoding="utf-8")
-        return "updated"
-    else:
-        sep = "\n" if existing.endswith("\n") else "\n\n"
-        path.write_text(existing + sep + block, encoding="utf-8")
-        return "appended"
+    theirs = pattern.sub("", existing, count=1).lstrip("\n")
+    updated = block + ("\n" + theirs if theirs else "")
+    if updated == existing:
+        return "unchanged"
+    path.write_text(updated, encoding="utf-8")
+    return "updated"
 
 
 # ---------------------------------------------------------------------------
 # AI assistant configuration content blocks
 # ---------------------------------------------------------------------------
 
-CLAUDE_MD_LLMFLOW_BLOCK = """\
-## LLMFlow Project
+#: Heads every delimited block sp writes into a file it does not own (#204).
+SP_BLOCK_WARNING = """\
+> ⚠️ **WARNING — DO NOT CHANGE THIS SECTION. ONLY `sp` MAY WRITE HERE.**
+>
+> Everything between the BEGIN and END markers belongs to Scripture Pipelines. `sp` can
+> change it at any time, and anything you write here is lost without warning.
+>
+> **Changing it also breaks how the system behaves.** This section is what tells an AI
+> assistant where this project's rules live. Edit it and a session can be held to rules
+> that do not exist, miss the ones that do, or follow a stale copy — and nothing reports
+> the problem. Delete the markers and `sp` adds a second copy of this section rather than
+> updating this one, leaving two sets of instructions and no way to tell which is live.
+>
+> **Put your own content below the block.** Everything after the END marker is yours and
+> `sp` never touches it. Do not write above the block — this section must be the first
+> thing in the file, so an assistant reads it before anything else.
 
-This project uses the LLMFlow declarative pipeline engine (`sp` CLI).
+"""
+
+
+CLAUDE_MD_LLMFLOW_BLOCK = SP_BLOCK_WARNING + """\
+## Scripture Pipelines Project
+
+This project uses the Scripture Pipelines declarative pipeline engine (`sp` CLI).
 
 ### Communication protocol
 
@@ -629,7 +687,8 @@ the AI implements (executes and provides analysis).
 
 ### Session start
 
-1. Read `docs/ai-context/index.md` — your navigation map for this project.
+1. Read `docs/ai-context/project/index.md` — this project's own map, and yours to keep current.
+   `docs/ai-context/sp/index.md` lists the documents Scripture Pipelines ships.
 2. Check `project/TODO.md` — active work and what NOT to touch.
 3. Load only context relevant to the current task.
 
@@ -638,7 +697,8 @@ the AI implements (executes and provides analysis).
 - `pipelines/` — YAML pipeline definitions
 - `prompts/` — prompt templates (`.gpt` files) used by `llm` steps
 - `outputs/` — generated artifacts written by `saveas`
-- `docs/ai-context/` — AI-facing documentation (read index.md first)
+- `docs/ai-context/project/` — yours: this project's map, description and rules (read `project/index.md` first)
+- `docs/ai-context/sp/` — Scripture Pipelines' own documents, regenerated; do not hand-edit
 
 ### Workflow guidelines
 
@@ -682,104 +742,131 @@ Do not declare output "production ready", "approved", or "suitable for use with 
 
 **CLAUDE.md belongs to the Captain.** The AI may propose additions or changes in conversation — showing exact content — but must never write to this file without explicit approval.
 
-**HARD PROHIBITION: Never modify the sp-generated files under `docs/ai-context/`** (`index.md`, `overview.md`, `rules.md`, `github-workflow.md`).
-These are generated by `sp init` and refreshed by `sp init --update`; the AI reports findings and proposes changes in conversation, it does not write them. **The one exception is `docs/ai-context/project.md`** — this repo's own context, which sp never overwrites. Project-specific AI context belongs there.
+**HARD PROHIBITION: Never modify anything under `docs/ai-context/sp/`.** Those are Scripture Pipelines' own documents; they are regenerated, so an edit there is lost and a fix belongs upstream. Everything under `docs/ai-context/project/` is the opposite — it is this project's, created once and never overwritten, and it is where anything you want to keep belongs.
+The `sp/` documents are written by `sp init` and refreshed by `sp init --update` and `sp doctor`; the AI reports findings and proposes changes in conversation rather than editing them, because an edit there is overwritten on the next run and the fix belongs in the engine.
+
+Everything under `project/` is yours: `index.md` for the map, `overview.md` for what this project is, `rules.md` for constraints that hold here and nowhere else, and `project.md` for facts, conventions and gotchas. `sp` creates each of them once and never touches them again, so write in them freely.
 
 **HARD PROHIBITION: Never create or modify files in the project memory directory without explicit approval.**
 Memory files belong to the Captain. Propose additions or deletions in conversation; never write them unilaterally.
 """
 
-CURSORRULES_LLMFLOW_BLOCK = """\
-## LLMFlow project rules
+# A pointer, not a copy (#204, plan D4/A2).
+#
+# This block used to restate the project's rules in six lines, and `.windsurfrules` was
+# assigned the same string. That summary omitted the `sp run` prohibition, the
+# memory-file prohibition and the `docs/ai-context/` prohibition, all of which the
+# Copilot document carried — so an agent reading `.cursorrules` as its rules found
+# nothing saying that running a pipeline spends money and needs the Captain's say-so.
+#
+# Three lossy copies of one rule set is how that happens. A signpost cannot drift out of
+# alignment with the rules because it carries none of them.
+ASSISTANT_RULES_POINTER = SP_BLOCK_WARNING + """\
+## Scripture Pipelines project rules
 
-This project uses the LLMFlow pipeline engine (`sp` CLI).
+This project uses the Scripture Pipelines pipeline engine (`sp` CLI).
 
-- Always read `docs/ai-context/index.md` before starting a task.
-- Pipeline YAML lives in `pipelines/`; prompt templates in `prompts/`.
-- Use `sp lint --pipeline <file>` to validate before running.
-- Do not declare outputs "production ready" — that requires human review.
-- Explain before implementing: describe changes and wait for approval.
+**The rules for this project are in `docs/ai-context/sp/rules.md`. Read it first — it is
+authoritative.** Start from `docs/ai-context/project/index.md`, this project's own map;
+`docs/ai-context/sp/index.md` lists what Scripture Pipelines ships.
+
+Nothing is restated here. A summary would drift from the rules it summarises, and an
+assistant acting on the summary would be acting on a weaker rule set than the one this
+project actually enforces.
 """
 
-WINDSURFRULES_LLMFLOW_BLOCK = CURSORRULES_LLMFLOW_BLOCK
+CURSORRULES_LLMFLOW_BLOCK = ASSISTANT_RULES_POINTER
+
+WINDSURFRULES_LLMFLOW_BLOCK = ASSISTANT_RULES_POINTER
 
 
-def _install_claude_skills(claude_home: Optional[Path] = None,
-                            sp_home: Optional[Path] = None) -> list[str]:
-    """Install skills from ~/.sp/skills/ into ~/.claude/skills/.
+def _install_claude_skills(base_dir: Path, sp_home: Optional[Path] = None) -> list[str]:
+    """Copy skills from ~/.sp/skills/ into <repo>/.claude/skills/ (#204, plan D1-A′).
 
-    Returns a list of installed skill names.
+    Claude Code reads skills from exactly two places: `~/.claude/skills/` (personal) and
+    `<repo>/.claude/skills/` (project). `~/.sp/skills/` is Scripture Pipelines's own directory and is
+    invisible to it — a skill left there is not invocable and `/load-context` does not
+    exist as a command. The copy is not redundancy; it is the only thing that makes the
+    skill work.
+
+    Captain's D1 ruling: *"I can live with a minimal use of .claude, I think it should be
+    project level, and it should load all of our ~/.sp skills and any local project
+    skills."* Nothing is written to `~/.claude` — a machine-scoped write is a permission
+    only the machine's owner can grant, and this repo-scoped copy needs no such grant.
+
+    The whole skill directory is copied, not just `SKILL.md`. The previous version copied
+    one file, which was correct only for as long as every skill stayed single-file.
+
+    Returns the names of the skills installed.
     """
-    if claude_home is None:
-        claude_home = Path.home() / ".claude"
     if sp_home is None:
-        sp_home = Path.home() / ".sp"
+        sp_home = _paths.sp_home()
 
     sp_skills_dir = sp_home / "skills"
-    claude_skills_dir = claude_home / "skills"
-
-    if not sp_skills_dir.exists():
+    if not sp_skills_dir.is_dir():
         return []
 
-    installed = []
+    project_skills_dir = base_dir / ".claude" / "skills"
+    installed: list[str] = []
+
     for skill_dir in sorted(sp_skills_dir.iterdir()):
-        if not skill_dir.is_dir():
+        if not skill_dir.is_dir() or not (skill_dir / "SKILL.md").exists():
             continue
-        skill_file = skill_dir / "SKILL.md"
-        if not skill_file.exists():
-            continue
-        target_dir = claude_skills_dir / skill_dir.name
-        target_dir.mkdir(parents=True, exist_ok=True)
-        target = target_dir / "SKILL.md"
-        target.write_text(skill_file.read_text(encoding="utf-8"), encoding="utf-8")
+
+        target_dir = project_skills_dir / skill_dir.name
+        for source in sorted(skill_dir.rglob("*")):
+            if source.is_dir():
+                continue
+            target = target_dir / source.relative_to(skill_dir)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            payload = source.read_bytes()
+            # Compared before writing so a re-run leaves mtimes alone; skills are copied
+            # as bytes because a skill directory may hold more than markdown.
+            if not target.exists() or target.read_bytes() != payload:
+                target.write_bytes(payload)
         installed.append(skill_dir.name)
 
     return installed
 
 
 def _configure_copilot(base_dir: Path, update: bool) -> None:
-    """Configure GitHub Copilot instructions file."""
+    """Configure GitHub Copilot instructions via a delimited block.
+
+    Block-managed like `.cursorrules` and `.windsurfrules`, and sharing their content
+    (`ASSISTANT_RULES_POINTER`). Until 2026-08-24 this file alone was written whole, which is
+    why `sp doctor` replaced 72 lines of a consumer repo's own Copilot instructions with the
+    three-line pointer — the two sibling files kept theirs, because sp owns only its block
+    there. Ruled Q2 of `project/plans/plan-init-doctor-unification.md`: *"give it
+    `block: workflow` like the other two."*
+
+    `update` is unused and kept for signature symmetry with the other `_configure_*`
+    helpers: an upsert is idempotent, so there is nothing for a flag to select.
+    """
     github_dir = base_dir / ".github"
     github_dir.mkdir(exist_ok=True)
     path = github_dir / "copilot-instructions.md"
-
-    if not path.exists():
-        path.write_text(COPILOT_INSTRUCTIONS_DOC, encoding="utf-8")
-        click.echo(f"  Created .github/copilot-instructions.md")
-    elif update and _is_generated(path):
-        path.write_text(COPILOT_INSTRUCTIONS_DOC, encoding="utf-8")
-        click.echo(f"  Updated .github/copilot-instructions.md")
-    else:
-        click.echo(f"  .github/copilot-instructions.md already exists; leaving as-is.")
+    action = _upsert_delimited_block(path, "workflow", ASSISTANT_RULES_POINTER)
+    click.echo(f"  {action.capitalize()} .github/copilot-instructions.md (llmflow-init block)")
 
 
 def _configure_claude_code(base_dir: Path, update: bool) -> None:
-    """Configure Claude Code: CLAUDE.md (project) and skills (machine-scoped)."""
-    # Project-scoped: CLAUDE.md
+    """Configure Claude Code: the CLAUDE.md block and the project's skills.
+
+    Both writes land inside `base_dir`. Nothing is machine-scoped any more (D1-A′), so
+    nothing here needs the user's consent — see `_configure_ai_assistants`.
+    """
     claude_md = base_dir / "CLAUDE.md"
     action = _upsert_delimited_block(claude_md, "workflow", CLAUDE_MD_LLMFLOW_BLOCK)
     click.echo(f"  {action.capitalize()} CLAUDE.md (llmflow-init block)")
 
-    # Machine-scoped: skills → ~/.claude/skills/
-    sp_home = Path.home() / ".sp"
-    sp_skills_dir = sp_home / "skills"
-    if not sp_skills_dir.exists() or not any(sp_skills_dir.iterdir()):
-        click.echo("  No skills found in ~/.sp/skills/ — skipping skill installation.")
+    sp_home = _paths.sp_home()
+    installed = _install_claude_skills(base_dir, sp_home=sp_home)
+    if not installed:
+        click.echo("  No skills found in ~/.sp/skills/ — none copied into .claude/skills/.")
         return
 
-    skill_names = [d.name for d in sorted(sp_skills_dir.iterdir()) if d.is_dir()]
-    claude_home = Path.home() / ".claude"
-    click.echo(f"\n  Machine-scoped (affects ALL Claude Code sessions on this machine):")
-    for name in skill_names:
-        click.echo(f"    ~/.claude/skills/{name}/SKILL.md")
-    click.echo()
-
-    if click.confirm("  Install Claude Code skills?", default=False):
-        installed = _install_claude_skills(claude_home=claude_home, sp_home=sp_home)
-        for name in installed:
-            click.echo(f"  Installed ~/.claude/skills/{name}/SKILL.md")
-    else:
-        click.echo("  Skipped skill installation.")
+    click.echo(f"  Installed {len(installed)} skill(s) into .claude/skills/: {', '.join(installed)}")
+    click.echo("  Commit .claude/skills/ so a clone of this repo has them.")
 
 
 def _configure_cursor(base_dir: Path, update: bool) -> None:
@@ -797,45 +884,67 @@ def _configure_windsurf(base_dir: Path, update: bool) -> None:
 
 
 def _configure_ai_assistants(base_dir: Path, update: bool = False) -> None:
-    """Interactive: select AI assistants and configure each with consent for machine-scoped actions.
+    """Write every assistant's configuration. Non-interactive by design (#204, D4/D5).
 
-    Skips silently when stdin is not a TTY (CI, piped usage, pytest).
+    This function used to open with `if not sys.stdin.isatty(): return`, so CI, Docker
+    builds, `sp init < /dev/null` and any scripted onboarding got nothing and were told
+    nothing — the exact path a "clone it and it works" story takes. On a TTY it asked
+    four questions with `Claude Code` defaulting to *No* and skills behind a second *No*,
+    so a user pressing Enter throughout ended up with a silently broken setup.
+
+    Captain, 2026-08-19: *"a fresh clone must get skills."*
+
+    Every write below lands inside `base_dir`, is idempotent, and cannot clobber a file
+    the project already owns. With the machine-scoped skill install gone (D1-A′), no
+    prompt has anything left to protect, so there are none.
     """
-    import sys
-    if not sys.stdin.isatty():
+    click.echo("\nConfiguring AI assistants for this project.")
+
+    click.echo("GitHub Copilot:")
+    _configure_copilot(base_dir, update)
+    click.echo("Claude Code:")
+    _configure_claude_code(base_dir, update)
+    click.echo("Cursor:")
+    _configure_cursor(base_dir, update)
+    click.echo("Windsurf:")
+    _configure_windsurf(base_dir, update)
+
+
+def _write_gitignore(base_dir: Path) -> None:
+    """Generate `.gitignore` when the project has none (#204, plan D9).
+
+    Captain, 2026-08-19: *"write a .gitignore if it does not exist, but do not overwrite
+    an existing one."* A project that already has one owns it; sp does not get to edit
+    a file the project has been maintaining.
+
+    The ignored paths are derived from the file catalog rather than written out here, so
+    the ignore list cannot disagree with the ownership record. That is what keeps
+    `.claude/skills/` out of it: those entries are marked committed, and a fresh clone
+    must receive them or it has no slash commands at all.
+    """
+    from llmflow.file_catalog import project_gitignore_lines
+
+    gitignore = base_dir / ".gitignore"
+    if gitignore.exists():
+        logger.info(".gitignore already exists; leaving as-is.")
         return
 
-    click.echo("\nSetting up AI assistant configuration.")
-    click.echo("Which AI assistant(s) will you use with this project?\n")
-
-    use_copilot = click.confirm("  GitHub Copilot", default=True)
-    use_claude = click.confirm("  Claude Code", default=False)
-    use_cursor = click.confirm("  Cursor", default=False)
-    use_windsurf = click.confirm("  Windsurf", default=False)
-
-    if not any([use_copilot, use_claude, use_cursor, use_windsurf]):
-        click.echo("\nNo AI assistants selected.")
-        return
-
-    click.echo()
-    if use_copilot:
-        click.echo("GitHub Copilot:")
-        _configure_copilot(base_dir, update)
-    if use_claude:
-        click.echo("Claude Code:")
-        _configure_claude_code(base_dir, update)
-    if use_cursor:
-        click.echo("Cursor:")
-        _configure_cursor(base_dir, update)
-    if use_windsurf:
-        click.echo("Windsurf:")
-        _configure_windsurf(base_dir, update)
+    lines = [
+        "# Generated by sp init. Paths are derived from the file catalog",
+        "# (llmflow/file_catalog.py) — anything sp marks as committed is absent here,",
+        "# including .claude/skills/, which a clone needs in order to have skills.",
+        "",
+        *project_gitignore_lines(),
+        "",
+    ]
+    gitignore.write_text("\n".join(lines), encoding="utf-8")
+    logger.info("Created .gitignore")
 
 
 AI_OVERVIEW_DOC = """<!-- Generated by sp init -->
-# LLMFlow — Repo Overview for AI Assistants
+# Scripture Pipelines — Repo Overview for AI Assistants
 
-This repository contains LLMFlow pipelines, prompts, and outputs.
+This repository contains Scripture Pipelines pipelines, prompts, and outputs.
 It was initialized with the `sp init` command.
 
 ## Layout
@@ -857,70 +966,45 @@ It was initialized with the `sp init` command.
   step types; defer to the upstream engine docs for advanced features.
 """
 
-AI_RULES_DOC = """<!-- Generated by sp init -->
+_AI_RULES_FRAME = """<!-- Generated by sp init -->
 # AI Assistant Rules for This Repo
 
 These guardrails apply to any language model collaborating on this
-LLMFlow-based project.
+Scripture Pipelines-based project.
 
-1. **Respect the LLMFlow schema.** Only use documented keys like
-   `name`, `type`, `prompt`, `inputs`, `outputs`, `llm_config`,
-   `saveas`, and `append_to`. Do not invent new fields.
-2. **Keep prompts and pipelines in sync.** If a prompt template expects
-   a variable (e.g., `{{greeting_markdown}}`), ensure the corresponding
-   pipeline step passes it via `prompt.inputs`.
-3. **Preserve human review.** Generated files under `outputs/` are
-   drafts. Do not assume they are final; humans review and edit them
-   before publication.
-4. **Be explicit about paths.** When suggesting changes, reference
-   concrete files such as `pipelines/hello-llmflow.yaml` or
-   `prompts/hello.gpt` so humans can verify easily.
-5. **Avoid destructive changes.** Prefer additive edits (new steps,
-   new pipelines) over deleting existing ones unless explicitly
-   requested.
-6. **Stay within documented capabilities.** Model- or provider-specific
-   features (such as JSON response modes) should be used only when the
-   upstream LLMFlow docs indicate support.
-7. **Declare prompt contracts.** Every `.gpt` file must have a YAML
-   frontmatter block at the top with a `requires:` list naming every
-   variable the prompt body uses. Missing `requires:` means the linter
-   cannot validate the pipeline and silent failures will occur:
-   ```
-   ---
-   requires:
-     - my_variable
-   optional: []
-   ---
-   ```
-8. **Use `project/TODO.md` as a session cache.** This file is the
-   single source of truth for what is in flight right now. Read it
-   at the start of every session before doing anything else.
-   - **Active** — what is being worked on this session
-   - **Backlog** — upcoming work, roughly prioritized; link GitHub
-     Issues with `→ #N` so the permanent record is one hop away
-   - **Done** — recently completed items (keep for context)
-   - Fetch a GitHub Issue (`gh issue view N`) only when more detail
-     is needed than the TODO link provides. Do not duplicate issue
-     content in this file — just link and summarise.
-9. **Draft GitHub Issues for human approval.** When something
-   warrants a permanent record (a bug, a design decision, a feature
-   request), draft the title and body and show it to the human.
-   Only run `gh issue create --body-file f.md` after explicit
-   approval. Never create issues silently.
-10. **Design documents are the authoritative specification.** Docstrings,
-    inline comments, and LLM-generated rationale have no design authority.
-    They are implementation artifacts and are frequently wrong, stale, or
-    rationalized post-hoc. When code and design documents conflict, the
-    design document wins — always.
-11. **Nothing is intentional unless the human says it is.** Do not infer
-    intent from code behavior, docstrings, or prior AI choices. If
-    behavior is not specified in a design document, ask.
-12. **Agree on requirements before implementing.** If you do not know which
-    design document contains the requirements for something you are about
-    to implement, stop — you are going rogue. The workflow is:
-    agree on requirements → agree on approach → write tests → implement.
-    Never skip or reorder these steps.
+{rules}
 """
+
+
+def ai_rules_doc() -> str:
+    """The rules document `sp init` writes, rendered from `data/ai-rules.yaml`.
+
+    Call this from inside this module. `AI_RULES_DOC` still works for importers via
+    `__getattr__` below, but a module-level `__getattr__` is not consulted for a bare name
+    used *within* the module — that raises `NameError`, which is what happened when this was
+    first written and what `ruff`'s F821 caught.
+    """
+    from llmflow.ai_rules import render_numbered
+
+    return _AI_RULES_FRAME.format(rules=render_numbered())
+
+
+def __getattr__(name: str):
+    """Render `AI_RULES_DOC` on first access from the single source (2026-08-21).
+
+    The rules used to be a literal here, and a *different* literal in
+    `tools/update_ai_context.py`. Both wrote `docs/ai-context/sp/rules.md`, so which rules a
+    project was held to depended on which generator last ran. Now `data/ai-rules.yaml` is the
+    only place they are written and both renderers read it.
+
+    Deliberately lazy rather than computed at import. `cli_utils` is imported by every `sp`
+    command; a missing or unreadable data file must fail the command that needs the rules,
+    not `sp --version`.
+    """
+    if name == "AI_RULES_DOC":
+        return ai_rules_doc()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 GITHUB_WORKFLOW_DOC = """<!-- Generated by sp init -->
 # GitHub Issue & Commit Workflow
@@ -1058,329 +1142,120 @@ gh issue comment 96 --body-file ./tmp/comment.txt
 If auto-close doesn't work, use `gh issue close XX` manually.
 """
 
-AI_PROJECT_DOC = """\
-# Project-Specific AI Context
+SP_OVERVIEW_DOC = """<!-- Generated by sp init -->
+# Scripture Pipelines, in brief
 
-**This file is yours.** `sp init` created it once and will **never overwrite it** — not even on
-`sp init --update`. It is the durable, repo-scoped memory every AI assistant working here should
-read and keep current. The generated files in `docs/ai-context/` (`index.md`, `overview.md`,
-`rules.md`, `github-workflow.md`) are refreshed by `sp init --update` — do not hand-edit them;
-anything you want to keep and evolve locally goes here, and `index.md` points assistants at it.
+This project runs on **Scripture Pipelines** — a declarative pipeline engine for AI-assisted
+biblical and linguistic scholarship. The command is `sp`.
 
-**Discipline (for the AI):** record a non-obvious project fact here the moment you learn it — a
-data source, a convention, a trap that cost time. Keep it a scannable map, not a dump; prune
-what goes stale. This is the same idea as `/handoff` (session scope) and `~/.sp` (machine
-scope), at the repo scope.
+## What that means for you
 
-The sections below are a starting structure — adapt them to this repo, don't force them.
+A pipeline is a YAML file: an ordered list of steps, each with named inputs and outputs. The
+YAML is the design, not a wrapper around code hidden elsewhere — which is why `sp lint`,
+`sp run --dry-run` and `--rewind-to` can each reason about a pipeline without executing it.
 
-## What this repo is
+- **`sp lint --pipeline <file>`** — check a pipeline before spending anything
+- **`sp run --pipeline <file> --dry-run`** — resolve every path and variable, call no model
+- **`sp run --pipeline <file>`** — the real thing, which costs money and writes files
 
-<!-- One paragraph: what it does, its domain, who or what it serves. -->
+`sp run` is never run on an AI's initiative. A human decides when a pipeline runs.
 
-## Data sources & key artifacts
+## Where the rest of it is
 
-<!-- Where the data lives; canonical files, schemas, pipelines; what is generated vs authored. -->
+Three documents make up the standard set, on each side. Read them in this order at the start of
+a session — an overview, a map, then the constraints:
 
-## Local conventions
+| | Scripture Pipelines' | this project's |
+|---|---|---|
+| what it is | `sp/overview.md` (this file) | `project/overview.md` |
+| what documents exist | `sp/index.md` | `project/index.md` |
+| what the rules are | `sp/rules.md` | `project/rules.md` |
 
-<!-- Repo-specific rules not in sp's standard: naming, structure, review norms. -->
+`sp/index.md` lists every document Scripture Pipelines ships and is rendered from the file
+catalog, so it cannot go stale. `project/index.md` is yours: sp cannot know what documents a
+project has, so nothing generates it and nothing overwrites it.
 
-## Gotchas / hard-won facts
+Everything else — `sp/audits-pattern.md`, `sp/github-workflow.md`, `project/project.md`, and
+whatever this project adds — is reached through one of the two indexes.
 
-<!-- Traps and non-obvious facts, recorded as learned (with a file:line or a pointer). -->
-
-## Where active work lives
-
-<!-- Pointers: project/TODO.md (current state), project/plans/ (designs in flight). -->
+Full documentation lives in the engine repository. This file is a pointer, not a manual: it is
+regenerated by `sp`, so anything written here is lost on the next update. Project-specific notes
+belong in `project/`.
 """
 
+PROJECT_RULES_DOC = """<!-- Created once by sp init. This file is yours; sp never overwrites it. -->
+# This project's rules
 
-AI_INDEX_DOC = """<!-- Generated by sp init -->
-# AI Context Index
+Constraints that hold in **this** project and nowhere else. `sp` creates this file once and
+never touches it again, so it is safe to write here.
 
-**READ THIS FIRST** — This file maps all available context (local + global) to help you navigate efficiently.
+## What belongs here
 
-Don't read everything upfront. Use this index to find what you need for each specific task.
+Things an AI session would otherwise get wrong, and that no general rule covers:
 
----
+- domain constraints — *"never italicise anything that could contain Hebrew text"*
+- data facts that change what is correct — *"this dataset's identifiers are not unique"*
+- local conventions — naming, layout, what must never be regenerated
+- prohibitions with a reason — what went wrong before, so it is not repeated
 
-## Local Context (This Repo)
+Write the reason, not only the rule. A constraint whose *why* is missing gets argued with, or
+quietly dropped when it becomes inconvenient.
 
-### This Repo's Own Context
-- **project.md** — project-specific AI context owned by this repo (`sp` never overwrites it).
-  Read it for repo-specific facts, conventions, and gotchas; add to it as the project grows.
+## What does not belong here
 
-### Project Tracking
-- **../../project/TODO.md** - Active work, in-progress items, blocked work
-  - **Read this FIRST every session** to understand current state
-  - Contains links to GitHub issues
-  - Shows what NOT to touch
+- **General practice** — how to run pipelines, how to write prompts, how to use git. That is in
+  `sp/rules.md` and in the shipped disciplines, and a copy here would drift from them.
+- **What is in flight** — that is `project/TODO.md`.
+- **Description** — what this project *is* goes in `project/overview.md`.
 
-### Core Documentation
-- **../tutorial.md** - Step-by-step walkthrough of variables and `saveas`
-- **../llmflow-language-quickref.md** - Core YAML structure, step types, variable syntax
-- **overview.md** - Project-specific pipeline patterns and conventions
-- **rules.md** - AI behavior rules and authority boundaries
-- **../.github/copilot-instructions.md** - Architecture patterns, workflow guidelines
-- **github-workflow.md** - Issue references, version numbering, CHANGELOG updates, gh CLI usage
+## The rules
 
-### External References
-- [Engine language spec (canonical)](https://github.com/nida-institute/LLMFlow/blob/main/docs/llmflow-language.md) - Full YAML specification
-- [Engine tutorial](https://github.com/nida-institute/LLMFlow/blob/main/docs/tutorial.md) - Core tutorial
-- [Engine Python API](https://github.com/nida-institute/LLMFlow/blob/main/docs/python-api.md) - `import llmflow`: `load_pipeline` / `Pipeline` / `.resolve` / `.lint` / `.run` / `.schemas` / `.saveas`, plus `PIPELINE_SCHEMA` + `api_catalog()` — the machine-readable syntax↔API map. Use this to inspect or drive a pipeline from Python instead of re-parsing YAML.
-
----
-
-## Global Context (~/.sp/)
-
-### User Instructions (machine-level, apply to all projects)
-- **~/.sp/user-context/*.md** — Read these at the start of every session. They contain
-  machine-level instructions that apply to all pipeline projects on this computer
-  (filesystem access, personal workflow preferences, machine-specific paths).
-
-### Conventions (shared across all projects)
-- **~/.sp/conventions/llmflow-prompt-organization.md** - Standard 8-section structure for .gpt files
-  - Input data grounding requirements
-  - Example formatting rules
-  - No markdown fences in JSON examples
-
-### Skills (specialized workflows)
-- **~/.sp/skills/audit-prompts/SKILL.md** - Comprehensive prompt quality auditing
-- **~/.sp/skills/audit-code/SKILL.md** - Code review workflow for plugins and Python
-- **~/.sp/skills/audit-output/SKILL.md** - Pipeline output quality verification
-
-### AI Context Templates
-- **~/.sp/ai-context/** - Shared AI context templates (index.md.yaml, overview.md.yaml)
-
----
-
-## When to Read What
-
-### Starting New Work
-1. Read this index (you're here!)
-2. Read `../../project/TODO.md` (current state, what not to touch)
-3. Read `../.github/copilot-instructions.md` (workflow, explain-before-implementing)
-
-### Specific Tasks
-- **Writing .gpt prompts** → `~/.sp/conventions/llmflow-prompt-organization.md`
-- **Pipeline YAML** → `../llmflow-language-quickref.md`
-- **Debugging pipeline errors** → `rules.md` section on common pitfalls
-- **Auditing prompts** → `~/.sp/skills/audit-prompts/SKILL.md`
-- **Auditing code** → `~/.sp/skills/audit-code/SKILL.md`
-- **Writing tests** → `../.github/copilot-instructions.md` TDD workflow
-- **CLI questions** → `../llmflow-language-quickref.md`
-- **Inspecting or driving a pipeline from Python** → [Engine Python API](https://github.com/nida-institute/LLMFlow/blob/main/docs/python-api.md) — `load_pipeline("…").resolve()/.lint()/.run()/.schemas()`; `PIPELINE_SCHEMA` + `api_catalog()` are the machine-readable map. Prefer this over re-parsing pipeline YAML.
-- **Architecture patterns** → `../.github/copilot-instructions.md`
-
----
-
-## Quick Sanity Checks
-
-To verify you have context loaded correctly, you should know:
-
-- ✅ **CLI command name**: `sp` (not `llmflow`)
-- ✅ **Variable syntax**: `${var}` in YAML configs, `{{var}}` in template files
-- ✅ **Logger pattern**: Singleton `Logger()`, never `logging.basicConfig()`
-- ✅ **Prompt location**: `prompts/` directory
-- ✅ **Config merge order**: universal defaults → llm_config → step_options → step_config
-- ✅ **Prompt contract**: All .gpt files must have `requires:` in frontmatter
-
-If you don't know these, consult the relevant sections above.
-
----
-
-## Files You Can Add
-
-As this project grows, document patterns in these suggested files:
-
-### Data Access
-- **data-sources.md** - Biblical dataset locations (BaseX collections, file paths, DuckDB files)
-- **basex-patterns.md** - XQuery examples for Lowfat syntax trees
-- **duckdb-patterns.md** - SQL examples for vocabulary/frequency analysis
-
-### Project Conventions
-- **naming-conventions.md** - File naming, variable naming, step naming patterns
-- **common-patterns.md** - Recurring pipeline structures (participant tracking, discourse analysis)
-- **gotchas.md** - Known issues and how to avoid them
-- **testing-patterns.md** - How to test pipelines (dry-run, rewind-to, stop-after)
-
-### Domain Knowledge
-- **greek-exegesis-patterns.md** - Greek NT analysis patterns
-- **hebrew-discourse-patterns.md** - Hebrew OT discourse patterns
-- **theological-terminology.md** - Project-specific theological terms and definitions
-
----
-
-## How to Use This Index
-
-### For AI Assistants:
-
-**Before asking the user:**
-1. Check this index to see if information is documented
-2. Read relevant files (e.g., if writing XQuery, read basex-patterns.md)
-3. Only ask user if information is truly not documented
-
-**When working on tasks:**
-- Writing pipeline YAML → Read `llmflow-language-quickref.md`
-- Writing .gpt prompts → Check `overview.md` for prompt patterns
-- Querying Greek syntax → Check for `basex-patterns.md`
-- Vocabulary analysis → Check for `duckdb-patterns.md`
-- Unsure about conventions → Read `common-patterns.md` or `rules.md`
-
-**Example workflow:**
-```
-User: "Create a pipeline that queries Greek syntax trees"
-AI: 1. Reads this index
-    2. Sees basex-patterns.md might exist
-    3. Checks if it exists
-    4. If yes: uses documented patterns
-    5. If no: asks user or documents new pattern
-```
-
-### For Project Maintainers:
-
-**When to add context:**
-- You answer the same pipeline question 3+ times → Document it
-- A pattern appears in 2+ pipelines → Extract to common-patterns.md
-- External data source is referenced → Add to data-sources.md
-- AI makes the same mistake repeatedly → Add to gotchas.md
-
-**How to add context:**
-```bash
-# Create new file
-cat > docs/ai-context/basex-patterns.md << 'EOF'
-# BaseX XQuery Patterns
-
-## Query for Greek Verbs
-... (examples)
-EOF
-
-# Update this index.md to reference it
-```
-
----
-
-## Registry Integration (if available)
-
-If you've run `sp registry` and registered datasets, the AI can also:
-- Check `~/.sp/datasets/` for available biblical datasets
-- Discover which BaseX collections are loaded
-- Find project paths and descriptions
-
-Run `sp registry context` to see what's registered globally.
-
----
-
-**Last updated:** Generated by `sp init` (auto-regenerated with `sp init --update`)
+_(none yet — add them as they are learned)_
 """
 
-COPILOT_INSTRUCTIONS_DOC = """<!-- Generated by sp init -->
-# Copilot Instructions for This LLMFlow Project
+AI_INDEX_DOC = """<!-- Created once by sp init. This file is yours; sp never overwrites it. -->
+# This project's map
 
-## CRITICAL: Read Index First
+**Read this first.** It is *your* map — `sp` wrote it once and will never overwrite it, so add
+to it freely.
 
-**Before starting ANY task, read `docs/ai-context/index.md`** — your complete roadmap to all available context (local + global).
+## Start here, every session
 
-The index tells you:
-- What documentation exists in this project
-- What global context is in `~/.sp/` (conventions, skills, templates)
-- When to read what for different types of tasks
-- Quick sanity checks to verify you have correct context
+- `project/TODO.md` — active work, what is in flight, what not to touch
+- `docs/ai-context/project/rules.md` — constraints that hold in this project and nowhere else
+- `docs/ai-context/sp/rules.md` — the rules every Scripture Pipelines session is held to
 
-**Navigation is more important than memorization.** Use the index efficiently instead of reading everything upfront.
+## The two halves of `docs/ai-context/`
 
-## Session Start — Read These FIRST
+| | |
+|---|---|
+| **`sp/`** | Scripture Pipelines' own documents. Regenerated — do not hand-edit. `sp/index.md` lists them all. |
+| **`project/`** | Yours. This map, `overview.md` and `rules.md`. `sp` creates each once and never touches it again. |
 
-**0. Read `~/.sp/user-context/*.md`** (if the directory exists)
-   - Machine-level instructions that apply to all pipeline projects on this computer
-   - Filesystem access, personal workflow preferences, machine-specific paths
+The split exists because one directory of mixed ownership meant a project's own notes were
+overwritten by an update. Anything you write belongs under `project/`.
 
-**1. Read `docs/ai-context/index.md`**
-   - Your complete navigation map
-   - Lists local (this repo) and global (~/.sp/) context
-   - Tells you exactly what files to read for each task type
+## This project's own entry documents
 
-**2. Check `project/TODO.md`**
-   - Active work, in-progress items, blocked issues
-   - What NOT to touch
-   - Links to GitHub issues
+Add them here as the project grows: a HANDOFF, design documents and the warnings that go with
+them, a field reference, data notes, audit checklists this project uses. Anything a session must
+read before working here belongs in this list, or in a document it points to. **Files this project
+creates for itself are reachable because this map names them — `sp` does not know about them and
+will not list them for you.**
 
-**3. Load only relevant context for current task**
-   - Writing prompts? → Read prompt organization convention (index will tell you where)
-   - Debugging? → Read common pitfalls (index will tell you where)
-   - Don't read everything — navigate using the index
+- _(add yours here)_
 
-## Repository Context
+## Machine-level access
 
-This is an LLMFlow consumer project. It does NOT contain the LLMFlow engine source.
-- Pipelines live in `pipelines/`
-- Prompts live in `prompts/`
-- Generated outputs live in `outputs/`
-- The LLMFlow engine is installed separately: https://github.com/nida-institute/LLMFlow
-
-## Global Skills
-
-Workflow skills are in `~/.sp/skills/`. Each skill is a `SKILL.md` file with step-by-step instructions.
-
-| Task | Skill |
-|------|-------|
-| Audit a pipeline output file | `~/.sp/skills/audit-output/SKILL.md` |
-| Audit a `.gpt` prompt file | `~/.sp/skills/audit-prompts/SKILL.md` |
-| Audit pipeline YAML or plugin code | `~/.sp/skills/audit-code/SKILL.md` |
-
-Project-specific audit checklists (which vary by project) are in `docs/audits/`.
-Audit results go in `project/audits/`.
-
-## Workflow
-
-**Always explain before implementing** — describe what files you will change and why before making changes.
-
-**For pipeline changes:**
-- Lint first: `sp lint --pipeline pipelines/<name>.yaml`
-- Dry run: `sp run --pipeline pipelines/<name>.yaml --dry-run`
-- All prompts must have `requires:` contracts in their frontmatter
-
-**For significant changes (>2 files):**
-1. Describe the diff and impact
-2. Wait for approval before executing
-
-**GitHub Issues:**
-- Draft issue bodies in a temp file, then: `gh issue create --body-file /tmp/issue.md`
-- Link from `project/TODO.md` with `→ #N`
-
-## AI Authority Boundaries (CRITICAL)
-
-**You do not have authority to declare output "production ready", "approved", or "suitable for use with groups".**
-
-Scripture Pipelines projects produce materials intended for real communities of users. Deployment decisions require human accountability, not AI assessment.
-
-### What AI CAN Do:
-✅ Analyze technical compliance with schemas and patterns
-✅ Identify gaps, inconsistencies, or errors in output
-✅ Document coverage analysis (what content is present/missing)
-✅ Report findings objectively with evidence
-✅ Verify that pipeline steps executed correctly
-
-### What AI CANNOT Do:
-❌ Declare "production ready" — requires human judgment about community needs
-❌ Mark output as "APPROVED" — approval authority belongs to human stakeholders
-❌ Say "suitable for use with groups" — requires human accountability
-❌ Recommend "immediate use" — requires contextual understanding AI lacks
-❌ Claim output "meets the bar" — the bar is set by humans who know communities
-
-### What to Say Instead:
-✅ "Technical compliance verified. Human review should assess appropriateness for intended communities."
-✅ "Pattern compliance confirmed. Gaps identified in section X for human review."
-✅ "Generation completed successfully. Quality assessment requires domain expert review."
-
-## Transparency
-
-When these instructions influence a decision, say so explicitly.
+Standing permissions for this machine — what an AI may read without being asked each time —
+live in `~/.sp/user-context/`, outside any repository. Only the machine's owner grants those.
 """
+
+# A pointer, not a copy (#204, plan D4/A2). See ASSISTANT_RULES_POINTER above for why
+# this document no longer restates the rules it used to carry.
 
 VSCODE_DOC = """<!-- Generated by sp init -->
-# VS Code Setup for LLMFlow Projects
+# VS Code Setup for Scripture Pipelines Projects
 
 Recommended settings and the privacy/convenience trade-offs for AI-assisted pipeline work.
 
@@ -1508,123 +1383,6 @@ Examples:
 - Active tasks → `project/TODO.md`
 """
 
-DOCS_AUDITS_INDEX = """<!-- Generated by sp init -->
-# Audit Dispatch
-
-**What this file does:** Maps artifact types to their audit checklist files. When you need to audit something, find its row below, use the trigger phrase listed, and the AI assistant will open the corresponding procedure file before evaluating your artifact.
-
-## Dispatch Table
-
-| What you have | Say | Open |
-|---|---|---|
-| Passage output `.md` | "audit this passage" | `audit-passage.md` |
-| Leader's guide `.md` | "audit this per the checklist" | `audit-leadersguide.md` |
-
-## Adding New Audit Procedures
-
-1. Create a new checklist file in this directory (e.g. `audit-my-artifact.md`)
-2. Keep it 20–60 lines max
-3. Use `- [ ]` checkbox format only — no explanatory prose
-4. Put STOP conditions in bold at the top
-5. Add a row to the table above with the trigger phrase
-
-## Audit Records
-
-Audit findings go in `project/audits/`, not here. One file per audit run:
-- `project/audits/audit-MRK-6-14-29.md`
-- `project/audits/audit-LUK-1-full-pipeline.md`
-
-This directory (`docs/audits/`) contains only **procedures** (version-controlled, reusable). Records (`project/audits/`) are **findings** (per-run, not committed).
-"""
-
-AUDIT_PASSAGE_CHECKLIST = """<!-- Generated by sp init -->
-# Audit Checklist: Passage Output
-
-**STOP conditions (abort if any fail):**
-- **STOP** if passage reference is missing or malformed
-- **STOP** if output file is empty or contains only template markers
-
-## Structure & Completeness
-
-- [ ] Passage reference is correct (book, chapter, verses)
-- [ ] All expected sections are present (introduction, analysis, application, etc.)
-- [ ] No placeholder text remains (e.g., `[TODO]`, `[FILL IN]`)
-- [ ] Section headings match pipeline specification
-
-## Content Quality
-
-- [ ] Introduction accurately summarizes the passage
-- [ ] Analysis addresses the key theological or narrative points
-- [ ] Application is contextually appropriate
-- [ ] Cross-references are accurate (if present)
-- [ ] Cultural notes are factually correct (if present)
-
-## Format & Rendering
-
-- [ ] Markdown syntax is valid (no broken links, malformed headers)
-- [ ] Scripture quotations are properly formatted
-- [ ] Lists and bullets render correctly
-- [ ] No LLM artifacts (e.g., "As an AI assistant...")
-
-## Pipeline Metadata
-
-- [ ] Output filename matches expected pattern
-- [ ] File saved to correct directory per pipeline spec
-- [ ] Timestamp or version info is present (if required)
-
-## Record findings in `project/audits/audit-<passage>-<date>.md`
-"""
-
-AUDIT_LEADERSGUIDE_CHECKLIST = """<!-- Generated by sp init -->
-# Audit Checklist: Leader's Guide
-
-**STOP conditions (abort if any fail):**
-- **STOP** if passage reference is missing
-- **STOP** if file contains only boilerplate/"coming soon" text
-- **STOP** if critical sections (Discussion Questions) are missing
-
-## Structural Completeness
-
-- [ ] Passage reference is correct
-- [ ] Introduction/Overview section is present
-- [ ] Discussion questions section is present
-- [ ] Application section is present
-- [ ] Closing/Prayer section is present (if required)
-
-## Discussion Questions
-
-- [ ] At least 3 discussion questions provided
-- [ ] Questions are open-ended (not yes/no)
-- [ ] Questions connect to passage content
-- [ ] Questions appropriate for target audience
-- [ ] No leading or tendentious questions
-
-## Content Accuracy
-
-- [ ] Introduction accurately summarizes passage
-- [ ] No theological errors or misrepresentations
-- [ ] Cultural/historical notes are factually correct
-- [ ] Cross-references are accurate
-- [ ] Application is contextually appropriate
-
-## Usability for Leaders
-
-- [ ] Language is accessible (no jargon without explanation)
-- [ ] Instructions for group leader are clear
-- [ ] Timing estimates are realistic (if provided)
-- [ ] Materials list is complete (if provided)
-
-## Format & Polish
-
-- [ ] Markdown syntax is valid
-- [ ] No LLM artifacts ("As an AI...")
-- [ ] Scripture quotations properly formatted
-- [ ] Headings follow project style guide
-
-## Record findings in `project/audits/audit-leadersguide-<passage>-<date>.md`
-"""
-
-
 def _lock_sp_dir(path: Path) -> None:
     """Remove write permission from path and all contents (owner, group, others)."""
     if not path.exists():
@@ -1654,51 +1412,144 @@ def _sp_dir_writable(path: Path):
             _lock_sp_dir(path)
 
 
-def install_global_conventions(sp_home: Optional[Path] = None, force: bool = False) -> None:
-    """Install global conventions to ~/.sp/conventions/.
+def _write_if_changed(target: Path, content: str, *, label: str) -> bool:
+    """Write `content` to `target` only when it differs. Returns True if written.
+
+    Captain, 2026-08-25: *"perhaps if the ~/.sp files match exactly, we simply leave them in
+    place instead of overwriting, so as not to change the file dates? that might be easier for
+    the user and cleaner."*
+
+    The point is not tidiness. `~/.sp` is a version-controlled store, and a dirty working tree
+    is how an unreviewed write gets noticed. When every `--update` rewrites all 23 files, a real
+    change is invisible in the crowd. `sp doctor` has always compared content — it reports
+    conventions as "present and unchanged" — so this makes `sp init --update` agree with it.
+    """
+    if target.exists():
+        try:
+            if target.read_text(encoding="utf-8") == content:
+                logger.debug(f"{label} unchanged; left in place")
+                return False
+        except OSError:
+            pass
+    target.write_text(content, encoding="utf-8")
+    return True
+
+
+def install_global_disciplines(sp_home: Optional[Path] = None, force: bool = False) -> None:
+    """Install global disciplines to ~/.sp/disciplines/.
 
     Args:
-        sp_home: Override ~/.sp directory (for testing). Defaults to Path.home() / ".sp"
+        sp_home: Override ~/.sp directory (for testing). Defaults to _paths.sp_home()
         force: If True, overwrite existing files. If False, skip existing files.
     """
     if sp_home is None:
-        sp_home = Path.home() / ".sp"
+        sp_home = _paths.sp_home()
 
-    conventions_dir = sp_home / "conventions"
-    with _sp_dir_writable(conventions_dir):
-        conventions_dir.mkdir(parents=True, exist_ok=True)
+    disciplines_dir = sp_home / "disciplines"
+    with _sp_dir_writable(disciplines_dir):
+        disciplines_dir.mkdir(parents=True, exist_ok=True)
 
         # Get templates from package
         import llmflow
         pkg_root = Path(llmflow.__file__).parent
-        templates_dir = pkg_root / "templates" / "sp-conventions"
+        templates_dir = pkg_root / "templates" / "sp" / "disciplines"
 
         # Copy convention files
         for template_file in templates_dir.glob("*.md"):
-            target_file = conventions_dir / template_file.name
+            target_file = disciplines_dir / template_file.name
 
             if target_file.exists() and not force:
-                logger.info(f"{target_file.name} already exists in ~/.sp/conventions/; skipping")
+                logger.info(f"{target_file.name} already exists in ~/.sp/disciplines/; skipping")
                 continue
 
             content = template_file.read_text(encoding="utf-8")
-            target_file.write_text(content, encoding="utf-8")
-            logger.info(f"✓ Installed {template_file.name} to ~/.sp/conventions/")
+            if _write_if_changed(target_file, content, label=template_file.name):
+                logger.info(f"✓ Installed {template_file.name} to ~/.sp/disciplines/")
+
+    # Files that belong at the root of ~/.sp/, not in a subdirectory (#204).
+    # drift-patterns.md is read by the load-context skill as ~/.sp/drift-patterns.md,
+    # so its location is part of a contract and cannot be moved under disciplines/.
+    root_templates_dir = pkg_root / "templates" / "sp"
+    if root_templates_dir.is_dir():
+        sp_home.mkdir(parents=True, exist_ok=True)
+
+        # Deliberately NOT _sp_dir_writable(): that helper locks its directory on exit
+        # unconditionally, even when it was writable beforehand. Applied to the ~/.sp
+        # root it left the whole tree read-only, so the install_global_skills() call
+        # that follows in init_project() failed — and failed silently, because that
+        # call sits inside a try/except that only warns. Restore the prior state
+        # instead of imposing one.
+        was_locked = not os.access(sp_home, os.W_OK)
+        if was_locked:
+            _unlock_sp_dir(sp_home)
+        try:
+            for template_file in sorted(root_templates_dir.glob("*.md")):
+                target_file = sp_home / template_file.name
+
+                if target_file.exists() and not force:
+                    logger.info(f"{target_file.name} already exists in ~/.sp/; skipping")
+                    continue
+
+                if _write_if_changed(
+                    target_file,
+                    template_file.read_text(encoding="utf-8"),
+                    label=template_file.name,
+                ):
+                    logger.info(f"✓ Installed {template_file.name} to ~/.sp/")
+        finally:
+            if was_locked:
+                _lock_sp_dir(sp_home)
+
+
+def install_global_versification(sp_home: Optional[Path] = None, force: bool = False) -> None:
+    """Install the versification mappings into ~/.sp/versification/.
+
+    Which files, and where they land, come from the catalog rather than from a glob here, so
+    adding a scheme needs no change to this function. `force` is accepted for symmetry with
+    the other installers and is unused: these entries are `generated`, so a drifted file is
+    rewritten either way and a file the human added alongside them is never touched.
+    """
+    from llmflow import file_catalog as fc
+    from llmflow.utils.versification import MAPPINGS_DIRNAME
+
+    if sp_home is None:
+        sp_home = _paths.sp_home()
+
+    prefix = f"{MAPPINGS_DIRNAME}/"
+    entries = [
+        entry
+        for entry in sorted(fc.entries(), key=lambda e: e.path)
+        if entry.scope is fc.Scope.SP_HOME and entry.path.startswith(prefix)
+    ]
+    if not entries:
+        return
+
+    target_dir = sp_home / MAPPINGS_DIRNAME
+    with _sp_dir_writable(target_dir):
+        target_dir.mkdir(parents=True, exist_ok=True)
+        for entry in entries:
+            content = fc.shipped_content(entry)
+            if content is None:
+                logger.warning(f"{entry.path} is catalogued but ships no content; not written.")
+                continue
+            name = Path(entry.path).name
+            if _write_if_changed(sp_home / entry.path, content, label=name):
+                logger.info(f"✓ Installed {name} to ~/.sp/{MAPPINGS_DIRNAME}/")
 
 
 def install_global_skills(sp_home: Optional[Path] = None, force: bool = False) -> None:
     """Install global skills to ~/.sp/skills/.
 
     Args:
-        sp_home: Override ~/.sp directory (for testing). Defaults to Path.home() / ".sp"
+        sp_home: Override ~/.sp directory (for testing). Defaults to _paths.sp_home()
         force: If True, overwrite existing files. If False, skip existing files.
     """
     if sp_home is None:
-        sp_home = Path.home() / ".sp"
+        sp_home = _paths.sp_home()
 
     import llmflow
     pkg_root = Path(llmflow.__file__).parent
-    templates_dir = pkg_root / "templates" / "sp-skills"
+    templates_dir = pkg_root / "templates" / "sp" / "skills"
     skills_dir = sp_home / "skills"
 
     with _sp_dir_writable(skills_dir):
@@ -1709,20 +1560,6 @@ def install_global_skills(sp_home: Optional[Path] = None, force: bool = False) -
             if not skill_file.exists():
                 continue
 
-            # stand-down: try to fetch the authoritative version from human-at-the-helm
-            if skill_dir.name == "stand-down":
-                fetched = _fetch_stand_down()
-                if fetched:
-                    target_dir = sp_home / "skills" / "stand-down"
-                    target_dir.mkdir(parents=True, exist_ok=True)
-                    target = target_dir / "SKILL.md"
-                    if not target.exists() or force:
-                        target.write_text(fetched, encoding="utf-8")
-                        logger.info("✓ Installed stand-down skill from human-at-the-helm")
-                    else:
-                        logger.info("stand-down already exists in ~/.sp/skills/; skipping")
-                    continue
-
             target_dir = sp_home / "skills" / skill_dir.name
             target_dir.mkdir(parents=True, exist_ok=True)
             target = target_dir / "SKILL.md"
@@ -1731,24 +1568,104 @@ def install_global_skills(sp_home: Optional[Path] = None, force: bool = False) -
                 logger.info(f"{skill_dir.name} already exists in ~/.sp/skills/; skipping")
                 continue
 
-            target.write_text(skill_file.read_text(encoding="utf-8"), encoding="utf-8")
-            logger.info(f"✓ Installed {skill_dir.name} skill to ~/.sp/skills/")
+            if _write_if_changed(
+                target, skill_file.read_text(encoding="utf-8"), label=skill_dir.name
+            ):
+                logger.info(f"✓ Installed {skill_dir.name} skill to ~/.sp/skills/")
 
 
-def _fetch_stand_down() -> Optional[str]:
-    """Fetch stand-down SKILL.md from human-at-the-helm. Returns content or None on failure."""
-    url = "https://raw.githubusercontent.com/nida-institute/human-at-the-helm/main/skills/stand-down/SKILL.md"
-    try:
-        import urllib.request
-        with urllib.request.urlopen(url, timeout=5) as response:
-            return response.read().decode("utf-8")
-    except Exception:
-        logger.info("Could not fetch stand-down from human-at-the-helm; using bundled fallback")
-        return None
+# `_fetch_stand_down` used to pull stand-down/SKILL.md from human-at-the-helm at install
+# time, treating the shipped template as a fallback. Removed 2026-08-19 (#204, plan D10).
+#
+# Why: D10 makes `sp doctor` restore any sp-owned file whose content has diverged from
+# what the package ships. A file deliberately fetched from elsewhere diverges by design,
+# so doctor would have overwritten the fetched copy with the bundled one on every run.
+# Captain's ruling: *"Drop the fetch — ship stand-down like every other skill, one source
+# of truth."*
+#
+# The bundled template is the later of the two — it carries "Propose a Fix" (wait for
+# approval before writing any file) and a Step 3 that the upstream copy does not.
+
+
+#: The starter examples `sp init --no-examples` skips. Paths, not constants, because the
+#: catalog addresses documents by path and a second list keyed on constant names would be the
+#: hand-kept list this loop exists to delete.
+_EXAMPLE_PATHS = frozenset({
+    "prompts/hello.gpt",
+    "prompts/reply.gpt",
+    "pipelines/hello-llmflow.yaml",
+    "pipelines/hello.yaml",
+    "docs/tutorial.md",
+})
+
+
+def _write_catalogued_files(base_dir: Path, *, update: bool, no_examples: bool) -> None:
+    """Write every project file the catalog declares (#214).
+
+    This replaced 21 hand-written `if not exists / elif update / else` blocks, one per
+    document, each naming its own constant. That shape is why `docs/ai-context/sp/audits-pattern.md`
+    could be catalogued, rendered into `sp/index.md` and repairable by `sp doctor` while
+    `sp init` never created it: adding a catalog row did nothing until somebody also wrote a
+    block, and nothing failed when they did not.
+
+    Three kinds of entry are skipped, because something else owns the write:
+      - `block:` entries — `_configure_ai_assistants` upserts sp's block into a file sp does
+        not own, so writing the whole file here would discard the project's content
+      - `source: sp-home` — `.claude/skills/`, copied by `_install_claude_skills`
+      - `source: none` — no content to write
+
+    **Ownership is decided by `policy`, not by the generated marker.** The marker cannot carry
+    it: measured 2026-08-25, only 5 of 12 `generated` documents begin with it, while 5 of 9
+    `create-once` documents do. Keying `--update` on the marker therefore skipped seven
+    documents sp owns and would have clobbered five it does not. Captain, 2026-08-18:
+    *"Relying on this marker is fragile. We need a catalog that says what files sp init works
+    on."* This is that catalog, used for the decision it was built for, and it makes `sp init
+    --update` agree with `sp doctor`, which has always keyed on `policy`.
+    """
+    from llmflow import file_catalog as fc
+
+    for entry in sorted(fc.entries(), key=lambda e: e.path):
+        if entry.scope is not fc.Scope.PROJECT:
+            continue
+        if entry.block or entry.source in (fc.Source.SP_HOME, fc.Source.NONE):
+            continue
+        if no_examples and entry.path in _EXAMPLE_PATHS:
+            continue
+
+        content = fc.shipped_content(entry)
+        if content is None:
+            logger.warning(
+                f"{entry.path} is catalogued but has no shipped content; not written."
+            )
+            continue
+
+        target = base_dir / entry.path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        current = target.read_text(encoding="utf-8") if target.is_file() else None
+
+        # Derived content is rendered from the catalog on every run and carries
+        # "Do not hand-edit", so it is kept in step rather than gated on --update.
+        if entry.source is fc.Source.DERIVED:
+            if current != content:
+                target.write_text(content, encoding="utf-8")
+                logger.info(f"Wrote {entry.path} (rendered from the file catalog)")
+            continue
+
+        if current is None:
+            target.write_text(content, encoding="utf-8")
+            logger.info(f"Created {entry.path}")
+        elif update and entry.policy is fc.Policy.GENERATED:
+            if current == content:
+                logger.debug(f"{entry.path} unchanged; left in place")
+            else:
+                target.write_text(content, encoding="utf-8")
+                logger.info(f"Updated {entry.path}")
+        else:
+            logger.info(f"{entry.path} already exists; leaving as-is.")
 
 
 def init_project(base_dir: Path, update: bool = False, no_examples: bool = False) -> None:
-    """Initialize a new LLMFlow project structure.
+    """Initialize a new Scripture Pipelines project structure.
 
     When update=True, regenerate any file that carries the
     '<!-- Generated by sp init -->' marker, leaving hand-edited
@@ -1763,7 +1680,8 @@ def init_project(base_dir: Path, update: bool = False, no_examples: bool = False
     output_dir = base_dir / "outputs"
     docs_dir = base_dir / "docs"
     ai_context_dir = docs_dir / "ai-context"
-    docs_audits_dir = docs_dir / "audits"
+    sp_context_dir = ai_context_dir / "sp"
+    project_context_dir = ai_context_dir / "project"
     project_dir = base_dir / "project"
     audits_dir = project_dir / "audits"
     vscode_dir = base_dir / ".vscode"
@@ -1773,189 +1691,28 @@ def init_project(base_dir: Path, update: bool = False, no_examples: bool = False
     output_dir.mkdir(parents=True, exist_ok=True)
     docs_dir.mkdir(parents=True, exist_ok=True)
     ai_context_dir.mkdir(parents=True, exist_ok=True)
-    docs_audits_dir.mkdir(parents=True, exist_ok=True)
+    sp_context_dir.mkdir(parents=True, exist_ok=True)
+    project_context_dir.mkdir(parents=True, exist_ok=True)
     project_dir.mkdir(parents=True, exist_ok=True)
     audits_dir.mkdir(parents=True, exist_ok=True)
     vscode_dir.mkdir(parents=True, exist_ok=True)
 
-    prompt_path = prompts_dir / "hello.gpt"
-    reply_prompt_path = prompts_dir / "reply.gpt"
-    pipeline_path = pipelines_dir / "hello-llmflow.yaml"
-    hello_yaml_path = pipelines_dir / "hello.yaml"
-    tutorial_doc_path = docs_dir / "tutorial.md"
-    language_quickref_path = docs_dir / "llmflow-language-quickref.md"
-    vscode_doc_path = docs_dir / "vscode.md"
-    ai_overview_path = ai_context_dir / "overview.md"
-    ai_rules_path = ai_context_dir / "rules.md"
-    ai_index_path = ai_context_dir / "index.md"
-    ai_github_workflow_path = ai_context_dir / "github-workflow.md"
-    ai_project_path = ai_context_dir / "project.md"
-    docs_audits_index_path = docs_audits_dir / "INDEX.md"
-    audit_passage_path = docs_audits_dir / "audit-passage.md"
-    audit_leadersguide_path = docs_audits_dir / "audit-leadersguide.md"
-    project_todo_path = project_dir / "TODO.md"
-    project_audits_readme_path = audits_dir / "README.md"
-
-    if not no_examples:
-        if not prompt_path.exists():
-            prompt_path.write_text(HELLO_PROMPT, encoding="utf-8")
-            logger.info("Created prompts/hello.gpt")
-        elif update and _is_generated(prompt_path):
-            prompt_path.write_text(HELLO_PROMPT, encoding="utf-8")
-            logger.info("Updated prompts/hello.gpt")
-        else:
-            logger.info("prompts/hello.gpt already exists; leaving as-is.")
-
-        if not reply_prompt_path.exists():
-            reply_prompt_path.write_text(HELLO_REPLY_PROMPT, encoding="utf-8")
-            logger.info("Created prompts/reply.gpt")
-        elif update and _is_generated(reply_prompt_path):
-            reply_prompt_path.write_text(HELLO_REPLY_PROMPT, encoding="utf-8")
-            logger.info("Updated prompts/reply.gpt")
-        else:
-            logger.info("prompts/reply.gpt already exists; leaving as-is.")
-
-        if not pipeline_path.exists():
-            pipeline_path.write_text(HELLO_PIPELINE, encoding="utf-8")
-            logger.info("Created pipelines/hello-llmflow.yaml")
-        elif update and _is_generated(pipeline_path):
-            pipeline_path.write_text(HELLO_PIPELINE, encoding="utf-8")
-            logger.info("Updated pipelines/hello-llmflow.yaml")
-        else:
-            logger.info("pipelines/hello-llmflow.yaml already exists; leaving as-is.")
-
-        if not hello_yaml_path.exists():
-            hello_yaml_path.write_text(HELLO_YAML, encoding="utf-8")
-            logger.info("Created pipelines/hello.yaml")
-        elif update and _is_generated(hello_yaml_path):
-            hello_yaml_path.write_text(HELLO_YAML, encoding="utf-8")
-            logger.info("Updated pipelines/hello.yaml")
-        else:
-            logger.info("pipelines/hello.yaml already exists; leaving as-is.")
-
-        if not tutorial_doc_path.exists():
-            tutorial_doc_path.write_text(TUTORIAL_DOC, encoding="utf-8")
-            logger.info("Created docs/tutorial.md")
-        elif update and _is_generated(tutorial_doc_path):
-            tutorial_doc_path.write_text(TUTORIAL_DOC, encoding="utf-8")
-            logger.info("Updated docs/tutorial.md")
-        else:
-            logger.info("docs/tutorial.md already exists; leaving as-is.")
-
-    if not language_quickref_path.exists():
-        language_quickref_path.write_text(LANGUAGE_QUICKREF_DOC, encoding="utf-8")
-        logger.info("Created docs/llmflow-language-quickref.md")
-    elif update and _is_generated(language_quickref_path):
-        language_quickref_path.write_text(LANGUAGE_QUICKREF_DOC, encoding="utf-8")
-        logger.info("Updated docs/llmflow-language-quickref.md")
-    else:
-        logger.info("docs/llmflow-language-quickref.md already exists; leaving as-is.")
-
-    if not ai_overview_path.exists():
-        ai_overview_path.write_text(AI_OVERVIEW_DOC, encoding="utf-8")
-        logger.info("Created docs/ai-context/overview.md")
-    elif update and _is_generated(ai_overview_path):
-        ai_overview_path.write_text(AI_OVERVIEW_DOC, encoding="utf-8")
-        logger.info("Updated docs/ai-context/overview.md")
-    else:
-        logger.info("docs/ai-context/overview.md already exists; leaving as-is.")
-
-    if not ai_rules_path.exists():
-        ai_rules_path.write_text(AI_RULES_DOC, encoding="utf-8")
-        logger.info("Created docs/ai-context/rules.md")
-    elif update and _is_generated(ai_rules_path):
-        ai_rules_path.write_text(AI_RULES_DOC, encoding="utf-8")
-        logger.info("Updated docs/ai-context/rules.md")
-    else:
-        logger.info("docs/ai-context/rules.md already exists; leaving as-is.")
-
-    if not ai_index_path.exists():
-        ai_index_path.write_text(AI_INDEX_DOC, encoding="utf-8")
-        logger.info("Created docs/ai-context/index.md")
-    elif update and _is_generated(ai_index_path):
-        ai_index_path.write_text(AI_INDEX_DOC, encoding="utf-8")
-        logger.info("Updated docs/ai-context/index.md")
-    else:
-        logger.info("docs/ai-context/index.md already exists; leaving as-is.")
-
-    if not ai_github_workflow_path.exists():
-        ai_github_workflow_path.write_text(GITHUB_WORKFLOW_DOC, encoding="utf-8")
-        logger.info("Created docs/ai-context/github-workflow.md")
-    elif update and _is_generated(ai_github_workflow_path):
-        ai_github_workflow_path.write_text(GITHUB_WORKFLOW_DOC, encoding="utf-8")
-        logger.info("Updated docs/ai-context/github-workflow.md")
-    else:
-        logger.info("docs/ai-context/github-workflow.md already exists; leaving as-is.")
-
-    # project.md is the consumer's own lane — created once, never overwritten (even on --update).
-    if not ai_project_path.exists():
-        ai_project_path.write_text(AI_PROJECT_DOC, encoding="utf-8")
-        logger.info("Created docs/ai-context/project.md")
-    else:
-        logger.info("docs/ai-context/project.md already exists; leaving as-is (yours to own).")
-
-    if not vscode_doc_path.exists():
-        vscode_doc_path.write_text(VSCODE_DOC, encoding="utf-8")
-        logger.info("Created docs/vscode.md")
-    elif update and _is_generated(vscode_doc_path):
-        vscode_doc_path.write_text(VSCODE_DOC, encoding="utf-8")
-        logger.info("Updated docs/vscode.md")
-    else:
-        logger.info("docs/vscode.md already exists; leaving as-is.")
-
-    # project/TODO.md — never overwritten; hand-edited from first run
-    if not project_todo_path.exists():
-        project_todo_path.write_text(PROJECT_TODO, encoding="utf-8")
-        logger.info("Created project/TODO.md")
-    else:
-        logger.info("project/TODO.md already exists; leaving as-is.")
-
-    if not project_audits_readme_path.exists():
-        project_audits_readme_path.write_text(PROJECT_AUDITS_README, encoding="utf-8")
-        logger.info("Created project/audits/README.md")
-    elif update and _is_generated(project_audits_readme_path):
-        project_audits_readme_path.write_text(PROJECT_AUDITS_README, encoding="utf-8")
-        logger.info("Updated project/audits/README.md")
-    else:
-        logger.info("project/audits/README.md already exists; leaving as-is.")
-
-    if not docs_audits_index_path.exists():
-        docs_audits_index_path.write_text(DOCS_AUDITS_INDEX, encoding="utf-8")
-        logger.info("Created docs/audits/INDEX.md")
-    elif update and _is_generated(docs_audits_index_path):
-        docs_audits_index_path.write_text(DOCS_AUDITS_INDEX, encoding="utf-8")
-        logger.info("Updated docs/audits/INDEX.md")
-    else:
-        logger.info("docs/audits/INDEX.md already exists; leaving as-is.")
-
-    if not audit_passage_path.exists():
-        audit_passage_path.write_text(AUDIT_PASSAGE_CHECKLIST, encoding="utf-8")
-        logger.info("Created docs/audits/audit-passage.md")
-    elif update and _is_generated(audit_passage_path):
-        audit_passage_path.write_text(AUDIT_PASSAGE_CHECKLIST, encoding="utf-8")
-        logger.info("Updated docs/audits/audit-passage.md")
-    else:
-        logger.info("docs/audits/audit-passage.md already exists; leaving as-is.")
-
-    if not audit_leadersguide_path.exists():
-        audit_leadersguide_path.write_text(AUDIT_LEADERSGUIDE_CHECKLIST, encoding="utf-8")
-        logger.info("Created docs/audits/audit-leadersguide.md")
-    elif update and _is_generated(audit_leadersguide_path):
-        audit_leadersguide_path.write_text(AUDIT_LEADERSGUIDE_CHECKLIST, encoding="utf-8")
-        logger.info("Updated docs/audits/audit-leadersguide.md")
-    else:
-        logger.info("docs/audits/audit-leadersguide.md already exists; leaving as-is.")
+    _write_catalogued_files(base_dir, update=update, no_examples=no_examples)
 
     logger.info("Output directory ready at ./outputs")
 
-    # Install global conventions to ~/.sp/ (non-interactive, no machine-scoped UI needed)
+    # Install global disciplines to ~/.sp/ (non-interactive, no machine-scoped UI needed)
     try:
-        install_global_conventions(force=update)
+        install_global_disciplines(force=update)
         install_global_skills(force=update)
+        install_global_versification(force=update)
     except Exception as e:
         logger.warning(f"Could not install global resources to ~/.sp/: {e}")
 
-    # Interactive: AI assistant configuration (project-scoped + machine-scoped with consent)
+    # Written before the assistant files so .claude/skills/ is never briefly untracked.
+    _write_gitignore(base_dir)
+
+    # AI assistant configuration — all project-scoped, no prompts (D4/D5)
     _configure_ai_assistants(base_dir, update=update)
 
     # Register project and index ai-context files in ~/.sp/ (Issue #132)
@@ -1972,7 +1729,7 @@ def _register_in_global_registry(base_dir: Path) -> None:
     try:
         from llmflow.registry import Registry
 
-        registry_dir = Path.home() / ".sp"
+        registry_dir = _paths.sp_home()
         projects_dir = registry_dir / "projects"
         registry = Registry(registry_dir)
 
@@ -1990,8 +1747,16 @@ def _register_in_global_registry(base_dir: Path) -> None:
         # Index docs/ai-context/*.md files
         ai_context_dir = base_dir / "docs" / "ai-context"
         if ai_context_dir.exists():
-            for md_file in sorted(ai_context_dir.glob("*.md")):
-                file_key = md_file.name
+            # rglob, not glob: the context is two directories deep since the sp/ and project/
+            # split, and a flat glob silently indexed nothing.
+            for md_file in sorted(ai_context_dir.rglob("*.md")):
+                # Key by the relative path, flattened. Since the sp/ and project/ split there
+                # are two `index.md` files and two `overview.md` files, so a bare filename
+                # registers one and silently drops the other. The separator is flattened to a
+                # hyphen because the registry stores each entry as `<key>.yaml`, and a slash in
+                # the key would need a subdirectory that is never created — which failed
+                # silently and indexed nothing at all.
+                file_key = md_file.relative_to(ai_context_dir).as_posix().replace("/", "-")
                 if registry.ai_context.get(file_key) is not None:
                     continue  # already indexed
 
@@ -2008,7 +1773,7 @@ def _register_in_global_registry(base_dir: Path) -> None:
                     pass
 
                 # Derive topics from filename parts
-                topics = [p for p in re.split(r"[-_.]", md_file.stem) if p]
+                topics = [p for p in re.split(r"[-_./]", file_key.removesuffix(".md")) if p]
                 topics.append("ai-context")
 
                 registry.ai_context.register(
@@ -2039,7 +1804,7 @@ def list_pipelines(directory: str) -> list[str]:
 
 
 def sync_ai_context_files(base_dir: Path) -> None:
-    """Copy ai-context files from the installed LLMFlow package to the consumer repo.
+    """Copy ai-context files from the installed Scripture Pipelines package to the consumer repo.
 
     Files are copied to .github/ai-context/ in the consumer repo.
     This allows consumer repos to reference the canonical AI context files
@@ -2084,7 +1849,7 @@ def sync_ai_context_files(base_dir: Path) -> None:
     except (AttributeError, TypeError):
         # Fallback for older Python or if files() doesn't work
         logger.warning("Could not sync ai-context files from installed package.")
-        logger.warning("This feature requires Python 3.9+ or a properly installed LLMFlow package.")
+        logger.warning("This feature requires Python 3.9+ or a properly installed Scripture Pipelines package.")
     except Exception as e:
         logger.error(f"Error syncing ai-context files: {e}")
 

@@ -1,9 +1,9 @@
 # hello.yaml
 
 ```yaml
-name: "Hello LLMFlow"
+name: "Hello Scripture Pipelines"
 description: |
-  Minimal starter pipeline for LLMFlow.
+  Minimal starter pipeline for Scripture Pipelines.
   Run with: llmflow run --pipeline pipelines/hello.yaml
 variables:
   output_dir: "outputs"

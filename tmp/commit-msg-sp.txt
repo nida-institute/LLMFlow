@@ -1,0 +1,67 @@
+refactor: one design, one vocabulary, two indexes (#204, #210, #211)
+
+One commit rather than several because it cannot cleanly be split: cli_utils.py carries the
+vocabulary sweep and the two-index change together, so separating them would need `git add -p`
+rather than a path list.
+
+RULES — data/ai-rules.yaml is the single source; docs/ai-context/rules.md regenerated from it
+
+- Rule 18 `additive-to-authored` -> `one-design`, "Carry one design." The old wording gave
+  existing artifacts a presumption of survival that disciplines/design-authority.md denies
+  them, so a rule meant to protect the human's decisions was shielding the AI's prior output
+  from correction — and other projects had begun citing it to keep legacy cruft. The
+  replacement keeps the one protection that was load-bearing: the record keeps its own words.
+- Rule 29 `design-is-declarative` added: state the design as data, syntax and semantics
+  together, and have the code read it. Appended rather than inserted, because rules are cited
+  by position across this repository. A pipeline is one such form, which makes the rule the
+  engine holding itself to what it sells.
+
+Both carry `note:` provenance. Only 4 of 28 rules did before; new and changed rules now must.
+
+RENAMES — both following from rule 18
+
+- `hath` -> `helm` as the shortname for Human at the Helm: an AI-introduced abbreviation nobody
+  chose, which had reached a tool, a data file, a test, a design document, a skill directory and
+  a shipped README. HELM_REPO replaces the old environment variable name with no dual-name
+  transition. Where the term sat inside a quotation it was replaced with a bracketed editorial
+  substitution rather than silently reworded — the Captain asked twice what the abbreviation
+  meant before retiring it, which is the evidence that an AI had paraphrased him and put its own
+  coinage inside the quote marks.
+- Prose says Scripture Pipelines, not LLMFlow, per project/plans/design-vocabulary.md — which
+  had ruled this and was being ignored in 43 markdown files and in the shipped cli_utils
+  constants, so every project `sp init` touched inherited the deprecated name. URLs, filesystem
+  paths, identifiers and the `llmflow` import namespace are unchanged.
+
+THE #204 CATALOG QUESTIONS — Q1 to Q6 ruled and built
+
+- Q3: the four hello-world files are catalogued `generated` at project scope, which *is* the
+  ruling — doctor restores a project file only when present and diverged, and never creates one.
+  No example-specific code was needed.
+- Q4-Q6: the four audit documents are `create-once`; doctor never touches them.
+- Q2: .github/copilot-instructions.md is block-managed like .cursorrules and .windsurfrules, and
+  shares ASSISTANT_RULES_POINTER. It was written whole for no stated reason, which is the only
+  reason a consumer repo lost 72 lines of its own instructions while the two siblings kept
+  theirs. The duplicate COPILOT_INSTRUCTIONS_DOC is deleted rather than left beside it.
+- Q1: two indexes. docs/ai-context/project-index.md is `create-once` — the project's own map,
+  which sp cannot generate because only the project knows what files it has.
+  docs/ai-context/sp-index.md is `generated` with the new `source: derived`, rendered from this
+  catalog's new `purpose:` field. A constant would have been a second hand-kept list of sp's own
+  documents, which is the failure file_catalog.py exists to prevent.
+
+AWAITING_CATALOG_RULING is deleted rather than left empty: an uncatalogued file now fails
+loudly, which is what the list was suppressing. Its staleness test is replaced by the converse
+guard — a catalogued project file that `sp init` no longer writes — which immediately caught the
+Copilot document's invisible write site.
+
+Not built, and still open: §4.1-4.3 of plan-init-doctor-unification.md, the `sp init --update`
+to `sp doctor` unification itself.
+
+GUARDS — each written before its sweep, and failing first
+
+- tests/test_shortname_is_helm.py
+- tests/test_product_name_in_prose.py
+- tests/test_two_indexes.py
+
+TESTS: 2922 passed, 26 skipped. ruff unchanged at its 42-error baseline.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>

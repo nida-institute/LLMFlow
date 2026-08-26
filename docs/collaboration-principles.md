@@ -114,5 +114,5 @@ New projects initialized with `sp init` receive both:
 ## See Also
 
 - [Architecture](architecture.md) — Technical system design
-- [Why LLMFlow](why-llmflow.md) — Comparisons with other frameworks
+- [Why Scripture Pipelines](why-llmflow.md) — Comparisons with other frameworks
 - [Getting Started](getting-started.md) — Env vars, linting, resource repo pattern

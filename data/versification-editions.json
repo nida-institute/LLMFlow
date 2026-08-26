@@ -1,0 +1,41 @@
+{
+  "$comment": [
+    "Which versification scheme an edition's references are in. There is no global default:",
+    "an edition that does not say, and is not listed here, and carries no Paratext settings,",
+    "has an unknown scheme, and asking to map across schemes is then an error rather than a",
+    "guess. An edition's own `versification_scheme` field always wins over this file.",
+    "Scheme ids are the Copenhagen Alliance mapping filenames in ~/.sp/versification/."
+  ],
+
+  "known_editions": {
+    "$comment": "Editions we construct, matched case-insensitively against the edition id.",
+    "SBLGNT": {
+      "scheme": "org",
+      "why": "Macula Greek. 2CO 13 has 13 verses and 3JN 15 exists — both `org`, not `eng`."
+    },
+    "WLC": {
+      "scheme": "org",
+      "why": "Macula Hebrew. PSA 51 runs to 21 verses and Malachi has 3 chapters."
+    },
+    "BSB": {
+      "scheme": "eng",
+      "why": "Berean Standard Bible, an English translation with English numbering."
+    }
+  },
+
+  "paratext_versification_numbers": {
+    "$comment": [
+      "Paratext Settings.xml <Versification>N</Versification>. Names are the headers of the",
+      "standard .vrs files Paratext ships. 1 and 4 are confirmed on disk: HWLC declares 1 and",
+      "gathered org.vrs, KOTP declares 4 and gathered eng.vrs. 2, 3, 5 and 6 follow the same",
+      "enum order and are not confirmed here; 5 is corroborated by ruCARS23, a Russian project.",
+      "A project whose number is absent has an unknown scheme."
+    ],
+    "1": {"scheme": "org", "paratext_name": "Original", "confirmed": true},
+    "2": {"scheme": "lxx", "paratext_name": "Septuagint", "confirmed": false},
+    "3": {"scheme": "vul", "paratext_name": "Vulgate", "confirmed": false},
+    "4": {"scheme": "eng", "paratext_name": "English", "confirmed": true},
+    "5": {"scheme": "rsc", "paratext_name": "Russian Protestant", "confirmed": false},
+    "6": {"scheme": "rso", "paratext_name": "Russian Orthodox", "confirmed": false}
+  }
+}

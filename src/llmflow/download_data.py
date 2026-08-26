@@ -7,6 +7,8 @@ import zipfile
 from io import BytesIO
 from pathlib import Path
 
+from llmflow import paths as _paths
+
 from llmflow.modules.logger import Logger
 
 logger = Logger()
@@ -51,7 +53,7 @@ def get_default_data_dir() -> Path:
     env = os.environ.get("LLMFLOW_DATA_DIR")
     if env:
         return Path(env)
-    return Path.home() / ".sp" / "data"
+    return _paths.sp_home() / "data"
 
 
 def run_download_data(

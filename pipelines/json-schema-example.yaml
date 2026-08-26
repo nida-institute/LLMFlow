@@ -82,29 +82,21 @@ steps:
                     description: "Genre/type: narrative, teaching, confrontation, parable, etc."
                     enum: ["narrative", "teaching", "confrontation", "parable", "apocalyptic", "letter", "other"]
 
-                required: ["title", "passage", "theme"]
+                # Strict mode requires EVERY property to be listed in required. A field
+                # that is genuinely optional gets a nullable type — ["string", "null"] —
+                # and is listed here anyway.
+                required: ["title", "passage", "start_verse", "end_verse", "theme", "pericope_type"]
                 additionalProperties: false  # Prevent LLM from adding unexpected fields
 
             total_pericopes:
               type: integer
               description: "Total count of pericopes identified"
 
-          required: ["book", "pericopes", "total_pericopes"]
+          required: ["book", "segmentation_rationale", "pericopes", "total_pericopes"]
           additionalProperties: false
 
     prompt:
-      template: |
-        Segment the book of {{book}} into distinct pericopes (narrative or discourse units).
-
-        For each pericope, identify:
-        - A descriptive title
-        - The passage reference
-        - The main theme
-        - The type (narrative, teaching, confrontation, etc.)
-
-        Provide a brief rationale for your segmentation approach.
-
-        Focus on natural breaks in the narrative or discourse flow.
+      file: prompts/segment-book.gpt
       inputs:
         book: "${book}"
 
@@ -149,7 +141,7 @@ steps:
                     type: string
                     description: "Why this feature matters for interpretation"
 
-                required: ["feature_name", "evidence"]
+                required: ["feature_name", "evidence", "significance"]
                 additionalProperties: false
 
             key_questions:
@@ -164,23 +156,11 @@ steps:
               items:
                 type: string
 
-          required: ["pericope_title", "literary_features", "key_questions"]
+          required: ["pericope_title", "literary_features", "key_questions", "applications"]
           additionalProperties: false
 
     prompt:
-      template: |
-        Analyze this pericope from {{book}}:
-
-        Title: {{title}}
-        Passage: {{passage}}
-        Theme: {{theme}}
-
-        Identify:
-        1. Literary features (devices, patterns, structure)
-        2. Key interpretive questions
-        3. Possible applications for modern readers
-
-        Be specific and evidence-based.
+      file: prompts/analyze-pericope.gpt
       inputs:
         book: "${book}"
         title: "${segmentation.pericopes[0].title}"
@@ -235,20 +215,11 @@ steps:
               type: string
               description: "Brief overview of the book's structure and themes"
 
-          required: ["book", "total_pericopes", "dominant_themes", "summary"]
+          required: ["book", "total_pericopes", "dominant_themes", "genre_distribution", "summary"]
           additionalProperties: false
 
     prompt:
-      template: |
-        Based on the segmentation of {{book}}, generate a summary report.
-
-        Segmentation data:
-        {{segmentation_json}}
-
-        Provide:
-        1. Dominant themes across all pericopes
-        2. Distribution of pericope types
-        3. A brief structural and thematic overview
+      file: prompts/summarize-segmentation.gpt
       inputs:
         book: "${book}"
         segmentation_json: "${segmentation}"  # Auto-serialized to JSON string

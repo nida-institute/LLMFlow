@@ -2,7 +2,7 @@
 Tests for filesystem permissions on ~/.sp/ protected directories.
 
 After sp init, the following directories are read-only:
-  ~/.sp/conventions/
+  ~/.sp/disciplines/
   ~/.sp/skills/
   ~/.sp/projects/
 
@@ -31,17 +31,17 @@ def _make_sp_dirs(tmp_path: Path) -> None:
 
 @pytest.fixture()
 def sp_home(tmp_path, monkeypatch):
-    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    monkeypatch.setenv("SP_HOME", str(tmp_path / ".sp"))
     _make_sp_dirs(tmp_path)
     return tmp_path
 
 
 class TestLockedAfterInit:
-    def test_conventions_dir_locked(self, sp_home):
+    def test_disciplines_dir_locked(self, sp_home):
         init_project(sp_home / "project")
-        conventions = sp_home / ".sp" / "conventions"
-        assert conventions.exists()
-        assert not _is_writable(conventions), "~/.sp/conventions/ should be read-only after sp init"
+        disciplines = sp_home / ".sp" / "disciplines"
+        assert disciplines.exists()
+        assert not _is_writable(disciplines), "~/.sp/disciplines/ should be read-only after sp init"
 
     def test_skills_dir_locked(self, sp_home):
         init_project(sp_home / "project")
@@ -73,27 +73,27 @@ class TestIdempotence:
         init_project(sp_home / "project")
         # Second run must unlock, write, and relock without raising
         init_project(sp_home / "project")
-        assert not _is_writable(sp_home / ".sp" / "conventions")
+        assert not _is_writable(sp_home / ".sp" / "disciplines")
         assert not _is_writable(sp_home / ".sp" / "skills")
         assert not _is_writable(sp_home / ".sp" / "projects")
 
     def test_update_succeeds_when_locked(self, sp_home):
         init_project(sp_home / "project")
         init_project(sp_home / "project", update=True)
-        assert not _is_writable(sp_home / ".sp" / "conventions")
+        assert not _is_writable(sp_home / ".sp" / "disciplines")
         assert not _is_writable(sp_home / ".sp" / "skills")
 
     def test_no_examples_succeeds_when_locked(self, sp_home):
         init_project(sp_home / "project")
         init_project(sp_home / "project", no_examples=True)
-        assert not _is_writable(sp_home / ".sp" / "conventions")
+        assert not _is_writable(sp_home / ".sp" / "disciplines")
         assert not _is_writable(sp_home / ".sp" / "skills")
 
 
 class TestWriteBlocked:
-    def test_direct_write_to_locked_conventions_raises(self, sp_home):
+    def test_direct_write_to_locked_disciplines_raises(self, sp_home):
         init_project(sp_home / "project")
-        target = sp_home / ".sp" / "conventions" / "sneaky.md"
+        target = sp_home / ".sp" / "disciplines" / "sneaky.md"
         with pytest.raises(PermissionError):
             target.write_text("unauthorized content", encoding="utf-8")
 

@@ -2,7 +2,7 @@
 
 ## The `project/` directory
 
-LLMFlow consumer repositories (repos that *use* the `sp` CLI to run pipelines)
+Scripture Pipelines consumer repositories (repos that *use* the `sp` CLI to run pipelines)
 should maintain a `project/` directory for active working documents.  This keeps
 ephemeral material out of `docs/` and off the repo root.
 
@@ -67,6 +67,6 @@ When asked where to put a TODO → `project/TODO.md` (one file, not scattered).
 
 Do **not** put in-progress notes in `docs/` — that directory is for stable reference.
 
-### DO NOT modify the LLMFlow dependency in `pyproject.toml`
+### DO NOT modify the Scripture Pipelines dependency in `pyproject.toml`
 
-Consumer repos reference LLMFlow as a local editable install so that changes to the LLMFlow dev tree flow through immediately. **Never reformat, simplify, or otherwise touch this line**, even when editing `pyproject.toml` for other reasons. Reverting it to a non-editable reference causes silent stale-install bugs that are hard to diagnose (e.g. `response_format` crashes, missing features). This rule exists because AI agents have repeatedly broken this — April 2026.
+Consumer repos reference Scripture Pipelines as a local editable install so that changes to the Scripture Pipelines dev tree flow through immediately. **Never reformat, simplify, or otherwise touch this line**, even when editing `pyproject.toml` for other reasons. Reverting it to a non-editable reference causes silent stale-install bugs that are hard to diagnose (e.g. `response_format` crashes, missing features). This rule exists because AI agents have repeatedly broken this — April 2026.

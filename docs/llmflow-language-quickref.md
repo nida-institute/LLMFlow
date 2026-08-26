@@ -1,6 +1,6 @@
-# LLMFlow Language Quick Reference
+# Scripture Pipelines Language Quick Reference
 
-This file is a compact, self-contained reference to the LLMFlow
+This file is a compact, self-contained reference to the Scripture Pipelines
 pipeline language for day-to-day work in this repository.
 
 If you have access to the engine repo, the full specification lives

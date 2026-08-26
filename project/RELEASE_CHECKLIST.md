@@ -1,4 +1,4 @@
-# Release Checklist for LLMFlow
+# Release Checklist for Scripture Pipelines
 
 Follow this checklist when preparing a new release.
 

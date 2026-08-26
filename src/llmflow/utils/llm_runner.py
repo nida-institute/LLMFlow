@@ -86,6 +86,42 @@ def get_model(model_name: str):
 
 
 # ============================================================================
+# API key resolution — one path (LLMFlow#195)
+# ============================================================================
+
+# provider alias -> environment variable. Declared once; setup_command.PROVIDERS
+# carries the same mapping and a test asserts the two agree.
+PROVIDER_ENV_VARS = {
+    "openai": "OPENAI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+    "gemini": "GEMINI_API_KEY",
+}
+
+
+def resolve_provider_key(provider: str, explicit: str | None = None) -> str | None:
+    """Return the API key for *provider*, or None if none is configured.
+
+    Resolution order (via ``llm.get_key``): explicit argument -> the ``llm`` keystore
+    entry for this provider (what ``sp setup`` / ``llm keys set`` writes) -> the
+    provider's environment variable.
+
+    Steps that use ``response_format`` talk to the provider's client directly rather than
+    through the ``llm`` package. Those call sites used to construct the client with no key,
+    so it read the environment variable and nothing else — meaning ``sp setup`` could report
+    success and leave every structured-output step unauthenticated. Going through here gives
+    both routes one key source; the environment variable still works, it is just no longer
+    the only thing that does. See LLMFlow#195.
+    """
+    env_var = PROVIDER_ENV_VARS.get(provider)
+    if env_var is None:
+        raise ValueError(
+            f"Unknown provider {provider!r}. Known providers: "
+            f"{', '.join(sorted(PROVIDER_ENV_VARS))}"
+        )
+    return llm.get_key(explicit_key=explicit, key_alias=provider, env_var=env_var)
+
+
+# ============================================================================
 # Model Family Detection and Parameter Sets
 # ============================================================================
 
@@ -423,7 +459,8 @@ def _call_openai_with_response_format(prompt: str, config: Dict[str, Any], outpu
     """
     from openai import OpenAI
 
-    client = OpenAI()  # Uses OPENAI_API_KEY from environment
+    # One key source for both routes — keystore or env var (LLMFlow#195)
+    client = OpenAI(api_key=resolve_provider_key("openai"))
 
     model_name = config.get("model", "gpt-4o-2024-08-06")
 
@@ -544,14 +581,14 @@ async def _run_with_responses_api(
     pipeline_config: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """Execute LLM using Responses API (for GPT-5, O1)."""
-    from llmflow.runner import build_debug_filename, save_content_to_file
+    from llmflow.runner import save_content_to_file
     import json
     from openai import OpenAI
     import asyncio
     from functools import partial
 
     # Responses API is only available in sync client, so we'll use it in a thread pool
-    client = OpenAI()
+    client = OpenAI(api_key=resolve_provider_key("openai"))
 
     # Initialize MCP session and get tools
     async with mcp_client as mcp:
@@ -621,14 +658,21 @@ async def _run_with_responses_api(
                     timeout=timeout_seconds
                 )
 
-                # Debug: save raw response
+                # Debug: save the provider's raw reply alongside the step's parsed response.
+                #
+                # This used to write to a hardcoded "outputs/debug/{filename}", ignoring
+                # both intermediate_file_directory and the per-pipeline subdirectory, so it
+                # landed outside the run's own audit trail entirely (LLMFlow#198). It is
+                # supplementary evidence for a call the step handler already recorded, so
+                # it takes no sequence number and no manifest line of its own.
                 try:
-                    if step and context and pipeline_config:
-                        if (pipeline_config.get("linter_config", {}) or {}).get("log_level", "").lower() == "debug":
-                            filename = build_debug_filename(step, context, "response")
-                            resp_path = f"outputs/debug/{filename}"
-                            save_content_to_file(str(response), resp_path, format="text")
-                            logger.debug(f"🗒️ Saved response to {resp_path}")
+                    recorder = (pipeline_config or {}).get("_debug_recorder")
+                    if recorder is not None and step:
+                        saved = recorder.save_artifact(
+                            f"{step.get('name', 'llm_step')}-raw-response", response
+                        )
+                        if saved:
+                            logger.debug(f"🗒️ Saved raw response to {saved}")
                 except Exception as e:
                     logger.debug(f"(response debug save skipped: {e})")
 
@@ -830,7 +874,7 @@ async def _run_with_chat_completions(
     import json
     from openai import AsyncOpenAI
 
-    client = AsyncOpenAI()
+    client = AsyncOpenAI(api_key=resolve_provider_key("openai"))
 
     # Initialize MCP session and get tools
     async with mcp_client as mcp:

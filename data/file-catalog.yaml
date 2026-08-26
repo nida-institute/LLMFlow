@@ -1,0 +1,294 @@
+# Every file `sp` creates or maintains, and on what terms. This file is the authority:
+# `sp init` writes what it declares, `sp doctor` repairs what it marks `generated`, the
+# generated `.gitignore` follows its `committed` field, and `docs/ai-context/sp/index.md`
+# is rendered from its `purpose` field. Nothing here is restated in code.
+#
+# **This catalog holds only what sp itself specifies.** A document a project invents for
+# itself is not listed here and is not sp's to create; a project reaches its own files by
+# naming them in `docs/ai-context/project/index.md`.
+#
+# ---------------------------------------------------------------------------
+# Fields
+#
+#   path       where the file lives, relative to its scope root
+#   scope      project | sp-home        (the project directory, or ~/.sp)
+#   policy     generated   sp owns the content; restored when missing or diverged
+#              create-once sp writes it if absent, then never touches it again
+#              user-owned  sp never writes it
+#   source     template | constant | derived | sp-home | none
+#   committed  true  -> belongs in git, must never appear in the generated .gitignore
+#              false -> goes in the generated .gitignore
+#   constant   name of the string constant in cli_utils, when source is `constant`
+#   template   path under src/llmflow/templates/, when source is `template`
+#   block      delimiter name when sp owns only a block of the file, not all of it
+#   purpose    what the file is for; this text is the entry's row in the rendered index
+#
+# `groups` expand from what the package ships, so adding a template needs no edit here.
+# ---------------------------------------------------------------------------
+
+version: 1
+
+groups:
+  - id: disciplines
+    label: Disciplines
+    templates: "sp/disciplines/*.md"
+    path: "disciplines/{name}"
+    scope: sp-home
+    policy: generated
+    source: template
+    committed: false
+
+  - id: sp-root-files
+    label: Root files
+    templates: "sp/*.md"
+    path: "{name}"
+    scope: sp-home
+    policy: generated
+    source: template
+    committed: false
+
+  - id: sp-skills
+    label: Skills in ~/.sp
+    templates: "sp/skills/*"
+    requires: SKILL.md
+    path: "skills/{name}"
+    scope: sp-home
+    policy: generated
+    source: template
+    committed: false
+
+  # Copenhagen Alliance versification mappings, copied unmodified. One entry per file rather
+  # than one per directory, so a custom mapping placed alongside them is never overwritten.
+  # `ATTRIBUTION.md` travels with them: CC BY-SA 4.0 requires the notice to accompany the data.
+  - id: versification
+    label: Versification mappings
+    templates: "sp/versification/*"
+    path: "versification/{name}"
+    scope: sp-home
+    policy: generated
+    source: template
+    committed: false
+
+  # Copied into the repo and committed, so a clone has the slash commands.
+  - id: project-skills
+    label: Project skills
+    templates: "sp/skills/*"
+    requires: SKILL.md
+    path: ".claude/skills/{name}"
+    scope: project
+    policy: generated
+    source: sp-home
+    committed: true
+
+files:
+  # sp's half. Regenerated: sp owns this content and `sp doctor` restores it when it drifts.
+  # The three standard documents first — a self-description, a map, the constraints — then
+  # the topic documents each side's index makes reachable.
+  - path: docs/ai-context/sp/overview.md
+    scope: project
+    policy: generated
+    source: constant
+    constant: SP_OVERVIEW_DOC
+    committed: true
+    purpose: >-
+      What Scripture Pipelines is, and where the rest of its documentation lives.
+
+  # Rendered from this file, so it cannot name a document the catalog does not declare.
+  - path: docs/ai-context/sp/index.md
+    scope: project
+    policy: generated
+    source: derived
+    committed: true
+    purpose: >-
+      The documents Scripture Pipelines ships, and what each is for. Rendered from
+      data/file-catalog.yaml, so it cannot go stale.
+
+  - path: docs/ai-context/sp/rules.md
+    scope: project
+    policy: generated
+    source: constant
+    constant: AI_RULES_DOC
+    committed: true
+    purpose: >-
+      The rules every AI session in this project is held to. Authoritative.
+
+  - path: docs/ai-context/sp/audits-pattern.md
+    scope: project
+    policy: generated
+    source: template
+    template: project/docs/ai-context/sp/audits-pattern.md
+    committed: true
+    purpose: >-
+      How to audit: which skill answers which question, tracing an output field back to the
+      request that produced it, and testing a prompt fix with `sp tools replay`.
+
+  - path: docs/ai-context/sp/github-workflow.md
+    scope: project
+    policy: generated
+    source: constant
+    constant: GITHUB_WORKFLOW_DOC
+    committed: true
+    purpose: >-
+      Issue references, version numbering, CHANGELOG and gh CLI conventions.
+
+  # The project's half. Written once and never touched again. Only the three standard
+  # documents are declared: sp cannot know what documents a project creates for itself, and
+  # a project reaches its own by naming them in its index.
+  - path: docs/ai-context/project/overview.md
+    scope: project
+    policy: create-once
+    source: constant
+    constant: AI_OVERVIEW_DOC
+    committed: true
+    purpose: >-
+      What this project is and how its pipelines are organised.
+
+  - path: docs/ai-context/project/index.md
+    scope: project
+    policy: create-once
+    source: constant
+    constant: AI_INDEX_DOC
+    committed: true
+    purpose: >-
+      This project's own map — read first. Yours to write; sp never overwrites it.
+
+  - path: docs/ai-context/project/rules.md
+    scope: project
+    policy: create-once
+    source: constant
+    constant: PROJECT_RULES_DOC
+    committed: true
+    purpose: >-
+      Constraints that hold in this project and nowhere else. Yours to write.
+
+  # Engine documentation sp writes into a project, outside docs/ai-context/.
+  - path: docs/tutorial.md
+    scope: project
+    policy: generated
+    source: constant
+    constant: TUTORIAL_DOC
+    committed: true
+    purpose: >-
+      Step-by-step walkthrough: variables, saveas, and a two-step pipeline.
+
+  - path: docs/llmflow-language-quickref.md
+    scope: project
+    policy: generated
+    source: constant
+    constant: LANGUAGE_QUICKREF_DOC
+    committed: true
+    purpose: >-
+      The pipeline YAML reference — step types, variables, window and for-each.
+
+  - path: docs/vscode.md
+    scope: project
+    policy: generated
+    source: constant
+    constant: VSCODE_DOC
+    committed: true
+    purpose: >-
+      VS Code setup for editing pipelines and prompts.
+
+  # The hello-world example. `generated` at project scope: `sp init` creates these, and
+  # `sp doctor` refreshes one only when it is present and has diverged, never creating it.
+  - path: prompts/hello.gpt
+    scope: project
+    policy: generated
+    source: constant
+    constant: HELLO_PROMPT
+    committed: true
+    purpose: >-
+      Starter prompt for the hello-world example.
+
+  - path: prompts/reply.gpt
+    scope: project
+    policy: generated
+    source: constant
+    constant: HELLO_REPLY_PROMPT
+    committed: true
+
+  - path: pipelines/hello-llmflow.yaml
+    scope: project
+    policy: generated
+    source: constant
+    constant: HELLO_PIPELINE
+    committed: true
+
+  - path: pipelines/hello.yaml
+    scope: project
+    policy: generated
+    source: constant
+    constant: HELLO_YAML
+    committed: true
+    purpose: >-
+      Smallest runnable pipeline — one llm step.
+
+  # How a project records audit findings. create-once: the project adapts it, and
+  # `sp doctor` never overwrites a create-once entry.
+  - path: project/audits/README.md
+    scope: project
+    policy: create-once
+    source: constant
+    constant: PROJECT_AUDITS_README
+    committed: true
+    purpose: >-
+      How audit findings are recorded for this project.
+
+  # The session cache, edited constantly. Written only when absent, never overwritten.
+  - path: project/TODO.md
+    scope: project
+    policy: create-once
+    source: constant
+    constant: PROJECT_TODO
+    committed: true
+    purpose: >-
+      Active work, what is in flight, and what not to touch. Read before anything else.
+
+  # Pointers at `docs/ai-context/sp/rules.md`, carrying no rules of their own. All three
+  # are block-managed: sp owns its delimited block and leaves the rest of the file alone.
+  - path: .cursorrules
+    scope: project
+    policy: generated
+    source: constant
+    constant: CURSORRULES_LLMFLOW_BLOCK
+    block: workflow
+    committed: true
+
+  - path: .windsurfrules
+    scope: project
+    policy: generated
+    source: constant
+    constant: WINDSURFRULES_LLMFLOW_BLOCK
+    block: workflow
+    committed: true
+
+  - path: .github/copilot-instructions.md
+    scope: project
+    policy: generated
+    source: constant
+    constant: ASSISTANT_RULES_POINTER
+    block: workflow
+    committed: true
+
+  # The human's file. sp upserts its block on init, doctor never repairs it, and it is
+  # gitignored so a clone never carries one.
+  - path: CLAUDE.md
+    scope: project
+    policy: create-once
+    source: constant
+    constant: CLAUDE_MD_LLMFLOW_BLOCK
+    block: workflow
+    committed: false
+
+  # Written by runs, not by init. Catalogued so the ignore list can be derived.
+  - path: outputs/
+    scope: project
+    policy: create-once
+    source: none
+    committed: false
+
+  - path: llmflow.log
+    scope: project
+    policy: user-owned
+    source: none
+    committed: false

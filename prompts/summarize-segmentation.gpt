@@ -1,0 +1,18 @@
+---
+requires:
+  - book
+  - segmentation_json
+optional: []
+format: JSON
+description: Summarise a book segmentation, returned as a strict JSON schema.
+---
+user: |
+  Based on the segmentation of {{book}}, generate a summary report.
+
+  Segmentation data:
+  {{segmentation_json}}
+
+  Provide:
+  1. Dominant themes across all pericopes
+  2. Distribution of pericope types (count for each type)
+  3. A brief structural and thematic overview

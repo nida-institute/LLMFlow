@@ -1,5 +1,8 @@
 from typing import Any, Dict, List, Optional, Union
+
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+from llmflow.utils.scripture import FORMATS as SCRIPTURE_FORMATS
 
 
 class LLMConfig(BaseModel):
@@ -194,10 +197,23 @@ _STEP_TYPE_PROPERTIES = [
     (
         ("llm",),
         {
+            # `prompt` is either a path or {file, inputs} — exactly what render_prompt()
+            # in steps/llm.py reads. Closed deliberately (LLMFlow#197): while this was
+            # open, `prompt.template` validated and was then ignored, and the step died
+            # with "Prompt 'file' must be a string, got NoneType". Adding a key here
+            # without teaching render_prompt() to read it recreates that hole.
             "prompt": {
                 "oneOf": [
                     {"type": "string"},
-                    {"type": "object", "additionalProperties": True},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "file": {"type": "string"},
+                            "inputs": {"type": "object", "additionalProperties": True},
+                        },
+                        "required": ["file"],
+                        "additionalProperties": False,
+                    },
                 ]
             },
             "llm_options": {"type": "object", "additionalProperties": True},
@@ -223,6 +239,21 @@ _STEP_TYPE_PROPERTIES = [
         ("duckdb",),
         {
             "query_file": {"type": "string"},
+        },
+    ),
+    (
+        ("scripture",),
+        {
+            # A named edition, resolved through the registry — never a path here. See
+            # project/plans/design-scripture-editions.md (LLMFlow#200).
+            "edition": {"type": "string"},
+            "passage": {"type": "string"},
+            # The enum is the implemented set, read from the one place that defines it, so a
+            # format cannot be accepted by lint before it exists or outlive its removal.
+            "format": {"type": "string", "enum": list(SCRIPTURE_FORMATS)},
+            # The scheme `passage` is written in. Not an enum: a Paratext project brings its
+            # own, and a custom mapping is a file the human puts in the store.
+            "versification": {"type": "string"},
         },
     ),
     (

@@ -37,6 +37,7 @@ class TestRegistryInitialization:
 
     def test_registry_uses_home_by_default(self, monkeypatch):
         """Registry should default to ~/.sp/ if no env var set."""
+        monkeypatch.delenv("SP_HOME", raising=False)  # this asserts the default
         # Don't actually create in real home dir, just verify path logic
         monkeypatch.delenv("SP_REGISTRY_PATH", raising=False)
 

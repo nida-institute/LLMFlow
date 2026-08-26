@@ -17,7 +17,7 @@ Scripture Pipelines is a declarative pipeline runner for LLM-assisted content ge
 
 ```bash
 git clone https://github.com/nida-institute/LLMFlow.git
-cd LLMFlow
+cd Scripture Pipelines
 pip install -e .
 sp --version
 sp --help
@@ -67,7 +67,7 @@ sp run --pipeline pipelines/your-pipeline.yaml --var passage="Psalm 23"
 
 ### Consumer repo `pyproject.toml` — the editable-install pattern
 
-A resource/consumer repo runs on LLMFlow but does **not** vendor it. It installs the engine
+A resource/consumer repo runs on Scripture Pipelines but does **not** vendor it. It installs the engine
 as an **editable** dependency from your local clone, so engine changes propagate immediately.
 The known-good Hatch pattern:
 
@@ -88,14 +88,14 @@ dependencies = [
 ]
 ```
 
-Replace `/path/to/your/LLMFlow` with the absolute path to your LLMFlow clone — it is
+Replace `/path/to/your/LLMFlow` with the absolute path to your Scripture Pipelines clone — it is
 machine-specific; there is no portable form for editable-installing a sibling checkout.
 `post-install-commands` runs the editable install after Hatch builds the env, so `sp` /
-LLMFlow stays live in both `hatch run …` and inside `hatch shell`. A real `[build-system]`
+Scripture Pipelines stays live in both `hatch run …` and inside `hatch shell`. A real `[build-system]`
 plus `[project]` metadata is what lets `hatch shell` set the env up cleanly — no `skip-install`
 gymnastics needed.
 
-**Why editable — and why not to "fix" it:** LLMFlow is developed alongside consumer repos on
+**Why editable — and why not to "fix" it:** Scripture Pipelines is developed alongside consumer repos on
 the same machine, so the editable install (`pip install -e`) picks up upstream engine fixes the
 moment they land. Pinning a version, or switching to a non-editable `llmflow @ file://…`
 dependency, **freezes** the engine and silently breaks that propagation — this has repeatedly

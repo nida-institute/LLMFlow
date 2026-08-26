@@ -157,7 +157,7 @@ Runs a prompt through an LLM API using the [`llm` package](https://llm.datasette
 
 **CRITICAL:** For pipelines that produce JSON, use `response_format` with a JSON schema to guarantee valid output. This eliminates 40-60% failure rates caused by LLM-generated malformed JSON (missing commas, unescaped quotes, trailing commas).
 
-**LLMFlow automatically uses OpenAI's client directly when `response_format` is present**, ensuring 100% compatibility with structured outputs.
+**Scripture Pipelines automatically uses OpenAI's client directly when `response_format` is present**, ensuring 100% compatibility with structured outputs.
 
 **OpenAI GPT-4 family** (gpt-4o, gpt-4o-mini, gpt-4.1, gpt-4.1-mini) supports structured outputs via `response_format`:
 
@@ -251,10 +251,52 @@ Using `schema_file` keeps pipelines clean and allows schema reuse across multipl
 | ❌ Manual JSON formatting rules in prompts | ✅ Schema enforced by API |
 
 **Key requirements:**
-- **Model:** Must use `gpt-4o-2024-08-06` or later (not `gpt-4.1` — uses different API)
+- **Model:** `gpt-4o-2024-08-06` or later. OpenAI's guide names the `gpt-4o-mini`,
+  `gpt-4o-mini-2024-07-18` and `gpt-4o-2024-08-06` snapshots "and later", and does not
+  enumerate later families either way. **`gpt-4.1` works** — four arms, 200+ calls, strict
+  `json_schema`, zero schema failures, measured 2026-08-22 in `nida-institute/discourse-flow`.
+  A revision of this line before that date claimed `gpt-4.1` was incompatible because it "uses
+  a different API"; that was wrong, and `docs/ai-context/rules.md` rule 5 already said
+  "GPT-4o/4.1 families".
 - **`strict: true`** (recommended): Enables strict schema adherence
 - **`additionalProperties: false`**: Prevents LLM from adding unexpected fields
 - **All required fields documented**: Use `description` fields to guide LLM
+
+##### Strict mode accepts only a subset of JSON Schema
+
+Under `strict: true`, OpenAI rejects a schema outside its supported subset with **HTTP 400 at
+request time** — not a worse answer, no answer. Since 0.2.1.24 `sp lint` checks these rules
+before the run ([#196](https://github.com/nida-institute/LLMFlow/issues/196)), so you find out
+before spending anything rather than partway through a pipeline.
+
+**Errors** — lint fails:
+
+| Rule | Notes |
+|---|---|
+| Every key in `properties` must appear in `required` | The most common mistake by far |
+| Every object needs `additionalProperties: false` | Including nested objects and array items |
+| The root must be an object | Not an array, not a scalar, not `anyOf` |
+| `$ref`s must resolve within the document | Recursive `$ref: "#"` is fine |
+
+**There are no optional fields.** A field you do not always want still goes in `required`; you
+make it *nullable* instead:
+
+```yaml
+segmentation_rationale:
+  type: ["string", "null"]     # optional in effect — but still listed in required
+```
+
+**Warnings** — reported, lint still passes: keywords outside the supported subset (`allOf`,
+`not`, `if`/`then`/`else`, `patternProperties`, `default`, …), `oneOf` where `anyOf` is meant,
+and the documented size limits. These are warnings rather than errors because OpenAI has
+widened the accepted subset several times, and a stale rule in Scripture Pipelines must not block work the
+provider would in fact accept.
+
+Without `strict: true` the subset is not enforced, so the schema is advisory — lint says so
+rather than failing. If a rule is wrong for your case, `linter_config.skip_strict_schema_check:
+true` turns the check off.
+
+The rules live in one dated table in `src/llmflow/utils/schema_preflight.py`.
 
 **Basic JSON mode (less reliable):**
 
@@ -476,6 +518,94 @@ single item — useful for chunking long inputs (e.g. by token budget) before an
       append_to: summaries
 ```
 
+#### Physical windows, logical units
+
+`size` and `size_by_tokens` bound a **physical** block — items or tokens, arithmetic on the
+input list, knowable before the call. What the LLM finds inside that block — pericopes,
+clauses, sections — is **logical**, and knowable only after the call returns. So where the
+next window should begin cannot be computed in advance: it depends on where the logical units
+fell, which is an output, not an input.
+
+You can decide in advance to read the next fifty pages. You cannot decide in advance to stop
+at the end of a chapter, because you do not know where the chapter ends until you have read
+it.
+
+**A fixed `stride` asserts knowledge you do not have.** It is right when list items are
+independent — summarise every 10 reviews, embed every 500 tokens. It is wrong whenever the
+LLM's job is to find structure *inside* the block, because a fixed cut lands mid-unit and the
+model must either split a unit across two calls or drop it. For that case, use
+`!window_advance` and drive the next start from the model's own output.
+
+**The corollary is the load-bearing half.** In a non-final window the last logical unit the
+model returns is untrustworthy — the physical cut may have truncated it, so its beginning is
+known and its end is not. Therefore:
+
+1. **Discard the last logical unit** from your accumulated output.
+2. **Resume from the trailing edge of the last unit you kept** — never from the opening of
+   the unit you dropped. Those two positions coincide only when the model's output has no
+   gaps, and a model that can leave gaps will. When it does, a cursor set to the dropped
+   unit's opening skips the uncovered region and no later window ever sees it.
+3. **The final window keeps everything** — nothing truncated it.
+
+Half of this is worse than none: a cursor without the discard accumulates a unit and then
+re-processes it, producing duplicates; the discard without a cursor loses it.
+
+**The engine does not enforce any of step 1–3.** It advances the cursor you give it and
+raises only on a cursor that is not a non-negative integer, or that fails to advance beyond
+the current start. Keeping the right units is pipeline-side discipline, and a run that gets
+it wrong loses content silently — the guards will not catch it.
+
+The cursor is **a list index into `in:`**, not a domain identifier. Converting a domain
+boundary (a verse id, a section name) to a position is the pipeline's job.
+
+#### `size` and `stride` are resolved once, before the loop starts
+
+`size` and `stride` accept a literal or a `${...}` expression. An expression is resolved
+**once, at step entry** — the same point `in:` is resolved, before anything has iterated — and
+never again. `include_partial`, `size_by_tokens` and `stride_by_tokens` remain literal-only.
+
+**Why resolution happens there and nowhere later.** These fields describe the partition, and
+the partition has to be knowable at the start of the loop: `sp lint` can then check the shape
+before a single call is made, and a reader can see from the YAML how the input will be divided.
+A value that changed *during* loop execution would make the partition depend on state
+accumulated by earlier iterations — and because each iteration's `outputs` overwrite the outer
+variable (last-iteration-wins, see below), that state is not visible in the pipeline file. Two
+runs of the same pipeline over the same input could then window it differently, and
+`--rewind-to` could replay it differently again. A variable fixed before the loop cannot do
+that: it is still a constant for the loop.
+
+**What lint can and cannot verify.** The variable's *name* is checked as usual — an undefined
+`${typo}` is an error. Its *value* cannot be, so lint emits a warning saying so and naming the
+run-time consequence:
+
+| `size:` | `sp lint` |
+|---|---|
+| `50` | silent — verified |
+| `"${window_size}"`, name defined | **warning** — cannot verify it is a positive integer; a bad value fails when the step starts |
+| `"${typo}"`, name undefined | **error** |
+| `0` | **error** — must be a positive integer |
+| `"10"` | **error** — a quoted literal is not an expression, and is not coerced; coercing it would hide a typo |
+
+A `--var` value arrives as a string, so `--var window_size=50` resolves to `"50"` and is
+coerced to `50`. Anything that does not resolve to a positive integer fails at step entry,
+before the first call, naming both the expression and what it resolved to.
+
+**Variation from what a run discovers has its own mechanism, and it is guarded.**
+`!window_advance` is how the partition depends on the model's output. It is auditable — the
+cursor is one named value, computed by one declared step, per iteration — and the engine
+rejects a cursor that is not a non-negative integer or that fails to advance. Resolving `size`
+per iteration would be a second, unguarded route to the same effect, which is why resolution
+is pinned to step entry and not repeated.
+
+So the rule is: **the physical block is declared before the loop; the logical boundary is
+discovered inside it.** A variable may set the block, because a value fixed before the first
+iteration is still declared. Nothing may change the block once iteration has begun. Keep those
+two apart and a misbehaving run has one place to look.
+
+If that changes, the safe form is narrow and stays narrow: resolve **once, at step entry,
+from values fixed before the run** — never per iteration. Per-iteration resolution is a
+different feature with a different argument to win.
+
 **Fields:**
 
 | Field | Type | Meaning |
@@ -591,6 +721,120 @@ Writes content directly to a file. No LLM call, no Python function — just a wr
 
 ---
 
+### type: `scripture`
+
+Fetches one passage from one **named** edition. The edition is a name resolved through the
+registry in `~/.sp/editions/`, never a path in the pipeline — so the same pipeline runs on a
+machine where the sources live somewhere else.
+
+```yaml
+- name: fetch-source
+  type: scripture
+  edition: SBLGNT             # a registered edition
+  passage: "${passage}"       # MRK · MRK 1 · MRK 1:1 · MRK 1:1-8 · MRK 1:40-2:12
+  format: milestones          # plain | milestones | usj   (default: milestones)
+  versification: eng          # optional; the scheme `passage` is written in
+  output: source_text
+```
+
+**Required Fields:**
+- `edition`: Name of a registered edition
+- `passage`: A reference, in any of the five forms above
+- `output`: Variable name to store the result
+
+**Optional Fields:**
+- `format`: The shape of the result (see below). Default `milestones`.
+- `versification`: The scheme `passage` is written in. See *Versification*.
+- `saveas`, `append_to`: as for any step.
+
+#### Choosing a format
+
+Verses are **milestones, not containers**: the result is running text with verse positions
+marked, never a mapping keyed by verse. Chopping text at verse boundaries destroys the sentence
+and clause structure that analysis depends on, and a verse-keyed shape makes that the easy path.
+
+| format | what you get | size | reach for it when |
+|---|---|---|---|
+| `plain` | running text, no addressing | 1.0× | the prompt never needs to cite a verse — the cheapest form, and the only one a whole-book step can afford |
+| `milestones` | `⌊1:1⌋ text` | 1.07× | **the default.** The model can cite a verse, and the cost over bare text is under a tenth |
+| `usj` | a USJ document | 2.56× codepoints, 6.74× as escaped JSON | something downstream must address individual words, or you need a standard interchange format |
+
+The multipliers are measured, not estimated. `usj` costs roughly six times `milestones` once
+escaped into a JSON payload, which is why it is not the default: pay for structure when
+something consumes the structure.
+
+`format: usj` returns a **dict**, not a string — one `chapter` node per chapter, one `para`
+inside each, `verse` nodes and text. The Macula sources carry no paragraph structure, so there
+is none to represent; a `para` per chapter is the least the USX grammar allows. Flattening the
+document reproduces `format: milestones` exactly, and that equivalence is a test.
+
+#### Versification
+
+**A reference is not a location until a scheme is named.** `PSA 51:1` is `PSA 51:3` in the
+original-language numbering and `PSA 50:3` in the Vulgate; Malachi has four chapters in English
+and three in Hebrew. A pipeline that asks two editions for "the same" reference without saying
+which numbering it means is comparing unrelated verses, and nothing reports an error.
+
+**An edition's scheme is a property of that edition, and there is no global default.** A
+Byzantine Greek text and a critical text are numbered differently; so are two English
+translations. Guessing would be wrong exactly where schemes differ. The scheme is found in
+three ways, in order:
+
+1. **`versification_scheme` in the edition's registry entry** — always wins.
+2. **A Paratext project's `Settings.xml`**, for `kind: usfm` editions. Paratext records a
+   number; `data/versification-editions.json` maps it to a scheme. A project carrying a
+   `custom.vrs` overlay is reported, because that overlay is not read.
+3. **The table of editions we construct**, in the same file — `SBLGNT` and `WLC` are `org`,
+   `BSB` is `eng`, each with the evidence recorded beside it.
+
+If none of the three answers and you ask for a cross-scheme mapping, that is an **error** naming
+the field to add. Without `versification:` no mapping happens, so an edition with an unknown
+scheme keeps working for everything else.
+
+`versification:` on the step names the scheme **your `passage` is written in**. When it differs
+from the edition's, the reference is mapped *before* any text is read:
+
+```yaml
+- name: hebrew-by-english-reference
+  type: scripture
+  edition: WLC                # numbered `org`
+  passage: "PSA 51:1"         # ...but I am counting in English
+  versification: eng
+  output: psalm               # returns org PSA 51:3 — the verse an English reader means
+```
+
+Omit it and the edition's own scheme governs, which is the right default for a single edition.
+
+Schemes are the Copenhagen Alliance mappings, installed into `~/.sp/versification/` by
+`sp init` and repaired by `sp doctor`. Six ship: `org` (the hub every scheme maps through),
+`eng`, `lxx`, `vul`, `rsc`, `rso`.
+
+A custom scheme is a JSON file in that directory. It may set `basedOn` to inherit from another
+and list only what it changes, and `sp` never overwrites or removes it — only the six it
+installed. Note that `~/.sp` is kept read-only, so adding one means making the directory
+writable first:
+
+```bash
+chmod u+w ~/.sp/versification && cp my-scheme.json ~/.sp/versification/ && chmod a-w ~/.sp/versification
+```
+
+Three behaviours are deliberate, because the alternative in each case is a silent error:
+
+- **An unmappable reference raises.** A verse outside its scheme's bounds is an error, never an
+  empty result that reads like an absence of text.
+- **An ambiguous reverse mapping raises**, naming every candidate. Where a scheme divides what
+  another joins, one verse can correspond to several — `DAN 4:4` is reached from both `DAG 4:1`
+  and `DAG 4:7`, which are not adjacent — so there is no single answer to return and no span
+  that would be true.
+- **A mapping entry whose two sides cover different numbers of verses is skipped and reported.**
+  Seven such entries ship in the standard schemes. Guessing what one meant would put a passage
+  somewhere the data does not say.
+
+Two fields of the specification, `mergedVerses` and `partialVerses`, are **not yet
+interpreted**; loading a scheme that carries either says so. `lxx` carries 74 `partialVerses`.
+
+---
+
 ### type: `basex`
 
 Runs an XQuery against a local BaseX database via the `basex` CLI.
@@ -598,20 +842,20 @@ Runs an XQuery against a local BaseX database via the `basex` CLI.
 ```yaml
 - name: query-verses
   type: basex
-  database: acai                        # see note below
+  database: acai                        # bound as $database in the query
   query_file: queries/get-passage.xq    # path to .xq file
   inputs:                               # bound as XQuery external variables
-    db: acai
     passage: "${passage}"
     source: "${source}"
-  timeout_seconds: 120                          # optional, seconds (default: 120)
+  timeout_seconds: 120                  # optional, seconds (default: 120)
   output: query_result
   saveas: "outputs/passages/${passage}.json"
 ```
 
 **Required Fields:**
+- `database`: Name of the BaseX database
 - `query_file`: Path to the `.xq` file
-- `outputs`: Variable name to store the result
+- `output`: Variable name to store the result
 
 **Optional Fields:**
 - `inputs`: Key-value pairs resolved from pipeline context and passed to BaseX as **external
@@ -619,22 +863,29 @@ Runs an XQuery against a local BaseX database via the `basex` CLI.
   `declare variable $passage external;`. The query file is never modified — no string
   substitution is performed, so XQuery curly braces (computed constructors, maps, arrays) are
   safe.
-- `timeout`: Seconds before the BaseX process is killed (default 120).
+- `timeout_seconds`: Seconds before the BaseX process is killed (default 120).
 - `saveas`: File path to save the output (supports `${var}` substitution).
 
-**Selecting the database:** open it inside the query, from an external variable you bind through
-`inputs`. See `queries/acai-verse-range.xq`:
+**Selecting the database.** `database:` is bound as the external variable `$database`. The
+keyword and the XQuery variable are deliberately the same word:
 
 ```xquery
-declare variable $db external := "acai";
+declare variable $database external;
 ...
-for $e in db:get($db)//entity
+for $e in collection($database)//entity
 ```
 
-The step-level `database:` key is currently required by the linter but is not read by the engine
-and does not select anything — see [#189](https://github.com/nida-institute/LLMFlow/issues/189).
-Until that is settled, declare it (to pass lint) *and* bind the real database name through
-`inputs`.
+Do not also pass `database` through `inputs` — both bind `$database`, and that is a lint
+error rather than a precedence rule. BaseX accepts duplicate `-b` flags for one variable,
+takes the last silently and exits 0, so a pipeline could name one database while the query
+read another and still report success.
+
+> **Changed in 0.2.1.24** ([#189](https://github.com/nida-institute/LLMFlow/issues/189)):
+> `database:` was previously required by the linter and then discarded, so queries hardcoded
+> the database name or smuggled it through an ad-hoc `inputs: db:` entry. If you have queries
+> declaring `$db`, rename the variable to `$database` and drop the `inputs` entry; `db` is now
+> reported as a typo for `database`. Note that BaseX silently ignores a binding for a variable
+> the query does not declare, so a stale `db:` fails quietly rather than loudly.
 
 **Prerequisites:** The `basex` executable must be on `PATH` with a running BaseX instance.
 
@@ -667,7 +918,7 @@ from `load_csv`/`load_tsv`).
   are registered as DuckDB tables so the query can reference them by name.
 - `format`: Output shape. `records` (default) returns a `list[dict]`.
 
-**Prerequisites:** the `duckdb` Python package (installed with LLMFlow).
+**Prerequisites:** the `duckdb` Python package (installed with Scripture Pipelines).
 
 ---
 

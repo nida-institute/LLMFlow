@@ -6,7 +6,7 @@ LLMs generating code — and LLMs *writing pipelines* — have a systematic bias
 marking things optional. It silences warnings without solving the underlying problem.
 The result is runtime failures where you expected parse-time or lint-time errors.
 
-The problem has two surfaces in LLMFlow:
+The problem has two surfaces in Scripture Pipelines:
 
 1. **Python code** — `Optional[T]` in function signatures and Pydantic models
 2. **YAML pipelines** — `optional:` declarations and missing variable bindings in prompt contracts
@@ -27,7 +27,7 @@ when available but are genuinely absent in some call sites.
 The optional only affects error messages, log output, or diagnostic metadata — not
 the primary computation.
 
-**LLMFlow example — `exceptions.py`:**
+**Scripture Pipelines example — `exceptions.py`:**
 
 ```python
 class PipelineExecutionError(LLMFlowError):
@@ -61,7 +61,7 @@ populated in a later phase.
 Code that reads it after the transition never has to handle `None`. Code that reads it
 before the transition should raise, not silently continue.
 
-**LLMFlow example — `telemetry.py`:**
+**Scripture Pipelines example — `telemetry.py`:**
 
 ```python
 @dataclass
@@ -102,7 +102,7 @@ def helper(step: Optional[Dict[str, Any]] = None, context: Optional[Dict[str, An
 And then never uses either parameter. The type checker is satisfied. The tests pass.
 The parameters are dead weight.
 
-**LLMFlow example — `llm_runner.py`:**
+**Scripture Pipelines example — `llm_runner.py`:**
 
 ```python
 def run_llm_with_mcp_tools(
@@ -303,7 +303,7 @@ decision that should be made explicit.
 
 ## YAML Pipeline Optionality Abuse
 
-The same pattern plays out in LLMFlow YAML pipelines, but the escape hatches are
+The same pattern plays out in Scripture Pipelines YAML pipelines, but the escape hatches are
 different because the enforcement mechanism is the linter (`sp lint`), not Python's
 type checker.
 

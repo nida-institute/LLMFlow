@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-pytest.importorskip("flask", reason="GUI tests require: pip install llmflow[gui]")
+pytest.importorskip("flask", reason="GUI tests require: pip install scripture-pipelines")
 
 # Import the main GUI backend app
 sys.path.insert(0, str(Path(__file__).parent.parent / 'gui' / 'backend'))

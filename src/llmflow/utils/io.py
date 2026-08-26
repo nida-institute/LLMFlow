@@ -7,7 +7,12 @@ from pathlib import Path
 import markdown
 
 from llmflow.modules.logger import Logger
-from llmflow.plugins.echo import echo
+
+# Re-exported on purpose: pipelines name `llmflow.utils.io.echo` as a `function:` step,
+# and `steps/function.py` resolves that by attribute lookup on this module. Static
+# analysis reports it unused because nothing imports it from here in Python — the caller
+# is a YAML string. Removing it breaks those pipelines at run time. Do not "clean up".
+from llmflow.plugins.echo import echo  # noqa: F401
 from llmflow.utils.guards import _eval_node
 
 # Use unified logger
@@ -120,12 +125,30 @@ def render_markdown_template(template_path, variables, context=None):
     try:
         template_content = Path(template_path).read_text(encoding="utf-8")
 
-        # First pass: {{variable}} syntax
-        for key, value in variables.items():
-            placeholder = f"{{{{{key}}}}}"
-            if placeholder in template_content:
-                template_content = template_content.replace(placeholder, str(value))
+        # First pass: {{variable}} syntax.
+        #
+        # One regex sweep, matching render_template()'s pattern so the same spelling
+        # behaves the same in prompt and output templates. This used to be a loop of
+        # literal str.replace() calls building "{{key}}" by formatting, which meant
+        # `{{ content }}` with spaces silently never matched and the literal text landed
+        # in the rendered file.
+        #
+        # A single sweep also stops substituted values being re-scanned: the loop
+        # replaced {{content}} first, then kept iterating, so a model response containing
+        # "{{book}}" would itself be interpolated depending on dict order.
+        #
+        # Unknown placeholders are returned untouched — a template may legitimately
+        # contain literal braces.
+        def _substitute(match):
+            key = match.group(1).strip()
+            if key in variables:
                 logger.debug(f"Replaced {{{{ {key} }}}} with value")
+                return str(variables[key])
+            return match.group(0)
+
+        template_content = re.sub(
+            r"\{\{\s*([^\}]+?)\s*\}\}", _substitute, template_content
+        )
 
         # Second pass: ${variable} syntax with context resolution if available
         if context:
@@ -305,11 +328,36 @@ def validate_all_templates(pipeline_config):
         logger.info(f"✅ All {template_count} templates validated successfully")
 
 
+def _ensure_writable_path(value, what: str) -> None:
+    """Refuse to create a directory named after an unresolved variable.
+
+    Every helper below calls `mkdir(parents=True, exist_ok=True)`. Given a path that still
+    contains `${var}`, the filesystem obliges: the run succeeds, the output looks like
+    output, and `exist_ok=True` means the next run appends to the same wrong tree rather
+    than colliding — so age never makes it visible. Ears to Hear lost six weeks that way
+    (`2026-08-17-unresolved-variable-becomes-a-directory.md`).
+
+    `sp lint` and rewind already refused such paths; the run path did not. This is the
+    third caller, and it guards the write itself rather than `saveas` resolution — because
+    `save_markdown_as` and `save_xml` take `output_dir` directly, and function and plugin
+    steps can pass paths that never went through `saveas` at all.
+    """
+    from llmflow.utils.context import has_unresolved_variables
+
+    if has_unresolved_variables(value):
+        raise ValueError(
+            f"Refusing to write: {what} contains an unresolved variable: {value}. "
+            "Nothing was written. A path like this would otherwise be created as a "
+            "literal directory and the run would report success."
+        )
+
+
 def save_markdown_as(text, passage, format="md", output_dir="outputs"):
     """
     Save text content as a file with custom naming and directory.
     Supports both markdown and HTML output.
     """
+    _ensure_writable_path(output_dir, "output_dir")
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     safe_passage = sanitize_filename(passage)
 
@@ -329,6 +377,7 @@ def save_markdown_as(text, passage, format="md", output_dir="outputs"):
 
 def save_xml(xml_string, basename, output_dir="outputs/xml"):
     """Save an XML string to a file, using a sanitized version of the entry_id."""
+    _ensure_writable_path(output_dir, "output_dir")
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     safe_name = sanitize_filename(basename)
     path = Path(output_dir) / f"{safe_name}.xml"
@@ -339,6 +388,7 @@ def save_xml(xml_string, basename, output_dir="outputs/xml"):
 
 def save_text(content, output_path, format="md"):
     """Save text content to a file."""
+    _ensure_writable_path(output_path, "output_path")
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     write_nfc(output_path, content)
     return str(output_path)
@@ -352,6 +402,7 @@ def load_json(file_path):
 
 def save_json(content, output_path):
     """Save JSON content to a file."""
+    _ensure_writable_path(output_path, "output_path")
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(content, f, ensure_ascii=False, indent=2)

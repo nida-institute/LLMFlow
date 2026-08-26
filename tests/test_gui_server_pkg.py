@@ -7,7 +7,7 @@ which is what gets installed and bundled — ensuring both copies stay in sync.
 
 import pytest
 
-pytest.importorskip("flask", reason="GUI tests require: pip install llmflow[gui]")
+pytest.importorskip("flask", reason="GUI tests require: pip install scripture-pipelines")
 
 from llmflow.gui.server import create_app
 

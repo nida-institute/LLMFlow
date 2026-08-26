@@ -1,16 +1,16 @@
 # Global Conventions & Skills
 
-**Status:** Available in LLMFlow 0.2.1.07+
+**Status:** Available in Scripture Pipelines 0.2.1.07+
 
 ## Overview
 
-LLMFlow provides a globally-shared convention for organizing `.gpt` prompt files and a read-only audit skill to check compliance. These resources are automatically installed to `~/.sp/` when you run `sp init` and are available across all LLMFlow projects.
+Scripture Pipelines provides a globally-shared convention for organizing `.gpt` prompt files and a read-only audit skill to check compliance. These resources are automatically installed to `~/.sp/` when you run `sp init` and are available across all Scripture Pipelines projects.
 
 ## What's Included
 
 ### 1. Prompt Organization Convention
 
-**Location:** `~/.sp/conventions/llmflow-prompt-organization.md`
+**Location:** `~/.sp/disciplines/llmflow-prompt-organization.md`
 
 A standard structure for transformation-heavy prompts that enforces:
 - **Verifiable transformations** — explicit mapping from input fields to output fields
@@ -56,7 +56,7 @@ sp init
 ```
 
 This automatically:
-- Creates `~/.sp/conventions/` with the convention and README
+- Creates `~/.sp/disciplines/` with the shipped disciplines and their README
 - Creates `~/.sp/skills/audit-prompts/` with the skill file
 - Logs what was installed
 
@@ -65,7 +65,7 @@ This automatically:
 If you need to reinstall or update:
 
 ```bash
-# The convention and skill are bundled with LLMFlow
+# The convention and skill are bundled with Scripture Pipelines
 # They're copied from the installed package to ~/.sp/
 # Just run sp init again to update
 sp init --update
@@ -152,7 +152,7 @@ The audit skill checks for this file first and uses it instead of the global con
 ```markdown
 # Project-Specific Prompt Convention
 
-This project follows the global LLMFlow convention with these additions:
+This project follows the global Scripture Pipelines convention with these additions:
 
 ## Domain-Specific Requirements
 
@@ -313,13 +313,13 @@ When creating a prompt, write the DATA SOURCES section first:
 
 ## Related Documentation
 
-- [LLMFlow Language Quickref](llmflow-language-quickref.md) — YAML syntax reference
-- [Tutorial](tutorial.md) — Getting started with LLMFlow
+- [Scripture Pipelines Language Quickref](llmflow-language-quickref.md) — YAML syntax reference
+- [Tutorial](tutorial.md) — Getting started with Scripture Pipelines
 - [AI Context Index](ai-context/index.md) — Project-specific AI guidelines
 
 ## Updating Conventions
 
-Conventions can be updated with LLMFlow releases. To get the latest:
+Conventions can be updated with Scripture Pipelines releases. To get the latest:
 
 ```bash
 sp init --update
@@ -339,4 +339,4 @@ The convention evolves based on real-world prompt engineering experience across 
 ---
 
 **Last Updated:** April 1, 2026
-**Version:** LLMFlow 0.2.1.07+
+**Version:** Scripture Pipelines 0.2.1.07+

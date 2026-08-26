@@ -20,7 +20,8 @@ class StepRewindManager:
         self.rewind_to = rewind_to
         self._rewind_complete = not bool(rewind_to)
 
-    def record_step(self, step: Dict[str, Any], context: Dict[str, Any]) -> None:  # pragma: no cover - retained for API parity
+    # pragma: no cover - retained for API parity
+    def record_step(self, step: Dict[str, Any], context: Dict[str, Any]) -> None:
         context.pop("_last_saved_files", None)
 
     @property
@@ -167,12 +168,15 @@ class StepRewindManager:
         )
 
     def _ensure_path_resolved(self, value: Any, original: Any, step: Dict[str, Any]) -> None:
-        path_str = str(value)
-        if "${" in path_str or "{" in path_str:
-            raise StepRewindError(
-                f"Saveas path for step '{step.get('name', 'unnamed')}' contains unresolved variables: {original}",
-                step_name=step.get("name") or "",
-            )
+        """Delegates to the shared check in `utils.context`.
+
+        This method and `linter._ensure_path_resolved_for_lint` were byte-identical
+        copies, and the path that actually writes had neither. Kept as a thin method so
+        the two call sites above read unchanged.
+        """
+        from llmflow.utils.context import ensure_saveas_path_resolved
+
+        ensure_saveas_path_resolved(value, original, step)
 
 
 __all__ = ["StepRewindManager"]

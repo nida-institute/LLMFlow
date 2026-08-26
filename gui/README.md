@@ -38,7 +38,7 @@ To stop: Press `Ctrl+C` in the terminal.
 Build and test the bundled version:
 
 ```bash
-# From LLMFlow root directory
+# From Scripture Pipelines root directory
 python build_gui.py
 sp gui
 ```
@@ -92,5 +92,5 @@ Users who don't need the GUI are not impacted - the dependencies are optional.
 
 For development or if GUI not bundled in your binary:
 ```bash
-pip install llmflow[gui]
+pip install scripture-pipelines
 ```

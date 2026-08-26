@@ -1,8 +1,8 @@
-# LLMFlow Architecture
+# Scripture Pipelines Architecture
 
 ## 1. Purpose
 
-LLMFlow is a declarative YAML-driven execution engine for LLM-assisted content
+Scripture Pipelines is a declarative YAML-driven execution engine for LLM-assisted content
 pipelines. It standardizes prompt contracts, variable resolution, iteration, and
 output persistence while enabling domain-specific extensions and multi-repository
 content management.
@@ -50,7 +50,7 @@ implementation of any step type.
 
 ### 3.3 Steps Layer — `steps/`
 
-This is the **executable semantics** of the LLMFlow pipeline language. Each
+This is the **executable semantics** of the Scripture Pipelines pipeline language. Each
 file defines exactly what one step type means when it executes. Reading
 `steps/for_each.py` is the authoritative answer to the question "what does
 `type: for-each` do?"
@@ -211,7 +211,7 @@ lookup, lexicon queries).
 
 ## 11. AI Context — Navigating the Codebase
 
-This section is specifically for AI assistants working on the LLMFlow engine.
+This section is specifically for AI assistants working on the Scripture Pipelines engine.
 
 **To understand what a step type does:** read `src/llmflow/steps/<type>.py`.
 That file is the authoritative definition. The language documentation describes
@@ -284,21 +284,48 @@ switch.
 - **Trigger:** `linter_config: { log_level: debug }` in the pipeline YAML
   (checked in `steps/llm.py` on the request and response save paths).
 - **Location** (`utils/debug.py:_get_debug_dir`):
-  `<intermediate_file_directory>/debug/<pipeline_name>/` when the pipeline
-  declares `intermediate_file_directory` (resolved through `${...}`), otherwise
-  `<cwd>/outputs/debug/<pipeline_name>/`. `<pipeline_name>` is the pipeline YAML
-  file stem.
-- **Filenames** (`steps/llm.py:build_debug_filename`):
-  `<passage>_<prompt_stem>_request.txt` and `<passage>_<prompt_stem>_response.txt`.
-  `<passage>` comes from context `passage` / `Citation` / `scene.Citation`
-  (sanitized); when absent a `YYYY-MM-DD-HHMMSS` timestamp is used.
-  `<prompt_stem>` is the step's prompt-file stem, falling back to the step name.
-  Inside `for-each` loops, iteration tokens (`lvl<n>`, `<var>-<label>`) are
-  appended. Files are plain text (`.txt`) — the rendered prompt and the raw
-  response — not JSON.
-- **Cleared per run:** `_clear_debug_dir` wipes the pipeline's debug subdirectory
-  at the start of every run (skipped on `--dry-run`), so dumps always reflect the
-  most recent run only.
+  `<intermediate_file_directory>/debug/<pipeline_name>/<run_key>/` when the
+  pipeline declares `intermediate_file_directory` (resolved through `${...}`),
+  otherwise `<cwd>/outputs/debug/<pipeline_name>/<run_key>/`. `<pipeline_name>` is
+  the pipeline YAML file stem. `<run_key>` names the variables that distinguish
+  this run, built from CLI `--var` values — `book-Ruth`, or `default` when there
+  are none. The segment is always present, including for `default`: the directory
+  is emptied at the start of a run, and without it that delete would target
+  `debug/<pipeline_name>/`, wiping every sibling run (Scripture Pipelines#198).
+- **Layout** (`utils/debug.py:DebugRecorder`):
+
+  ```
+  outputs/debug/book-summary/book-Ruth/
+    manifest.jsonl
+    0001-segment_book-request.txt
+    0001-segment_book-response.json
+    0002-analyze-attempt2-request.txt
+    llmflow.log
+  ```
+
+  Filenames are `<seq>-<step>[-attempt<n>]-(request|response).(txt|json)`. The
+  sequence number is per run and makes each name unique and chronologically
+  sortable; the attempt suffix appears from the second call to a step onward, so a
+  retry no longer overwrites what it retried. Responses are written as `.json`
+  when structured and `.txt` otherwise.
+- **`manifest.jsonl`:** one line per model call — `seq`, `step`, `attempt`,
+  `prompt_file`, `model` (the model actually called, after config merging, not the
+  one declared), `passage`, `iteration`, `started`, `finished`, `status`,
+  `prompt_tokens`, `completion_tokens`, `total_tokens`, `cost_usd` (rounded to
+  micro-dollars, `null` when the model is unpriced), `request_file`,
+  `response_file`. File paths are relative to the run directory so
+  a run can be archived or moved intact. `sp tools replay` reads the pairing from
+  here rather than inferring it from filenames; directories captured before
+  0.2.1.24 have no manifest and fall back to filename matching.
+- **Cleared per run:** `_clear_debug_dir` empties **this run's** directory at the
+  start of the run (skipped on `--dry-run`), so a run directory reflects exactly
+  one run. Sibling run directories are untouched.
+- **Removed in 0.2.1.24:** `steps/llm.py:build_debug_filename` produced
+  `<passage>_<prompt_stem>_(request|response).txt`. The step name appeared only
+  when there was no prompt file, so two steps sharing a `.gpt` collided and the
+  second overwrote the first; a retry did the same; and the timestamp — the only
+  field that could order the files — appeared only when `passage` was absent. The
+  sequence number now guarantees uniqueness and order.
 - **Log co-location:** when `intermediate_file_directory` is declared,
   `llmflow.log` is redirected into `<debug_dir>/llmflow.log` (`runner.py`).
 - **Cleanup:** `sp clean --debug-only` deletes only the debug directory;

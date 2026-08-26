@@ -181,11 +181,26 @@ def _read(path: str) -> str:
 
 
 def find_response_file(request_path: str) -> str | None:
-    """Locate the saved response paired with a request file: same directory, same
-    pairing_stem, `_response.txt` suffix. Request/response timestamps differ; if
-    several responses share the stem, take the earliest at or after the request's.
+    """Locate the saved response paired with a request file.
+
+    Prefers the run manifest, where the pairing is a recorded field (LLMFlow#198). Falls
+    back to matching filenames for directories captured before the manifest existed — that
+    path strips the timestamp and suffix, globs, sorts, and takes the earliest response at
+    or after the request, which is a guess that two steps sharing a prompt file, or a
+    retried step, could get wrong.
     """
     p = Path(request_path)
+
+    from llmflow.utils.debug import read_manifest
+
+    for record in read_manifest(p.parent):
+        if record.get("request_file") == p.name:
+            response = record.get("response_file")
+            if not response:
+                return None  # recorded, and there genuinely was no response
+            resolved = p.parent / response
+            return str(resolved) if resolved.exists() else None
+
     stem = pairing_stem(p.name)
     candidates = sorted(
         c for c in p.parent.iterdir()
@@ -205,7 +220,10 @@ def call_model(prompt_text: str, schema: dict[str, Any], schema_name: str,
                model: str, temperature: float) -> dict[str, Any]:
     """One LLM call, verbatim prompt, json_schema-constrained. Returns parsed dict."""
     from openai import OpenAI
-    client = OpenAI()
+
+    from llmflow.utils.llm_runner import resolve_provider_key
+
+    client = OpenAI(api_key=resolve_provider_key("openai"))
     resp = client.chat.completions.create(
         model=model,
         temperature=temperature,
@@ -246,7 +264,8 @@ def _parse_set(pairs: list[str] | None) -> dict[str, str]:
 def add_arguments(parser) -> None:
     """Register `replay` flags on the given argparse subparser."""
     parser.add_argument("--request", nargs="+", required=True,
-                        help="captured *_request.txt file(s) or glob(s)")
+                        help="captured request file(s) or glob(s) — '*-request.txt' from "
+                             "0.2.1.24 on, '*_request.txt' for older captures")
     parser.add_argument("--prompt", required=True,
                         help="original .gpt that generated the request")
     parser.add_argument("--prompt-new", required=True, help="edited .gpt under test")

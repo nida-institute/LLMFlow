@@ -1,0 +1,693 @@
+"""Named scripture editions: a reference range in, running text out.
+
+An edition names a source in the registry and a backend that can read it. Text is assembled
+by concatenating each word with its own trailing string, so whitespace and punctuation are
+read from the source rather than inferred per language.
+
+Why running text rather than a verse-keyed mapping, what each serialization costs, and which
+one to reach for: `project/plans/design-scripture-representations.md`, and §3 of
+`project/plans/plan-scripture-step.md` for the backends.
+"""
+
+from __future__ import annotations
+
+import csv
+import re
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Iterable, Mapping, Optional, Sequence
+
+from lxml import etree  # type: ignore[attr-defined]
+
+from llmflow.modules.logger import Logger
+from llmflow.utils import versification as _versification
+
+logger = Logger()
+
+#: An edition definition's field naming the versification scheme its references are in.
+SCHEME_KEY = "versification_scheme"
+
+#: Editions whose scheme we know, and Paratext's versification numbers.
+EDITION_TABLE_FILENAME = "versification-editions.json"
+
+_EDITION_TABLE: Optional[Mapping[str, Any]] = None
+
+#: Marks where a verse begins in `fmt="milestones"` output.
+MILESTONE_TEMPLATE = "⌊{chapter}:{verse}⌋"
+
+FORMATS = ("plain", "milestones", "usj")
+
+USJ_VERSION = "3.1"
+
+#: `\p`, an ordinary paragraph. The source carries no paragraphing, and USX requires text to
+#: sit inside a paragraph, so one plain `para` per chapter is the least the grammar allows.
+USJ_PARA_MARKER = "p"
+
+#: An `after` value that joins its word to the next, so no space follows it: the Greek elision
+#: apostrophe (`κατ’αὐτοῦ`) and the Hebrew maqqef (`עַל־פְּנֵי`). Every other non-empty, non-space
+#: `after` ends a word and takes a space after it. An empty `after` joins and adds nothing —
+#: Macula Hebrew splits a word into morphemes and marks the continuations that way.
+JOINING_MARKS = frozenset({"’", "־"})
+
+#: USJ element types holding apparatus rather than the text being read. Their content is
+#: dropped. Inline `char` elements outside a note are part of the reading and are kept.
+SKIP_USJ_TYPES = frozenset({"note", "figure", "sidebar", "ref"})
+
+
+class EditionNotRegistered(KeyError):
+    """Raised when an edition has no registry entry, listing what is available."""
+
+    def __str__(self) -> str:  # KeyError repr would quote the message
+        return self.args[0] if self.args else ""
+
+
+@dataclass(frozen=True)
+class PassageRef:
+    """A parsed reference. ``None`` chapter means the whole book; ``None`` verse, the whole
+    chapter."""
+
+    book: str
+    start_chapter: Optional[int]
+    start_verse: Optional[int]
+    end_chapter: Optional[int]
+    end_verse: Optional[int]
+
+    def covers(self, chapter: int, verse: int) -> bool:
+        if self.start_chapter is None:
+            return True
+        if chapter < self.start_chapter or chapter > (self.end_chapter or self.start_chapter):
+            return False
+        if self.start_verse is None:
+            return True
+        if chapter == self.start_chapter and verse < self.start_verse:
+            return False
+        end_c = self.end_chapter or self.start_chapter
+        end_v = self.end_verse
+        if end_v is not None and chapter == end_c and verse > end_v:
+            return False
+        return True
+
+
+_BOOK = r"(?P<book>[A-Z1-9][A-Za-z0-9]{1,4})"
+_PATTERNS = (
+    # MRK 1:40-2:12
+    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+)\s*-\s*(?P<c2>\d+):(?P<v2>\d+)$"),
+    # MRK 1:1-8
+    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+)\s*-\s*(?P<v2>\d+)$"),
+    # MRK 1:1
+    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+)$"),
+    # MRK 1
+    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+)$"),
+    # PHM
+    re.compile(rf"^{_BOOK}$"),
+)
+
+
+def parse_passage_ref(passage: str) -> PassageRef:
+    """Parse ``"MRK 1:1-8"`` and friends.
+
+    Deliberately strict: an unrecognised string raises rather than being coerced into
+    something plausible, because a silently wrong range yields analysis of the wrong text.
+    """
+    text = (passage or "").strip()
+    for pattern in _PATTERNS:
+        m = pattern.match(text)
+        if not m:
+            continue
+        g = m.groupdict()
+        c1 = int(g["c1"]) if g.get("c1") else None
+        v1 = int(g["v1"]) if g.get("v1") else None
+        c2 = int(g["c2"]) if g.get("c2") else c1
+        v2 = int(g["v2"]) if g.get("v2") else v1
+        return PassageRef(g["book"].upper(), c1, v1, c2, v2)
+    raise ValueError(
+        f"{passage!r} is not a passage reference. Expected forms: 'MRK', 'MRK 1', "
+        f"'MRK 1:1', 'MRK 1:1-8', 'MRK 1:40-2:12'."
+    )
+
+
+def _split_ref(ref: str) -> tuple[str, Optional[int], Optional[int]]:
+    """``"GEN 1:1!3"`` -> ``("GEN", 1, 1)``. The ``!n`` word index is discarded."""
+    head = (ref or "").split("!", 1)[0].strip()
+    if " " not in head:
+        return head.upper(), None, None
+    book, _, cv = head.partition(" ")
+    if ":" not in cv:
+        return book.upper(), (int(cv) if cv.isdigit() else None), None
+    c, _, v = cv.partition(":")
+    try:
+        return book.upper(), int(c), int(v)
+    except ValueError:
+        return book.upper(), None, None
+
+
+def filter_rows(rows: Iterable[Mapping[str, Any]], ref: PassageRef) -> list[dict]:
+    """Keep the rows inside *ref*, in source order."""
+    kept = []
+    for row in rows:
+        book, chapter, verse = _split_ref(row.get("ref", ""))
+        if book != ref.book:
+            continue
+        if chapter is None:
+            continue
+        if ref.covers(chapter, verse if verse is not None else 1):
+            kept.append(dict(row))
+    return kept
+
+
+def join_rows(rows: Iterable[Mapping[str, Any]]) -> str:
+    """Concatenate ``text + after``, adding a space only where ``after`` does not carry one.
+
+    ``after`` plays three roles: a space, a mark that joins (``JOINING_MARKS``, or empty), or
+    punctuation that ends a word. Only the third needs a space added, because the source
+    carries the mark without one. The single place this rule lives.
+    """
+    parts: list[str] = []
+    for row in rows:
+        parts.append(str(row.get("text") or ""))
+        after = str(row.get("after") or "")
+        parts.append(after)
+        if after and not after.isspace() and after not in JOINING_MARKS:
+            parts.append(" ")
+    return "".join(parts)
+
+
+def group_by_verse(rows: Iterable[Mapping[str, Any]]) -> list:
+    """Rows as ``((chapter, verse), rows)`` runs, in source order.
+
+    A row whose ``ref`` names no verse joins the run before it, so text outside any verse is
+    not silently dropped.
+    """
+    groups: list = []
+    for row in rows:
+        _, chapter, verse = _split_ref(row.get("ref", ""))
+        key = (chapter, verse) if chapter is not None and verse is not None else None
+        if groups and (key is None or key == groups[-1][0]):
+            groups[-1][1].append(row)
+        else:
+            groups.append((key, [row]))
+    return groups
+
+
+def rows_to_text(rows: Sequence[Mapping[str, Any]], fmt: str = "milestones") -> str:
+    """Running text for *rows*.
+
+    With ``fmt="milestones"`` a ``⌊chapter:verse⌋`` marker precedes each verse, separated from
+    the preceding text when that does not already end in whitespace.
+    """
+    if fmt not in FORMATS:
+        raise ValueError(f"unknown format {fmt!r}; expected one of {', '.join(FORMATS)}")
+    if fmt == "plain":
+        return join_rows(rows).strip()
+
+    parts: list[str] = []
+    for key, group in group_by_verse(rows):
+        if key is not None:
+            if parts and not parts[-1][-1:].isspace():
+                parts.append(" ")
+            parts.append(MILESTONE_TEMPLATE.format(chapter=key[0], verse=key[1]))
+            parts.append(" ")
+        parts.append(join_rows(group))
+    return "".join(parts).strip()
+
+
+def edition_scheme(definition: Any, edition: Optional[str] = None) -> Optional[str]:
+    """The versification scheme an edition's references are in, or None when unknown.
+
+    Three sources, in order: the edition's own ``versification_scheme``; a Paratext project's
+    ``Settings.xml``; the table of editions we construct. There is no global default — a
+    Byzantine Greek text and a critical text are numbered differently, so a guess would be
+    wrong exactly where it mattered.
+    """
+    if isinstance(definition, Mapping):
+        declared = definition.get(SCHEME_KEY)
+        if declared:
+            return str(declared)
+        from_paratext = _paratext_scheme(definition)
+        if from_paratext:
+            return from_paratext
+
+    for name in (edition, definition.get("id") if isinstance(definition, Mapping) else None):
+        if name and str(name).upper() in _known_editions():
+            return _known_editions()[str(name).upper()]["scheme"]
+    return None
+
+
+def _edition_table() -> Mapping[str, Any]:
+    global _EDITION_TABLE
+    table = _EDITION_TABLE
+    if table is None:
+        import json
+
+        table = json.loads(_edition_table_path().read_text(encoding="utf-8"))
+        _EDITION_TABLE = table
+    return table
+
+
+def _edition_table_path() -> Path:
+    """Locate the table whether running from an installed wheel or a dev checkout.
+
+    The same two locations `file_catalog.catalog_path()` resolves.
+    """
+    import importlib.resources
+
+    try:
+        ref = importlib.resources.files("llmflow").joinpath(f"data/{EDITION_TABLE_FILENAME}")
+        path = Path(str(ref))
+        if path.exists():
+            return path
+    except Exception:
+        pass
+    return Path(__file__).resolve().parent.parent.parent.parent / "data" / EDITION_TABLE_FILENAME
+
+
+def _known_editions() -> dict:
+    return {
+        key.upper(): value
+        for key, value in _edition_table().get("known_editions", {}).items()
+        if isinstance(value, Mapping) and value.get("scheme")
+    }
+
+
+def _paratext_scheme(definition: Mapping[str, Any]) -> Optional[str]:
+    """The scheme a Paratext project's `Settings.xml` declares, by its number."""
+    base_dir, project = definition.get("base_dir"), definition.get("project")
+    if not base_dir or not project:
+        return None
+    settings = Path(base_dir) / str(project) / "Settings.xml"
+    if not settings.is_file():
+        return None
+
+    number = re.search(
+        r"<Versification>\s*([^<\s]*)\s*</Versification>",
+        settings.read_text(encoding="utf-8", errors="replace"),
+    )
+    if not number:
+        return None
+    entry = _edition_table().get("paratext_versification_numbers", {}).get(number.group(1))
+    if not isinstance(entry, Mapping) or not entry.get("scheme"):
+        return None
+
+    # A custom.vrs overlays the numbered scheme; this engine reads only the numbered one.
+    if any((settings.parent / name).is_file() for name in ("custom.vrs", "Custom.vrs")):
+        logger.warning(
+            f"Paratext project {project!r} declares versification "
+            f"{entry.get('paratext_name', number.group(1))!r} and also carries a custom.vrs, "
+            f"which this engine does not read. References its overlay changes will be wrong."
+        )
+    return str(entry["scheme"])
+
+
+def resolve_passage(
+    passage: str,
+    edition_scheme_name: Optional[str],
+    requested_scheme: Optional[str],
+    edition: Optional[str] = None,
+    mappings_dir: Optional[Path] = None,
+) -> str:
+    """*passage*, named in *requested_scheme*, rewritten as the edition numbers it.
+
+    A reference naming no verse — a whole chapter or book — has nothing to move. A range maps
+    at both ends; an end the target scheme reaches from more than one place raises rather than
+    being chosen, because choosing would put the passage somewhere the data does not say.
+    """
+    if not requested_scheme:
+        return passage
+    if edition_scheme_name is None:
+        raise _versification.UnmappableReference(
+            f"Cannot read {passage!r} as {requested_scheme!r}: edition "
+            f"{edition or '(unnamed)'} does not say which versification its references are "
+            f"in.\n  Add `{SCHEME_KEY}: <scheme>` to its registry entry. Mapping without it "
+            f"would have to guess, and a guess is wrong exactly where schemes differ."
+        )
+    if requested_scheme == edition_scheme_name:
+        return passage
+
+    ref = parse_passage_ref(passage)
+    if ref.start_chapter is None or ref.start_verse is None:
+        return passage
+
+    def moved(chapter: Optional[int], verse: Optional[int]) -> tuple[int, int]:
+        mapped = _versification.map_reference(
+            _versification.format_reference(ref.book, chapter or 0, verse or 0),
+            requested_scheme,
+            edition_scheme_name,
+            mappings_dir,
+        )
+        _, new_chapter, new_verse, _ = _versification.parse_reference(mapped)
+        return new_chapter, new_verse
+
+    start_chapter, start_verse = moved(ref.start_chapter, ref.start_verse)
+    end_chapter, end_verse = moved(ref.end_chapter, ref.end_verse)
+
+    if (start_chapter, start_verse) == (end_chapter, end_verse):
+        return f"{ref.book} {start_chapter}:{start_verse}"
+    if start_chapter == end_chapter:
+        return f"{ref.book} {start_chapter}:{start_verse}-{end_verse}"
+    return f"{ref.book} {start_chapter}:{start_verse}-{end_chapter}:{end_verse}"
+
+
+def rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str) -> str | dict:
+    """The requested representation of *rows*: a string, or a USJ document for ``fmt="usj"``."""
+    if fmt not in FORMATS:
+        raise ValueError(f"unknown format {fmt!r}; expected one of {', '.join(FORMATS)}")
+    if fmt == "usj":
+        return rows_to_usj(rows, book=book)
+    return rows_to_text(rows, fmt=fmt)
+
+
+def rows_to_usj(rows: Sequence[Mapping[str, Any]], book: str) -> dict:
+    """*rows* as a USJ document: the book, a chapter node per chapter, one `para` inside each.
+
+    One `para` per chapter because the source has no paragraph structure to carry, and the USX
+    grammar requires text to sit inside one. A caller wanting editorial structure asks for
+    `format: print`. Nothing is added outside the USJ node types.
+    """
+    content: list = [{"type": "book", "marker": "id", "code": book}]
+    chapter_open: Optional[int] = None
+    para: Optional[dict] = None
+
+    for key, group in group_by_verse(rows):
+        text = join_rows(group).strip()
+        if key is None:
+            if para is not None and text:
+                para["content"].append(text)
+            continue
+
+        chapter, verse = key
+        if chapter != chapter_open:
+            chapter_open = chapter
+            content.append({"type": "chapter", "marker": "c", "number": str(chapter)})
+            para = {"type": "para", "marker": USJ_PARA_MARKER, "content": []}
+            content.append(para)
+
+        assert para is not None  # a chapter node always opens one
+        para["content"].append({"type": "verse", "marker": "v", "number": str(verse)})
+        if text:
+            para["content"].append(text)
+
+    return {"type": "USJ", "version": USJ_VERSION, "content": content}
+
+
+def resolve_edition(
+    edition: str,
+    registry_editions: Optional[Mapping[str, Any]] = None,
+) -> Any:
+    """Return the definition for a named edition: a TSV path string, or a mapping carrying a
+    `kind` and what that backend needs."""
+    available = dict(registry_editions or {})
+    if edition in available:
+        return available[edition]
+    known = ", ".join(sorted(available)) or "(none registered)"
+    raise EditionNotRegistered(
+        f"Scripture edition {edition!r} is not registered.\n"
+        f"  Registered editions: {known}\n"
+        f"  Register one with `sp registry` so the path is not written into a pipeline."
+    )
+
+
+def usj_to_text(usj: Mapping[str, Any], fmt: str = "milestones") -> str:
+    """Flatten a USJ document into running text.
+
+    The USFM backend's counterpart to ``rows_to_text``. USJ nests strings inside ``para``
+    elements with ``verse`` markers interleaved, so a verse boundary is a marker in a stream
+    rather than a column on a row — but the output contract is identical: running text, verse
+    positions marked, never a per-verse container.
+
+    Chapter number is tracked from ``chapter`` elements, because a ``verse`` element carries
+    only its own number.
+    """
+    if fmt not in FORMATS:
+        raise ValueError(f"unknown format {fmt!r}; expected one of {', '.join(FORMATS)}")
+
+    parts: list[str] = []
+    chapter = {"n": None}  # boxed so the closure can assign
+
+    def walk(node: Any) -> None:
+        if isinstance(node, str):
+            text = node.strip()
+            if not text:
+                return
+            if parts and not parts[-1][-1:].isspace():
+                parts.append(" ")
+            parts.append(text)
+            return
+        if isinstance(node, list):
+            for item in node:
+                walk(item)
+            return
+        if not isinstance(node, Mapping):
+            return
+        kind = node.get("type")
+        if kind in SKIP_USJ_TYPES:
+            return  # apparatus, not text — see SKIP_USJ_TYPES
+        if kind == "chapter":
+            chapter["n"] = node.get("number")
+            return
+        if kind == "verse":
+            if fmt == "milestones":
+                if parts and not parts[-1][-1:].isspace():
+                    parts.append(" ")
+                parts.append(
+                    MILESTONE_TEMPLATE.format(
+                        chapter=chapter["n"] or "?", verse=node.get("number", "?")
+                    )
+                )
+                parts.append(" ")
+            return
+        walk(node.get("content"))
+
+    walk(usj.get("content"))
+    return "".join(parts).strip()
+
+
+#: A TEI word carries its reference in `ref` and its identity in `xml:id`.
+TEI_REF = "ref"
+TEI_ID = "{http://www.w3.org/XML/1998/namespace}id"
+
+#: Separates two words that have no `pc` between them.
+WORD_SEPARATOR = " "
+
+#: Apparatus reference marks. Not text: they point from a word to an apparatus entry, and a
+#: `pc` can hold a mark and real punctuation together. Excluded from `plain` and `milestones`
+#: per plan-scripture-step.md §3.6.
+APPARATUS_MARKS = frozenset("⸀⸁⸂⸃⸄⸅⸆⸇⸈⸉⸊")
+
+
+
+def tei_book_files(tei_dir: str | Path) -> dict[str, Path]:
+    """Map book code to file, taking the code from each file's first `w`."""
+    directory = Path(tei_dir)
+    if not directory.is_dir():
+        return {}
+
+    books: dict[str, Path] = {}
+    for path in sorted(directory.glob("*.xml")):
+        code = _first_book_code(path)
+        if code:
+            books.setdefault(code, path)
+    return books
+
+
+def _first_book_code(path: Path) -> Optional[str]:
+    """The book code from the first `w` in *path*, without parsing the whole file."""
+    for _, element in etree.iterparse(str(path), events=("start",)):
+        if etree.QName(element).localname == "w":
+            book, _, _ = _split_ref(element.get(TEI_REF) or "")
+            return book or None
+    return None
+
+
+def read_tei_rows(tei_path: str | Path, ref: PassageRef) -> list[dict]:
+    """Rows for *ref* from one TEI book file, in the shape `rows_to_text` consumes."""
+    rows: list[dict] = []
+    for element in etree.parse(str(tei_path)).getroot().iter():
+        tag = etree.QName(element).localname
+        if tag == "w":
+            word = element.text or ""
+            rows.append({
+                "ref": element.get(TEI_REF) or "",
+                "xml:id": element.get(TEI_ID) or "",
+                "text": word,
+                "after": "" if word[-1:] in JOINING_MARKS else WORD_SEPARATOR,
+            })
+        elif tag == "pc" and rows:
+            punctuation = _without_apparatus_marks(element.text or "")
+            if punctuation:
+                # Several `pc` can follow one word: replace the separator, then accumulate.
+                previous = rows[-1]["after"]
+                rows[-1]["after"] = punctuation if previous == WORD_SEPARATOR else previous + punctuation
+    return filter_rows(rows, ref)
+
+
+def _without_apparatus_marks(text: str) -> str:
+    return "".join(c for c in text if c not in APPARATUS_MARKS)
+
+
+def read_rows(tsv_path: str | Path) -> list[dict]:
+    """Read a Macula-style TSV. Only ``ref``, ``text`` and ``after`` are required here."""
+    path = Path(tsv_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"Scripture data file not found: {path}")
+    with path.open(encoding="utf-8", newline="") as fh:
+        return list(csv.DictReader(fh, delimiter="\t"))
+
+
+def passage_text(
+    edition: str,
+    passage: str,
+    fmt: str = "milestones",
+    registry_editions: Optional[Mapping[str, str]] = None,
+) -> str | dict:
+    """Running text for *passage* in *edition* — the whole job in one call."""
+    path = resolve_edition(edition, registry_editions)
+    ref = parse_passage_ref(passage)
+    rows = filter_rows(read_rows(path), ref)
+    if not rows:
+        raise ValueError(
+            f"No text found for {passage!r} in edition {edition!r}. "
+            f"Check the book code and that the edition covers it "
+            f"(WLC is Old Testament only; SBLGNT is New Testament only)."
+        )
+    return rows_to_output(rows, fmt=fmt, book=ref.book)
+
+
+# --------------------------------------------------------------------------------------
+# Edition registry
+#
+# One YAML file per edition under ``~/.sp/editions/``:
+#
+#   id: SBLGNT
+#   name: SBL Greek New Testament
+#   kind: tsv                 # tsv | usfm
+#   path: /path/to/macula-greek-SBLGNT.tsv
+#
+# For ``kind: usfm`` the fields are ``base_dir`` and ``project`` instead of ``path``, matching
+# what load_usfm_passage() takes.
+# --------------------------------------------------------------------------------------
+
+EDITIONS_DIRNAME = "editions"
+
+
+def default_editions_dir() -> Path:
+    """The `editions` directory inside the store (#207)."""
+    from llmflow import paths as _paths
+
+    return _paths.sp_home() / EDITIONS_DIRNAME
+
+
+def load_registry_editions(editions_dir: Any = None) -> dict:
+    """Read every edition definition. Absence is normal; a fresh machine has none.
+
+    A malformed file is skipped rather than allowed to make every edition unreadable — one
+    bad hand-edit should not take the whole registry down with it.
+    """
+    import yaml
+
+    directory = Path(editions_dir) if editions_dir is not None else default_editions_dir()
+    if not directory.is_dir():
+        return {}
+    out: dict = {}
+    for path in sorted(directory.glob("*.yaml")):
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except Exception:
+            continue  # a broken file hides itself, not its neighbours
+        if not isinstance(data, dict):
+            continue
+        name = data.get("id") or path.stem
+        out[str(name)] = data
+    return out
+
+
+def _usfm_passage_text(definition: Mapping[str, Any], passage: str, fmt: str) -> str:
+    """BSB and other USFM editions: passage -> USJ -> running text."""
+    from llmflow.utils.data import load_usfm_passage
+
+    base_dir = definition.get("base_dir")
+    project = definition.get("project")
+    if not base_dir or not project:
+        raise ValueError(
+            f"USFM edition {definition.get('id')!r} needs 'base_dir' and 'project' in its "
+            f"registry entry."
+        )
+    usj = load_usfm_passage(str(base_dir), str(project), passage, "usj")
+    if not isinstance(usj, Mapping):
+        raise ValueError(f"USFM loader returned {type(usj).__name__}, expected a USJ mapping")
+    return usj_to_text(usj, fmt=fmt)
+
+
+def _no_text_found(passage: str, edition: str) -> str:
+    return (
+        f"No text found for {passage!r} in edition {edition!r}. Check the book code and "
+        f"that the edition covers it (WLC is Old Testament only; SBLGNT New Testament only)."
+    )
+
+
+def _tei_passage_text(
+    definition: Mapping[str, Any],
+    passage: str,
+    fmt: str,
+    edition: str,
+) -> str | dict:
+    """Running text for *passage* from a directory of per-book TEI files."""
+    tei_dir = definition.get("path")
+    if not tei_dir:
+        raise ValueError(f"TEI edition {edition!r} needs a 'path' in its registry entry.")
+
+    ref = parse_passage_ref(passage)
+    book_file = tei_book_files(tei_dir).get(ref.book)
+    rows = read_tei_rows(book_file, ref) if book_file else []
+    if not rows:
+        raise ValueError(_no_text_found(passage, edition))
+    return rows_to_output(rows, fmt=fmt, book=ref.book)
+
+
+def edition_text(
+    edition: str,
+    passage: str,
+    fmt: str = "milestones",
+    editions: Optional[Mapping[str, Any]] = None,
+    versification: Optional[str] = None,
+    mappings_dir: Optional[Path] = None,
+) -> str | dict:
+    """Running text for *passage* in *edition*, dispatched on the edition's `kind`.
+
+    *versification* names the scheme *passage* is written in. When it differs from the
+    edition's own, the reference is mapped before any text is read — a reference is not a
+    location until a scheme is named, and fetching first would fetch the wrong verses.
+    """
+    # Before any filesystem work: an unusable format is a mistake in the pipeline, and
+    # reporting it should not depend on the edition's data being present.
+    if fmt not in FORMATS:
+        raise ValueError(f"unknown format {fmt!r}; expected one of {', '.join(FORMATS)}")
+
+    definition = resolve_edition(edition, editions)
+    passage = resolve_passage(
+        passage,
+        edition_scheme(definition, edition),
+        versification,
+        edition=edition,
+        mappings_dir=mappings_dir,
+    )
+    if isinstance(definition, str):  # bare path == a TSV, the common case
+        definition = {"id": edition, "kind": "tsv", "path": definition}
+    kind = str(definition.get("kind", "tsv")).lower()
+
+    if kind == "usfm":
+        return _usfm_passage_text(definition, passage, fmt)
+    if kind == "tei":
+        return _tei_passage_text(definition, passage, fmt, edition)
+    if kind not in ("tsv",):
+        raise ValueError(
+            f"Edition {edition!r} has unknown kind {kind!r}; expected 'tsv', 'tei' or 'usfm'."
+        )
+
+    path = definition.get("path")
+    if not path:
+        raise ValueError(f"TSV edition {edition!r} needs a 'path' in its registry entry.")
+    ref = parse_passage_ref(passage)
+    rows = filter_rows(read_rows(path), ref)
+    if not rows:
+        raise ValueError(_no_text_found(passage, edition))
+    return rows_to_output(rows, fmt=fmt, book=ref.book)

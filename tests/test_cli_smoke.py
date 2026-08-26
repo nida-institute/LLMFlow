@@ -6,11 +6,12 @@ import tempfile
 import yaml
 
 def test_cli_version_flag():
-    """llmflow --version should exit 0 and print version (used by binary smoke tests)."""
+    """`sp --version` should exit 0 and print the version (used by binary smoke tests)."""
     cmd = [sys.executable, "-m", "llmflow.cli", "--version"]
     r = subprocess.run(cmd, capture_output=True, text=True)
     assert r.returncode == 0
-    assert "llmflow" in (r.stdout + r.stderr)
+    # The banner is `sp <version>` — prog was renamed from the old `llmflow` (#178).
+    assert "sp " in (r.stdout + r.stderr)
 
 
 def test_cli_lint_valid(tmp_path):

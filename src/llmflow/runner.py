@@ -30,12 +30,13 @@ from llmflow.utils.step_outputs import handle_step_outputs, handle_step_saveas
 from llmflow.utils.debug import _get_debug_dir, _clear_debug_dir
 from llmflow.steps.plugin import run_plugin_step
 from llmflow.steps.basex import run_basex_step
+from llmflow.steps.scripture import run_scripture_step
 from llmflow.steps.function import run_function_step
 from llmflow.steps.duckdb import run_duckdb_step
 from llmflow.steps.json_step import run_json_step
 from llmflow.steps.load import run_load_step
 from llmflow.steps.save import run_save_step
-from llmflow.steps.llm import render_prompt, build_debug_filename, apply_output_template, run_llm_step
+from llmflow.steps.llm import render_prompt, apply_output_template, run_llm_step
 from llmflow.steps.for_each import run_for_each_step
 from llmflow.steps.window import run_window_step, run_window_advance_step
 from llmflow.steps.if_step import run_if_step
@@ -53,8 +54,6 @@ from llmflow.utils.guards import build_eval_locals, build_step_eval_ctx, enforce
 from llmflow.utils.io import sanitize_filename
 from llmflow.utils.rewind import StepRewindManager
 from datetime import datetime
-
-discover_plugins()
 
 # Single unified logger instance
 logger = Logger()
@@ -322,6 +321,9 @@ def run_step(
                 result = run_duckdb_step(step, context, pipeline_config)
             elif step_type == "if":
                 local_after_action = run_if_step(step, context, pipeline_config, run_step)
+            elif step_type == "scripture":
+                run_scripture_step(step, context, pipeline_config)
+
             elif step_type == "basex":
                 run_basex_step(step, context, pipeline_config)
             elif step_type == "json":
@@ -445,6 +447,9 @@ def run_pipeline(
         rewind_to: Optional step name to replay from saved artifacts instead of executing
         stop_after: Optional step name after which to halt execution
     """
+    # Plugins are needed only to execute a pipeline (LLMFlow#178).
+    discover_plugins()
+
     from pathlib import Path
     from pydantic import ValidationError
     from llmflow.pipeline_schema import PipelineConfig  # FIX: Correct module name
@@ -568,12 +573,32 @@ def run_pipeline(
     context = build_run_context(pipeline_config, vars)
     logger.debug(f"Variables: {vars}")
 
-    # Clear this pipeline's debug subdirectory now that we can resolve intermediate_file_directory
-    _clear_debug_dir(pipeline_config, context, dry_run, pipeline_name)
+    # Name this run by the variables that distinguish it, so a second run does not write
+    # over the first one's audit trail (LLMFlow#198). Stored on pipeline_config because the
+    # step handlers reach the debug directory from there.
+    from llmflow.utils.debug import run_key_for
+    run_key = run_key_for(vars)
+    pipeline_config["_debug_run_key"] = run_key
+
+    # Empty this run's own directory — and only this run's (LLMFlow#198)
+    _clear_debug_dir(pipeline_config, context, dry_run, pipeline_name, run_key)
+
+    # One recorder per run, shared by every debug write site so they agree on the sequence
+    # number and so the manifest describes the run as a whole (LLMFlow#198).
+    from llmflow.utils.debug import DebugRecorder
+    _debug_on = (pipeline_config.get("linter_config", {}) or {}).get(
+        "log_level", ""
+    ).lower() == "debug"
+    pipeline_config["_debug_recorder"] = DebugRecorder(
+        _get_debug_dir(pipeline_config, context, pipeline_name, run_key),
+        enabled=_debug_on and not dry_run,
+    )
 
     # Redirect llmflow.log into debug/{pipeline_name}/ when intermediate_file_directory is declared
     if pipeline_config.get("intermediate_file_directory") and not dry_run:
-        _debug_log = str(Path(_get_debug_dir(pipeline_config, context, pipeline_name)) / "llmflow.log")
+        _debug_log = str(
+            Path(_get_debug_dir(pipeline_config, context, pipeline_name, run_key)) / "llmflow.log"
+        )
         Logger.reset(log_file=_debug_log)
         _ = Logger()
         linter_cfg = pipeline_config.get("linter_config", {}) or {}

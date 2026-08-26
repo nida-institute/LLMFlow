@@ -1,0 +1,24 @@
+refactor: the shortname is `helm`, not `hath`
+
+`hath` was an AI-introduced abbreviation for Human at the Helm. Nobody chose it, and it had
+reached a skill directory, the manifest target and the README before anyone noticed. It also
+reads as archaic English for "has", which in a Bible-software context looks like a deliberate
+styling rather than an acronym.
+
+- skills/hath-check -> skills/helm-check, including its `name:` frontmatter
+- the manifest target docs/ai-context/hath-manifest.yaml -> helm-manifest.yaml
+- README.md and .claude/skills/install/SKILL.md updated to name /helm-check
+
+Migration note for already-installed projects: the manifest entry is create-or-replace, so
+re-running /install writes helm-manifest.yaml and leaves the old hath-manifest.yaml orphaned
+beside it. /helm-check reads the manifest by name, so until a re-install those projects report
+a missing manifest and /hath-check no longer exists as a command.
+
+The clean break is deliberate rather than a dual-name transition: Scripture Pipelines rule 18
+`one-design` requires a design change to be completed in one pass, and an older path that must
+survive to name who depends on it and when it ends.
+
+Guarded from the sibling repository by tests/test_shortname_is_helm.py, which checks this clone
+when $HELM_REPO points at it and skips where no clone exists.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>

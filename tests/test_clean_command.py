@@ -251,8 +251,12 @@ steps: []
 """)
         _run_pipeline(pipeline, skip_lint=True)
 
-        log_file = work / "debug" / "pipeline" / "llmflow.log"
-        assert log_file.exists(), "llmflow.log should be written to debug/{pipeline-name}/"
+        # The run-key segment ("default" for a run with no --var) is always present, so the
+        # start-of-run clear can only ever empty one run's directory (LLMFlow#198).
+        log_file = work / "debug" / "pipeline" / "default" / "llmflow.log"
+        assert log_file.exists(), (
+            "llmflow.log should be written to debug/{pipeline-name}/{run-key}/"
+        )
 
 
 # ---------------------------------------------------------------------------

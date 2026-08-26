@@ -1,21 +1,35 @@
 [project]
 name = "scripture-pipelines"
-version = "0.2.1.23"
-description = "Declarative pipelines for LLM-powered workflows"
+version = "0.2.1.24"
+description = "A declarative pipeline engine for AI-assisted biblical and linguistic scholarship"
 authors = [{name = "Jonathan Robie", email = "jonathan.robie@gmail.com"}]
-license = {text = "MIT"}
-keywords = ["llm", "ai", "pipeline", "workflow", "nlp", "openai", "anthropic", "gemini"]
+license = {text = "Apache-2.0"}
+# Apache 2.0 requires a copy of the licence to travel with the work. Without this the wheel
+# declared a licence it did not ship, which was equally true under the previous MIT declaration.
+license-files = ["LICENSE"]
+keywords = [
+  # what it is
+  "llm", "ai", "pipeline", "workflow", "nlp", "openai", "anthropic", "gemini",
+  # who it is for, and what they search for
+  "bible", "scripture", "biblical-studies", "exegesis", "greek", "hebrew",
+  "corpus-linguistics", "treebank", "annotated-corpus", "digital-humanities",
+  # the formats and sources it reads
+  "usfm", "usj", "paratext", "versification",
+]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
+  "Intended Audience :: Religion",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
+  "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Topic :: Religion",
+  "Topic :: Text Processing :: Linguistic",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
@@ -62,6 +76,9 @@ packages = ["src/llmflow"]
 "docs/ai-context" = "llmflow/docs/ai-context"
 "docs/audits" = "llmflow/docs/audits"
 "data/models.json" = "llmflow/data/models.json"
+"data/file-catalog.yaml" = "llmflow/data/file-catalog.yaml"
+"data/ai-rules.yaml" = "llmflow/data/ai-rules.yaml"
+"data/versification-editions.json" = "llmflow/data/versification-editions.json"
 
 [project.scripts]
 sp = "llmflow.cli:main"

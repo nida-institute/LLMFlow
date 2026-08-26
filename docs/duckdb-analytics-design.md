@@ -620,11 +620,11 @@ FROM unique_lemmas
 
 ---
 
-## DuckDB Step Type for LLMFlow Pipelines
+## DuckDB Step Type for Scripture Pipelines Pipelines
 
 ### Overview
 
-Add a new `duckdb` step type to LLMFlow that executes SQL queries stored in `.sql` files with variable substitution, similar to how `llm` steps use `.gpt` prompt files. This enables analytical data processing as a first-class pipeline step alongside LLM calls and function invocations.
+Add a new `duckdb` step type to Scripture Pipelines that executes SQL queries stored in `.sql` files with variable substitution, similar to how `llm` steps use `.gpt` prompt files. This enables analytical data processing as a first-class pipeline step alongside LLM calls and function invocations.
 
 ### Step Configuration
 
@@ -830,7 +830,7 @@ Existing Python functions can be migrated to SQL queries where appropriate, with
 
 ## Integration Points
 
-### 1. LLMFlow Pipelines
+### 1. Scripture Pipelines Pipelines
 **File:** `llmflow/utils/bible_data.py`
 
 **Add new functions:**

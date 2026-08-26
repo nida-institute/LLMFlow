@@ -1,4 +1,4 @@
-# LLMFlow Development Guidelines
+# Scripture Pipelines Development Guidelines
 
 ## Communication Protocol
 
@@ -51,9 +51,9 @@ Fix: [what changed in context/instructions/memory]
 
 ## Repository Context
 
-**CRITICAL:** This is the standalone LLMFlow core repository.
-- This repository CONTAINS the LLMFlow engine source code (`src/llmflow/`)
-- DO NOT confuse this with repositories that USE LLMFlow (e.g., ears-to-hear which has LLMFlow/ as a subdirectory)
+**CRITICAL:** This is the standalone Scripture Pipelines core repository.
+- This repository CONTAINS the Scripture Pipelines engine source code (`src/llmflow/`)
+- DO NOT confuse this with repositories that USE Scripture Pipelines (e.g., ears-to-hear which has LLMFlow/ as a subdirectory)
 - Key indicators you're in the correct repo:
   - Contains `src/llmflow/cli.py` and `src/llmflow/runner.py`
   - Has `pyproject.toml` defining the `llmflow` package
@@ -178,7 +178,7 @@ See: GitHub issue #75 for full context and the original violation documentation.
 **ALWAYS acknowledge when following these instructions:**
 - When applying a pattern from this file, tell the user: "Following the guideline: [pattern name]"
 - When avoiding a pitfall listed here, explain: "Avoiding [anti-pattern] because [reason from guidelines]"
-- When these instructions influence a decision, be explicit: "Per the LLMFlow conventions, I'm [doing X instead of Y]"
+- When these instructions influence a decision, be explicit: "Per the Scripture Pipelines conventions, I'm [doing X instead of Y]"
 - Reference specific sections when relevant: "The Logger Pattern section specifies..."
 
 **Example transparency:**
@@ -271,7 +271,7 @@ See: GitHub issue #75 for full context and the original violation documentation.
 - **Scope creep approval:** Saying "yes" to AI's "I also improved X while I was in there"
 - **Skipping the explain step** when you're in a hurry — this is exactly when it matters most
 - **Letting AI add docstrings/comments** to code it didn't actually change (noise ratio increases)
-- **Not verifying the repo:** Copilot-instructions warns about LLMFlow-as-subdirectory confusion — always sanity check which repo context AI is operating in
+- **Not verifying the repo:** Copilot-instructions warns about Scripture Pipelines-as-subdirectory confusion — always sanity check which repo context AI is operating in
 - **Trusting test output without reading tests:** AI can write tests that pass trivially
 
 ## Common Pitfalls
@@ -299,7 +299,7 @@ See: GitHub issue #75 for full context and the original violation documentation.
   - Use `gh run view <ID> --json jobs` to verify ALL jobs show "success"
 - ✅ Consult `docs/index.json` for architecture before changes
 - ✅ Check `docs/architecture.md` for system design
-- ✅ Verify correct LLMFlow repo, not subdirectory
+- ✅ Verify correct Scripture Pipelines repo, not subdirectory
 - ✅ **Read pipeline YAML before discussing file locations** — quote exact paths from config
 - ✅ **Verify PyPI project existence before claiming publication readiness**
 - ✅ **Check ALL workflow jobs, not just build compilation steps**

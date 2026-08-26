@@ -7,6 +7,48 @@ from typing import Any, Dict, Optional
 _MISSING = object()
 
 
+def has_unresolved_variables(value: Any) -> bool:
+    """True when `value` still carries a `${var}` or `{var}` placeholder.
+
+    `resolve()` returns an unresolvable placeholder as its own literal text. That is a
+    reasonable contract for template *text* — a document may legitimately contain
+    `${...}` — and a bad one for a path, because `Path(...).mkdir(parents=True,
+    exist_ok=True)` will happily create a directory named `${intermediate_file_directory}`
+    and a run will report success. Ears to Hear found 209 files, 3.7 MB, in three such
+    directories, six weeks old and committed to git (LLMFlow#204 thread,
+    `2026-08-17-unresolved-variable-becomes-a-directory.md`).
+
+    Both spellings are rejected. The reporter's evidence includes artifacts from a
+    `{curly}`-vs-`${dollar}` matcher collision — directories named
+    `$${output_file_directory}`, files named `$08-$RUT-book-summary.json` — so a path
+    carrying either form has not been fully resolved.
+
+    This is the single definition of the check. It previously existed as two byte-identical
+    private copies, in `rewind.py` and `linter.py`, guarding the two paths that do not
+    write; the path that does write had none.
+    """
+    text = str(value)
+    return "${" in text or "{" in text
+
+
+def ensure_saveas_path_resolved(value: Any, original: Any, step: Dict[str, Any]) -> None:
+    """Raise if a step's resolved `saveas` path still contains a placeholder.
+
+    Shared by the lint pass and the rewind pass, which each carried their own identical
+    copy. The write helpers in `utils/io.py` guard themselves with `ValueError` instead —
+    they are generic I/O and are reached by function and plugin steps that never went
+    through `saveas` resolution at all.
+    """
+    from llmflow.exceptions import StepRewindError
+
+    if has_unresolved_variables(value):
+        raise StepRewindError(
+            f"Saveas path for step '{step.get('name', 'unnamed')}' "
+            f"contains unresolved variables: {original}",
+            step_name=step.get("name") or "",
+        )
+
+
 def build_run_context(pipeline_config: Dict[str, Any], vars: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Build the flat variable context a pipeline run uses.
 

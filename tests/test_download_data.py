@@ -60,7 +60,8 @@ def test_catalog_contains_required_datasets():
         assert "approx_size" in entry
 
 
-def test_default_data_dir_is_home_sp_data():
+def test_default_data_dir_is_home_sp_data(monkeypatch):
+    monkeypatch.delenv("SP_HOME", raising=False)  # this asserts the default
     path = get_default_data_dir()
     assert path == Path.home() / ".sp" / "data"
 

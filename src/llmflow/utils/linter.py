@@ -1,19 +1,25 @@
 import ast
-from dataclasses import dataclass
-from typing import Any, List, Set
 import re
+from dataclasses import dataclass
 from difflib import unified_diff
 from pathlib import Path
+from typing import Any, List, Set
 
 import click
 import yaml
 from pydantic import ValidationError
-from llmflow.yaml_loader import load_pipeline_config
-from llmflow.pipeline_schema import PipelineConfig, allowed_step_keys, step_keys
+
 from llmflow.exceptions import StepRewindError
-from llmflow.utils.llm_runner import validate_model_parameter, get_model_family
-from llmflow.utils.get_prefix_directory import get_prefix_directory
+from llmflow.pipeline_schema import PipelineConfig, allowed_step_keys, step_keys
+
+# `size`/`stride` accept an expression resolved once before the loop starts. The test for
+# what counts as an expression comes from the module that resolves them, so lint and run
+# time cannot disagree about which values are variables.
+from llmflow.steps.window import is_expression
 from llmflow.utils.context import build_run_context
+from llmflow.utils.get_prefix_directory import get_prefix_directory
+from llmflow.utils.llm_runner import validate_model_parameter
+from llmflow.yaml_loader import load_pipeline_config
 
 
 def _identifiers_in_expr(expr: str) -> Set[str]:
@@ -60,6 +66,10 @@ COMMON_TYPOS = {
     "timeout": "timeout_seconds",
     "group-by": "group_by",
     "order-by": "order_by",
+    # basex: the database was smuggled through an ad-hoc `db` binding before `database:`
+    # was wired up (LLMFlow#189). BaseX drops bindings for variables a query never
+    # declares — exit 0, no warning — so a stale `db` would fail silently forever.
+    "db": "database",
 }
 
 from llmflow.modules.logger import Logger
@@ -242,6 +252,15 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
                 errors.append(f"❌ Step '{step_name}': basex step requires 'database'")
             if not step.get("query") and not step.get("query_file"):
                 errors.append(f"❌ Step '{step_name}': basex step requires 'query' or 'query_file'")
+            # `database:` and `inputs.database` both bind $database. BaseX takes the last
+            # -b flag silently and exits 0, so the pipeline could name one database while
+            # the query reads another — and still report success (LLMFlow#189).
+            step_inputs = step.get("inputs") or {}
+            if step.get("database") and isinstance(step_inputs, dict) and "database" in step_inputs:
+                errors.append(
+                    f"❌ Step '{step_name}': 'database' is set both as a step key and in "
+                    f"'inputs' — both bind $database. Remove the 'inputs' entry."
+                )
 
         # Only validate contracts for LLM steps
         if step_type == "llm":
@@ -526,6 +545,23 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
         if step_type == "for-each":
             current_item_vars.update({"_for_each_index", "_for_each_meta", "_for_each_stack", "loop"})
 
+        # A window step injects these into every iteration context (`steps/window.py`, both
+        # the static and the cursor-driven path). The linter knew none of them, so
+        # `${window_num}` failed lint while working at run time — reported from
+        # discourse-flow, 2026-08-21, and ruled D2-A: teach the linter rather than remove
+        # working behaviour. Keep this list matching what the runtime actually sets; a name
+        # here that the runtime does not provide is worse than the omission it replaced.
+        if step_type == "window":
+            current_item_vars.update({
+                "window_num",
+                "_window_index",
+                "_window_first",
+                "_window_last",
+                "_window_cursor",
+                "_for_each_meta",
+                "_for_each_stack",
+            })
+
         available = _build_available_context(
             pipeline_vars,
             declared_outputs,
@@ -666,6 +702,104 @@ def validate_model_parameters(all_steps, pipeline_config):
     return errors
 
 
+def validate_structured_output_schemas(all_steps, pipeline_config, warnings):
+    """Check `response_format` schemas against OpenAI's strict subset (LLMFlow#196).
+
+    Prompt contracts are validated before any token is spent; this is the same promise for
+    the other half of the request. A schema outside the strict subset is rejected with an
+    HTTP 400 *at request time*, so without this the run dies partway through with a
+    provider error naming a JSON path rather than a line in the YAML — and the steps before
+    it have already been paid for.
+
+    Two gating decisions:
+
+    * ``strict: true`` gates the errors. OpenAI only enforces the subset under strict mode,
+      so without it the hard rules would be false positives — the schema gets a warning
+      saying the guarantee is not in force.
+    * ``response_format`` is the trigger, not the model name. ``response_format`` with
+      ``json_schema`` is OpenAI's API shape by construction; Gemini's equivalent is
+      ``response_schema`` (#191) and is not measured against OpenAI's rules.
+
+    Returns a list of error strings; warnings are appended to *warnings*.
+    """
+    import json as _json
+    from pathlib import Path as _Path
+
+    from llmflow.utils.schema_preflight import Severity, check_strict_schema
+
+    errors = []
+
+    linter_config = (pipeline_config or {}).get("linter_config", {}) or {}
+    if linter_config.get("skip_strict_schema_check"):
+        # Deliberate escape hatch: the rule table encodes a moving target, and a stale
+        # entry must never be able to block work the provider would accept.
+        logger.info("ℹ️  Strict-schema checking skipped by linter_config")
+        return errors
+
+    for step in all_steps:
+        if step.get("type") != "llm":
+            continue
+        response_format = step.get("response_format")
+        if not isinstance(response_format, dict):
+            continue
+        if response_format.get("type") != "json_schema":
+            continue  # json_object mode carries no schema to check
+
+        step_name = step.get("name", "unnamed")
+        json_schema = response_format.get("json_schema")
+        if not isinstance(json_schema, dict):
+            errors.append(
+                f"❌ Step '{step_name}': response_format.type is 'json_schema' but "
+                f"'json_schema' is missing or not a mapping"
+            )
+            continue
+
+        schema = json_schema.get("schema")
+        schema_file = json_schema.get("schema_file")
+        if schema_file:
+            try:
+                schema = _json.loads(_Path(schema_file).read_text(encoding="utf-8"))
+            except FileNotFoundError:
+                errors.append(
+                    f"❌ Step '{step_name}': schema_file not found: {schema_file}"
+                )
+                continue
+            except ValueError as exc:
+                errors.append(
+                    f"❌ Step '{step_name}': schema_file {schema_file} is not valid JSON: {exc}"
+                )
+                continue
+
+        if schema is None:
+            errors.append(
+                f"❌ Step '{step_name}': response_format declares json_schema but supplies "
+                f"neither 'schema' nor 'schema_file'"
+            )
+            continue
+
+        strict = json_schema.get("strict") is True
+        findings = check_strict_schema(schema)
+
+        if not strict:
+            warnings.append(
+                f"⚠️  Step '{step_name}': response_format is missing 'strict: true'. "
+                f"Without it the schema is advisory — the model may return a different "
+                f"shape, and the structured-output guarantee is not in force."
+            )
+            # Report the substance as warnings too: not enforced, but still probably wrong.
+            for finding in findings:
+                warnings.append(f"⚠️  Step '{step_name}': {finding}")
+            continue
+
+        for finding in findings:
+            if finding.severity == Severity.ERROR:
+                errors.append(f"❌ Step '{step_name}': {finding}")
+            else:
+                warnings.append(f"⚠️  Step '{step_name}': {finding}")
+
+    return errors
+
+
 def _validate_rewind_requirements(
     pipeline_config: dict,
     cli_vars: dict | None,
@@ -726,7 +860,6 @@ def _resolve_save_paths_for_lint(step: dict, context: dict) -> List[str]:
     from llmflow.runner import resolve
 
     saveas_config = step.get("saveas")
-    paths: List[str] = []
 
     if isinstance(saveas_config, str):
         path = resolve(saveas_config, context)
@@ -761,12 +894,16 @@ def _resolve_save_paths_for_lint(step: dict, context: dict) -> List[str]:
 
 
 def _ensure_path_resolved_for_lint(resolved_value: Any, original: Any, step: dict) -> None:
-    path_str = str(resolved_value)
-    if "${" in path_str or "{" in path_str:
-        raise StepRewindError(
-            f"Saveas path for step '{step.get('name', 'unnamed')}' contains unresolved variables: {original}",
-            step_name=step.get("name") or "",
-        )
+    """Delegates to the shared check in `utils.context`.
+
+    This was a byte-identical copy of `rewind.StepRewindManager._ensure_path_resolved`,
+    down to the message and the exception type. Both guarded a path that does not write;
+    the one that does had no check at all, which is how an unresolved `${var}` became a
+    directory on disk.
+    """
+    from llmflow.utils.context import ensure_saveas_path_resolved
+
+    ensure_saveas_path_resolved(resolved_value, original, step)
 
 
 def _build_module_func_map(module_ast: ast.Module) -> dict:
@@ -915,6 +1052,16 @@ def lint_pipeline_full(
             logger.error(error)
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     logger.info("✅ All model parameters are compatible")
+
+    # 1.7) Structured-output schema validation — before spend, like prompt contracts
+    logger.info("🔍 Validating structured-output schemas...")
+    schema_errors = validate_structured_output_schemas(all_steps, pipeline_config, all_warnings)
+    if schema_errors:
+        all_errors.extend(schema_errors)
+        for error in schema_errors:
+            logger.error(error)
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
+    logger.info("✅ Structured-output schemas are valid")
 
     # 2) Prompt contract validation
     errors, validated_count = validate_all_step_contracts(all_steps, log_and_screen, pipeline_config)
@@ -1123,7 +1270,10 @@ def validate_step_prompt_contract(step, prompt_file, step_name):
     unexpected_inputs = step_inputs - (required_inputs | optional_inputs)
     if unexpected_inputs:
         for unexpected in sorted(unexpected_inputs):
-            errors.append(f"⚠️  Step '{step_name}': Unexpected input '{unexpected}' for prompt '{prompt_file}' (not declared)")
+            errors.append(
+                f"⚠️  Step '{step_name}': Unexpected input '{unexpected}' "
+                f"for prompt '{prompt_file}' (not declared)"
+            )
 
     return errors
 
@@ -1146,8 +1296,29 @@ def _lint_conditional_rules(step, errors, key: str):
             if k not in {"if", "message"}:
                 errors.append(f"Step '{step.get('name','unnamed')}': unknown '{key}' key '{k}'")
 
-def _lint_window_step(step: dict, errors: list) -> None:
-    """Validate window step configuration."""
+def _warn_unverifiable(step_name: str, field: str, raw: object, warnings: list | None) -> None:
+    """Say what lint checked and what it could not.
+
+    The variable's *name* is still validated — the linter's generic reference check walks
+    every string in the step, so `${typo}` is an error already. What cannot be checked is the
+    *value*, which is why this is a warning and not silence.
+    """
+    if warnings is None:
+        return
+    warnings.append(
+        f"⚠️  Window step '{step_name}': '{field}' is {raw}, so lint cannot verify it is a "
+        "positive integer. A bad value fails at run time, when the step starts."
+    )
+
+
+def _lint_window_step(step: dict, errors: list, warnings: list | None = None) -> None:
+    """Validate window step configuration.
+
+    `warnings` is optional so that existing callers passing only `errors` keep working. It
+    carries the one thing lint cannot decide: whether a variable `size`/`stride` will hold a
+    positive integer at run time. Captain, 2026-08-21: *"lint can warn that it can't
+    determine if it's a positive integer or not, and that runtime errors are possible."*
+    """
     name = step.get("name", "<unnamed>")
     has_size = "size" in step
     has_size_by_tokens = "size_by_tokens" in step
@@ -1170,12 +1341,16 @@ def _lint_window_step(step: dict, errors: list) -> None:
 
     if has_size:
         size = step["size"]
-        if not isinstance(size, int) or size < 1:
+        if is_expression(size):
+            _warn_unverifiable(name, "size", size, warnings)
+        elif not isinstance(size, int) or size < 1:
             errors.append(f"Window step '{name}': 'size' must be a positive integer")
 
         if "stride" in step:
             stride = step["stride"]
-            if not isinstance(stride, int) or stride < 1:
+            if is_expression(stride):
+                _warn_unverifiable(name, "stride", stride, warnings)
+            elif not isinstance(stride, int) or stride < 1:
                 errors.append(f"Window step '{name}': 'stride' must be a positive integer")
 
         if "end_when" in step:
@@ -1217,7 +1392,8 @@ def _lint_window_step(step: dict, errors: list) -> None:
             )
         if "include_partial" in step:
             errors.append(
-                f"Window step '{name}': 'include_partial' is only valid with 'size' or 'size_by_tokens', not 'start_when'"
+                f"Window step '{name}': 'include_partial' is only valid with "
+                f"'size' or 'size_by_tokens', not 'start_when'"
             )
         if "stride_by_tokens" in step:
             errors.append(
@@ -1423,7 +1599,7 @@ def lint_pipeline_steps(steps, warnings=None):
         if step.get("type") in _LOADER_STEP_TYPES:
             _lint_loader_step(step, errors)
         if step.get("type") == "window":
-            _lint_window_step(step, errors)
+            _lint_window_step(step, errors, warnings)
         if step.get("type") == "for-each":
             _lint_for_each_parallel(step, errors)
             _lint_for_each_group_by(step, errors)

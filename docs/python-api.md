@@ -1,6 +1,6 @@
 # Python API
 
-LLMFlow's supported Python API is the top-level `llmflow` namespace. Everything listed in
+Scripture Pipelines's supported Python API is the top-level `llmflow` namespace. Everything listed in
 `llmflow.__all__` is a stable, documented surface for programs that embed the engine.
 Anything reached through `llmflow.*` submodules is internal and may change without notice.
 

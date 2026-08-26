@@ -1,6 +1,6 @@
 # Working with AI Assistants on Scripture Pipelines Repos
 
-This guide explains how to work on a Scripture Pipelines (LLMFlow) repository — the
+This guide explains how to work on a Scripture Pipelines (Scripture Pipelines) repository — the
 engine, or a consumer repo like `discourse-flow` — using an AI coding assistant, in
 whatever environment suits you: terminal, a point-and-click editor, or the browser
 (no command line required).

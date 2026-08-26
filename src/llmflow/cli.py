@@ -27,13 +27,32 @@ import os
 from pathlib import Path
 
 
-try:
-    from importlib.metadata import version
-    __version__ = version("scripture-pipelines")
-except Exception:
-    __version__ = "unknown"
+#: Distribution names to look the version up under, current first. The project was renamed
+#: `llmflow` -> `scripture-pipelines` (f5e4d8f) but the console script is `sp` in both, so an
+#: older install still provides a working `sp` registered under the old name — and if it sits
+#: earlier on PATH it shadows the released binary. Asking only for the current name reported
+#: `unknown` on those machines.
+_DISTRIBUTION_NAMES = ("scripture-pipelines", "llmflow")
 
-import llmflow.plugins.loader  # noqa: F401 — trigger eager plugin discovery on CLI startup
+
+def _resolve_version() -> str:
+    """Return the installed version, or an `unknown` string that says why."""
+    import importlib.metadata
+
+    for name in _DISTRIBUTION_NAMES:
+        try:
+            resolved = importlib.metadata.version(name)
+        except Exception:
+            continue
+        if resolved:
+            return resolved
+    # No distribution metadata at all — typically running from a source checkout that was
+    # never installed. Say so, rather than leaving a bare "unknown" to puzzle over.
+    return "unknown (no package metadata — running from source? try: pip install -e .)"
+
+
+__version__ = _resolve_version()
+
 from llmflow.cli_utils import init_project, list_pipelines
 
 def list_pipelines(directory: str) -> list[str]:
@@ -50,7 +69,7 @@ def list_pipelines(directory: str) -> list[str]:
 
 
 def build_parser():
-    parser = argparse.ArgumentParser(prog="llmflow", description="LLMFlow CLI")
+    parser = argparse.ArgumentParser(prog="sp", description="Scripture Pipelines CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # run command
@@ -112,6 +131,15 @@ def build_parser():
         action="store_true",
         dest="no_examples",
         help="Skip example files (hello.gpt, hello-llmflow.yaml, tutorial.md, etc.) — creates directories and structural files only",
+    )
+
+    subparsers.add_parser(
+        "doctor",
+        help=(
+            "Check this machine's setup and RESTORE any file sp owns that is missing or has "
+            "diverged. Not read-only: it overwrites `policy: generated` files from the shipped "
+            "version. Commit or stash first."
+        ),
     )
 
     setup_p = subparsers.add_parser("setup", help="Configure AI provider API keys")
@@ -426,6 +454,10 @@ def main(argv=None):
         if getattr(args, "sync", False):
             sync_ai_context_files(Path.cwd())
         return
+
+    if args.command == "doctor":
+        from llmflow.doctor import doctor_command
+        raise SystemExit(doctor_command(Path.cwd()))
 
     if args.command == "setup":
         from llmflow.setup_command import run_setup

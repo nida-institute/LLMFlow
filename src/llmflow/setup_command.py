@@ -65,6 +65,43 @@ def _save_keys(keys_path, data):
     keys_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
+def _set_windows_user_env(name, value):
+    """Persist a user-scoped environment variable in the Windows registry.
+
+    `winreg` ships only on Windows, so type checkers running on other platforms cannot
+    resolve its attributes — hence the ignores. Guarded by the caller.
+    """
+    import winreg  # type: ignore[import-not-found]
+
+    with winreg.OpenKey(  # type: ignore[attr-defined]
+        winreg.HKEY_CURRENT_USER, "Environment", 0, winreg.KEY_SET_VALUE  # type: ignore[attr-defined]
+    ) as key:
+        winreg.SetValueEx(  # type: ignore[attr-defined]
+            key, name, 0, winreg.REG_EXPAND_SZ, value  # type: ignore[attr-defined]
+        )
+
+
+def _persist_env_var(name, value):
+    """Persist *name* for future shells. Returns True if it was written.
+
+    Windows only, and deliberately so: a process cannot change its parent shell's
+    environment, so on macOS/Linux there is nothing setup can honestly do — it would have
+    to edit the user's shell profile. It does not need to, because the engine resolves keys
+    through the `llm` keystore as well as the environment (see
+    llmflow.utils.llm_runner.resolve_provider_key, LLMFlow#195).
+
+    Never raises: a registry write failing must not turn a successful key save into an
+    error.
+    """
+    if sys.platform != "win32":
+        return False
+    try:
+        _set_windows_user_env(name, value)
+        return True
+    except Exception:
+        return False
+
+
 def run_setup(update=False):
     try:
         import llm
@@ -118,7 +155,13 @@ def run_setup(update=False):
         else:
             data[provider["key"]] = key_value
             _save_keys(keys_path, data)
-            print(f"✅ {provider['name']} key saved.\n")
+            print(f"✅ {provider['name']} key saved.")
+            # The engine reads this keystore, so the key is already usable. On Windows we
+            # can also persist the environment variable for anything that expects it.
+            if _persist_env_var(provider["env"], key_value):
+                print(f"   Also set {provider['env']} for your user account "
+                      "(open a new terminal to pick it up).")
+            print()
 
         print("Configure another provider?\n")
         for i, p in enumerate(PROVIDERS, 1):

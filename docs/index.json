@@ -26,10 +26,85 @@
       ]
     },
     {
+      "module": "llmflow.file_catalog",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "enum",
+        "importlib.resources",
+        "pathlib",
+        "typing",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "_templates_dir",
+          "signature": "_templates_dir() -> Path",
+          "doc": ""
+        },
+        {
+          "name": "catalog_path",
+          "signature": "catalog_path() -> Path",
+          "doc": "Locate file-catalog.yaml whether running from an installed wheel or a dev checkout."
+        },
+        {
+          "name": "_load",
+          "signature": "_load() -> dict[str, Any]",
+          "doc": ""
+        },
+        {
+          "name": "_entry_from",
+          "signature": "_entry_from(spec: dict[str, Any], path: str, template: Optional[str]) -> Entry",
+          "doc": ""
+        },
+        {
+          "name": "_expand_group",
+          "signature": "_expand_group(spec: dict[str, Any]) -> list[Entry]",
+          "doc": "Expand a group against what the package actually ships."
+        },
+        {
+          "name": "entries",
+          "signature": "entries() -> tuple[Entry, ...]",
+          "doc": "Every path `sp init` writes or places, with its ownership policy."
+        },
+        {
+          "name": "managed_by_doctor",
+          "signature": "managed_by_doctor() -> tuple[Entry, ...]",
+          "doc": "Entries `sp doctor` restores when they are missing or have diverged (D10)."
+        },
+        {
+          "name": "documents",
+          "signature": "documents() -> tuple[Entry, ...]",
+          "doc": "Catalogued paths that carry a `purpose:` — the reading list `sp-index.md` renders."
+        },
+        {
+          "name": "render_sp_index",
+          "signature": "render_sp_index() -> str",
+          "doc": "Render `docs/ai-context/sp-index.md` from the catalog."
+        },
+        {
+          "name": "project_gitignore_lines",
+          "signature": "project_gitignore_lines() -> list[str]",
+          "doc": "The ignore list, derived from the catalog (D9)."
+        },
+        {
+          "name": "shipped_path",
+          "signature": "shipped_path(entry: Entry) -> Optional[Path]",
+          "doc": "The packaged file or directory backing `entry`, if it has one."
+        },
+        {
+          "name": "shipped_content",
+          "signature": "shipped_content(entry: Entry) -> Optional[str]",
+          "doc": "The text `entry` should hold, or None when it is not a single-file entry."
+        }
+      ]
+    },
+    {
       "module": "llmflow.cli_utils",
       "imports": [
         "click",
         "contextlib",
+        "llmflow",
         "logging",
         "os",
         "pathlib",
@@ -44,24 +119,29 @@
           "doc": "Return True if the file was created by sp init (has the generated marker)."
         },
         {
+          "name": "read_delimited_block",
+          "signature": "read_delimited_block(path: Path, block_name: str) -> Optional[str]",
+          "doc": "Return the content of a named llmflow-init block, or None if it is not there."
+        },
+        {
           "name": "_upsert_delimited_block",
           "signature": "_upsert_delimited_block(path: Path, block_name: str, content: str) -> str",
-          "doc": "Append or replace a named llmflow-init block in a file."
+          "doc": "Put sp's block at the top of the file, with the project's content below it."
         },
         {
           "name": "_install_claude_skills",
-          "signature": "_install_claude_skills(claude_home: Optional[Path] = None, sp_home: Optional[Path] = None) -> list[str]",
-          "doc": "Install skills from ~/.sp/skills/ into ~/.claude/skills/."
+          "signature": "_install_claude_skills(base_dir: Path, sp_home: Optional[Path] = None) -> list[str]",
+          "doc": "Copy skills from ~/.sp/skills/ into <repo>/.claude/skills/ (#204, plan D1-A′)."
         },
         {
           "name": "_configure_copilot",
           "signature": "_configure_copilot(base_dir: Path, update: bool) -> None",
-          "doc": "Configure GitHub Copilot instructions file."
+          "doc": "Configure GitHub Copilot instructions via a delimited block."
         },
         {
           "name": "_configure_claude_code",
           "signature": "_configure_claude_code(base_dir: Path, update: bool) -> None",
-          "doc": "Configure Claude Code: CLAUDE.md (project) and skills (machine-scoped)."
+          "doc": "Configure Claude Code: the CLAUDE.md block and the project's skills."
         },
         {
           "name": "_configure_cursor",
@@ -76,7 +156,22 @@
         {
           "name": "_configure_ai_assistants",
           "signature": "_configure_ai_assistants(base_dir: Path, update: bool = False) -> None",
-          "doc": "Interactive: select AI assistants and configure each with consent for machine-scoped actions."
+          "doc": "Write every assistant's configuration. Non-interactive by design (#204, D4/D5)."
+        },
+        {
+          "name": "_write_gitignore",
+          "signature": "_write_gitignore(base_dir: Path) -> None",
+          "doc": "Generate `.gitignore` when the project has none (#204, plan D9)."
+        },
+        {
+          "name": "ai_rules_doc",
+          "signature": "ai_rules_doc() -> str",
+          "doc": "The rules document `sp init` writes, rendered from `data/ai-rules.yaml`."
+        },
+        {
+          "name": "__getattr__",
+          "signature": "__getattr__(name: str)",
+          "doc": "Render `AI_RULES_DOC` on first access from the single source (2026-08-21)."
         },
         {
           "name": "_lock_sp_dir",
@@ -94,9 +189,19 @@
           "doc": "Unlock a protected ~/.sp/ directory for writing, then re-lock when done."
         },
         {
-          "name": "install_global_conventions",
-          "signature": "install_global_conventions(sp_home: Optional[Path] = None, force: bool = False) -> None",
-          "doc": "Install global conventions to ~/.sp/conventions/."
+          "name": "_write_if_changed",
+          "signature": "_write_if_changed(target: Path, content: str, label: str) -> bool",
+          "doc": "Write `content` to `target` only when it differs. Returns True if written."
+        },
+        {
+          "name": "install_global_disciplines",
+          "signature": "install_global_disciplines(sp_home: Optional[Path] = None, force: bool = False) -> None",
+          "doc": "Install global disciplines to ~/.sp/disciplines/."
+        },
+        {
+          "name": "install_global_versification",
+          "signature": "install_global_versification(sp_home: Optional[Path] = None, force: bool = False) -> None",
+          "doc": "Install the versification mappings into ~/.sp/versification/."
         },
         {
           "name": "install_global_skills",
@@ -104,14 +209,14 @@
           "doc": "Install global skills to ~/.sp/skills/."
         },
         {
-          "name": "_fetch_stand_down",
-          "signature": "_fetch_stand_down() -> Optional[str]",
-          "doc": "Fetch stand-down SKILL.md from human-at-the-helm. Returns content or None on failure."
+          "name": "_write_catalogued_files",
+          "signature": "_write_catalogued_files(base_dir: Path, update: bool, no_examples: bool) -> None",
+          "doc": "Write every project file the catalog declares (#214)."
         },
         {
           "name": "init_project",
           "signature": "init_project(base_dir: Path, update: bool = False, no_examples: bool = False) -> None",
-          "doc": "Initialize a new LLMFlow project structure."
+          "doc": "Initialize a new Scripture Pipelines project structure."
         },
         {
           "name": "_register_in_global_registry",
@@ -126,7 +231,7 @@
         {
           "name": "sync_ai_context_files",
           "signature": "sync_ai_context_files(base_dir: Path) -> None",
-          "doc": "Copy ai-context files from the installed LLMFlow package to the consumer repo."
+          "doc": "Copy ai-context files from the installed Scripture Pipelines package to the consumer repo."
         }
       ]
     },
@@ -158,6 +263,7 @@
         "llmflow.steps.load",
         "llmflow.steps.plugin",
         "llmflow.steps.save",
+        "llmflow.steps.scripture",
         "llmflow.steps.window",
         "llmflow.utils.context",
         "llmflow.utils.debug",
@@ -272,9 +378,25 @@
       ]
     },
     {
+      "module": "llmflow.paths",
+      "imports": [
+        "__future__",
+        "os",
+        "pathlib"
+      ],
+      "functions": [
+        {
+          "name": "sp_home",
+          "signature": "sp_home() -> Path",
+          "doc": "The store directory — `$SP_HOME` if set, otherwise `~/.sp`."
+        }
+      ]
+    },
+    {
       "module": "llmflow.registry",
       "imports": [
         "datetime",
+        "llmflow",
         "os",
         "pathlib",
         "typing",
@@ -455,6 +577,7 @@
     {
       "module": "llmflow.pipeline_schema",
       "imports": [
+        "llmflow.utils.scripture",
         "pydantic",
         "typing"
       ],
@@ -669,6 +792,7 @@
       "module": "llmflow.download_data",
       "imports": [
         "io",
+        "llmflow",
         "llmflow.modules.logger",
         "os",
         "pathlib",
@@ -742,7 +866,6 @@
         "json",
         "llmflow.cli_utils",
         "llmflow.modules.logger",
-        "llmflow.plugins.loader",
         "os",
         "pathlib",
         "signal",
@@ -753,6 +876,11 @@
           "name": "_cli_sigint_handler",
           "signature": "_cli_sigint_handler(signum, frame)",
           "doc": "Handle Ctrl+C at the CLI process level."
+        },
+        {
+          "name": "_resolve_version",
+          "signature": "_resolve_version() -> str",
+          "doc": "Return the installed version, or an `unknown` string that says why."
         },
         {
           "name": "list_pipelines",
@@ -909,6 +1037,38 @@
       ]
     },
     {
+      "module": "llmflow.ai_rules",
+      "imports": [
+        "__future__",
+        "functools",
+        "importlib.resources",
+        "pathlib",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "rules_path",
+          "signature": "rules_path() -> Path",
+          "doc": "Locate the rules file whether running from an installed wheel or a dev checkout."
+        },
+        {
+          "name": "entries",
+          "signature": "entries() -> tuple[dict, ...]",
+          "doc": "Every rule as recorded: `id`, `rule`, and an optional `note`."
+        },
+        {
+          "name": "rules",
+          "signature": "rules() -> tuple[str, ...]",
+          "doc": "Just the instructions, in order."
+        },
+        {
+          "name": "render_numbered",
+          "signature": "render_numbered() -> str",
+          "doc": "The rules as a markdown ordered list, each note indented beneath its rule."
+        }
+      ]
+    },
+    {
       "module": "llmflow.setup_command",
       "imports": [
         "getpass",
@@ -928,6 +1088,16 @@
           "doc": ""
         },
         {
+          "name": "_set_windows_user_env",
+          "signature": "_set_windows_user_env(name, value)",
+          "doc": "Persist a user-scoped environment variable in the Windows registry."
+        },
+        {
+          "name": "_persist_env_var",
+          "signature": "_persist_env_var(name, value)",
+          "doc": "Persist *name* for future shells. Returns True if it was written."
+        },
+        {
           "name": "run_setup",
           "signature": "run_setup(update = False)",
           "doc": ""
@@ -941,6 +1111,92 @@
           "name": "run_models_update",
           "signature": "run_models_update() -> bool",
           "doc": "Interactively update models.json from installed llm plugins."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.doctor",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "enum",
+        "llmflow",
+        "llmflow.file_catalog",
+        "llmflow.utils.versification",
+        "pathlib",
+        "shutil",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "_templates_dir",
+          "signature": "_templates_dir() -> Path",
+          "doc": ""
+        },
+        {
+          "name": "_shipped_names",
+          "signature": "_shipped_names(subdir: str) -> set[str]",
+          "doc": ""
+        },
+        {
+          "name": "_shipped_skill_names",
+          "signature": "_shipped_skill_names() -> set[str]",
+          "doc": ""
+        },
+        {
+          "name": "_unlocked",
+          "signature": "_unlocked(path: Path)",
+          "doc": "Make `path`'s directory writable for a write, restoring the prior state after."
+        },
+        {
+          "name": "_restore",
+          "signature": "_restore(entry: Entry, target: Path) -> None",
+          "doc": "Write `entry`'s shipped content to `target`. Raises if it cannot."
+        },
+        {
+          "name": "_diverged",
+          "signature": "_diverged(entry: Entry, target: Path) -> bool",
+          "doc": "True when an existing target's content differs from what the package ships."
+        },
+        {
+          "name": "_repair_group",
+          "signature": "_repair_group(entries: list[Entry], root: Path, restore_when_absent: bool) -> tuple[list[str], list[str], list[str]]",
+          "doc": "Restore the entries that need it."
+        },
+        {
+          "name": "_group_check",
+          "signature": "_group_check(check_id: str, label: str, entries: list[Entry], root: Path, total: int, restore_when_absent: bool = True, remedy: str = 'Run `sp init --update`.') -> Check",
+          "doc": ""
+        },
+        {
+          "name": "run_doctor",
+          "signature": "run_doctor(sp_home: Optional[Path] = None, project_dir: Optional[Path] = None, claude_home: Optional[Path] = None) -> Report",
+          "doc": "Inspect the machine, repair what sp owns, and return a Report."
+        },
+        {
+          "name": "doctor_command",
+          "signature": "doctor_command(project_dir: Optional[Path] = None) -> int",
+          "doc": "CLI entry point. Prints the report and returns an exit code."
+        },
+        {
+          "name": "ok",
+          "signature": "ok(self) -> bool",
+          "doc": ""
+        },
+        {
+          "name": "exit_code",
+          "signature": "exit_code(self) -> int",
+          "doc": ""
+        },
+        {
+          "name": "render",
+          "signature": "render(self) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_ctx",
+          "signature": "_ctx()",
+          "doc": ""
         }
       ]
     },
@@ -1037,7 +1293,7 @@
         {
           "name": "find_response_file",
           "signature": "find_response_file(request_path: str) -> str | None",
-          "doc": "Locate the saved response paired with a request file: same directory, same"
+          "doc": "Locate the saved response paired with a request file."
         },
         {
           "name": "load_schema",
@@ -1374,6 +1630,86 @@
       ]
     },
     {
+      "module": "llmflow.utils.versification",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "json",
+        "llmflow",
+        "llmflow.modules.logger",
+        "pathlib",
+        "re",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "default_mappings_dir",
+          "signature": "default_mappings_dir() -> Path",
+          "doc": ""
+        },
+        {
+          "name": "parse_reference",
+          "signature": "parse_reference(reference: str) -> tuple[str, int, int, str]",
+          "doc": "Split a single-verse reference into book, chapter, verse and segment letter."
+        },
+        {
+          "name": "format_reference",
+          "signature": "format_reference(book: str, chapter: int, verse: int, segment: str = '') -> str",
+          "doc": ""
+        },
+        {
+          "name": "_expand",
+          "signature": "_expand(entry: str) -> list[str]",
+          "doc": "One mapping key or value as the list of single-verse references it names."
+        },
+        {
+          "name": "_pairs",
+          "signature": "_pairs(mapped_verses: Mapping[str, str], scheme_name: str) -> dict",
+          "doc": "`{\"PSA 51:1-19\": \"PSA 51:3-21\"}` as nineteen single-verse pairs."
+        },
+        {
+          "name": "_warn_about_unread_fields",
+          "signature": "_warn_about_unread_fields(scheme_name: str, document: Mapping[str, Any]) -> None",
+          "doc": ""
+        },
+        {
+          "name": "load_scheme",
+          "signature": "load_scheme(name: str, mappings_dir: Optional[Path] = None) -> Scheme",
+          "doc": "Read a scheme, folding in whatever it declares `basedOn`."
+        },
+        {
+          "name": "_read",
+          "signature": "_read(name: str, directory: Path, wanted_by: Optional[str] = None) -> dict",
+          "doc": ""
+        },
+        {
+          "name": "map_candidates",
+          "signature": "map_candidates(reference: str, from_scheme: str, to_scheme: str, mappings_dir: Optional[Path] = None) -> list",
+          "doc": "Every verse of *to_scheme* that *reference* corresponds to, in the mapping's own order."
+        },
+        {
+          "name": "map_reference",
+          "signature": "map_reference(reference: str, from_scheme: str, to_scheme: str, mappings_dir: Optional[Path] = None) -> str",
+          "doc": "*reference*, read in *from_scheme*, expressed as the one verse of *to_scheme* it names."
+        },
+        {
+          "name": "_extent",
+          "signature": "_extent(scheme: Scheme, book: str, chapter: int) -> str",
+          "doc": ""
+        },
+        {
+          "name": "from_hub",
+          "signature": "from_hub(self) -> dict",
+          "doc": "Hub -> every verse of this scheme that maps to it, in the file's own order."
+        },
+        {
+          "name": "contains",
+          "signature": "contains(self, book: str, chapter: int, verse: int) -> bool",
+          "doc": "Whether the scheme's own `maxVerses` covers this reference."
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.get_prefix_directory",
       "imports": [
         "pathlib",
@@ -1513,6 +1849,11 @@
           "doc": "Validate all templates referenced in a pipeline configuration."
         },
         {
+          "name": "_ensure_writable_path",
+          "signature": "_ensure_writable_path(value, what: str) -> None",
+          "doc": "Refuse to create a directory named after an unresolved variable."
+        },
+        {
           "name": "save_markdown_as",
           "signature": "save_markdown_as(text, passage, format = 'md', output_dir = 'outputs')",
           "doc": "Save text content as a file with custom naming and directory."
@@ -1585,6 +1926,11 @@
         {
           "name": "__getattr__",
           "signature": "__getattr__(self, item)",
+          "doc": ""
+        },
+        {
+          "name": "_substitute",
+          "signature": "_substitute(match)",
           "doc": ""
         }
       ]
@@ -1875,7 +2221,7 @@
         {
           "name": "_ensure_path_resolved",
           "signature": "_ensure_path_resolved(self, value: Any, original: Any, step: Dict[str, Any]) -> None",
-          "doc": ""
+          "doc": "Delegates to the shared check in `utils.context`."
         }
       ]
     },
@@ -1905,6 +2251,16 @@
         "typing"
       ],
       "functions": [
+        {
+          "name": "has_unresolved_variables",
+          "signature": "has_unresolved_variables(value: Any) -> bool",
+          "doc": "True when `value` still carries a `${var}` or `{var}` placeholder."
+        },
+        {
+          "name": "ensure_saveas_path_resolved",
+          "signature": "ensure_saveas_path_resolved(value: Any, original: Any, step: Dict[str, Any]) -> None",
+          "doc": "Raise if a step's resolved `saveas` path still contains a placeholder."
+        },
         {
           "name": "build_run_context",
           "signature": "build_run_context(pipeline_config: Dict[str, Any], vars: Optional[Dict[str, Any]] = None) -> Dict[str, Any]",
@@ -2006,21 +2362,90 @@
     {
       "module": "llmflow.utils.debug",
       "imports": [
+        "dataclasses",
+        "datetime",
+        "json",
         "llmflow.utils.context",
         "pathlib",
+        "re",
         "shutil",
         "typing"
       ],
       "functions": [
         {
+          "name": "_slug",
+          "signature": "_slug(text: str) -> str",
+          "doc": "Reduce a value to something safe as a single path segment."
+        },
+        {
+          "name": "run_key_for",
+          "signature": "run_key_for(cli_vars: Optional[Dict[str, Any]]) -> str",
+          "doc": "Name this run from the variables that distinguish it."
+        },
+        {
           "name": "_get_debug_dir",
-          "signature": "_get_debug_dir(pipeline_config: Dict[str, Any], context: Dict[str, Any], pipeline_name: str = 'pipeline') -> str",
-          "doc": "Return the debug output directory path."
+          "signature": "_get_debug_dir(pipeline_config: Dict[str, Any], context: Dict[str, Any], pipeline_name: str = 'pipeline', run_key: Optional[str] = None) -> str",
+          "doc": "Return the debug output directory for this run."
         },
         {
           "name": "_clear_debug_dir",
-          "signature": "_clear_debug_dir(pipeline_config: Dict[str, Any], context: Dict[str, Any], dry_run: bool, pipeline_name: str = 'pipeline') -> None",
-          "doc": "Clear this pipeline's debug subdirectory at pipeline start (skipped on dry_run)."
+          "signature": "_clear_debug_dir(pipeline_config: Dict[str, Any], context: Dict[str, Any], dry_run: bool, pipeline_name: str = 'pipeline', run_key: Optional[str] = None) -> None",
+          "doc": "Empty **this run's** directory at the start of the run."
+        },
+        {
+          "name": "_round_cost",
+          "signature": "_round_cost(value: Any) -> Optional[float]",
+          "doc": "Round a cost to micro-dollars, or return None when it is unknown."
+        },
+        {
+          "name": "read_manifest",
+          "signature": "read_manifest(run_dir: Any) -> list",
+          "doc": "Read a run manifest, or return [] when there is none."
+        },
+        {
+          "name": "slug",
+          "signature": "slug(self) -> str",
+          "doc": ""
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, run_dir: Any, enabled: bool = True) -> None",
+          "doc": ""
+        },
+        {
+          "name": "begin",
+          "signature": "begin(self, step: str, prompt_file: str = '', model: str = '', passage: str = '', iteration: str = '') -> DebugCall",
+          "doc": "Allocate a sequence number and attempt number for a call about to be made."
+        },
+        {
+          "name": "save_request",
+          "signature": "save_request(self, call: DebugCall, content: str) -> Optional[str]",
+          "doc": ""
+        },
+        {
+          "name": "save_response",
+          "signature": "save_response(self, call: DebugCall, content: Any) -> Optional[str]",
+          "doc": "Save a response, as JSON when it is structured and text otherwise."
+        },
+        {
+          "name": "save_artifact",
+          "signature": "save_artifact(self, name: str, content: Any) -> Optional[str]",
+          "doc": "Save a supplementary file that is not itself a model call."
+        },
+        {
+          "name": "_write",
+          "signature": "_write(self, call: DebugCall, kind: str, content: str, ext: str) -> Optional[str]",
+          "doc": ""
+        },
+        {
+          "name": "finish",
+          "signature": "finish(self, call: DebugCall, **extras) -> None",
+          "doc": "Append this call's line to the manifest."
+        },
+        {
+          "name": "_relative",
+          "signature": "_relative(self, path: Optional[str]) -> Optional[str]",
+          "doc": ""
         }
       ]
     },
@@ -2090,6 +2515,52 @@
       ]
     },
     {
+      "module": "llmflow.utils.schema_preflight",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "enum",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "check_strict_schema",
+          "signature": "check_strict_schema(schema: Any, path: str = '') -> list[Finding]",
+          "doc": "Check *schema* against OpenAI's strict structured-output subset."
+        },
+        {
+          "name": "_describe_root",
+          "signature": "_describe_root(schema: dict) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_walk",
+          "signature": "_walk(node: Any, path: str, walk: _Walk, depth: int) -> None",
+          "doc": "Recurse through a schema, collecting findings."
+        },
+        {
+          "name": "_check_object",
+          "signature": "_check_object(node: dict, path: str, walk: _Walk) -> None",
+          "doc": "The two rules that account for essentially every real strict-mode rejection."
+        },
+        {
+          "name": "_check_ref",
+          "signature": "_check_ref(node: dict, path: str, walk: _Walk, depth: int) -> None",
+          "doc": "Resolve a local ``$ref`` and continue, or report it as dangling."
+        },
+        {
+          "name": "_join",
+          "signature": "_join(path: str, part: str) -> str",
+          "doc": ""
+        },
+        {
+          "name": "__str__",
+          "signature": "__str__(self) -> str",
+          "doc": ""
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.linter",
       "imports": [
         "ast",
@@ -2099,6 +2570,7 @@
         "llmflow.exceptions",
         "llmflow.modules.logger",
         "llmflow.pipeline_schema",
+        "llmflow.steps.window",
         "llmflow.utils.context",
         "llmflow.utils.get_prefix_directory",
         "llmflow.utils.llm_runner",
@@ -2211,6 +2683,11 @@
           "doc": "Validate that LLM parameters are compatible with the model being used."
         },
         {
+          "name": "validate_structured_output_schemas",
+          "signature": "validate_structured_output_schemas(all_steps, pipeline_config, warnings)",
+          "doc": "Check `response_format` schemas against OpenAI's strict subset (LLMFlow#196)."
+        },
+        {
           "name": "_validate_rewind_requirements",
           "signature": "_validate_rewind_requirements(pipeline_config: dict, cli_vars: dict | None, rewind_to: str | None)",
           "doc": ""
@@ -2223,7 +2700,7 @@
         {
           "name": "_ensure_path_resolved_for_lint",
           "signature": "_ensure_path_resolved_for_lint(resolved_value: Any, original: Any, step: dict) -> None",
-          "doc": ""
+          "doc": "Delegates to the shared check in `utils.context`."
         },
         {
           "name": "_build_module_func_map",
@@ -2266,8 +2743,13 @@
           "doc": ""
         },
         {
+          "name": "_warn_unverifiable",
+          "signature": "_warn_unverifiable(step_name: str, field: str, raw: object, warnings: list | None) -> None",
+          "doc": "Say what lint checked and what it could not."
+        },
+        {
           "name": "_lint_window_step",
-          "signature": "_lint_window_step(step: dict, errors: list) -> None",
+          "signature": "_lint_window_step(step: dict, errors: list, warnings: list | None = None) -> None",
           "doc": "Validate window step configuration."
         },
         {
@@ -2342,6 +2824,182 @@
       ]
     },
     {
+      "module": "llmflow.utils.scripture",
+      "imports": [
+        "__future__",
+        "csv",
+        "dataclasses",
+        "llmflow.modules.logger",
+        "llmflow.utils",
+        "lxml",
+        "pathlib",
+        "re",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "parse_passage_ref",
+          "signature": "parse_passage_ref(passage: str) -> PassageRef",
+          "doc": "Parse ``\"MRK 1:1-8\"`` and friends."
+        },
+        {
+          "name": "_split_ref",
+          "signature": "_split_ref(ref: str) -> tuple[str, Optional[int], Optional[int]]",
+          "doc": "``\"GEN 1:1!3\"`` -> ``(\"GEN\", 1, 1)``. The ``!n`` word index is discarded."
+        },
+        {
+          "name": "filter_rows",
+          "signature": "filter_rows(rows: Iterable[Mapping[str, Any]], ref: PassageRef) -> list[dict]",
+          "doc": "Keep the rows inside *ref*, in source order."
+        },
+        {
+          "name": "join_rows",
+          "signature": "join_rows(rows: Iterable[Mapping[str, Any]]) -> str",
+          "doc": "Concatenate ``text + after``, adding a space only where ``after`` does not carry one."
+        },
+        {
+          "name": "group_by_verse",
+          "signature": "group_by_verse(rows: Iterable[Mapping[str, Any]]) -> list",
+          "doc": "Rows as ``((chapter, verse), rows)`` runs, in source order."
+        },
+        {
+          "name": "rows_to_text",
+          "signature": "rows_to_text(rows: Sequence[Mapping[str, Any]], fmt: str = 'milestones') -> str",
+          "doc": "Running text for *rows*."
+        },
+        {
+          "name": "edition_scheme",
+          "signature": "edition_scheme(definition: Any, edition: Optional[str] = None) -> Optional[str]",
+          "doc": "The versification scheme an edition's references are in, or None when unknown."
+        },
+        {
+          "name": "_edition_table",
+          "signature": "_edition_table() -> Mapping[str, Any]",
+          "doc": ""
+        },
+        {
+          "name": "_edition_table_path",
+          "signature": "_edition_table_path() -> Path",
+          "doc": "Locate the table whether running from an installed wheel or a dev checkout."
+        },
+        {
+          "name": "_known_editions",
+          "signature": "_known_editions() -> dict",
+          "doc": ""
+        },
+        {
+          "name": "_paratext_scheme",
+          "signature": "_paratext_scheme(definition: Mapping[str, Any]) -> Optional[str]",
+          "doc": "The scheme a Paratext project's `Settings.xml` declares, by its number."
+        },
+        {
+          "name": "resolve_passage",
+          "signature": "resolve_passage(passage: str, edition_scheme_name: Optional[str], requested_scheme: Optional[str], edition: Optional[str] = None, mappings_dir: Optional[Path] = None) -> str",
+          "doc": "*passage*, named in *requested_scheme*, rewritten as the edition numbers it."
+        },
+        {
+          "name": "rows_to_output",
+          "signature": "rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str) -> str | dict",
+          "doc": "The requested representation of *rows*: a string, or a USJ document for ``fmt=\"usj\"``."
+        },
+        {
+          "name": "rows_to_usj",
+          "signature": "rows_to_usj(rows: Sequence[Mapping[str, Any]], book: str) -> dict",
+          "doc": "*rows* as a USJ document: the book, a chapter node per chapter, one `para` inside each."
+        },
+        {
+          "name": "resolve_edition",
+          "signature": "resolve_edition(edition: str, registry_editions: Optional[Mapping[str, Any]] = None) -> Any",
+          "doc": "Return the definition for a named edition: a TSV path string, or a mapping carrying a"
+        },
+        {
+          "name": "usj_to_text",
+          "signature": "usj_to_text(usj: Mapping[str, Any], fmt: str = 'milestones') -> str",
+          "doc": "Flatten a USJ document into running text."
+        },
+        {
+          "name": "tei_book_files",
+          "signature": "tei_book_files(tei_dir: str | Path) -> dict[str, Path]",
+          "doc": "Map book code to file, taking the code from each file's first `w`."
+        },
+        {
+          "name": "_first_book_code",
+          "signature": "_first_book_code(path: Path) -> Optional[str]",
+          "doc": "The book code from the first `w` in *path*, without parsing the whole file."
+        },
+        {
+          "name": "read_tei_rows",
+          "signature": "read_tei_rows(tei_path: str | Path, ref: PassageRef) -> list[dict]",
+          "doc": "Rows for *ref* from one TEI book file, in the shape `rows_to_text` consumes."
+        },
+        {
+          "name": "_without_apparatus_marks",
+          "signature": "_without_apparatus_marks(text: str) -> str",
+          "doc": ""
+        },
+        {
+          "name": "read_rows",
+          "signature": "read_rows(tsv_path: str | Path) -> list[dict]",
+          "doc": "Read a Macula-style TSV. Only ``ref``, ``text`` and ``after`` are required here."
+        },
+        {
+          "name": "passage_text",
+          "signature": "passage_text(edition: str, passage: str, fmt: str = 'milestones', registry_editions: Optional[Mapping[str, str]] = None) -> str | dict",
+          "doc": "Running text for *passage* in *edition* — the whole job in one call."
+        },
+        {
+          "name": "default_editions_dir",
+          "signature": "default_editions_dir() -> Path",
+          "doc": "The `editions` directory inside the store (#207)."
+        },
+        {
+          "name": "load_registry_editions",
+          "signature": "load_registry_editions(editions_dir: Any = None) -> dict",
+          "doc": "Read every edition definition. Absence is normal; a fresh machine has none."
+        },
+        {
+          "name": "_usfm_passage_text",
+          "signature": "_usfm_passage_text(definition: Mapping[str, Any], passage: str, fmt: str) -> str",
+          "doc": "BSB and other USFM editions: passage -> USJ -> running text."
+        },
+        {
+          "name": "_no_text_found",
+          "signature": "_no_text_found(passage: str, edition: str) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_tei_passage_text",
+          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, edition: str) -> str | dict",
+          "doc": "Running text for *passage* from a directory of per-book TEI files."
+        },
+        {
+          "name": "edition_text",
+          "signature": "edition_text(edition: str, passage: str, fmt: str = 'milestones', editions: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None) -> str | dict",
+          "doc": "Running text for *passage* in *edition*, dispatched on the edition's `kind`."
+        },
+        {
+          "name": "__str__",
+          "signature": "__str__(self) -> str",
+          "doc": ""
+        },
+        {
+          "name": "covers",
+          "signature": "covers(self, chapter: int, verse: int) -> bool",
+          "doc": ""
+        },
+        {
+          "name": "moved",
+          "signature": "moved(chapter: Optional[int], verse: Optional[int]) -> tuple[int, int]",
+          "doc": ""
+        },
+        {
+          "name": "walk",
+          "signature": "walk(node: Any) -> None",
+          "doc": ""
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.content_diff",
       "imports": [
         "difflib",
@@ -2383,6 +3041,11 @@
           "name": "get_model",
           "signature": "get_model(model_name: str)",
           "doc": "Get LLM model with caching."
+        },
+        {
+          "name": "resolve_provider_key",
+          "signature": "resolve_provider_key(provider: str, explicit: str | None = None) -> str | None",
+          "doc": "Return the API key for *provider*, or None if none is configured."
         },
         {
           "name": "get_model_family",
@@ -2767,6 +3430,16 @@
           "doc": "Copy per-iteration results back to the parent context."
         },
         {
+          "name": "is_expression",
+          "signature": "is_expression(value: object) -> bool",
+          "doc": "True when a YAML value is a `${...}` expression rather than a literal."
+        },
+        {
+          "name": "resolve_pre_loop_int",
+          "signature": "resolve_pre_loop_int(raw: object, context: Dict[str, Any], field: str, step_name: str) -> object",
+          "doc": "Resolve an integer window field once, before the first iteration."
+        },
+        {
           "name": "run_window_advance_step",
           "signature": "run_window_advance_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any], run_step_fn: Callable) -> None",
           "doc": "Execute a !window_advance step inside a window step."
@@ -2835,13 +3508,9 @@
     {
       "module": "llmflow.steps.llm",
       "imports": [
-        "datetime",
         "llmflow.modules.logger",
         "llmflow.modules.mcp",
         "llmflow.utils.context",
-        "llmflow.utils.debug",
-        "llmflow.utils.file_io",
-        "llmflow.utils.io",
         "llmflow.utils.llm_runner",
         "llmflow.utils.step_outputs",
         "pathlib",
@@ -2851,14 +3520,14 @@
       ],
       "functions": [
         {
-          "name": "build_debug_filename",
-          "signature": "build_debug_filename(step: Dict[str, Any], context: Dict[str, Any], request_or_response: str) -> str",
-          "doc": "Build a debug filename from passage (or timestamp), prompt file, and request/response type."
-        },
-        {
           "name": "render_prompt",
           "signature": "render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, Any]) -> str",
           "doc": "Render a prompt from a file with variable substitution."
+        },
+        {
+          "name": "_begin_debug_call",
+          "signature": "_begin_debug_call(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any])",
+          "doc": "Open a manifest entry for the call this step is about to make."
         },
         {
           "name": "apply_output_template",
@@ -3046,6 +3715,23 @@
       ]
     },
     {
+      "module": "llmflow.steps.scripture",
+      "imports": [
+        "llmflow.modules.logger",
+        "llmflow.utils.context",
+        "llmflow.utils.scripture",
+        "llmflow.utils.step_outputs",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "run_scripture_step",
+          "signature": "run_scripture_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> None",
+          "doc": "Fetch one passage from one edition, in the format the step asks for."
+        }
+      ]
+    },
+    {
       "module": "llmflow.steps.function",
       "imports": [
         "importlib",
@@ -3080,9 +3766,15 @@
         "subprocess",
         "sys",
         "threading",
+        "typing",
         "webbrowser"
       ],
       "functions": [
+        {
+          "name": "find_pipelines_dir",
+          "signature": "find_pipelines_dir(project_path: Path) -> Optional[Path]",
+          "doc": "Locate a project's `pipelines/` directory, at its root or one level down."
+        },
         {
           "name": "create_app",
           "signature": "create_app()",
@@ -3621,7 +4313,7 @@
     }
   ],
   "summary": {
-    "total_modules": 71,
-    "total_functions": 552
+    "total_modules": 79,
+    "total_functions": 668
   }
 }

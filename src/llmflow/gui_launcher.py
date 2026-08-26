@@ -14,7 +14,7 @@ def main():
         from llmflow.gui.server import start_server
     except ImportError as e:
         print("❌ GUI dependencies not installed")
-        print("   Install with: pip install llmflow[gui]")
+        print("   Install with: pip install scripture-pipelines")
         print(f"   Error: {e}")
         sys.exit(1)
     except Exception as e:
