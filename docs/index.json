@@ -199,6 +199,11 @@
           "doc": "Install global disciplines to ~/.sp/disciplines/."
         },
         {
+          "name": "install_global_versification",
+          "signature": "install_global_versification(sp_home: Optional[Path] = None, force: bool = False) -> None",
+          "doc": "Install the versification mappings into ~/.sp/versification/."
+        },
+        {
           "name": "install_global_skills",
           "signature": "install_global_skills(sp_home: Optional[Path] = None, force: bool = False) -> None",
           "doc": "Install global skills to ~/.sp/skills/."
@@ -1117,6 +1122,7 @@
         "enum",
         "llmflow",
         "llmflow.file_catalog",
+        "llmflow.utils.versification",
         "pathlib",
         "shutil",
         "typing"
@@ -4308,6 +4314,6 @@
   ],
   "summary": {
     "total_modules": 79,
-    "total_functions": 667
+    "total_functions": 668
   }
 }

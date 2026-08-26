@@ -50,6 +50,7 @@ from llmflow import paths as _paths
 from typing import Optional
 
 from llmflow.file_catalog import Entry, Scope, Source, managed_by_doctor, shipped_content, shipped_path
+from llmflow.utils.versification import MAPPINGS_DIRNAME
 
 
 class Severity(enum.Enum):
@@ -378,6 +379,16 @@ def run_doctor(
             [e for e in sp_entries if e.path.startswith("skills/")],
             sp_home,
             total=len(_shipped_skill_names()),
+        )
+    )
+    versification = [e for e in sp_entries if e.path.startswith(f"{MAPPINGS_DIRNAME}/")]
+    add(
+        _group_check(
+            "versification",
+            "Versification mappings",
+            versification,
+            sp_home,
+            total=len(versification),
         )
     )
 

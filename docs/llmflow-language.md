@@ -806,9 +806,17 @@ from the edition's, the reference is mapped *before* any text is read:
 Omit it and the edition's own scheme governs, which is the right default for a single edition.
 
 Schemes are the Copenhagen Alliance mappings, installed into `~/.sp/versification/` by
-`sp init`. Six ship: `org` (the hub every scheme maps through), `eng`, `lxx`, `vul`, `rsc`,
-`rso`. A custom scheme is a JSON file you place in that directory; it may set `basedOn` to
-inherit from another and list only what it changes.
+`sp init` and repaired by `sp doctor`. Six ship: `org` (the hub every scheme maps through),
+`eng`, `lxx`, `vul`, `rsc`, `rso`.
+
+A custom scheme is a JSON file in that directory. It may set `basedOn` to inherit from another
+and list only what it changes, and `sp` never overwrites or removes it — only the six it
+installed. Note that `~/.sp` is kept read-only, so adding one means making the directory
+writable first:
+
+```bash
+chmod u+w ~/.sp/versification && cp my-scheme.json ~/.sp/versification/ && chmod a-w ~/.sp/versification
+```
 
 Three behaviours are deliberate, because the alternative in each case is a silent error:
 

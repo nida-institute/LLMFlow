@@ -214,6 +214,68 @@ def test_every_shipped_scheme_loads(scheme):
     assert load_scheme(scheme, mappings_dir=SHIPPED).max_verses
 
 
+def test_installing_puts_every_catalogued_mapping_in_the_store(tmp_path):
+    """The write path, not a simulation of it: declaring a file installs nothing by itself."""
+    from llmflow.cli_utils import install_global_versification
+    from llmflow.file_catalog import Scope, entries
+    from llmflow.utils.versification import MAPPINGS_DIRNAME
+
+    store = tmp_path / "sp"
+    install_global_versification(sp_home=store)
+
+    declared = {
+        e.path
+        for e in entries()
+        if e.scope is Scope.SP_HOME and e.path.startswith(f"{MAPPINGS_DIRNAME}/")
+    }
+    assert declared, "the catalog declares no versification files"
+    for path in declared:
+        assert (store / path).is_file(), f"{path} was declared but not installed"
+
+
+def test_a_scheme_loads_from_the_store_after_installing(tmp_path):
+    from llmflow.cli_utils import install_global_versification
+    from llmflow.utils.versification import MAPPINGS_DIRNAME, map_reference
+
+    store = tmp_path / "sp"
+    install_global_versification(sp_home=store)
+    got = map_reference("PSA 51:1", "eng", "org", mappings_dir=store / MAPPINGS_DIRNAME)
+    assert got == "PSA 51:3"
+
+
+def test_installing_leaves_a_custom_mapping_alone(tmp_path):
+    """A scheme the human adds is not catalogued, so nothing may overwrite or remove it.
+
+    The store is kept read-only, so adding one means making the directory writable first.
+    """
+    from llmflow.cli_utils import _unlock_sp_dir, install_global_versification
+    from llmflow.utils.versification import MAPPINGS_DIRNAME
+
+    store = tmp_path / "sp"
+    install_global_versification(sp_home=store)
+
+    mappings = store / MAPPINGS_DIRNAME
+    _unlock_sp_dir(mappings)
+    mine = mappings / "mine.json"
+    mine.write_text('{"basedOn": "eng", "mappedVerses": {}}', encoding="utf-8")
+
+    install_global_versification(sp_home=store)
+    assert mine.is_file()
+    assert "basedOn" in mine.read_text(encoding="utf-8")
+
+
+def test_the_installed_mappings_are_left_read_only(tmp_path):
+    """Consistent with the rest of the store, and why adding a custom scheme needs an unlock."""
+    import os
+
+    from llmflow.cli_utils import install_global_versification
+    from llmflow.utils.versification import MAPPINGS_DIRNAME
+
+    store = tmp_path / "sp"
+    install_global_versification(sp_home=store)
+    assert not os.access(store / MAPPINGS_DIRNAME, os.W_OK)
+
+
 def test_the_shipped_schemes_carry_their_licence():
     """CC BY-SA 4.0 requires the notice to travel with the data it covers."""
     attribution = (SHIPPED / "ATTRIBUTION.md").read_text(encoding="utf-8")

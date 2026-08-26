@@ -1501,6 +1501,42 @@ def install_global_disciplines(sp_home: Optional[Path] = None, force: bool = Fal
                 _lock_sp_dir(sp_home)
 
 
+def install_global_versification(sp_home: Optional[Path] = None, force: bool = False) -> None:
+    """Install the versification mappings into ~/.sp/versification/.
+
+    Which files, and where they land, come from the catalog rather than from a glob here, so
+    adding a scheme needs no change to this function. `force` is accepted for symmetry with
+    the other installers and is unused: these entries are `generated`, so a drifted file is
+    rewritten either way and a file the human added alongside them is never touched.
+    """
+    from llmflow import file_catalog as fc
+    from llmflow.utils.versification import MAPPINGS_DIRNAME
+
+    if sp_home is None:
+        sp_home = _paths.sp_home()
+
+    prefix = f"{MAPPINGS_DIRNAME}/"
+    entries = [
+        entry
+        for entry in sorted(fc.entries(), key=lambda e: e.path)
+        if entry.scope is fc.Scope.SP_HOME and entry.path.startswith(prefix)
+    ]
+    if not entries:
+        return
+
+    target_dir = sp_home / MAPPINGS_DIRNAME
+    with _sp_dir_writable(target_dir):
+        target_dir.mkdir(parents=True, exist_ok=True)
+        for entry in entries:
+            content = fc.shipped_content(entry)
+            if content is None:
+                logger.warning(f"{entry.path} is catalogued but ships no content; not written.")
+                continue
+            name = Path(entry.path).name
+            if _write_if_changed(sp_home / entry.path, content, label=name):
+                logger.info(f"✓ Installed {name} to ~/.sp/{MAPPINGS_DIRNAME}/")
+
+
 def install_global_skills(sp_home: Optional[Path] = None, force: bool = False) -> None:
     """Install global skills to ~/.sp/skills/.
 
@@ -1669,6 +1705,7 @@ def init_project(base_dir: Path, update: bool = False, no_examples: bool = False
     try:
         install_global_disciplines(force=update)
         install_global_skills(force=update)
+        install_global_versification(force=update)
     except Exception as e:
         logger.warning(f"Could not install global resources to ~/.sp/: {e}")
 
