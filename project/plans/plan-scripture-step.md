@@ -50,14 +50,25 @@ wants, never the serialization it is served from.
 | `usj` | USJ structure | 2.56x codepoints, 6.74x as escaped JSON. Annotation only via `include` |
 | `print` | the print edition, with paragraph structure | served from a formatted serialization; **not annotatable** |
 
+=> Need to mention our internal extensions to usj, in our own space.
+
+
+
 **`include` members** — seven: `ids`, `morphology`, `senses`, `glosses`, `referents`, `discourse`
 (§3.0a), `syntax` (§3.0a). A list, never a single word. Defaults to empty — `format: usj` with no
-`include` returns structure and nothing more, because a payload nobody asked for is a payload nobody
-checked.
+`include` returns the text in USJ structure with no annotation, because a payload nobody asked for
+is a payload nobody checked.
 
 **`versification:`** — names the scheme of the result (§3.-1). Implicit from the primary source when
 one edition is named; required when two are to be compared. **Not a closed enum**, because a
 Paratext project brings its own.
+
+=> if no members are included, it should at least return the text, no?
+
+*Yes — the wording was the defect, not the design. `format: usj` with no `include` returns **the
+text, in USJ structure, with no annotation**: book, chapter, `para` and `verse` nodes and the words
+themselves. "Structure and nothing more" read as though the text were withheld, which would be
+absurd. Corrected here and at §5 step 2.*
 
 ---
 
@@ -106,7 +117,7 @@ before fetching rather than after. An unmappable reference is an error, never an
 the parked code already holds that line for out-of-range passages
 (`test_a_passage_outside_the_edition_errors_rather_than_returning_empty`), and this extends it.
 
-=>
+=> Approved.
 
 **Ruled in conversation, 2026-08-26:**
 
@@ -133,9 +144,14 @@ declared, is the opposite of that.*
 
 - *the key that states the result's scheme — `versification:` is the obvious candidate, taking a
   scheme id (`org`, `eng`, `lxx`, `vul`, `rsc`, `rso`) or a path to a custom mapping;*
+  
+  => Yes, "versification"
+  
 - *how the primary is designated once a step can return a pair. With a single `edition:` the
   primary is unambiguous; the pairing shape is unbuilt (§6) and the designation should be settled
   with it rather than guessed at now.*
+  
+  => Perhaps there is always a primary and a parallel, not two pairs on the same level. When would we need "a pair," and why?
 
 *Not a ruling, and stated as a consequence to be checked: on this design `sp lint` can catch the
 case that matters — two editions requested for comparison with no `versification:` stated — because
@@ -166,6 +182,8 @@ six standard schemes.*
 supplies, and the six standard ids must not be hardcoded as the only legal values. A schema `enum`
 would foreclose Paratext support; validation belongs against the set of resolvable schemes, which
 is data.*
+
+=> It  might be cleaner to have two separate fields, "versification_scheme" and  "custom_versification", for the two purposes, they can both be present, or only one may be present. Custom versification without specifying a scheme refers to 'org'
 
 **The data model, and it is the specification's own — not ours to invent.** Ruled 2026-08-26:
 *"copenhagen provides maps for 'standard mappings', which are named. Project custom versification
@@ -357,6 +375,8 @@ This is the single thing most likely to be got subtly wrong once per consumer, w
 consumer repositories asked for it in the engine. **The joining rule belongs in the edition
 declaration**, not in the step's code.
 
+=> Amen to that last sentence.
+
 **Reading the TEI instead makes this structural, and the question dissolves.** Its `pc` elements
 carry inter-word material as nodes in document order — 2,741 in Mark, reconciling exactly with
 Logos's 933 `prefix` plus 1,808 non-empty `suffix`. Concatenating `w` and `pc` in order reproduces
@@ -370,6 +390,47 @@ this document for that reason. It stops being the engine's problem.*
 
 One `para` per chapter, as a container the USX grammar requires (Q4). The source has none, so there
 is nothing to carry. A caller wanting editorial structure asks for `format: print`.
+
+=> A case we haven't discussed. USX/USJ/USFM can represent everything in the print edition too, and is what most publishers actually use to publish. Do we need a way to support a "print edition" in USX format, the most likely format to be used?
+
+**Yes. Ruled 2026-08-26: `print_format: [usx, usfm, usj, tei]`, and `html` under conditions.**
+
+*The question exposed an inconsistency worth naming: `plain`, `milestones` and `usj` say what shape
+the bytes take, while **`print` is the only intent in the enum** — it says what the content is and
+leaves the encoding open. `print_format` fills that gap rather than hiding it.*
+
+*It also shows Q4's ruling was about the **source**, not about USJ. "You can't have paragraph
+structure in this USJ" holds of USJ built from Macula, which has none. USJ built from a print
+serialization carries them, so `print` with `print_format: usj` is exactly "USJ with paragraphs"
+and contradicts nothing.*
+
+*Three of the four are one data model — USFM is the markup, USX its XML, USJ its JSON — so this is
+mostly wiring: `utils/data.py` already has `_usx_to_usj`, `load_usfm_passage`,
+`_extract_verse_range_usj` and a `_format_result` switch, and the parked `usfm` backend uses them.
+**TEI is the only new reader**, and it is the one already measured (§3.0).*
+
+**`html`: semantic markup only, and it is a serialization on those terms.** Proposed and accepted
+the same day — the engine emits structure and a stylesheet formats it. Two conditions, because
+without them it stops being a serialization:
+
+- **No presentational choices in the markup.** No `<i>`, no inline styles, no font selection. Rule
+  31 forbids slanting scripts with no italic tradition, and markup that emits emphasis has made that
+  decision where no stylesheet can retract it.
+- **`lang` and `dir` are required**, because they are semantic rather than presentational. Hebrew
+  without `dir="rtl"` is not styled badly, it is structurally wrong, and a consumer's stylesheet
+  cannot repair a missing direction. Both drive font fallback as well.
+- **A default stylesheet ships with it.** An earlier revision of this section argued for shipping
+  none, on the grounds that rule 31 would govern it. That was avoidance rather than caution:
+  semantic HTML with no stylesheet renders as an undifferentiated wall, so shipping nothing does not
+  avoid the typography question — it hands it to every consumer, who then rediscovers the rule the
+  hard way. **The default is a reference implementation**: it shows which classes exist and how to
+  target them, and it is the one place where rule 31 can be demonstrated instead of merely stated.
+  It must therefore mark emphasis with weight, colour or size and never `font-style: italic` on a
+  script with no italic tradition, scope by `lang` and `dir`, say in a comment why, and stay minimal
+  — a starting point, not a design system.
+
+*Default: `tei`, being the serialization measured and verified here. A caller wanting what
+publishers use asks for `usx` or `usj`.*
 
 ### 3.4 `print` is not annotatable
 
@@ -441,6 +502,40 @@ Each is a test before it is code.
 
 ---
 
+## 4a. Definition of done for every step in §5
+
+Ruled 2026-08-26: a step is not done when its tests pass. **It is done when a reader can choose
+between the representations without reading the code**, which means each step ships documentation
+covering the feature *and* the reasoning — when you would use this form, and what it costs against
+the others.
+
+| document | what it gains | how it is written |
+|---|---|---|
+| `docs/llmflow-language.md` | the step's grammar: keys, formats, `include`, `versification` | directly; this repository's own |
+| `docs/llmflow-language-quickref.md` | the same, compressed — it is what a project reads | **via `LANGUAGE_QUICKREF_DOC`**, then regenerate. Never hand-edit the file |
+| `docs/architecture.md` | how the step resolves an edition, maps a reference, reads a serialization | directly |
+| `docs/ai-context/sp/` | the AI-facing account, so a session picks a representation deliberately | **via its template or constant**, then regenerate — the directory is generated and a hand edit is lost |
+
+**The reasoning is the part most likely to be skipped, so it is named explicitly.** Every format
+and every `include` family carries a cost, and those numbers already exist rather than needing
+invention:
+
+| form | cost | when it is the right choice |
+|---|---|---|
+| `plain` | baseline | a whole-book step that cannot window — one consumer reads 32 KB where the annotated form is 1.3 MB, a 43x difference |
+| `milestones` | **1.072x** bare text | the default, and enough whenever a verse reference is all the addressing needed |
+| `usj`, no `include` | 2.56x codepoints, **6.74x as escaped JSON** | structure is needed but annotation is not |
+| `usj` + families | to **11.78x** as one consumer ships it | only the families a step actually reads |
+| `syntax` | 19,459 nodes against 11,286 words, depth 17 | constituency is the subject of the analysis |
+| `print` | paragraphs, no annotation | the editorial shape, for a reader rather than a model |
+
+**State the unit beside every multiplier.** The same book measures 2.56x in codepoints, 1.78x in
+UTF-8 bytes and 6.74x as escaped JSON. A consumer measured all three and asked for the unit to be
+stated, because a reader who assumes bytes and gets escaped JSON mis-costs every decision
+downstream.
+
+---
+
 ## 5. Implementation order — simple to complex
 
 **Ruled 2026-08-26: build stepwise, simple to complex.** Two principles order the list, and both
@@ -487,7 +582,7 @@ reproduce `format: milestones` exactly for the same passage.
 **4. The container, and `include: [ids]`.** The smallest possible family — `xml:id` per word — so
 the step that introduces the `scripture_pipelines` container and the `include` machinery carries
 almost no payload logic of its own. Tests: the container appears only when `include` is non-empty;
-`format: usj` with no `include` returns structure and nothing more.
+`format: usj` with no `include` returns the text in USJ structure and no annotation.
 
 **5. `include: [morphology]` and `include: [glosses]`.** The first real join — TSV to TEI on
 `xml:id`, verified exact in §3.0. Per-word records, no new machinery. Tests per family: the declared
@@ -513,17 +608,30 @@ family because it reads a second file with its own conventions. Tests: marks pai
 verse; an entry resolves to a word position; Mark 8:35's mismatch is handled explicitly rather than
 silently; notes absent from `plain` and `milestones`.
 
-**11. `include: [syntax]`.** Last, and by some distance the most complex: lowfat as a third source,
-a nested tree with an id on every node, 19,459 nodes for Mark at depth 17, and the whole-clause rule
-at passage boundaries — which means the response must declare the extent it actually covers.
+**11. `include: [syntax]`.** Lowfat as a third source, a nested tree with an id on every node,
+19,459 nodes for Mark at depth 17, and the whole-clause rule at passage boundaries — which means the
+response must declare the extent it actually covers.
+
+**12. `print_format: html`, and its default stylesheet. Last, ruled 2026-08-26.** It is the only
+step that leaves data serialization for presentation, and the only one carrying a typography
+constraint — rule 31, demonstrated in the shipped stylesheet rather than merely stated. Everything
+before it is reachable without it, and a consumer already builds its own reader HTML today, so
+nothing waits on this. Tests: emphasis is never `font-style: italic` on a script with no italic
+tradition; `lang` and `dir` present on every language-bearing element; the markup carries no inline
+style.
 
 ---
 
 **Not in this sequence, and deliberately:**
 
-- **Fixing the TEI upstream** to carry its own apparatus and a `teiHeader`. That upstream is the
-  Captain's, so it is a question of when rather than whether. If it lands before step 10, that step
-  gets simpler; if after, step 10 keeps working and the ordinal join becomes redundant.
+- **Fixing the TEI upstream** to carry its own apparatus and a `teiHeader` — filed as
+  **`Clear-Bible/macula-greek#110`**, 2026-08-26, where that repository's own AI will pick it up.
+  The measurements behind it live in that issue rather than here, so there is one copy: 6,940 marks
+  against 6,934 notes across 27 books, 99.7% of verses agreeing, 14 needing a human. **What we asked
+  for concretely is that every entry names the word ids it applies to** — inline or standoff is
+  theirs to choose, but an entry without ids leaves a consumer string-matching the lemma, which is
+  the position we are in today. If it lands before step 10 that step gets simpler; if after, step 10
+  keeps working and the ordinal join becomes redundant.
 - **Reading the trees for anything but `syntax`.** No other format needs them, and §3.1 makes that
   path strictly harder — sort by `xml:id` first, never trust nesting.
 - **Pairing a source text with a translation.** §6.
@@ -531,10 +639,15 @@ at passage boundaries — which means the response must declare the extent it ac
 ## 6. What this does not cover
 
 - **The syntax tree.** §4.5 leaves it homeless and says `format: syntax` is "not a decision".
+
+  => But you can get the syntax tree by declaring syntax in members.
+
 - **Pairing a source text with a translation.** `nida-institute/ears-to-hear` showed the two
   payloads do not carry the same verse set — four verses in BSB and not in SBLGNT for Mark — and
   are not the same shape. Their §7 asks whether pairing belongs in the engine at all. Unruled.
+  
 - **Word-addressable variants**, per §3.6.
+
 - **Licensing.** `#212`. Named here only because a consumer reported shipping a book's complete
   original-language text with no attribution against a CC BY source, and the engine emitting text
   is the natural place for a credit line to originate. Not this step's scope, and time-sensitive

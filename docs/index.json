@@ -2790,7 +2790,7 @@
         {
           "name": "default_editions_dir",
           "signature": "default_editions_dir() -> Path",
-          "doc": "``~/.sp/editions`` unless SP_HOME says otherwise."
+          "doc": "The `editions` directory inside the store (#207)."
         },
         {
           "name": "load_registry_editions",
