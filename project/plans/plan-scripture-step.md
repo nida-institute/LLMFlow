@@ -52,6 +52,26 @@ wants, never the serialization it is served from.
 
 => Need to mention our internal extensions to usj, in our own space.
 
+**The `scripture_pipelines` container.** Everything `include` delivers, and everything the payload
+says about itself, lives under one key that the USJ specification does not define and will never
+define. Nothing is added anywhere else in the document.
+
+| in the container | from |
+|---|---|
+| the `include` families that have no spec home — `morphology`'s parse, `senses`, `glosses`, `referents`, `discourse`, `syntax` | §3.0a, §3.5 |
+| `versification` — the scheme the verse references are in | §3.-1 |
+| the extent actually covered, when a whole clause overran the requested passage | §3.0a |
+
+*Spec-defined fields stay where the spec puts them: `lemma` and `strong` are attributes on `\w`,
+`ids` becomes `srcloc`. The container holds only what USJ has no place for — which is why a
+consumer can ignore it entirely and still read valid USJ.*
+
+*Two things follow, and both matter to a consumer more than to us. **One key to strip**: a consumer
+wanting standard USJ removes `scripture_pipelines` and is done. And **one place to look**: an
+extension outside that key would be an extension nobody could find, which is how
+`genre_markers` — a non-standard attribute on `verse` nodes, 53 of them in Mark — came to sit
+loose in a consumer's USJ and be dropped silently by its own flattener.*
+
 
 
 **`include` members** — seven: `ids`, `morphology`, `senses`, `glosses`, `referents`, `discourse`
@@ -146,12 +166,31 @@ declared, is the opposite of that.*
   scheme id (`org`, `eng`, `lxx`, `vul`, `rsc`, `rso`) or a path to a custom mapping;*
   
   => Yes, "versification"
+
+  *Named. And refined below: two fields rather than one, so a project naming a standard scheme
+  **and** customizing it needs no overloading — `versification_scheme` and `custom_versification`,
+  either or both, with a bare custom mapping meaning `org`.*
   
 - *how the primary is designated once a step can return a pair. With a single `edition:` the
   primary is unambiguous; the pairing shape is unbuilt (§6) and the designation should be settled
   with it rather than guessed at now.*
   
   => Perhaps there is always a primary and a parallel, not two pairs on the same level. When would we need "a pair," and why?
+
+  *Agreed, and it simplifies the design rather than only naming it. Every case identifiable today
+  is asymmetric: a source text with a translation riding along (`nida-institute/ears-to-hear`'s
+  `source_text` plus BSB), or a translation checked against its source. The one case that would be
+  symmetric — two editions of the same language collated — is what the apparatus already serves,
+  as footnotes in one edition (§3.6), so it needs no pair.*
+
+  ***So: `primary` and `parallel`, never two on the same level.** The versification ruling above
+  already presupposed this — "you get the Hebrew versification, whatever the primary source is."*
+
+  ***Consequence worth stating: the key becomes an override and is never required.** The table
+  above has a row for "two editions to be compared — must be stated", and that was the only case
+  forcing the key. With asymmetry it disappears: the primary's scheme always governs by default, and
+  `versification` exists to override it. `sp lint` therefore has nothing to catch here, which
+  retires the observation two paragraphs below.*
 
 *Not a ruling, and stated as a consequence to be checked: on this design `sp lint` can catch the
 case that matters — two editions requested for comparison with no `versification:` stated — because
@@ -184,6 +223,23 @@ would foreclose Paratext support; validation belongs against the set of resolvab
 is data.*
 
 => It  might be cleaner to have two separate fields, "versification_scheme" and  "custom_versification", for the two purposes, they can both be present, or only one may be present. Custom versification without specifying a scheme refers to 'org'
+
+**Adopted.** *Two fields, both optional, either or both present:*
+
+```yaml
+versification_scheme: eng           # a named standard mapping
+custom_versification: ./my.json     # this project's deviations; alone it means basedOn: org
+```
+
+*Better than the single key it replaces, and not merely tidier: it **mirrors the specification's own
+structure**, where a custom mapping declares `basedOn` and carries only its deviations. The common
+case — a project naming a standard scheme and customizing it — is then two fields with obvious
+meanings rather than one field that must be parsed to discover which kind of value it holds.*
+
+*`custom_versification` alone meaning `org` matches the hub model: every standard scheme maps
+through `org`, so it is the only defensible default for a mapping that names no base.*
+
+*Both are overrides. Neither is ever required — see the asymmetry note above.*
 
 **The data model, and it is the specification's own — not ours to invent.** Ruled 2026-08-26:
 *"copenhagen provides maps for 'standard mappings', which are named. Project custom versification
@@ -638,9 +694,11 @@ style.
 
 ## 6. What this does not cover
 
-- **The syntax tree.** §4.5 leaves it homeless and says `format: syntax` is "not a decision".
-
   => But you can get the syntax tree by declaring syntax in members.
+
+*Correct, and this entry was stale — removed. `syntax` became an `include` family on 2026-08-26
+(§3.0a), which is what reversed §4.5's reasoning: the container is a home for what USJ cannot hold.
+No separate `format: syntax` is needed, and nothing about the tree is uncovered.*
 
 - **Pairing a source text with a translation.** `nida-institute/ears-to-hear` showed the two
   payloads do not carry the same verse set — four verses in BSB and not in SBLGNT for Mark — and
