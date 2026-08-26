@@ -7,6 +7,18 @@
 
 ## 🔥 Active
 
+### 🐛 `sp init`'s write paths — three defects, found migrating discourse-flow → #215
+> Filed together because they share a cause: `sp init` writes through paths `sp doctor` has
+> already hardened, and reports failure inconsistently.
+- [ ] `_upsert_delimited_block` writes without unlocking; `doctor._restore` unlocks
+      (`doctor.py:194`). A read-only `CLAUDE.md` crashed `sp init --update`. **Needs a ruling
+      first:** unlock and write, or skip and report? The read-only bit may be protection.
+- [ ] `sp init` is not atomic — the crash left a half-updated assistant configuration
+      (Copilot done, Claude Code / Cursor / Windsurf not) and said nothing but a traceback.
+- [ ] The registry write fails as a warning naming `~/.sp/ai-context/project-index.md.yaml` —
+      a filename retired on 2026-08-24. The store is deliberately read-only, so that failure is
+      the normal case, not an exception.
+
 ### ▶ Do these in this order — set by the Captain, 2026-08-24
 
 1. **`overview.md` is two documents sharing one path → #210.** Small: a rename in *this* repo
@@ -45,6 +57,12 @@
 > **Blocks OT use of `sil-translator-notes`.** WLC and BSB disagree by two verses on `PSA 51:1`
 > and the run reports success. Fix via the Copenhagen Alliance specification, cloned at
 > `~/github/copenhagen-alliance/versification-specification`.
+>
+> **The design content lives in `project/plans/plan-scripture-step.md` §3.-1** — the mappings, the
+> `MAL 4:1` case, and the requirement that editions declare their scheme and `type: scripture` map
+> before fetching. It is recorded there because an earlier condensation of *this* entry lost it:
+> summarising in place is right for a session cache, but a requirement has to move to a design
+> document rather than be shortened.
 
 ### 📖 Scripture editions — core landed, wiring incomplete → #200
 > Commits are parked on the **local** tag `wip/scripture-200` (`05d75a5`, `34c7931`) and are

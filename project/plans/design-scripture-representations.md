@@ -208,6 +208,22 @@ families keep the list short enough to document and coarse enough that an author
 | `senses` | `domain`, `ln` | `lexdomain`, `contextualdomain`, `coredomain`, `sdbh`, `sensenumber` | container |
 | `glosses` | `gloss`, `english`, `mandarin` | `gloss`, `english`, `mandarin` | container |
 | `referents` | `frame`, `subjref`, `referent` | `frame`, `subjref`, `participantref` | container |
+| `discourse` | Levinsohn LGNTDF, 33 feature types | — | container |
+
+**A sixth member, ruled in conversation 2026-08-25: `discourse`.** `nida-institute/discourse-flow`
+named this as one of two things blocking adoption — Levinsohn's 33 LGNTDF discourse feature types
+are merged into their USJ by `plugins/milestone_content.py:183` and are derivable from none of the
+other five families. They asked for either a sixth family or permission to add a key to the
+container, and said either would unblock them. The ruling is the sixth family, and its name is
+**`discourse`**. Greek only today; Hebrew has no counterpart source.
+
+**Textual variants, ruled the same day: list them, do not align them.** Their second blocker was
+that Levinsohn's word indices are NA28-family while the text is SBLGNT, so where SBL chose
+differently the index silently names a different word — every one of Mark's 147 mismatching
+citations falls in a verse the apparatus flags. The ruling is to **list the variants from the
+Logos SBLGNT apparatus**, not to build an alignment or mint ids for words in one edition and not
+the other. That is the narrow version they said would unblock them: per verse, what the other
+witness reads. Scoping it as an alignment problem was the alternative and is not being taken.
 
 `morphology` deliberately straddles both homes: `lemma` and `strong` are spec attributes on `\w`
 and go where the spec puts them, while the parse has no spec home and goes in the container. A
@@ -228,6 +244,31 @@ one shape across both languages can map it; a caller handed a normalised shape c
 was lost.
 
 =>
+
+*Ruled in conversation, 2026-08-25: **"this is inherent to the data"**, and **"the two cannot be
+unified without solving the merged ontology problem, a known hard problem in computer science."**
+So the proposal stands — unnormalised, each source keeping its own column names.*
+
+*That second sentence is the one to quote when normalising is proposed again, and it will be.
+Louw-Nida and SDBH are separate lexical ontologies; mapping one onto the other is ontology
+merging, not a field rename, and it is unsolved in general rather than merely unfinished here. An
+engine that emitted a shared key would be publishing an answer to it on every payload. The
+asymmetry is not friction to be smoothed — it is what the sources say, and the engine is not
+entitled to discard it.*
+
+*Ruled in conversation, 2026-08-25: **"yes, identify the source."** The payload names the lexical
+source explicitly rather than leaving a caller to infer it from which keys came back:*
+
+```yaml
+senses:
+  source: sdbh          # or: louw-nida
+  fields: {lexdomain: …, contextualdomain: …, coredomain: …, sdbh: …, sensenumber: …}
+```
+
+*This settles what the asymmetry ruling deliberately left alone. Unnormalised fields say what each
+project says; a declared `source` says which project is speaking. A consumer can branch on a value
+the payload states instead of sniffing key names — and a consumer that meets an unfamiliar source
+knows it has met one, rather than silently finding fields missing.*
 
 ### 4.5 What `include` does not carry
 
@@ -383,9 +424,18 @@ So the step reads:
   outputs: source_text
 ```
 
-Still to settle before implementation: whether `include` takes a list or a single word, and the
-exact member names. The cost ladder measured `ids` and `ids+annotations`; #200's format table
-implies `senses`, `syntax`, `entities` and `tokens` follow later, which argues for a list.
+**Closed 2026-08-25.** The two things this left hanging are both settled, so the question carries
+no outstanding decision:
+
+- **`include` takes a list.** Every example here, both consumer replies, and discourse-flow's
+  request that families cost a word of YAML each all require it; a single word cannot express
+  `include: [senses, glosses]`.
+- **The member names are settled** — `ids`, `morphology`, `senses`, `glosses`, `referents`, and
+  `discourse` as of today (§4.4).
+
+**One hazard this question recorded and accepted, repeated here so it is not rediscovered as an
+oversight:** `include_partial` is an existing key on the `window` step with an unrelated meaning.
+Two keys one underscore apart in the same namespace, raised at the time and accepted.
 
 ### Q2. Does the apparatus get its own step type?
 
@@ -393,6 +443,88 @@ Or become a representation the `scripture` step serves? It is the only named sou
 path today.
 
 =>
+
+**Ruled in conversation, 2026-08-25: no separate step type. The variants come with the text.**
+The Captain's framing, and it is the reason: *"I'm thinking of this like a critical edition with
+tc notes, where it does belong with the text"*, and then — *"after all, they are footnotes in
+SBLGNT."*
+
+*That second sentence settles the mechanism as well as the placement. They are not a second
+document to be joined to the first; they are part of the edition, and **USJ already has a home for
+them**: a footnote is a `note` element anchored at a position in the text. So they need no new
+container key, no sibling step type, and no invention — `format: usj` can carry them where the
+spec already puts a note.*
+
+*An earlier draft of this section argued for a separate step type, on the grounds that every
+`include` member decorates a word while a variant attaches to a place in a verse. That objection
+was a programmer's taxonomy applied to a scholarly object organised the other way for two
+centuries: a critical edition is text and apparatus in one artifact. Recorded because the same
+argument will occur to the next reader.*
+
+*Consequences worth stating before implementation:*
+
+- *`format: plain` and `format: milestones` carry no notes. A caller asking for running text gets
+  running text; a footnote is not part of it.*
+- *Still to settle: whether a caller opts in with `include: [variants]` or receives them with the
+  edition. They are the edition's own footnotes, which argues for the latter; the ruling that
+  defaults stay lean argues for the former. Opting in is the safer default and can be relaxed.*
+**How a note corresponds to the text — measured 2026-08-25, and it is tighter than assumed.**
+
+*An earlier revision of this section said the Logos files are "verse-keyed prose, not
+word-addressed", repeating `nida-institute/discourse-flow`'s characterisation without testing it,
+and concluded that their need for word-addressable variants stays unmet. Both were wrong.*
+
+*Each note carries its own anchor, and the anchor is the printed text of the edition — the words
+before the `]`, with the supporting sigla between them and the bracket:*
+
+```
+<verse>Mark 1:2</verse>
+<note>2 Καθὼς WH Treg NA28 ] Ὡς RP </note>
+<note>• τῷ Ἠσαΐᾳ τῷ προφήτῃ WH Treg NA28 ] τοῖς προφήταις RP </note>
+```
+
+*Matching those anchors against the SBLGNT token stream for their verse, normalising Greek and
+ignoring elision apostrophes: **889 of Mark's 930 notes — 95.6% — resolve to a contiguous token
+span.** 315 of the anchors (34%) are multi-word, which is what a footnote attaches to in any case.*
+
+*The 41 that did not resolve are not unanchorable. They use two apparatus conventions the probe did
+not implement, both of which are more precise than plain matching:*
+
+- ***`…`** marks a discontinuous span — `αὐτὸν … σάββασιν παραπορεύεσθαι` is a range whose middle
+  is elided.*
+- ***`⸀` and `⸁`** disambiguate a repeated word — Mark 3:8 carries `⸀καὶ` and `⸁καὶ`, the apparatus
+  itself resolving which occurrence is meant.*
+
+*So attaching a note needs no alignment machinery and no minted ids: the anchor is in the note.
+That largely meets what discourse-flow ranked as blocking — "per verse, the words NA28 has that
+SBLGNT does not, in order, addressable" — because the words after `+` attach at a resolved span, in
+document order.*
+
+***Superseded the same day, and lemma matching turns out to be the fallback rather than the
+method.*** *This section twice recorded that addressing a variant's own words was out of reach
+without minting ids. Measured afterwards: **the printed edition's apparatus reference marks are
+already in the Macula TEI**, as `pc` nodes at exact positions — `⸀` 607, `⸂` 314, `⸃` 205, `⸁` 8,
+`⸄` 1 in Mark. Pairing them with the apparatus notes:*
+
+| | |
+|---|---|
+| verses with marks in the TEI | **507** |
+| verses with notes in the apparatus | **507 — the same verses** |
+| verses where the counts agree | **506 of 507 (99.8%)** |
+| marks / notes | 931 / 930 |
+
+*So the join is **ordinal**: walk a verse's marks in document order, walk its notes in order, pair
+them. Each mark sits between `<w>` elements carrying `xml:id`, so an entry lands at an exact word
+position by construction — which is what `nida-institute/discourse-flow` ranked as blocking:
+"per verse, the words NA28 has that SBLGNT does not, in order, addressable."*
+
+*Recorded as a correction rather than edited away, because the wrong claim was made twice and a
+reader may have acted on it.*
+
+*Re-derivation: the probe reads `Logos/SBLGNT/data/sblgntapp/xml/Mark.xml` against
+`macula-greek/SBLGNT/tsv/macula-greek-SBLGNT.tsv`, strips a leading verse number or `•`, treats any
+Latin-script token as a siglum, and looks for the remaining Greek words as a contiguous run in the
+verse.*
 
 ### Q3. The default form when a pipeline does not say
 
@@ -402,6 +534,23 @@ passage and task in both forms, with the Captain judging the outputs.
 
 =>
 
+**Ruled in conversation, 2026-08-25: *"text with milestones as a default."*** A pipeline that omits
+`format:` gets `milestones`, and `usj` is never reachable by omission.
+
+*Two things settled this without the experiment the question asks for. `nida-institute/discourse-flow`
+ruled that defaults stay lean — "defaults should not make it as bloated as possible" — with the
+reasoning that generalises: a payload nobody asked for is a payload nobody checked. And the cost
+ladder is now corroborated from outside this repository: `nida-institute/ears-to-hear` independently
+measured milestones at **1.072x** bare text, against USJ's 2.56x in codepoints and **6.74x** as
+escaped JSON, which is how it travels to a model. Forgetting the key now costs 7% rather than 574%.*
+
+*It is also the form all three hand-rolled builders already produce, so the default is what every
+consumer was building for itself.*
+
+***The experiment is not cancelled, and it is not a blocker.*** *Which form a model handles better
+decides what we **recommend**, not what happens when a key is absent. Tying the default to it would
+have blocked implementation on a run costing money and the Captain's time.*
+
 ### Q4. Where does paragraph structure come from?
 
 `discourse-flow` synthesises one `para` per chapter because Macula has none. SBLGNT (LogosBible)
@@ -409,6 +558,71 @@ and BSB USFM both carry real paragraphs. The same passage would gain different s
 on which source served it, unless something rules otherwise.
 
 =>
+
+**Ruled in conversation, 2026-08-25: *"you can't have paragraph structure in this USJ."***
+
+*This is a fact about the data rather than a preference, and it dissolves the question's premise.
+The paragraphs the question points at live in a **different serialization** — SBLGNT's source XML
+and BSB's USFM. The `scripture` step reads Macula, which carries none, so the USJ it builds has
+nothing to carry. The inconsistency the question was written to guard against cannot arise: there
+is no source-dependent paragraphing, because there is one source and it has no paragraphs.*
+
+*So the emitted USJ carries **one `para` per chapter**, as a container the USX grammar requires and
+nothing more. `nida-institute/discourse-flow` arrived at the same shape from the other direction —
+they built paragraph sourcing from the SBLGNT source XML, 1,307 paragraphs across 27 books,
+ratified it, then reversed it and deleted the plugin, and their design now reads "Do not
+reintroduce paragraph sourcing." Their reason is theirs and stands on its own: paragraph and verse
+divisions are editorial artifacts and must not drive structural analysis.*
+
+**And paragraphs are available — as a different `format:`, not as an `include` member.** Ruled in
+the same conversation: *"you can also get the print edition with paragraph structure if that's what
+you want — a different format request. it returns the tei or closest formatted version we have."*
+
+*This stays inside the design's own logic. Q1 ruled `format:` to be the **shape** knob and
+`include:` the **payload** knob; §4.5 says paragraphs are shape rather than payload. So a caller
+who wants the print edition asks for a different shape, and the two knobs keep their meanings.*
+
+*What we have, measured 2026-08-25 — `macula-greek/SBLGNT/tei/02-mark.xml`:*
+
+| | |
+|---|---|
+| `<p>` paragraph elements in Mark | **91** |
+| `<w>` elements | **11,286** — the same token count as the TSV |
+| word addressing | `xml:id="n41001001001"`, `ref="MRK 1:1!1"` |
+| verse addressing | `<milestone unit="verse" ref="MRK 1:1"/>` |
+
+*So the print serialization carries paragraphs, the same word set, and both kinds of address. It is
+a real alternative rather than a lossy one.*
+
+***"But you can't mix the two."** Confirmed 2026-08-25: the print shape and the analytical shape
+are **alternatives**. Annotation families do not layer onto the print format; a caller gets one or
+the other. This extends what Q1 already ruled — that `include` is valid only with `format: usj` —
+to a general principle: `include` applies to the analytical shape alone.*
+
+***Note that this is a design choice, not a data limitation**, and the distinction should not be
+lost. The TEI carries the same 11,286 tokens with both `xml:id` and per-word `ref`, so layering
+annotation onto it would be technically possible. It is ruled out because a caller who has asked
+for the print edition has asked for editorial structure, and a payload that is both editorial and
+analytical invites exactly the inference the paragraph ruling exists to prevent — reading
+structural meaning out of an editor's paragraphing. `sp lint` should therefore reject `include`
+with the print format as an error rather than a warning: it is a category confusion, not an
+unsatisfiable request.*
+
+***Named 2026-08-25: `format: print`.*** *It names what the caller wants, like every other member
+of the enum — `plain`, `milestones`, `usj` — rather than the serialization it happens to be served
+from. That matters here because the serialization is not fixed: the ruling was "the tei **or
+closest formatted version we have**", so the format is a promise about shape and the source behind
+it may differ per edition.*
+
+***Two serializations, not one, and they are not the same thing.*** *Corrected in the same
+conversation: **the Logos SBLGNT is not TEI.** The file measured above is Macula's TEI at
+`macula-greek/SBLGNT/tei/`; the Logos SBLGNT is a separate serialization, and it is the one whose
+apparatus files §Q2 reads. Q4's original text — "SBLGNT (LogosBible) and BSB USFM both carry real
+paragraphs" — names Logos, not the TEI, so at least three formatted sources are in play. Which one
+`format: print` serves per edition is a per-edition fact for the catalogue, not a single answer.*
+
+*§4.5 said "where they go is unsettled". For this step, they do not go anywhere, and that section
+should be read in light of this ruling.*
 
 ---
 

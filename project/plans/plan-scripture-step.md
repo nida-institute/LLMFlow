@@ -1,0 +1,541 @@
+# Plan — the `type: scripture` step, specified for implementation (#200)
+
+**Status:** Proposed, 2026-08-26. **Targeted at the next release** (ruled 2026-08-26). Nothing
+built beyond what is parked on the `wip/scripture-200` tag. **Awaiting review of this document as a
+whole before code** (rule `plans-first`) — it was amended in place across a long session, and
+section-by-section agreement is not the same as approving the plan.
+**Issue:** #200.
+**Design authority:** `project/plans/design-scripture-representations.md`. All six of its `=>` slots
+are ruled, five on 2026-08-25 and the sixth the same day; further rulings on 2026-08-26 added the
+`discourse` and `syntax` families, `format: print`, versification, and the whole-clause rule at
+passage boundaries. This document decides nothing; it states the contract those rulings imply in
+enough detail to write tests against.
+
+**Scope note.** §5 is ordered simple-to-complex and each step ships green, so the release can cut at
+any completed step rather than waiting for step 11. What "this feature" means for the release is
+therefore a choice of how far down §5 to go, not all-or-nothing.
+
+---
+
+## 1. What this step is for
+
+A pipeline says which edition, which passage, and what shape it wants. The engine reads the
+edition and returns the text in that shape. Today four scripture-acquisition paths exist across two
+consumer repositories, in two serializations of the same edition, with **three hand-written
+milestone builders that disagree with each other** — measured: `nida-institute/ears-to-hear`'s two
+implementations differ on all 131 Mark pericopes. Collapsing that is the point of the step; the
+cost figures are a secondary argument.
+
+---
+
+## 2. The contract
+
+```yaml
+- name: fetch_source
+  type: scripture
+  edition: SBLGNT              # a registered edition
+  passage: "${passage}"
+  format: milestones           # plain | milestones | usj | print   (default: milestones)
+  include: [senses, glosses]   # valid only with format: usj
+  outputs: source_text
+```
+
+**`format:` is the shape knob, `include:` the payload knob** (Q1). Each names what the caller
+wants, never the serialization it is served from.
+
+| format | returns | notes |
+|---|---|---|
+| `plain` | running text, no addressing | the cheapest form; whole-book steps that cannot window read this |
+| `milestones` | `⌊c:v⌋ text` | **the default.** 1.072x bare text, measured independently by a consumer |
+| `usj` | USJ structure | 2.56x codepoints, 6.74x as escaped JSON. Annotation only via `include` |
+| `print` | the print edition, with paragraph structure | served from a formatted serialization; **not annotatable** |
+
+**`include` members** — seven: `ids`, `morphology`, `senses`, `glosses`, `referents`, `discourse`
+(§3.0a), `syntax` (§3.0a). A list, never a single word. Defaults to empty — `format: usj` with no
+`include` returns structure and nothing more, because a payload nobody asked for is a payload nobody
+checked.
+
+**`versification:`** — names the scheme of the result (§3.-1). Implicit from the primary source when
+one edition is named; required when two are to be compared. **Not a closed enum**, because a
+Paratext project brings its own.
+
+---
+
+## 3. What each format must do, and why it is not obvious
+
+### 3.-1 `passage:` is meaningless without a versification scheme — #203
+
+**This section was absent from the first draft of this plan and from
+`design-scripture-representations.md`.** It was recovered from `0bb1d5b`, a commit reachable only
+through the `wip/scripture-200` tag, whose ten lines of `project/TODO.md` carry the one requirement
+neither document states: *"Editions must declare their scheme; `type: scripture` must map before
+fetching."* Today's `TODO.md` condensed that entry and the requirement did not survive the
+condensation.
+
+**The defect it names, in this step's own terms.** `passage: "PSA 51:1"` against WLC and against
+BSB returns text **two verses apart**, and the step reports success. Verified against the
+Copenhagen Alliance mappings:
+
+| | |
+|---|---|
+| `PSA 51:1-19` in `eng` | → `PSA 51:3-21` in `org` |
+| `PSA 51:0` (superscription) | → `PSA 51:2` |
+| `MAL 4:1-6` in `eng` | → `MAL 3:19-24` — Malachi has 4 chapters in English, **3 in Hebrew** |
+
+So a reference is not a location until a scheme is named. Any pipeline pairing an
+original-language text with a translation of "the same" reference is silently comparing unrelated
+verses — which is also the mechanism under the pairing question in §6.
+
+**What we use, ruled 2026-08-26: the Copenhagen Alliance versification specification.**
+Cloned at `~/github/copenhagen-alliance/versification-specification`; rule 12 already names it as
+canonical for cross-versification work and records that Paratext `.vrs` files are semantically
+compatible. The data is declarative and needs no interpretation layer:
+
+| field | what it gives |
+|---|---|
+| `maxVerses` | book → per-chapter verse counts, so an out-of-range reference is detectable |
+| `mappedVerses` | `"PSA 51:1-19"` → `"PSA 51:3-21"`; 265 entries in `eng` |
+| `excludedVerses` | references that do not exist in that scheme (empty in `eng` and `org`) |
+| `partialVerses` | verses split across a boundary |
+
+Standard schemes shipped: **`org`, `eng`, `lxx`, `vul`, `rsc`, `rso`**, plus a custom Ethiopian
+mapping. `org` is the hub: every scheme maps to and from the original-language versification.
+
+**What this adds to the contract.** Each registered edition declares its scheme, and the step maps
+before fetching rather than after. An unmappable reference is an error, never an empty result —
+the parked code already holds that line for out-of-range passages
+(`test_a_passage_outside_the_edition_errors_rather_than_returning_empty`), and this extends it.
+
+=>
+
+**Ruled in conversation, 2026-08-26:**
+
+> *"if you ask for two editions to use in parallel, you have to specify the versification you want
+> to use in the result if you want them to match up. or if you ask for the Hebrew 'with BSB', you
+> get the Hebrew versification, whatever the primary source is for the USJ. we need both explicit
+> controls and sensible implicit defaults."*
+
+*So the scheme of the **result** is the thing under control, and it is governed by the **primary
+source** unless the pipeline says otherwise:*
+
+| case | scheme of the result |
+|---|---|
+| one edition | that edition's own — implicit, and needs no key |
+| a primary edition with a companion translation | **the primary's**, whatever it is |
+| two editions to be compared or aligned | **must be stated**, or they will not line up |
+
+*This corrects a mischaracterisation in the previous revision of this slot, which called
+"the edition's own scheme" the behaviour #203 reports as a defect. #203's defect is that **nothing
+declares anything and the mismatch is silent**. A primary source whose scheme governs the result,
+declared, is the opposite of that.*
+
+***Two things still to name***, both small and both the Captain's:
+
+- *the key that states the result's scheme — `versification:` is the obvious candidate, taking a
+  scheme id (`org`, `eng`, `lxx`, `vul`, `rsc`, `rso`) or a path to a custom mapping;*
+- *how the primary is designated once a step can return a pair. With a single `edition:` the
+  primary is unambiguous; the pairing shape is unbuilt (§6) and the designation should be settled
+  with it rather than guessed at now.*
+
+*Not a ruling, and stated as a consequence to be checked: on this design `sp lint` can catch the
+case that matters — two editions requested for comparison with no `versification:` stated — because
+it is visible in the YAML without running anything.*
+
+**The emitted USJ states which versification it used.** Ruled 2026-08-26. It goes in the
+`scripture_pipelines` container, beside the other things the payload says about itself.
+
+*This is the third application of one principle today, and it is worth naming so it is applied
+deliberately rather than rediscovered: **the payload declares its own provenance.** `senses` carries
+`source: sdbh` rather than leaving a consumer to infer the lexical project from which keys came
+back; `format:` names what the caller wants rather than the serialization it was served from; and a
+payload now names the scheme its verse references are in. In each case the alternative is a consumer
+inferring provenance from shape, and a wrong inference is silent — which is exactly how the two USJ
+payloads reaching `nida-institute/ears-to-hear` came to be paragraphed and versified incompatibly
+with nothing in either saying so.*
+
+**And the scheme identifier cannot be a closed enum.** Ruled 2026-08-26: *"in the future, we will
+want to also support Paratext sources here, which can have their own custom versifications."*
+
+*Paratext projects ship a `.vrs` file, and rule 12 already records that those are semantically
+compatible with the Copenhagen specification — it is derived from them. The specification treats
+custom mappings as first-class rather than an extension: the clone carries
+`versification-mappings/sample-custom-mappings/` and a worked `ethiopian_custom.json` alongside the
+six standard schemes.*
+
+*So `versification:` accepts a standard scheme id **or** a reference to a mapping the project
+supplies, and the six standard ids must not be hardcoded as the only legal values. A schema `enum`
+would foreclose Paratext support; validation belongs against the set of resolvable schemes, which
+is data.*
+
+**The data model, and it is the specification's own — not ours to invent.** Ruled 2026-08-26:
+*"copenhagen provides maps for 'standard mappings', which are named. Project custom versification
+could use the name of the project. In practice, many projects name a standard mapping and also
+customize it."* That shape is native:
+
+```json
+{ "basedOn": "org",
+  "mappedVerses": {"SIR 34:19-22": "SIR 34:16-19"},
+  "excludedVerses": [...], "maxVerses": {...},
+  "mergedVerses": [...], "partialVerses": {"SIR 36:13": ["a"]} }
+```
+
+| field | what it carries |
+|---|---|
+| `basedOn` | the named standard mapping a project's scheme starts from |
+| `mappedVerses` | reference-range → reference-range |
+| `maxVerses` | book → per-chapter verse counts |
+| `excludedVerses` | references absent from this scheme |
+| `mergedVerses` | verses joined together |
+| `partialVerses` | verse segments — `SIR 36:13a` |
+
+*A scheme is therefore **named**: one of the standard ids, or a project's own name. A project's
+scheme resolves as `basedOn` plus its deviations, so a partial file is normal rather than
+incomplete — `ethiopian_custom.json` declares 30 books where `eng.json` declares 92. **The engine
+must not treat absence as an error**; it resolves through the base.*
+
+*`mergedVerses` and `partialVerses` are unused by all six standard mappings and are the fields most
+likely to be skipped and then needed. Verse segments in particular bear on rule 12: a segment is a
+finer location than a verse, and a milestone form has nowhere to put `36:13a` unless the design says
+where.*
+
+**Licensing, ruled 2026-08-26: *"all code should be Apache, all data should be CC by SA."***
+
+*That is the same split the specification itself uses — Apache 2.0 for code, CC BY-SA 4.0 for data
+— which makes vendoring the mappings clean rather than merely permitted. ShareAlike requires an
+adaptation to carry the same licence; if our data is CC BY-SA anyway, that is satisfied by
+construction, and we may reshape the mappings rather than only redistribute them verbatim.*
+
+***A defect this surfaced, and it is not this step's to fix:** `LICENSE` states Apache 2.0
+(Copyright 2025 Biblica, Inc.) while `pyproject.toml` declares MIT in two places — `license = {text
+= "MIT"}` and the OSI classifier — and that metadata is what PyPI publishes. Two encodings of one
+fact, and this one legal. It belongs with #212.*
+
+### 3.0a A seventh `include` family: `syntax` — and it reverses §4.5
+
+**Ruled 2026-08-26:** *"we probably want to allow usj to specify 'syntax' in addition to
+morphology, providing a JSON equivalent to the Lowfat trees."*
+
+*`design-scripture-representations.md` §4.5 ruled the syntax tree **out** of `include`, on the
+grounds that "USJ has nowhere to put a constituency tree". That reasoning does not survive: the
+`scripture_pipelines` container is precisely a home for what USJ cannot hold, and a tree of node
+objects keyed to word ids fits there as readily as a sense does. §4.5 stands for **paragraphs**,
+which Q4 settled the other way — they arrive through `format: print`, not through `include`.*
+
+*So the families are seven: `ids`, `morphology`, `senses`, `glosses`, `referents`, `discourse`,
+**`syntax`**.*
+
+**Measured, lowfat Mark:**
+
+| | |
+|---|---|
+| `wg` groups | **8,173** |
+| words | 11,286 |
+| nodes a JSON tree would carry | **19,459** — 1.7x the words alone |
+| maximum nesting depth | **17** |
+| `wg` attributes in use | `class`, `role`, `rule`, `Rule`, `type`, `clauseType`, `junction`, `predication`, `articular`, `nodeId` |
+
+*§4.5 cited "4,009 clauses in Mark"; the file has 8,173 `wg` groups, so that figure counted a
+subset — clauses rather than all groups. Recorded because the smaller number understates the
+payload by half.*
+
+**Note `rule` and `Rule` both occur.** Two attributes differing only in case, in the same
+serialization. That is a data question for the source rather than something the engine should
+silently merge or silently pick between.
+
+**The shape: nested objects mirroring the tree, with an id on every node.** Ruled 2026-08-26.
+
+```json
+{"id": "n41001001001-cl3", "class": "cl", "role": "s", "children": [
+  {"id": "n41001001001", "ref": "MRK 1:1!1"},
+  {"id": "...-wg7", "class": "np", "children": [...]}
+]}
+```
+
+*Nested rather than a flat node list with parent pointers, for a reason specific to this engine
+rather than general preference: **the payload's primary consumer is a language model**, and
+pointer-chasing is the kind of mechanical inference a model performs unreliably and without saying
+so. Containment shown directly beats containment described by reference. The second argument is the
+one both consumer repositories already made about milestone builders — do not make every consumer
+rebuild what the engine can hand it correctly — and it does not weaken because the structure is a
+tree rather than a string.*
+
+*The id on every node takes the one real advantage a flat list had. It gives addressability
+alongside containment: a node can be named without a path, a consumer can index the whole tree by
+id in a single pass if it wants a flat view, and an audit finding can cite a constituent. Lowfat
+already carries `nodeId` on `wg`, so this needs no invention.*
+
+*Recorded against this ruling: **depth 17 nesting remains hard to diff and hard to quote.** Ids
+mitigate that rather than removing it. If audit-ability of the tree turns out to matter more than
+assumed, that is the argument that would reopen this.*
+
+**When `passage:` cuts through a clause, the whole clause is returned.** Ruled 2026-08-26:
+*"provide the entire syntax tree for the clause, even if it contains extra text."*
+
+*Three options were on the table — truncate the node; include the whole clause; truncate and declare
+the loss. An earlier revision of this section argued for the third, on the grounds that it is the
+only one that does not misrepresent itself. That reasoning was wrong in its premise: **a truncated
+constituent is not a smaller truth, it is a false one.** Syntax is constituency. A clause missing
+its verb does not tell a model less about the clause; it invites a confident wrong analysis, and
+nothing in the payload would prevent that even with the loss declared.*
+
+*Extra text past the boundary is honest surplus. It is also cheap: the unit is a clause, and
+`passage:` is normally a pericope or larger, so the overrun is a few words at each edge.*
+
+*Two consequences worth stating so they are not discovered:*
+
+- ***The tree is always valid.*** *There is no partial node, no incompleteness marker, and no
+  consumer code for handling a truncated constituent. That is a simpler contract than the option
+  this replaces, which would have required every consumer to handle a case that now cannot arise.*
+- ***So the response must say what it actually covers.*** *`passage:` becomes a request rather than
+  a guarantee, and the payload declares its true extent — the same principle as the versification
+  scheme and the sense `source`. A consumer comparing a `syntax` payload against a `milestones`
+  payload for the same `passage:` will otherwise find more words in one than the other, with
+  nothing explaining why.*
+
+### 3.0 Which serialization the step reads — TEI as spine, TSV for attributes, lowfat for syntax
+
+**`xml:id` joins all three, verified 2026-08-26 on Mark:** 11,286 ids in the TEI, 11,286 in
+lowfat, 11,286 in the TSV, **complete three-way intersection, and zero cases where the same id
+carries a different `ref`**. So the join key genuinely carries the architecture, and `syntax` needs
+no new addressing scheme — a tree node names the words it spans by the same ids every other family
+uses.
+
+**Measured 2026-08-25, after this plan was first drafted around the TSV.** Macula ships three
+serializations of SBLGNT and they are not equivalent for this purpose:
+
+| | lowfat (trees) | TSV | **TEI** |
+|---|---|---|---|
+| document order == reading order | **no** | yes | **yes** — 11,286 tokens, zero out-of-order |
+| word ids | yes | yes | yes — `xml:id` and `ref` on every `<w>` |
+| paragraphs | no | no | **yes** — 91 in Mark |
+| inter-word material | attribute | `after` column | **`pc` nodes in document order** |
+| apparatus reference marks | no | no | **yes — 931 in Mark** |
+| editorial brackets `⟦ ⟧` | no | no | yes |
+| word attributes (lemma, morph, senses…) | yes | yes | **no** |
+
+**The TEI is token-complete against the Logos SBLGNT edition:** all 27 books, **137,741 words in
+each, zero books differing**. Its paragraphing agrees with Logos at **98.5%** — 1,282 of 1,302
+breaks at the same word offset. The 20 Logos-only breaks are all a book's closing benediction set
+as its own paragraph, a typographic convention; 18 of the 20 are the final verse of their book.
+
+**So the TEI is the spine and the TSV supplies word attributes**, joined on `xml:id`. The TEI
+carries no lemma, morphology or senses — `<w>` has only `ref` and `xml:id` — which is also why
+`format: print` is not annotatable (§3.4): there is nothing in that file to annotate with.
+
+### 3.1 Verse placement comes from each token's own `ref`
+
+**Never from tree nesting.** Measured 2026-08-25 on `macula-greek/SBLGNT/lowfat/02-mark.xml`:
+
+| | |
+|---|---|
+| verse milestones in document order | 826, strictly ascending, **zero out-of-order** |
+| words in document order == reading order | **False** |
+| words sorted by `xml:id` == reading order | **True** |
+| tokens whose enclosing milestone contradicts their own `ref` | **1,501 of 11,286**, all forward, none backward |
+
+The milestones are sound; a document-order walk of a **syntax** tree is not. 826 milestones serve
+673 verses because a verse is milestoned each time it resumes. A consumer carrying `current_verse`
+across such a walk misplaces one verse in seven.
+
+**Consequences for implementation:**
+
+- **From the TSV, no sorting is needed.** `ref` is a per-row column and all 11,286 Mark tokens are
+  already in strict reading order — zero out-of-order transitions.
+- **From the trees, sort by `xml:id` first**, then read each token's `ref`.
+
+### 3.2 Token joining is edition data, not logic
+
+Greek `after` **replaces** the space; Hebrew `after` **accompanies** it. `~/.sp/editions/WLC.yaml`
+already records the Hebrew half — *"`after` carries the space, maqqef and sof pasuq, so word
+joining is data rather than logic"* — and it is false for Greek. A consumer applying the Hebrew
+rule to Greek produces `προφήτῃ·Ἰδοὺ`; that defect exists in a consumer today.
+
+TSV `after` counts across the Greek corpus: `' '` 117,020 · `','` 8,978 · `'.'` 5,320 · `'·'` 4,242
+· `'’'` 1,218 · `';'` 963 — **never a punctuation-plus-space pair.**
+
+This is the single thing most likely to be got subtly wrong once per consumer, which is why both
+consumer repositories asked for it in the engine. **The joining rule belongs in the edition
+declaration**, not in the step's code.
+
+**Reading the TEI instead makes this structural, and the question dissolves.** Its `pc` elements
+carry inter-word material as nodes in document order — 2,741 in Mark, reconciling exactly with
+Logos's 933 `prefix` plus 1,808 non-empty `suffix`. Concatenating `w` and `pc` in order reproduces
+the text with no rule about whether `after` replaces or accompanies a space, because the question
+is not asked.
+
+*The `after` rule still matters for anyone reading the TSV directly, and the counts above stay in
+this document for that reason. It stops being the engine's problem.*
+
+### 3.3 `usj` carries no paragraph structure
+
+One `para` per chapter, as a container the USX grammar requires (Q4). The source has none, so there
+is nothing to carry. A caller wanting editorial structure asks for `format: print`.
+
+### 3.4 `print` is not annotatable
+
+`include` with `format: print` is a **lint error**, not a warning (Q4). It is a category confusion:
+a caller who asked for the print edition asked for editorial structure, and a payload that is both
+editorial and analytical invites reading structural meaning out of an editor's paragraphing.
+
+### 3.5 Senses keep their source's own names, and say whose they are
+
+```yaml
+senses:
+  source: sdbh
+  fields: {lexdomain: …, contextualdomain: …, coredomain: …, sdbh: …, sensenumber: …}
+```
+
+Unnormalised, because unifying Louw-Nida and SDBH is **ontology merging** — a known hard problem,
+not a field rename. The declared `source` lets a consumer branch on a stated value rather than
+sniff which keys came back.
+
+### 3.6 Variants are footnotes, and they carry their own anchor
+
+They are the edition's footnotes (Q2), so in USJ they are `note` elements at a position in the
+text. **Measured 2026-08-25:** 889 of Mark's 930 apparatus notes — **95.6%** — resolve to a
+contiguous token span by matching the printed forms before the `]`. 315 anchors (34%) are
+multi-word.
+
+**But lemma matching is the fallback, not the method.** Measured after the above: the printed
+edition's own **apparatus reference marks are already in the TEI**, as `pc` nodes at exact
+positions — `⸀` 607, `⸂` 314, `⸃` 205, `⸁` 8, `⸄` 1 in Mark. Pairing them with the apparatus notes
+by verse:
+
+| | |
+|---|---|
+| verses carrying marks in the TEI | **507** |
+| verses carrying notes in the apparatus | **507 — the same verses** |
+| verses where the counts agree | **506 of 507 (99.8%)** |
+| marks / notes | 931 / 930 |
+
+Only Mark 8:35 differs, six marks to five notes.
+
+**So the join is ordinal, not textual:** walk a verse's marks in document order, walk its notes in
+order, pair them. Each mark sits between `<w>` elements carrying `xml:id`, so every entry lands at
+an exact word position by construction. `…` and `⸀`/`⸁` stop being parsing problems — `⸂…⸃` is a
+span in the text itself and `⸀`/`⸁` are the marks.
+
+`format: plain` and `format: milestones` carry no notes: a footnote is not running text.
+
+**This also solves what an earlier revision recorded as unsolvable.** It said words present only in
+another witness have no id and cannot be given one without minting, so
+`nida-institute/discourse-flow`'s second blocker — *"per verse, the words NA28 has that SBLGNT does
+not, in order, addressable"* — stayed out of reach. With the marks in place a variant attaches
+between two identified words, which is exactly addressable. Recorded as a correction rather than
+edited away, because the claim was made twice.
+
+---
+
+## 4. Lint rules
+
+Each is a test before it is code.
+
+| rule | severity |
+|---|---|
+| `include` with `format: print` | **error** — category confusion (§3.4) |
+| `include` with `format: plain` or `milestones` | **error** — nowhere to put it |
+| `include` naming an unknown member | error |
+| `edition` not registered | error |
+| `include` requesting a family the edition has no data for | **warning** — e.g. `discourse` on Hebrew |
+| `format` absent | none — defaults to `milestones` |
+
+---
+
+## 5. Implementation order — simple to complex
+
+**Ruled 2026-08-26: build stepwise, simple to complex.** Two principles order the list, and both
+are worth stating because they are what make a step *simple* rather than merely *small*:
+
+- **Machinery before payload.** Versification and the container come before any family, because
+  every family is delivered through them and a family built first would be rebuilt.
+- **Prefer a step with an oracle.** Where an existing implementation already produces the right
+  answer, the new one can be tested against it rather than against a hand-written expectation.
+  Two steps below have that property and are placed early for it.
+
+Each step ends green, with tests written first, before the next begins.
+
+---
+
+**0. Land what already exists — no new code.** `plain`, `milestones`, `milestones` as the default,
+placement from each token's `ref`, the edition registry, the `tsv` and `usfm` backends, the schema
+entry and 13 tests are **built and tested** on the `wip/scripture-200` tag — `05d75a5` and
+`34c7931`. No branch contains them and `dev` has moved 57 commits since their base at `cb72cb7`.
+Cherry-pick the two code commits; `0bb1d5b` is `TODO.md`-only and its one durable line is recorded
+in §3.-1.
+
+**1. A `kind: tei` backend producing `plain` and `milestones`.** The simplest possible new work —
+concatenate `w` and `pc` in document order, milestone from each token's `ref` — and **it has an
+oracle**: the TSV backend already produces the correct string, so the test is that both backends
+return identical text for the same passage. A test with a known-good comparison is worth more than
+one with a hand-typed expectation.
+
+*This also retires §3.2's joining question rather than answering it: `pc` nodes are already in
+document order, so no `after` rule is consulted.*
+
+**2. Versification.** Self-contained, no payload shape, no dependency on any format: read the
+Copenhagen mappings, resolve `basedOn`, map a reference between named schemes. A pure function with
+a pure test. It comes before every format because they are all keyed by verse, and building on
+unmapped references means every Old Testament passage is quietly wrong. Tests: `PSA 51:1` maps
+`eng`→`org` as a two-verse offset; `MAL 4:1` resolves to `MAL 3:19`; a partial custom mapping
+resolves through its base rather than erroring; an unmappable reference raises rather than
+returning empty; same-scheme mapping is identity.
+
+**3. `format: usj`, structure only.** No `include`, no container contents. One `para` per chapter,
+verse milestones from `ref`, words. **Also has an oracle**: flattening the emitted USJ must
+reproduce `format: milestones` exactly for the same passage.
+
+**4. The container, and `include: [ids]`.** The smallest possible family — `xml:id` per word — so
+the step that introduces the `scripture_pipelines` container and the `include` machinery carries
+almost no payload logic of its own. Tests: the container appears only when `include` is non-empty;
+`format: usj` with no `include` returns structure and nothing more.
+
+**5. `include: [morphology]` and `include: [glosses]`.** The first real join — TSV to TEI on
+`xml:id`, verified exact in §3.0. Per-word records, no new machinery. Tests per family: the declared
+columns arrive, nothing undeclared does, and `morphology` reaches `role`, `class` and `type`, which
+`nida-institute/discourse-flow` ranked as blocking.
+
+**6. `include: [senses]`.** Same join, plus one new thing: the declared `source` (§3.5). Tests:
+Greek yields `{domain, ln}` under `source: louw-nida`, Hebrew its five fields under `source: sdbh`,
+and neither is normalised into the other.
+
+**7. `include: [referents]`.** Per-word, same shape as 5. Last of the straightforward families.
+
+**8. `format: print`.** TEI paragraphs, and the lint rule that `include` with `print` is an error
+rather than a warning (§3.4). Tests: paragraphs present; the benediction divergence documented, not
+asserted as agreement; `include` rejected at lint.
+
+**9. `include: [discourse]`.** First family needing a source outside Macula — Levinsohn's 33 LGNTDF
+feature types, Greek only. Tests: features attach at word ids; a Hebrew edition warns rather than
+failing (§4).
+
+**10. Variants as notes.** Apparatus parsing plus the ordinal join (§3.6). More complex than any
+family because it reads a second file with its own conventions. Tests: marks pair with notes per
+verse; an entry resolves to a word position; Mark 8:35's mismatch is handled explicitly rather than
+silently; notes absent from `plain` and `milestones`.
+
+**11. `include: [syntax]`.** Last, and by some distance the most complex: lowfat as a third source,
+a nested tree with an id on every node, 19,459 nodes for Mark at depth 17, and the whole-clause rule
+at passage boundaries — which means the response must declare the extent it actually covers.
+
+---
+
+**Not in this sequence, and deliberately:**
+
+- **Fixing the TEI upstream** to carry its own apparatus and a `teiHeader`. That upstream is the
+  Captain's, so it is a question of when rather than whether. If it lands before step 10, that step
+  gets simpler; if after, step 10 keeps working and the ordinal join becomes redundant.
+- **Reading the trees for anything but `syntax`.** No other format needs them, and §3.1 makes that
+  path strictly harder — sort by `xml:id` first, never trust nesting.
+- **Pairing a source text with a translation.** §6.
+
+## 6. What this does not cover
+
+- **The syntax tree.** §4.5 leaves it homeless and says `format: syntax` is "not a decision".
+- **Pairing a source text with a translation.** `nida-institute/ears-to-hear` showed the two
+  payloads do not carry the same verse set — four verses in BSB and not in SBLGNT for Mark — and
+  are not the same shape. Their §7 asks whether pairing belongs in the engine at all. Unruled.
+- **Word-addressable variants**, per §3.6.
+- **Licensing.** `#212`. Named here only because a consumer reported shipping a book's complete
+  original-language text with no attribution against a CC BY source, and the engine emitting text
+  is the natural place for a credit line to originate. Not this step's scope, and time-sensitive
+  independently of it.
