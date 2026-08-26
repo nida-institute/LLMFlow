@@ -440,7 +440,11 @@ def run_doctor(
             Check(
                 "skills_reachable",
                 "No skills are where Claude Code can find them",
-                Severity.ERROR,
+                # WARNING, not ERROR: a project that has not had `sp init` run in it is
+                # exactly what the remedy addresses, and ERROR is reserved for what doctor
+                # cannot fix — a build shipping no templates, or a repair that fails to
+                # write. `ai_context` and `registered` report the same cause as warnings.
+                Severity.WARNING,
                 detail=(
                     "~/.sp/skills is not a location Claude Code reads. Slash commands such as "
                     "/load-context will not exist until skills are in .claude/skills."
