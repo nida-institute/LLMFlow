@@ -572,6 +572,7 @@
     {
       "module": "llmflow.pipeline_schema",
       "imports": [
+        "llmflow.utils.scripture",
         "pydantic",
         "typing"
       ],
@@ -1619,6 +1620,86 @@
           "name": "to_dict",
           "signature": "to_dict(self)",
           "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.versification",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "json",
+        "llmflow",
+        "llmflow.modules.logger",
+        "pathlib",
+        "re",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "default_mappings_dir",
+          "signature": "default_mappings_dir() -> Path",
+          "doc": ""
+        },
+        {
+          "name": "parse_reference",
+          "signature": "parse_reference(reference: str) -> tuple[str, int, int, str]",
+          "doc": "Split a single-verse reference into book, chapter, verse and segment letter."
+        },
+        {
+          "name": "format_reference",
+          "signature": "format_reference(book: str, chapter: int, verse: int, segment: str = '') -> str",
+          "doc": ""
+        },
+        {
+          "name": "_expand",
+          "signature": "_expand(entry: str) -> list[str]",
+          "doc": "One mapping key or value as the list of single-verse references it names."
+        },
+        {
+          "name": "_pairs",
+          "signature": "_pairs(mapped_verses: Mapping[str, str], scheme_name: str) -> dict",
+          "doc": "`{\"PSA 51:1-19\": \"PSA 51:3-21\"}` as nineteen single-verse pairs."
+        },
+        {
+          "name": "_warn_about_unread_fields",
+          "signature": "_warn_about_unread_fields(scheme_name: str, document: Mapping[str, Any]) -> None",
+          "doc": ""
+        },
+        {
+          "name": "load_scheme",
+          "signature": "load_scheme(name: str, mappings_dir: Optional[Path] = None) -> Scheme",
+          "doc": "Read a scheme, folding in whatever it declares `basedOn`."
+        },
+        {
+          "name": "_read",
+          "signature": "_read(name: str, directory: Path, wanted_by: Optional[str] = None) -> dict",
+          "doc": ""
+        },
+        {
+          "name": "map_candidates",
+          "signature": "map_candidates(reference: str, from_scheme: str, to_scheme: str, mappings_dir: Optional[Path] = None) -> list",
+          "doc": "Every verse of *to_scheme* that *reference* corresponds to, in the mapping's own order."
+        },
+        {
+          "name": "map_reference",
+          "signature": "map_reference(reference: str, from_scheme: str, to_scheme: str, mappings_dir: Optional[Path] = None) -> str",
+          "doc": "*reference*, read in *from_scheme*, expressed as the one verse of *to_scheme* it names."
+        },
+        {
+          "name": "_extent",
+          "signature": "_extent(scheme: Scheme, book: str, chapter: int) -> str",
+          "doc": ""
+        },
+        {
+          "name": "from_hub",
+          "signature": "from_hub(self) -> dict",
+          "doc": "Hub -> every verse of this scheme that maps to it, in the file's own order."
+        },
+        {
+          "name": "contains",
+          "signature": "contains(self, book: str, chapter: int, verse: int) -> bool",
+          "doc": "Whether the scheme's own `maxVerses` covers this reference."
         }
       ]
     },
@@ -2742,6 +2823,9 @@
         "__future__",
         "csv",
         "dataclasses",
+        "llmflow.modules.logger",
+        "llmflow.utils",
+        "lxml",
         "pathlib",
         "re",
         "typing"
@@ -2763,19 +2847,89 @@
           "doc": "Keep the rows inside *ref*, in source order."
         },
         {
+          "name": "join_rows",
+          "signature": "join_rows(rows: Iterable[Mapping[str, Any]]) -> str",
+          "doc": "Concatenate ``text + after``, adding a space only where ``after`` does not carry one."
+        },
+        {
+          "name": "group_by_verse",
+          "signature": "group_by_verse(rows: Iterable[Mapping[str, Any]]) -> list",
+          "doc": "Rows as ``((chapter, verse), rows)`` runs, in source order."
+        },
+        {
           "name": "rows_to_text",
           "signature": "rows_to_text(rows: Sequence[Mapping[str, Any]], fmt: str = 'milestones') -> str",
-          "doc": "Concatenate ``text + after`` into running text."
+          "doc": "Running text for *rows*."
+        },
+        {
+          "name": "edition_scheme",
+          "signature": "edition_scheme(definition: Any, edition: Optional[str] = None) -> Optional[str]",
+          "doc": "The versification scheme an edition's references are in, or None when unknown."
+        },
+        {
+          "name": "_edition_table",
+          "signature": "_edition_table() -> Mapping[str, Any]",
+          "doc": ""
+        },
+        {
+          "name": "_edition_table_path",
+          "signature": "_edition_table_path() -> Path",
+          "doc": "Locate the table whether running from an installed wheel or a dev checkout."
+        },
+        {
+          "name": "_known_editions",
+          "signature": "_known_editions() -> dict",
+          "doc": ""
+        },
+        {
+          "name": "_paratext_scheme",
+          "signature": "_paratext_scheme(definition: Mapping[str, Any]) -> Optional[str]",
+          "doc": "The scheme a Paratext project's `Settings.xml` declares, by its number."
+        },
+        {
+          "name": "resolve_passage",
+          "signature": "resolve_passage(passage: str, edition_scheme_name: Optional[str], requested_scheme: Optional[str], edition: Optional[str] = None, mappings_dir: Optional[Path] = None) -> str",
+          "doc": "*passage*, named in *requested_scheme*, rewritten as the edition numbers it."
+        },
+        {
+          "name": "rows_to_output",
+          "signature": "rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str) -> str | dict",
+          "doc": "The requested representation of *rows*: a string, or a USJ document for ``fmt=\"usj\"``."
+        },
+        {
+          "name": "rows_to_usj",
+          "signature": "rows_to_usj(rows: Sequence[Mapping[str, Any]], book: str) -> dict",
+          "doc": "*rows* as a USJ document: the book, a chapter node per chapter, one `para` inside each."
         },
         {
           "name": "resolve_edition",
           "signature": "resolve_edition(edition: str, registry_editions: Optional[Mapping[str, Any]] = None) -> Any",
-          "doc": "Return the definition for a named edition."
+          "doc": "Return the definition for a named edition: a TSV path string, or a mapping carrying a"
         },
         {
           "name": "usj_to_text",
           "signature": "usj_to_text(usj: Mapping[str, Any], fmt: str = 'milestones') -> str",
           "doc": "Flatten a USJ document into running text."
+        },
+        {
+          "name": "tei_book_files",
+          "signature": "tei_book_files(tei_dir: str | Path) -> dict[str, Path]",
+          "doc": "Map book code to file, taking the code from each file's first `w`."
+        },
+        {
+          "name": "_first_book_code",
+          "signature": "_first_book_code(path: Path) -> Optional[str]",
+          "doc": "The book code from the first `w` in *path*, without parsing the whole file."
+        },
+        {
+          "name": "read_tei_rows",
+          "signature": "read_tei_rows(tei_path: str | Path, ref: PassageRef) -> list[dict]",
+          "doc": "Rows for *ref* from one TEI book file, in the shape `rows_to_text` consumes."
+        },
+        {
+          "name": "_without_apparatus_marks",
+          "signature": "_without_apparatus_marks(text: str) -> str",
+          "doc": ""
         },
         {
           "name": "read_rows",
@@ -2784,7 +2938,7 @@
         },
         {
           "name": "passage_text",
-          "signature": "passage_text(edition: str, passage: str, fmt: str = 'milestones', registry_editions: Optional[Mapping[str, str]] = None) -> str",
+          "signature": "passage_text(edition: str, passage: str, fmt: str = 'milestones', registry_editions: Optional[Mapping[str, str]] = None) -> str | dict",
           "doc": "Running text for *passage* in *edition* — the whole job in one call."
         },
         {
@@ -2803,9 +2957,19 @@
           "doc": "BSB and other USFM editions: passage -> USJ -> running text."
         },
         {
+          "name": "_no_text_found",
+          "signature": "_no_text_found(passage: str, edition: str) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_tei_passage_text",
+          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, edition: str) -> str | dict",
+          "doc": "Running text for *passage* from a directory of per-book TEI files."
+        },
+        {
           "name": "edition_text",
-          "signature": "edition_text(edition: str, passage: str, fmt: str = 'milestones', editions: Optional[Mapping[str, Any]] = None) -> str",
-          "doc": "Running text for *passage* in *edition*, whichever backend it needs."
+          "signature": "edition_text(edition: str, passage: str, fmt: str = 'milestones', editions: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None) -> str | dict",
+          "doc": "Running text for *passage* in *edition*, dispatched on the edition's `kind`."
         },
         {
           "name": "__str__",
@@ -2815,6 +2979,11 @@
         {
           "name": "covers",
           "signature": "covers(self, chapter: int, verse: int) -> bool",
+          "doc": ""
+        },
+        {
+          "name": "moved",
+          "signature": "moved(chapter: Optional[int], verse: Optional[int]) -> tuple[int, int]",
           "doc": ""
         },
         {
@@ -3552,7 +3721,7 @@
         {
           "name": "run_scripture_step",
           "signature": "run_scripture_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> None",
-          "doc": "Fetch running text for one passage in one edition."
+          "doc": "Fetch one passage from one edition, in the format the step asks for."
         }
       ]
     },
@@ -4138,7 +4307,7 @@
     }
   ],
   "summary": {
-    "total_modules": 78,
-    "total_functions": 637
+    "total_modules": 79,
+    "total_functions": 667
   }
 }

@@ -296,3 +296,31 @@ rules:
     per pipeline; filed separately. The declarative form — deriving `.gitignore` from the two
     YAML keys — is the same machinery #212 needs so that output from client-owned material
     defaults to uncommitted, and should be designed once, there.'
+- id: docstrings-say-what-not-why
+  rule: '**A docstring says what the code does. It never records status, rationale or design.**
+    Design lives in `project/plans/` and in the AI context; status lives in issues,
+    `project/TODO.md` and the CHANGELOG. A docstring that carries either goes stale the moment
+    the thing it describes changes — and unlike a design document nothing regenerates it,
+    nobody reviews it, and it sits closer to hand than the file that is actually authoritative,
+    so the next reader trusts it. That is how a stale comment becomes a design decision nobody
+    made. Measurements and dates are the clearest case: a figure in a docstring is a claim about
+    a moment, presented as a property of the code. **What a docstring is for:** saying exactly
+    what a function does, and explaining code that is genuinely hard to read — a dense but
+    efficient implementation, a non-obvious algorithm, an obscure constant. Where the code could
+    be made clear instead, rewrite the code rather than describing it. Deleting a docstring is
+    often the right change. A cross-reference to where the reasoning lives is not provenance and
+    is welcome. Guarded by `tests/test_docstrings_say_what_not_why.py`.'
+  note: 'Added 2026-08-26 at the Captain''s direction, after an assistant put rulings, quoted
+    decisions and dated measurements into a conftest, a test module and two commit messages in
+    one session — while writing the plan section that required documentation to carry the
+    reasoning. His framing: "the status of everything can change while the docstrings remain
+    stale", and "docstrings should say exactly what the function does, explain hard to read code
+    or obscure constants if it really has to instead of rewriting the code". This is the general
+    form of `design-authority`''s point that docstrings carry no design authority, and of the
+    2026-08-25 ruling "don''t trust docstrings... deleting docstrings is often helpful, they get
+    stale and lead LLMs and people astray." The guard checks three mechanical signals — a date,
+    a commit hash, and the Captain named as the agent of a decision — and carries a measured
+    backlog of 49 files that predate the rule, which a test forces to shrink rather than
+    persist. Issue and plan references were deliberately left legal: a stable pointer to where
+    the reasoning lives is the rule''s remedy, not its violation. Appended rather than inserted,
+    because rules are cited by position across this repository.'
