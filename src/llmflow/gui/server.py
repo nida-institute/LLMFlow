@@ -472,6 +472,21 @@ def create_app():
             logger.info(f"Content status result: success={result.get('success')}, error={result.get('error')}")
             logger.info(f"Stages found: {len(result.get('stages', []))}")
 
+            if not result.get('success'):
+                return jsonify(result), 500
+
+            # Alias the authoritative stage for the frontend, which reads `current_stage`.
+            result['current_stage'] = result.get('authoritative_stage')
+
+            # A file in no stage is absent as far as the lifecycle is concerned.
+            if result['current_stage'] is None:
+                return jsonify({
+                    'success': False,
+                    'error': f"File not found in any content stage: {file_path}",
+                    'path': file_path,
+                    'stages': result.get('stages', []),
+                }), 404
+
             return jsonify(result)
 
         except Exception as e:

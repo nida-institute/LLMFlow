@@ -15,6 +15,7 @@ import sys
 import threading
 import webbrowser
 from pathlib import Path
+from typing import Optional
 
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -35,12 +36,45 @@ _PIPELINE_EXTENSIONS = {".yaml", ".yml"}
 try:
     from .executor import PipelineExecutor
 except ImportError:
-    from executor import PipelineExecutor
+    from executor import PipelineExecutor  # pyright: ignore[reportMissingImports]
 
 # Import content lifecycle utilities
-from llmflow.utils.content_status import get_content_status
+from llmflow.utils.content_status import get_content_status as get_content_status_util
 from llmflow.utils.content_stages_loader import get_content_stages_config
 from llmflow.utils.content_list import list_content
+
+
+#: Directories that are never a project's own, so a `pipelines/` inside them is not the one.
+_NOT_THE_PROJECTS = {".venv", "venv", "node_modules", "__pycache__", ".git", "site-packages"}
+
+
+def find_pipelines_dir(project_path: Path) -> Optional[Path]:
+    """Locate a project's `pipelines/` directory, at its root or one level down.
+
+    Consumer repositories often keep the working tree in a subdirectory of their own
+    choosing. This used to be a hardcoded list naming one of them — `LLMFlow/`, which
+    `ears-to-hear` renamed to `scriptorium/` on 2026-07-14, leaving the engine looking in an
+    untracked husk that holds a single file. Naming consumer directories here means going
+    stale whenever a consumer renames a folder, so the directory is found by shape.
+
+    The project root wins over a subdirectory; otherwise the first match in sorted order is
+    returned, so the answer does not depend on filesystem ordering.
+    """
+    root = Path(project_path)
+    at_root = root / "pipelines"
+    if at_root.is_dir():
+        return at_root
+    try:
+        children = sorted(p for p in root.iterdir() if p.is_dir())
+    except OSError:
+        return None
+    for child in children:
+        if child.name in _NOT_THE_PROJECTS or child.name.startswith("."):
+            continue
+        candidate = child / "pipelines"
+        if candidate.is_dir():
+            return candidate
+    return None
 
 
 def create_app():
@@ -160,18 +194,7 @@ def create_app():
             if not project_path:
                 return jsonify({'error': 'Project path not found'}), 404
 
-            # Find pipelines directory - check multiple possible locations
-            pipelines_dir = None
-            possible_dirs = [
-                Path(project_path) / 'pipelines',
-                Path(project_path) / 'LLMFlow' / 'pipelines',
-            ]
-
-            for possible_dir in possible_dirs:
-                if possible_dir.exists():
-                    pipelines_dir = possible_dir
-                    break
-
+            pipelines_dir = find_pipelines_dir(Path(project_path))
             if not pipelines_dir:
                 return jsonify({'pipelines': []})
 
@@ -196,7 +219,7 @@ def create_app():
 
     @app.route('/api/pipeline/config', methods=['POST'])
     def get_pipeline_config():
-        """Load pipeline YAML configuration."""
+        """Load pipeline YAML configuration with computed paths and normalized structure."""
         try:
             import yaml
 
@@ -205,6 +228,8 @@ def create_app():
                 return jsonify({'error': 'JSON body required'}), 400
 
             pipeline_path = data.get('pipeline_path')
+            project_path = data.get('project_path')
+
             if not pipeline_path:
                 return jsonify({'error': 'pipeline_path required'}), 400
 
@@ -217,7 +242,32 @@ def create_app():
             with open(path, 'r') as f:
                 config = yaml.safe_load(f)
 
-            return jsonify(config)
+            # Normalize variables: support both 'vars' and 'variables', prefer 'vars'
+            vars_section = config.get('vars') or config.get('variables') or {}
+
+            # Apply defaults
+            output_dir_relative = vars_section.get('output_dir', 'output')
+
+            # Compute full output directory path
+            output_dir_full = None
+            if project_path:
+                project_resolved = Path(project_path).resolve()
+                output_dir_full = str(project_resolved / output_dir_relative)
+
+            # Return normalized config with computed values
+            response = {
+                **config,
+                'vars': vars_section,  # Normalized to 'vars'
+                '_computed': {
+                    'output_dir': output_dir_full,
+                    'output_dir_relative': output_dir_relative
+                }
+            }
+
+            # Remove 'variables' if it exists to avoid confusion
+            response.pop('variables', None)
+
+            return jsonify(response)
 
         except Exception as e:
             logger.error("Error loading pipeline config: %s", e)
@@ -319,7 +369,7 @@ def create_app():
             stages_data = [
                 {
                     'name': stage.name,
-                    'label': stage.description or stage.name,
+                    'label': stage.description or stage.name.title(),  # Use description as label, or fallback to capitalized name
                     'protected': stage.protected,
                     'immutable': stage.immutable,
                     'file_permissions': stage.file_permissions,
@@ -393,7 +443,7 @@ def create_app():
 
 
     @app.route('/api/content/status', methods=['GET'])
-    def get_content_status_endpoint():
+    def get_content_status():
         """Get detailed status for a specific file."""
         file_path = request.args.get('path')
         project_path = request.args.get('project_path')
@@ -413,7 +463,7 @@ def create_app():
             logger.info(f"Content root: {content_root}, exists={content_root.exists()}")
 
             # Use the proper content status implementation
-            result = get_content_status(
+            result = get_content_status_util(
                 path=file_path,
                 content_root=content_root,
                 config_path=None  # Will use default content-stages.yaml in project
@@ -425,10 +475,10 @@ def create_app():
             if not result.get('success'):
                 return jsonify(result), 500
 
-            # Add current_stage alias for frontend compatibility
+            # Alias the authoritative stage for the frontend, which reads `current_stage`.
             result['current_stage'] = result.get('authoritative_stage')
 
-            # 404 when file exists in no stage
+            # A file in no stage is absent as far as the lifecycle is concerned.
             if result['current_stage'] is None:
                 return jsonify({
                     'success': False,
@@ -500,6 +550,35 @@ def create_app():
             return jsonify({'error': str(e)}), 500
 
 
+    @app.route('/api/check-path', methods=['POST'])
+    def check_path():
+        """Check if a path exists and whether it's a file or directory."""
+        data = request.json
+        path_to_check = data.get('path')
+
+        if not path_to_check:
+            return jsonify({'error': 'path is required'}), 400
+
+        try:
+            abs_path = Path(path_to_check).resolve()
+
+            return jsonify({
+                'exists': abs_path.exists(),
+                'is_file': abs_path.is_file() if abs_path.exists() else False,
+                'is_dir': abs_path.is_dir() if abs_path.exists() else False,
+                'path': str(abs_path)
+            })
+
+        except Exception as e:
+            logger.error("Error checking path: %s", e)
+            return jsonify({
+                'exists': False,
+                'is_file': False,
+                'is_dir': False,
+                'error': str(e)
+            })
+
+
     # =============================================================================
     # WebSocket - Real-time Pipeline Execution
     # =============================================================================
@@ -507,7 +586,13 @@ def create_app():
     @socketio.on('execute_pipeline')
     def handle_execute_pipeline(data):
         """Execute pipeline with real-time output streaming via WebSocket."""
+        import time
+        import random
+
+        # Generate execution ID on backend if not provided
         execution_id = data.get('execution_id')
+        if not execution_id:
+            execution_id = f"exec-{int(time.time() * 1000)}-{random.randint(1000, 9999)}"
 
         try:
             pipeline_path = data.get('pipeline_path')
@@ -522,12 +607,11 @@ def create_app():
                 emit('error', {'message': 'Invalid pipeline file'})
                 return
 
-            if not execution_id:
-                emit('error', {'message': 'execution_id required'})
-                return
-
             # Join this execution's room
             join_room(execution_id)
+
+            # Send execution ID back to client
+            emit('execution_started', {'execution_id': execution_id}, to=execution_id)
 
             # Create emit callback that routes to the execution's room
             def emit_to_room(event_type, data):
@@ -546,12 +630,15 @@ def create_app():
             result = executor.execute()
 
             # Send completion
+            output_dir = result.get('output_dir')
+            logger.info(f"Pipeline complete. output_dir={output_dir}, created_files={result['created_files']}")
+
             emit('complete', {
                 'success': result['success'],
                 'exit_code': result['exit_code'],
                 'created_files': result['created_files'],
                 'telemetry': result['telemetry'],
-                'output_dir': result.get('output_dir')
+                'output_dir': output_dir
             }, to=execution_id)
 
         except Exception as e:
