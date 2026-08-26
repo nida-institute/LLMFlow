@@ -1,5 +1,8 @@
 from typing import Any, Dict, List, Optional, Union
+
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+from llmflow.utils.scripture import FORMATS as SCRIPTURE_FORMATS
 
 
 class LLMConfig(BaseModel):
@@ -245,7 +248,12 @@ _STEP_TYPE_PROPERTIES = [
             # project/plans/design-scripture-editions.md (LLMFlow#200).
             "edition": {"type": "string"},
             "passage": {"type": "string"},
-            "format": {"type": "string", "enum": ["plain", "milestones"]},
+            # The enum is the implemented set, read from the one place that defines it, so a
+            # format cannot be accepted by lint before it exists or outlive its removal.
+            "format": {"type": "string", "enum": list(SCRIPTURE_FORMATS)},
+            # The scheme `passage` is written in. Not an enum: a Paratext project brings its
+            # own, and a custom mapping is a file the human puts in the store.
+            "versification": {"type": "string"},
         },
     ),
     (

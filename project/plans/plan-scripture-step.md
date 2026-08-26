@@ -94,6 +94,36 @@ absurd. Corrected here and at §5 step 2.*
 
 ## 3. What each format must do, and why it is not obvious
 
+### 3.-2 `passage:` accepts ranges, and emitted milestones carry `sid` and `eid`
+
+**Ruled 2026-08-26: "ranges are essential, and they are specified in USFM/USX/USJ 3.x."** So a
+passage is not restricted to chapter:verse — a span addressed by word id is expressible, and the
+mechanism is the standard's paired milestones rather than anything we invent.
+
+*This answers a ranked ask from `nida-institute/discourse-flow` that an earlier revision of this
+plan recorded as unaddressed: verse ranges are not safe slicing keys there, because boundaries fall
+inside verses, so they key intermediates by word-id span.*
+
+**Both ends are emitted, not just the start.** Ruled the same day: *"a lot of downstream apps use
+the `eid` because they aren't good at parsing."* An end milestone is derivable — it is wherever the
+next start appears — but deriving it is work we can do once instead of every consumer doing it,
+badly, forever.
+
+*`eid` is redundant, and that is the point — it is emitted **because** it is derivable, so nothing
+downstream has to derive it. The same principle as the nested syntax tree (§3.0a): the payload states
+what it could leave to be inferred, because inference is where a weak parser and a language model
+both fail silently. Measured in the wild: the annotated USJ one consumer builds carries **689 `sid`
+and no `eid`** in Mark, so every reader of it infers ends today.*
+
+**USJ and USX are the form a span is expressed in. USFM is read, not modelled.** Ruled the same day:
+*"usj / usx is the real solution here, usfm is an inferior serialization."* A span in USJ or USX is
+attributes on structured nodes, unambiguous without marker semantics; the USFM equivalent is
+positional markup that needs a bespoke parser and is exactly what weak parsers get wrong.
+
+*So `print_format: usfm` stays — many Paratext projects are USFM on disk and reading them is
+useful — but nothing in the design is shaped around its constraints, and the internal model is USJ.
+`utils/data.py` already converts with `_usx_to_usj`, so this costs nothing.*
+
 ### 3.-1 `passage:` is meaningless without a versification scheme — #203
 
 **This section was absent from the first draft of this plan and from
@@ -402,10 +432,21 @@ carries no lemma, morphology or senses — `<w>` has only `ref` and `xml:id` —
 
 | | |
 |---|---|
-| verse milestones in document order | 826, strictly ascending, **zero out-of-order** |
+| verse milestones in document order | 826 for 673 verses — **non-decreasing: 153 adjacent repeats, 0 reversals** |
 | words in document order == reading order | **False** |
 | words sorted by `xml:id` == reading order | **True** |
 | tokens whose enclosing milestone contradicts their own `ref` | **1,501 of 11,286**, all forward, none backward |
+
+***"Non-decreasing" not "strictly ascending", and the difference is not pedantry.*** *An earlier
+revision claimed "826, strictly ascending, zero out-of-order transitions". A repeat is not a
+reversal, and a `sorted()` comparison cannot tell them apart — so the check passed while the wording
+was wrong. `nida-institute/ears-to-hear` re-tested counting repeats as out-of-order, got 153, and
+appeared to contradict the finding. State it as: **826 milestones for 673 verses, non-decreasing,
+153 adjacent repeats, 0 reversals.** The repeats are the mechanism, not noise — a verse is
+milestoned again each time it resumes.*
+
+*For contrast, the TEI has **673 milestones for 673 verses, no repeats, strictly increasing** — which
+is another reason it is the easier spine.*
 
 The milestones are sound; a document-order walk of a **syntax** tree is not. 826 milestones serve
 673 verses because a verse is milestoned each time it resumes. A consumer carrying `current_verse`
@@ -441,6 +482,35 @@ is not asked.
 
 *The `after` rule still matters for anyone reading the TSV directly, and the counts above stay in
 this document for that reason. It stops being the engine's problem.*
+
+**Correction, 2026-08-26, from building it: the heading is wrong and the question did not
+dissolve.** Neither serialization carries enough to render running text. The TSV's `after` holds
+bare punctuation with no following space, and the TEI's `pc` nodes sit adjacent to `w` with no
+whitespace between them either — so *both* produce `χριστοῦ.Καθὼς` under a faithful
+concatenation, and reading the TEI does not avoid the rule, it only hides it.
+
+Ruled: **a space follows punctuation that ends a word, except where the mark itself joins.** The
+declarative half survives — *which* marks join is data — but that a word-ending mark takes a
+following space is a rule the engine applies. Full `after` census, both corpora:
+
+| Greek | | Hebrew | |
+|---|---|---|---|
+| `' '` | 117,013 | `' '` | 237,414 |
+| `','` | 8,978 | `''` **(empty)** | 170,393 |
+| `'.'` | 5,320 | `'־'` maqqef | 42,569 |
+| `'·'` | 4,245 | `'׃'` sof pasuq | 20,120 |
+| `'’'` elision | 1,221 | `'׀'` paseq | 2,274 |
+| `';'` | 964 | `'׃ס'` · `'׃פ'` · `'ס'` · `'פ'` | 1,888 · 1,164 · 77 · 12 |
+
+`after` plays **three** roles, not one: a space, a mark that joins, or punctuation that ends a
+word. Hence `JOINING_MARKS = {’, ־}` plus empty; everything else non-empty takes a space. A
+uniform `" ".join(text + after)` was considered and rejected: it would put a space inside
+`בְּרֵאשִׁית` (170,393 cases), `κατ’αὐτοῦ` (1,221) and `עַל־פְּנֵי` (42,569).
+
+*Two marks are handled but imperfectly, and are named rather than hidden: the paseq `׀` takes a
+space after but not before, so it renders `word׀ word` rather than `word ׀ word`; and the
+`partialVerses` field that would describe segment-level text is unread. Both are small, both
+affect Hebrew only, and neither is silent.*
 
 ### 3.3 `usj` carries no paragraph structure
 
@@ -485,8 +555,13 @@ without them it stops being a serialization:
   script with no italic tradition, scope by `lang` and `dir`, say in a comment why, and stay minimal
   — a starting point, not a design system.
 
-*Default: `tei`, being the serialization measured and verified here. A caller wanting what
-publishers use asks for `usx` or `usj`.*
+**Default: `usx`.** Ruled 2026-08-26 — *"defaulting to usx is probably best for most publishers."*
+
+*An earlier revision defaulted to `tei`, on the grounds that it is the serialization measured here.
+That was reasoning from what we had verified rather than from who asks. A default should fit the
+common caller, and for a print edition that caller is publishing: USX is what publishing tooling
+consumes, and USJ and USFM are the same data model beside it. TEI remains available and is the right
+choice for scholarly work, but it is the specialist answer, not the ordinary one.*
 
 ### 3.4 `print` is not annotatable
 
@@ -515,22 +590,39 @@ multi-word.
 
 **But lemma matching is the fallback, not the method.** Measured after the above: the printed
 edition's own **apparatus reference marks are already in the TEI**, as `pc` nodes at exact
-positions — `⸀` 607, `⸂` 314, `⸃` 205, `⸁` 8, `⸄` 1 in Mark. Pairing them with the apparatus notes
-by verse:
+positions. **Count only the marks that introduce a note** — `⸀ ⸁ ⸂ ⸄ ⸆ ⸇ ⸈ ⸉` — and never the
+closers `⸃ ⸅ ⸊`, which end a span rather than starting an entry. In Mark: `⸀` 607, `⸁` 8, `⸂` 314,
+`⸄` 1 — **930 introducing marks against 930 notes.**
 
-| | |
+**The join is ordinal, and its scope is the chapter, not the verse.**
+
+| scope | agreement, 27 books |
 |---|---|
-| verses carrying marks in the TEI | **507** |
-| verses carrying notes in the apparatus | **507 — the same verses** |
-| verses where the counts agree | **506 of 507 (99.8%)** |
-| marks / notes | 931 / 930 |
+| verse | 4,463 of 4,473 — **10 disagree** |
+| **chapter** | **260 of 260 — no exceptions** |
+| NT totals, marks / notes | **6,934 / 6,934**, differing in 0 of 27 books |
 
-Only Mark 8:35 differs, six marks to five notes.
+*The ten verse-level disagreements are five adjacent pairs, each +1 on verse N and −1 on N+1:
+Matthew 16:2–3, Matthew 26:60–61, Luke 22:19–20, Luke 22:43–44, Philippians 1:16–17. They are
+variants spanning a verse boundary — the apparatus files the note under the opening verse while the
+TEI's mark falls after the next verse milestone. Reported by `nida-institute/discourse-flow` and
+verified here independently.*
 
-**So the join is ordinal, not textual:** walk a verse's marks in document order, walk its notes in
-order, pair them. Each mark sits between `<w>` elements carrying `xml:id`, so every entry lands at
-an exact word position by construction. `…` and `⸀`/`⸁` stop being parsing problems — `⸂…⸃` is a
-span in the text itself and `⸀`/`⸁` are the marks.
+***Verse-scoped joining is worse than wrong, it is silent.*** *The counts differ on those ten, but
+each side is individually plausible, so an entry lands at a confidently wrong word rather than
+raising. Chapter scope removes the failure instead of detecting it.*
+
+*So walk a chapter's marks in document order, walk its notes in order, pair them. Each mark sits
+between `<w>` elements carrying `xml:id`, so every entry lands at an exact word position by
+construction. `⸂…⸃` is a span in the text itself and needs no parsing.*
+
+***Two corrections to an earlier revision of this section**, both found by
+`nida-institute/discourse-flow` and confirmed here. It gave Mark's `⸃` as 205; it is **314**, exactly
+balanced against `⸂` — the 205 counted only `pc` elements whose text is exactly `⸃`, missing 109
+where the closer is combined with punctuation (`⸃·` 29, `⸃.` 43, `⸃,` 24, `⸃;` 10, `⸃—` 2, `;⸃` 1).
+An unbalanced substitution bracket would have been a genuine data alarm, so the wrong figure would
+have sent someone hunting a defect that does not exist. And it reported "14 verses needing a human
+in 6 books"; the true number is **zero**, once closers are excluded and the join is chapter-scoped.*
 
 `format: plain` and `format: milestones` carry no notes: a footnote is not running text.
 
@@ -710,3 +802,17 @@ No separate `format: syntax` is needed, and nothing about the tree is uncovered.
   original-language text with no attribution against a CC BY source, and the engine emitting text
   is the natural place for a credit line to originate. Not this step's scope, and time-sensitive
   independently of it.
+
+- **An `edition:` that names a Paratext project code, with the projects directory given once.**
+  Raised by the Captain, 2026-08-26, and deliberately out of this release. Most of it exists: a
+  `kind: usfm` edition already takes `base_dir` and `project`, and versification is already read
+  from that project's `Settings.xml`. What is missing is the shape — the projects directory
+  wants to be **one pipeline-level parameter** rather than repeated in every edition entry, so
+  that a pipeline names project codes and a machine says once where its projects live. That is
+  also what makes such a pipeline portable between two people who each have rights to the same
+  project but keep it in different places.
+
+  *Two things to settle when it is built: a project's `custom.vrs` overlay is read by nothing
+  today and 29 of 39 projects on the Captain's machine carry one; and rights are per-project, so
+  a pipeline naming a code the runner cannot read must fail with that reason rather than as a
+  missing file.*

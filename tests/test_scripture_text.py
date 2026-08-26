@@ -1,25 +1,18 @@
-"""Named scripture editions: reference range -> running text (LLMFlow#200).
+"""Named scripture editions: a reference range in, running text out.
 
-Every consumer repo built its own loader, and they converged on the shape the conventions
-forbid — a dict or list keyed by verse. That is not carelessness: while each project loads
-raw assets itself, each inherits the asset's shape. `discourse-flow` reads a verse-per-line
-BSB file and returns `{"Mark 1:1": "..."}` because that is what the file is.
+Text is `text + after` per word, with a space added only where `after` is punctuation that
+ends a word — the source carries the mark without one. These tests pin the cases where that
+distinction is visible, in both scripts:
 
-The engine's job is to be the layer that turns an asset into running text with verse
-milestones, so "verses are milestones, not containers" stops being advisory.
+  * maqqef joins:                עַל־פְּנֵי
+  * Greek elision joins:          κατ’ὄναρ
+  * a Hebrew morpheme joins:      בְּרֵאשִׁית
+  * sof pasuq ends a word:        הָאָרֶץ׃ וְהָאָרֶץ
+  * Greek punctuation ends one:   χριστοῦ. Καθὼς
+  * milestones mark positions:    ⌊1:1⌋ … ⌊1:2⌋ …
 
-Extraction is a straight concatenation of `text + after` per word (Captain, 2026-08-17).
-The Macula TSVs carry both columns, so the joining is data rather than logic — no
-whitespace inference, and one code path for Hebrew and Greek. These tests pin the
-behaviour that matters:
-
-  * maqqef joins words with no space:      עַל־פְּנֵי
-  * sof pasuq attaches to the last word:   הָאָֽרֶץ׃
-  * Greek punctuation attaches:            χριστοῦ.
-  * verse milestones mark positions:       ⌊1:1⌋ … ⌊1:2⌋ …
-
-A test that only asserts "some text came out" would pass on text that is subtly wrong,
-which is the failure this whole feature exists to prevent.
+A test asserting only that "some text came out" would pass on text that is subtly wrong,
+which is the failure this feature exists to prevent.
 """
 import pytest
 
@@ -55,30 +48,45 @@ GREEK_ROWS = [
 ]
 
 
-class TestJoiningIsDataNotLogic:
+class TestJoining:
     def test_maqqef_joins_with_no_space(self):
         out = rows_to_text(HEBREW_ROWS, fmt="plain")
         assert "עַל־פְּנֵ֣י" in out, out
         assert "עַל ־" not in out and "עַל־ פְּנֵ֣י" not in out
 
-    def test_sof_pasuq_attaches(self):
-        out = rows_to_text(HEBREW_ROWS, fmt="plain")
-        assert "הָאָֽרֶץ׃" in out, out
+    def test_greek_elision_joins_with_no_space(self):
+        rows = [{"ref": "MAT 1:20!1", "text": "κατ", "after": "’"},
+                {"ref": "MAT 1:20!2", "text": "ὄναρ", "after": " "}]
+        assert rows_to_text(rows, fmt="plain") == "κατ’ὄναρ"
 
-    def test_greek_punctuation_attaches(self):
+    def test_an_empty_after_joins_two_morphemes_of_one_word(self):
+        """Macula Hebrew splits a word into morphemes and marks the continuation this way."""
+        rows = [{"ref": "GEN 1:1!1", "text": "בְּ", "after": ""},
+                {"ref": "GEN 1:1!2", "text": "רֵאשִׁית", "after": " "}]
+        assert rows_to_text(rows, fmt="plain") == "בְּרֵאשִׁית"
+
+    def test_a_missing_after_joins_rather_than_spacing(self):
+        rows = [{"ref": "GEN 1:1!1", "text": "עַל", "after": "־"},
+                {"ref": "GEN 1:1!2", "text": "פְּנֵי"}]
+        assert rows_to_text(rows, fmt="plain") == "עַל־פְּנֵי"
+
+    def test_sof_pasuq_attaches_and_takes_a_space_after_it(self):
+        out = rows_to_text(HEBREW_ROWS, fmt="plain")
+        assert "הָאָֽרֶץ׃ וְחֹ֖שֶׁךְ" in out, out
+
+    def test_greek_punctuation_attaches_and_takes_a_space_after_it(self):
         out = rows_to_text(GREEK_ROWS, fmt="plain")
-        assert "χριστοῦ." in out and "χριστοῦ ." not in out, out
+        assert "χριστοῦ. Καθὼς" in out, out
+        assert "χριστοῦ ." not in out and "χριστοῦ.Καθὼς" not in out
+
+    def test_a_space_in_the_source_is_not_doubled(self):
+        assert "  " not in rows_to_text(HEBREW_ROWS, fmt="plain")
+        assert "  " not in rows_to_text(GREEK_ROWS, fmt="plain")
 
     def test_one_code_path_serves_both_languages(self):
         """No per-language branching: the same call handles either row set."""
         assert rows_to_text(HEBREW_ROWS, fmt="plain")
         assert rows_to_text(GREEK_ROWS, fmt="plain")
-
-    def test_missing_after_is_treated_as_empty_not_as_a_space(self):
-        """Inserting a space where the data has none would corrupt joined forms."""
-        rows = [{"ref": "GEN 1:1!1", "text": "עַל", "after": "־"},
-                {"ref": "GEN 1:1!2", "text": "פְּנֵי"}]
-        assert rows_to_text(rows, fmt="plain") == "עַל־פְּנֵי"
 
 
 class TestMilestones:

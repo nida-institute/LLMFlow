@@ -2,10 +2,22 @@
 
 ## Unreleased
 
-Heading deliberately unset: this may be folded into 0.2.1.24 before it merges, so it is meant
-to be retargeted rather than assumed.
-
 ### Changed
+
+- **New rule 34: a docstring says what the code does, and carries no status, rationale or
+  design.** Design belongs in `project/plans/` and the AI context, status in issues and the
+  CHANGELOG — all of which stay current while a docstring does not. Cross-references to where
+  the reasoning lives are welcome; dates, commit hashes and quoted direction are not.
+  `tests/test_docstrings_say_what_not_why.py` checks those three signals across `src/`,
+  `tests/` and `tools/`, and carries a backlog of the 49 files that predate the rule, which a
+  test forces to shrink. `src/llmflow/utils/scripture.py` and `src/llmflow/steps/scripture.py`
+  are the first cleaned.
+
+- **`CHANGELOG.md` is checked against being a session transcript.**
+  `tests/test_changelog_is_not_a_transcript.py` rejects conversational voice, process
+  commentary, commit hashes, uncategorised bullets and prose standing where a reader expects a
+  list of changes. It applies to the unreleased section only: a released entry describes what
+  users actually got, so it is a record, and the time to fix the wording is before it ships.
 
 - **Rule 18 is now "Carry one design"**, replacing *"Prefer additive change to authored work"* —
   a design change is completed in one pass, and an older path that must survive names who depends
@@ -106,6 +118,43 @@ to be retargeted rather than assumed.
 
 ### New Features
 
+- **Versification mapping — a reference is not a location until a scheme is named.**
+  `llmflow.utils.versification` maps a reference between schemes through `org` as the hub.
+  `PSA 51:1` in English is `PSA 51:3` in the original and `PSA 50:3` in the Vulgate; Malachi has
+  four chapters in English and three in Hebrew. A scheme may declare `basedOn`, and inherits the
+  verses it does not itself list.
+
+  **`type: scripture` takes a `versification:` key** naming the scheme the passage is written
+  in. When it differs from the edition's own, the reference is mapped before any text is read —
+  fetching first would fetch the wrong verses.
+
+  **An edition's scheme has no global default.** A Byzantine Greek text and a critical text are
+  numbered differently, so the scheme is a property of the edition: declared as
+  `versification_scheme` in its registry entry, or read from a Paratext project's
+  `Settings.xml`, or taken from the table of editions sp constructs in
+  `data/versification-editions.json`. If none answers and a cross-scheme mapping is asked for,
+  that is an error naming the field to add rather than a guess. A Paratext project carrying a
+  `custom.vrs` overlay is reported, because the overlay is not read.
+
+  **Six schemes ship** — `org`, `eng`, `lxx`, `vul`, `rsc`, `rso` — installed into
+  `~/.sp/versification/` by `sp init` and repaired by `sp doctor`. They are unmodified copies of
+  the Copenhagen Alliance mappings, CC BY-SA 4.0, with the attribution alongside them. A custom
+  scheme is a JSON file placed in that directory.
+
+  Three properties the data forces, each covered by a test: mappings are independent pairs and
+  never an ordering, because traditions disagree on sequence — the commandments in Exodus 20
+  among them; the reverse direction is many-valued, since `DAN 4:4` is reached from both
+  `DAG 4:1` and `DAG 4:7`, so `map_candidates` returns every candidate and `map_reference`
+  raises rather than choosing one; and an entry whose two sides cover different numbers of
+  verses is skipped and reported, one warning per scheme, rather than guessed at. A reference
+  outside its scheme raises rather than returning an empty result.
+
+- **A `kind: tei` edition backend.** A named edition may now point at a directory of Macula TEI
+  book files, joined into running text alongside the existing `tsv` and `usfm` backends and
+  producing identical output to the TSV for the same passage. Apparatus reference marks are not
+  text and are dropped; a word ending in an elision mark joins to the next without a space; and
+  several punctuation nodes after one word accumulate rather than replacing one another.
+
 - **`size` and `stride` accept a variable**, resolved once at step entry so the partition stays
   constant for the loop and reproducible under `--rewind-to`. Anything that does not resolve to a
   positive integer fails at step entry; `sp lint` warns that it cannot verify a variable's value.
@@ -138,7 +187,7 @@ to be retargeted rather than assumed.
   file in `~/.claude`, invisible in every repository.
 
 - **`project/plans/plan-memory-recovery.md`** — the transfer record for the `~/.claude` memory
-  stores, which the Captain emptied on 2026-08-22: 81 files across 12 projects, unreviewed,
+  stores, now emptied: 81 files across 12 projects, unreviewed,
   invisible in any repository, and loaded into every session ahead of the documents that carry
   design authority. 39 were audited. Thirteen were second copies of authored sources, one
   contradicted the record by pointing `GH_CONFIG_DIR` at a superseded path, and 22 items with no
@@ -179,7 +228,7 @@ to be retargeted rather than assumed.
   the discard-and-resume corollary, and an explicit statement that the engine enforces none of
   it — that discipline is pipeline-side and a run that gets it wrong loses content silently.
 
-- **Two rules added at the Captain's direction** — data moves between steps through the
+- **Two rules added** — data moves between steps through the
   pipeline context and nowhere else, and pipeline logic belongs in the pipeline language rather
   than reimplemented in Python. Neither existed; the only prior statement was one descriptive
   sentence in `docs/architecture.md`.

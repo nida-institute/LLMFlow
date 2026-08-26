@@ -721,6 +721,112 @@ Writes content directly to a file. No LLM call, no Python function — just a wr
 
 ---
 
+### type: `scripture`
+
+Fetches one passage from one **named** edition. The edition is a name resolved through the
+registry in `~/.sp/editions/`, never a path in the pipeline — so the same pipeline runs on a
+machine where the sources live somewhere else.
+
+```yaml
+- name: fetch-source
+  type: scripture
+  edition: SBLGNT             # a registered edition
+  passage: "${passage}"       # MRK · MRK 1 · MRK 1:1 · MRK 1:1-8 · MRK 1:40-2:12
+  format: milestones          # plain | milestones | usj   (default: milestones)
+  versification: eng          # optional; the scheme `passage` is written in
+  output: source_text
+```
+
+**Required Fields:**
+- `edition`: Name of a registered edition
+- `passage`: A reference, in any of the five forms above
+- `output`: Variable name to store the result
+
+**Optional Fields:**
+- `format`: The shape of the result (see below). Default `milestones`.
+- `versification`: The scheme `passage` is written in. See *Versification*.
+- `saveas`, `append_to`: as for any step.
+
+#### Choosing a format
+
+Verses are **milestones, not containers**: the result is running text with verse positions
+marked, never a mapping keyed by verse. Chopping text at verse boundaries destroys the sentence
+and clause structure that analysis depends on, and a verse-keyed shape makes that the easy path.
+
+| format | what you get | size | reach for it when |
+|---|---|---|---|
+| `plain` | running text, no addressing | 1.0× | the prompt never needs to cite a verse — the cheapest form, and the only one a whole-book step can afford |
+| `milestones` | `⌊1:1⌋ text` | 1.07× | **the default.** The model can cite a verse, and the cost over bare text is under a tenth |
+| `usj` | a USJ document | 2.56× codepoints, 6.74× as escaped JSON | something downstream must address individual words, or you need a standard interchange format |
+
+The multipliers are measured, not estimated. `usj` costs roughly six times `milestones` once
+escaped into a JSON payload, which is why it is not the default: pay for structure when
+something consumes the structure.
+
+`format: usj` returns a **dict**, not a string — one `chapter` node per chapter, one `para`
+inside each, `verse` nodes and text. The Macula sources carry no paragraph structure, so there
+is none to represent; a `para` per chapter is the least the USX grammar allows. Flattening the
+document reproduces `format: milestones` exactly, and that equivalence is a test.
+
+#### Versification
+
+**A reference is not a location until a scheme is named.** `PSA 51:1` is `PSA 51:3` in the
+original-language numbering and `PSA 50:3` in the Vulgate; Malachi has four chapters in English
+and three in Hebrew. A pipeline that asks two editions for "the same" reference without saying
+which numbering it means is comparing unrelated verses, and nothing reports an error.
+
+**An edition's scheme is a property of that edition, and there is no global default.** A
+Byzantine Greek text and a critical text are numbered differently; so are two English
+translations. Guessing would be wrong exactly where schemes differ. The scheme is found in
+three ways, in order:
+
+1. **`versification_scheme` in the edition's registry entry** — always wins.
+2. **A Paratext project's `Settings.xml`**, for `kind: usfm` editions. Paratext records a
+   number; `data/versification-editions.json` maps it to a scheme. A project carrying a
+   `custom.vrs` overlay is reported, because that overlay is not read.
+3. **The table of editions we construct**, in the same file — `SBLGNT` and `WLC` are `org`,
+   `BSB` is `eng`, each with the evidence recorded beside it.
+
+If none of the three answers and you ask for a cross-scheme mapping, that is an **error** naming
+the field to add. Without `versification:` no mapping happens, so an edition with an unknown
+scheme keeps working for everything else.
+
+`versification:` on the step names the scheme **your `passage` is written in**. When it differs
+from the edition's, the reference is mapped *before* any text is read:
+
+```yaml
+- name: hebrew-by-english-reference
+  type: scripture
+  edition: WLC                # numbered `org`
+  passage: "PSA 51:1"         # ...but I am counting in English
+  versification: eng
+  output: psalm               # returns org PSA 51:3 — the verse an English reader means
+```
+
+Omit it and the edition's own scheme governs, which is the right default for a single edition.
+
+Schemes are the Copenhagen Alliance mappings, installed into `~/.sp/versification/` by
+`sp init`. Six ship: `org` (the hub every scheme maps through), `eng`, `lxx`, `vul`, `rsc`,
+`rso`. A custom scheme is a JSON file you place in that directory; it may set `basedOn` to
+inherit from another and list only what it changes.
+
+Three behaviours are deliberate, because the alternative in each case is a silent error:
+
+- **An unmappable reference raises.** A verse outside its scheme's bounds is an error, never an
+  empty result that reads like an absence of text.
+- **An ambiguous reverse mapping raises**, naming every candidate. Where a scheme divides what
+  another joins, one verse can correspond to several — `DAN 4:4` is reached from both `DAG 4:1`
+  and `DAG 4:7`, which are not adjacent — so there is no single answer to return and no span
+  that would be true.
+- **A mapping entry whose two sides cover different numbers of verses is skipped and reported.**
+  Seven such entries ship in the standard schemes. Guessing what one meant would put a passage
+  somewhere the data does not say.
+
+Two fields of the specification, `mergedVerses` and `partialVerses`, are **not yet
+interpreted**; loading a scheme that carries either says so. `lxx` carries 74 `partialVerses`.
+
+---
+
 ### type: `basex`
 
 Runs an XQuery against a local BaseX database via the `basex` CLI.

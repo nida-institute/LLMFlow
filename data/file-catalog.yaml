@@ -57,6 +57,18 @@ groups:
     source: template
     committed: false
 
+  # Copenhagen Alliance versification mappings, copied unmodified. One entry per file rather
+  # than one per directory, so a custom mapping placed alongside them is never overwritten.
+  # `ATTRIBUTION.md` travels with them: CC BY-SA 4.0 requires the notice to accompany the data.
+  - id: versification
+    label: Versification mappings
+    templates: "sp/versification/*"
+    path: "versification/{name}"
+    scope: sp-home
+    policy: generated
+    source: template
+    committed: false
+
   # Copied into the repo and committed, so a clone has the slash commands.
   - id: project-skills
     label: Project skills

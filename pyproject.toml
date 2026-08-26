@@ -78,6 +78,7 @@ packages = ["src/llmflow"]
 "data/models.json" = "llmflow/data/models.json"
 "data/file-catalog.yaml" = "llmflow/data/file-catalog.yaml"
 "data/ai-rules.yaml" = "llmflow/data/ai-rules.yaml"
+"data/versification-editions.json" = "llmflow/data/versification-editions.json"
 
 [project.scripts]
 sp = "llmflow.cli:main"

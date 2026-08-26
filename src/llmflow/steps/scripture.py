@@ -1,11 +1,7 @@
-"""Scripture step handler — a named edition and a passage, in, running text out.
+"""Scripture step handler — a named edition and a passage in, the requested shape out.
 
-Why a step rather than `type: function`: an edition is *named*, and the engine resolves where
-it lives. Absolute paths written into pipeline YAML are why the `ears-to-hear` and
-`discourse-flow` pipelines run on one laptop, and a source chosen in code is a source chosen
-by whoever wrote the code — which is the Captain's decision, expressed as configuration.
-
-See project/plans/design-scripture-editions.md and LLMFlow#200.
+The edition is named, not a path: the engine resolves where it lives. See
+project/plans/design-scripture-editions.md.
 """
 
 from typing import Any, Dict
@@ -23,7 +19,7 @@ def run_scripture_step(
     context: Dict[str, Any],
     pipeline_config: Dict[str, Any] | None = None,
 ) -> None:
-    """Fetch running text for one passage in one edition."""
+    """Fetch one passage from one edition, in the format the step asks for."""
     name = step.get("name", "unnamed")
     logger.info(f"📖 Starting scripture step: {name}")
 
@@ -38,12 +34,23 @@ def run_scripture_step(
     passage = str(resolve(passage, context))
     fmt = str(resolve(step.get("format", "milestones"), context))
 
+    # Absent, the edition's own scheme governs and nothing is mapped.
+    scheme = step.get("versification")
+    scheme = str(resolve(scheme, context)) if scheme else None
+
     # The editions directory is overridable so tests need not write to a real ~/.sp.
     editions_dir = (pipeline_config or {}).get("_editions_dir")
     editions = load_registry_editions(editions_dir)
 
-    text = edition_text(edition, passage, fmt=fmt, editions=editions)
-    logger.debug(f"   {edition} {passage}: {len(text)} chars ({fmt})")
+    result = edition_text(
+        edition, passage, fmt=fmt, editions=editions, versification=scheme
+    )
+    size = (
+        f"{len(result.get('content') or [])} nodes"
+        if isinstance(result, dict)
+        else f"{len(result)} chars"
+    )
+    logger.debug(f"   {edition} {passage}: {size} ({fmt})")
 
-    handle_step_outputs(step, text, context)
+    handle_step_outputs(step, result, context)
     logger.info(f"✅ Completed scripture step: {name}")
