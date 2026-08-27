@@ -2,6 +2,154 @@
 
 ## Unreleased
 
+## 0.2.1.24 — 2026-08-26
+
+### New Features
+
+- **Versification mapping — a reference is not a location until a scheme is named.**
+  `llmflow.utils.versification` maps a reference between schemes through `org` as the hub.
+  `PSA 51:1` in English is `PSA 51:3` in the original and `PSA 50:3` in the Vulgate; Malachi has
+  four chapters in English and three in Hebrew. A scheme may declare `basedOn`, and inherits the
+  verses it does not itself list.
+
+  **`type: scripture` takes a `versification:` key** naming the scheme the passage is written
+  in. When it differs from the edition's own, the reference is mapped before any text is read —
+  fetching first would fetch the wrong verses.
+
+  **An edition's scheme has no global default.** A Byzantine Greek text and a critical text are
+  numbered differently, so the scheme is a property of the edition: declared as
+  `versification_scheme` in its registry entry, or read from a Paratext project's
+  `Settings.xml`, or taken from the table of editions sp constructs in
+  `data/versification-editions.json`. If none answers and a cross-scheme mapping is asked for,
+  that is an error naming the field to add rather than a guess. A Paratext project carrying a
+  `custom.vrs` overlay is reported, because the overlay is not read.
+
+  **Six schemes ship** — `org`, `eng`, `lxx`, `vul`, `rsc`, `rso` — installed into
+  `~/.sp/versification/` by `sp init` and repaired by `sp doctor`. They are unmodified copies of
+  the Copenhagen Alliance mappings, CC BY-SA 4.0, with the attribution alongside them. A custom
+  scheme is a JSON file placed in that directory.
+
+  Three properties the data forces, each covered by a test: mappings are independent pairs and
+  never an ordering, because traditions disagree on sequence — the commandments in Exodus 20
+  among them; the reverse direction is many-valued, since `DAN 4:4` is reached from both
+  `DAG 4:1` and `DAG 4:7`, so `map_candidates` returns every candidate and `map_reference`
+  raises rather than choosing one; and an entry whose two sides cover different numbers of
+  verses is skipped and reported, one warning per scheme, rather than guessed at. A reference
+  outside its scheme raises rather than returning an empty result.
+
+- **A `kind: tei` edition backend.** A named edition may now point at a directory of Macula TEI
+  book files, joined into running text alongside the existing `tsv` and `usfm` backends and
+  producing identical output to the TSV for the same passage. Apparatus reference marks are not
+  text and are dropped; a word ending in an elision mark joins to the next without a space; and
+  several punctuation nodes after one word accumulate rather than replacing one another.
+
+- **`size` and `stride` accept a variable**, resolved once at step entry so the partition stays
+  constant for the loop and reproducible under `--rewind-to`. Anything that does not resolve to a
+  positive integer fails at step entry; `sp lint` warns that it cannot verify a variable's value.
+
+- **`tools/sync_helm.py` and `data/helm-sync.yaml`** — the set shared with Human at the Helm is
+  recorded with hashes and rulings and checked on CI. Reports by default, copies only under
+  `--apply`, and never touches a divergence that carries a ruling.
+
+- **`tools/update_plans_index.py`** generates `project/plans/README.md` from each document's
+  declared status and the issues it names, with `--check` exiting 1 when the index is stale. Kept
+  outside `src/llmflow/`, so nothing it produces reaches a project. Its Issues column is a mention
+  scrape rather than a declaration. (#163)
+
+- **`sp init` ships the audit method**, not only the `/audit-*` skills —
+  `docs/ai-context/sp/audits-pattern.md` covers which skill answers which question, tracing an
+  output field back to the request that produced it, and testing a prompt fix with
+  `sp tools replay`. It carries measured cases from real runs rather than general advice. The
+  first project-scoped `source: template` entry, so its content is a reviewable markdown file
+  rather than a Python string. (#214)
+
+- **`$SP_HOME` relocates the store** — one resolver in `src/llmflow/paths.py`, replacing eleven
+  call sites that each computed `~/.sp` independently, with a test that fails if any module
+  computes it again. For tests, containers and CI. (#207)
+
+- **A fresh clone now gets its skills (#204)** — `sp init` copies `~/.sp/skills/` into the
+  repository's `.claude/skills/`, which is a location Claude Code actually reads. `~/.sp/skills/`
+  is not: a skill left there is invisible, so `/load-context` did not exist as a command. Nothing
+  is written to `~/.claude`, so no machine-scoped permission is needed. Whole skill directories are
+  copied rather than `SKILL.md` alone.
+
+- **`sp init` is fully non-interactive** — it previously returned silently when stdin was not a TTY,
+  which is the path CI, Docker builds and any scripted onboarding take, and on a terminal it asked
+  four questions with `Claude Code` defaulting to *No* and skills behind a second *No*. A user
+  pressing Enter throughout ended up with a silently broken setup. Every write is inside the project
+  directory and idempotent, so no prompt remains.
+
+- **`sp init` generates a `.gitignore` when a project has none**, and never overwrites one that
+  exists. Its contents are derived from the file catalog, so `.claude/skills/` cannot end up ignored
+  — the mistake that leaves a clone with no slash commands.
+
+- **A declared catalog of managed files, `data/file-catalog.yaml` (#204)** — ownership used to be
+  decided by sniffing for `<!-- Generated by sp init -->` on line 1, and that marker's text had
+  already drifted in shipped code (`cli.py` says `llmflow init`, `cli_utils.py` says `sp init`), so
+  a file could become either permanently un-updatable or silently overwritable. Ownership is now a
+  property of a catalog entry keyed by path. The catalog is data, not code: `llmflow/file_catalog.py`
+  only reads it. Both the generated `.gitignore` and `sp doctor`'s ownership boundary are derived
+  from it, so the two cannot disagree.
+
+- **`sp doctor` — verify that a machine is set up correctly (#204)** — nothing previously answered
+  "is this set up correctly?", so the first symptom of a missing markdown file was an API error that
+  named nothing. `doctor` checks `~/.sp/`, the conventions, the files skills read directly, the
+  installed skills, whether skills are anywhere Claude Code can actually find them, the project's
+  `docs/ai-context/`, and whether the project is registered. Every failure names a remedy.
+
+  Three design properties worth knowing:
+
+  - **Read-only.** It reports and never repairs, so running it is always safe. Pinned by a test that
+    fails if it creates or writes anything.
+  - **Expectations come from the shipped package, not a list inside `doctor`.** Adding a template
+    requires no change here. A second list would drift — which is exactly how three conventions went
+    unshipped for months.
+  - **It distinguishes absence from misconfiguration.** A missing `CLAUDE.md` is reported as
+    information, not a failure: it is gitignored by convention, so a clone never has one, and
+    committed context belongs in `docs/ai-context/`. A missing
+    `~/.sp/user-context/filesystem-access.md` is not reported at all, because it grants an AI read
+    access to a directory tree and only a machine's owner can grant that.
+
+  Known overlap with `sp registry status`, which also reports on `~/.sp/`. Whether `doctor` subsumes
+  it is tracked in #205; nothing is consolidated yet.
+
+- **`sp lint` validates structured-output schemas before the run (#196)** — prompt contracts
+  were checked before any token was spent; the JSON Schema in the same request was not
+  checked at all. Under `strict: true` OpenAI accepts only a restricted subset and rejects
+  anything else with **HTTP 400 at request time**, so a pipeline could pass every check,
+  fetch its passage, complete three steps, and die on the fourth with a provider error
+  naming a JSON path rather than a line in the YAML — with the earlier steps already paid for.
+
+  `sp lint` now reports, per step and per schema path:
+
+  ```
+  ❌ Step 'segment_book': properties.pericopes.items: every property must be listed in
+     'required' under strict mode. Missing: start_verse, end_verse, pericope_type
+     Fix: add them to 'required'; if a field is genuinely optional, give it a nullable
+          type — {"type": ["string", "null"]} — and list it in 'required' anyway
+  ```
+
+  Errors: every property listed in `required`; `additionalProperties: false` on every
+  object; an object at the root; `$ref`s that resolve. Warnings: keywords outside the
+  supported subset, and the documented size limits — OpenAI has widened the subset several
+  times, and a stale rule table must not block work the provider would accept. The table is
+  data, in one place, carrying a `LAST_VERIFIED` date.
+
+  Gated two ways. `strict: true` gates the errors, since OpenAI does not enforce the subset
+  without it — a schema missing `strict` gets a warning that the guarantee is not in force.
+  And `response_format` is the trigger rather than the model name, so Gemini's
+  `response_schema` (#191) is not measured against OpenAI's rules. `schema_file` is loaded
+  and checked like an inline schema. `linter_config.skip_strict_schema_check: true` turns
+  it off.
+
+  The checker is pure — no network, no provider client, no key — so it cannot itself cost
+  anything.
+
+  **`pipelines/json-schema-example.yaml` was itself broken**, in all three steps, while
+  advertising "guaranteed schema compliance". Five objects listed properties that were
+  absent from `required`. It is fixed here, and passing its own lint is the acceptance test
+  for the feature.
+
 ### Changed
 
 - **New rule 34: a docstring says what the code does, and carries no status, rationale or
@@ -69,269 +217,6 @@
   the three `docs/audits/` checklists were shipped to every project though they are one project's
   documents; they are no longer created or managed, and a project reaches its own files by naming
   them in `docs/ai-context/project/index.md`. Existing copies are untouched.
-
-### Fixed
-
-- **The shipped window-cursor example lost content.** `docs/llmflow-language-quickref.md` set the
-  cursor from the *dropped* last unit's opening, so any gap between the last kept unit and the
-  dropped one was skipped by every later window. It now resumes from the trailing edge of the last
-  unit **kept**. Reported from `nida-institute/discourse-flow`.
-
-- **`window_num` worked at run time and failed `sp lint`.** The linter now injects all five
-  variables a window step provides — `window_num`, `_window_index`, `_window_first`,
-  `_window_last`, `_window_cursor` — making `window` symmetric with `for-each`.
-
-- **One rule set, not two.** `docs/ai-context/rules.md` was written by two generators holding two
-  independently maintained texts, so which rules a project was held to depended on which generator
-  ran last. `data/ai-rules.yaml` is now the single source; both generators render from it.
-
-- **`sp doctor` could not refresh four documents `sp init` writes.** `docs/tutorial.md`,
-  `docs/llmflow-language-quickref.md`, `docs/vscode.md` and `project/TODO.md` were absent from
-  `data/file-catalog.yaml`, and `managed_by_doctor()` returns only catalogued entries — so a fix to
-  a shipped document could not reach an existing project. Now catalogued, with a test that fails if
-  `sp init` writes anything the catalog does not declare. Reported from
-  `nida-institute/discourse-flow`.
-
-- **`gpt-4.1` was wrongly reported as incompatible with structured outputs.** The `audit-prompts`
-  skill and `docs/llmflow-language.md` told auditors to change the model, contradicting rule 5.
-  Measured elsewhere at 200+ calls with strict `json_schema` and zero failures. The hardcoded model
-  allowlist is replaced by guidance to check the provider's capability table and the project's own
-  run evidence.
-
-- **`sp doctor --help` claimed to be read-only** — it restores any `policy: generated` file that
-  is missing or has diverged, which cost a consumer repository two hand-authored files on
-  2026-08-23. The help text now says it writes and what it overwrites.
-
-- **The test suite wrote outside the project** — every init test registered its pytest temp
-  directory as a permanent project in the real `~/.sp/`, and moving the store to pytest's default
-  temp root then left tens of megabytes a run in the machine's temp area, including directories
-  its cleanup could not remove. `$SP_HOME` is now redirected per test with a guard that fails the
-  run if the real store is touched, intermediates go to `tmp/pytest/` inside the repository
-  (declared in `pytest.ini`, git-ignored, announced at startup), and only failing tests'
-  directories survive a run. (#207)
-
-- **A test wrote `llmflow.log` into `/private/tmp` on every run.** `test_gui_cors_config.py` handed
-  the executor a literal `/tmp` as the project path, and the executor runs with `cwd` set to it.
-  It now uses a per-test directory, guarded by a check that no test hands a shared system
-  directory to the executor and by a fixture that fails any test leaving the working directory
-  changed. (#207)
-
-### New Features
-
-- **Versification mapping — a reference is not a location until a scheme is named.**
-  `llmflow.utils.versification` maps a reference between schemes through `org` as the hub.
-  `PSA 51:1` in English is `PSA 51:3` in the original and `PSA 50:3` in the Vulgate; Malachi has
-  four chapters in English and three in Hebrew. A scheme may declare `basedOn`, and inherits the
-  verses it does not itself list.
-
-  **`type: scripture` takes a `versification:` key** naming the scheme the passage is written
-  in. When it differs from the edition's own, the reference is mapped before any text is read —
-  fetching first would fetch the wrong verses.
-
-  **An edition's scheme has no global default.** A Byzantine Greek text and a critical text are
-  numbered differently, so the scheme is a property of the edition: declared as
-  `versification_scheme` in its registry entry, or read from a Paratext project's
-  `Settings.xml`, or taken from the table of editions sp constructs in
-  `data/versification-editions.json`. If none answers and a cross-scheme mapping is asked for,
-  that is an error naming the field to add rather than a guess. A Paratext project carrying a
-  `custom.vrs` overlay is reported, because the overlay is not read.
-
-  **Six schemes ship** — `org`, `eng`, `lxx`, `vul`, `rsc`, `rso` — installed into
-  `~/.sp/versification/` by `sp init` and repaired by `sp doctor`. They are unmodified copies of
-  the Copenhagen Alliance mappings, CC BY-SA 4.0, with the attribution alongside them. A custom
-  scheme is a JSON file placed in that directory.
-
-  Three properties the data forces, each covered by a test: mappings are independent pairs and
-  never an ordering, because traditions disagree on sequence — the commandments in Exodus 20
-  among them; the reverse direction is many-valued, since `DAN 4:4` is reached from both
-  `DAG 4:1` and `DAG 4:7`, so `map_candidates` returns every candidate and `map_reference`
-  raises rather than choosing one; and an entry whose two sides cover different numbers of
-  verses is skipped and reported, one warning per scheme, rather than guessed at. A reference
-  outside its scheme raises rather than returning an empty result.
-
-- **A `kind: tei` edition backend.** A named edition may now point at a directory of Macula TEI
-  book files, joined into running text alongside the existing `tsv` and `usfm` backends and
-  producing identical output to the TSV for the same passage. Apparatus reference marks are not
-  text and are dropped; a word ending in an elision mark joins to the next without a space; and
-  several punctuation nodes after one word accumulate rather than replacing one another.
-
-- **`size` and `stride` accept a variable**, resolved once at step entry so the partition stays
-  constant for the loop and reproducible under `--rewind-to`. Anything that does not resolve to a
-  positive integer fails at step entry; `sp lint` warns that it cannot verify a variable's value.
-
-- **`tools/sync_helm.py` and `data/helm-sync.yaml`** — the set shared with Human at the Helm is
-  recorded with hashes and rulings and checked on CI. Reports by default, copies only under
-  `--apply`, and never touches a divergence that carries a ruling.
-
-- **`tools/update_plans_index.py`** generates `project/plans/README.md` from each document's
-  declared status and the issues it names, with `--check` exiting 1 when the index is stale. Kept
-  outside `src/llmflow/`, so nothing it produces reaches a project. Its Issues column is a mention
-  scrape rather than a declaration. (#163)
-
-- **`sp init` ships the audit method**, not only the `/audit-*` skills —
-  `docs/ai-context/sp/audits-pattern.md` covers which skill answers which question, tracing an
-  output field back to the request that produced it, and testing a prompt fix with
-  `sp tools replay`. It carries measured cases from real runs rather than general advice. The
-  first project-scoped `source: template` entry, so its content is a reviewable markdown file
-  rather than a Python string. (#214)
-
-- **`$SP_HOME` relocates the store** — one resolver in `src/llmflow/paths.py`, replacing eleven
-  call sites that each computed `~/.sp` independently, with a test that fails if any module
-  computes it again. For tests, containers and CI. (#207)
-
-### Documentation
-
-- **Rule 28: work on a single `dev` branch**, feature branches only when asked, `main` for what is
-  released — with an explicit clause that a project may declare a different workflow in its own AI
-  context and that decision governs locally. The only prior record of this was an unreviewed memory
-  file in `~/.claude`, invisible in every repository.
-
-- **`project/plans/plan-memory-recovery.md`** — the transfer record for the `~/.claude` memory
-  stores, now emptied: 81 files across 12 projects, unreviewed,
-  invisible in any repository, and loaded into every session ahead of the documents that carry
-  design authority. 39 were audited. Thirteen were second copies of authored sources, one
-  contradicted the record by pointing `GH_CONFIG_DIR` at a superseded path, and 22 items with no
-  home anywhere are preserved in the plan with proposed destinations. Every file remains readable
-  from `8678309`.
-
-- **The scripture step takes two parameters, not one.** `format:` for the shape
-  (`milestones` | `plain` | `usj`) and **`include:`** for what rides along. Measured on the whole of
-  Mark: the USJ container costs 4.26x a milestone string before any metadata, word ids take it to
-  5.67x, and one repo's annotations to 11.78x — so the dimension worth controlling separately is
-  the payload, not the container. Recorded in
-  `project/plans/design-scripture-representations.md` (#200).
-
-- **Rule 27: the commit, the push and the merge are the human's.** Nothing `sp init` installed
-  said who may commit. The five shipped context documents and the 26 rules contained no mention
-  of `git commit`, `git push` or `git merge` — absent text, not wrong text — which left the
-  machine-wide `commit-ready` skill, whose gates have the agent committing, pushing, merging and
-  deleting branches, as the only voice a session in a client project heard on the subject. An
-  agent now runs the gates, writes the message to a file, and hands over the command. Passing the
-  gates is not authorization. The skill itself still contradicts this and sits in a store an agent
-  may not change.
-
-- **The topic map points at the design documents.** `docs/ai-context/index.md` did not mention
-  `project/plans/`, so an assistant following the canonical map never learned the documents
-  existed — and twelve of them named no issue, so one could be stranded without anyone noticing.
-  That is how `design-scripture-editions.md` came to exist only on a local tag while
-  `project/TODO.md` pointed at it. Verified not to reach consumer repositories: this repository's
-  topic map and the one `sp init` installs are separate artifacts with no shared source.
-
-- **`project/plans/design-scripture-representations.md`** specifies the representation half of
-  #200 — what each serialisation carries and drops, the `xml:id`/`ref` alignment spine and why
-  one source cannot join to it by id, the measured cost of each form sent to a model, and four
-  questions awaiting a ruling. Records that Lowfat departs from document order in roughly 40% of
-  Mark's verses, which makes naive text extraction wrong in a way that survives casual testing.
-
-- **`docs/llmflow-language.md` explains windowing semantics**, not just its mechanics:
-  physical block versus logical units, why a fixed `stride` asserts knowledge you do not have,
-  the discard-and-resume corollary, and an explicit statement that the engine enforces none of
-  it — that discipline is pipeline-side and a run that gets it wrong loses content silently.
-
-- **Two rules added** — data moves between steps through the
-  pipeline context and nowhere else, and pipeline logic belongs in the pipeline language rather
-  than reimplemented in Python. Neither existed; the only prior statement was one descriptive
-  sentence in `docs/architecture.md`.
-
-- **`disciplines/surface-decisions.md`: only the Captain writes after a `=>`.** An AI filling in
-  its own answer slot manufactures the authority it was asking for, and nothing distinguishes
-  the two afterwards.
-
-- **`disciplines/github-authority.md`: identity in three levels.** A git author is a string, not
-  a login; a second hosting-service account covers only the service-facing half; a paid seat,
-  org role or extra AI-tool account is never required.
-
-## 0.2.1.24 — 2026-08-16
-
-### New Features
-
-
-- **A fresh clone now gets its skills (#204)** — `sp init` copies `~/.sp/skills/` into the
-  repository's `.claude/skills/`, which is a location Claude Code actually reads. `~/.sp/skills/`
-  is not: a skill left there is invisible, so `/load-context` did not exist as a command. Nothing
-  is written to `~/.claude`, so no machine-scoped permission is needed. Whole skill directories are
-  copied rather than `SKILL.md` alone.
-
-- **`sp init` is fully non-interactive** — it previously returned silently when stdin was not a TTY,
-  which is the path CI, Docker builds and any scripted onboarding take, and on a terminal it asked
-  four questions with `Claude Code` defaulting to *No* and skills behind a second *No*. A user
-  pressing Enter throughout ended up with a silently broken setup. Every write is inside the project
-  directory and idempotent, so no prompt remains.
-
-- **`sp init` generates a `.gitignore` when a project has none**, and never overwrites one that
-  exists. Its contents are derived from the file catalog, so `.claude/skills/` cannot end up ignored
-  — the mistake that leaves a clone with no slash commands.
-
-- **A declared catalog of managed files, `data/file-catalog.yaml` (#204)** — ownership used to be
-  decided by sniffing for `<!-- Generated by sp init -->` on line 1, and that marker's text had
-  already drifted in shipped code (`cli.py` says `llmflow init`, `cli_utils.py` says `sp init`), so
-  a file could become either permanently un-updatable or silently overwritable. Ownership is now a
-  property of a catalog entry keyed by path. The catalog is data, not code: `llmflow/file_catalog.py`
-  only reads it. Both the generated `.gitignore` and `sp doctor`'s ownership boundary are derived
-  from it, so the two cannot disagree.
-
-
-- **`sp doctor` — verify that a machine is set up correctly (#204)** — nothing previously answered
-  "is this set up correctly?", so the first symptom of a missing markdown file was an API error that
-  named nothing. `doctor` checks `~/.sp/`, the conventions, the files skills read directly, the
-  installed skills, whether skills are anywhere Claude Code can actually find them, the project's
-  `docs/ai-context/`, and whether the project is registered. Every failure names a remedy.
-
-  Three design properties worth knowing:
-
-  - **Read-only.** It reports and never repairs, so running it is always safe. Pinned by a test that
-    fails if it creates or writes anything.
-  - **Expectations come from the shipped package, not a list inside `doctor`.** Adding a template
-    requires no change here. A second list would drift — which is exactly how three conventions went
-    unshipped for months.
-  - **It distinguishes absence from misconfiguration.** A missing `CLAUDE.md` is reported as
-    information, not a failure: it is gitignored by convention, so a clone never has one, and
-    committed context belongs in `docs/ai-context/`. A missing
-    `~/.sp/user-context/filesystem-access.md` is not reported at all, because it grants an AI read
-    access to a directory tree and only a machine's owner can grant that.
-
-  Known overlap with `sp registry status`, which also reports on `~/.sp/`. Whether `doctor` subsumes
-  it is tracked in #205; nothing is consolidated yet.
-
-
-- **`sp lint` validates structured-output schemas before the run (#196)** — prompt contracts
-  were checked before any token was spent; the JSON Schema in the same request was not
-  checked at all. Under `strict: true` OpenAI accepts only a restricted subset and rejects
-  anything else with **HTTP 400 at request time**, so a pipeline could pass every check,
-  fetch its passage, complete three steps, and die on the fourth with a provider error
-  naming a JSON path rather than a line in the YAML — with the earlier steps already paid for.
-
-  `sp lint` now reports, per step and per schema path:
-
-  ```
-  ❌ Step 'segment_book': properties.pericopes.items: every property must be listed in
-     'required' under strict mode. Missing: start_verse, end_verse, pericope_type
-     Fix: add them to 'required'; if a field is genuinely optional, give it a nullable
-          type — {"type": ["string", "null"]} — and list it in 'required' anyway
-  ```
-
-  Errors: every property listed in `required`; `additionalProperties: false` on every
-  object; an object at the root; `$ref`s that resolve. Warnings: keywords outside the
-  supported subset, and the documented size limits — OpenAI has widened the subset several
-  times, and a stale rule table must not block work the provider would accept. The table is
-  data, in one place, carrying a `LAST_VERIFIED` date.
-
-  Gated two ways. `strict: true` gates the errors, since OpenAI does not enforce the subset
-  without it — a schema missing `strict` gets a warning that the guarantee is not in force.
-  And `response_format` is the trigger rather than the model name, so Gemini's
-  `response_schema` (#191) is not measured against OpenAI's rules. `schema_file` is loaded
-  and checked like an inline schema. `linter_config.skip_strict_schema_check: true` turns
-  it off.
-
-  The checker is pure — no network, no provider client, no key — so it cannot itself cost
-  anything.
-
-  **`pipelines/json-schema-example.yaml` was itself broken**, in all three steps, while
-  advertising "guaranteed schema compliance". Five objects listed properties that were
-  absent from `required`. It is fixed here, and passing its own lint is the acceptance test
-  for the feature.
-
-### Changed
 
 - **The five methodology skills no longer carry Scripture Pipelines vocabulary (human-at-the-helm#1)** —
   `authorize`, `stand-down`, `handoff`, `load-context` and `commit-ready` are now one text serving
@@ -444,6 +329,50 @@
 
 ### Fixed
 
+- **The shipped window-cursor example lost content.** `docs/llmflow-language-quickref.md` set the
+  cursor from the *dropped* last unit's opening, so any gap between the last kept unit and the
+  dropped one was skipped by every later window. It now resumes from the trailing edge of the last
+  unit **kept**. Reported from `nida-institute/discourse-flow`.
+
+- **`window_num` worked at run time and failed `sp lint`.** The linter now injects all five
+  variables a window step provides — `window_num`, `_window_index`, `_window_first`,
+  `_window_last`, `_window_cursor` — making `window` symmetric with `for-each`.
+
+- **One rule set, not two.** `docs/ai-context/rules.md` was written by two generators holding two
+  independently maintained texts, so which rules a project was held to depended on which generator
+  ran last. `data/ai-rules.yaml` is now the single source; both generators render from it.
+
+- **`sp doctor` could not refresh four documents `sp init` writes.** `docs/tutorial.md`,
+  `docs/llmflow-language-quickref.md`, `docs/vscode.md` and `project/TODO.md` were absent from
+  `data/file-catalog.yaml`, and `managed_by_doctor()` returns only catalogued entries — so a fix to
+  a shipped document could not reach an existing project. Now catalogued, with a test that fails if
+  `sp init` writes anything the catalog does not declare. Reported from
+  `nida-institute/discourse-flow`.
+
+- **`gpt-4.1` was wrongly reported as incompatible with structured outputs.** The `audit-prompts`
+  skill and `docs/llmflow-language.md` told auditors to change the model, contradicting rule 5.
+  Measured elsewhere at 200+ calls with strict `json_schema` and zero failures. The hardcoded model
+  allowlist is replaced by guidance to check the provider's capability table and the project's own
+  run evidence.
+
+- **`sp doctor --help` claimed to be read-only** — it restores any `policy: generated` file that
+  is missing or has diverged, which cost a consumer repository two hand-authored files on
+  2026-08-23. The help text now says it writes and what it overwrites.
+
+- **The test suite wrote outside the project** — every init test registered its pytest temp
+  directory as a permanent project in the real `~/.sp/`, and moving the store to pytest's default
+  temp root then left tens of megabytes a run in the machine's temp area, including directories
+  its cleanup could not remove. `$SP_HOME` is now redirected per test with a guard that fails the
+  run if the real store is touched, intermediates go to `tmp/pytest/` inside the repository
+  (declared in `pytest.ini`, git-ignored, announced at startup), and only failing tests'
+  directories survive a run. (#207)
+
+- **A test wrote `llmflow.log` into `/private/tmp` on every run.** `test_gui_cors_config.py` handed
+  the executor a literal `/tmp` as the project path, and the executor runs with `cwd` set to it.
+  It now uses a per-test directory, guarded by a check that no test hands a shared system
+  directory to the executor and by a fixture that fails any test leaving the working directory
+  changed. (#207)
+
 - **`commit-ready` gated only the Python suite, leaving the GUI's TypeScript tests invisible (#206)** —
   `gui/frontend/` is a TypeScript project with seven Vitest test files, and CI has always run them
   (`npm test -- --run`, `npx tsc --noEmit`). The skill that calls itself "the full LLMFlow definition
@@ -514,7 +443,6 @@
   **This is not confirmed to be the cause of the bodyless HTTP 400 reported in #204.** Two
   proposed mechanisms for that failure have been refuted by test, and the cause remains unknown;
   see #204. This change is justified on its own merits.
-
 
 - **A second run no longer destroys the first run's audit trail (#198)** — the debug
   directory was emptied with `shutil.rmtree()` at the start of every run, and it was keyed
@@ -674,6 +602,65 @@
 
 ### Documentation
 
+- **Rule 28: work on a single `dev` branch**, feature branches only when asked, `main` for what is
+  released — with an explicit clause that a project may declare a different workflow in its own AI
+  context and that decision governs locally. The only prior record of this was an unreviewed memory
+  file in `~/.claude`, invisible in every repository.
+
+- **`project/plans/plan-memory-recovery.md`** — the transfer record for the `~/.claude` memory
+  stores, now emptied: 81 files across 12 projects, unreviewed,
+  invisible in any repository, and loaded into every session ahead of the documents that carry
+  design authority. 39 were audited. Thirteen were second copies of authored sources, one
+  contradicted the record by pointing `GH_CONFIG_DIR` at a superseded path, and 22 items with no
+  home anywhere are preserved in the plan with proposed destinations. Every file remains readable
+  from `8678309`.
+
+- **The scripture step takes two parameters, not one.** `format:` for the shape
+  (`milestones` | `plain` | `usj`) and **`include:`** for what rides along. Measured on the whole of
+  Mark: the USJ container costs 4.26x a milestone string before any metadata, word ids take it to
+  5.67x, and one repo's annotations to 11.78x — so the dimension worth controlling separately is
+  the payload, not the container. Recorded in
+  `project/plans/design-scripture-representations.md` (#200).
+
+- **Rule 27: the commit, the push and the merge are the human's.** Nothing `sp init` installed
+  said who may commit. The five shipped context documents and the 26 rules contained no mention
+  of `git commit`, `git push` or `git merge` — absent text, not wrong text — which left the
+  machine-wide `commit-ready` skill, whose gates have the agent committing, pushing, merging and
+  deleting branches, as the only voice a session in a client project heard on the subject. An
+  agent now runs the gates, writes the message to a file, and hands over the command. Passing the
+  gates is not authorization. The skill itself still contradicts this and sits in a store an agent
+  may not change.
+
+- **The topic map points at the design documents.** `docs/ai-context/index.md` did not mention
+  `project/plans/`, so an assistant following the canonical map never learned the documents
+  existed — and twelve of them named no issue, so one could be stranded without anyone noticing.
+  That is how `design-scripture-editions.md` came to exist only on a local tag while
+  `project/TODO.md` pointed at it. Verified not to reach consumer repositories: this repository's
+  topic map and the one `sp init` installs are separate artifacts with no shared source.
+
+- **`project/plans/design-scripture-representations.md`** specifies the representation half of
+  #200 — what each serialisation carries and drops, the `xml:id`/`ref` alignment spine and why
+  one source cannot join to it by id, the measured cost of each form sent to a model, and four
+  questions awaiting a ruling. Records that Lowfat departs from document order in roughly 40% of
+  Mark's verses, which makes naive text extraction wrong in a way that survives casual testing.
+
+- **`docs/llmflow-language.md` explains windowing semantics**, not just its mechanics:
+  physical block versus logical units, why a fixed `stride` asserts knowledge you do not have,
+  the discard-and-resume corollary, and an explicit statement that the engine enforces none of
+  it — that discipline is pipeline-side and a run that gets it wrong loses content silently.
+
+- **Two rules added** — data moves between steps through the
+  pipeline context and nowhere else, and pipeline logic belongs in the pipeline language rather
+  than reimplemented in Python. Neither existed; the only prior statement was one descriptive
+  sentence in `docs/architecture.md`.
+
+- **`disciplines/surface-decisions.md`: only the Captain writes after a `=>`.** An AI filling in
+  its own answer slot manufactures the authority it was asking for, and nothing distinguishes
+  the two afterwards.
+
+- **`disciplines/github-authority.md`: identity in three levels.** A git author is a string, not
+  a login; a second hosting-service account covers only the service-facing half; a paid seat,
+  org role or extra AI-tool account is never required.
 
 - **The `sp` name clash in PowerShell is documented** — PowerShell defines `sp` as an alias for
   `Set-ItemProperty` and resolves aliases before programs, so `sp --version` runs the cmdlet and
