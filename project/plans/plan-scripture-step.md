@@ -751,6 +751,56 @@ asserted as agreement; `include` rejected at lint.
 feature types, Greek only. Tests: features attach at word ids; a Hebrew edition warns rather than
 failing (§4).
 
+*Measured in the source, 2026-08-26, because three of these facts change the algorithm:*
+
+| | |
+|---|---|
+| feature files | **33** (plus `levinsohn.xml`, which only `xi:include`s them, and a dangling emacs lock file) |
+| citations | **52,257** |
+| books | 27, keyed by **OSIS** code — `Matt`, `Mark`, `1John` — not USFM, so a mapping is needed |
+| quote length | 37,975 are one word; the longest is **509** |
+| `type` | `propositions` (Main clauses), `markup` (31 features), `annotations` (1) |
+| `level` | 0–6 on Main clauses; absent on 25,644 citations |
+
+*Each citation is `<reference osisRef="Matt.1.1!1" type="…" level="0" verse="Matt 1:1">quote</reference>`
+— the `!n` index is 1-based within the verse, matching Macula's `ref`, and **the quote is
+lowercased**.*
+
+**The resolution rules, from `nida-institute/discourse-flow`'s `plugins/reference_resolution.py`,
+which is the reference implementation and the oracle for this step:**
+
+| condition | outcome | id returned |
+|---|---|---|
+| quote matches at the index | `verified` | the indexed word |
+| index usable, quote matches elsewhere | `disagrees` — **the index is kept** and flagged | the indexed word |
+| index impossible, quote found **exactly once** | `rescued` | the quote's position |
+| index impossible, quote found more than once | `ambiguous` | none |
+| index impossible, quote absent | `not_found` | none |
+| quote empty, index usable | `unverifiable` | the indexed word |
+
+*Two requirements their prose did not state, both found in the code and both load-bearing:*
+
+- **Normalise before comparing**: NFD, strip combining marks, lowercase, trim edge punctuation.
+  Case-folding is unavoidable — every LGNTDF quote is lowercased while the text capitalises
+  sentence-initial words. The diacritic half was justified by SBLGNT encoding the acute two ways,
+  oxia and tonos, rendering identically (`Clear-Bible/macula-greek#109`). **Measured 2026-08-26:
+  that is now fixed — the corpus is 42,112 tonos and zero oxia, and LGNTDF is 39,280 tonos and
+  zero oxia.** So the hazard is dormant rather than absent, and stripping stays: Macula was
+  re-normalised on 2026-08-25, which is the argument for not letting the comparison depend on
+  either side's encoding.
+- **A phrase may run past the verse end.** A range ref quotes across verses —
+  `Matt.6.9!5-Matt.6.13!61` is the whole Lord's Prayer — and only the opening is cited, so the
+  comparison is against the prefix that fits, with a minimum length before a truncated match counts.
+
+*The `disagrees` row is the one that cost them a corrected pass: `Main clauses` indexes the clause
+**onset** while quoting the constituent Levinsohn cites — Mark 1:14 indexes `Καὶ` and quotes
+`μετὰ`. Treating that as an error and moving the index relocated 84 clause boundaries. **Only an
+impossible index is ever moved** (31 NT-wide).*
+
+*Their per-book figures are the acceptance target: Mark 4,400 citations at 96.7% verified, 2.1%
+rescued, 1.3% unresolved; NT-wide 51,699 of 51,722 resolve, and the 23 refusals are real textual
+differences.*
+
 **10. Variants as notes.** Apparatus parsing plus the ordinal join (§3.6). More complex than any
 family because it reads a second file with its own conventions. Tests: marks pair with notes per
 verse; an entry resolves to a word position; Mark 8:35's mismatch is handled explicitly rather than

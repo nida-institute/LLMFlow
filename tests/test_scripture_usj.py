@@ -51,9 +51,9 @@ def flatten(usj: dict) -> str:
                     parts.append(item)
                 elif item["type"] == "verse":
                     parts.append(
-                        MILESTONE_TEMPLATE.format(chapter=chapter, verse=item["number"])
+                        MILESTONE_TEMPLATE.format(chapter=chapter, verse=item["number"]) + " "
                     )
-    return " ".join(parts)
+    return "".join(parts).strip()
 
 
 # --- structure ----------------------------------------------------------------------
@@ -77,10 +77,12 @@ def test_one_chapter_node_and_one_para_per_chapter():
 
 
 def test_a_para_holds_verse_nodes_and_text():
+    """A text node carries its own trailing space, so a consumer concatenates rather than
+    space-joins — otherwise every comma gains a space in front of it."""
     para = rows_to_usj(GREEK_ROWS, book="MRK")["content"][2]
     assert para["marker"] == "p"
     assert para["content"][0] == {"type": "verse", "marker": "v", "number": "1"}
-    assert para["content"][1] == "Ἀρχὴ χριστοῦ."
+    assert para["content"][1] == "Ἀρχὴ χριστοῦ. "
 
 
 def test_every_verse_in_the_rows_appears_once():

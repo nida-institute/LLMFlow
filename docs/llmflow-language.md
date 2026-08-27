@@ -734,6 +734,7 @@ machine where the sources live somewhere else.
   passage: "${passage}"       # MRK · MRK 1 · MRK 1:1 · MRK 1:1-8 · MRK 1:40-2:12
   format: milestones          # plain | milestones | usj   (default: milestones)
   versification: eng          # optional; the scheme `passage` is written in
+  include: [ids]              # optional; valid only with format: usj
   output: source_text
 ```
 
@@ -745,6 +746,7 @@ machine where the sources live somewhere else.
 **Optional Fields:**
 - `format`: The shape of the result (see below). Default `milestones`.
 - `versification`: The scheme `passage` is written in. See *Versification*.
+- `include`: Annotation families. A **list**, never a single word. See *Annotation*.
 - `saveas`, `append_to`: as for any step.
 
 #### Choosing a format
@@ -767,6 +769,141 @@ something consumes the structure.
 inside each, `verse` nodes and text. The Macula sources carry no paragraph structure, so there
 is none to represent; a `para` per chapter is the least the USX grammar allows. Flattening the
 document reproduces `format: milestones` exactly, and that equivalence is a test.
+
+**Text nodes carry their own spacing.** Rebuild running text by **concatenating** them, not by
+joining with a space — otherwise every comma gains a space in front of it.
+
+#### Annotation — the `include` families
+
+`include` names what the payload carries. It is valid **only** with `format: usj`; with `plain`
+or `milestones` there is nowhere to put it, and asking is an error rather than a silent no-op.
+It defaults to empty, because a payload nobody asked for is a payload nobody checked.
+
+Seven families: `ids`, `morphology`, `senses`, `glosses`, `referents`, `discourse`, `syntax`.
+**`ids` and `discourse` are implemented; the other five raise `NotImplementedError` naming
+themselves** — a document returned without the payload you asked for would be worse than an
+error.
+
+```yaml
+- name: fetch-addressable
+  type: scripture
+  edition: SBLGNT
+  passage: "MRK 1:1"
+  format: usj
+  include: [ids]
+  output: source
+```
+
+Everything `include` delivers, and everything the payload says about itself, lives under one
+key the USJ specification does not define:
+
+```json
+{
+  "type": "USJ", "version": "3.1",
+  "content": [ … ],
+  "scripture_pipelines": { "versification": "org" }
+}
+```
+
+Two things follow, and both matter to a consumer more than to us. **One key to strip:** a
+consumer wanting standard USJ removes `scripture_pipelines` and is done. **One place to look:**
+an extension outside that key would be an extension nobody could find.
+
+The container appears only when `include` is non-empty, and it states the versification scheme
+the verse references are in. If the edition does not say which scheme that is, the key is
+omitted and a warning names the field to add — the container never invents one.
+
+**Spec-defined fields stay where the spec puts them.** `ids` is not container content: it
+becomes `srcloc` on a `\w` character node, which is where USX already carries a word's source
+location.
+
+```json
+{"type": "char", "marker": "w", "srcloc": "n41001001001", "content": ["Ἀρχὴ"]}
+```
+
+Without `include: [ids]` a verse is one text node; with it, every word becomes its own node.
+That is the cost: structure per word rather than per verse. Pay it when something downstream
+addresses individual words.
+
+#### `include: [discourse]` — Levinsohn's features, reconciled rather than attached
+
+Greek New Testament only. The edition names its source, so no path appears in a pipeline:
+
+```yaml
+# ~/.sp/editions/SBLGNT.yaml
+id: SBLGNT
+kind: tsv
+path: /path/to/macula-greek-SBLGNT.tsv
+versification_scheme: org
+discourse_path: /path/to/LGNTDF        # the 33 LGNTDF feature files
+```
+
+```yaml
+- name: fetch_with_discourse
+  type: scripture
+  edition: SBLGNT
+  passage: "MRK 1:14"
+  format: usj
+  include: [ids, discourse]
+  output: source
+```
+
+An edition naming no `discourse_path` **warns and attaches nothing** — Levinsohn's corpus covers
+the Greek NT only, so a Hebrew edition asking for it is a configuration mismatch rather than a
+failure.
+
+**Why "reconciled" and not "attached".** Levinsohn's word indices are NA28-family; the text is
+SBLGNT. Where SBL made a different editorial choice his index names a *different word* — and it
+does not fail, it silently returns the wrong one. Every citation carries a second signal, the
+Greek he quotes, and each item reports what checking one against the other established:
+
+| `outcome` | meaning | `id` |
+|---|---|---|
+| `verified` | the quote matches at the index | the indexed word |
+| `disagrees` | the index is usable but the quote is elsewhere — **the index is kept** | the indexed word |
+| `rescued` | the index is impossible and the quote appears exactly once | the quote's position |
+| `ambiguous` | impossible index, quote appears more than once | none |
+| `not_found` | impossible index, quote absent | none |
+| `anchored` | a note, which has no quote to check | the indexed word |
+
+```json
+"scripture_pipelines": {
+  "versification": "org",
+  "discourse": [
+    {"id": "n41001014001", "kind": "feature", "feature": "Main clauses",
+     "outcome": "disagrees", "index": 1, "level": 0, "quote_found_at": 2},
+    {"id": "n41001014008", "kind": "feature", "feature": "Over-encoding",
+     "outcome": "verified", "index": 8}
+  ]
+}
+```
+
+**`disagrees` is information, not an error, and the index is never moved.** `Main clauses` marks
+a clause's *onset* while quoting the constituent Levinsohn cites — Mark 1:14 indexes `Καὶ` and
+quotes `μετὰ`. A consumer that "corrected" those moved 84 clause boundaries. Only an *impossible*
+index is ever relocated: 31 across the whole New Testament.
+
+Measured over 51,722 citations: 50,317 verified, 1,883 disagree, 31 rescued, 23 not found, 3
+ambiguous. Those totals were reproduced independently by `nida-institute/discourse-flow`.
+
+**Two kinds of citation share one file format.** 32 files hold discourse features whose text is
+the Greek quote; `Annotations.xml` holds 535 of Levinsohn's own notes whose text is **English
+commentary**. A note has no quote, so it cannot be verified — it arrives as `kind: "note"` with
+`outcome: "anchored"` and its prose in `text`. Running notes through the resolver would produce
+532 false disagreements and bury the 1,883 real ones, so they bypass it.
+
+#### What each form costs
+
+Measured on one book, with the unit stated — the same text is 2.56× in codepoints, 1.78× in
+UTF-8 bytes and 6.74× as escaped JSON, so a reader who assumes bytes and gets escaped JSON
+mis-costs every decision downstream.
+
+| form | cost | when it is the right choice |
+|---|---|---|
+| `plain` | baseline | a whole-book step that cannot window — one consumer reads 32 KB where the annotated form is 1.3 MB, a 43× difference |
+| `milestones` | **1.072×** bare text | the default, and enough whenever a verse reference is all the addressing needed |
+| `usj`, no `include` | 2.56× codepoints, **6.74× as escaped JSON** | structure is needed but annotation is not |
+| `usj` + families | to **11.78×** as one consumer ships it | only the families a step actually reads |
 
 #### Versification
 
