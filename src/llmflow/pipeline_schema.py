@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from llmflow.utils.scripture import FORMATS as SCRIPTURE_FORMATS
+from llmflow.utils.scripture import INCLUDE_FAMILIES as SCRIPTURE_INCLUDE_FAMILIES
 
 
 class LLMConfig(BaseModel):
@@ -254,6 +255,12 @@ _STEP_TYPE_PROPERTIES = [
             # The scheme `passage` is written in. Not an enum: a Paratext project brings its
             # own, and a custom mapping is a file the human puts in the store.
             "versification": {"type": "string"},
+            # The annotation families, read from the one place that names them. A list
+            # always — a bare string is rejected with the corrected form.
+            "include": {
+                "type": "array",
+                "items": {"type": "string", "enum": list(SCRIPTURE_INCLUDE_FAMILIES)},
+            },
         },
     ),
     (
@@ -419,6 +426,30 @@ def allowed_step_keys(step_type):
         if step_type in _branch_types(branch):
             keys |= set(branch.get("then", {}).get("properties", {}))
     return keys
+
+
+def step_value_enums(step_type) -> dict:
+    """`{key: allowed values}` for every per-type key the schema constrains to an enum.
+
+    An array-valued key reports its *item* enum, so `include: [ids]` and `format: usj` are
+    checked the same way. Read by the linter so the enum lives only in the schema.
+    """
+    if step_type not in declared_step_types():
+        return {}
+    enums: dict = {}
+    for branch in _step_items().get("allOf", []):
+        if step_type not in _branch_types(branch):
+            continue
+        for key, spec in branch.get("then", {}).get("properties", {}).items():
+            if not isinstance(spec, dict):
+                continue
+            if isinstance(spec.get("enum"), list):
+                enums[key] = list(spec["enum"])
+            else:
+                items = spec.get("items")
+                if isinstance(items, dict) and isinstance(items.get("enum"), list):
+                    enums[key] = list(items["enum"])
+    return enums
 
 
 def step_keys() -> set:

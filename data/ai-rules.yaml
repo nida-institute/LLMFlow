@@ -324,3 +324,18 @@ rules:
     persist. Issue and plan references were deliberately left legal: a stable pointer to where
     the reasoning lives is the rule''s remedy, not its violation. Appended rather than inserted,
     because rules are cited by position across this repository.'
+- id: reference-data-is-json
+  rule: '**Scripture reference data is JSON, not YAML.** PyYAML reads a bare verse reference as a
+    base-60 integer: `opening: 1:1` becomes `61` and `closing: 1:3` becomes `63`, silently and
+    with no error. `NO` becomes `False`. Quoting every scalar avoids it, but a generated file
+    whose correctness depends on every future writer remembering to quote is a trap rather than a
+    convention — and the corruption is invisible, because `61` is a plausible verse number. Use
+    JSON for any file carrying references, and where YAML already holds such data, quote the
+    scalars and say in a comment why the quotes are load-bearing. This is measured against
+    PyYAML, not inferred from the specification.'
+  note: 'Added 2026-08-27. Found while choosing a format for a pericope boundary list — a file
+    that exists precisely so consumers can iterate by reference, and therefore the one place a
+    coerced reference would be least visible and most damaging. YAML remains right for
+    configuration a human edits, which is what `pipelines/*.yaml` and `data/*.yaml` are; the
+    distinction is data *about references* versus configuration. Appended rather than inserted,
+    because rules are cited by position across this repository.'

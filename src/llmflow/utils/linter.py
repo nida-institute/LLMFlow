@@ -1542,6 +1542,31 @@ def _lint_json_step(step, errors):
         errors.append(f"Step '{name}' (type: json) is missing required key 'value'")
 
 
+def _lint_step_enums(step, errors):
+    """Check values the schema constrains to an enum.
+
+    Key *names* were already validated per type; this is the value half. Without it a
+    pipeline declaring `format: parquet` or `include: [parsing]` lints clean and fails at run
+    time, after earlier steps may have spent money.
+    """
+    from llmflow.pipeline_schema import step_value_enums
+
+    step_name = step.get("name", "<unnamed>")
+    for key, allowed_values in step_value_enums(step.get("type")).items():
+        if key not in step:
+            continue
+        value = step[key]
+        offending = [
+            v for v in (value if isinstance(value, (list, tuple)) else [value])
+            if isinstance(v, str) and v not in allowed_values
+        ]
+        for bad in offending:
+            errors.append(
+                f"Step '{step_name}' has {key}: {bad!r}, which is not one of "
+                f"{', '.join(map(str, allowed_values))}"
+            )
+
+
 def _lint_step_keys(step, errors):
     """Validate a step's keys against the schema's per-type vocabulary.
 
@@ -1565,6 +1590,8 @@ def _lint_step_keys(step, errors):
                     f"(Did you mean '{COMMON_TYPOS[key]}'?)"
                 )
         return
+
+    _lint_step_enums(step, errors)
 
     for key in step.keys():
         if key in allowed or key in _INTERNAL_STEP_KEYS:
