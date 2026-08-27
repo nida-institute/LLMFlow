@@ -169,6 +169,11 @@
           "doc": "The rules document `sp init` writes, rendered from `data/ai-rules.yaml`."
         },
         {
+          "name": "template_text",
+          "signature": "template_text(relative_path: str) -> str",
+          "doc": "The text of a shipped template, read from the package."
+        },
+        {
           "name": "__getattr__",
           "signature": "__getattr__(name: str)",
           "doc": "Render `AI_RULES_DOC` on first access from the single source (2026-08-21)."
@@ -611,6 +616,11 @@
           "name": "allowed_step_keys",
           "signature": "allowed_step_keys(step_type)",
           "doc": "Keys a step of *step_type* may carry, or ``None`` when the type is permissive."
+        },
+        {
+          "name": "step_value_enums",
+          "signature": "step_value_enums(step_type) -> dict",
+          "doc": "`{key: allowed values}` for every per-type key the schema constrains to an enum."
         },
         {
           "name": "step_keys",
@@ -2450,6 +2460,71 @@
       ]
     },
     {
+      "module": "llmflow.utils.discourse",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "enum",
+        "llmflow.modules.logger",
+        "pathlib",
+        "re",
+        "typing",
+        "unicodedata"
+      ],
+      "functions": [
+        {
+          "name": "normalize_greek",
+          "signature": "normalize_greek(text: Optional[str]) -> str",
+          "doc": "Fold a Greek word to a form safe to compare: no diacritics, lowercase, no edge marks."
+        },
+        {
+          "name": "osis_to_usfm",
+          "signature": "osis_to_usfm(book: str) -> str",
+          "doc": "The USFM code for an OSIS book code."
+        },
+        {
+          "name": "parse_osis_ref",
+          "signature": "parse_osis_ref(osis_ref: str) -> tuple[str, int, int, int]",
+          "doc": "`Mark.1.14!3` as (USFM book, chapter, verse, 1-based word index)."
+        },
+        {
+          "name": "_phrase",
+          "signature": "_phrase(quote: Optional[str]) -> list[str]",
+          "doc": ""
+        },
+        {
+          "name": "_matches_at",
+          "signature": "_matches_at(words: Sequence[str], phrase: Sequence[str], start: int) -> bool",
+          "doc": "Whether *phrase* matches at *start*, allowing it to run past the verse end."
+        },
+        {
+          "name": "_positions",
+          "signature": "_positions(words: Sequence[str], phrase: Sequence[str]) -> list[int]",
+          "doc": ""
+        },
+        {
+          "name": "resolve_citation",
+          "signature": "resolve_citation(rows: Sequence[Mapping[str, Any]], word_index: int, quote: Optional[str]) -> Resolution",
+          "doc": "Reconcile one citation's index with its quote against one verse's rows."
+        },
+        {
+          "name": "load_citations",
+          "signature": "load_citations(lgntdf_dir: Any) -> dict",
+          "doc": "Every citation in a directory of LGNTDF feature files, keyed by `\"BOOK c:v\"`."
+        },
+        {
+          "name": "resolve_verse",
+          "signature": "resolve_verse(citations: Sequence[Citation], rows: Sequence[Mapping[str, Any]]) -> list",
+          "doc": "One verse's citations as payload items, each carrying the word id and the outcome."
+        },
+        {
+          "name": "identifier",
+          "signature": "identifier(at: int) -> Optional[str]",
+          "doc": ""
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.file_io",
       "imports": [
         "json",
@@ -2783,6 +2858,11 @@
           "doc": ""
         },
         {
+          "name": "_lint_step_enums",
+          "signature": "_lint_step_enums(step, errors)",
+          "doc": "Check values the schema constrains to an enum."
+        },
+        {
           "name": "_lint_step_keys",
           "signature": "_lint_step_keys(step, errors)",
           "doc": "Validate a step's keys against the schema's per-type vocabulary."
@@ -2898,13 +2978,18 @@
           "doc": "*passage*, named in *requested_scheme*, rewritten as the edition numbers it."
         },
         {
+          "name": "check_include",
+          "signature": "check_include(include: Any, fmt: str) -> tuple",
+          "doc": "Validate `include` against `fmt` and return it as a tuple. See §4's lint rules."
+        },
+        {
           "name": "rows_to_output",
-          "signature": "rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str) -> str | dict",
+          "signature": "rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None) -> str | dict",
           "doc": "The requested representation of *rows*: a string, or a USJ document for ``fmt=\"usj\"``."
         },
         {
           "name": "rows_to_usj",
-          "signature": "rows_to_usj(rows: Sequence[Mapping[str, Any]], book: str) -> dict",
+          "signature": "rows_to_usj(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None) -> dict",
           "doc": "*rows* as a USJ document: the book, a chapter node per chapter, one `para` inside each."
         },
         {
@@ -2969,13 +3054,18 @@
         },
         {
           "name": "_tei_passage_text",
-          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, edition: str) -> str | dict",
+          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, edition: str, include: Sequence[str] = (), versification: Optional[str] = None) -> str | dict",
           "doc": "Running text for *passage* from a directory of per-book TEI files."
         },
         {
           "name": "edition_text",
-          "signature": "edition_text(edition: str, passage: str, fmt: str = 'milestones', editions: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None) -> str | dict",
+          "signature": "edition_text(edition: str, passage: str, fmt: str = 'milestones', editions: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None, include: Any = ()) -> str | dict",
           "doc": "Running text for *passage* in *edition*, dispatched on the edition's `kind`."
+        },
+        {
+          "name": "discourse_payload",
+          "signature": "discourse_payload(definition: Any, rows: Sequence[Mapping[str, Any]], edition: str) -> Optional[list]",
+          "doc": "Levinsohn items for *rows*, or None when this edition has no discourse source."
         },
         {
           "name": "__str__",
@@ -2991,6 +3081,11 @@
           "name": "moved",
           "signature": "moved(chapter: Optional[int], verse: Optional[int]) -> tuple[int, int]",
           "doc": ""
+        },
+        {
+          "name": "emit",
+          "signature": "emit(target: list, group: Sequence[Mapping[str, Any]]) -> None",
+          "doc": "Append a verse's material: one string, or a `w` node per word when ids are asked."
         },
         {
           "name": "walk",
@@ -4313,7 +4408,7 @@
     }
   ],
   "summary": {
-    "total_modules": 79,
-    "total_functions": 668
+    "total_modules": 80,
+    "total_functions": 684
   }
 }

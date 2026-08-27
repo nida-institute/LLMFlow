@@ -23,11 +23,10 @@ classifiers = [
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Religion",
   "Topic :: Text Processing :: Linguistic",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -60,7 +59,11 @@ dependencies = [
   "certifi",
 ]
 readme = "README.md"
-requires-python = ">=3.8"
+# 3.10 is the real floor, set by dependencies rather than by our own code: mcp,
+# click>=8.3 and llm>=0.29 each require >=3.10. Declaring >=3.8 let pip accept the
+# package on 3.9 and then fail on a transitive constraint, which reads as a broken
+# dependency rather than an unsupported interpreter (reported 2026-08-27).
+requires-python = ">=3.10"
 
 [project.urls]
 Homepage = "https://github.com/nida-institute/LLMFlow"

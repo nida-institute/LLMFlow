@@ -141,7 +141,12 @@ jobs:
           --include-data-dir=prompts=prompts \
           --include-data-dir=src/llmflow/templates=llmflow/templates \
           --include-data-dir=src/llmflow/gui/static=llmflow/gui/static \
+          --include-data-dir=docs/ai-context=llmflow/docs/ai-context \
+          --include-data-dir=docs/audits=llmflow/docs/audits \
           --include-data-file=data/models.json=llmflow/data/models.json \
+          --include-data-file=data/file-catalog.yaml=llmflow/data/file-catalog.yaml \
+          --include-data-file=data/ai-rules.yaml=llmflow/data/ai-rules.yaml \
+          --include-data-file=data/versification-editions.json=llmflow/data/versification-editions.json \
           --include-distribution-metadata=scripture-pipelines \
           --include-package=certifi \
           --include-package-data=certifi \
@@ -152,7 +157,7 @@ jobs:
     - name: Build with Nuitka (Windows)
       if: runner.os == 'Windows'
       run: |
-        python -m nuitka --standalone --onefile --assume-yes-for-downloads --windows-dependency-tool=pefile --enable-plugin=dll-files --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=src/llmflow/templates=llmflow/templates --include-data-dir=src/llmflow/gui/static=llmflow/gui/static --include-data-file=data/models.json=llmflow/data/models.json --include-distribution-metadata=scripture-pipelines --include-package=certifi --include-package-data=certifi --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
+        python -m nuitka --standalone --onefile --assume-yes-for-downloads --windows-dependency-tool=pefile --enable-plugin=dll-files --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=src/llmflow/templates=llmflow/templates --include-data-dir=src/llmflow/gui/static=llmflow/gui/static --include-data-dir=docs/ai-context=llmflow/docs/ai-context --include-data-dir=docs/audits=llmflow/docs/audits --include-data-file=data/file-catalog.yaml=llmflow/data/file-catalog.yaml --include-data-file=data/ai-rules.yaml=llmflow/data/ai-rules.yaml --include-data-file=data/versification-editions.json=llmflow/data/versification-editions.json --include-data-file=data/models.json=llmflow/data/models.json --include-distribution-metadata=scripture-pipelines --include-package=certifi --include-package-data=certifi --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
 
     - name: Smoke test binary (Unix)
       if: runner.os != 'Windows'
@@ -162,6 +167,10 @@ jobs:
         if grep -qi unknown version.txt; then echo "::error::sp --version returned 'unknown' — package metadata not bundled (#184)"; exit 1; fi
         $BIN lint --pipeline tests/fixtures/smoke.yaml
         $BIN run --pipeline tests/fixtures/smoke.yaml --dry-run
+        # Reads the bundled data/file-catalog.yaml. --version and lint do not, which is
+        # why a binary missing it shipped green (#216).
+        $BIN doctor > doctor.txt || { echo "::error::sp doctor failed on the binary"; cat doctor.txt; exit 1; }
+        grep -qi "versification" doctor.txt || { echo "::error::sp doctor did not report the versification mappings — bundled data missing?"; cat doctor.txt; exit 1; }
 
     - name: Smoke test binary (Windows)
       if: runner.os == 'Windows'
@@ -173,6 +182,11 @@ jobs:
         if ($ver -match "unknown") { Write-Error "sp --version returned 'unknown' — package metadata not bundled (#184)"; exit 1 }
         & $bin lint --pipeline tests/fixtures/smoke.yaml
         & $bin run --pipeline tests/fixtures/smoke.yaml --dry-run
+        # Reads the bundled data/file-catalog.yaml, which --version and lint do not (#216).
+        $doc = & $bin doctor 2>&1
+        Write-Output $doc
+        if ($LASTEXITCODE -ne 0) { Write-Error "sp doctor failed on the binary"; exit 1 }
+        if ($doc -notmatch "ersification") { Write-Error "sp doctor did not report the versification mappings — bundled data missing?"; exit 1 }
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v4
