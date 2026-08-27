@@ -394,8 +394,15 @@ def run_doctor(
 
     # --- project files sp owns ----------------------------------------------
     # Divergence only. A project file that is simply absent is sp init's business.
+    #
+    # Selected by what sp *owns* — `managed_by_doctor()` has already narrowed to `generated` —
+    # not by where the content comes from. This used to read `source is Source.CONSTANT`, which
+    # silently stopped repairing eighteen files the moment their content moved from a Python
+    # literal to a shipped template. Where the bytes live is not a fact about ownership.
     project_entries = [
-        e for e in catalog if e.scope is Scope.PROJECT and e.source is Source.CONSTANT
+        e
+        for e in catalog
+        if e.scope is Scope.PROJECT and e.source in (Source.CONSTANT, Source.TEMPLATE)
     ]
     present = [e for e in project_entries if (project_dir / e.path).exists()]
     if present:
