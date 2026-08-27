@@ -38,12 +38,17 @@ def run_scripture_step(
     scheme = step.get("versification")
     scheme = str(resolve(scheme, context)) if scheme else None
 
+    # A list, never a single word: `check_include` rejects a bare string by name.
+    include = step.get("include") or ()
+    if isinstance(include, (list, tuple)):
+        include = [str(resolve(member, context)) for member in include]
+
     # The editions directory is overridable so tests need not write to a real ~/.sp.
     editions_dir = (pipeline_config or {}).get("_editions_dir")
     editions = load_registry_editions(editions_dir)
 
     result = edition_text(
-        edition, passage, fmt=fmt, editions=editions, versification=scheme
+        edition, passage, fmt=fmt, editions=editions, versification=scheme, include=include
     )
     size = (
         f"{len(result.get('content') or [])} nodes"
