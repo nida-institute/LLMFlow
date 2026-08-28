@@ -1,156 +1,115 @@
-# HANDOFF — 2026-08-25 (evening)
+# HANDOFF — 2026-08-28
 
-Supersedes the morning's handoff of the same date.
-
----
-
-## ▶ NEXT ACTION — commit two repositories, then USJ
-
-**Nothing is committed in either repository.** Both are green and both are the human's to commit.
-
-```bash
-# 1. the engine — 106+ paths, suite green at 2970 passed / 26 skipped
-cd ~/github/nida-institute/LLMFlow
-git add -A -- . ':!project/plans/*' ':!project/HANDOFF.md' ':!project/REVIEW.md' ':!project/tmp-context.md'
-git commit -F tmp/commit-1-engine.txt
-hatch run pytest -q
-git add project/plans/ project/HANDOFF.md project/REVIEW.md project/tmp-context.md
-git commit -F tmp/commit-2-records.txt
-rm tmp/commit-1-engine.txt tmp/commit-2-records.txt
-
-# 2. discourse-flow — its ai-context migration, on top of in-flight work
-cd ~/github/nida-institute/discourse-flow
-git status --short          # migration + their own uncommitted work, tangled
-```
-
-`project/REVIEW.md` says what to read in the engine commit and in what order. It is current for
-the code but predates the catalog rulings recorded below.
+Supersedes 2026-08-27. Nothing is committed; HEAD is `fcd2ec4` and **HEAD is internally
+inconsistent** — see the next action.
 
 ---
 
-## Done today
+## ▶ NEXT ACTION — commit the schema, because HEAD is broken without it
 
-**The engine** — #207 (the suite writes only inside the repository, and nothing lands in
-`~/.sp`, `$TMPDIR` or `/private/tmp`), #210 (the ai-context layout), #211's writer loop, #214
-(the audit method ships), the template tree mirroring its destinations, the block warning, and
-`sp doctor --help` no longer claiming to be read-only.
+`fcd2ec4` was a partial commit. It landed `utils/file_io.py`, which accepts `tsv`, `csv`, `xml`,
+`usj`, `usfm` and mime spellings as `saveas` formats — but **not** the schema, whose enum still
+reads `['json', 'yaml', 'text', 'markdown', 'auto']`, and **not** the 34 tests covering it.
 
-**The catalog holds only what sp specifies** — `project.md` and the three `docs/audits/`
-checklists are gone from it, with their constants.
+So at HEAD, `saveas: {path: out.tsv, format: tsv}` writes correctly and `sp lint` rejects it.
 
-**`nida-institute/discourse-flow` is migrated** to the two-half layout: `project/` holds their
-index, overview, `project.md` and rules; `sp/` holds sp's five. Their 12 KB `project.md` moved
-inside `project/` by `git mv` and their map now names it — it was unreachable before. Four broken
-pointers repaired in `AGENTS.md`, `project/TODO.md` and `rst-implementation-plan.md`. Their 27
-doc-hygiene tests pass. **`CLAUDE.md` there is now writable** — it was `-r--r--r--` and crashed
-`sp init`; re-lock it if that was deliberate protection.
+**Verify:** `git show HEAD:src/llmflow/schema/pipeline.schema.json` and look at
+`$defs.SaveasConfig.properties.format.enum` — five values. Then `grep -c tsv` the same path for
+`src/llmflow/utils/file_io.py` at HEAD — four hits.
 
-**#215 filed** — three defects in `sp init`'s write paths, found by that migration.
+**The commit and the push are the Captain's.** Commands are in the section below.
 
 ---
 
-## USJ (#200) — both replies are in, and both change the design
+## In flight — four pieces, all uncommitted
 
-Neither had been read by any session before today. **Read the documents, not this summary,**
-before designing: `discourse-flow/collab/sp/2026-08-24-usj-is-coming.md` from §148, and
-`ears-to-hear/scriptorium/collab/sp/2026-08-24-usj-is-coming.md` from §141.
+| piece | files | note |
+|---|---|---|
+| **A. the other half of `fcd2ec4`** | `src/llmflow/schema/pipeline.schema.json`, `tests/test_saveas_format.py` | fixes the inconsistency above |
+| **B. the joining rule** | 3 hunks in `utils/scripture.py`, `tests/test_scripture_tei.py`, part of `tests/test_scripture_text.py` | |
+| **C. the `include:` families** | 8 hunks in `utils/scripture.py`, `data/include-families.json`, `tests/test_scripture_families.py`, `tests/test_scripture_include.py`, `pyproject.toml`, `.github/workflows/build.yml`, `project/plans/plan-scripture-step.md` | |
+| **D. today's records** | `project/TODO.md`, `project/plans/design-reference-resolution.md`, `project/plans/README.md`, this file | |
 
-### The producer — `discourse-flow`, three blockers
+**B and C share two files** (`utils/scripture.py`, `tests/test_scripture_text.py`). The hunks are
+disjoint but interactive git flags are unavailable in-session, so they cannot be split from here.
+Committing B+C together was recommended and is coherent: both are corrections to how
+`scripture.py` reads Macula, from one session and the same measurements.
 
-1. **Levinsohn has no home.** 33 LGNTDF discourse feature types, merged at
-   `plugins/milestone_content.py:183`, are derivable from none of the five families. They need a
-   sixth family *or* explicit permission to add a key to the `scripture_pipelines` container.
-   Either answer unblocks them; silence does not.
-2. **Variants, and it is an alignment problem rather than a file to load.** Levinsohn's indices
-   are NA28-family; where SBL chose differently the index silently names the wrong word — every
-   one of Mark's 147 mismatching citations falls in an apparatus-flagged verse, none in a clean
-   one. But the Logos apparatus is **verse-keyed prose**, so making it usable means aligning a
-   second witness into the word sequence and minting ids. Their narrow version: per verse, the
-   words NA28 has that SBLGNT does not, in order, addressable.
-3. **`morphology` must reach Macula's `role`, `class` and `type`** — syntactic, not inflection.
+**Test state: 3540 passed, 25 skipped, 1 failed.** The failure is an MCP network timeout
+(`test_verify_citations_integration.py` or `test_mcp.py`, whichever ran) — environmental, not
+ours. Do not "fix" it by changing the test. Verify with
+`hatch run pytest tests/ -q --ignore=tests/integration`.
 
-**Also theirs:** inter-word material must survive exactly · id density is the caller's choice ·
-`include` defaults lean, opt in never opt out · `plain`/`milestones` must stay cheap, because
-synthesis cannot window and reads 32 KB instead of 1.3 MB · `passage:` needs word-id spans, not
-only chapter:verse · senses unnormalised, and they decline to answer for Hebrew · **they want no
-paragraph source at all** — they built one, ratified it, and reversed it.
+## Uncommitted in other repositories
 
-### The consumer — `ears-to-hear`, two corrections to our premise
+| where | what |
+|---|---|
+| `discourse-flow` | `collab/sp/2026-08-26-scripture-step-plan.md` (untracked) and two `sp` replies appended to `collab/sp/2026-08-27-discourse-family-is-built.md`. **Stage by name only** — that tree has four of the Captain's own modified files |
+| `Clear/macula-greek` | `collab/sp/2026-08-28-inter-word-material.md`, in a third-party checkout that already carries someone's in-progress critical apparatus. **Do not commit there** |
+| `~/.sp` | `versification/` and `projects/sil-translator-notes.yaml` untracked, `skills/load-context/SKILL.md` modified. **Report with the diff, never commit.** Bare repo at `~/.sp-git`, alias `spgit` |
 
-1. **There are two USJ payloads per pericope**, not one: `source_text` and `translation` (BSB),
-   both USJ, 131/131 in Mark. A design modelling one text per step models half of what arrives.
-2. **What reaches them carries no word-level annotation at all** — no `char` nodes, no ids, no
-   morphology. So "you pay 4.26x for structure you then flatten" is not what happens there;
-   there is nothing to discard.
+## Decisions settled today — do not reopen
 
-**The cost figure needs a unit.** Same books, three ways of counting: Mark 2.56x codepoints,
-1.78x UTF-8 bytes, 6.74x escaped JSON. Our 4.26x sits in that band matching none of it. Our
-milestone figure they corroborate exactly at 1.072x.
+**The joining rule was ours to fix, not Macula's.** Macula Greek's convention is uniform: *a space
+follows every non-space `after`*, and a word-final mark is carried in `text` instead — which is why
+`ἀλλ’` appears in `text` with `·` in `after` in exactly 3 places. Reconstructing 7,330 verses under
+that rule matches a printed SBLGNT in **7,197 (98.19%)** with **zero spacing differences**.
+`JOINING_MARKS` had wrongly contained U+2019, spacing 1,221 Greek elisions against the printed
+edition. Hebrew is different: 9 `after` values, 170,393 empty (morpheme continuation) and 42,569
+maqqef, both correctly joining. Paseq and bare `ס`/`פ` stand *between* words and take a space on
+each side — `STANDALONE_MARKS`.
 
-**Their real argument for the feature** is better than ours: four scripture-acquisition paths in
-one repo, two serializations of the same edition, and two hand-written milestone builders that
-**disagree on all 131 Mark pericopes** — Greek `after` replaces the space rather than
-accompanying it, and their code applies the Hebrew rule to both.
+**Families are edition-shaped; we do not merge ontologies.** *"Greek and Hebrew are different
+languages. The analyses differ. We provide what Macula provides for each language."* And *"`morph`
+is line noise."* `data/include-families.json` declares each family's columns across all editions;
+a family emits whichever the edition has. Field names are the source's column names **verbatim**;
+the only renames are `lemma` and `strong`, which are USX-defined attributes on a `w` node. A
+per-word family requires `ids`, because the container keys by word id.
+`IMPLEMENTED_FAMILIES` is now everything but `syntax`.
 
-**Two traps worth more than the rest:** Macula's verse milestones contradict their own tokens'
-`ref` for **1,501 of 11,286 Mark tokens, 100 of 673 verses** — derive milestones from each
-token's `ref`, never from nesting. And a hand-rolled USJ flattener silently drops what it does
-not recognise, so the moment `format: usj` ships anything richer than today's, every consumer
-with its own flattener starts losing text quietly.
+**Reference resolution — five questions closed.** Recorded in
+`project/plans/design-reference-resolution.md` **§7 Resolved**, with the reasoning. Summary:
+whole-chapter extent returns real counts not `999` (breaking change accepted); `maxVerses` comes
+from the packaged copy at `llmflow/templates/sp/versification/`, never `~/.sp`; a book the scheme
+lacks has three cases (one other scheme → use it; `ODA`/`PSS` → raise naming both; no lookup needed
+→ parse, metadata says so, log warns); `filename_prefix` and `display_name` **keep** the resolved
+verse, decided not deferred; **two** parsers, the third folding into the lean one via a part field.
 
-**And one finding that is not about USJ at all.** Their reader HTML ships a book's complete
-Greek or Hebrew text — 102,739 and 14,944 characters — with **zero attribution**, while SBLGNT
-as they consume it is CC BY 4.0. Our own catalogue note calling SBLGNT's licence restrictive is
-out of date for that copy: the condition is attribution, which is mechanically satisfiable. The
-exception is MARBLE sense data (`@ln`, `@domain`), held under permission rather than a licence,
-and it feeds their published background layer. No record of anyone checking before today. This
-is time-sensitive in a way the engine work is not — artifacts are being generated now.
+**`syntax` is on hold** by explicit instruction. `frame` is one line (18.4% populated, both
+editions); the lowfat tree is 10× payload, depth 18, and per-book in Greek against per-chapter in
+Hebrew. Shipping `frame` as `syntax` and adding the tree later would raise every consumer's payload
+10× without their pipeline changing.
 
-### Still the human's to rule
+## Open, awaiting the Captain
 
-§4.4 of `design-scripture-representations.md`, the Greek/Hebrew asymmetry — five `=>` remain
-open there. `discourse-flow` answered for Greek (unnormalised) and declined for Hebrew.
-`ears-to-hear`'s §7 lists five rulings they are waiting on, including whether they adopt
-`type: scripture` at all and whether pairing moves into the engine.
+- **Two rules proposed for `docs/ai-context/project/rules.md`** in a `/stand-down` — one that a
+  ruling is not an authorization and does not carry its sub-decisions, one about never writing into
+  repositories we do not own. Exact content was shown in conversation; neither is written.
+- **Whether to write `project/plans/tmp-context.md`** (stand-down step 3). Probably moot now that
+  §7 of the design document carries the decisions.
+- **The reference-resolution implementation is unstarted.** All decisions are recorded, so the
+  scope declaration can be precise. Declare it and wait for sign-off before editing.
 
-Start from the parked tag `wip/scripture-200` (`0bb1d5b`), which is on the remote.
+## Do NOT / landmines
 
----
+- **Do not commit, push, or merge.** Run gates, write the message, hand over the command. A push is
+  authorized per act and names remote and branch.
+- **Do not modify `docs/ai-context/`, `CLAUDE.md`, or project memory.** Hard prohibitions.
+- **Do not write after a `=>`.** Those are the Captain's, in both design documents.
+- **Do not decide what the Captain has not decided.** This session was stood down for exactly that:
+  an authorization to implement was treated as covering six further design decisions. When building
+  reveals an unmade decision, stop and ask.
+- **Do not create or modify files in another organisation's checkout.**
+- **Looks like a next step but isn't:** implementing `syntax`, or splitting B from C with clever
+  patch machinery.
 
-## Open, recorded, not started
+## Key files & links
 
-Four `=>` slots in `project/plans/design-one-source-for-shipped-files.md`: **Q3** what `scope`
-should be called, **Q5** which directory structure states the root, **Q6** whether a project may
-change a file in its own directory. Q1 and Q2 are closed.
-
-**#211's migration itself** — 19 constants, 1,047 lines, one pass as ruled. **#215** — the three
-`sp init` write-path defects. **`docs/ai-context/sp/index.md` is stale**, four entries having left
-the catalog. **The docstring sweep** — 21 test files and 7 modules still carry rulings and history
-in comments. **`ears-to-hear` has not been migrated** to the two-half layout; discourse-flow was
-the first.
-
-**Unread:** `discourse-flow/collab/sp/windowing-semantics-gap.md`, 482 lines.
-
----
-
-## Verify
-
-```bash
-hatch run pytest -q                              # 2970 passed, 26 skipped
-git status --short | wc -l                       # 106+
-gh issue view 215                                # the init write-path defects
-grep -c '^=>' project/plans/design-scripture-representations.md   # 5
-git ls-remote --tags origin wip/scripture-200    # 0bb1d5b
-```
-
----
-
-## Do NOT
-
-- **Do not commit, push or merge.** Gates yes; the commit is the human's.
-- **Do not fill in a `=>`**, and do not record a ruling the human did not give.
-- **Do not put design, rulings or version history in docstrings or comments.**
-- **Do not run `sp doctor` here** — step 7 of `design-ai-context-layout.md` is undone.
-- **Do not commit or push `~/.claude`**; its 82 uncommitted files are deliberate.
-- **`~/.sp` has one dirty file**, `skills/load-context/SKILL.md`, identical to this repository's
-  template for it. Committing that store is the human's act.
+| | |
+|---|---|
+| `project/plans/design-reference-resolution.md` | §5 the Captain's `=>` answers, §7 the resolved set |
+| `project/plans/plan-scripture-step.md` | §5 steps 5–7 record the families ruling |
+| `data/include-families.json` | the family declaration — the whole design |
+| `src/llmflow/utils/scripture.py:103` | `JOINING_MARKS`, `STANDALONE_MARKS`, and why U+2019 is absent |
+| issues | **#218** reference resolution · **#219** saveas collision · **#220** pipeline header declaration · **#221** Burrito versification · **#222** Paratext `custom.vrs` (in `TODO.md` Active) |
+| others | **#216** binary data, fixed and unreleased · **#211** done, closable |
