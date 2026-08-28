@@ -78,8 +78,7 @@ def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> List[st
     if isinstance(saveas_config, str):
         path = resolve(saveas_config, context)
         content = get_content()
-        fmt = step.get("format", "auto")
-        saved_path = save_content_to_file(content, str(path), fmt)
+        saved_path = save_content_to_file(content, str(path), "auto")
         _record_written_file(saved_path)
         saved_paths.append(saved_path)
         return saved_paths
@@ -92,7 +91,7 @@ def handle_step_saveas(step: Dict[str, Any], context: Dict[str, Any]) -> List[st
         logger.debug(f"Resolved path: {path}")
         group_cfg = saveas_config.get("group_by_prefix")
         content = get_content()
-        fmt = step.get("format", "auto")
+        fmt = saveas_config.get("format", "auto")
 
         if group_cfg:
             fname = Path(str(path)).name

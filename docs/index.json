@@ -2527,11 +2527,15 @@
     {
       "module": "llmflow.utils.file_io",
       "imports": [
+        "csv",
+        "io",
         "json",
         "llmflow.modules.logger",
         "pathlib",
         "traceback",
-        "typing"
+        "typing",
+        "unicodedata",
+        "yaml"
       ],
       "functions": [
         {
@@ -2540,9 +2544,59 @@
           "doc": ""
         },
         {
+          "name": "_element_or_none",
+          "signature": "_element_or_none(content: Any)",
+          "doc": "*content* as an lxml element, or None."
+        },
+        {
+          "name": "resolve_format",
+          "signature": "resolve_format(fmt: Optional[str], path: str, content: Any) -> str",
+          "doc": "The writer to use, from an explicit format or from the path."
+        },
+        {
+          "name": "_as_json",
+          "signature": "_as_json(content: Any) -> str",
+          "doc": "JSON, re-parsing a string that already holds JSON so it is not double-encoded."
+        },
+        {
+          "name": "_as_yaml",
+          "signature": "_as_yaml(content: Any) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_as_text",
+          "signature": "_as_text(content: Any) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_as_markdown",
+          "signature": "_as_markdown(content: Any) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_as_delimited",
+          "signature": "_as_delimited(content: Any, delimiter: str, name: str) -> str",
+          "doc": "Rows as delimited text. A mapping per row takes its header from the first row's keys."
+        },
+        {
+          "name": "_as_xml",
+          "signature": "_as_xml(content: Any) -> str",
+          "doc": "XML from an element, or a string checked for well-formedness."
+        },
+        {
+          "name": "_as_usx",
+          "signature": "_as_usx(content: Any) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_as_usfm",
+          "signature": "_as_usfm(content: Any) -> str",
+          "doc": ""
+        },
+        {
           "name": "save_content_to_file",
           "signature": "save_content_to_file(content: Any, path: str, format: Optional[str] = None) -> str",
-          "doc": "Save content to file with optional format specification."
+          "doc": "Serialise *content* to *path*, in NFC."
         }
       ]
     },
@@ -4409,6 +4463,6 @@
   ],
   "summary": {
     "total_modules": 80,
-    "total_functions": 684
+    "total_functions": 694
   }
 }
