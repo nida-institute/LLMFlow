@@ -1,11 +1,12 @@
 """Named scripture editions: a reference range in, running text out.
 
-Text is `text + after` per word, with a space added only where `after` is punctuation that
-ends a word — the source carries the mark without one. These tests pin the cases where that
+Text is `text + after` per word, with a space added after every `after` that is not itself
+whitespace — the source carries the mark without one. Two Hebrew cases join instead: the maqqef,
+and an empty `after` continuing one word across morphemes. These tests pin the cases where the
 distinction is visible, in both scripts:
 
   * maqqef joins:                עַל־פְּנֵי
-  * Greek elision joins:          κατ’ὄναρ
+  * Greek elision spaces:         κατ’ ὄναρ
   * a Hebrew morpheme joins:      בְּרֵאשִׁית
   * sof pasuq ends a word:        הָאָרֶץ׃ וְהָאָרֶץ
   * Greek punctuation ends one:   χριστοῦ. Καθὼς
@@ -54,10 +55,17 @@ class TestJoining:
         assert "עַל־פְּנֵ֣י" in out, out
         assert "עַל ־" not in out and "עַל־ פְּנֵ֣י" not in out
 
-    def test_greek_elision_joins_with_no_space(self):
+    def test_greek_elision_takes_a_space_after_it(self):
+        """The printed edition spaces after the elision mark in all 1,221 places it occurs."""
         rows = [{"ref": "MAT 1:20!1", "text": "κατ", "after": "’"},
                 {"ref": "MAT 1:20!2", "text": "ὄναρ", "after": " "}]
-        assert rows_to_text(rows, fmt="plain") == "κατ’ὄναρ"
+        assert rows_to_text(rows, fmt="plain") == "κατ’ ὄναρ"
+
+    def test_an_elision_followed_by_punctuation_spaces_after_the_punctuation(self):
+        """Where a mark follows the elision, the source carries the apostrophe in `text`."""
+        rows = [{"ref": "ROM 9:7!12", "text": "ἀλλ’", "after": "·"},
+                {"ref": "ROM 9:7!13", "text": "Ἐν", "after": " "}]
+        assert rows_to_text(rows, fmt="plain") == "ἀλλ’· Ἐν"
 
     def test_an_empty_after_joins_two_morphemes_of_one_word(self):
         """Macula Hebrew splits a word into morphemes and marks the continuation this way."""
@@ -73,6 +81,24 @@ class TestJoining:
     def test_sof_pasuq_attaches_and_takes_a_space_after_it(self):
         out = rows_to_text(HEBREW_ROWS, fmt="plain")
         assert "הָאָֽרֶץ׃ וְחֹ֖שֶׁךְ" in out, out
+
+    def test_paseq_stands_between_words_with_a_space_on_each_side(self):
+        """Paseq divides two words rather than ending one, so a space precedes it too."""
+        rows = [{"ref": "GEN 1:4!1", "text": "אֱלֹהִים", "after": "׀"},
+                {"ref": "GEN 1:4!2", "text": "בֵּין", "after": " "}]
+        assert rows_to_text(rows, fmt="plain") == "אֱלֹהִים ׀ בֵּין"
+
+    def test_a_bare_section_letter_stands_alone_mid_verse(self):
+        """A setuma or petucha letter without a sof pasuq is a standalone mark."""
+        rows = [{"ref": "DEU 2:8!21", "text": "גָּבֶר", "after": "ס"},
+                {"ref": "DEU 2:8!22", "text": "וַ", "after": ""}]
+        assert rows_to_text(rows, fmt="plain") == "גָּבֶר ס וַ"
+
+    def test_a_section_letter_after_sof_pasuq_stays_tight(self):
+        """`׃ס` is one value and carries no internal space."""
+        rows = [{"ref": "GEN 1:5!1", "text": "אֶחָד", "after": "׃ס"},
+                {"ref": "GEN 1:6!1", "text": "וַיֹּאמֶר", "after": " "}]
+        assert rows_to_text(rows, fmt="plain") == "אֶחָד׃ס וַיֹּאמֶר"
 
     def test_greek_punctuation_attaches_and_takes_a_space_after_it(self):
         out = rows_to_text(GREEK_ROWS, fmt="plain")

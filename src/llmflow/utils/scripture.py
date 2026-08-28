@@ -12,6 +12,7 @@ one to reach for: `project/plans/design-scripture-representations.md`, and §3 o
 from __future__ import annotations
 
 import csv
+import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -43,12 +44,49 @@ USJ_VERSION = "3.1"
 #: sit inside a paragraph, so one plain `para` per chapter is the least the grammar allows.
 USJ_PARA_MARKER = "p"
 
+#: What each family delivers, declared in data rather than here: a family is edition-shaped, so
+#: the same declaration serves Greek and Hebrew without any code knowing about either.
+FAMILY_TABLE_FILENAME = "include-families.json"
+
+_FAMILY_TABLE: Optional[Mapping[str, Any]] = None
+
+
+def _family_table() -> Mapping[str, Any]:
+    global _FAMILY_TABLE
+    table = _FAMILY_TABLE
+    if table is None:
+        table = json.loads(_data_path(FAMILY_TABLE_FILENAME).read_text(encoding="utf-8"))
+        _FAMILY_TABLE = table
+    return table
+
+
+def _family(name: str) -> Mapping[str, Any]:
+    return _family_table().get("families", {}).get(name, {})
+
+
+def family_columns(name: str) -> tuple:
+    """The source columns *name* carries, across every edition it serves."""
+    return tuple(_family(name).get("columns", ()))
+
+
+def family_is_per_word(name: str) -> bool:
+    """Whether *name* annotates individual words, and so needs `ids` to be joinable."""
+    return bool(_family(name).get("per_word"))
+
+
+def family_usx_attributes(name: str) -> Mapping[str, Sequence[str]]:
+    """Fields USX already defines on a word node, and the source columns that fill each."""
+    return _family(name).get("usx_attributes", {})
+
+
 #: The annotation families `include` can ask for. See §3.0a of plan-scripture-step.md.
 INCLUDE_FAMILIES = ("ids", "morphology", "senses", "glosses", "referents", "discourse", "syntax")
 
 #: Families with a working implementation. The rest are named vocabulary, and asking for one
 #: raises rather than returning a document with the payload quietly missing.
-IMPLEMENTED_FAMILIES = frozenset({"ids", "discourse"})
+IMPLEMENTED_FAMILIES = frozenset(
+    {"ids", "discourse", "morphology", "senses", "glosses", "referents"}
+)
 
 #: The one key holding everything USJ has no place for. A consumer wanting standard USJ
 #: removes this key and is done; an extension anywhere else is one nobody could find.
@@ -62,11 +100,27 @@ DISCOURSE_KEY = "discourse_path"
 USJ_WORD_MARKER = "w"
 USJ_SRCLOC = "srcloc"
 
-#: An `after` value that joins its word to the next, so no space follows it: the Greek elision
-#: apostrophe (`κατ’αὐτοῦ`) and the Hebrew maqqef (`עַל־פְּנֵי`). Every other non-empty, non-space
-#: `after` ends a word and takes a space after it. An empty `after` joins and adds nothing —
-#: Macula Hebrew splits a word into morphemes and marks the continuations that way.
-JOINING_MARKS = frozenset({"’", "־"})
+#: An `after` value that joins its word to the next, so no space follows it: the Hebrew maqqef
+#: (`עַל־פְּנֵי`). Every other non-empty, non-space `after` ends a word and takes a space after it. An
+#: empty `after` also joins and adds nothing — Macula Hebrew splits a word into morphemes and
+#: marks the continuations that way.
+#:
+#: The Greek elision apostrophe is deliberately absent. It reads like a joining mark, and we had
+#: it here, which spaced `κατ’οἶκόν` against the printed edition's `κατʼ οἶκόν` in 1,221 places.
+#: Macula Greek's convention is uniform — a space follows every non-space `after`, and a mark
+#: falling word-final is carried in `text` instead, which is why `ἀλλ’` appears there with `·` in
+#: `after`. Reconstructing 7,330 verses under that rule matches a printed SBLGNT in 7,197 of them,
+#: with no spacing difference among the rest.
+JOINING_MARKS = frozenset({"־"})
+
+#: An `after` value that stands *between* two words rather than ending one, so a space precedes it
+#: as well as following it: the Hebrew paseq (`אֱלֹהִים ׀ בֵּין`), and a bare setuma or petucha letter
+#: marking a section break mid-verse. The source carries these in the preceding word's `after`,
+#: where nothing else can supply the leading space.
+#:
+#: The compound values `׃ס` and `׃פ` are deliberately absent: there the sof pasuq ends the word and
+#: the letter follows it tight, which is how a WLC-derived text writes all 3,066 of them.
+STANDALONE_MARKS = frozenset({"׀", "ס", "פ"})
 
 #: USJ element types holding apparatus rather than the text being read. Their content is
 #: dropped. Inline `char` elements outside a note are part of the reading and are kept.
@@ -177,14 +231,17 @@ def filter_rows(rows: Iterable[Mapping[str, Any]], ref: PassageRef) -> list[dict
 def join_rows(rows: Iterable[Mapping[str, Any]]) -> str:
     """Concatenate ``text + after``, adding a space only where ``after`` does not carry one.
 
-    ``after`` plays three roles: a space, a mark that joins (``JOINING_MARKS``, or empty), or
-    punctuation that ends a word. Only the third needs a space added, because the source
-    carries the mark without one. The single place this rule lives.
+    ``after`` plays four roles: a space; a mark that joins (``JOINING_MARKS``, or empty); a mark
+    that ends a word, which needs a space added because the source carries it without one; and a
+    mark that stands between two words (``STANDALONE_MARKS``), which needs one on each side. The
+    joining and standalone roles are Hebrew-only. The single place this rule lives.
     """
     parts: list[str] = []
     for row in rows:
         parts.append(str(row.get("text") or ""))
         after = str(row.get("after") or "")
+        if after in STANDALONE_MARKS:
+            parts.append(" ")
         parts.append(after)
         if after and not after.isspace() and after not in JOINING_MARKS:
             parts.append(" ")
@@ -263,21 +320,25 @@ def _edition_table() -> Mapping[str, Any]:
     return table
 
 
-def _edition_table_path() -> Path:
-    """Locate the table whether running from an installed wheel or a dev checkout.
+def _data_path(filename: str) -> Path:
+    """Locate a shipped data file whether running from an installed wheel or a dev checkout.
 
     The same two locations `file_catalog.catalog_path()` resolves.
     """
     import importlib.resources
 
     try:
-        ref = importlib.resources.files("llmflow").joinpath(f"data/{EDITION_TABLE_FILENAME}")
+        ref = importlib.resources.files("llmflow").joinpath(f"data/{filename}")
         path = Path(str(ref))
         if path.exists():
             return path
     except Exception:
         pass
-    return Path(__file__).resolve().parent.parent.parent.parent / "data" / EDITION_TABLE_FILENAME
+    return Path(__file__).resolve().parent.parent.parent.parent / "data" / filename
+
+
+def _edition_table_path() -> Path:
+    return _data_path(EDITION_TABLE_FILENAME)
 
 
 def _known_editions() -> dict:
@@ -429,6 +490,36 @@ def rows_to_usj(
     `format: print`. Nothing is added outside the USJ node types.
     """
     want_ids = "ids" in include
+    per_word = [f for f in include if family_is_per_word(f)]
+    if per_word and not want_ids:
+        raise ValueError(
+            f"include {per_word} annotates individual words, and the container keys them by word "
+            f"id — add `ids` so the document carries a {USJ_SRCLOC} to match them against."
+        )
+
+    #: `{field: (columns, in order of preference)}` for the USX attributes the asked-for families
+    #: deliver. Only `lemma` and `strong` are here; everything else stays in the container.
+    attributes: dict = {}
+    for family in include:
+        for field, columns in family_usx_attributes(family).items():
+            attributes.setdefault(field, tuple(columns))
+
+    annotation: dict = {family: {} for family in per_word}
+
+    def annotate(row: Mapping[str, Any]) -> None:
+        """Collect a word's declared columns, verbatim, skipping the ones it leaves empty."""
+        identifier = row.get("xml:id")
+        if not identifier:
+            return
+        for family in per_word:
+            fields = {
+                column: str(row[column])
+                for column in family_columns(family)
+                if str(row.get(column) or "").strip()
+            }
+            if fields:
+                annotation[family][str(identifier)] = fields
+
     content: list = [{"type": "book", "marker": "id", "code": book}]
     chapter_open: Optional[int] = None
     para: Optional[dict] = None
@@ -452,7 +543,14 @@ def rows_to_usj(
                 identifier = row.get("xml:id")
                 if identifier:
                     node[USJ_SRCLOC] = str(identifier)
+                for field, columns in attributes.items():
+                    value = next(
+                        (str(row[c]) for c in columns if str(row.get(c) or "").strip()), None
+                    )
+                    if value:
+                        node[field] = value
                 target.append(node)
+            annotate(row)
             # What follows the word — a space, a joining mark, punctuation and the space the
             # engine adds after it — is text. Dropping it would make the document
             # unflattenable back to running text.
@@ -490,6 +588,7 @@ def rows_to_usj(
             )
         if discourse is not None:
             container["discourse"] = discourse
+        container.update(annotation)
         document[CONTAINER_KEY] = container
     return document
 

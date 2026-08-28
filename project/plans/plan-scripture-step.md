@@ -732,16 +732,45 @@ the step that introduces the `scripture_pipelines` container and the `include` m
 almost no payload logic of its own. Tests: the container appears only when `include` is non-empty;
 `format: usj` with no `include` returns the text in USJ structure and no annotation.
 
-**5. `include: [morphology]` and `include: [glosses]`.** The first real join — TSV to TEI on
-`xml:id`, verified exact in §3.0. Per-word records, no new machinery. Tests per family: the declared
-columns arrive, nothing undeclared does, and `morphology` reaches `role`, `class` and `type`, which
-`nida-institute/discourse-flow` ranked as blocking.
+**5–7. `morphology`, `senses`, `glosses`, `referents` — built, all four, both languages.**
 
-**6. `include: [senses]`.** Same join, plus one new thing: the declared `source` (§3.5). Tests:
-Greek yields `{domain, ln}` under `source: louw-nida`, Hebrew its five fields under `source: sdbh`,
-and neither is normalised into the other.
+**The ruling that made this small.** *"Greek and Hebrew are different languages. The analyses
+differ. We provide what Macula provides for each language. Implementations can sort this out, we
+don't try to merge ontologies."* And on the packed morphology string: *"`morph` is line noise."*
 
-**7. `include: [referents]`.** Per-word, same shape as 5. Last of the straightforward families.
+That removed the only hard part. The two editions share 16 columns and diverge exactly on the
+families — a Greek verb has `case`, `tense`, `voice`, `mood`; a Hebrew verb has `stem`, `state`,
+`pos`. A Greek sense is a Louw-Nida number in `domain`/`ln`; a Hebrew sense is an SDBH domain
+across `lexdomain`, `coredomain`, `sdbh`, `sensenumber` — **zero overlap**. Merging those would
+have meant inventing an interlingua for morphology, which is a scholarly claim rather than an
+engineering one.
+
+**The mechanism: one declaration, no code that knows about either language.**
+`data/include-families.json` gives each family the columns it covers across every edition, and a
+family emits whichever the edition actually has. A new edition with a new column is one line, not
+a branch.
+
+Three properties follow, and each is a test:
+
+- **Field names are the source's column names, verbatim.** Nothing emitted is a name we invented,
+  so any field traces back to a column.
+- **The two exceptions are spec-defined and only those two.** `lemma` and `strong` are attributes
+  USX already defines on a `w` element, so they go there rather than into the container — which is
+  §2's rule, not an exception to it. Greek names its Strong's column `strong`, Hebrew names it
+  `strongnumberx`; the declaration lists both against one destination, and that is the only rename
+  in the file.
+- **A per-word family requires `ids`.** The container keys annotation by word id, and without
+  `ids` the document carries no `srcloc` to match against — so asking for one without the other is
+  an error naming `ids`, not a payload nobody can use.
+
+**What is deliberately not carried:** `morph` (a packed duplicate of the columns beside it),
+`normalized` and `transliteration` (alternative forms of `text`), `frame` (belongs with `syntax`),
+`greek`/`greekstrong` (Hebrew-to-Greek alignment, not a property of the Hebrew word), and
+`stronglemma`.
+
+Verified on both real editions: PHM 1:1 yields 14 words of Greek morphology as
+`{class, type, number, gender, case}` and RUT 1:1 yields 33 words of Hebrew morphology as
+`{class, pos, lang}`, from the same declaration and the same code path.
 
 **8. `format: print`.** TEI paragraphs, and the lint rule that `include` with `print` is an error
 rather than a warning (§3.4). Tests: paragraphs present; the benediction divergence documented, not

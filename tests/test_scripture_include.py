@@ -184,8 +184,8 @@ def test_an_unknown_family_names_the_known_ones():
 
 @real_data
 def test_a_family_that_is_not_built_yet_says_so_rather_than_returning_nothing():
-    with pytest.raises(NotImplementedError, match="senses"):
-        edition_text("SBLGNT", "MRK 1:1", fmt="usj", editions=EDITIONS, include=["senses"])
+    with pytest.raises(NotImplementedError, match="syntax"):
+        edition_text("SBLGNT", "MRK 1:1", fmt="usj", editions=EDITIONS, include=["syntax"])
 
 
 @real_data

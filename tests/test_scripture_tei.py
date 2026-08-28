@@ -74,10 +74,11 @@ def test_an_apparatus_mark_is_not_text_and_does_not_displace_the_space():
 
 
 @real_data
-def test_a_word_ending_in_an_elision_mark_joins_to_the_next():
+def test_a_word_ending_in_an_elision_mark_is_still_a_separate_word():
+    """The elision mark sits inside the `w` element, and a space follows it as for any word."""
     rows = {r["ref"]: r for r in read_tei_rows(MARK_TEI, parse_passage_ref("MRK 8:35"))}
     assert rows["MRK 8:35!12"]["text"] == "δ’"
-    assert rows["MRK 8:35!12"]["after"] == ""
+    assert rows["MRK 8:35!12"]["after"] == " "
 
 
 def test_several_punctuation_nodes_after_one_word_accumulate(tmp_path):
