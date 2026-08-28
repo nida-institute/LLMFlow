@@ -50,3 +50,5 @@ If a tool genuinely has no path argument, use a subshell: `(cd /path && command)
 **Never create or modify project memory files without explicit approval.** Show proposed content in conversation and wait for approval before writing.
 
 **CLAUDE.md belongs to the human.** Propose additions in conversation — showing exact content — but never write to it without explicit approval.
+
+**Never create or modify a file in a repository belonging to another organisation.** Those trees carry other people's uncommitted work, and a file appearing in one is an act with their name on it. Write the document under the current project and hand over the path, or ask first.
