@@ -2963,6 +2963,7 @@
         "__future__",
         "csv",
         "dataclasses",
+        "json",
         "llmflow.modules.logger",
         "llmflow.utils",
         "lxml",
@@ -2971,6 +2972,31 @@
         "typing"
       ],
       "functions": [
+        {
+          "name": "_family_table",
+          "signature": "_family_table() -> Mapping[str, Any]",
+          "doc": ""
+        },
+        {
+          "name": "_family",
+          "signature": "_family(name: str) -> Mapping[str, Any]",
+          "doc": ""
+        },
+        {
+          "name": "family_columns",
+          "signature": "family_columns(name: str) -> tuple",
+          "doc": "The source columns *name* carries, across every edition it serves."
+        },
+        {
+          "name": "family_is_per_word",
+          "signature": "family_is_per_word(name: str) -> bool",
+          "doc": "Whether *name* annotates individual words, and so needs `ids` to be joinable."
+        },
+        {
+          "name": "family_usx_attributes",
+          "signature": "family_usx_attributes(name: str) -> Mapping[str, Sequence[str]]",
+          "doc": "Fields USX already defines on a word node, and the source columns that fill each."
+        },
         {
           "name": "parse_passage_ref",
           "signature": "parse_passage_ref(passage: str) -> PassageRef",
@@ -3012,9 +3038,14 @@
           "doc": ""
         },
         {
+          "name": "_data_path",
+          "signature": "_data_path(filename: str) -> Path",
+          "doc": "Locate a shipped data file whether running from an installed wheel or a dev checkout."
+        },
+        {
           "name": "_edition_table_path",
           "signature": "_edition_table_path() -> Path",
-          "doc": "Locate the table whether running from an installed wheel or a dev checkout."
+          "doc": ""
         },
         {
           "name": "_known_editions",
@@ -3135,6 +3166,11 @@
           "name": "moved",
           "signature": "moved(chapter: Optional[int], verse: Optional[int]) -> tuple[int, int]",
           "doc": ""
+        },
+        {
+          "name": "annotate",
+          "signature": "annotate(row: Mapping[str, Any]) -> None",
+          "doc": "Collect a word's declared columns, verbatim, skipping the ones it leaves empty."
         },
         {
           "name": "emit",
@@ -4463,6 +4499,6 @@
   ],
   "summary": {
     "total_modules": 80,
-    "total_functions": 694
+    "total_functions": 701
   }
 }
