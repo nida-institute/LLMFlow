@@ -32,11 +32,16 @@ AWESOME_BIBLICAL_DATA_URL = "https://github.com/nida-institute/awesome-biblical-
 
 
 def get_default_data_dir() -> Path:
-    """The base data directory, honouring `LLMFLOW_DATA_DIR`."""
-    env = os.environ.get("LLMFLOW_DATA_DIR")
-    if env:
-        return Path(env)
-    return _paths.sp_home() / "data"
+    """Where corpora live — one answer, owned by `llmflow.resources`.
+
+    This module used to compute it separately, and kept answering `~/.sp/data` after the
+    corpora moved somewhere visible. A real `sp resource add` then unpacked into a directory
+    the reader never looks at — and, because `~/.sp` is deliberately read-only, could not even
+    create it. Two encodings of one fact, agreeing until they silently did not.
+    """
+    from llmflow import resources as _resources
+
+    return _resources.data_dir()
 
 
 def _archive_url(source: Mapping[str, Any]) -> str:
@@ -80,7 +85,15 @@ def fetch(source: Mapping[str, Any], dest: Path | None = None) -> Path:
     with urllib.request.urlopen(request) as response:
         data = response.read()
 
-    target.mkdir(parents=True, exist_ok=True)
+    try:
+        target.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        raise RuntimeError(
+            f"Cannot create {target}: {error}. Resources live outside the read-only store; if "
+            f"this path is inside `~/.sp`, LLMFLOW_DATA_DIR or SP_HOME is redirecting it — "
+            f"`sp doctor` reports both."
+        )
+
     try:
         if zipfile.is_zipfile(BytesIO(data)):
             _unpack(data, target, strip=_github_prefix(source))

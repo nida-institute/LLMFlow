@@ -500,6 +500,37 @@ def test_the_editions_directory_is_migrated_to_registrations(tmp_path: Path, pro
     assert check.repaired is True
 
 
+def test_the_migration_works_on_a_locked_store(tmp_path: Path, project: Path):
+    """`~/.sp` is deliberately read-only, and moving a non-empty directory needs write
+    permission on the *source* to unlink its entries. Every earlier test used a writable
+    tmpdir, so the migration passed in CI and failed on the first real machine it met."""
+    sp_home = tmp_path / ".sp"
+    legacy = sp_home / "editions"
+    legacy.mkdir(parents=True)
+    (legacy / "WLC.yaml").write_text("id: WLC\nkind: tsv\npath: /tmp/wlc.tsv\n")
+    legacy.chmod(0o555)
+    sp_home.chmod(0o555)
+    try:
+        check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["resources_dir"]
+        assert check.severity is not Severity.ERROR, check.detail
+        assert (sp_home / "registrations" / "WLC.yaml").is_file()
+    finally:
+        for path in (sp_home, sp_home / "registrations", legacy):
+            if path.exists():
+                path.chmod(0o755)
+
+
+def test_registrations_still_in_the_old_directory_are_reported(tmp_path: Path, project: Path):
+    """Saying "none registered" while three sit in `editions/` is worse than saying nothing."""
+    sp_home = tmp_path / ".sp"
+    legacy = sp_home / "editions"
+    legacy.mkdir(parents=True)
+    (legacy / "WLC.yaml").write_text("id: WLC\nkind: tsv\npath: /tmp/wlc.tsv\n")
+
+    checks = _by_id(run_doctor(sp_home=sp_home, project_dir=project))
+    assert "WLC" in (checks["resources"].detail or "")
+
+
 def test_a_machine_with_nothing_registered_is_told_how(tmp_path: Path, project: Path):
     sp_home = tmp_path / ".sp"
     sp_home.mkdir(parents=True)

@@ -892,7 +892,7 @@
         {
           "name": "get_default_data_dir",
           "signature": "get_default_data_dir() -> Path",
-          "doc": "The base data directory, honouring `LLMFLOW_DATA_DIR`."
+          "doc": "Where corpora live — one answer, owned by `llmflow.resources`."
         },
         {
           "name": "_archive_url",
@@ -1183,6 +1183,11 @@
           "name": "record_version",
           "signature": "record_version(directory: Any, **fields) -> Path",
           "doc": "Write the record of what was just fetched."
+        },
+        {
+          "name": "_write_registration",
+          "signature": "_write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> Path",
+          "doc": "Write one registration, unlocking the store around it."
         },
         {
           "name": "register_local",
@@ -4736,6 +4741,6 @@
   ],
   "summary": {
     "total_modules": 82,
-    "total_functions": 741
+    "total_functions": 742
   }
 }

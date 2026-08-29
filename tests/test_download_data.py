@@ -75,10 +75,27 @@ def test_a_resource_with_no_source_says_so():
 # --- the data directory --------------------------------------------------------------
 
 
-def test_default_data_dir_is_home_sp_data(monkeypatch):
+def test_the_fetcher_and_the_reader_agree_on_where_data_lives(monkeypatch, tmp_path):
+    """They did not, and a real `sp resource add` unpacked 150MB where nothing would read it.
+
+    `download_data` kept its own idea of the data directory — the old hidden `~/.sp/data` —
+    while `resources.resolve_path` had moved to the visible one. Two encodings of one fact,
+    agreeing until they silently did not.
+    """
+    from llmflow import resources as R
+
+    for env in ({}, {"SP_HOME": str(tmp_path / "sp")}, {"LLMFLOW_DATA_DIR": str(tmp_path / "d")}):
+        monkeypatch.delenv("SP_HOME", raising=False)
+        monkeypatch.delenv("LLMFLOW_DATA_DIR", raising=False)
+        for name, value in env.items():
+            monkeypatch.setenv(name, value)
+        assert get_default_data_dir() == R.data_dir(), f"disagree with {env}"
+
+
+def test_default_data_dir_is_visible(monkeypatch):
     monkeypatch.delenv("SP_HOME", raising=False)
     monkeypatch.delenv("LLMFLOW_DATA_DIR", raising=False)
-    assert get_default_data_dir() == Path.home() / ".sp" / "data"
+    assert get_default_data_dir() == Path.home() / "sp" / "resources"
 
 
 def test_llmflow_data_dir_env_overrides_default(monkeypatch):

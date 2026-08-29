@@ -280,17 +280,11 @@ def register(identifier: str, download: bool = True) -> Path:
         # The registry's own name for it — what `edition_scheme()` reads first.
         entry["versification_scheme"] = item["versification"]
 
-    directory = default_resources_dir()
-    directory.mkdir(parents=True, exist_ok=True)
-    target = directory / f"{identifier}.yaml"
-
-    import yaml
-
-    target.write_text(
+    target = _write_registration(
+        default_resources_dir() / f"{identifier}.yaml",
         "# Written by `sp resource add`. The path is relative to the dataset, so this file\n"
-        "# means the same thing on every machine. An absolute `path:` is honoured too.\n"
-        + yaml.safe_dump(entry, sort_keys=False, allow_unicode=True),
-        encoding="utf-8",
+        "# means the same thing on every machine. An absolute `path:` is honoured too.\n",
+        entry,
     )
     if not resolve_path(entry).exists():
         logger.warning(
@@ -327,6 +321,35 @@ def record_version(directory: Any, **fields: Any) -> Path:
     path = Path(directory) / VERSION_FILENAME
     path.write_text(json.dumps(fields, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return path
+
+
+def _write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> Path:
+    """Write one registration, unlocking the store around it.
+
+    `~/.sp` is kept read-only, and the registrations directory inherits that mode when
+    `sp doctor` moves it across, so a plain write fails with EACCES on a machine that has been
+    set up — and on no machine that a test builds. The lock is restored afterwards rather than
+    left off: unconditionally unlocking is what broke `install_global_skills()` silently once.
+    """
+    import os
+
+    import yaml
+
+    from llmflow.cli_utils import _lock_sp_dir, _unlock_sp_dir
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    was_locked = not os.access(target.parent, os.W_OK)
+    if was_locked:
+        _unlock_sp_dir(target.parent)
+    try:
+        target.write_text(
+            banner + yaml.safe_dump(dict(entry), sort_keys=False, allow_unicode=True),
+            encoding="utf-8",
+        )
+    finally:
+        if was_locked and target.parent.exists():
+            _lock_sp_dir(target.parent)
+    return target
 
 
 def register_local(
@@ -380,19 +403,12 @@ def register_local(
         if versification:
             entry["versification_scheme"] = versification
 
-    directory = default_resources_dir()
-    directory.mkdir(parents=True, exist_ok=True)
-    written = directory / f"{identifier}.yaml"
-
-    import yaml
-
-    written.write_text(
+    return _write_registration(
+        default_resources_dir() / f"{identifier}.yaml",
         "# Written by `sp resource add --path`. The path is this machine's, deliberately:\n"
-        "# it names something outside the store, so it cannot be made relative to it.\n"
-        + yaml.safe_dump(entry, sort_keys=False, allow_unicode=True),
-        encoding="utf-8",
+        "# it names something outside the store, so it cannot be made relative to it.\n",
+        entry,
     )
-    return written
 
 
 def report() -> list:

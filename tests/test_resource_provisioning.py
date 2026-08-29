@@ -239,6 +239,22 @@ def test_registering_something_the_catalog_never_heard_of_is_refused(catalog, st
         R.register("NOT_A_TEXT", download=False)
 
 
+def test_registering_into_a_locked_store(catalog, store):
+    """`~/.sp` is deliberately read-only, and the registrations directory inherits that mode
+    when `sp doctor` moves it. Writing a registration has to unlock it, exactly as a repair
+    does — a test whose store is writable never sees this."""
+    registrations = store / "registrations"
+    registrations.mkdir(parents=True)
+    registrations.chmod(0o555)
+    store.chmod(0o555)
+    try:
+        R.register("WLC", download=False)
+        assert (registrations / "WLC.yaml").is_file()
+    finally:
+        for path in (store, registrations):
+            path.chmod(0o755)
+
+
 def test_registering_twice_is_not_an_error(catalog, store):
     R.register("WLC", download=False)
     R.register("WLC", download=False)

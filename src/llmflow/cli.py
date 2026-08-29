@@ -516,12 +516,21 @@ def main(argv=None):
             return
 
         if args.resource_command == "add":
-            if args.path:
-                written = resources.register_local(
-                    args.id, args.path, kind=args.kind, versification=args.versification
-                )
-            else:
-                written = resources.register(args.id, download=not args.no_download)
+            # A failure here is a fact about this machine — no network, a locked directory, a
+            # name the catalog does not know. Say which; a traceback answers none of them.
+            try:
+                if args.path:
+                    written = resources.register_local(
+                        args.id, args.path, kind=args.kind, versification=args.versification
+                    )
+                else:
+                    written = resources.register(args.id, download=not args.no_download)
+            except (KeyError, ValueError, OSError, RuntimeError) as error:
+                # `str()` on an OSError gives "[Errno 13] Permission denied: <path>"; its
+                # `args[0]` gives the bare errno, which told a user only "13".
+                message = error.args[0] if isinstance(error, KeyError) else str(error)
+                print(f"❌ Could not register '{args.id}': {message}")
+                sys.exit(1)
             print(f"✅ Registered '{args.id}' — {written}")
             return
 

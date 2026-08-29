@@ -299,7 +299,12 @@ def _migrate_resources_dir(sp_home: Path) -> Optional[Check]:
         )
 
     try:
-        shutil.move(str(legacy), str(current))
+        # `~/.sp` is deliberately read-only, and moving a non-empty directory needs write
+        # permission on the source to unlink its entries — the same reason `_restore` unlocks
+        # before writing. Without this the migration failed on the first real machine it met
+        # while passing every test, because a pytest tmpdir is writable.
+        with _unlocked(legacy):
+            shutil.move(str(legacy), str(current))
     except Exception as error:
         return Check(
             "resources_dir",
