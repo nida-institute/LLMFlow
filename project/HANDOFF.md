@@ -1,146 +1,128 @@
-# HANDOFF — 2026-08-28
+# HANDOFF — 2026-08-29
 
-Supersedes 2026-08-27. **This repository is clean, committed and pushed.** What is outstanding is
-one decision, plus uncommitted documents in two *other* repositories.
-
-State, verifiable: `git -C . status --short --branch` prints `## dev...origin/dev` and nothing
-else. HEAD is **`cf78e2a`**.
+Supersedes 2026-08-28. **This repository is clean, committed and pushed.** HEAD is **`db3c4d7`**,
+`## dev...origin/dev` with nothing else. Version is **0.2.1.25**, and the CHANGELOG has its
+dated section.
 
 ---
 
-## ▶ NEXT ACTION — commit two repositories, then the reference-resolution build
+## ▶ NEXT ACTION — open the release PR
 
-**Uncommitted here:** `src/llmflow/templates/sp/disciplines/workflow.md` (a new rule),
-`data/helm-sync.yaml` (its refreshed hash), `.github/copilot-instructions.md` (a block `sp doctor`
-inserted, which the Captain approved keeping), and this file.
+Everything the release needs is on `dev`. The remaining steps are `project/RELEASE_CHECKLIST.md`
+§6–§9, and **each is the Captain's**:
 
-**Uncommitted in `nida-institute/human-at-the-helm`:** `disciplines/workflow.md`, the same rule
-propagated by `tools/sync_helm.py --apply`. That tree is otherwise clean and on `main`.
+1. `dev` → `main` pull request. **It must be a merge commit**, not a squash.
+2. Tag **the merge commit** — delete any stale tag first; the checklist's §7 records why.
+3. Watch **every** `release.yml` job, not just the build. §8 is marked MANDATORY VERIFICATION.
 
-The two must land together or `test_helm_sync.py` goes red on whichever side lags. **The commits
-are the Captain's.**
+**Two checks worth doing first, neither blocking, neither yet done:**
 
-**Then, the substantial work queued:** implement reference resolution. Every decision it needs is
-recorded in `project/plans/design-reference-resolution.md` §5 (the Captain's `=>` answers) and §7
-(the resolved consequences), so the scope declaration can be exact. **Declare the scope and wait
-for sign-off before editing anything.**
-
-### A correction, so the next session does not chase it
-
-An earlier reading in this session claimed `sp doctor` leaves `~/.sp` unlocked and that this was a
-bug. **That was wrong.** sp's documented policy — stated in `tests/test_sp_lock.py` — locks
-`disciplines/`, `skills/` and `projects/` and *explicitly leaves* `data/` and `user-context/`
-writable. `TestLockedAfterInit` passes, so `sp init` does its job, and the store root is not
-required to be locked. A three-test investigation and a `cli_utils.py` edit were built on that
-misreading and have been reverted and deleted. The store is currently fully read-only.
-
-One thing from it is worth keeping: **a test somewhere calls `init_project` without patching
-`SP_HOME`**, because an experimental edit changed permissions on the real `~/.sp` during a suite
-run. That is worth finding.
+- **The store migration has never run on a real machine.** `sp doctor` moves `~/.sp/editions/`
+  to `~/.sp/registrations/` and `~/.sp/data/` to `~/sp/resources/`. Tested only against pytest
+  temp directories. This machine has `~/.sp/editions` with three registrations and no
+  `~/.sp/data`. Run it in a **consumer** repo — not this one, which #210 still forbids.
+- **`sp resource add` has never fetched anything for real.** Every download test mocks the
+  response. One `sp resource add SBLGNT` (~150MB) would exercise fetch, unpack, version-record
+  and register end to end before Paul does.
 
 ---
 
 ## What landed today
 
-Four commits, `8c2de2b` through `cf78e2a` on top of `fcd2ec4`:
+Six commits, `a49fd1d` through `db3c4d7`:
 
 | | |
 |---|---|
-| `fcd2ec4` | `saveas` reads its own format, not the step's; every write is NFC; the Greek elision takes its space |
-| `8c2de2b` | the schema enum and 34 tests that `fcd2ec4` left behind — HEAD was inconsistent between them |
-| `b7ec0a5` | four `include:` families from one declaration, and the joining rule corrected |
-| `cf78e2a` | the resolved reference-resolution decisions, and `custom.vrs` on the active list |
+| `a49fd1d` | the shipped document says which `include:` families are built |
+| `e88f751` | reference resolution — extent from a named versification, one lean parser — #218 |
+| `e8369a8` | the hook that makes file reads go through `Read` |
+| `9c629ce` | `sp resource` — a catalog says how to open a text, the store says where it is — #217 |
+| `06f0767` | one declaration of book names, so `Mark 1:1-8` and `MRK 1:1-8` both work |
+| `860e627` | `data/book-names.json` shipped nowhere, and nothing could tell |
+| `2794d6f` | the discipline says which tools a session actually has |
+| `db3c4d7` | 0.2.1.25, and a guard so the changelog cannot be forgotten |
 
-**Test state: 3540 passed, 25 skipped, 1 failed.** The failure is an MCP network timeout
-(`test_verify_citations_integration.py` or `test_mcp.py`, whichever ran) — environmental, not
-ours. Do not "fix" it by changing the test. Verify with
+**Test state: 3685 passed, 24 skipped.** The only intermittent failure is
+`test_mcp.py::test_connection_to_biblica_server`, an `httpx.ReadTimeout` against a live server.
+It passes on some runs. Do not "fix" it by changing the test. Verify with
 `hatch run pytest tests/ -q --ignore=tests/integration`.
-
-## Uncommitted in other repositories
-
-| where | what |
-|---|---|
-| `discourse-flow` | `collab/sp/2026-08-26-scripture-step-plan.md` (untracked) and two `sp` replies appended to `collab/sp/2026-08-27-discourse-family-is-built.md`. **Stage by name only** — that tree has four of the Captain's own modified files |
-| `Clear/macula-greek` | `collab/sp/2026-08-28-inter-word-material.md`, in a third-party checkout that already carries someone's in-progress critical apparatus. **Do not commit there** |
-| `~/.sp` | **Four items.** `disciplines/workflow.md` modified — that one is today's new rule, arriving via `sp doctor` from the template, so it is expected. Plus `skills/load-context/SKILL.md` modified and `versification/`, `projects/sil-translator-notes.yaml` untracked. **Report with the diff, never commit.** Bare repo at `~/.sp-git`, alias `spgit` |
 
 ## Decisions settled today — do not reopen
 
-**The joining rule was ours to fix, not Macula's.** Macula Greek's convention is uniform: *a space
-follows every non-space `after`*, and a word-final mark is carried in `text` instead — which is why
-`ἀλλ’` appears in `text` with `·` in `after` in exactly 3 places. Reconstructing 7,330 verses under
-that rule matches a printed SBLGNT in **7,197 (98.19%)** with **zero spacing differences**.
-`JOINING_MARKS` had wrongly contained U+2019, spacing 1,221 Greek elisions against the printed
-edition. Hebrew is different: 9 `after` values, 170,393 empty (morpheme continuation) and 42,569
-maqqef, both correctly joining. Paseq and bare `ס`/`פ` stand *between* words and take a space on
-each side — `STANDALONE_MARKS`.
+**`sp resource` is the whole surface, and `sp download-data` is gone.** `list`, `add` (fetching
+by default, `--no-download` to skip, `--path` for a Paratext project or a text of your own),
+`download` for a resource no reader can open. The old command carried a four-entry catalog beside
+the public one; its `berean-usx` entry pointed at a 404.
 
-**Families are edition-shaped; we do not merge ontologies.** *"Greek and Hebrew are different
-languages. The analyses differ. We provide what Macula provides for each language."* And *"`morph`
-is line noise."* `data/include-families.json` declares each family's columns across all editions;
-a family emits whichever the edition has. Field names are the source's column names **verbatim**;
-the only renames are `lemma` and `strong`, which are USX-defined attributes on a `w` node. A
-per-word family requires `ids`, because the container keys by word id.
-`IMPLEMENTED_FAMILIES` is now everything but `syntax`.
+**The catalog is `resources.json` in `awesome-biblical-data`, vendored into the wheel.** It
+carries **shape, never state**: which file holds a text, which backend reads it, its versification
+and canon. Anything that changes as a maintainer works stays in that resource's own repository —
+a copy here would eventually call a reviewed file unreviewed, authoritatively. Entries gained
+`provides`; a `validate_resources.py` and a pre-commit hook now check the file, which found a
+duplicate `scripture-burrito` nobody had noticed.
 
-**Reference resolution — five questions closed.** Recorded in
-`project/plans/design-reference-resolution.md` **§7 Resolved**, with the reasoning. Summary:
-whole-chapter extent returns real counts not `999` (breaking change accepted); `maxVerses` comes
-from the packaged copy at `llmflow/templates/sp/versification/`, never `~/.sp`; a book the scheme
-lacks has three cases (one other scheme → use it; `ODA`/`PSS` → raise naming both; no lookup needed
-→ parse, metadata says so, log warns); `filename_prefix` and `display_name` **keep** the resolved
-verse, decided not deferred; **two** parsers, the third folding into the lean one via a part field.
+**Corpora are visible, registrations are not.** `~/sp/resources/<owner>/<repo>/` for the texts —
+configuration belongs in a dotfile and a library of several hundred megabytes does not —
+`~/.sp/registrations/` for the small files saying what this machine may read. Directories are
+named for the source (`Clear-Bible/macula-greek`, or `https-<host>/<file>`), never a catalog id.
 
-**`syntax` is on hold** by explicit instruction. `frame` is one line (18.4% populated, both
-editions); the lowfat tree is 10× payload, depth 18, and per-book in Greek against per-chapter in
-Hebrew. Shipping `frame` as `syntax` and adding the tree later would raise every consumer's payload
-10× without their pipeline changing.
+**Every fetch records what it fetched** — source, archive SHA-256, size, timestamp — because a
+directory name says which resource it holds and nothing about which copy.
 
-## The stand-down, and what came of it
+**`known_editions` is empty and should stay so.** WLC, SBLGNT and BSB answer from the catalog with
+their evidence. Add an entry there only for something the catalog cannot describe.
 
-A `/stand-down` was run after an authorization to implement was treated as covering six further
-design decisions. Two rules were proposed for `docs/ai-context/project/rules.md`. **Both were
-resolved, neither the way they were proposed.**
+**BSB comes from the official USFM release**, not `usfm-bible/examples.bsb`, which omits `\id` in
+Ecclesiastes and silently loses the book. The official release carries `\mt1`/`\mt2`, `\s1`, `\p`,
+`\q1` and full footnotes — what `format: print` needs.
 
-**The first was refused, correctly, and the reason matters more than the rule.** "A ruling is not
-an authorization" is *already written machine-wide, twice*, in `~/.sp/drift-patterns.md`: line 212
-(*The Helpful Addition* — "Implement exactly what was specified… The human decides what gets
-built") and line 323 (*Decision Laundering Through Questions* — "Decisions happen before
-implementation"). So the session's failure was not a gap in the rules; it was ignoring two rules
-that `/load-context` reads at session start. A third copy in this project's rules would have
-drifted from them, which that file's own "What does not belong here" forbids.
+**`format: usj` emits `sid` and no `eid`.** USX pairs them; USJ does not, and `usfmtc` discards
+ends in its USX-to-USJ conversion. discourse-flow accepted this after seeing the evidence.
 
-**The second was added, in the right place.** *"Never create or modify a file in a repository
-belonging to another organisation"* now sits in `## Files the Human Controls` in the discipline —
-and in the **source template**, `src/llmflow/templates/sp/disciplines/workflow.md`, not in `~/.sp`
-directly, because that file is `policy: generated` and a direct edit would be overwritten. `sp
-doctor` propagated it; the installed copy is byte-identical to the template.
-
-**`project/plans/tmp-context.md` was not written** (stand-down step 3): §7 of the design document
-carries the decisions it would have held. Noted so the absence does not read as an oversight.
-
-**The reference-resolution implementation is unstarted** — see the next action.
+**Both ways of naming a book work**, case-insensitively, from `data/book-names.json`. A reference
+is tokenized, not pattern-matched. A range may cross a chapter and not a book. Testament and
+original language are declared per book, not derived from a number threshold.
 
 ## Do NOT / landmines
 
-- **Do not commit, push, or merge.** Run gates, write the message, hand over the command. A push is
-  authorized per act and names remote and branch.
-- **Do not modify `docs/ai-context/`, `CLAUDE.md`, or project memory.** Hard prohibitions.
-- **Do not write after a `=>`.** Those are the Captain's, in both design documents.
-- **Do not decide what the Captain has not decided.** This session was stood down for exactly that:
-  an authorization to implement was treated as covering six further design decisions. When building
-  reveals an unmade decision, stop and ask.
-- **Do not create or modify files in another organisation's checkout.**
-- **Looks like a next step but isn't:** implementing `syntax`, or splitting B from C with clever
-  patch machinery.
+- **Do not commit, push, or merge.** Run the gates, write the message, hand over the command.
+- **Do not run `sp doctor` in this repository** — #210, still open.
+- **Do not modify `docs/ai-context/`, `CLAUDE.md`, or project memory** without explicit approval.
+  The Captain authorised specific edits to `data-shapes.md`, `data-sources.md` and `CLAUDE.md`
+  today; those approvals were per-act and do not carry forward.
+- **Do not write after a `=>`.** Those are the Captain's.
+- **`data/book-names.json` and `data/resources.json` must stay in `pyproject.toml`'s
+  force-include and in *both* Nuitka commands.** `book-names.json` reached a release candidate
+  bundled nowhere; two guards now catch it.
+- **`Grep` and `Glob` do not exist in this installation.** A `general-purpose` subagent declared
+  `Tools: *` also lacks them, so it is not a session-launch quirk. Search with `grep` via bash,
+  one command at a time — a chained command matches no permission rule and costs an approval.
 
-## Key files & links
+## Open, with the reasoning recorded
 
 | | |
 |---|---|
-| `project/plans/design-reference-resolution.md` | §5 the Captain's `=>` answers, §7 the resolved set |
-| `project/plans/plan-scripture-step.md` | §5 steps 5–7 record the families ruling |
-| `data/include-families.json` | the family declaration — the whole design |
-| `src/llmflow/utils/scripture.py:103` | `JOINING_MARKS`, `STANDALONE_MARKS`, and why U+2019 is absent |
-| issues | **#218** reference resolution · **#219** saveas collision · **#220** pipeline header declaration · **#221** Burrito versification · **#222** Paratext `custom.vrs` (in `TODO.md` Active) |
-| others | **#216** binary data, fixed and unreleased · **#211** done, closable |
+| **#223** | `type: scripture` records nothing about how it resolved a reference. Filed from discourse-flow's argument; explicitly *not* a change to `parse_bible_reference`, whose nulls are closed |
+| **#201** | datasets record no version — half-addressed: fetches now record one, but the catalog is still not validated against what is installed |
+| **#210, #211** | `overview.md` is two documents sharing one path; 21 shipped documents to `source: template`. #211 looks substantially done and wants re-scoping or closing |
+| **#215** | `sp init`'s write paths. The registry warning naming a retired filename still fires on every init |
+| **CHANGELOG history** | `0.1.5.04` carries two headings from a mis-merge. Left alone deliberately — editing it would rewrite the record to satisfy a new test |
+
+## Other repositories
+
+| where | what |
+|---|---|
+| `awesome-biblical-data` | committed. Now carries `provides` blocks, the validator and the pre-commit hook. We are taking over its maintenance |
+| `human-at-the-helm` | committed — `disciplines/workflow.md`, synced. It must move with this repository's copy or `test_helm_sync` goes red |
+| `discourse-flow` | our reply committed. **Their** `2026-08-29-reference-provenance.md` and a modified `2026-08-27-discourse-family-is-built.md` are still uncommitted there, and are theirs |
+| `~/.claude` | `settings.json` carries the hook fix. The Captain's store, `cgit`. **Report, never commit** |
+
+## Key files
+
+| | |
+|---|---|
+| `src/llmflow/resources.py` | the catalog reader, path resolution, registration, status |
+| `src/llmflow/books.py` | which book a reference names |
+| `data/book-names.json`, `data/resources.json` | the two declarations added today |
+| `project/plans/design-edition-provisioning.md` | #217's decisions, D1–D6 with the Captain's `=>` answers |
+| `project/RELEASE_CHECKLIST.md` | §6–§9 are the remaining steps |
