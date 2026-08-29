@@ -374,6 +374,32 @@ Calls a Python function from the Scripture Pipelines library or custom code.
 - `llmflow.utils.data.flatten_json_to_markdown` — convert JSON to markdown
 - `llmflow.utils.data.identity` — pass through data unchanged
 
+#### `parse_bible_reference` and versification
+
+A reference is not a location until a scheme is named, so this function takes one:
+
+```yaml
+- name: parse_passage
+  type: function
+  function: llmflow.utils.data.parse_bible_reference
+  inputs:
+    passage: "${passage}"
+    versification: eng          # optional; this is the default
+  output: passage_info
+```
+
+`versification:` is the scheme the **request** is written in — a fact about the person who typed
+it, which is why it has a default. It is not the scheme the **text** is numbered in: that is a
+property of an edition, it has no default anywhere in this engine, and this function never has an
+edition to read. Pass `source_versification:` to record one on the result; it is echoed for the
+reader and never resolved against.
+
+The whole-chapter extent comes from the named scheme's `maxVerses`, so `Psalm 3` ends at verse 8
+in `eng` and verse 9 in `org`, where the superscription is verse 1. A chapter or verse the scheme
+does not have is an error naming the scheme and the real extent, rather than a plausible number.
+The result carries `requested_versification`, `source_versification`, `extent_versification` —
+which scheme the extent actually came from — and `book_in_versification`.
+
 > ⚠️ The module prefix is always `llmflow.utils.*` — never `sp.utils.*`
 
 > ℹ️ All built-in loaders use **lxml** for XML/USX parsing. There is no stdlib `xml.etree` use in this engine.
@@ -769,6 +795,20 @@ something consumes the structure.
 inside each, `verse` nodes and text. The Macula sources carry no paragraph structure, so there
 is none to represent; a `para` per chapter is the least the USX grammar allows. Flattening the
 document reproduces `format: milestones` exactly, and that equivalence is a test.
+
+**Chapters and verses carry a `sid`** naming the reference they open:
+
+```json
+{"type": "chapter", "marker": "c", "number": "1", "sid": "MRK 1"}
+{"type": "verse", "marker": "v", "number": "1", "sid": "MRK 1:1"}
+```
+
+**There is no `eid`, and that is deliberate.** USX closes each one with a matching
+`<verse eid="MRK 1:1"/>` element, but USJ does not: `usfmtc`, the USFM Technical Committee's
+reference implementation, discards verse and chapter ends when it converts USX to USJ. Emitting
+them anyway would put non-standard content in the standard node space — the thing
+`scripture_pipelines` exists to prevent — and any round-trip through a conformant tool would
+drop them again. A verse ends where the next `sid` begins, or where the chapter or document does.
 
 **Text nodes carry their own spacing.** Rebuild running text by **concatenating** them, not by
 joining with a space — otherwise every comma gains a space in front of it.

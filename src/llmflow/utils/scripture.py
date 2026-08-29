@@ -14,7 +14,6 @@ from __future__ import annotations
 import csv
 import json
 import re
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
@@ -134,69 +133,11 @@ class EditionNotRegistered(KeyError):
         return self.args[0] if self.args else ""
 
 
-@dataclass(frozen=True)
-class PassageRef:
-    """A parsed reference. ``None`` chapter means the whole book; ``None`` verse, the whole
-    chapter."""
-
-    book: str
-    start_chapter: Optional[int]
-    start_verse: Optional[int]
-    end_chapter: Optional[int]
-    end_verse: Optional[int]
-
-    def covers(self, chapter: int, verse: int) -> bool:
-        if self.start_chapter is None:
-            return True
-        if chapter < self.start_chapter or chapter > (self.end_chapter or self.start_chapter):
-            return False
-        if self.start_verse is None:
-            return True
-        if chapter == self.start_chapter and verse < self.start_verse:
-            return False
-        end_c = self.end_chapter or self.start_chapter
-        end_v = self.end_verse
-        if end_v is not None and chapter == end_c and verse > end_v:
-            return False
-        return True
-
-
-_BOOK = r"(?P<book>[A-Z1-9][A-Za-z0-9]{1,4})"
-_PATTERNS = (
-    # MRK 1:40-2:12
-    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+)\s*-\s*(?P<c2>\d+):(?P<v2>\d+)$"),
-    # MRK 1:1-8
-    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+)\s*-\s*(?P<v2>\d+)$"),
-    # MRK 1:1
-    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+)$"),
-    # MRK 1
-    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+)$"),
-    # PHM
-    re.compile(rf"^{_BOOK}$"),
-)
-
-
-def parse_passage_ref(passage: str) -> PassageRef:
-    """Parse ``"MRK 1:1-8"`` and friends.
-
-    Deliberately strict: an unrecognised string raises rather than being coerced into
-    something plausible, because a silently wrong range yields analysis of the wrong text.
-    """
-    text = (passage or "").strip()
-    for pattern in _PATTERNS:
-        m = pattern.match(text)
-        if not m:
-            continue
-        g = m.groupdict()
-        c1 = int(g["c1"]) if g.get("c1") else None
-        v1 = int(g["v1"]) if g.get("v1") else None
-        c2 = int(g["c2"]) if g.get("c2") else c1
-        v2 = int(g["v2"]) if g.get("v2") else v1
-        return PassageRef(g["book"].upper(), c1, v1, c2, v2)
-    raise ValueError(
-        f"{passage!r} is not a passage reference. Expected forms: 'MRK', 'MRK 1', "
-        f"'MRK 1:1', 'MRK 1:1-8', 'MRK 1:40-2:12'."
-    )
+#: The lean parser and its result live in `versification`, which is the lower layer: the mapper
+#: needs them and cannot import this module. Re-exported here because the read path is their
+#: other caller and imports from `scripture`.
+PassageRef = _versification.PassageRef
+parse_passage_ref = _versification.parse_passage_ref
 
 
 def _split_ref(ref: str) -> tuple[str, Optional[int], Optional[int]]:
@@ -414,7 +355,7 @@ def resolve_passage(
             edition_scheme_name,
             mappings_dir,
         )
-        _, new_chapter, new_verse, _ = _versification.parse_reference(mapped)
+        _, new_chapter, new_verse, _ = _versification.as_single_verse(mapped)
         return new_chapter, new_verse
 
     start_chapter, start_verse = moved(ref.start_chapter, ref.start_verse)
@@ -558,6 +499,11 @@ def rows_to_usj(
             if trailing:
                 target.append(trailing)
 
+    # `sid` only, and deliberately: USX pairs a start milestone with a closing `<verse eid=…/>`,
+    # but USJ does not — `usfmtc`, the USFM Technical Committee's reference implementation,
+    # discards verse and chapter ends when it converts USX to USJ. Emitting them anyway would put
+    # non-standard content in the standard node space, which is what CONTAINER_KEY exists to
+    # avoid, and any round-trip through a conformant tool would drop them again.
     for key, group in group_by_verse(rows):
         if key is None:
             if para is not None:
@@ -567,12 +513,26 @@ def rows_to_usj(
         chapter, verse = key
         if chapter != chapter_open:
             chapter_open = chapter
-            content.append({"type": "chapter", "marker": "c", "number": str(chapter)})
+            content.append(
+                {
+                    "type": "chapter",
+                    "marker": "c",
+                    "number": str(chapter),
+                    "sid": f"{book} {chapter}",
+                }
+            )
             para = {"type": "para", "marker": USJ_PARA_MARKER, "content": []}
             content.append(para)
 
         assert para is not None  # a chapter node always opens one
-        para["content"].append({"type": "verse", "marker": "v", "number": str(verse)})
+        para["content"].append(
+            {
+                "type": "verse",
+                "marker": "v",
+                "number": str(verse),
+                "sid": f"{book} {chapter}:{verse}",
+            }
+        )
         emit(para["content"], group)
 
     document = {"type": "USJ", "version": USJ_VERSION, "content": content}
@@ -646,9 +606,13 @@ def usj_to_text(usj: Mapping[str, Any], fmt: str = "milestones") -> str:
         if kind in SKIP_USJ_TYPES:
             return  # apparatus, not text — see SKIP_USJ_TYPES
         if kind == "chapter":
+            if node.get("eid"):
+                return  # a closing milestone, which names no new chapter
             chapter["n"] = node.get("number")
             return
         if kind == "verse":
+            if node.get("eid"):
+                return  # ends a verse rather than starting one
             if fmt == "milestones":
                 if parts and not parts[-1][-1:].isspace():
                     parts.append(" ")

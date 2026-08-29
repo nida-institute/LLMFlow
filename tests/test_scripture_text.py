@@ -194,3 +194,28 @@ class TestEditionResolution:
     def test_a_registered_edition_resolves_to_its_path(self):
         from llmflow.utils.scripture import resolve_edition
         assert resolve_edition("WLC", registry_editions={"WLC": "/tmp/wlc.tsv"}) == "/tmp/wlc.tsv"
+
+
+class TestTheLeanParserIsStrict:
+    """It served the read path while silently accepting a display name as a book code (#218)."""
+
+    def test_a_display_name_is_not_a_book_code(self):
+        """`Mark` became book `MARK`, which no reader resolves and nothing reported."""
+        with pytest.raises(ValueError, match="not a passage"):
+            parse_passage_ref("Mark 1:1")
+
+    def test_a_usfm_code_is_three_characters(self):
+        with pytest.raises(ValueError, match="not a passage"):
+            parse_passage_ref("MARK 1:1")
+
+    def test_a_verse_part_is_kept(self):
+        """`ESG 1:1a` — the mapper builds keys with the part, so it cannot be discarded."""
+        got = parse_passage_ref("ESG 1:1a")
+        assert (got.book, got.start_chapter, got.start_verse, got.start_part) == ("ESG", 1, 1, "a")
+
+    def test_a_reference_with_no_part_has_an_empty_one(self):
+        assert parse_passage_ref("MRK 1:1").start_part == ""
+
+    def test_both_ends_of_a_range_may_carry_a_part(self):
+        got = parse_passage_ref("SIR 1:1a-1d")
+        assert (got.start_part, got.end_part) == ("a", "d")

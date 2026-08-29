@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
@@ -26,15 +27,6 @@ logger = Logger()
 HUB_SCHEME = "org"
 
 MAPPINGS_DIRNAME = "versification"
-
-#: `GEN 1:1`, `ESG 1:1a`, `PSA 51:1-19`. Book codes are alphanumeric (`S3Y`, `PS2`, `1CO`), a
-#: verse may carry a segment letter, and a range is always within one chapter — verified across
-#: every shipped mapping.
-REFERENCE = re.compile(
-    r"^(?P<book>[A-Z0-9]{3})\s+(?P<chapter>\d+):(?P<verse>\d+)(?P<segment>[a-z]?)"
-    r"(?:-(?P<end_verse>\d+)(?P<end_segment>[a-z]?))?$"
-)
-
 
 class UnmappableReference(ValueError):
     """Raised when a reference cannot be placed in the target scheme."""
@@ -77,20 +69,132 @@ def default_mappings_dir() -> Path:
     return _paths.sp_home() / MAPPINGS_DIRNAME
 
 
-def parse_reference(reference: str) -> tuple[str, int, int, str]:
-    """Split a single-verse reference into book, chapter, verse and segment letter."""
-    match = REFERENCE.match(str(reference).strip())
-    if not match or match.group("end_verse"):
+def packaged_mappings_dir() -> Path:
+    """The schemes bundled in the wheel, reachable without a store or an edition.
+
+    `parse_bible_reference` has no edition and must still resolve an extent, so it reads these
+    rather than `$SP_HOME`: a custom versification is edition-scoped, so a caller with no
+    edition only ever needs the shipped standard schemes.
+    """
+    import llmflow
+
+    return Path(llmflow.__file__).resolve().parent / "templates" / "sp" / MAPPINGS_DIRNAME
+
+
+def packaged_scheme_names() -> tuple:
+    """Every scheme name the package ships, from the directory rather than a second list."""
+    return tuple(sorted(p.stem for p in packaged_mappings_dir().glob("*.json")))
+
+
+@lru_cache(maxsize=None)
+def packaged_scheme(name: str) -> Scheme:
+    """A shipped scheme, read once per process — the parser consults one on every call."""
+    return load_scheme(name, packaged_mappings_dir())
+
+
+@dataclass(frozen=True)
+class PassageRef:
+    """A parsed reference. ``None`` chapter means the whole book; ``None`` verse, the whole
+    chapter."""
+
+    book: str
+    start_chapter: Optional[int]
+    start_verse: Optional[int]
+    end_chapter: Optional[int]
+    end_verse: Optional[int]
+    start_part: str = ""
+    end_part: str = ""
+
+    def covers(self, chapter: int, verse: int) -> bool:
+        if self.start_chapter is None:
+            return True
+        if chapter < self.start_chapter or chapter > (self.end_chapter or self.start_chapter):
+            return False
+        if self.start_verse is None:
+            return True
+        if chapter == self.start_chapter and verse < self.start_verse:
+            return False
+        end_c = self.end_chapter or self.start_chapter
+        end_v = self.end_verse
+        if end_v is not None and chapter == end_c and verse > end_v:
+            return False
+        return True
+
+
+#: A USFM book code is exactly three characters, upper case — `GEN`, `1CO`, `S3Y`, `PS2`.
+#: The earlier pattern allowed one to five of either case, so `Mark 1:1` parsed as `MARK`.
+_BOOK = r"(?P<book>[A-Z1-9][A-Z0-9]{2})"
+_PART = r"(?P<%s>[a-z])?"
+_PATTERNS = (
+    # MRK 1:40-2:12
+    re.compile(
+        rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+){_PART % 'p1'}"
+        rf"\s*-\s*(?P<c2>\d+):(?P<v2>\d+){_PART % 'p2'}$"
+    ),
+    # MRK 1:1-8
+    re.compile(
+        rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+){_PART % 'p1'}"
+        rf"\s*-\s*(?P<v2>\d+){_PART % 'p2'}$"
+    ),
+    # MRK 1:1
+    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+){_PART % 'p1'}$"),
+    # MRK 1
+    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+)$"),
+    # PHM
+    re.compile(rf"^{_BOOK}$"),
+)
+
+
+def parse_passage_ref(passage: str) -> PassageRef:
+    """Parse ``"MRK 1:1-8"`` and friends.
+
+    Deliberately strict: an unrecognised string raises rather than being coerced into
+    something plausible, because a silently wrong range yields analysis of the wrong text.
+    """
+    text = (passage or "").strip()
+    for pattern in _PATTERNS:
+        m = pattern.match(text)
+        if not m:
+            continue
+        g = m.groupdict()
+        c1 = int(g["c1"]) if g.get("c1") else None
+        v1 = int(g["v1"]) if g.get("v1") else None
+        c2 = int(g["c2"]) if g.get("c2") else c1
+        v2 = int(g["v2"]) if g.get("v2") else v1
+        p1 = g.get("p1") or ""
+        p2 = g.get("p2") or ""
+        return PassageRef(g["book"].upper(), c1, v1, c2, v2, p1, p2 or p1)
+    raise ValueError(
+        f"{passage!r} is not a passage reference. Expected forms: 'MRK', 'MRK 1', "
+        f"'MRK 1:1', 'MRK 1:1-8', 'MRK 1:40-2:12'."
+    )
+
+
+
+def as_single_verse(reference: str) -> tuple:
+    """*reference* as (book, chapter, verse, part), refusing anything that is not one verse.
+
+    The mapper works verse by verse, so a range or a whole chapter has no single answer to give.
+    Parsing is the lean parser's; this only narrows what it returns.
+    """
+    try:
+        ref = parse_passage_ref(reference)
+    except ValueError as error:
+        raise UnmappableReference(f"{reference!r} is not a reference to a single verse: {error}")
+    if ref.start_chapter is None or ref.start_verse is None:
         raise UnmappableReference(
             f"{reference!r} is not a reference to a single verse "
             f"(expected e.g. 'PSA 51:1' or 'ESG 1:1a')."
         )
-    return (
-        match.group("book"),
-        int(match.group("chapter")),
-        int(match.group("verse")),
-        match.group("segment") or "",
-    )
+    if (ref.end_chapter, ref.end_verse, ref.end_part) != (
+        ref.start_chapter,
+        ref.start_verse,
+        ref.start_part,
+    ):
+        raise UnmappableReference(
+            f"{reference!r} is a range, not a reference to a single verse."
+        )
+    return ref.book, ref.start_chapter, ref.start_verse, ref.start_part
 
 
 def format_reference(book: str, chapter: int, verse: int, segment: str = "") -> str:
@@ -98,15 +202,30 @@ def format_reference(book: str, chapter: int, verse: int, segment: str = "") -> 
 
 
 def _expand(entry: str) -> list[str]:
-    """One mapping key or value as the list of single-verse references it names."""
-    match = REFERENCE.match(entry.strip())
-    if not match:
-        raise UnmappableReference(f"{entry!r} in a mapping file is not a reference.")
-    book, chapter = match.group("book"), int(match.group("chapter"))
-    first, last = int(match.group("verse")), int(match.group("end_verse") or match.group("verse"))
-    if match.group("end_verse"):
-        return [format_reference(book, chapter, verse) for verse in range(first, last + 1)]
-    return [format_reference(book, chapter, first, match.group("segment") or "")]
+    """One mapping key or value as the list of single-verse references it names.
+
+    A mapping entry is one verse or a run of them within a chapter; every shipped scheme is
+    written that way, and a range crossing a chapter has no single run to expand.
+    """
+    try:
+        ref = parse_passage_ref(entry.strip())
+    except ValueError as error:
+        raise UnmappableReference(f"{entry!r} in a mapping file is not a reference: {error}")
+    if ref.start_chapter is None or ref.start_verse is None:
+        raise UnmappableReference(
+            f"{entry!r} in a mapping file names no verse; a mapping is verse to verse."
+        )
+    if ref.end_chapter != ref.start_chapter:
+        raise UnmappableReference(
+            f"{entry!r} in a mapping file crosses a chapter boundary, which a mapping entry "
+            f"cannot express."
+        )
+    if ref.end_verse is not None and ref.end_verse != ref.start_verse:
+        return [
+            format_reference(ref.book, ref.start_chapter, verse)
+            for verse in range(ref.start_verse, ref.end_verse + 1)
+        ]
+    return [format_reference(ref.book, ref.start_chapter, ref.start_verse, ref.start_part)]
 
 
 def _pairs(mapped_verses: Mapping[str, str], scheme_name: str) -> dict:
@@ -227,11 +346,11 @@ def map_candidates(
     are not always adjacent, so a caller wanting a single answer must choose deliberately.
     """
     if from_scheme == to_scheme:
-        parse_reference(reference)  # Reject a malformed reference even when nothing moves.
+        as_single_verse(reference)  # Reject a malformed reference even when nothing moves.
         return [str(reference).strip()]
 
     source = load_scheme(from_scheme, mappings_dir)
-    book, chapter, verse, segment = parse_reference(reference)
+    book, chapter, verse, segment = as_single_verse(reference)
     own = format_reference(book, chapter, verse, segment)
 
     if own in source.excluded_verses:

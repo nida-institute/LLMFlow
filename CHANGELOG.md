@@ -2,6 +2,63 @@
 
 ## Unreleased
 
+### Changed
+
+- **`parse_bible_reference` resolves extent from a named versification scheme (#218).** A whole
+  chapter's `end_verse` came from a table hardcoded inside the function covering Psalms and two
+  other books; everything else fell through to a sentinel, so `Mark 3` returned `999` and
+  `Mark 3:1-999` presented itself as canonical. It now reads `maxVerses` from the scheme the
+  request names, defaulting to `eng` — the request side, a fact about the person who typed the
+  reference, and deliberately unlike the source side, where an edition's scheme has no default.
+  **Breaking:** `end_verse` for a whole chapter changes value, and code depending on `999` will
+  see a real number.
+
+  The result carries `requested_versification`, `source_versification` (echoed from the argument,
+  never resolved against, because this function has no edition), `extent_versification` — the
+  scheme the number actually came from — and `book_in_versification`.
+
+  **A chapter or verse the scheme does not have is now an error.** `Mark 3:99` and `Mark 99:1`
+  parsed silently before. The message names the scheme it judged against, which matters:
+  `Psalm 3:9` exists in `org` and not in `eng`, so a caller thinking in Hebrew numbering is told
+  which scheme to name rather than being given the wrong verse.
+
+  **USFM codes are accepted.** `MRK 3:14` raised while the function already held `"MRK"` for
+  every display name it took; the codes are now derived from that same table.
+
+  **A book the named scheme does not define** resolves from another scheme when exactly one
+  defines it, refuses when several do — naming them — and otherwise parses without an extent,
+  recording the gap and warning.
+
+- **Two reference parsers, not three (#218).** `versification.parse_reference` is gone;
+  `PassageRef` carries the verse part it existed for, and the mapper uses the lean parser.
+  `parse_passage_ref` moved to `llmflow.utils.versification` (the mapper cannot import
+  `scripture`) and is re-exported from `scripture` where the read path imports it. It also stops
+  accepting a display name as a book code: `Mark 1:1` silently became book `MARK`, and a USFM
+  code is exactly three upper-case characters.
+
+- **`format: usj` now emits a `sid` on every chapter and verse.** A chapter node carries
+  `sid: "MRK 1"` and a verse node `sid: "MRK 1:1"`, so a consumer addressing a span has the
+  standard's own identifier rather than having to rebuild one from `number` plus the enclosing
+  chapter.
+
+  **No `eid` is emitted, deliberately.** USX closes each milestone with a matching
+  `<verse eid=…/>` element; USJ does not, and `usfmtc` — the USFM Technical Committee's
+  reference implementation — discards verse and chapter ends in its USX-to-USJ conversion
+  (`usjproc.py`: `if "eid" in out_obj and key in ['verse', 'chapter']: action = "ignore"`).
+  Emitting them would put non-standard content in the standard node space, which
+  `scripture_pipelines` exists to prevent, and a round-trip through any conformant tool would
+  drop them. A verse ends where the next `sid` begins. Flattening still reproduces
+  `format: milestones` exactly, and `usj_to_text` tolerates an `eid` node arriving from a
+  USX-derived document produced elsewhere.
+
+### Documentation
+
+- **The shipped `scripture-representations.md` now states which `include:` families are built.**
+  Six of seven — everything but `syntax`, which is held deliberately. Asking for an unbuilt
+  family raises, and until now nothing a consumer could read said which those were; a project
+  was still building against `{ids, discourse}` a day after the other four shipped. A guard test
+  fails if the table diverges from `IMPLEMENTED_FAMILIES`.
+
 ## 0.2.1.24 — 2026-08-26
 
 ### New Features

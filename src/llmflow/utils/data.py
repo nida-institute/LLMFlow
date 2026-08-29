@@ -6,6 +6,7 @@ from pathlib import Path
 import yaml
 
 from llmflow.modules.logger import Logger
+from llmflow.utils import versification as _versification
 
 # Use unified logger - Logger() returns the logger instance directly
 logger = Logger()
@@ -106,27 +107,113 @@ def validate_array_lengths(json_structure):
     pass
 
 
-def parse_bible_reference(passage):
+#: The scheme a reference is assumed to be written in when the caller names none. This is the
+#: request side — a fact about the person who typed it — and is deliberately unlike the source
+#: side, where an edition's scheme is a property of the text and has no default at all.
+DEFAULT_REQUEST_VERSIFICATION = "eng"
+
+
+def _measuring_scheme(book_code, requested, passage, *, extent_needed):
+    """The scheme to measure *book_code* with, and whether *requested* itself defines it.
+
+    A scheme that does not list the book cannot answer. Where nothing needs measuring the gap is
+    recorded and parsing continues; where an extent is needed, one other scheme defining the book
+    is used and more than one is refused, because choosing between them would be a guess.
+
+    The returned scheme is always usable for `.name`; the flag says whether it actually defines
+    the book, and a caller must not range-check against it when the flag is False.
+    """
+    scheme = _versification.packaged_scheme(requested)
+    if book_code in scheme.max_verses:
+        return scheme, True
+
+    others = [
+        name
+        for name in _versification.packaged_scheme_names()
+        if book_code in _versification.packaged_scheme(name).max_verses
+    ]
+    logger.warning(
+        f"{book_code} is not defined in versification {requested!r}"
+        + (f"; it is defined in {', '.join(others)}." if others else " or in any shipped scheme.")
+    )
+    if extent_needed and len(others) == 1:
+        return _versification.packaged_scheme(others[0]), False
+    if not extent_needed:
+        # Nothing to measure, so the requested scheme is returned as it stands; the caller reads
+        # the False and skips a range check the scheme has no data to make.
+        return scheme, False
+    raise ValueError(
+        f"{passage!r}: {book_code} is not defined in versification {requested!r}, so the extent "
+        f"of a whole chapter cannot be resolved. "
+        + (
+            f"It is defined in {', '.join(others)} — name one with `versification=`."
+            if others
+            else "No shipped scheme defines it."
+        )
+    )
+
+
+def _check_reference(scheme, book_code, pairs, passage):
+    """Refuse a chapter or verse the scheme does not have. Verse 0 is a superscription."""
+    chapters = scheme.max_verses.get(book_code) or []
+    for chapter, verse in pairs:
+        if not 1 <= chapter <= len(chapters):
+            raise ValueError(
+                f"{passage!r}: {book_code} has {len(chapters)} chapters in versification "
+                f"{scheme.name!r}, so there is no chapter {chapter}."
+            )
+        if verse is None:
+            continue
+        last = int(chapters[chapter - 1])
+        if not 0 <= verse <= last:
+            raise ValueError(
+                f"{passage!r}: {book_code} {chapter} has {last} verses in versification "
+                f"{scheme.name!r}, so there is no verse {verse}."
+            )
+
+
+def parse_bible_reference(
+    passage,
+    versification=DEFAULT_REQUEST_VERSIFICATION,
+    source_versification=None,
+):
     """
     Parse a Bible reference and return comprehensive range information.
 
     Args:
         passage (str): Bible reference like "Psalm 23", "Luke 12:5-19", "John 3:16"
 
+    Args:
+        passage (str): "Psalm 23", "Luke 12:5-19", "John 3:16", "MRK 3:14", "Romans"
+        versification (str): the scheme the *request* is written in. Defaults to `eng`.
+        source_versification (str): the scheme an edition's text is numbered in, recorded on the
+            result and never resolved against — this function has no edition to read.
+
     Returns:
         dict: {
-            'book_name': str,           # "Psalm", "Luke", "John"
-            'book_number': str,         # "19", "42", "43"
-            'book_code': str,           # "PSA", "LUK", "JHN" (USFM 3.0 book code)
-            'chapter': int,             # 23, 12, 3
-            'chapter_padded': str,      # "023", "012", "003"
-            'start_verse': int,         # 1, 5, 16
-            'end_verse': int,           # last_verse, 19, 16
-            'is_whole_chapter': bool,   # True, False, False
-            'filename_prefix': str,     # "019023001-019023176", "042012005-042012019", "043003016-043003016"
-            'display_name': str,        # "Psalm-23", "Luke-12-5-19", "John-3-16"
-            'canonical_reference': str  # "Psalm 23:1-176", "Luke 12:5-19", "John 3:16"
+            'book_name': str,                 # "Psalms", "Luke", "John"
+            'book_number': str,               # "19", "42", "43"
+            'book_code': str,                 # "PSA", "LUK", "JHN" (USFM 3.0 book code)
+            'chapter': int,                   # 23, 12, 3
+            'chapter_padded': str,            # "023", "012", "003"
+            'start_verse': int,               # 1, 5, 16
+            'end_verse': int,                 # resolved from maxVerses for a whole chapter
+            'end_chapter': int,
+            'is_whole_chapter': bool,
+            'filename_prefix': str,           # "19023001-19023006"
+            'display_name': str,              # "Psalms-23", "Luke-12-5-19", "John-3-16"
+            'canonical_reference': str,       # "Psalms 23:1-6", "Luke 12:5-19", "John 3:16"
+            'testament': str,                 # "OT" | "NT"
+            'original_language': str,         # "Hebrew" | "Greek"
+            'requested_versification': str,   # the scheme the reference was read in
+            'source_versification': str|None, # echoed from the argument
+            'extent_versification': str|None, # where end_verse came from; None if not resolved
+            'book_in_versification': bool,    # False when the scheme does not define the book
         }
+
+    Raises:
+        ValueError: for an unrecognised book, an ambiguous abbreviation, a chapter or verse the
+            scheme does not have, or a whole chapter in a scheme that does not define the book.
     """
 
     # Bible book mapping with disambiguation (number, display_name, USFM_code)
@@ -399,28 +486,10 @@ def parse_bible_reference(passage):
         "rv": ("66", "Revelation", "REV"),
     }
 
-    # Approximate verse counts for whole chapters (you may want to make this more precise)
-    chapter_verse_counts = {
-        # This is a simplified mapping - you'd want a complete Bible verse count database
-        "19": {  # Psalms
-            1: 6,
-            2: 12,
-            3: 8,
-            4: 8,
-            5: 12,
-            23: 6,  # Psalm 23 has 6 verses
-            119: 176,  # Psalm 119 is the longest
-            # Add more as needed, or use an external Bible API
-        },
-        "42": {  # Luke
-            12: 59,  # Luke 12 has 59 verses
-            # Add more as needed
-        },
-        "43": {  # John
-            3: 36,  # John 3 has 36 verses
-            # Add more as needed
-        },
-    }
+    # A USFM code is a key of this table too, derived from the table rather than listed a
+    # second time: the prescribed parser rejected `MRK 3:14` while already holding "MRK".
+    for _number, _display, _code in list(book_numbers.values()):
+        book_numbers.setdefault(_code.lower(), (_number, _display, _code))
 
     # Check for ambiguous abbreviations
     ambiguous_abbreviations = {
@@ -499,10 +568,25 @@ def parse_bible_reference(passage):
 
             else:  # Whole chapter "Psalm 23"
                 start_verse = 1
-                # Look up or estimate end verse
-                end_verse = chapter_verse_counts.get(book_number, {}).get(chapter, 999)
+                end_verse = None  # resolved from the scheme below
                 end_chapter = chapter
                 is_whole_chapter = True
+
+            scheme, book_known = _measuring_scheme(
+                book_code, versification, original_passage, extent_needed=is_whole_chapter
+            )
+            extent_from = None
+            if is_whole_chapter:
+                _check_reference(scheme, book_code, [(chapter, None)], original_passage)
+                end_verse = int(scheme.max_verses[book_code][chapter - 1])
+                extent_from = scheme.name
+            elif book_known:
+                _check_reference(
+                    scheme,
+                    book_code,
+                    [(chapter, start_verse), (end_chapter, end_verse)],
+                    original_passage,
+                )
 
             # Build result
             start_code = f"{book_number}{chapter:03d}{start_verse:03d}"
@@ -543,6 +627,10 @@ def parse_bible_reference(passage):
                 "canonical_reference": canonical_reference,
                 "testament": "NT" if is_nt else "OT",
                 "original_language": "Greek" if is_nt else "Hebrew",
+                "requested_versification": versification,
+                "source_versification": source_versification,
+                "extent_versification": extent_from,
+                "book_in_versification": book_known,
             }
 
     # Last resort: try matching the entire input as a book name (whole-book reference)
@@ -554,6 +642,9 @@ def parse_bible_reference(passage):
         book_number, book_display_name, book_code = book_info_whole
         filename_prefix = f"{book_number}_book"
         is_nt = int(book_number) >= 40
+        _, book_known = _measuring_scheme(
+            book_code, versification, original_passage, extent_needed=False
+        )
         return {
             "book_name": book_display_name,
             "book_number": book_number,
@@ -570,6 +661,10 @@ def parse_bible_reference(passage):
             "canonical_reference": book_display_name,
             "testament": "NT" if is_nt else "OT",
             "original_language": "Greek" if is_nt else "Hebrew",
+            "requested_versification": versification,
+            "source_versification": source_versification,
+            "extent_versification": None,
+            "book_in_versification": book_known,
         }
 
     # If we get here, the passage wasn't recognized
