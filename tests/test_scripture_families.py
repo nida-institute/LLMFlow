@@ -11,6 +11,7 @@ back to a column. The two exceptions are `lemma` and `strong`, which USX already
 attributes on a `w` element and which therefore go there instead.
 """
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -185,3 +186,29 @@ def test_discourse_does_not_require_ids():
     """Discourse items name their own word ids, so they stand without `srcloc`."""
     doc = rows_to_usj(GREEK_ROWS, "PHM", include=["discourse"], discourse=[])
     assert doc[CONTAINER_KEY]["discourse"] == []
+
+
+# ---------------------------------------------------------------------------
+# The document a consumer reads
+# ---------------------------------------------------------------------------
+
+#: A row of the shipped document's family table: the name, and whether it is built.
+FAMILY_STATUS = re.compile(r"^\| `([a-z]+)` \| (built|not built) \|", re.M)
+
+SCRIPTURE_DOC = "docs/ai-context/sp/scripture-representations.md"
+
+
+def _shipped_document() -> str:
+    """The scripture-representations text `sp init` installs, read through the catalog."""
+    entry = next(e for e in fc.entries() if e.path == SCRIPTURE_DOC)
+    content = fc.shipped_content(entry)
+    assert content is not None, f"{SCRIPTURE_DOC} ships no content"
+    return content
+
+
+def test_the_shipped_document_states_which_families_are_built():
+    """A consumer has no other way to find out, and asking for an unbuilt family raises."""
+    status = dict(FAMILY_STATUS.findall(_shipped_document()))
+    assert set(status) == set(INCLUDE_FAMILIES)
+    built = {name for name, state in status.items() if state == "built"}
+    assert built == set(IMPLEMENTED_FAMILIES)

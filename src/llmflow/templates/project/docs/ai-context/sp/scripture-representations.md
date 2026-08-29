@@ -31,6 +31,33 @@ because the alternative costs six times as much for structure most prompts never
 **asking for a family you do not read is pure cost**: `include` defaults to empty deliberately,
 because a payload nobody asked for is a payload nobody checked.
 
+## Which families are built
+
+`include` accepts seven names, and asking for one that is not built **raises** rather than
+returning a document with the payload quietly missing. So this table is the difference between a
+working step and an error — check it before designing a step around a family.
+
+| family | status | what it carries |
+|---|---|---|
+| `ids` | built | the word's source id, as `srcloc` on the `w` node |
+| `morphology` | built | the edition's own grammatical categories, plus `lemma` and `strong` as USX attributes |
+| `senses` | built | the edition's own sense system: Louw-Nida in `domain`/`ln` on Greek, SDBH in `lexdomain` and its neighbours on Hebrew |
+| `glosses` | built | the edition's gloss columns |
+| `referents` | built | the edition's referent columns |
+| `discourse` | built | Levinsohn's features, each with the `outcome` field described below |
+| `syntax` | not built | held deliberately — see below |
+
+A family emits whichever of its declared columns the edition actually has, and nothing merges
+the two systems: a Greek verb has `tense`, `voice` and `mood`; a Hebrew verb has `stem` and
+`state`. Field names are the source's column names verbatim, so any field traces back to a
+column.
+
+**Why `syntax` is held.** The cheap half of it — `frame`, one line per word — is populated on
+under a fifth of words. The other half is a nested tree roughly ten times the payload of
+everything else combined. Shipping the cheap half under the name `syntax` and adding the tree
+later would multiply every consumer's payload without their pipeline changing a character, so
+the name stays unbuilt until it means the whole thing.
+
 ## The annotation container
 
 Everything `include` delivers lives under one key, `scripture_pipelines`, which the USJ

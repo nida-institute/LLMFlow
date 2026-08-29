@@ -1644,6 +1644,7 @@
       "imports": [
         "__future__",
         "dataclasses",
+        "functools",
         "json",
         "llmflow",
         "llmflow.modules.logger",
@@ -1658,9 +1659,29 @@
           "doc": ""
         },
         {
-          "name": "parse_reference",
-          "signature": "parse_reference(reference: str) -> tuple[str, int, int, str]",
-          "doc": "Split a single-verse reference into book, chapter, verse and segment letter."
+          "name": "packaged_mappings_dir",
+          "signature": "packaged_mappings_dir() -> Path",
+          "doc": "The schemes bundled in the wheel, reachable without a store or an edition."
+        },
+        {
+          "name": "packaged_scheme_names",
+          "signature": "packaged_scheme_names() -> tuple",
+          "doc": "Every scheme name the package ships, from the directory rather than a second list."
+        },
+        {
+          "name": "packaged_scheme",
+          "signature": "packaged_scheme(name: str) -> Scheme",
+          "doc": "A shipped scheme, read once per process — the parser consults one on every call."
+        },
+        {
+          "name": "parse_passage_ref",
+          "signature": "parse_passage_ref(passage: str) -> PassageRef",
+          "doc": "Parse ``\"MRK 1:1-8\"`` and friends."
+        },
+        {
+          "name": "as_single_verse",
+          "signature": "as_single_verse(reference: str) -> tuple",
+          "doc": "*reference* as (book, chapter, verse, part), refusing anything that is not one verse."
         },
         {
           "name": "format_reference",
@@ -1716,6 +1737,11 @@
           "name": "contains",
           "signature": "contains(self, book: str, chapter: int, verse: int) -> bool",
           "doc": "Whether the scheme's own `maxVerses` covers this reference."
+        },
+        {
+          "name": "covers",
+          "signature": "covers(self, chapter: int, verse: int) -> bool",
+          "doc": ""
         }
       ]
     },
@@ -2962,7 +2988,6 @@
       "imports": [
         "__future__",
         "csv",
-        "dataclasses",
         "json",
         "llmflow.modules.logger",
         "llmflow.utils",
@@ -2996,11 +3021,6 @@
           "name": "family_usx_attributes",
           "signature": "family_usx_attributes(name: str) -> Mapping[str, Sequence[str]]",
           "doc": "Fields USX already defines on a word node, and the source columns that fill each."
-        },
-        {
-          "name": "parse_passage_ref",
-          "signature": "parse_passage_ref(passage: str) -> PassageRef",
-          "doc": "Parse ``\"MRK 1:1-8\"`` and friends."
         },
         {
           "name": "_split_ref",
@@ -3158,11 +3178,6 @@
           "doc": ""
         },
         {
-          "name": "covers",
-          "signature": "covers(self, chapter: int, verse: int) -> bool",
-          "doc": ""
-        },
-        {
           "name": "moved",
           "signature": "moved(chapter: Optional[int], verse: Optional[int]) -> tuple[int, int]",
           "doc": ""
@@ -3309,6 +3324,7 @@
       "imports": [
         "json",
         "llmflow.modules.logger",
+        "llmflow.utils",
         "pathlib",
         "re",
         "yaml"
@@ -3340,8 +3356,18 @@
           "doc": "Ensure all arrays in structure have the same length"
         },
         {
+          "name": "_measuring_scheme",
+          "signature": "_measuring_scheme(book_code, requested, passage, extent_needed)",
+          "doc": "The scheme to measure *book_code* with, and whether *requested* itself defines it."
+        },
+        {
+          "name": "_check_reference",
+          "signature": "_check_reference(scheme, book_code, pairs, passage)",
+          "doc": "Refuse a chapter or verse the scheme does not have. Verse 0 is a superscription."
+        },
+        {
           "name": "parse_bible_reference",
-          "signature": "parse_bible_reference(passage)",
+          "signature": "parse_bible_reference(passage, versification = DEFAULT_REQUEST_VERSIFICATION, source_versification = None)",
           "doc": "Parse a Bible reference and return comprehensive range information."
         },
         {
@@ -4499,6 +4525,6 @@
   ],
   "summary": {
     "total_modules": 80,
-    "total_functions": 701
+    "total_functions": 706
   }
 }
