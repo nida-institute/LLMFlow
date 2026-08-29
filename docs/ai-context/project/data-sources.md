@@ -88,18 +88,26 @@ Same structure as Macula Greek.
   output: words
 ```
 
-### Berean USX (English Bible)
+### BSB (English Bible) — name it, do not path to it
 
-USX 3.0 XML, one file per canonical book. Reference via `parse_bible_reference` output.
+The old `berean-usx` dataset is gone: it pointed at `Freely-Given-org/OpenEnglishBible`, which
+404s, and it is not in the catalog (#201). BSB now comes from the official USFM release and is a
+registered resource, so a pipeline names it and never carries a path:
 
 ```yaml
 - name: load_passage
-  type: xpath
-  inputs:
-    path: "${LLMFLOW_DATA_DIR}/berean-usx/${passage_info.book_code}.usx"
-    xpath: "//verse[@number='${passage_info.chapter}:${passage_info.start_verse}']"
-  output: verse_usx
+  type: scripture
+  edition: BSB
+  passage: "${passage}"
+  format: milestones
+  output: english_text
 ```
+
+This is the preferred shape for **any** registered text — WLC and SBLGNT included. An absolute
+path in a pipeline is why several repositories only ran on one laptop.
+
+Reach for `type: xpath` over raw files only when you need the markup itself rather than the
+text, and then against a resource this machine actually has — `sp resource list` says which.
 
 ---
 
@@ -112,8 +120,11 @@ variables:
   data_dir: "${LLMFLOW_DATA_DIR}"
   greek_lowfat: "${LLMFLOW_DATA_DIR}/Clear-Bible/macula-greek/lowfat"
   hebrew_root: "${LLMFLOW_DATA_DIR}/Clear-Bible/macula-hebrew/WLC"
-  berean_usx: "${LLMFLOW_DATA_DIR}/berean-usx"
 ```
+
+This pattern is for the *annotation* trees, which no step type reads yet. For scripture text,
+name a registered resource with `type: scripture` instead — a path in a pipeline is the thing
+`sp resource` exists to remove.
 
 If `LLMFLOW_DATA_DIR` is not set, the default is `~/sp/resources` — or `$SP_HOME/resources`
 when `SP_HOME` is set, which is for test runs and containers. `sp doctor` warns when either

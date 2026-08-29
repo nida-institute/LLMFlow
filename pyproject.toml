@@ -84,6 +84,7 @@ packages = ["src/llmflow"]
 "data/versification-editions.json" = "llmflow/data/versification-editions.json"
 "data/include-families.json" = "llmflow/data/include-families.json"
 "data/resources.json" = "llmflow/data/resources.json"
+"data/book-names.json" = "llmflow/data/book-names.json"
 
 [project.scripts]
 sp = "llmflow.cli:main"

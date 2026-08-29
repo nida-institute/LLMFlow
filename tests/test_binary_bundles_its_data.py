@@ -82,3 +82,39 @@ def test_the_smoke_test_exercises_a_code_path_that_reads_the_catalog():
         "no smoke-test step runs `doctor`, so a missing bundled data file passes CI. "
         "#216 shipped because the smoke test only ran --version, lint and run --dry-run."
     )
+
+
+# --- the direction the guard above cannot see ----------------------------------------
+
+#: `data/` files deliberately not shipped, each with the reason. An entry here is a claim
+#: that no installed copy ever reads the file — which is checkable, so state it.
+NOT_SHIPPED = {
+    "helm-sync.yaml": "records hashes for syncing the Helm disciplines; a development tool",
+}
+
+
+def test_every_data_file_the_package_could_read_is_shipped():
+    """The guard above walks pyproject to build.yml, so a file in *neither* is invisible to it.
+
+    That is how `data/book-names.json` reached a release candidate bundled nowhere: the wheel
+    lists files one by one, the module read it by name, and nothing compared the two lists. An
+    installed copy would have raised FileNotFoundError on every reference it parsed.
+    """
+    shipped = {Path(src).name for src in force_included()}
+    on_disk = {
+        path.name
+        for path in (REPO_ROOT / "data").iterdir()
+        if path.is_file() and path.suffix in (".json", ".yaml")
+    }
+    missing = sorted(on_disk - shipped - set(NOT_SHIPPED))
+    assert not missing, (
+        f"{missing} sit in data/ and ship nowhere. Add them to pyproject's force-include and to "
+        f"both Nuitka commands, or name them in NOT_SHIPPED with the reason."
+    )
+
+
+def test_nothing_is_exempted_that_is_actually_shipped():
+    """An exemption that stops being true is worse than none: it reads as a decision."""
+    shipped = {Path(src).name for src in force_included()}
+    contradicted = sorted(set(NOT_SHIPPED) & shipped)
+    assert not contradicted, f"{contradicted} are exempted and also shipped"
