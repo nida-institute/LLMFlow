@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.1.25 — 2026-08-29
+
 ### New Features
 
 - **Both ways of naming a book work everywhere.** `Mark 1:1-8` and `MRK 1:1-8` are the same
