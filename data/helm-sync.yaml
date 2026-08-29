@@ -47,7 +47,7 @@ files:
   status: identical
 - set: disciplines
   name: workflow.md
-  sha256: a7a8318c4a48e93112a3e748641474ef8a965f48651e0abd9c16b3a2e8e023e3
+  sha256: 5765afd8e474ccfc349aa5f579550f194242e947cafaeaeff913fe95f9128ba9
   status: identical
 - set: root
   name: drift-patterns.md

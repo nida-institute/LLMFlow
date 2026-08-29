@@ -6,7 +6,11 @@ Rules that hold in every project on this machine, whatever it is written in.
 
 ## Shell Commands
 
-**Prefer tools over bash.** The Read, Edit, Write, and Grep tools never require approval. Use them for file reads, edits, and searches before reaching for bash.
+**Read and edit files with the tools, not the shell.** `Read`, `Edit` and `Write` never require approval; `cat`, `head`, `tail`, `sed -n` and `less` do, and they spend the human's attention on a confirmation that buys nothing. `Read` takes a `file_path` with optional `offset` and `limit`, so reading part of a large file needs no shell plumbing at all.
+
+**Search with whatever the session actually has.** Where `Grep` and `Glob` are present, use them. Where they are not — and they are absent from some installations — `grep` and `find` through bash are correct, not a workaround; there is nothing else, and blocking them would leave a session unable to search at all.
+
+**Issue one command at a time.** A permission rule like `Bash(grep:*)` matches a command that *begins* with `grep`. Chaining with `;` or `&&`, or prefixing with `cd`, matches nothing and prompts the human for every search. Two calls that each run cleanly cost less than one that needs an approval.
 
 **Never use `cd /path && command`.** Most tools accept a path directly — use that instead. `cd` before a command triggers approval hooks and is almost never necessary:
 
@@ -21,7 +25,7 @@ Rules that hold in every project on this machine, whatever it is written in.
 
 If a tool genuinely has no path argument, use a subshell: `(cd /path && command)` — this does not change the shell's working directory and does not trigger the hook.
 
-**Git — no piping.** Never pipe git output (`git log ... | grep ...`, `git status | head ...`). Run the git command alone; use the Grep tool or Read tool to filter results.
+**Git — no piping.** Never pipe git output (`git log ... | grep ...`, `git status | head ...`). Run the git command alone and filter the result with `Read`, or with `Grep` where the session has it. A pager suppressor (`git log | cat`) is fine — it reads no file.
 
 **Inline code — use a heredoc, not `-c` or `-e`.** Write `hatch run python << 'EOF'` for Python and `node --input-type=module << 'EOF'` for Node. Never `python3 -c "..."` or `node -e "..."` with multiline content — these trigger the approval hook. Use `jq` for JSON queries where possible.
 
