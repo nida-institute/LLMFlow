@@ -16,7 +16,7 @@ import re
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, NoReturn, Optional
 
 from llmflow import paths as _paths
 from llmflow.modules.logger import Logger
@@ -121,28 +121,23 @@ class PassageRef:
         return True
 
 
-#: A USFM book code is exactly three characters, upper case — `GEN`, `1CO`, `S3Y`, `PS2`.
-#: The earlier pattern allowed one to five of either case, so `Mark 1:1` parsed as `MARK`.
-_BOOK = r"(?P<book>[A-Z1-9][A-Z0-9]{2})"
-_PART = r"(?P<%s>[a-z])?"
-_PATTERNS = (
-    # MRK 1:40-2:12
-    re.compile(
-        rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+){_PART % 'p1'}"
-        rf"\s*-\s*(?P<c2>\d+):(?P<v2>\d+){_PART % 'p2'}$"
-    ),
-    # MRK 1:1-8
-    re.compile(
-        rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+){_PART % 'p1'}"
-        rf"\s*-\s*(?P<v2>\d+){_PART % 'p2'}$"
-    ),
-    # MRK 1:1
-    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+){_PART % 'p1'}$"),
-    # MRK 1
-    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+)$"),
-    # PHM
-    re.compile(rf"^{_BOOK}$"),
+#: The numeric tail of a reference: `1`, `1:1`, `1:1a`, `1:1-8`, `1:40-2:12`.
+#:
+#: Splitting the string here rather than matching the book with a pattern is what lets a book be
+#: named either way. A pattern over the book cannot tell `MRK` from `XYZ`, and the version that
+#: tried turned `Mark` into book `MARK`, which nothing resolves; a pattern loose enough to
+#: accept `Song of Songs` accepts anything at all. The tail, though, has a fixed shape — so take
+#: the tail, and whatever precedes it is the book, looked up rather than guessed.
+_TAIL = re.compile(
+    r"^(?P<c1>\d+)"
+    r"(?::(?P<v1>\d+)(?P<p1>[a-z])?)?"
+    r"(?:\s*-\s*(?:(?P<c2>\d+):)?(?P<v2>\d+)(?P<p2>[a-z])?)?$"
 )
+
+#: A USFM book code: three characters, upper case, starting with a letter or digit. Accepted
+#: even when `llmflow.books` does not name it — a canon may carry books this engine has never
+#: heard of, and a versification scheme or a project's own text may use them.
+_CODE = re.compile(r"^[A-Z1-9][A-Z0-9]{2}$")
 
 
 def parse_passage_ref(passage: str) -> PassageRef:
@@ -151,22 +146,66 @@ def parse_passage_ref(passage: str) -> PassageRef:
     Deliberately strict: an unrecognised string raises rather than being coerced into
     something plausible, because a silently wrong range yields analysis of the wrong text.
     """
-    text = (passage or "").strip()
-    for pattern in _PATTERNS:
-        m = pattern.match(text)
-        if not m:
-            continue
-        g = m.groupdict()
-        c1 = int(g["c1"]) if g.get("c1") else None
-        v1 = int(g["v1"]) if g.get("v1") else None
-        c2 = int(g["c2"]) if g.get("c2") else c1
-        v2 = int(g["v2"]) if g.get("v2") else v1
-        p1 = g.get("p1") or ""
-        p2 = g.get("p2") or ""
-        return PassageRef(g["book"].upper(), c1, v1, c2, v2, p1, p2 or p1)
+    text = " ".join((passage or "").split())
+    written, tail = _split_tail(text)
+    code = _book_code(written)
+
+    if code is None or (tail is None and " " in text and not _CODE.match(written)):
+        _refuse(passage, text)
+
+    if tail is None:
+        return PassageRef(code, None, None, None, None, "", "")
+
+    g = tail.groupdict()
+    c1 = int(g["c1"])
+    v1 = int(g["v1"]) if g.get("v1") else None
+    c2 = int(g["c2"]) if g.get("c2") else c1
+    v2 = int(g["v2"]) if g.get("v2") else v1
+    p1 = g.get("p1") or ""
+    p2 = g.get("p2") or ""
+    return PassageRef(code, c1, v1, c2, v2, p1, p2 or p1)
+
+
+def _split_tail(text: str):
+    """`("Mark", <1:40-2:12>)`. The tail is the last token when it has the numeric shape.
+
+    Taking the *last* token is what makes `1 John 1:1` work: its book begins with a digit, so
+    scanning forwards for the first number finds the book, not the reference.
+    """
+    if " " in text:
+        written, _, last = text.rpartition(" ")
+        match = _TAIL.match(last)
+        if match:
+            return written, match
+    return text, None
+
+
+def _book_code(written: str):
+    """The USFM code *written* names, whether it was written as a name or as a code."""
+    from llmflow import books as _books
+
+    resolved = _books.resolve(written)
+    if resolved:
+        return resolved
+    # A code this engine does not name is still a code: a canon may carry books it has never
+    # heard of, and a scheme or a project's own text may use them.
+    return written if _CODE.match(written) else None
+
+
+def _refuse(passage: str, text: str) -> NoReturn:
+    from llmflow import books as _books
+
+    if "-" in text:
+        after = text.rsplit("-", 1)[1].strip()
+        second, _ = _split_tail(after)
+        if _book_code(second):
+            raise ValueError(
+                f"{passage!r} spans two books. A passage reference names one book; fetch each "
+                f"separately."
+            )
     raise ValueError(
-        f"{passage!r} is not a passage reference. Expected forms: 'MRK', 'MRK 1', "
-        f"'MRK 1:1', 'MRK 1:1-8', 'MRK 1:40-2:12'."
+        f"{passage!r} is not a passage reference. Expected forms: 'MRK', 'Mark 1', "
+        f"'Mark 1:1', 'MRK 1:1-8', 'Mark 1:40-2:12' — a book name or its USFM code."
     )
 
 

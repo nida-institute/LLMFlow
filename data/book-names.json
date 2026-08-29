@@ -1,0 +1,860 @@
+{
+  "$comment": [
+    "Every book, its USFM code, its canonical display name and every spelling accepted for",
+    "it. One declaration read by both parsers, so `Mark 1:1-8` and `MRK 1:1-8` resolve the",
+    "same way everywhere (#218). Matching is case-insensitive and ignores spaces and dots.",
+    "`ambiguous` lists abbreviations that name more than one book; they are refused rather",
+    "than resolved, because choosing one silently is how the wrong text gets read.",
+    "`other_codes` are USFM codes the shipped versification schemes use that the 66-book table does not name — deuterocanonical books and their variants. They resolve to themselves so the mapper can read every scheme; no display name is invented for them.",
+    "`testament` and `original_language` are declared per book, not derived from the number. They were `int(number) >= 40` and a matching guess, which is a convention nothing stated and nothing could correct. Note the simplification now visible: Ezra and Daniel have Aramaic portions, and are declared Hebrew here."
+  ],
+  "books": {
+    "GEN": {
+      "number": "01",
+      "name": "Genesis",
+      "aliases": [
+        "genesis",
+        "gen",
+        "ge",
+        "gn"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "EXO": {
+      "number": "02",
+      "name": "Exodus",
+      "aliases": [
+        "exodus",
+        "exod",
+        "exo",
+        "ex"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "LEV": {
+      "number": "03",
+      "name": "Leviticus",
+      "aliases": [
+        "leviticus",
+        "lev",
+        "le",
+        "lv"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "NUM": {
+      "number": "04",
+      "name": "Numbers",
+      "aliases": [
+        "numbers",
+        "num",
+        "nu",
+        "nm"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "DEU": {
+      "number": "05",
+      "name": "Deuteronomy",
+      "aliases": [
+        "deuteronomy",
+        "deut",
+        "dt",
+        "de",
+        "deu"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "JOS": {
+      "number": "06",
+      "name": "Joshua",
+      "aliases": [
+        "joshua",
+        "josh",
+        "jos",
+        "jsh"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "JDG": {
+      "number": "07",
+      "name": "Judges",
+      "aliases": [
+        "judges",
+        "judg",
+        "jdg",
+        "jg"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "RUT": {
+      "number": "08",
+      "name": "Ruth",
+      "aliases": [
+        "ruth",
+        "rut",
+        "ru",
+        "rt"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "1SA": {
+      "number": "09",
+      "name": "1 Samuel",
+      "aliases": [
+        "1 samuel",
+        "1sam",
+        "1sa",
+        "1s",
+        "1 sam"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "2SA": {
+      "number": "10",
+      "name": "2 Samuel",
+      "aliases": [
+        "2 samuel",
+        "2sam",
+        "2sa",
+        "2s",
+        "2 sam"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "1KI": {
+      "number": "11",
+      "name": "1 Kings",
+      "aliases": [
+        "1 kings",
+        "1kgs",
+        "1ki",
+        "1k",
+        "1 kgs"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "2KI": {
+      "number": "12",
+      "name": "2 Kings",
+      "aliases": [
+        "2 kings",
+        "2kgs",
+        "2ki",
+        "2k",
+        "2 kgs"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "1CH": {
+      "number": "13",
+      "name": "1 Chronicles",
+      "aliases": [
+        "1 chronicles",
+        "1chron",
+        "1chr",
+        "1ch",
+        "1 chr"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "2CH": {
+      "number": "14",
+      "name": "2 Chronicles",
+      "aliases": [
+        "2 chronicles",
+        "2chron",
+        "2chr",
+        "2ch",
+        "2 chr"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "EZR": {
+      "number": "15",
+      "name": "Ezra",
+      "aliases": [
+        "ezra",
+        "ezr"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "NEH": {
+      "number": "16",
+      "name": "Nehemiah",
+      "aliases": [
+        "nehemiah",
+        "neh",
+        "ne"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "EST": {
+      "number": "17",
+      "name": "Esther",
+      "aliases": [
+        "esther",
+        "esth",
+        "est",
+        "es"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "JOB": {
+      "number": "18",
+      "name": "Job",
+      "aliases": [
+        "job",
+        "jb"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "PSA": {
+      "number": "19",
+      "name": "Psalms",
+      "aliases": [
+        "psalms",
+        "psalm",
+        "ps",
+        "psa",
+        "pss"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "PRO": {
+      "number": "20",
+      "name": "Proverbs",
+      "aliases": [
+        "proverbs",
+        "prov",
+        "pro",
+        "pr"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "ECC": {
+      "number": "21",
+      "name": "Ecclesiastes",
+      "aliases": [
+        "ecclesiastes",
+        "eccl",
+        "ecc",
+        "ec"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "SNG": {
+      "number": "22",
+      "name": "Song of Songs",
+      "aliases": [
+        "song of songs",
+        "song",
+        "sos",
+        "so",
+        "canticles",
+        "cant",
+        "sng"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "ISA": {
+      "number": "23",
+      "name": "Isaiah",
+      "aliases": [
+        "isaiah",
+        "isa",
+        "is"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "JER": {
+      "number": "24",
+      "name": "Jeremiah",
+      "aliases": [
+        "jeremiah",
+        "jer",
+        "je",
+        "jr"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "LAM": {
+      "number": "25",
+      "name": "Lamentations",
+      "aliases": [
+        "lamentations",
+        "lam",
+        "la"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "EZK": {
+      "number": "26",
+      "name": "Ezekiel",
+      "aliases": [
+        "ezekiel",
+        "ezek",
+        "eze",
+        "ezk"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "DAN": {
+      "number": "27",
+      "name": "Daniel",
+      "aliases": [
+        "daniel",
+        "dan",
+        "da",
+        "dn"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "HOS": {
+      "number": "28",
+      "name": "Hosea",
+      "aliases": [
+        "hosea",
+        "hos",
+        "ho"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "JOL": {
+      "number": "29",
+      "name": "Joel",
+      "aliases": [
+        "joel",
+        "joe",
+        "jl",
+        "jol"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "AMO": {
+      "number": "30",
+      "name": "Amos",
+      "aliases": [
+        "amos",
+        "amo",
+        "am"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "OBA": {
+      "number": "31",
+      "name": "Obadiah",
+      "aliases": [
+        "obadiah",
+        "obad",
+        "ob",
+        "oba"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "JON": {
+      "number": "32",
+      "name": "Jonah",
+      "aliases": [
+        "jonah",
+        "jon",
+        "jnh"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "MIC": {
+      "number": "33",
+      "name": "Micah",
+      "aliases": [
+        "micah",
+        "mic",
+        "mi"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "NAM": {
+      "number": "34",
+      "name": "Nahum",
+      "aliases": [
+        "nahum",
+        "nah",
+        "na",
+        "nam"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "HAB": {
+      "number": "35",
+      "name": "Habakkuk",
+      "aliases": [
+        "habakkuk",
+        "hab",
+        "hb"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "ZEP": {
+      "number": "36",
+      "name": "Zephaniah",
+      "aliases": [
+        "zephaniah",
+        "zeph",
+        "zep",
+        "zp"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "HAG": {
+      "number": "37",
+      "name": "Haggai",
+      "aliases": [
+        "haggai",
+        "hag",
+        "hg"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "ZEC": {
+      "number": "38",
+      "name": "Zechariah",
+      "aliases": [
+        "zechariah",
+        "zech",
+        "zec",
+        "zc"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "MAL": {
+      "number": "39",
+      "name": "Malachi",
+      "aliases": [
+        "malachi",
+        "mal",
+        "ml"
+      ],
+      "testament": "OT",
+      "original_language": "Hebrew"
+    },
+    "MAT": {
+      "number": "40",
+      "name": "Matthew",
+      "aliases": [
+        "matthew",
+        "matt",
+        "mt",
+        "mat"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "MRK": {
+      "number": "41",
+      "name": "Mark",
+      "aliases": [
+        "mark",
+        "mar",
+        "mk",
+        "mr",
+        "mrk"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "LUK": {
+      "number": "42",
+      "name": "Luke",
+      "aliases": [
+        "luke",
+        "luk",
+        "lk",
+        "lu"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "JHN": {
+      "number": "43",
+      "name": "John",
+      "aliases": [
+        "john",
+        "joh",
+        "jn",
+        "jhn"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "ACT": {
+      "number": "44",
+      "name": "Acts",
+      "aliases": [
+        "acts",
+        "act",
+        "ac"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "ROM": {
+      "number": "45",
+      "name": "Romans",
+      "aliases": [
+        "romans",
+        "rom",
+        "ro",
+        "rm"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "1CO": {
+      "number": "46",
+      "name": "1 Corinthians",
+      "aliases": [
+        "1 corinthians",
+        "1cor",
+        "1co",
+        "1c",
+        "1 cor"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "2CO": {
+      "number": "47",
+      "name": "2 Corinthians",
+      "aliases": [
+        "2 corinthians",
+        "2cor",
+        "2co",
+        "2c",
+        "2 cor"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "GAL": {
+      "number": "48",
+      "name": "Galatians",
+      "aliases": [
+        "galatians",
+        "gal",
+        "ga"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "EPH": {
+      "number": "49",
+      "name": "Ephesians",
+      "aliases": [
+        "ephesians",
+        "eph",
+        "ep"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "PHP": {
+      "number": "50",
+      "name": "Philippians",
+      "aliases": [
+        "philippians",
+        "phil",
+        "php",
+        "phi"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "COL": {
+      "number": "51",
+      "name": "Colossians",
+      "aliases": [
+        "colossians",
+        "col",
+        "co"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "1TH": {
+      "number": "52",
+      "name": "1 Thessalonians",
+      "aliases": [
+        "1 thessalonians",
+        "1thess",
+        "1th",
+        "1 thess",
+        "1 th"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "2TH": {
+      "number": "53",
+      "name": "2 Thessalonians",
+      "aliases": [
+        "2 thessalonians",
+        "2thess",
+        "2th",
+        "2 thess",
+        "2 th"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "1TI": {
+      "number": "54",
+      "name": "1 Timothy",
+      "aliases": [
+        "1 timothy",
+        "1tim",
+        "1ti",
+        "1 tim",
+        "1 ti"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "2TI": {
+      "number": "55",
+      "name": "2 Timothy",
+      "aliases": [
+        "2 timothy",
+        "2tim",
+        "2ti",
+        "2 tim",
+        "2 ti"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "TIT": {
+      "number": "56",
+      "name": "Titus",
+      "aliases": [
+        "titus",
+        "tit",
+        "ti"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "PHM": {
+      "number": "57",
+      "name": "Philemon",
+      "aliases": [
+        "philemon",
+        "philem",
+        "phm",
+        "phlm"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "HEB": {
+      "number": "58",
+      "name": "Hebrews",
+      "aliases": [
+        "hebrews",
+        "heb",
+        "he"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "JAS": {
+      "number": "59",
+      "name": "James",
+      "aliases": [
+        "james",
+        "jas",
+        "jm",
+        "ja"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "1PE": {
+      "number": "60",
+      "name": "1 Peter",
+      "aliases": [
+        "1 peter",
+        "1pet",
+        "1pe",
+        "1pt",
+        "1p",
+        "1 pet"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "2PE": {
+      "number": "61",
+      "name": "2 Peter",
+      "aliases": [
+        "2 peter",
+        "2pet",
+        "2pe",
+        "2pt",
+        "2p",
+        "2 pet"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "1JN": {
+      "number": "62",
+      "name": "1 John",
+      "aliases": [
+        "1 john",
+        "1joh",
+        "1jn",
+        "1j",
+        "1 joh",
+        "1john"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "2JN": {
+      "number": "63",
+      "name": "2 John",
+      "aliases": [
+        "2 john",
+        "2joh",
+        "2jn",
+        "2j",
+        "2 joh",
+        "2john"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "3JN": {
+      "number": "64",
+      "name": "3 John",
+      "aliases": [
+        "3 john",
+        "3joh",
+        "3jn",
+        "3j",
+        "3 joh",
+        "3john"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "JUD": {
+      "number": "65",
+      "name": "Jude",
+      "aliases": [
+        "jude",
+        "jud",
+        "jd"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    },
+    "REV": {
+      "number": "66",
+      "name": "Revelation",
+      "aliases": [
+        "revelation",
+        "rev",
+        "re",
+        "rv"
+      ],
+      "testament": "NT",
+      "original_language": "Greek"
+    }
+  },
+  "ambiguous": {
+    "ph": [
+      "Philippians",
+      "Philemon"
+    ],
+    "p": [
+      "Psalms",
+      "Proverbs",
+      "1 Peter",
+      "2 Peter",
+      "Philippians",
+      "Philemon"
+    ]
+  },
+  "other_codes": [
+    "1ES",
+    "1MA",
+    "2ES",
+    "2MA",
+    "3MA",
+    "4MA",
+    "6EZ",
+    "BAR",
+    "BEL",
+    "BLT",
+    "DAG",
+    "DNT",
+    "ENO",
+    "ESG",
+    "EZA",
+    "JDB",
+    "JDT",
+    "JSA",
+    "JUB",
+    "LAO",
+    "LJE",
+    "MAN",
+    "ODA",
+    "PS2",
+    "PSS",
+    "S3Y",
+    "SIR",
+    "SST",
+    "SUS",
+    "TBS",
+    "TOB",
+    "WIS"
+  ]
+}

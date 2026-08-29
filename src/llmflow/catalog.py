@@ -44,11 +44,17 @@ def api_catalog() -> List[Dict[str, Any]]:
 
     entries.append(_entry("llmflow", "load_pipeline", load_pipeline))
 
+    from llmflow.books import resolve as resolve_book
     from llmflow.modules.telemetry import get_model_metadata
     from llmflow.utils.data import parse_bible_reference
     from llmflow.utils.llm_runner import call_llm
 
+    # Keep this in step with `llmflow.__all__`; `test_api_surface_is_complete` fails when a
+    # public function is exported and not catalogued, which is how a hand-written list drifts.
     entries.append(_entry("llmflow", "call_llm", call_llm))
     entries.append(_entry("llmflow", "parse_bible_reference", parse_bible_reference))
+    entries.append(_entry("llmflow", "resolve_book", resolve_book))
     entries.append(_entry("llmflow", "model_metadata", get_model_metadata))
+    # The catalog is itself a published verb, and a consumer discovering the API calls it first.
+    entries.append(_entry("llmflow", "api_catalog", api_catalog))
     return entries

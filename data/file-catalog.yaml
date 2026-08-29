@@ -132,6 +132,17 @@ files:
       Choosing between `plain`, `milestones`, `usj` and `print`, what each costs with the
       unit stated, and how to read a discourse item's `outcome`.
 
+  - path: docs/ai-context/sp/passage-references.md
+    scope: project
+    policy: generated
+    source: template
+    template: project/docs/ai-context/sp/passage-references.md
+    committed: true
+    purpose: >-
+      Writing a passage reference: the forms that parse, book names and USFM codes, ranges
+      that may cross a chapter but not a book, and the request-side and source-side
+      versifications.
+
   - path: docs/ai-context/sp/github-workflow.md
     scope: project
     policy: generated

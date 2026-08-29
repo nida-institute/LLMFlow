@@ -17,6 +17,7 @@ references there, or in documents it points to.
 | `docs/ai-context/sp/github-workflow.md` | Issue references, version numbering, CHANGELOG and gh CLI conventions. |
 | `docs/ai-context/sp/index.md` | The documents Scripture Pipelines ships, and what each is for. Rendered from data/file-catalog.yaml, so it cannot go stale. |
 | `docs/ai-context/sp/overview.md` | What Scripture Pipelines is, and where the rest of its documentation lives. |
+| `docs/ai-context/sp/passage-references.md` | Writing a passage reference: the forms that parse, book names and USFM codes, ranges that may cross a chapter but not a book, and the request-side and source-side versifications. |
 | `docs/ai-context/sp/rules.md` | The rules every AI session in this project is held to. Authoritative. |
 | `docs/ai-context/sp/scripture-representations.md` | Choosing between `plain`, `milestones`, `usj` and `print`, what each costs with the unit stated, and how to read a discourse item's `outcome`. |
 | `docs/llmflow-language-quickref.md` | The pipeline YAML reference — step types, variables, window and for-each. |

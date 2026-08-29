@@ -486,18 +486,26 @@ class TestParseBibleReference:
         assert "Could not parse Bible reference" in str(exc_info.value)
 
     def test_ambiguous_abbreviation_handling(self):
-        """Test specific handling of ambiguous abbreviations"""
-        # Add real test cases if your function supports this
-        # Based on your code, "ph" could be Philippians or Philemon
-        if hasattr(parse_bible_reference, "_handles_ambiguous_abbreviations"):
-            with pytest.raises(ValueError) as exc_info:
-                parse_bible_reference("ph 1:1")
-            assert "Ambiguous" in str(exc_info.value)
-            assert "Philippians" in str(exc_info.value)
-            assert "Philemon" in str(exc_info.value)
-        else:
-            # Skip this test if ambiguous abbreviation handling isn't implemented
-            pytest.skip("Ambiguous abbreviation handling not implemented")
+        """An abbreviation naming two books is refused, and both are named.
+
+        This test used to skip itself behind a `hasattr` on an attribute that never existed, so
+        it asserted nothing while reading as coverage. The behaviour it describes is real:
+        `ph` is Philippians or Philemon, and picking one silently sends the pipeline to the
+        wrong text.
+        """
+        with pytest.raises(ValueError) as exc_info:
+            parse_bible_reference("ph 1:1")
+        message = str(exc_info.value)
+        assert "Ambiguous" in message
+        assert "Philippians" in message
+        assert "Philemon" in message
+
+    def test_an_ambiguous_abbreviation_is_not_merely_unrecognised(self):
+        """"I do not know that book" and "say which one you mean" are different answers."""
+        with pytest.raises(ValueError, match="Ambiguous"):
+            parse_bible_reference("p 1:1")
+        with pytest.raises(ValueError, match="Unrecognized"):
+            parse_bible_reference("Notabook 1:1")
 
     def test_performance_with_long_inputs(self):
         """Test performance doesn't degrade with longer book names"""

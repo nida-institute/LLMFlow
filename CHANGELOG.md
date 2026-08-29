@@ -2,6 +2,99 @@
 
 ## Unreleased
 
+### New Features
+
+- **Both ways of naming a book work everywhere.** `Mark 1:1-8` and `MRK 1:1-8` are the same
+  passage, and case carries no meaning — `mark`, `MARK` and `mrk` all resolve. The prescribed
+  parser took only names and the read path took only codes, so each form failed in one half of
+  the engine; worse, the read path turned `Mark` into book `MARK`, a code nothing resolves, so a
+  run reported "no text found" for a passage that exists.
+
+  **One declaration, `data/book-names.json`** — 66 books with number, canonical name, testament,
+  original language and 271 aliases, plus the 32 deuterocanonical codes the shipped versification
+  schemes use. It replaces 281 lines of dict literal that lived *inside* `parse_bible_reference`,
+  where nothing else could reach it. `testament` and `original_language` are now declared per
+  book rather than derived from `int(number) >= 40`, a threshold nothing stated and nothing could
+  correct.
+
+  **A reference is tokenized, not pattern-matched.** The numeric tail has a fixed shape, so the
+  book is whatever precedes it, looked up rather than guessed. That is what lets `1 John 1:1`
+  work — scanning forward for the first number would find the book number. A code the catalog
+  does not name still parses, because a canon may carry books this engine has never heard of.
+
+  **A range may cross a chapter and not a book**: `Mark 16:1-Luke 1:4` is refused by name. An
+  ambiguous abbreviation is refused rather than guessed — `Ph` names both Philippians and
+  Philemon — and that error is worded differently from the one for an unrecognised book, because
+  they ask the reader for different things.
+
+  `llmflow.resolve_book` is published, so normalising a book name needs no bespoke function.
+
+- **A new shipped document, `docs/ai-context/sp/passage-references.md`**, installed into every
+  project by `sp init`: the forms that parse, the request-side and source-side versifications,
+  what `parse_bible_reference` returns and which single field depends on a scheme. A guard test
+  parses every form the document shows, so it cannot document something the parser refuses.
+
+- **`sp resource` — one surface for scripture texts and everything else the catalog describes
+  (#217).** A machine that had finished setup, had the versification store, and had never
+  registered a text ran a pipeline that linted clean and failed deep in execution with
+  `EditionNotRegistered` — whose remedy named `sp registry`, a command with no subcommand that
+  could do it. Three facts were missing, and none of them was the data: which catalog entry
+  carries a readable text, which file inside it, and how to read that file.
+
+  ```
+  sp resource list                          what exists, and what this machine has
+  sp resource add WLC                       fetch if needed, then register
+  sp resource add WLC --no-download         register now, fetch later
+  sp resource add MYPROJ --path ~/pt/MYPROJ register a Paratext project of your own
+  sp resource download acai                 fetch something no reader can yet open
+  ```
+
+  **The catalog is the public one.** `resources.json` in `nida-institute/awesome-biblical-data`
+  gained a `provides` block stating, per readable text, which file inside the download carries
+  it, which backend reads that shape, which versification it is numbered in, and which canon it
+  covers. It is vendored into the wheel, so nothing needs a network to know what exists.
+
+  **Registrations are portable.** `~/.sp/resources/` records a path relative to its download —
+  `Clear-Bible/macula-hebrew` plus `WLC/tsv/macula-hebrew.tsv` — so the file means the same
+  thing on every machine. Directories are named for their source (`owner/repo` in git,
+  `https-host/file` for a download), which cannot collide between contributors. An absolute
+  path is still honoured, which is what a maintainer working against their own clone needs.
+
+  **Registering something of your own is a first-class path.** A Paratext project identifies
+  itself — `Settings.xml` names the versification, the directory names the project — so almost
+  nothing is typed. Anything else states its `kind`. Access is not gated on licence: a project
+  you can open is one you have already established a right to read.
+
+- **Corpora live somewhere visible, and record what they are.** The texts themselves go to
+  `~/sp/resources/<owner>/<repo>/` rather than into a dotfile: configuration belongs in `~/.sp`,
+  a library of several hundred megabytes does not, and a hidden store is one nobody notices
+  duplicating itself. Registrations — the small files saying which texts this machine may read —
+  stay with the configuration, at `~/.sp/registrations/`.
+
+  Every fetch writes `.sp-resource.json` beside the data: the source URL, the archive's SHA-256,
+  its size and when it was fetched. A directory named `Clear-Bible/macula-hebrew` says which
+  resource it holds and nothing about *which copy*, so a machine that fetched in June and one
+  that fetched today differed invisibly (#201). Data placed by hand records nothing and is
+  reported as unknown rather than assumed current.
+
+- **`sp doctor` reports resources and their versions**, migrates `~/.sp/editions/` to
+  `~/.sp/registrations/` and `~/.sp/data/` to `~/sp/resources/` itself rather than telling anyone
+  to move files, and warns when a registration points at something no longer on disk.
+
+  It also **warns when `SP_HOME` or `LLMFLOW_DATA_DIR` redirects the store.** Those exist for
+  test runs and containers; on a working machine they are how one machine comes to hold several
+  copies of a text, and how two projects come to disagree about what a verse says with nothing
+  in either's output to say which copy it read. A warning, not an error — a container setting it
+  deliberately is not broken.
+
+### Removed
+
+- **`sp download-data`.** It carried its own four-entry catalog beside the public one: a
+  drifting copy whose `berean-usx` entry pointed at a repository that 404s (#201) and whose
+  dataset names disagreed with the catalog's ids. Fetching is now `sp resource add`, or
+  `sp resource download` for a resource nothing can yet read. The fetcher also gained a
+  zip-slip guard — an archive naming `../` can no longer write outside its own directory.
+
 ### Changed
 
 - **`parse_bible_reference` resolves extent from a named versification scheme (#218).** A whole

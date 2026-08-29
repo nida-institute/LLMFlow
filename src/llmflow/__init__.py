@@ -12,6 +12,7 @@ from llmflow.pipeline_schema import PIPELINE_SCHEMA
 
 if TYPE_CHECKING:  # lazy at runtime (see __getattr__), to keep `import llmflow` light
     from llmflow.modules.telemetry import get_model_metadata as model_metadata  # noqa: F401
+    from llmflow.books import resolve as resolve_book  # noqa: F401
     from llmflow.utils.data import parse_bible_reference  # noqa: F401
     from llmflow.utils.llm_runner import call_llm  # noqa: F401
 
@@ -25,6 +26,7 @@ __all__ = [
     "call_llm",
     # utilities — imported lazily
     "parse_bible_reference",
+    "resolve_book",
     "model_metadata",
     # published machine-readable mapping (Decision 2)
     "PIPELINE_SCHEMA",
@@ -42,6 +44,10 @@ def __getattr__(name: str) -> Any:
         from llmflow.utils.data import parse_bible_reference
 
         return parse_bible_reference
+    if name == "resolve_book":
+        from llmflow.books import resolve as resolve_book
+
+        return resolve_book
     if name == "model_metadata":
         from llmflow.modules.telemetry import get_model_metadata
 

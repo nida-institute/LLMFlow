@@ -19,7 +19,7 @@ import pytest
 
 from llmflow.utils.scripture import (
     MILESTONE_TEMPLATE,
-    EditionNotRegistered,
+    ResourceNotRegistered,
     parse_passage_ref,
     rows_to_text,
 )
@@ -186,7 +186,7 @@ class TestEditionResolution:
         """A bare KeyError would send the reader to the source; the error should say what
         editions exist and how to register one."""
         from llmflow.utils.scripture import resolve_edition
-        with pytest.raises(EditionNotRegistered) as exc:
+        with pytest.raises(ResourceNotRegistered) as exc:
             resolve_edition("NO_SUCH_EDITION", registry_editions={"WLC": "/tmp/wlc.tsv"})
         msg = str(exc.value)
         assert "NO_SUCH_EDITION" in msg and "WLC" in msg
@@ -196,17 +196,17 @@ class TestEditionResolution:
         assert resolve_edition("WLC", registry_editions={"WLC": "/tmp/wlc.tsv"}) == "/tmp/wlc.tsv"
 
 
-class TestTheLeanParserIsStrict:
-    """It served the read path while silently accepting a display name as a book code (#218)."""
+class TestTheLeanParserResolvesBookNames:
+    """It used to turn `Mark` into book `MARK` — a code nothing resolves, reported by nothing,
+    so the run returned "no text found" for a passage that exists. The fix is to resolve a
+    display name, not to refuse it: both spellings name the same book (#218)."""
 
-    def test_a_display_name_is_not_a_book_code(self):
-        """`Mark` became book `MARK`, which no reader resolves and nothing reported."""
-        with pytest.raises(ValueError, match="not a passage"):
-            parse_passage_ref("Mark 1:1")
+    def test_a_display_name_resolves_to_its_code(self):
+        assert parse_passage_ref("Mark 1:1").book == "MRK"
 
-    def test_a_usfm_code_is_three_characters(self):
-        with pytest.raises(ValueError, match="not a passage"):
-            parse_passage_ref("MARK 1:1")
+    def test_case_carries_no_meaning(self):
+        for written in ("Mark 1:1", "mark 1:1", "MARK 1:1", "MRK 1:1", "mrk 1:1"):
+            assert parse_passage_ref(written).book == "MRK", written
 
     def test_a_verse_part_is_kept(self):
         """`ESG 1:1a` — the mapper builds keys with the part, so it cannot be discarded."""
