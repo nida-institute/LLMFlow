@@ -126,8 +126,12 @@ STANDALONE_MARKS = frozenset({"׀", "ס", "פ"})
 SKIP_USJ_TYPES = frozenset({"note", "figure", "sidebar", "ref"})
 
 
-class EditionNotRegistered(KeyError):
-    """Raised when an edition has no registry entry, listing what is available."""
+class ResourceNotRegistered(KeyError):
+    """Raised when a resource has no registration, listing what is available.
+
+    Named for resources rather than editions since #217: a text is one kind of resource among
+    several the catalog describes, and the command that fixes this is `sp resource add`.
+    """
 
     def __str__(self) -> str:  # KeyError repr would quote the message
         return self.args[0] if self.args else ""
@@ -283,11 +287,30 @@ def _edition_table_path() -> Path:
 
 
 def _known_editions() -> dict:
-    return {
-        key.upper(): value
-        for key, value in _edition_table().get("known_editions", {}).items()
-        if isinstance(value, Mapping) and value.get("scheme")
-    }
+    """Editions whose scheme can be answered from a name alone, catalog first.
+
+    The catalog's answer is anchored to a repository and a file inside it; the hand-written
+    table's is keyed on the id string, which two people can choose independently. So a catalog
+    entry wins, and the table carries only what the catalog does not describe.
+    """
+    from llmflow import resources as _resources
+
+    known: dict = {}
+    try:
+        for identifier, item in _resources.readable().items():
+            if item.get("versification"):
+                known[identifier.upper()] = {
+                    "scheme": item["versification"],
+                    "why": item.get("versification_why", ""),
+                    "source": "catalog",
+                }
+    except Exception:  # a missing or malformed catalog must not break scheme resolution
+        pass
+
+    for key, value in _edition_table().get("known_editions", {}).items():
+        if isinstance(value, Mapping) and value.get("scheme"):
+            known.setdefault(key.upper(), dict(value))
+    return known
 
 
 def _paratext_scheme(definition: Mapping[str, Any]) -> Optional[str]:
@@ -562,11 +585,25 @@ def resolve_edition(
     available = dict(registry_editions or {})
     if edition in available:
         return available[edition]
+
+    from llmflow import resources as _resources
+
     known = ", ".join(sorted(available)) or "(none registered)"
-    raise EditionNotRegistered(
-        f"Scripture edition {edition!r} is not registered.\n"
-        f"  Registered editions: {known}\n"
-        f"  Register one with `sp registry` so the path is not written into a pipeline."
+    try:
+        in_catalog = edition in _resources.readable()
+    except Exception:
+        in_catalog = False
+
+    remedy = (
+        f"  Register it with `sp resource add {edition}` so the path is not written into a "
+        f"pipeline."
+        if in_catalog
+        else f"  `sp resource list` shows what the catalog knows; `sp resource add <ID>` "
+        f"registers one, and a resource of your own is registered from its path."
+    )
+    raise ResourceNotRegistered(
+        f"Scripture resource {edition!r} is not registered.\n"
+        f"  Registered: {known}\n" + remedy
     )
 
 
@@ -734,37 +771,33 @@ def passage_text(
 # what load_usfm_passage() takes.
 # --------------------------------------------------------------------------------------
 
-EDITIONS_DIRNAME = "editions"
-
-
-def default_editions_dir() -> Path:
-    """The `editions` directory inside the store (#207)."""
-    from llmflow import paths as _paths
-
-    return _paths.sp_home() / EDITIONS_DIRNAME
-
-
 def load_registry_editions(editions_dir: Any = None) -> dict:
-    """Read every edition definition. Absence is normal; a fresh machine has none.
+    """Every registration this machine holds, with dataset-relative paths resolved.
 
-    A malformed file is skipped rather than allowed to make every edition unreadable — one
-    bad hand-edit should not take the whole registry down with it.
+    The store and its reader belong to `llmflow.resources`, which owns the whole question of
+    what is registered and where it lives; this is the read path's door onto it. A registration
+    recording `dataset` plus a relative `path` is resolved here, so a backend downstream always
+    receives a definition it can open without knowing the store exists.
     """
-    import yaml
+    from llmflow import resources as _resources
 
-    directory = Path(editions_dir) if editions_dir is not None else default_editions_dir()
-    if not directory.is_dir():
-        return {}
     out: dict = {}
-    for path in sorted(directory.glob("*.yaml")):
-        try:
-            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        except Exception:
-            continue  # a broken file hides itself, not its neighbours
-        if not isinstance(data, dict):
-            continue
-        name = data.get("id") or path.stem
-        out[str(name)] = data
+    for name, definition in _resources.load_registered(editions_dir).items():
+        entry = dict(definition)
+        if entry.get("path"):
+            try:
+                resolved = _resources.resolve_path(entry)
+            except ValueError:
+                out[name] = entry
+                continue
+            entry["path"] = str(resolved)
+            # A USFM project is a directory, and `load_usfm_passage` wants it as a parent plus
+            # a name. The catalog states one path because it describes where a thing is, not
+            # what one reader's signature happens to be, so the split belongs here.
+            if str(entry.get("kind", "")).lower() == "usfm" and not entry.get("base_dir"):
+                entry["base_dir"] = str(resolved.parent)
+                entry["project"] = resolved.name
+        out[name] = entry
     return out
 
 

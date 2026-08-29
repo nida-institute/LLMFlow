@@ -1,0 +1,1032 @@
+[
+  {
+    "id": "sblgnt",
+    "name": "SBLGNT",
+    "category": "Greek NT — Base Texts",
+    "description": "Society of Biblical Literature Greek New Testament. High-quality critical text. Imposes conditions on downstream works — read the license carefully.",
+    "formats": ["XML", "OSIS", "text"],
+    "license": "Custom — see http://sblgnt.com/license/",
+    "github": "https://github.com/morphgnt/sblgnt",
+    "url": "http://sblgnt.com/",
+    "acquire": [
+      "git clone https://github.com/morphgnt/sblgnt"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "bibleaquifer-sblgnt",
+    "name": "BibleAquifer SBLGNT (standard XML)",
+    "category": "Greek NT — Base Texts",
+    "description": "SBLGNT in standard XML format. The upstream source is owned by Logos and is not standard XML; BibleAquifer normalizes it.",
+    "formats": ["XML"],
+    "license": "Custom — see http://sblgnt.com/license/",
+    "github": "https://github.com/BibleAquifer/SBLGNT",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/BibleAquifer/SBLGNT"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "nestle1904",
+    "name": "Nestle 1904",
+    "category": "Greek NT — Base Texts",
+    "description": "Eberhard Nestle's 1904 GNT. Public domain. Used as base text in several treebanks.",
+    "formats": ["CSV", "XML"],
+    "license": "Public Domain",
+    "github": "https://github.com/biblicalhumanities/Nestle1904",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/biblicalhumanities/Nestle1904"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "rp2018",
+    "name": "Byzantine Majority Text (Robinson-Pierpont RP2018)",
+    "category": "Greek NT — Base Texts",
+    "description": "Robinson-Pierpont Byzantine Textform 2018. Public domain. TEI-XML directly collatable with Münster INTF transcriptions via CollateX. Use RP2018 — RP2005 had accent errors.",
+    "formats": ["TEI-XML", "CSV Unicode", "Beta code"],
+    "license": "Public Domain",
+    "github": "https://github.com/byztxt/byzantine-majority-text",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/byztxt/byzantine-majority-text"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "antoniades",
+    "name": "Antoniades 1904/1912 Patriarchal Edition",
+    "category": "Greek NT — Base Texts",
+    "description": "Ecumenical Patriarchate edition with Robinson's morphological parsing and Strong's numbers. Narrower manuscript base than Robinson-Pierpont.",
+    "formats": ["Beta code", "Unicode"],
+    "license": "Public Domain",
+    "github": "https://github.com/byztxt/greektext-antoniades",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/byztxt/greektext-antoniades"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "cntr-sr",
+    "name": "CNTR Statistical Restoration (SR)",
+    "category": "Greek NT — Base Texts",
+    "description": "World's first computer-generated GNT based on statistical analysis of the earliest manuscripts. Alan Bunning / Center for New Testament Restoration.",
+    "formats": ["multiple"],
+    "license": "CC BY 4.0",
+    "github": "https://github.com/Center-for-New-Testament-Restoration/SR",
+    "url": "https://greekcntr.org/",
+    "acquire": [
+      "git clone https://github.com/Center-for-New-Testament-Restoration/SR"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "westcott-hort",
+    "name": "Westcott-Hort",
+    "category": "Greek NT — Base Texts",
+    "description": "Classic critical text, as edited by Joshua Grauman.",
+    "formats": ["text"],
+    "license": "Public Domain",
+    "github": null,
+    "url": "http://scrolltag.com/westcott_and_hort.html",
+    "acquire": [
+      "Download from http://scrolltag.com/westcott_and_hort.html"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "cntr-transcriptions",
+    "name": "CNTR Electronic Transcriptions",
+    "category": "Manuscript Transcriptions & Textual Variants",
+    "description": "Alan Bunning's transcriptions of every extant Greek NT manuscript to 400 AD, plus selected modern critical texts. Encoded to the Manuscript Encoding Specification (MES) and organised by witness class, with an ANTLR grammar defining the markup. Collation, apparatus, and viewer at greekcntr.org.",
+    "formats": ["MES", "text"],
+    "license": "CC BY-SA 4.0",
+    "github": "https://github.com/Center-for-New-Testament-Restoration/transcriptions",
+    "url": "https://greekcntr.org/",
+    "acquire": [
+      "git clone https://github.com/Center-for-New-Testament-Restoration/transcriptions"
+    ],
+    "notes": "The repository states CC BY-SA 4.0; site terms at https://greekcntr.org/terms/index.html. Attribution to Alan Bunning and the Center for New Testament Restoration is required, and derivatives must carry the same licence."
+  },
+  {
+    "id": "codex-sinaiticus",
+    "name": "Codex Sinaiticus",
+    "category": "Manuscript Transcriptions & Textual Variants",
+    "description": "Complete digital edition of Codex Sinaiticus (4th c.) with TEI XML transcription download.",
+    "formats": ["TEI XML"],
+    "license": "See site",
+    "github": null,
+    "url": "https://www.codexsinaiticus.org/en/",
+    "acquire": [
+      "Download from https://codexsinaiticus.org/en/project/transcription_download.aspx"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "nt-conjectures",
+    "name": "Amsterdam Database of NT Conjectural Emendation",
+    "category": "Manuscript Transcriptions & Textual Variants",
+    "description": "Scholarly conjectural emendations to the Greek NT with attribution.",
+    "formats": ["SQL", "web"],
+    "license": "Open",
+    "github": null,
+    "url": "http://ntvmr.uni-muenster.de/nt-conjectures-attribution",
+    "acquire": [
+      "SQL scripts at http://ntvmr.uni-muenster.de/community/vmr/api/projects/ntconjectures/admin/sql/scripts/"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "rahlfs-hanhart",
+    "name": "Rahlfs-Hanhart LXX",
+    "category": "Septuagint (LXX)",
+    "description": "The standard critical edition of the Septuagint. Deutsche Bibelgesellschaft. Not freely downloadable as a standalone file; available via Logos/Faithlife or paired with CATSS morphological data.",
+    "formats": ["text"],
+    "license": "See source",
+    "github": null,
+    "url": null,
+    "acquire": [
+      "Via Logos/Faithlife or CATSS"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "catss",
+    "name": "CATSS LXX Morphology",
+    "category": "Septuagint (LXX)",
+    "description": "Computer-Assisted Tools for Septuagint Studies morphological text. Not freely licensed — see user agreement before use.",
+    "formats": ["plain text"],
+    "license": "Restricted — see http://ccat.sas.upenn.edu/gopher/text/religion/biblical/lxxmorph/0-user-declaration.txt",
+    "github": null,
+    "url": "http://ccat.sas.upenn.edu/gopher/text/religion/biblical/lxxmorph/",
+    "acquire": [
+      "See user agreement and request access from http://ccat.sas.upenn.edu/gopher/text/religion/biblical/lxxmorph/"
+    ],
+    "notes": "License restricts redistribution."
+  },
+  {
+    "id": "swete-lxx",
+    "name": "Swete's Septuagint",
+    "category": "Septuagint (LXX)",
+    "description": "Machine-corrected version. Morphological tagging in progress.",
+    "formats": ["XML"],
+    "license": "Open",
+    "github": "https://github.com/OpenGreekAndLatin/septuagint-dev",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/OpenGreekAndLatin/septuagint-dev"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "macula-hebrew",
+    "name": "Macula Hebrew",
+    "category": "Hebrew Bible — Base Texts & Morphology",
+    "description": "Word-level morphology for the entire Hebrew Bible. Lemma, gloss, POS, gender/number/person, pronominal suffixes. WLC-based. Go-to for pipeline work.",
+    "formats": ["TSV", "XML"],
+    "license": "CC BY 4.0",
+    "github": "https://github.com/Clear-Bible/macula-hebrew",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/Clear-Bible/macula-hebrew"
+    ],
+    "provides": [
+      {
+        "id": "WLC",
+        "name": "Westminster Leningrad Codex",
+        "language": "Hebrew",
+        "canon": "OT",
+        "kind": "tsv",
+        "path": "WLC/tsv/macula-hebrew.tsv",
+        "versification": "org",
+        "versification_why": "PSA 51 runs to 21 verses and Malachi has 3 chapters — both `org`, not `eng`."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "id": "bibleaquifer-wlc",
+    "name": "BibleAquifer Westminster Leningrad Codex (standard XML)",
+    "category": "Hebrew Bible — Base Texts & Morphology",
+    "description": "Westminster Leningrad Codex in standard XML format. BibleAquifer's normalization of the WLC base text.",
+    "formats": ["XML"],
+    "license": "See repo",
+    "github": "https://github.com/BibleAquifer/WestminsterLeningradCodex",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/BibleAquifer/WestminsterLeningradCodex"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "morphhb",
+    "name": "OpenScriptures Hebrew Bible (morphhb)",
+    "category": "Hebrew Bible — Base Texts & Morphology",
+    "description": "Parsed Hebrew Bible with Strong's numbers and morphology tags. MIT licensed.",
+    "formats": ["XML"],
+    "license": "MIT",
+    "github": "https://github.com/openscriptures/morphhb",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/openscriptures/morphhb"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "bhsa",
+    "name": "ETCBC / BHSA (Biblia Hebraica Stuttgartensia Amstelodamensis)",
+    "category": "Hebrew Bible — Base Texts & Morphology",
+    "description": "The most complete Hebrew syntactic database: clause, phrase, and word nodes with full feature set. Accessed via the text-fabric Python library.",
+    "formats": ["Text-Fabric nodes"],
+    "license": "CC BY-NC 4.0",
+    "github": "https://github.com/etcbc/bhsa",
+    "url": "https://shebanq.ancient-data.org/",
+    "acquire": [
+      "pip install text-fabric",
+      "In Python: from tf.app import use; A = use('etcbc/bhsa')"
+    ],
+    "notes": "NC clause restricts commercial use."
+  },
+  {
+    "id": "shebanq",
+    "name": "Shebanq",
+    "category": "Hebrew Bible — Base Texts & Morphology",
+    "description": "ETCBC Hebrew Bible data as a queryable SQL database with a web query interface.",
+    "formats": ["SQL", "web"],
+    "license": "Open",
+    "github": null,
+    "url": "https://shebanq.ancient-data.org/",
+    "acquire": [
+      "Web access at https://shebanq.ancient-data.org/"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "macula-greek-nt",
+    "name": "Macula Greek NT",
+    "category": "Greek NT — Morphology & Syntax",
+    "description": "Word-level morphology anchored to SBLGNT. Same schema as Macula Hebrew. Standard for pipeline work.",
+    "formats": ["XML", "TSV"],
+    "license": "CC BY 4.0",
+    "github": "https://github.com/Clear-Bible/macula-greek",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/Clear-Bible/macula-greek"
+    ],
+    "provides": [
+      {
+        "id": "SBLGNT",
+        "name": "SBL Greek New Testament",
+        "language": "Greek",
+        "canon": "NT",
+        "kind": "tsv",
+        "path": "SBLGNT/tsv/macula-greek-SBLGNT.tsv",
+        "versification": "org",
+        "versification_why": "2CO 13 has 13 verses and 3JN 15 exists — both `org`, not `eng`."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "id": "morphgnt-sblgnt",
+    "name": "MorphGNT (SBLGNT)",
+    "category": "Greek NT — Morphology & Syntax",
+    "description": "Per-word morphology for SBLGNT. Original open high-quality GNT morphology by James Tauber.",
+    "formats": ["plain text columns"],
+    "license": "CC BY-SA 3.0",
+    "github": "https://github.com/morphgnt/sblgnt",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/morphgnt/sblgnt"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "morphgnt-nestle1904",
+    "name": "MorphGNT (Nestle1904)",
+    "category": "Greek NT — Morphology & Syntax",
+    "description": "Nestle 1904 with MorphGNT conventions.",
+    "formats": ["CSV"],
+    "license": "CC BY 4.0",
+    "github": "https://github.com/biblicalhumanities/Nestle1904",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/biblicalhumanities/Nestle1904"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "morphgnt-tischendorf",
+    "name": "MorphGNT (Tischendorf)",
+    "category": "Greek NT — Morphology & Syntax",
+    "description": "Tischendorf GNT with MorphGNT morphology.",
+    "formats": ["plain text columns"],
+    "license": "Open",
+    "github": "https://github.com/morphgnt/tischendorf",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/morphgnt/tischendorf"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "speaker-quotations",
+    "name": "Clear-Bible Speaker Quotations",
+    "category": "Greek NT — Morphology & Syntax",
+    "description": "Word-level identification of quotations in OT and NT with speaker attribution.",
+    "formats": ["JSON"],
+    "license": "CC BY 4.0",
+    "github": "https://github.com/Clear-Bible/speaker-quotations",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/Clear-Bible/speaker-quotations"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "gbi-lowfat",
+    "name": "GBI Treebank / Lowfat Trees (Nestle1904 & SBLGNT)",
+    "category": "Treebanks",
+    "description": "Global Bible Initiative HPSG constituent grammar treebank, plus Lowfat transformation for XQuery-friendly access. Best for BaseX/XQuery work.",
+    "formats": ["XML"],
+    "license": "Open",
+    "github": "https://github.com/Clear-Bible/macula-greek",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/Clear-Bible/macula-greek"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "proiel",
+    "name": "PROIEL Treebank",
+    "category": "Treebanks",
+    "description": "High-quality dependency trees for Tischendorf GNT. Part of a parallel corpus spanning Greek, Armenian, Gothic, Old Church Slavonic, Latin.",
+    "formats": ["XML"],
+    "license": "CC BY-NC-SA 4.0",
+    "github": "https://github.com/proiel/proiel-treebank",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/proiel/proiel-treebank"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "levinsohn-lgntdf",
+    "name": "Levinsohn LGNTDF",
+    "category": "Discourse Analysis",
+    "description": "Stephen Levinsohn's complete discourse feature markup of the Greek NT (UBS4/NA27). 806+ word-level annotations. Released by SIL International. 2016 Biblical Humanities Dataset of the Year.",
+    "formats": ["XML"],
+    "license": "Custom — freely distributable, not for sale. See https://github.com/biblicalhumanities/levinsohn/blob/master/LICENSE.md",
+    "github": "https://github.com/biblicalhumanities/levinsohn",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/biblicalhumanities/levinsohn"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "abbott-smith",
+    "name": "Abbott-Smith",
+    "category": "Lexicons",
+    "description": "A Manual Greek Lexicon of the New Testament. Best-quality public domain Greek NT lexicon.",
+    "formats": ["TEI XML"],
+    "license": "Public Domain",
+    "github": "https://github.com/translatable-exegetical-tools/Abbott-Smith",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/translatable-exegetical-tools/Abbott-Smith"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "lsj",
+    "name": "Liddell-Scott-Jones (LSJ)",
+    "category": "Lexicons",
+    "description": "A Greek-English Lexicon. The standard unabridged classical Greek lexicon. Unicode version at gcelano/LSJ_GreekUnicode.",
+    "formats": ["TEI XML"],
+    "license": "Perseus license",
+    "github": "https://github.com/PerseusDL/lexica",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/PerseusDL/lexica",
+      "For Unicode: git clone https://github.com/gcelano/LSJ_GreekUnicode"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "dodson",
+    "name": "Dodson Greek Lexicon",
+    "category": "Lexicons",
+    "description": "Simple glosses and short definitions for GNT vocabulary. Public domain.",
+    "formats": ["CSV", "XML"],
+    "license": "Public Domain",
+    "github": "https://github.com/biblicalhumanities/Dodson-Greek-Lexicon",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/biblicalhumanities/Dodson-Greek-Lexicon"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "mounce",
+    "name": "Mounce Concise Dictionary",
+    "category": "Lexicons",
+    "description": "Mounce's Concise Greek-English Dictionary of Biblical Greek.",
+    "formats": ["JSON"],
+    "license": "CC BY-SA",
+    "github": "https://github.com/jcuenod/dictionary",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/jcuenod/dictionary"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "strongs",
+    "name": "Strong's Dictionary",
+    "category": "Lexicons",
+    "description": "Greek and Hebrew Strong's numbers with definitions. Widely used for cross-reference.",
+    "formats": ["XML"],
+    "license": "Public Domain",
+    "github": "https://github.com/openscriptures/strongs",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/openscriptures/strongs"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "bdag",
+    "name": "BDAG",
+    "category": "Lexicons",
+    "description": "A Greek-English Lexicon of the New Testament and Other Early Christian Literature (Bauer-Danker-Arndt-Gingrich). The scholarly standard for NT Greek. Not freely available — reference only.",
+    "formats": ["print", "digital (Logos)"],
+    "license": "Commercial",
+    "github": null,
+    "url": null,
+    "acquire": [
+      "Publisher: University of Chicago Press"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "tyndale-open-bible-dictionary",
+    "name": "Tyndale Open Bible Dictionary",
+    "category": "Bible Dictionaries & Encyclopedias",
+    "description": "Dictionary articles on the significant people, places, and concepts in the Bible, on the cultural context of scripture, and on important theological terms. Addressed by topic rather than by passage.",
+    "formats": ["ZIP"],
+    "license": "CC BY-SA 4.0",
+    "github": null,
+    "url": "https://tyndaleopenresources.com/",
+    "download": "https://tyndaleopenresources.com/wp-content/themes/tyndale-openresources/files/TyndaleOpenBibleDictionary.zip",
+    "acquire": [
+      "Download from https://tyndaleopenresources.com/"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "tyndale-open-study-notes",
+    "name": "Tyndale Open Study Notes",
+    "category": "Study Notes & Commentary",
+    "description": "Book introductions, profiles, theme articles, and verse-level study notes explaining the meaning and background of the biblical text in modern English. Addressed by passage.",
+    "formats": ["ZIP"],
+    "license": "CC BY-SA 4.0",
+    "github": null,
+    "url": "https://tyndaleopenresources.com/",
+    "download": "https://tyndaleopenresources.com/wp-content/themes/tyndale-openresources/files/tyndale_open-studynotes.zip",
+    "acquire": [
+      "Download from https://tyndaleopenresources.com/"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "ubs-sdbh",
+    "name": "UBS Semantic Dictionary of Biblical Hebrew (SDBH)",
+    "category": "Semantic Domains & Thematic Resources",
+    "description": "UBS semantic domain lexicon for the Hebrew Bible. Word-level domain annotations in Macula Hebrew.",
+    "formats": ["JSON", "XML"],
+    "license": "Open",
+    "github": "https://github.com/ubsicap/ubs-open-license",
+    "url": "https://semanticdictionary.org/",
+    "acquire": [
+      "git clone https://github.com/ubsicap/ubs-open-license"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "ubs-sdgnt",
+    "name": "UBS Semantic Dictionary of the Greek NT (SDGNT)",
+    "category": "Semantic Domains & Thematic Resources",
+    "description": "UBS semantic domain lexicon for the GNT.",
+    "formats": ["JSON", "XML"],
+    "license": "Open",
+    "github": "https://github.com/ubsicap/ubs-open-license",
+    "url": "https://semanticdictionary.org/",
+    "acquire": [
+      "git clone https://github.com/ubsicap/ubs-open-license"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "ubs-thematic-lexicons",
+    "name": "UBS Thematic Lexicons (Flora, Fauna, Realia)",
+    "category": "Semantic Domains & Thematic Resources",
+    "description": "Three lexicons for plants, animals, and man-made objects in the Bible. Adapted from UBS handbooks by Edward R. Hope (fauna) and Robert Koops (flora). Available in English, Chinese (Simplified), and Chinese (Traditional). Issued under open license 2025.",
+    "formats": ["XML"],
+    "license": "CC BY-SA 4.0",
+    "github": "https://github.com/ubsicap/ubs-open-license",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/ubsicap/ubs-open-license",
+      "Data in flora-fauna-realia/XML/ subfolder"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "tipnr",
+    "name": "STEPBible TIPNR",
+    "category": "Semantic Domains & Thematic Resources",
+    "description": "Translators Individualised Proper Names with all References. Tyndale House. High-quality proper noun data.",
+    "formats": ["text"],
+    "license": "CC BY",
+    "github": "https://github.com/STEPBible/STEPBible-Data",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/STEPBible/STEPBible-Data"
+    ],
+    "notes": "TIPNR is one of several datasets in this repo."
+  },
+  {
+    "id": "pta-tipnr",
+    "name": "Patristic Text Archive TIPNR",
+    "category": "Semantic Domains & Thematic Resources",
+    "description": "JSON/XML versions of TIPNR with persons and places separated.",
+    "formats": ["JSON", "XML"],
+    "license": "Open",
+    "github": "https://github.com/PatristicTextArchive/tipnr_data",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/PatristicTextArchive/tipnr_data"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "acai",
+    "name": "ACAI",
+    "category": "Entity Annotation",
+    "description": "People, places, deities, groups, fauna, flora, realia, and keyterms anchored to Macula node IDs. Spans both testaments. Rick Brannan / Mission Mutual. The most comprehensive open entity annotation set.",
+    "formats": ["JSON", "Markdown"],
+    "license": "CC BY-SA 4.0",
+    "github": "https://github.com/BibleAquifer/ACAI",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/BibleAquifer/ACAI"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "bible-geocoding",
+    "name": "OpenBible.info Bible Geocoding Data",
+    "category": "Entity Annotation",
+    "description": "Geocoded coordinates for biblical place names with passage references.",
+    "formats": ["CSV"],
+    "license": "CC BY",
+    "github": "https://github.com/openbibleinfo/Bible-Geocoding-Data",
+    "url": "https://openbible.info/",
+    "acquire": [
+      "git clone https://github.com/openbibleinfo/Bible-Geocoding-Data"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "theographic",
+    "name": "Theographic Bible Metadata (viz.bible)",
+    "category": "Entity Annotation",
+    "description": "Robert Rouse's structured metadata for biblical people, places, events, and relationships. Used by ACAI.",
+    "formats": ["JSON"],
+    "license": "CC BY",
+    "github": "https://github.com/robertrouse/theographic-bible-metadata",
+    "url": "https://viz.bible/",
+    "acquire": [
+      "git clone https://github.com/robertrouse/theographic-bible-metadata"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "pleiades",
+    "name": "Pleiades",
+    "category": "Geography & Places",
+    "description": "Gazetteer of ancient world places (Greek, Roman, Near Eastern). Coordinates, name variants, periods, references. The scholarly standard for ancient geography.",
+    "formats": ["JSON", "CSV", "RDF"],
+    "license": "CC BY 3.0",
+    "github": null,
+    "url": "https://pleiades.stoa.org/",
+    "acquire": [
+      "Bulk downloads at https://pleiades.stoa.org/downloads"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "first1kgreek",
+    "name": "First1KGreek / Open Greek and Latin",
+    "category": "Hellenistic & Patristic Corpora",
+    "description": "TEI P5 XML for Josephus, Philo, Apostolic Fathers, and much of the first 1000 years of Greek literature. Essential for Hellenistic context corpora.",
+    "formats": ["TEI XML"],
+    "license": "CC BY-SA 3.0",
+    "github": "https://github.com/OpenGreekAndLatin/First1KGreek",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/OpenGreekAndLatin/First1KGreek"
+    ],
+    "notes": "Large repo (~1.5 GB)."
+  },
+  {
+    "id": "perseus",
+    "name": "Perseus Digital Library",
+    "category": "Hellenistic & Patristic Corpora",
+    "description": "Massive collection of Greek and Latin classical texts in TEI XML with morphological tagging. Homer, Plato, Thucydides, Cicero, and more.",
+    "formats": ["TEI XML"],
+    "license": "Various CC",
+    "github": "https://github.com/PerseusDL",
+    "url": "http://www.perseus.tufts.edu/",
+    "acquire": [
+      "git clone https://github.com/PerseusDL/canonical-greekLit",
+      "git clone https://github.com/PerseusDL/canonical-latinLit"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "patrologia-graeca",
+    "name": "Patrologia Graeca (Migne)",
+    "category": "Hellenistic & Patristic Corpora",
+    "description": "Massive collection of Church Fathers, volumes 1–161. Open Greek and Latin project.",
+    "formats": ["XML"],
+    "license": "Open",
+    "github": "https://github.com/OGL-PatrologiaGraecaDev",
+    "url": null,
+    "acquire": [
+      "git clone individual volume repos under https://github.com/OGL-PatrologiaGraecaDev"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "catenae",
+    "name": "Cramer's Catenae",
+    "category": "Hellenistic & Patristic Corpora",
+    "description": "For each NT verse, lists comments by early Church Fathers.",
+    "formats": ["XML"],
+    "license": "Open",
+    "github": "https://github.com/OpenGreekAndLatin/catenae-dev",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/OpenGreekAndLatin/catenae-dev"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "coptic-scriptorium",
+    "name": "Coptic Scriptorium",
+    "category": "Hellenistic & Patristic Corpora",
+    "description": "Coptic corpus with morphology and phrasing. Essential for early Christian documentary and literary texts.",
+    "formats": ["XML"],
+    "license": "CC",
+    "github": "https://github.com/CopticScriptorium",
+    "url": "http://data.copticscriptorium.org/",
+    "acquire": [
+      "git clone individual repos at https://github.com/CopticScriptorium"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "papyri-info",
+    "name": "Papyri.info / DDBDP",
+    "category": "Papyri & Inscriptions",
+    "description": "Duke Databank of Documentary Papyri. Documentary papyri (letters, contracts, receipts) in EpiDoc XML. Best source for Koine Greek in real-world contexts.",
+    "formats": ["EpiDoc XML"],
+    "license": "CC BY 3.0",
+    "github": "https://github.com/papyri/idp.data",
+    "url": "https://papyri.info/",
+    "acquire": [
+      "git clone https://github.com/papyri/idp.data"
+    ],
+    "notes": "Large repo."
+  },
+  {
+    "id": "phi-inscriptions",
+    "name": "PHI Greek Inscriptions",
+    "category": "Papyri & Inscriptions",
+    "description": "Packard Humanities Institute corpus of Greek epigraphic texts. Requires access request.",
+    "formats": ["text"],
+    "license": "Restricted",
+    "github": null,
+    "url": "https://epigraphy.packhum.org/",
+    "acquire": [
+      "Request access at https://epigraphy.packhum.org/"
+    ],
+    "notes": "License restricts bulk download."
+  },
+  {
+    "id": "eagle-edh",
+    "name": "EAGLE / EDH",
+    "category": "Papyri & Inscriptions",
+    "description": "Europeana network for ancient Greek and Latin epigraphic resources. EDH for Latin inscriptions.",
+    "formats": ["EpiDoc XML"],
+    "license": "Open",
+    "github": null,
+    "url": "https://www.eagle-network.eu/",
+    "acquire": [
+      "EAGLE: https://www.eagle-network.eu/",
+      "EDH: https://edh.ub.uni-heidelberg.de/"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "trismegistos",
+    "name": "Trismegistos",
+    "category": "Papyri & Inscriptions",
+    "description": "Portal for ancient papyri and inscriptions. Cross-references between collections.",
+    "formats": ["web API"],
+    "license": "See site",
+    "github": null,
+    "url": "https://www.trismegistos.org/",
+    "acquire": [
+      "Web API at https://www.trismegistos.org/"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "sefaria",
+    "name": "Sefaria",
+    "category": "Jewish Texts",
+    "description": "Jewish text library: Tanakh with commentaries (Rashi, Ibn Ezra, Nachmanides), Mishnah, Talmud, Midrash, Targums, Hebrew grammar, and more.",
+    "formats": ["JSON"],
+    "license": "CC BY-NC",
+    "github": "https://github.com/Sefaria/Sefaria-Export",
+    "url": "https://www.sefaria.org/",
+    "acquire": [
+      "git clone https://github.com/Sefaria/Sefaria-Export"
+    ],
+    "notes": "NC clause restricts commercial use."
+  },
+  {
+    "id": "copenhagen-versification",
+    "name": "Copenhagen Alliance Versification Specification",
+    "category": "Versification & Alignment",
+    "description": "Canonical versification schemes (ORG, ENG, and others) for cross-translation reference alignment, plus \"versification sniffing\" to identify which scheme a text follows.",
+    "formats": ["JSON", "XML"],
+    "license": "Apache-2.0 (code) — see LICENSE.md for data terms",
+    "github": "https://github.com/Copenhagen-Alliance/versification-specification",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/Copenhagen-Alliance/versification-specification"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "clear-alignments",
+    "name": "Clear-Bible Alignments (Biblica)",
+    "category": "Versification & Alignment",
+    "description": "Word-level alignment of translations to Macula Hebrew/Greek. Used by ACAI for Markdown visualization.",
+    "formats": ["JSON"],
+    "license": "Open",
+    "github": "https://github.com/Clear-Bible/Alignments",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/Clear-Bible/Alignments"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "usfmtc",
+    "name": "Paratext USFM/USX (usfmtc)",
+    "category": "Translation & Publishing Infrastructure",
+    "description": "Access local Paratext projects programmatically via usfmtc (Martin Hosken / SIL).",
+    "formats": ["USFM", "USX"],
+    "license": "MIT (tools)",
+    "github": null,
+    "url": "https://pypi.org/project/usfmtc/",
+    "acquire": [
+      "pip install usfmtc"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "usx-schema",
+    "name": "USX 3.1 Schema",
+    "category": "Translation & Publishing Infrastructure",
+    "description": "XML serialization of USFM 3.1 maintained by United Bible Societies.",
+    "formats": ["XML schema"],
+    "license": "Open",
+    "github": "https://github.com/ubsicap/usx",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/ubsicap/usx"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "ubs-parallel-passages",
+    "name": "UBS Parallel Passages Database",
+    "category": "Versification & Alignment",
+    "description": "Word-level parallel passage alignment for the OT and NT, including OT quotes in the NT. Each word is scored 0–2 (no match, partial, full) against its counterpart(s). Underlies the Parallel Passages tool in Paratext.",
+    "formats": ["XML"],
+    "license": "CC BY-SA 4.0",
+    "github": "https://github.com/ubsicap/ubs-open-license",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/ubsicap/ubs-open-license",
+      "File: parallel passages/ParallelPassages.xml"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "ubs-hottp",
+    "name": "HOTTP — Hebrew OT Text Project",
+    "category": "Manuscript Transcriptions & Textual Variants",
+    "description": "Preliminary and Interim Report on the Hebrew Old Testament Text Project. Concise text-critical analysis by a committee of senior Hebrew scholars, covering a large number of OT passages with textual variants. Each passage is assigned a quality rating (A–D) for the preferred reading. Formed the foundation of Barthélemy's Critique Textuelle de l'Ancien Testament. Available in English and French.",
+    "formats": ["XML"],
+    "license": "CC BY-SA 4.0",
+    "github": "https://github.com/ubsicap/ubs-open-license",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/ubsicap/ubs-open-license",
+      "File: HOTTP/HOTTP.XML"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "ubs-marble-wlc-index",
+    "name": "MARBLE WLC Links Index",
+    "category": "Semantic Domains & Thematic Resources",
+    "description": "MARBLE (Multimedia And Reference Bible for Language and Exegesis) word-level linkage index for all 39 books of the WLC Hebrew Bible. Each word token is keyed to lexical (SDBH), thematic, image, map, textual cross-reference, article, and section resources. One file per OT book.",
+    "formats": ["JSON", "XML"],
+    "license": "CC BY-SA 4.0",
+    "github": "https://github.com/ubsicap/ubs-open-license",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/ubsicap/ubs-open-license",
+      "Data in index/WLC/ subfolder"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "ubs-bible-routes",
+    "name": "UBS Bible Routes",
+    "category": "Geography & Places",
+    "description": "~200 files of geographic coordinates for routes linked to biblical narratives, created by Dr. Leen Ritmeyer for UBS. Designed to be overlaid on biblical maps. Covers journeys of biblical figures across both testaments.",
+    "formats": ["GeoJSON", "SVG"],
+    "license": "CC BY-SA 4.0",
+    "github": "https://github.com/ubsicap/ubs-open-license",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/ubsicap/ubs-open-license",
+      "Data in ubs-bible-routes/ subfolder"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "scripture-burrito",
+    "name": "Scripture Burrito",
+    "category": "Standards",
+    "description": "Interoperability standard for packaging, identifying, and exchanging Scripture-related digital resources. Defines a container format (metadata + content files) used by translation and publishing tools, and the exchange format for Paratext. Maintained by the Bible Technology Group (BTG).",
+    "formats": ["JSON Schema", "YAML"],
+    "license": "MIT (code, schema); CC BY-SA 4.0 (docs)",
+    "github": "https://github.com/bible-technology/scripture-burrito",
+    "url": "https://docs.burrito.bible/",
+    "acquire": [
+      "pip install scripture-burrito"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "usfm-3-1",
+    "name": "USFM 3.1",
+    "category": "Standards",
+    "description": "Unified Standard Format Markers 3.1 — the dominant plain-text markup language for Scripture translation. Version 3.1 adds extended attributes, milestones, and improved word-level markup over earlier versions. Do not use USFM 2.x for new work.",
+    "formats": ["USFM"],
+    "license": "MIT",
+    "github": "https://github.com/usfm-bible/tcdocs",
+    "url": "https://docs.usfm.bible/usfm/3.1.1/index.html",
+    "acquire": [],
+    "notes": "Spec only — no data. Use USFM 3.1+; earlier versions lack milestone and extended-attribute support."
+  },
+  {
+    "id": "etcbc-bhsa-syntax-trees",
+    "name": "ETCBC BHSa Syntax Trees",
+    "category": "Treebanks",
+    "description": "Hebrew Bible syntax trees generated from the ETCBC BHSA data via Text-Fabric. A hierarchical XML alternative to Macula Hebrew for clause and phrase structure.",
+    "formats": ["XML"],
+    "license": "No license file — ask before redistributing",
+    "github": "https://github.com/ryderwishart/hebrew-syntax-trees",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/ryderwishart/hebrew-syntax-trees"
+    ],
+    "notes": "Last updated 2023-03-20."
+  },
+  {
+    "id": "bdb-hebrewlexicon",
+    "name": "BDB (OpenScriptures HebrewLexicon)",
+    "category": "Lexicons",
+    "description": "Brown-Driver-Briggs Hebrew and English Lexicon, marked up in XML with links to Strong's numbers and an augmented index. The standard historical Hebrew lexicon.",
+    "formats": ["XML"],
+    "license": "No license file — see repo",
+    "github": "https://github.com/openscriptures/HebrewLexicon",
+    "url": null,
+    "acquire": [
+      "git clone https://github.com/openscriptures/HebrewLexicon"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "bsb",
+    "name": "Berean Standard Bible (BSB)",
+    "category": "English Translations",
+    "description": "Modern English translation, freely usable, widely adopted as a quoting base for translation notes and study resources. This repository carries it as per-book USFM with \\\\s1 section headings — editorial pericope boundaries for all 66 books, which few free texts provide.",
+    "formats": ["USFM", "USJ", "USX", "TXT"],
+    "license": "Public domain",
+    "github": null,
+    "url": "https://berean.bible/downloads.htm",
+    "download": "https://bereanbible.com/bsb_usfm.zip",
+    "acquire": [
+      "Download from https://berean.bible/downloads.htm"
+    ],
+    "provides": [
+      {
+        "id": "BSB",
+        "name": "Berean Standard Bible",
+        "language": "English",
+        "canon": "OT+NT",
+        "kind": "usfm",
+        "path": "bsb_usfm",
+        "versification": "eng",
+        "versification_why": "An English translation with English numbering."
+      }
+    ],
+    "notes": "Officially placed in the public domain on 30 April 2023 (https://berean.bible/licensing.htm); the downloads page footer still carries an older all-rights-reserved line. The official USFM release is USFM 3.1, one file per book, with \\\\mt1/\\\\mt2 titles, \\\\s1 section headings, \\\\p paragraphs, \\\\q1 poetry lines and full \\\\f footnote markup — the editorial structure `print` output needs. Prefer it to the github.com/usfm-bible/examples.bsb mirror, which omits the \\\\id line in its Ecclesiastes file, so a tool loading that mirror book by book silently ends up without Ecclesiastes (usfm-bible/examples.bsb#7). USJ and USX releases of the same text are on the same page; the USJ is well-formed USJ 3.1 but its verse nodes carry neither sid nor eid."
+  },
+  {
+    "id": "bsb-translation-tables",
+    "name": "BSB Translation Tables",
+    "category": "Versification & Alignment",
+    "description": "Word-level translation tables for the Berean Standard Bible, linking the English text to its underlying Greek and Hebrew.",
+    "formats": ["TSV", "XLSX"],
+    "license": "Public domain",
+    "github": null,
+    "url": "https://berean.bible/downloads.htm",
+    "download": "https://bereanbible.com/bsb_tables.tsv",
+    "acquire": [
+      "Download from https://berean.bible/downloads.htm"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "berean-readers-bible",
+    "name": "Berean Reader's Bible",
+    "category": "English Translations",
+    "description": "A reader's edition of the Berean text, set without verse numbers for continuous reading.",
+    "formats": ["TXT", "XLSX", "DOCX", "PDF"],
+    "license": "Public domain",
+    "github": null,
+    "url": "https://readersbible.com/",
+    "download": "https://readersbible.com/brb.txt",
+    "acquire": [
+      "Download from https://berean.bible/downloads.htm"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "berean-literal-bible",
+    "name": "Berean Literal Bible NT",
+    "category": "English Translations",
+    "description": "A literal English rendering of the Greek New Testament, following Greek word order closely. Useful as a gloss layer beside the original.",
+    "formats": ["TXT", "XLSX", "DOCX", "PDF"],
+    "license": "Public domain",
+    "github": null,
+    "url": "https://literalbible.com/",
+    "download": "https://literalbible.com/blb.txt",
+    "acquire": [
+      "Download from https://berean.bible/downloads.htm"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "berean-greek-bible",
+    "name": "Berean Greek Bible NT",
+    "category": "Greek NT — Base Texts",
+    "description": "The Greek New Testament text underlying the Berean translations.",
+    "formats": ["DOCX", "PDF"],
+    "license": "Public domain",
+    "github": null,
+    "url": "https://greekbible.org/",
+    "download": "https://greekbible.org/bgb.docx",
+    "acquire": [
+      "Download from https://berean.bible/downloads.htm"
+    ],
+    "notes": "Published only as DOCX and PDF — there is no plain-text or structured release, so machine use means extracting from the DOCX."
+  }
+]

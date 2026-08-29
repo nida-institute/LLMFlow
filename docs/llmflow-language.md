@@ -765,9 +765,49 @@ machine where the sources live somewhere else.
 ```
 
 **Required Fields:**
-- `edition`: Name of a registered edition
+- `edition`: Name of a registered resource
 - `passage`: A reference, in any of the five forms above
 - `output`: Variable name to store the result
+
+#### Registering the text a pipeline names
+
+A pipeline names a resource; it never carries a path. That is what keeps a pipeline runnable on
+a machine other than the one it was written on.
+
+```bash
+sp resource list                 # what the catalog knows, and what this machine has
+sp resource add WLC              # fetches the data if needed, then registers it
+sp resource add WLC --no-download   # register now, fetch later
+```
+
+`add` downloads by default, because asking for a resource is asking to use it — a registration
+pointing at data that is not there fails later, in the middle of a run, after the pipeline has
+linted clean.
+
+**Something of your own** — a Paratext project, or a text you maintain — is registered by path:
+
+```bash
+sp resource add MYPROJ --path ~/paratext/MYPROJ          # Paratext says what it is
+sp resource add MINE --path ~/texts/mine.tsv --kind tsv --versification org
+```
+
+A Paratext project needs nothing else: its `Settings.xml` names the versification and the
+directory names the project. Anything else must state its `kind`, because guessing a reader from
+a file extension is how the wrong text gets read. Access is not checked — a Paratext project you
+can open is one you have already established a right to read.
+
+Registrations live in `~/.sp/registrations/`, one file per resource, recording a path relative
+to its download so the file means the same thing on every machine. An absolute path is honoured
+too, which is what a maintainer working against their own clone needs. The corpora themselves
+go to `~/sp/resources/<owner>/<repo>/` — visible rather than hidden, because a library of texts
+is not configuration and a hidden one duplicates itself unnoticed.
+
+`sp doctor` reports what is registered, warns when a registration points at something no longer
+there, and warns when `SP_HOME` or `LLMFLOW_DATA_DIR` redirects the store: those exist for test
+runs and containers, and on a working machine they are how two projects come to hold different
+copies of the same text with nothing to say which is which. Each fetched corpus carries a
+`.sp-resource.json` recording the source, the archive's SHA-256 and when it was fetched, so a
+stale copy can be recognised rather than guessed at.
 
 **Optional Fields:**
 - `format`: The shape of the result (see below). Default `milestones`.

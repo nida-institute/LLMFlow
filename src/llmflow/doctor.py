@@ -50,6 +50,7 @@ from llmflow import paths as _paths
 from typing import Optional
 
 from llmflow.file_catalog import Entry, Scope, Source, managed_by_doctor, shipped_content, shipped_path
+from llmflow.resources import RESOURCES_DIRNAME
 from llmflow.utils.versification import MAPPINGS_DIRNAME
 
 
@@ -266,6 +267,216 @@ def _repair_group(
     return restored, failed, still_missing
 
 
+def _migrate_resources_dir(sp_home: Path) -> Optional[Check]:
+    """Carry `~/.sp/editions/` across to `~/.sp/resources/` (#217).
+
+    A rename that costs someone their registrations is not a rename, it is a breakage. Doctor
+    does the move so nobody is told to shuffle files by hand, and so there is one place to look
+    afterwards rather than two that disagree.
+    """
+    from llmflow import resources as _resources_mod
+
+    current = sp_home / RESOURCES_DIRNAME
+    legacy = next(
+        (sp_home / name for name in _resources_mod.LEGACY_REGISTRATION_DIRNAMES
+         if (sp_home / name).is_dir()),
+        None,
+    )
+
+    if legacy is None:
+        return None
+
+    if current.is_dir():
+        return Check(
+            "resources_dir",
+            "Registrations: two directories",
+            Severity.WARNING,
+            detail=(
+                f"Both {legacy} and {current} exist. {current.name!r} is the one sp reads; the "
+                f"other is left untouched because it may hold registrations you still want."
+            ),
+            remedy=f"Move anything you need from {legacy}, then delete it.",
+        )
+
+    try:
+        shutil.move(str(legacy), str(current))
+    except Exception as error:
+        return Check(
+            "resources_dir",
+            "Registrations: could not be migrated",
+            Severity.ERROR,
+            detail=f"Moving {legacy} to {current} failed: {error}",
+            remedy=f"Move {legacy} to {current} by hand.",
+        )
+
+    return Check(
+        "resources_dir",
+        f"Registrations: moved to `{RESOURCES_DIRNAME}`",
+        Severity.WARNING,
+        detail=(
+            f"`{legacy.name}` became `{RESOURCES_DIRNAME}` in #217: these small files say which "
+            f"texts this machine may read, and the corpora themselves now live outside the "
+            f"dotfile. Moved {legacy} to {current}."
+        ),
+        repaired=True,
+    )
+
+
+def _migrate_data_dir(sp_home: Path) -> Optional[Check]:
+    """Carry `~/.sp/data/` out to the visible resource directory (#217).
+
+    Hundreds of megabytes of texts is not configuration, and a hidden library is one nobody
+    notices duplicating itself. Only moved when the destination does not already exist —
+    merging two corpora is not a decision doctor should make.
+    """
+    from llmflow import resources as _resources_mod
+
+    legacy = sp_home / _resources_mod.LEGACY_DATA_DIRNAME
+    if not legacy.is_dir():
+        return None
+
+    current = _resources_mod.data_dir()
+    if current == legacy or current.exists():
+        return Check(
+            "resource_data_dir",
+            "Resource data: not moved",
+            Severity.INFO,
+            detail=f"{legacy} still holds corpora, and {current} already exists.",
+            remedy=f"Merge {legacy} into {current} yourself, then delete it.",
+        )
+
+    try:
+        current.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(legacy), str(current))
+    except Exception as error:
+        return Check(
+            "resource_data_dir",
+            "Resource data: could not be moved",
+            Severity.ERROR,
+            detail=f"Moving {legacy} to {current} failed: {error}",
+            remedy=f"Move {legacy} to {current} by hand.",
+        )
+
+    return Check(
+        "resource_data_dir",
+        "Resource data: moved out of the dotfile",
+        Severity.WARNING,
+        detail=(
+            f"Corpora moved from {legacy} to {current}, where they are visible. Configuration "
+            f"belongs in a dotfile; a library of texts does not."
+        ),
+        repaired=True,
+    )
+
+
+def _store_location_check() -> Optional[Check]:
+    """Warn about a redirected store or data directory (#217).
+
+    These variables exist for test runs and containers, where a throwaway store is the point.
+    On a working machine they are a hazard: resources are read from somewhere else, so this
+    project can hold a different copy of a text from the next one, and nothing in the output of
+    either says so. Two projects quietly disagreeing about what a verse says is the failure, and
+    it is invisible precisely because each is internally consistent.
+
+    A warning rather than an error — the exit code stays 0, because a container setting these
+    deliberately is not broken.
+    """
+    import os
+
+    redirected = [
+        (name, os.environ[name])
+        for name in ("SP_HOME", "LLMFLOW_DATA_DIR")
+        if os.environ.get(name)
+    ]
+    if not redirected:
+        return None
+    return Check(
+        "store_location",
+        "Store: redirected away from the default",
+        Severity.WARNING,
+        detail="; ".join(f"{name}={value}" for name, value in redirected)
+        + ". Resources are read from there, not from the shared store, so another project on "
+        "this machine can hold a different copy of the same text with nothing to say which is "
+        "which.",
+        remedy=(
+            "Unset it unless this is a test run or a container, where a separate store is the "
+            "point."
+        ),
+    )
+
+
+def _resources_check(sp_home: Path) -> Check:
+    """Report what this machine has registered, and whether it still resolves."""
+    from llmflow import resources as _resources
+
+    registered = _resources.load_registered(sp_home / RESOURCES_DIRNAME)
+
+    if not registered:
+        return Check(
+            "resources",
+            "Resources: none registered",
+            Severity.INFO,
+            detail="A fresh machine has none; a pipeline names a resource sp has been told about.",
+            remedy="`sp resource list` shows what the catalog knows; `sp resource add <ID>` registers one.",
+        )
+
+    broken = []
+    for identifier, definition in sorted(registered.items()):
+        raw = str(definition.get("path") or "")
+        if raw:
+            path = Path(raw)
+            if not path.is_absolute() and definition.get("dataset"):
+                path = sp_home / "data" / str(definition["dataset"]) / raw
+        elif definition.get("base_dir") and definition.get("project"):
+            path = Path(str(definition["base_dir"])) / str(definition["project"])
+        else:
+            broken.append(f"{identifier} (names no path)")
+            continue
+        if not path.exists():
+            broken.append(f"{identifier} -> {path}")
+
+    from llmflow import resources as _resources_mod
+
+    unknown_version = []
+    for identifier, definition in sorted(registered.items()):
+        dataset = definition.get("dataset")
+        if not dataset:
+            continue  # a path of the user's own; its version is theirs to know
+        if _resources_mod.installed_version(sp_home / "data" / str(dataset)) is None:
+            unknown_version.append(identifier)
+
+    listed = ", ".join(sorted(registered))
+    if broken:
+        return Check(
+            "resources",
+            f"Resources: {len(broken)} of {len(registered)} point at nothing",
+            Severity.WARNING,
+            detail="Registered: " + listed + ". Not on this machine: " + "; ".join(broken),
+            remedy="`sp resource add <ID>` fetches a catalog resource; a path of your own needs fixing by hand.",
+        )
+
+    if unknown_version:
+        return Check(
+            "resources",
+            f"Resources: all {len(registered)} present, {len(unknown_version)} of unknown version",
+            Severity.INFO,
+            detail=(
+                "Registered: " + listed + ". No version recorded for: "
+                + ", ".join(unknown_version)
+                + " — fetched before sp recorded versions, or placed by hand, so this machine "
+                "cannot say which copy it holds."
+            ),
+            remedy="Re-fetch with `sp resource add <ID>` to record it.",
+        )
+
+    return Check(
+        "resources",
+        f"Resources: all {len(registered)} registered and present",
+        Severity.OK,
+        detail="Registered: " + listed,
+    )
+
+
 def _group_check(
     check_id: str,
     label: str,
@@ -391,6 +602,17 @@ def run_doctor(
             total=len(versification),
         )
     )
+
+    location = _store_location_check()
+    if location is not None:
+        add(location)
+    migrated = _migrate_resources_dir(sp_home)
+    if migrated is not None:
+        add(migrated)
+    moved_data = _migrate_data_dir(sp_home)
+    if moved_data is not None:
+        add(moved_data)
+    add(_resources_check(sp_home))
 
     # --- project files sp owns ----------------------------------------------
     # Divergence only. A project file that is simply absent is sp init's business.

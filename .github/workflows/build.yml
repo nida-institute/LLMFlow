@@ -148,6 +148,7 @@ jobs:
           --include-data-file=data/ai-rules.yaml=llmflow/data/ai-rules.yaml \
           --include-data-file=data/versification-editions.json=llmflow/data/versification-editions.json \
           --include-data-file=data/include-families.json=llmflow/data/include-families.json \
+          --include-data-file=data/resources.json=llmflow/data/resources.json \
           --include-distribution-metadata=scripture-pipelines \
           --include-package=certifi \
           --include-package-data=certifi \
@@ -158,7 +159,7 @@ jobs:
     - name: Build with Nuitka (Windows)
       if: runner.os == 'Windows'
       run: |
-        python -m nuitka --standalone --onefile --assume-yes-for-downloads --windows-dependency-tool=pefile --enable-plugin=dll-files --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=src/llmflow/templates=llmflow/templates --include-data-dir=src/llmflow/gui/static=llmflow/gui/static --include-data-dir=docs/ai-context=llmflow/docs/ai-context --include-data-dir=docs/audits=llmflow/docs/audits --include-data-file=data/file-catalog.yaml=llmflow/data/file-catalog.yaml --include-data-file=data/ai-rules.yaml=llmflow/data/ai-rules.yaml --include-data-file=data/versification-editions.json=llmflow/data/versification-editions.json --include-data-file=data/include-families.json=llmflow/data/include-families.json --include-data-file=data/models.json=llmflow/data/models.json --include-distribution-metadata=scripture-pipelines --include-package=certifi --include-package-data=certifi --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
+        python -m nuitka --standalone --onefile --assume-yes-for-downloads --windows-dependency-tool=pefile --enable-plugin=dll-files --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=src/llmflow/templates=llmflow/templates --include-data-dir=src/llmflow/gui/static=llmflow/gui/static --include-data-dir=docs/ai-context=llmflow/docs/ai-context --include-data-dir=docs/audits=llmflow/docs/audits --include-data-file=data/file-catalog.yaml=llmflow/data/file-catalog.yaml --include-data-file=data/ai-rules.yaml=llmflow/data/ai-rules.yaml --include-data-file=data/versification-editions.json=llmflow/data/versification-editions.json --include-data-file=data/include-families.json=llmflow/data/include-families.json --include-data-file=data/resources.json=llmflow/data/resources.json --include-data-file=data/models.json=llmflow/data/models.json --include-distribution-metadata=scripture-pipelines --include-package=certifi --include-package-data=certifi --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
 
     - name: Smoke test binary (Unix)
       if: runner.os != 'Windows'

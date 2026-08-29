@@ -30,8 +30,13 @@ CLI (cli.py)
 ### 3.1 CLI Layer — `cli.py`
 
 Argument parsing and command dispatch. Entry point for `sp run`, `sp lint`,
-`sp init`, `sp list`, `sp registry`, and `sp clean`. Delegates immediately to
-`runner.py` or `cli_utils.py`; contains no pipeline logic.
+`sp init`, `sp list`, `sp registry`, `sp resource`, `sp doctor` and `sp clean`.
+Delegates immediately to `runner.py` or `cli_utils.py`; contains no pipeline logic.
+
+`sp resource` is the single surface for everything the resource catalog describes —
+`list`, `add` (registering a text so a pipeline can name it) and `download` (fetching
+something no reader can yet open, such as ACAI). It replaced `sp download-data` in
+#217, which carried its own four-entry catalog beside the public one.
 
 ### 3.2 Runner — `runner.py`
 

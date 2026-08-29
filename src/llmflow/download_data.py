@@ -1,143 +1,129 @@
-"""Download biblical datasets for use in LLMFlow pipelines."""
+"""Fetching a catalog resource onto this machine.
+
+What exists and where to get it is the public catalog's job (`llmflow.resources`); this module
+only does the fetching. It used to carry its own four-entry `CATALOG`, which was a smaller,
+drifting copy of the public one — its `berean-usx` entry pointed at a repository that 404s, and
+its dataset names disagreed with the catalog's ids. One declaration now, read by both (#217).
+
+There is no `sp download-data` command any more. Fetching happens as part of `sp resource add`,
+or on its own for a resource nothing can yet read — ACAI and the CNTR transcriptions are in the
+catalog and have no reader, so they are fetched and used directly.
+"""
+
+from __future__ import annotations
+
+import hashlib
 import os
 import shutil
-import sys
+import urllib.parse
 import urllib.request
 import zipfile
+from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
+from typing import Any, Mapping
 
 from llmflow import paths as _paths
-
 from llmflow.modules.logger import Logger
 
 logger = Logger()
 
 AWESOME_BIBLICAL_DATA_URL = "https://github.com/nida-institute/awesome-biblical-data"
 
-# Built-in catalog. Any dataset from the awesome-biblical-data list can be added here.
-CATALOG: dict[str, dict] = {
-    "macula-greek": {
-        "repo": "Clear-Bible/macula-greek",
-        "branch": "main",
-        "license": "CC BY 4.0",
-        "description": "Macula Greek NT (Lowfat XML, Node XML, TSV morphology)",
-        "approx_size": "~150MB",
-    },
-    "macula-hebrew": {
-        "repo": "Clear-Bible/macula-hebrew",
-        "branch": "main",
-        "license": "CC BY 4.0",
-        "description": "Macula Hebrew OT (XML, TSV morphology)",
-        "approx_size": "~400MB",
-    },
-    "berean-usx": {
-        "repo": "Freely-Given-org/OpenEnglishBible",
-        "branch": "main",
-        "license": "CC BY-SA 4.0",
-        "description": "Berean Standard Bible in USX format",
-        "approx_size": "~15MB",
-    },
-    "acai": {
-        "repo": "BibleAquifer/ACAI",
-        "branch": "main",
-        "license": "CC BY-SA 4.0",
-        "description": "ACAI biblical entity catalog — people, places, flora, fauna, deities, groups, keyterms; anchored to Macula node IDs",
-        "approx_size": "~50MB",
-    },
-}
-
 
 def get_default_data_dir() -> Path:
-    """Return the base data directory, honouring LLMFLOW_DATA_DIR env var."""
+    """The base data directory, honouring `LLMFLOW_DATA_DIR`."""
     env = os.environ.get("LLMFLOW_DATA_DIR")
     if env:
         return Path(env)
     return _paths.sp_home() / "data"
 
 
-def run_download_data(
-    dataset: str | None = None,
-    dest: str | None = None,
-    list_only: bool = False,
-) -> None:
-    if list_only:
-        _show_catalog()
-        return
-
-    if dataset is None:
-        _show_usage_hint()
-        return
-
-    if dataset not in CATALOG:
-        logger.error(f"❌ Unknown dataset: '{dataset}'")
-        logger.error("   Run 'sp download-data --list' to see available datasets.")
-        logger.error(f"   Or see {AWESOME_BIBLICAL_DATA_URL} for the full catalog.")
-        sys.exit(1)
-
-    entry = CATALOG[dataset]
-    base = Path(dest) if dest else get_default_data_dir()
-    dest_path = base / dataset
-    _download_dataset(dataset, entry, dest_path)
+def _archive_url(source: Mapping[str, Any]) -> str:
+    """Where to fetch from: a repository's default-branch zip, or a named download."""
+    github = str(source.get("github") or "").rstrip("/")
+    if github:
+        branch = str(source.get("branch") or "main")
+        return f"{github}/archive/refs/heads/{branch}.zip"
+    download = str(source.get("download") or "")
+    if download:
+        return download
+    raise ValueError(
+        f"Resource {source.get('id') or '(unnamed)'!r} says neither `github` nor `download`, "
+        f"so there is nowhere to fetch it from."
+    )
 
 
-def _show_usage_hint() -> None:
-    print("sp download-data: Download biblical reference datasets\n")
-    print("Usage:")
-    print("  sp download-data --list                    List available datasets")
-    print("  sp download-data <dataset>                 Download to ~/.sp/data/<dataset>/")
-    print("  sp download-data <dataset> --dest <path>   Download to custom path\n")
-    print("Set LLMFLOW_DATA_DIR to change the default base directory.\n")
-    _show_catalog()
+def fetch(source: Mapping[str, Any], dest: Path | None = None) -> Path:
+    """Download *source* into the store and return the directory it landed in.
 
+    Present data is left alone: a fetch is skipped rather than repeated, so `sp resource add`
+    on a machine that already has the download costs nothing.
+    """
+    from llmflow import resources as _resources
 
-def _show_catalog() -> None:
-    print(f"Available datasets (full catalog: {AWESOME_BIBLICAL_DATA_URL}):\n")
-    print(f"  {'Dataset':<22} {'Size':<10} {'License':<16} Description")
-    print(f"  {'-'*22} {'-'*10} {'-'*16} {'-'*40}")
-    for name, entry in CATALOG.items():
-        print(
-            f"  {name:<22} {entry['approx_size']:<10} {entry['license']:<16} {entry['description']}"
-        )
+    dataset = str(source.get("dataset") or _resources.dataset_dir(source))
+    if not dataset:
+        raise ValueError("Cannot work out where to unpack this resource.")
 
+    target = Path(dest) if dest else get_default_data_dir() / dataset
+    if target.exists():
+        logger.info(f"✅ Already downloaded: {target}")
+        return target
 
-def _download_dataset(name: str, entry: dict, dest: Path) -> None:
-    if dest.exists():
-        logger.info(f"✅ Dataset '{name}' already exists at {dest}")
-        logger.info("   Use --dest to download to a different location.")
-        return
+    url = _archive_url(source)
+    label = source.get("name") or source.get("id") or dataset
+    logger.info(f"📥 Downloading {label} from {url}")
+    logger.info(f"   Destination: {target}")
 
-    repo = entry["repo"]
-    branch = entry.get("branch", "main")
-    url = f"https://github.com/{repo}/archive/refs/heads/{branch}.zip"
+    request = urllib.request.Request(url, headers={"User-Agent": "llmflow/sp"})
+    with urllib.request.urlopen(request) as response:
+        data = response.read()
 
-    logger.info(f"📥 Downloading {name} ({entry['approx_size']}) from {repo}...")
-    logger.info(f"   Destination: {dest}")
-
+    target.mkdir(parents=True, exist_ok=True)
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "llmflow/sp"})
-        with urllib.request.urlopen(req) as response:
-            data = response.read()
-    except Exception as e:
-        logger.error(f"❌ Download failed: {e}")
-        sys.exit(1)
+        if zipfile.is_zipfile(BytesIO(data)):
+            _unpack(data, target, strip=_github_prefix(source))
+        else:
+            (target / Path(urllib.parse.urlparse(url).path).name).write_bytes(data)
+    except Exception:
+        shutil.rmtree(target, ignore_errors=True)
+        raise
 
-    logger.info("📦 Extracting...")
-    try:
-        dest.mkdir(parents=True, exist_ok=True)
-        repo_basename = repo.split("/")[-1]
-        prefix = f"{repo_basename}-{branch}/"
-        with zipfile.ZipFile(BytesIO(data)) as zf:
-            for member in zf.infolist():
-                if member.filename.startswith(prefix):
-                    member.filename = member.filename[len(prefix):]
-                    if member.filename:
-                        zf.extract(member, dest)
-    except Exception as e:
-        logger.error(f"❌ Extraction failed: {e}")
-        shutil.rmtree(dest, ignore_errors=True)
-        sys.exit(1)
+    # Record what was fetched. A directory name says which resource this is; it says nothing
+    # about which copy, and that is how two machines drift without either noticing (#201).
+    _resources.record_version(
+        target,
+        id=source.get("id") or source.get("source_id"),
+        source=url,
+        branch=str(source.get("branch") or "main") if source.get("github") else None,
+        sha256=hashlib.sha256(data).hexdigest(),
+        bytes=len(data),
+        fetched=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    )
 
-    logger.info(f"✅ Downloaded '{name}' to {dest}")
-    logger.info(f"   Reference in pipelines: ${{LLMFLOW_DATA_DIR}}/{name}/...")
-    logger.info(f"   Tip: export LLMFLOW_DATA_DIR={dest.parent}")
+    logger.info(f"✅ Downloaded to {target}")
+    return target
+
+
+def _github_prefix(source: Mapping[str, Any]) -> str:
+    """GitHub wraps an archive in `<repo>-<branch>/`; a plain download has no such wrapper."""
+    github = str(source.get("github") or "").rstrip("/")
+    if not github:
+        return ""
+    branch = str(source.get("branch") or "main")
+    return f"{github.split('/')[-1]}-{branch}/"
+
+
+def _unpack(data: bytes, dest: Path, strip: str = "") -> None:
+    with zipfile.ZipFile(BytesIO(data)) as archive:
+        for member in archive.infolist():
+            name = member.filename
+            if strip:
+                if not name.startswith(strip):
+                    continue
+                name = name[len(strip):]
+            if not name or name.startswith("/") or ".." in name:
+                continue  # never let an archive write outside its own directory
+            member.filename = name
+            archive.extract(member, dest)

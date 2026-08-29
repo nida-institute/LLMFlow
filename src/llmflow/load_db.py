@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 from typing import Callable
 
-from llmflow.download_data import CATALOG, get_default_data_dir
+from llmflow.download_data import get_default_data_dir
 from llmflow.modules.logger import Logger
 
 logger = Logger()
@@ -117,8 +117,16 @@ def run_load_db(
 
     if not source_path.exists():
         logger.error(f"❌ Data directory not found: {source_path}")
-        if dataset in CATALOG:
-            logger.error(f"   💡 Tip: run 'sp download-data {dataset}' first")
+        from llmflow import resources
+
+        try:
+            known = any(entry.get("id") == dataset for entry in resources.catalog())
+        except Exception:
+            known = False
+        if known:
+            logger.error(f"   💡 Tip: run 'sp resource download {dataset}' first")
+        else:
+            logger.error("   💡 Tip: 'sp resource list' shows what the catalog knows")
         sys.exit(1)
 
     resolved_db_name = db_name if db_name else dataset

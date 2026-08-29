@@ -1,37 +1,53 @@
 # Biblical Data Sources & Access Patterns
 
-> **Use this file for:** `sp download-data`, dataset locations (`~/.sp/data/`), USFM/USX/Macula/Berean access patterns, `load_usfm_book`/`load_usfm_passage`/`list_usfm_books`/`export_usx`/`load_project_file`, `load_xml_file`/`load_csv_file`/`xpath_text`, Paratext project layout, Paratext metadata (Settings.xml, metadata.json), multi-project comparison, deuterocanonical split-text.
+> **Use this file for:** `sp resource`, resource locations (`~/sp/resources/`), USFM/USX/Macula/Berean access patterns, `load_usfm_book`/`load_usfm_passage`/`list_usfm_books`/`export_usx`/`load_project_file`, `load_xml_file`/`load_csv_file`/`xpath_text`, Paratext project layout, Paratext metadata (Settings.xml, metadata.json), multi-project comparison, deuterocanonical split-text.
 > **Budget: 200 lines / 8KB.** If adding content would push past this, split into a new file and add a row to `index.md`.
 
 Reference for AI assistants working with Scripture Pipelines. Covers how to obtain datasets, where they live on disk, and how pipelines reference them.
 
 ---
 
-## Downloading Datasets
+## Getting a resource onto this machine
 
-Use `sp download-data` to fetch datasets on demand. No git clone — downloads a zipball (no history).
+`sp resource` is the whole surface (#217). `sp download-data` is gone — it carried its own
+four-entry catalog beside the public one, which drifted.
 
 ```bash
-sp download-data --list                            # show catalog
-sp download-data macula-greek                     # → ~/.sp/data/macula-greek/
-sp download-data macula-greek --dest ./data       # custom dest
+sp resource list                     # what the catalog knows, and what this machine has
+sp resource add WLC                  # fetch if needed, then register
+sp resource add WLC --no-download    # register now, fetch later
+sp resource download acai            # fetch something no reader can yet open
 ```
 
-**Default location:** `~/.sp/data/<dataset-name>/`
-**Override:** `export LLMFLOW_DATA_DIR=/path/to/data`
-**Pipeline reference:** `${LLMFLOW_DATA_DIR}/macula-greek/...`
+Something of your own goes by path — `--path ~/paratext/MYPROJ` (a Paratext project identifies
+itself) or `--path x.tsv --kind tsv --versification org` (anything else must say its `kind`).
 
----
+**Downloading and registering are different acts.** Downloading puts data on disk; registering
+tells the engine a pipeline may name it. `add` does both, because asking for a resource is
+asking to use it.
 
-## Built-in Dataset Catalog
+**Corpora:** `~/sp/resources/<owner>/<repo>/` — visible rather than hidden, because a library of
+texts is not configuration, and named for the source so two contributors cannot collide. Not in
+git: `https-<host>/<file>`. Each carries `.sp-resource.json` recording what was fetched.
 
-These are wired into `sp download-data`. Full catalog: https://github.com/nida-institute/awesome-biblical-data
+**Registrations:** `~/.sp/registrations/`, one file each, path *relative* to the download so it
+means the same thing on every machine. Absolute paths are honoured, which is what a maintainer
+working against their own clone needs. `sp doctor` warns when one points at nothing.
 
-| Dataset | GitHub Repo | License | Approx Size | Key Content |
-|---|---|---|---|---|
-| `macula-greek` | Clear-Bible/macula-greek | CC BY 4.0 | ~150MB | NT Lowfat XML, Node XML, TSV morphology. BHSA-compatible word IDs. |
-| `macula-hebrew` | Clear-Bible/macula-hebrew | CC BY 4.0 | ~400MB | OT XML, TSV morphology. Aligned to BHS. |
-| `berean-usx` | Freely-Given-org/OpenEnglishBible | CC BY-SA 4.0 | ~15MB | Berean Standard Bible in USX 3.0 format (one file per book). |
+**The catalog** is `resources.json` in `nida-institute/awesome-biblical-data`, vendored at
+`data/resources.json`. It carries **shape, never state** — which file holds a text, which
+backend reads it, its versification and canon. What changes as a maintainer works stays in that
+resource's own repository. A `provides` block means the engine can open it; without one (ACAI,
+CNTR) `sp resource download` fetches it for direct use.
+
+| Provides | From | License | |
+|---|---|---|---|
+| `WLC` | Clear-Bible/macula-hebrew | CC BY 4.0 | OT, `tsv`, `org` |
+| `SBLGNT` | Clear-Bible/macula-greek | CC BY 4.0 | NT, `tsv`, `org` |
+| `BSB` | bereanbible.com `bsb_usfm.zip` | Public domain | OT+NT, `usfm`, `eng` |
+
+BSB uses the official USFM release, not the `usfm-bible/examples.bsb` mirror, which omits `\id`
+in Ecclesiastes and so silently loses that book. Fuller detail: `docs/llmflow-language.md`.
 
 ---
 
@@ -45,13 +61,13 @@ Lowfat XML tree structure. XPath is the primary access method.
 - name: get_verse_words
   type: xpath
   inputs:
-    path: "${LLMFLOW_DATA_DIR}/macula-greek/lowfat/61-MAT.xml"
+    path: "${LLMFLOW_DATA_DIR}/Clear-Bible/macula-greek/lowfat/61-MAT.xml"
     xpath: "//w[@ref='MAT 1:1']"
     output_format: xml_string
   output: verse_words
 ```
 
-Available sub-paths under `~/.sp/data/macula-greek/`:
+Available sub-paths under `~/sp/resources/Clear-Bible/macula-greek/`:
 - `lowfat/` — Lowfat XML trees, one file per NT book (e.g. `61-MAT.xml`)
 - `nodes/` — Node XML trees
 - `tsv/` — TSV morphology files, one per book
@@ -66,7 +82,7 @@ Same structure as Macula Greek.
 - name: get_hebrew_words
   type: xpath
   inputs:
-    path: "${LLMFLOW_DATA_DIR}/macula-hebrew/WLC/01GEN.xml"
+    path: "${LLMFLOW_DATA_DIR}/Clear-Bible/macula-hebrew/WLC/01GEN.xml"
     xpath: "//w[@gloss]"
     output_format: xml_string
   output: words
@@ -94,12 +110,14 @@ Set `LLMFLOW_DATA_DIR` once (in shell profile or `.env`) and reference it unifor
 ```yaml
 variables:
   data_dir: "${LLMFLOW_DATA_DIR}"
-  greek_lowfat: "${LLMFLOW_DATA_DIR}/macula-greek/lowfat"
-  hebrew_root: "${LLMFLOW_DATA_DIR}/macula-hebrew/WLC"
+  greek_lowfat: "${LLMFLOW_DATA_DIR}/Clear-Bible/macula-greek/lowfat"
+  hebrew_root: "${LLMFLOW_DATA_DIR}/Clear-Bible/macula-hebrew/WLC"
   berean_usx: "${LLMFLOW_DATA_DIR}/berean-usx"
 ```
 
-If `LLMFLOW_DATA_DIR` is not set, the default is `~/.sp/data`.
+If `LLMFLOW_DATA_DIR` is not set, the default is `~/sp/resources` — or `$SP_HOME/resources`
+when `SP_HOME` is set, which is for test runs and containers. `sp doctor` warns when either
+is redirected, because that is how one machine ends up holding several copies of a text.
 
 ---
 
@@ -186,7 +204,7 @@ steps:
   type: function
   function: llmflow.utils.data.load_csv_file
   inputs:
-    file_path: "${LLMFLOW_DATA_DIR}/macula-greek/tsv/61-MAT.tsv"
+    file_path: "${LLMFLOW_DATA_DIR}/Clear-Bible/macula-greek/tsv/61-MAT.tsv"
     delimiter: "\t"
   output: words_tsv
 ```

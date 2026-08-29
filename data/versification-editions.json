@@ -8,19 +8,16 @@
   ],
 
   "known_editions": {
-    "$comment": "Editions we construct, matched case-insensitively against the edition id.",
-    "SBLGNT": {
-      "scheme": "org",
-      "why": "Macula Greek. 2CO 13 has 13 verses and 3JN 15 exists — both `org`, not `eng`."
-    },
-    "WLC": {
-      "scheme": "org",
-      "why": "Macula Hebrew. PSA 51 runs to 21 verses and Malachi has 3 chapters."
-    },
-    "BSB": {
-      "scheme": "eng",
-      "why": "Berean Standard Bible, an English translation with English numbering."
-    }
+    "$comment": [
+      "Editions whose scheme can be answered from the id alone, matched case-insensitively.",
+      "This table holds only what the resource catalog does not describe. Where the catalog has",
+      "a `provides` item, its `versification` wins and this file says nothing: the catalog's",
+      "answer is anchored to a repository and a file inside it, while an entry here is keyed on",
+      "a name two people can choose independently.",
+      "It is empty, and that is the intended end state (#217, 2026-08-29). SBLGNT, WLC and BSB",
+      "all moved to the catalog with their evidence. Add an entry here only for an edition the",
+      "catalog cannot describe — and prefer fixing the catalog."
+    ]
   },
 
   "paratext_versification_numbers": {
