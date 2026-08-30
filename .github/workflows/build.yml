@@ -183,8 +183,14 @@ jobs:
         $ver = & $bin --version
         Write-Output $ver
         if ($ver -match "unknown") { Write-Error "sp --version returned 'unknown' — package metadata not bundled (#184)"; exit 1 }
+        # PowerShell does not stop on a native command's non-zero exit, and the bash step gets
+        # that for free from `set -e`. Without an explicit check each command's failure is
+        # invisible: `sp lint` crashed here with a UnicodeEncodeError and the step carried on,
+        # reported only because `doctor` happened to fail too.
         & $bin lint --pipeline tests/fixtures/smoke.yaml
+        if ($LASTEXITCODE -ne 0) { Write-Error "sp lint failed on the binary"; exit 1 }
         & $bin run --pipeline tests/fixtures/smoke.yaml --dry-run
+        if ($LASTEXITCODE -ne 0) { Write-Error "sp run --dry-run failed on the binary"; exit 1 }
         # Reads the bundled data/file-catalog.yaml, which --version and lint do not (#216).
         $doc = & $bin doctor 2>&1
         Write-Output $doc

@@ -990,6 +990,11 @@
           "doc": ""
         },
         {
+          "name": "_make_output_encodable",
+          "signature": "_make_output_encodable() -> None",
+          "doc": "Let every command print its glyphs without dying on the console's encoding."
+        },
+        {
           "name": "main",
           "signature": "main(argv = None)",
           "doc": ""
@@ -4741,6 +4746,6 @@
   ],
   "summary": {
     "total_modules": 82,
-    "total_functions": 742
+    "total_functions": 743
   }
 }

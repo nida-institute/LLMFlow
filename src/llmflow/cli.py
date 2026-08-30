@@ -334,7 +334,31 @@ def command_lint(
         sys.exit(1)
 
 
+def _make_output_encodable() -> None:
+    """Let every command print its glyphs without dying on the console's encoding.
+
+    A Windows console defaults to cp1252, which encodes none of `✓ · ! ✗`, `→`, an em dash, or
+    the emoji this CLI uses throughout. `sp doctor` died on the arrow the first time it ran on a
+    Windows binary — and it took that long only because doctor was added to the smoke test after
+    the previous release.
+
+    UTF-8 where the terminal can take it, `replace` so that a console which cannot degrades to
+    `?` instead of a traceback. Fixed once here rather than per printer: the next command to
+    print an emoji would otherwise be the next one to fail on someone else's machine.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue  # a captured or replaced stream; nothing to do
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass  # never let output configuration stop the command itself
+
+
 def main(argv=None):
+    _make_output_encodable()
+
     # Frozen binaries ship no usable system cert store — point SSL at bundled
     # certifi before any network call. See LLMFlow#182.
     from llmflow.utils.ssl_certs import ensure_ca_certs

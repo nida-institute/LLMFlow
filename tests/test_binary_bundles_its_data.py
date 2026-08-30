@@ -72,6 +72,26 @@ def test_every_force_included_path_is_bundled_in_the_binary(source: str):
         )
 
 
+def test_the_windows_smoke_test_checks_every_command_it_runs():
+    """PowerShell does not stop on a native command's failure; bash does, via `set -e`.
+
+    So the Windows step needs an explicit `$LASTEXITCODE` check after each binary invocation,
+    or a crash is simply printed and the build goes green. `sp lint` died with a
+    UnicodeEncodeError and was reported only because `doctor` failed in the same step.
+    """
+    text = WORKFLOW.read_text(encoding="utf-8")
+    start = text.index("Smoke test binary (Windows)")
+    step = text[start : text.index("Upload binary artifact", start)]
+
+    invocations = len(re.findall(r"^\s*(?:\$\w+\s*=\s*)?&\s*\$bin\s", step, re.M))
+    checks = len(re.findall(r"\$LASTEXITCODE\s*-ne\s*0", step))
+    assert checks >= invocations - 1, (
+        f"the Windows smoke step runs the binary {invocations} times but checks the exit code "
+        f"{checks} times; an unchecked crash passes as green. (`--version` is checked by "
+        f"matching its output instead.)"
+    )
+
+
 def test_the_smoke_test_exercises_a_code_path_that_reads_the_catalog():
     """`--version` and `lint` do not touch the catalog, which is why #216 shipped green."""
     text = WORKFLOW.read_text(encoding="utf-8")
