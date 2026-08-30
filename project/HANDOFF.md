@@ -1,35 +1,75 @@
 # HANDOFF — 2026-08-29
 
-Supersedes 2026-08-28. **This repository is clean, committed and pushed.** HEAD is **`db3c4d7`**,
-`## dev...origin/dev` with nothing else. Version is **0.2.1.25**, and the CHANGELOG has its
-dated section.
+Supersedes 2026-08-28. **This repository is clean, committed and pushed.** HEAD is **`5cc5a23`**,
+`## dev...origin/dev` with nothing else. Version is **0.2.1.25**, the CHANGELOG has its dated
+section, and **PR #224 is open** awaiting the Windows build.
 
 ---
 
-## ▶ NEXT ACTION — open the release PR
+## ▶ NEXT ACTION — merge and tag PR #224
 
-Everything the release needs is on `dev`. The remaining steps are `project/RELEASE_CHECKLIST.md`
-§6–§9, and **each is the Captain's**:
+**[PR #224](https://github.com/nida-institute/LLMFlow/pull/224) is open**, `dev` → `main`. Its
+Build job compiles all three binaries and smoke-tests each; Linux and macOS passed, **Windows
+takes about an hour and three quarters** — 0.2.1.24's took 1h45m — so a run still in progress is
+normal, not stuck.
 
-1. `dev` → `main` pull request. **It must be a merge commit**, not a squash.
-2. Tag **the merge commit** — delete any stale tag first; the checklist's §7 records why.
-3. Watch **every** `release.yml` job, not just the build. §8 is marked MANDATORY VERIFICATION.
+The remaining steps are `project/RELEASE_CHECKLIST.md` §6–§9, and **each is the Captain's**:
 
-**Two checks worth doing first, neither blocking, neither yet done:**
+1. Merge with a **merge commit**, not a squash.
+2. Tag **the merge commit** — delete any stale tag first; §7 records why.
+3. Watch **every** `release.yml` job. §8 is marked MANDATORY VERIFICATION, and #216 shipped
+   because only part of the build was checked.
 
-- **The store migration has never run on a real machine.** `sp doctor` moves `~/.sp/editions/`
-  to `~/.sp/registrations/` and `~/.sp/data/` to `~/sp/resources/`. Tested only against pytest
-  temp directories. This machine has `~/.sp/editions` with three registrations and no
-  `~/.sp/data`. Run it in a **consumer** repo — not this one, which #210 still forbids.
-- **`sp resource add` has never fetched anything for real.** Every download test mocks the
-  response. One `sp resource add SBLGNT` (~150MB) would exercise fetch, unpack, version-record
-  and register end to end before Paul does.
+**The first Windows build failed, and the bundling was not the reason.** `data/book-names.json`
+is fine — doctor got far enough to read the catalog and build a whole report before dying. Two
+things were wrong instead, both fixed and both needing a fresh build to confirm:
+
+- **The CLI could not print its own output on a Windows console.** `Report.render()` emits
+  `✓ · ! ✗`, an em dash and `→`; `sp lint` prints `✅`; the downloader prints `📥`. A Windows
+  console is cp1252 and encodes none of them, so both `sp lint` and `sp doctor` died with
+  `UnicodeEncodeError`. It surfaced only now because `doctor` was added to the smoke test in
+  `64727d9`, *after* 0.2.1.24 shipped — this was its first Windows run. Fixed once at the CLI
+  entry, so every command is covered rather than the two that happened to fail.
+- **The Windows smoke test did not check what it ran.** PowerShell does not stop on a native
+  command's non-zero exit, and only `doctor` had a `$LASTEXITCODE` check — so `sp lint` crashed,
+  printed a traceback, and the step carried on. The bash step gets that behaviour free from
+  `set -e`. Every invocation is now checked, with a guard counting invocations against checks.
+
+**So the next Windows run is stricter than the one that failed**, and may surface something the
+previous one hid.
+
+### What real-machine testing found, and why it is worth repeating
+
+Running two commands on a real machine found **four defects that 3,687 passing tests did not**,
+all fixed in `5cc5a23`. Every one was invisible for the same reason: the suite builds a world
+that is writable, unlocked and mocked, and the machine this ships to is none of those.
+
+| found by | defect |
+|---|---|
+| `sp doctor` | the migration could not move a directory inside the read-only store |
+| `sp resource add` | the fetcher kept its own idea of the data directory and unpacked where nothing reads |
+| `sp resource add` | that failure surfaced as an unhandled `PermissionError` traceback |
+| `sp resource add` | writing the registration hit the same lock — the move was fixed and the write was not |
+| the Windows build | the CLI could not encode its own output on a cp1252 console |
+| the Windows build | the smoke test ran three commands and checked one |
+
+**Six now, and every one invisible to a green suite.** Four needed a real machine; two needed a
+real Windows binary. The pattern is worth carrying: the suite tests behaviour on a writable,
+unlocked, UTF-8, mocked machine, and none of those four adjectives describes where this ships.
+
+Then re-run end to end and verified: three registrations moved out of a locked `~/.sp/editions`,
+150MB fetched into `~/sp/resources/Clear-Bible/macula-greek`, and the registration written with a
+dataset-relative path, its scheme and its licence.
+
+**One path is still only tested against a temp directory:** `~/.sp/data/` → `~/sp/resources/`,
+which only a machine that fetched under the old layout will exercise. This machine never had
+`~/.sp/data`, so nobody has run it for real.
 
 ---
 
 ## What landed today
 
-Six commits, `a49fd1d` through `db3c4d7`:
+Nine commits, `a49fd1d` through `5cc5a23`:
 
 | | |
 |---|---|
@@ -41,8 +81,10 @@ Six commits, `a49fd1d` through `db3c4d7`:
 | `860e627` | `data/book-names.json` shipped nowhere, and nothing could tell |
 | `2794d6f` | the discipline says which tools a session actually has |
 | `db3c4d7` | 0.2.1.25, and a guard so the changelog cannot be forgotten |
+| `461760a` | this handoff |
+| `5cc5a23` | four defects real-machine testing found and the suite could not |
 
-**Test state: 3685 passed, 24 skipped.** The only intermittent failure is
+**Test state: 3688 passed, 24 skipped.** The only intermittent failure is
 `test_mcp.py::test_connection_to_biblica_server`, an `httpx.ReadTimeout` against a live server.
 It passes on some runs. Do not "fix" it by changing the test. Verify with
 `hatch run pytest tests/ -q --ignore=tests/integration`.
@@ -116,6 +158,7 @@ original language are declared per book, not derived from a number threshold.
 | `human-at-the-helm` | committed — `disciplines/workflow.md`, synced. It must move with this repository's copy or `test_helm_sync` goes red |
 | `discourse-flow` | our reply committed. **Their** `2026-08-29-reference-provenance.md` and a modified `2026-08-27-discourse-family-is-built.md` are still uncommitted there, and are theirs |
 | `~/.claude` | `settings.json` carries the hook fix. The Captain's store, `cgit`. **Report, never commit** |
+| `~/.sp` | uncommitted and awaiting the Captain's own commit: twelve deletions under `conventions/` (a superseded copy of `disciplines/` that nothing read — its `design-authority.md` was still the 49-line version), `editions/` → `registrations/` from the migration, and `disciplines/workflow.md` from the template. Also **`skills/load-context/SKILL.md`, modified by nobody we can name** — it matches this repository's layout and looks right, but its author is unknown, which is the condition the store's version control exists to surface. It wants its own commit, not absorption into another |
 
 ## Key files
 
