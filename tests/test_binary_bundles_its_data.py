@@ -92,6 +92,27 @@ def test_the_windows_smoke_test_checks_every_command_it_runs():
     )
 
 
+def test_the_windows_smoke_test_matches_against_text_not_an_array():
+    """PowerShell comparison operators *filter* when the left side is an array.
+
+    `$doc -notmatch "x"` returns every line lacking x, and a non-empty array is truthy — so the
+    check fired on every run that reached it, reporting missing bundled data that was present.
+    Joining to a single string first makes it a test rather than a filter.
+    """
+    text = WORKFLOW.read_text(encoding="utf-8")
+    start = text.index("Smoke test binary (Windows)")
+    step = text[start : text.index("Upload binary artifact", start)]
+
+    for line in step.splitlines():
+        if "-notmatch" not in line and "-match" not in line:
+            continue
+        if line.lstrip().startswith("#"):
+            continue
+        assert "Text" in line or "$ver" in line, (
+            f"matching against an array filters instead of testing: {line.strip()}"
+        )
+
+
 def test_the_smoke_test_exercises_a_code_path_that_reads_the_catalog():
     """`--version` and `lint` do not touch the catalog, which is why #216 shipped green."""
     text = WORKFLOW.read_text(encoding="utf-8")

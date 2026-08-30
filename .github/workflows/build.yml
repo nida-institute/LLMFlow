@@ -195,7 +195,12 @@ jobs:
         $doc = & $bin doctor 2>&1
         Write-Output $doc
         if ($LASTEXITCODE -ne 0) { Write-Error "sp doctor failed on the binary"; exit 1 }
-        if ($doc -notmatch "ersification") { Write-Error "sp doctor did not report the versification mappings — bundled data missing?"; exit 1 }
+        # Join before matching. With an array on the left, PowerShell's comparison operators
+        # *filter* rather than test: `$doc -notmatch "x"` returns every line lacking x, and a
+        # non-empty array is truthy — so the check fired whenever doctor printed more than one
+        # line, which is always. It had never run to completion before, so nobody saw it.
+        $docText = $doc | Out-String
+        if ($docText -notmatch "ersification") { Write-Error "sp doctor did not report the versification mappings — bundled data missing?"; exit 1 }
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v4
