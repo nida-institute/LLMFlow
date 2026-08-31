@@ -47,7 +47,7 @@ files:
   status: identical
 - set: disciplines
   name: workflow.md
-  sha256: fdb31ecd60f5255be2056ad770c91a6dd88b9be2ccf569ecee77761c89c5d964
+  sha256: 5765afd8e474ccfc349aa5f579550f194242e947cafaeaeff913fe95f9128ba9
   status: identical
 - set: root
   name: drift-patterns.md
@@ -83,16 +83,15 @@ files:
     no engine vocabulary, which is why the comment names neither the product nor the CLI.
 
 
-    Added 2026-08-25, not a rewording — the quotation above is the Captain''s and stands. Two
-    things have changed under it since it was written. First, the paths it names were retired the
-    same evening by `8d8ac2a`: the two indexes are now `docs/ai-context/project/index.md` and
-    `docs/ai-context/sp/index.md`, directories rather than filename prefixes. Second, the
-    divergence has widened past the indexes. Rule R5 of
-    `project/plans/design-ai-context-layout.md` establishes the standard set as three documents —
-    a map, a self-description, constraints — mirrored on both halves, so this repository''s copy
+    Added 2026-08-25, not a rewording — the quotation above is the Captain''s and stands. Two things
+    have changed under it since it was written. First, the paths it names were retired the same evening
+    by `8d8ac2a`: the two indexes are now `docs/ai-context/project/index.md` and `docs/ai-context/sp/index.md`,
+    directories rather than filename prefixes. Second, the divergence has widened past the indexes.
+    Rule R5 of `project/plans/design-ai-context-layout.md` establishes the standard set as three documents
+    — a map, a self-description, constraints — mirrored on both halves, so this repository''s copy
     now reads six ai-context files rather than three, and guards every read. Human at the Helm has
-    one half and no catalog, so none of that transfers. Whether the permission still covers the
-    wider difference is the Captain''s to say.'
+    one half and no catalog, so none of that transfers. Whether the permission still covers the wider
+    difference is the Captain''s to say.'
 - set: skills
   name: stand-down
   sha256: 0e6412267b719b98a410b6f4539fa09161872fdf358b0dc8823450642e2d0d64

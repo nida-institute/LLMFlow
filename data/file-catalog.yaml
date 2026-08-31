@@ -87,8 +87,8 @@ files:
   - path: docs/ai-context/sp/overview.md
     scope: project
     policy: generated
-    source: constant
-    constant: SP_OVERVIEW_DOC
+    source: template
+    template: project/docs/ai-context/sp/overview.md
     committed: true
     purpose: >-
       What Scripture Pipelines is, and where the rest of its documentation lives.
@@ -122,11 +122,32 @@ files:
       How to audit: which skill answers which question, tracing an output field back to the
       request that produced it, and testing a prompt fix with `sp tools replay`.
 
+  - path: docs/ai-context/sp/scripture-representations.md
+    scope: project
+    policy: generated
+    source: template
+    template: project/docs/ai-context/sp/scripture-representations.md
+    committed: true
+    purpose: >-
+      Choosing between `plain`, `milestones`, `usj` and `print`, what each costs with the
+      unit stated, and how to read a discourse item's `outcome`.
+
+  - path: docs/ai-context/sp/passage-references.md
+    scope: project
+    policy: generated
+    source: template
+    template: project/docs/ai-context/sp/passage-references.md
+    committed: true
+    purpose: >-
+      Writing a passage reference: the forms that parse, book names and USFM codes, ranges
+      that may cross a chapter but not a book, and the request-side and source-side
+      versifications.
+
   - path: docs/ai-context/sp/github-workflow.md
     scope: project
     policy: generated
-    source: constant
-    constant: GITHUB_WORKFLOW_DOC
+    source: template
+    template: project/docs/ai-context/sp/github-workflow.md
     committed: true
     purpose: >-
       Issue references, version numbering, CHANGELOG and gh CLI conventions.
@@ -137,8 +158,8 @@ files:
   - path: docs/ai-context/project/overview.md
     scope: project
     policy: create-once
-    source: constant
-    constant: AI_OVERVIEW_DOC
+    source: template
+    template: project/docs/ai-context/project/overview.md
     committed: true
     purpose: >-
       What this project is and how its pipelines are organised.
@@ -146,8 +167,8 @@ files:
   - path: docs/ai-context/project/index.md
     scope: project
     policy: create-once
-    source: constant
-    constant: AI_INDEX_DOC
+    source: template
+    template: project/docs/ai-context/project/index.md
     committed: true
     purpose: >-
       This project's own map — read first. Yours to write; sp never overwrites it.
@@ -155,8 +176,8 @@ files:
   - path: docs/ai-context/project/rules.md
     scope: project
     policy: create-once
-    source: constant
-    constant: PROJECT_RULES_DOC
+    source: template
+    template: project/docs/ai-context/project/rules.md
     committed: true
     purpose: >-
       Constraints that hold in this project and nowhere else. Yours to write.
@@ -165,8 +186,8 @@ files:
   - path: docs/tutorial.md
     scope: project
     policy: generated
-    source: constant
-    constant: TUTORIAL_DOC
+    source: template
+    template: project/docs/tutorial.md
     committed: true
     purpose: >-
       Step-by-step walkthrough: variables, saveas, and a two-step pipeline.
@@ -174,8 +195,8 @@ files:
   - path: docs/llmflow-language-quickref.md
     scope: project
     policy: generated
-    source: constant
-    constant: LANGUAGE_QUICKREF_DOC
+    source: template
+    template: project/docs/llmflow-language-quickref.md
     committed: true
     purpose: >-
       The pipeline YAML reference — step types, variables, window and for-each.
@@ -183,8 +204,8 @@ files:
   - path: docs/vscode.md
     scope: project
     policy: generated
-    source: constant
-    constant: VSCODE_DOC
+    source: template
+    template: project/docs/vscode.md
     committed: true
     purpose: >-
       VS Code setup for editing pipelines and prompts.
@@ -194,8 +215,8 @@ files:
   - path: prompts/hello.gpt
     scope: project
     policy: generated
-    source: constant
-    constant: HELLO_PROMPT
+    source: template
+    template: project/prompts/hello.gpt
     committed: true
     purpose: >-
       Starter prompt for the hello-world example.
@@ -203,22 +224,22 @@ files:
   - path: prompts/reply.gpt
     scope: project
     policy: generated
-    source: constant
-    constant: HELLO_REPLY_PROMPT
+    source: template
+    template: project/prompts/reply.gpt
     committed: true
 
   - path: pipelines/hello-llmflow.yaml
     scope: project
     policy: generated
-    source: constant
-    constant: HELLO_PIPELINE
+    source: template
+    template: project/pipelines/hello-llmflow.yaml
     committed: true
 
   - path: pipelines/hello.yaml
     scope: project
     policy: generated
-    source: constant
-    constant: HELLO_YAML
+    source: template
+    template: project/pipelines/hello.yaml
     committed: true
     purpose: >-
       Smallest runnable pipeline — one llm step.
@@ -228,8 +249,8 @@ files:
   - path: project/audits/README.md
     scope: project
     policy: create-once
-    source: constant
-    constant: PROJECT_AUDITS_README
+    source: template
+    template: project/project/audits/README.md
     committed: true
     purpose: >-
       How audit findings are recorded for this project.
@@ -238,8 +259,8 @@ files:
   - path: project/TODO.md
     scope: project
     policy: create-once
-    source: constant
-    constant: PROJECT_TODO
+    source: template
+    template: project/project/TODO.md
     committed: true
     purpose: >-
       Active work, what is in flight, and what not to touch. Read before anything else.
@@ -249,24 +270,24 @@ files:
   - path: .cursorrules
     scope: project
     policy: generated
-    source: constant
-    constant: CURSORRULES_LLMFLOW_BLOCK
+    source: template
+    template: project/assistant-rules-pointer.md
     block: workflow
     committed: true
 
   - path: .windsurfrules
     scope: project
     policy: generated
-    source: constant
-    constant: WINDSURFRULES_LLMFLOW_BLOCK
+    source: template
+    template: project/assistant-rules-pointer.md
     block: workflow
     committed: true
 
   - path: .github/copilot-instructions.md
     scope: project
     policy: generated
-    source: constant
-    constant: ASSISTANT_RULES_POINTER
+    source: template
+    template: project/assistant-rules-pointer.md
     block: workflow
     committed: true
 
@@ -275,8 +296,8 @@ files:
   - path: CLAUDE.md
     scope: project
     policy: create-once
-    source: constant
-    constant: CLAUDE_MD_LLMFLOW_BLOCK
+    source: template
+    template: project/claude-md-block.md
     block: workflow
     committed: false
 

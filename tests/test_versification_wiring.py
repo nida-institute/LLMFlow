@@ -313,3 +313,28 @@ def test_an_unknown_requested_scheme_names_what_is_available(store):
             "HUB", "TST 1:1", fmt="plain", editions=editions(store),
             versification="klingon", mappings_dir=store["dir"],
         )
+
+
+def test_installing_works_when_the_store_is_already_locked(tmp_path):
+    """`~/.sp` is kept read-only, so creating a new subdirectory needs the parent unlocked.
+
+    Reported from a real `sp init`: the store existed and was mode 555, so
+    `~/.sp/versification` could not be created and the schemes never installed.
+    """
+    import os
+
+    from llmflow.cli_utils import _lock_sp_dir, install_global_versification
+    from llmflow.utils.versification import MAPPINGS_DIRNAME
+
+    store = tmp_path / "sp"
+    store.mkdir()
+    _lock_sp_dir(store)
+    assert not os.access(store, os.W_OK), "the store must be locked for this to test anything"
+
+    try:
+        install_global_versification(sp_home=store)
+        assert (store / MAPPINGS_DIRNAME / "org.json").is_file()
+    finally:
+        for path in (store / MAPPINGS_DIRNAME, store):
+            if path.exists():
+                path.chmod(0o755)

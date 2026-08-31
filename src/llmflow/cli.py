@@ -153,11 +153,24 @@ def build_parser():
     models_p.add_argument("--update", action="store_true", help="Update model pricing from installed llm plugins")
     subparsers.add_parser("update-ai-context", help="Regenerate docs/ai-context/ helper files for AI assistants")
 
-    # download-data command
-    dl_p = subparsers.add_parser("download-data", help="Download biblical reference datasets")
-    dl_p.add_argument("dataset", nargs="?", default=None, help="Dataset name (e.g. macula-greek)")
-    dl_p.add_argument("--list", action="store_true", help="List available datasets")
-    dl_p.add_argument("--dest", default=None, help="Download destination (default: ~/.sp/data/)")
+    # resource command — one surface for everything the catalog describes (#217).
+    res_p = subparsers.add_parser("resource", help="Scripture texts and other catalog resources")
+    res_sub = res_p.add_subparsers(dest="resource_command", help="Resource commands")
+
+    res_sub.add_parser("list", help="What the catalog knows, and what this machine has")
+
+    res_add = res_sub.add_parser("add", help="Register a resource so pipelines can name it")
+    res_add.add_argument("id", help="Catalog id (e.g. WLC), or the name to register yours under")
+    res_add.add_argument("--path", default=None, help="Register something of your own by path")
+    res_add.add_argument("--kind", default=None, choices=["tsv", "tei", "usfm"],
+                         help="With --path: how to read it. A Paratext project says so itself")
+    res_add.add_argument("--versification", default=None, help="With --path: its scheme")
+    res_add.add_argument("--no-download", action="store_true", dest="no_download",
+                         help="Register without fetching the data yet")
+
+    res_dl = res_sub.add_parser("download", help="Fetch a catalog resource without registering it")
+    res_dl.add_argument("id", help="Catalog id (e.g. acai)")
+    res_dl.add_argument("--dest", default=None, help="Download destination (default: ~/.sp/data/)")
 
     # load-db command
     ldb_p = subparsers.add_parser("load-db", help="Load a downloaded dataset into a database (basex, ...)")
@@ -321,7 +334,31 @@ def command_lint(
         sys.exit(1)
 
 
+def _make_output_encodable() -> None:
+    """Let every command print its glyphs without dying on the console's encoding.
+
+    A Windows console defaults to cp1252, which encodes none of `✓ · ! ✗`, `→`, an em dash, or
+    the emoji this CLI uses throughout. `sp doctor` died on the arrow the first time it ran on a
+    Windows binary — and it took that long only because doctor was added to the smoke test after
+    the previous release.
+
+    UTF-8 where the terminal can take it, `replace` so that a console which cannot degrades to
+    `?` instead of a traceback. Fixed once here rather than per printer: the next command to
+    print an emoji would otherwise be the next one to fail on someone else's machine.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue  # a captured or replaced stream; nothing to do
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass  # never let output configuration stop the command itself
+
+
 def main(argv=None):
+    _make_output_encodable()
+
     # Frozen binaries ship no usable system cert store — point SSL at bundled
     # certifi before any network call. See LLMFlow#182.
     from llmflow.utils.ssl_certs import ensure_ca_certs
@@ -483,13 +520,58 @@ def main(argv=None):
         mod.main()
         return
 
-    if args.command == "download-data":
-        from llmflow.download_data import run_download_data
-        run_download_data(
-            dataset=args.dataset,
-            dest=args.dest,
-            list_only=args.list,
-        )
+    if args.command == "resource":
+        from llmflow import resources
+
+        if args.resource_command == "list":
+            rows = resources.report()
+            if not rows:
+                print("The catalog describes no readable resources.")
+                return
+            print(f"  {'ID':<12} {'STATUS':<11} {'KIND':<6} {'FROM':<34} LICENCE")
+            print(f"  {'-'*12} {'-'*11} {'-'*6} {'-'*34} {'-'*24}")
+            for row in rows:
+                print(
+                    f"  {row['id']:<12} {row['status']:<11} {row['kind'] or '':<6} "
+                    f"{row['dataset'] or '':<34} {row['license'] or ''}"
+                )
+            print("\n  registered = usable now · available = downloaded, run `sp resource add`")
+            print("  absent     = not downloaded yet; `sp resource add <ID>` fetches it")
+            return
+
+        if args.resource_command == "add":
+            # A failure here is a fact about this machine — no network, a locked directory, a
+            # name the catalog does not know. Say which; a traceback answers none of them.
+            try:
+                if args.path:
+                    written = resources.register_local(
+                        args.id, args.path, kind=args.kind, versification=args.versification
+                    )
+                else:
+                    written = resources.register(args.id, download=not args.no_download)
+            except (KeyError, ValueError, OSError, RuntimeError) as error:
+                # `str()` on an OSError gives "[Errno 13] Permission denied: <path>"; its
+                # `args[0]` gives the bare errno, which told a user only "13".
+                message = error.args[0] if isinstance(error, KeyError) else str(error)
+                print(f"❌ Could not register '{args.id}': {message}")
+                sys.exit(1)
+            print(f"✅ Registered '{args.id}' — {written}")
+            return
+
+        if args.resource_command == "download":
+            from llmflow.download_data import fetch
+
+            entry = next(
+                (e for e in resources.catalog() if e.get("id") == args.id), None
+            )
+            if entry is None:
+                known = ", ".join(sorted(str(e.get("id")) for e in resources.catalog()))
+                print(f"❌ The catalog has no resource '{args.id}'.\n   It knows: {known}")
+                sys.exit(1)
+            fetch(entry, dest=args.dest)
+            return
+
+        parser.parse_args([args.command, "--help"])
         return
 
     if args.command == "load-db":

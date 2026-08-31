@@ -983,9 +983,21 @@
         },
         "format": {
           "type": "string",
-          "enum": ["json", "yaml", "text", "markdown", "auto"],
+          "enum": [
+            "auto",
+            "json", "application/json",
+            "usj",
+            "yaml", "application/yaml", "text/yaml", "application/x-yaml",
+            "text", "text/plain",
+            "markdown", "text/markdown",
+            "csv", "text/csv",
+            "tsv", "text/tab-separated-values",
+            "xml", "application/xml", "text/xml",
+            "usx",
+            "usfm"
+          ],
           "default": "auto",
-          "description": "Output format. Default: auto-detected from file extension."
+          "description": "How to serialise this file: an informal name, or a mime type where one is registered. `usj`, `usx` and `usfm` have none. The enum is closed because a mime type we cannot write is not a format. Default: auto-detected from the file extension."
         },
         "encoding": {
           "type": "string",

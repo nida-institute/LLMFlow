@@ -732,16 +732,45 @@ the step that introduces the `scripture_pipelines` container and the `include` m
 almost no payload logic of its own. Tests: the container appears only when `include` is non-empty;
 `format: usj` with no `include` returns the text in USJ structure and no annotation.
 
-**5. `include: [morphology]` and `include: [glosses]`.** The first real join — TSV to TEI on
-`xml:id`, verified exact in §3.0. Per-word records, no new machinery. Tests per family: the declared
-columns arrive, nothing undeclared does, and `morphology` reaches `role`, `class` and `type`, which
-`nida-institute/discourse-flow` ranked as blocking.
+**5–7. `morphology`, `senses`, `glosses`, `referents` — built, all four, both languages.**
 
-**6. `include: [senses]`.** Same join, plus one new thing: the declared `source` (§3.5). Tests:
-Greek yields `{domain, ln}` under `source: louw-nida`, Hebrew its five fields under `source: sdbh`,
-and neither is normalised into the other.
+**The ruling that made this small.** *"Greek and Hebrew are different languages. The analyses
+differ. We provide what Macula provides for each language. Implementations can sort this out, we
+don't try to merge ontologies."* And on the packed morphology string: *"`morph` is line noise."*
 
-**7. `include: [referents]`.** Per-word, same shape as 5. Last of the straightforward families.
+That removed the only hard part. The two editions share 16 columns and diverge exactly on the
+families — a Greek verb has `case`, `tense`, `voice`, `mood`; a Hebrew verb has `stem`, `state`,
+`pos`. A Greek sense is a Louw-Nida number in `domain`/`ln`; a Hebrew sense is an SDBH domain
+across `lexdomain`, `coredomain`, `sdbh`, `sensenumber` — **zero overlap**. Merging those would
+have meant inventing an interlingua for morphology, which is a scholarly claim rather than an
+engineering one.
+
+**The mechanism: one declaration, no code that knows about either language.**
+`data/include-families.json` gives each family the columns it covers across every edition, and a
+family emits whichever the edition actually has. A new edition with a new column is one line, not
+a branch.
+
+Three properties follow, and each is a test:
+
+- **Field names are the source's column names, verbatim.** Nothing emitted is a name we invented,
+  so any field traces back to a column.
+- **The two exceptions are spec-defined and only those two.** `lemma` and `strong` are attributes
+  USX already defines on a `w` element, so they go there rather than into the container — which is
+  §2's rule, not an exception to it. Greek names its Strong's column `strong`, Hebrew names it
+  `strongnumberx`; the declaration lists both against one destination, and that is the only rename
+  in the file.
+- **A per-word family requires `ids`.** The container keys annotation by word id, and without
+  `ids` the document carries no `srcloc` to match against — so asking for one without the other is
+  an error naming `ids`, not a payload nobody can use.
+
+**What is deliberately not carried:** `morph` (a packed duplicate of the columns beside it),
+`normalized` and `transliteration` (alternative forms of `text`), `frame` (belongs with `syntax`),
+`greek`/`greekstrong` (Hebrew-to-Greek alignment, not a property of the Hebrew word), and
+`stronglemma`.
+
+Verified on both real editions: PHM 1:1 yields 14 words of Greek morphology as
+`{class, type, number, gender, case}` and RUT 1:1 yields 33 words of Hebrew morphology as
+`{class, pos, lang}`, from the same declaration and the same code path.
 
 **8. `format: print`.** TEI paragraphs, and the lint rule that `include` with `print` is an error
 rather than a warning (§3.4). Tests: paragraphs present; the benediction divergence documented, not
@@ -750,6 +779,56 @@ asserted as agreement; `include` rejected at lint.
 **9. `include: [discourse]`.** First family needing a source outside Macula — Levinsohn's 33 LGNTDF
 feature types, Greek only. Tests: features attach at word ids; a Hebrew edition warns rather than
 failing (§4).
+
+*Measured in the source, 2026-08-26, because three of these facts change the algorithm:*
+
+| | |
+|---|---|
+| feature files | **33** (plus `levinsohn.xml`, which only `xi:include`s them, and a dangling emacs lock file) |
+| citations | **52,257** |
+| books | 27, keyed by **OSIS** code — `Matt`, `Mark`, `1John` — not USFM, so a mapping is needed |
+| quote length | 37,975 are one word; the longest is **509** |
+| `type` | `propositions` (Main clauses), `markup` (31 features), `annotations` (1) |
+| `level` | 0–6 on Main clauses; absent on 25,644 citations |
+
+*Each citation is `<reference osisRef="Matt.1.1!1" type="…" level="0" verse="Matt 1:1">quote</reference>`
+— the `!n` index is 1-based within the verse, matching Macula's `ref`, and **the quote is
+lowercased**.*
+
+**The resolution rules, from `nida-institute/discourse-flow`'s `plugins/reference_resolution.py`,
+which is the reference implementation and the oracle for this step:**
+
+| condition | outcome | id returned |
+|---|---|---|
+| quote matches at the index | `verified` | the indexed word |
+| index usable, quote matches elsewhere | `disagrees` — **the index is kept** and flagged | the indexed word |
+| index impossible, quote found **exactly once** | `rescued` | the quote's position |
+| index impossible, quote found more than once | `ambiguous` | none |
+| index impossible, quote absent | `not_found` | none |
+| quote empty, index usable | `unverifiable` | the indexed word |
+
+*Two requirements their prose did not state, both found in the code and both load-bearing:*
+
+- **Normalise before comparing**: NFD, strip combining marks, lowercase, trim edge punctuation.
+  Case-folding is unavoidable — every LGNTDF quote is lowercased while the text capitalises
+  sentence-initial words. The diacritic half was justified by SBLGNT encoding the acute two ways,
+  oxia and tonos, rendering identically (`Clear-Bible/macula-greek#109`). **Measured 2026-08-26:
+  that is now fixed — the corpus is 42,112 tonos and zero oxia, and LGNTDF is 39,280 tonos and
+  zero oxia.** So the hazard is dormant rather than absent, and stripping stays: Macula was
+  re-normalised on 2026-08-25, which is the argument for not letting the comparison depend on
+  either side's encoding.
+- **A phrase may run past the verse end.** A range ref quotes across verses —
+  `Matt.6.9!5-Matt.6.13!61` is the whole Lord's Prayer — and only the opening is cited, so the
+  comparison is against the prefix that fits, with a minimum length before a truncated match counts.
+
+*The `disagrees` row is the one that cost them a corrected pass: `Main clauses` indexes the clause
+**onset** while quoting the constituent Levinsohn cites — Mark 1:14 indexes `Καὶ` and quotes
+`μετὰ`. Treating that as an error and moving the index relocated 84 clause boundaries. **Only an
+impossible index is ever moved** (31 NT-wide).*
+
+*Their per-book figures are the acceptance target: Mark 4,400 citations at 96.7% verified, 2.1%
+rescued, 1.3% unresolved; NT-wide 51,699 of 51,722 resolve, and the 23 refusals are real textual
+differences.*
 
 **10. Variants as notes.** Apparatus parsing plus the ordinal join (§3.6). More complex than any
 family because it reads a second file with its own conventions. Tests: marks pair with notes per

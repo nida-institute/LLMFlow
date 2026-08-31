@@ -31,5 +31,19 @@
       "Bash(gh pr merge *)"
     ],
     "deny": []
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "c=$(jq -r '.tool_input.command'); case \"$c\" in *'>'*|*'<'*) exit 0;; esac; printf '%s' \"$c\" | grep -qE '(^|&&|;)[[:space:]]*(cat|head|tail|less|more)[[:space:]]|(^|&&|;)[[:space:]]*sed[[:space:]]+-n' && printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Read files with the Read tool, not cat/head/tail/sed -n. Read takes file_path plus optional offset and limit, and needs no approval. Search (grep, find, rg), pipes into head, and any command with a redirection are unaffected.\"}}' || exit 0",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
   }
 }

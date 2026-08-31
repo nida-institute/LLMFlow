@@ -40,23 +40,57 @@ To find their schemas:
 
 ### `passage_info`
 
-Produced by `llmflow.utils.data.parse_bible_reference(passage: str)` →  `dict`.
+Produced by
+`llmflow.utils.data.parse_bible_reference(passage, versification="eng", source_versification=None)`
+→ `dict`. `"Luke 12:5-19"`:
 
 ```json
 {
-  "book_name":           "Luke",
-  "book_number":         "42",
-  "book_code":           "LUK",
-  "chapter":             12,
-  "chapter_padded":      "012",
-  "start_verse":         5,
-  "end_verse":           19,
-  "is_whole_chapter":    false,
-  "filename_prefix":     "042012005-042012019",
-  "display_name":        "Luke-12-5-19",
-  "canonical_reference": "Luke 12:5-19"
+  "book_name":               "Luke",
+  "book_number":             "42",
+  "book_code":               "LUK",
+  "chapter":                 12,
+  "chapter_padded":          "012",
+  "start_verse":             5,
+  "end_verse":               19,
+  "end_chapter":             12,
+  "is_whole_chapter":        false,
+  "filename_prefix":         "42012005-42012019",
+  "display_name":            "Luke-12-5-19",
+  "canonical_reference":     "Luke 12:5-19",
+  "testament":               "NT",
+  "original_language":       "Greek",
+  "requested_versification": "eng",
+  "source_versification":    null,
+  "extent_versification":    null,
+  "book_in_versification":   true
 }
 ```
+
+A whole-book reference — `"Romans"` — returns the same keys with `chapter`, `chapter_padded`,
+`end_verse` and `end_chapter` all `null`, an extra `is_whole_book: true`, and a
+`filename_prefix` of `"45_book"`.
+
+**The four versification fields (#218).** Only one part of this structure ever depended on a
+versification scheme: `end_verse` when `is_whole_chapter`. It is resolved from the named
+scheme's `maxVerses`, so `Psalm 3` ends at verse 8 in `eng` and verse 9 in `org`.
+
+| field | what it says |
+|---|---|
+| `requested_versification` | the scheme the reference was read in. Defaults to `eng`, because a person who names none is almost always thinking in English numbering. This is the **request** side |
+| `source_versification` | the scheme an edition's text is numbered in, echoed from the argument. Recorded and **never resolved against** — this function has no edition, and the source side has no default anywhere in the engine |
+| `extent_versification` | which scheme `end_verse` actually came from, or `null` where no extent was resolved. Usually equal to `requested_versification`; different when that scheme does not define the book and exactly one other does |
+| `book_in_versification` | `false` when the named scheme does not define the book. `lxx` does not define `NEH`, `EST` or `DAN`; `vul` does not define `EST` |
+
+**Two things now raise that previously returned.** A chapter or verse outside the scheme —
+`Mark 3:99`, `Mark 99:1` — is an error naming the scheme and the real extent. And a whole
+chapter in a scheme that does not define the book is refused when more than one other scheme
+could answer, rather than one being chosen. `Psalm 3:9` is the case worth knowing: it exists in
+`org` and not in `eng`, so under the default it raises and the message says which scheme to name.
+
+`filename_prefix` and `display_name` **keep** the resolved end verse. They are fields on a
+returned dict, not a mandated naming scheme; a pipeline wanting a name that cannot move builds
+one from the parts it chooses.
 
 Access in YAML: `${passage_info.filename_prefix}`, `${passage_info.book_code}`, etc.
 

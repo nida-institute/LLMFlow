@@ -5,19 +5,238 @@ the engine resolves where it lives. Absolute paths written into pipeline YAML ar
 `ears-to-hear` and `discourse-flow` only run on one laptop, and why an assistant ends up
 choosing a text source — a decision that belongs to the Captain, expressed as configuration.
 
-Editions are read from `~/.sp/editions/*.yaml`, one file per edition, so adding or changing a
-source never means editing code.
+**Step behaviour is exercised through the API**, per rule 1 in
+`docs/ai-context/project/rules.md`: `load_pipeline(...)` then `.lint()` and `.run()`. A raw
+`{"type": "scripture", ...}` dict handed to `run_scripture_step` satisfies both the runner and
+the object model by construction, so it cannot see a key the schema does not declare — which is
+how `sp lint` came to accept `format: parquet`. A scripture-only pipeline calls no model, so
+running one here is free.
+
+The second half tests functions that take *values* rather than steps — the registry reader and
+the USJ flattener. Routing those through a pipeline would test the pipeline instead.
 """
 import json
+from pathlib import Path
 
 import pytest
 
+from llmflow import load_pipeline
 from llmflow.utils.scripture import load_registry_editions
 
-# ---------------------------------------------------------------------------
+MACULA = Path("/Users/jonathan/github/Clear/macula-greek/SBLGNT/tsv/macula-greek-SBLGNT.tsv")
+SHIPPED_SCHEMES = Path(__file__).resolve().parent.parent / "src/llmflow/templates/sp/versification"
 
-HEBREW_TSV = "ref\ttext\tafter\nGEN 1:1!1\tבְּרֵאשִׁית\t \nGEN 1:1!2\tבָּרָא\t\nGEN 1:2!1\tוְהָאָרֶץ\t\n"
+real_data = pytest.mark.skipif(not MACULA.is_file(), reason="Macula Greek is not on this machine")
 
+HEBREW_TSV = (
+    "ref\ttext\tafter\n"
+    "GEN 1:1!1\tבְּרֵאשִׁית\t \n"
+    "GEN 1:1!2\tבָּרָא\t\n"
+    "GEN 1:2!1\tוְהָאָרֶץ\t\n"
+)
+
+
+@pytest.fixture
+def store(tmp_path, monkeypatch) -> Path:
+    """A throwaway `$SP_HOME` holding registered editions and the shipped schemes."""
+    home = tmp_path / "sp"
+    editions = home / "editions"
+    editions.mkdir(parents=True)
+
+    tsv = tmp_path / "wlc.tsv"
+    tsv.write_text(HEBREW_TSV, encoding="utf-8")
+    (editions / "WLC.yaml").write_text(
+        f"id: WLC\nname: Westminster Leningrad Codex\nkind: tsv\npath: {tsv}\n"
+        f"versification_scheme: org\n",
+        encoding="utf-8",
+    )
+    if MACULA.is_file():
+        (editions / "SBLGNT.yaml").write_text(
+            f"id: SBLGNT\nname: SBL Greek New Testament\nkind: tsv\npath: {MACULA}\n"
+            f"versification_scheme: org\n",
+            encoding="utf-8",
+        )
+
+    versification = home / "versification"
+    versification.mkdir()
+    for scheme in SHIPPED_SCHEMES.glob("*.json"):
+        (versification / scheme.name).write_text(scheme.read_text(encoding="utf-8"), "utf-8")
+
+    monkeypatch.setenv("SP_HOME", str(home))
+    return home
+
+
+def pipeline_file(tmp_path: Path, steps: str, name: str = "api-test") -> Path:
+    path = tmp_path / "pipeline.yaml"
+    path.write_text(f"name: {name}\nsteps:\n{steps}", encoding="utf-8")
+    return path
+
+
+def run(path: Path) -> dict:
+    """Lint then run, failing with the linter's own message rather than a bare exception."""
+    pipeline = load_pipeline(path)
+    result = pipeline.lint()
+    assert result.valid, f"pipeline did not lint: {getattr(result, 'errors', result)}"
+    return pipeline.run(log_file=str(path.parent / "llmflow.log"))
+
+
+# --- the object model exposes what the schema declares --------------------------------
+
+
+def test_the_api_exposes_every_scripture_key(tmp_path, store):
+    """If a key is missing here it is missing from the schema, since Step is generated."""
+    path = pipeline_file(
+        tmp_path,
+        "  - name: fetch\n"
+        "    type: scripture\n"
+        "    edition: WLC\n"
+        '    passage: "GEN 1:1"\n'
+        "    format: usj\n"
+        "    versification: org\n"
+        "    include: [ids]\n"
+        "    output: source\n",
+    )
+    step = load_pipeline(path).steps[0]
+    assert step.edition == "WLC"
+    assert step.passage == "GEN 1:1"
+    assert step.format == "usj"
+    assert step.versification == "org"
+    assert step.include == ["ids"]
+
+
+# --- lint is the edge a raw dict cannot test ------------------------------------------
+
+
+def test_an_unknown_format_is_rejected_by_lint(tmp_path, store):
+    path = pipeline_file(
+        tmp_path,
+        "  - name: fetch\n    type: scripture\n    edition: WLC\n"
+        '    passage: "GEN 1:1"\n    format: parquet\n    output: t\n',
+    )
+    result = load_pipeline(path).lint()
+    assert not result.valid
+
+
+def test_an_unknown_include_family_is_rejected_by_lint(tmp_path, store):
+    path = pipeline_file(
+        tmp_path,
+        "  - name: fetch\n    type: scripture\n    edition: WLC\n"
+        '    passage: "GEN 1:1"\n    format: usj\n    include: [parsing]\n    output: t\n',
+    )
+    result = load_pipeline(path).lint()
+    assert not result.valid
+
+
+# --- running, which calls no model ----------------------------------------------------
+
+
+def test_a_passage_reaches_the_output_variable(tmp_path, store):
+    path = pipeline_file(
+        tmp_path,
+        "  - name: fetch\n    type: scripture\n    edition: WLC\n"
+        '    passage: "GEN 1:1"\n    format: plain\n    output: source\n',
+    )
+    assert run(path)["source"] == "בְּרֵאשִׁית בָּרָא"
+
+
+def test_milestones_is_the_default_format(tmp_path, store):
+    path = pipeline_file(
+        tmp_path,
+        "  - name: fetch\n    type: scripture\n    edition: WLC\n"
+        '    passage: "GEN 1:1"\n    output: source\n',
+    )
+    assert run(path)["source"].startswith("⌊1:1⌋")
+
+
+@real_data
+def test_usj_with_ids_arrives_as_a_document_with_srcloc(tmp_path, store):
+    path = pipeline_file(
+        tmp_path,
+        "  - name: fetch\n    type: scripture\n    edition: SBLGNT\n"
+        '    passage: "MRK 1:1"\n    format: usj\n    include: [ids]\n    output: source\n',
+    )
+    usj = run(path)["source"]
+    assert usj["type"] == "USJ"
+    assert usj["scripture_pipelines"]["versification"] == "org"
+    words = [
+        item
+        for node in usj["content"]
+        if node["type"] == "para"
+        for item in node["content"]
+        if isinstance(item, dict) and item.get("marker") == "w"
+    ]
+    assert words and words[0]["srcloc"] == "n41001001001"
+
+
+@real_data
+def test_versification_maps_before_fetching(tmp_path, store):
+    """`PSA 51:1` in English is `PSA 51:3` in the original — the mapping happens before the read.
+
+    Uses a Greek passage so the assertion does not depend on Hebrew data being present: the
+    point is that the key is honoured through the whole stack, not what Psalms says.
+    """
+    path = pipeline_file(
+        tmp_path,
+        "  - name: fetch\n    type: scripture\n    edition: SBLGNT\n"
+        '    passage: "MRK 1:1"\n    versification: eng\n    format: plain\n    output: source\n',
+    )
+    # `eng` and `org` agree throughout the New Testament, so the text is unchanged — what is
+    # being tested is that declaring a scheme neither errors nor alters a passage it should not.
+    assert run(path)["source"].startswith("Ἀρχὴ")
+
+
+def test_a_missing_edition_names_what_is_registered(tmp_path, store):
+    path = pipeline_file(
+        tmp_path,
+        "  - name: fetch\n    type: scripture\n    edition: NOPE\n"
+        '    passage: "GEN 1:1"\n    output: t\n',
+    )
+    with pytest.raises(Exception) as caught:
+        load_pipeline(path).run(log_file=str(tmp_path / "llmflow.log"))
+    assert "WLC" in str(caught.value), "the error should list the registered editions"
+
+
+# --- the payload survives serialisation, which is how a consumer receives it ----------
+
+
+@real_data
+def test_the_usj_payload_is_json_serialisable(tmp_path, store):
+    path = pipeline_file(
+        tmp_path,
+        "  - name: fetch\n    type: scripture\n    edition: SBLGNT\n"
+        '    passage: "MRK 1:1"\n    format: usj\n    include: [ids]\n    output: source\n',
+    )
+    payload = json.dumps(run(path)["source"], ensure_ascii=False)
+    assert "n41001001001" in payload
+
+
+def test_passage_resolves_a_pipeline_variable(tmp_path, store):
+    """`${ref}` must be resolved before the fetch, not passed through as a literal."""
+    path = pipeline_file(
+        tmp_path,
+        "  - name: fetch\n    type: scripture\n    edition: WLC\n"
+        '    passage: "${ref}"\n    format: plain\n    output: source\n',
+    )
+    pipeline = load_pipeline(path)
+    assert pipeline.lint(vars={"ref": "GEN 1:2"}).valid
+    context = pipeline.run(vars={"ref": "GEN 1:2"}, log_file=str(tmp_path / "llmflow.log"))
+    assert "וְהָאָרֶץ" in context["source"]
+
+
+def test_a_passage_the_edition_does_not_cover_errors_rather_than_returning_empty(tmp_path, store):
+    """Silently empty source text is the failure mode that reaches a model unnoticed."""
+    path = pipeline_file(
+        tmp_path,
+        "  - name: fetch\n    type: scripture\n    edition: WLC\n"
+        '    passage: "MRK 1:1"\n    output: source\n',
+    )
+    with pytest.raises(ValueError, match="No text found"):
+        load_pipeline(path).run(log_file=str(tmp_path / "llmflow.log"))
+
+
+# =====================================================================================
+# Values rather than steps: these take a path or a document, so they are called directly.
+# =====================================================================================
 
 @pytest.fixture
 def editions_dir(tmp_path):
@@ -48,52 +267,6 @@ class TestEditionsComeFromTheRegistry:
         (editions_dir / "BROKEN.yaml").write_text("this: [is: not: valid", encoding="utf-8")
         eds = load_registry_editions(editions_dir)
         assert "WLC" in eds, "one bad file must not make every edition unreadable"
-
-
-class TestStep:
-    def _run(self, step, editions_dir, context=None):
-        from llmflow.steps.scripture import run_scripture_step
-        ctx = dict(context or {})
-        run_scripture_step(step, ctx, {"_editions_dir": str(editions_dir)})
-        return ctx
-
-    def test_fetches_running_text_into_the_output_variable(self, editions_dir):
-        ctx = self._run({
-            "name": "fetch", "type": "scripture",
-            "edition": "WLC", "passage": "GEN 1:1",
-            "format": "plain", "output": "source_text",
-        }, editions_dir)
-        assert ctx["source_text"] == "בְּרֵאשִׁית בָּרָא"
-
-    def test_milestones_is_the_default_format(self, editions_dir):
-        ctx = self._run({
-            "name": "fetch", "type": "scripture",
-            "edition": "WLC", "passage": "GEN 1:1", "output": "t",
-        }, editions_dir)
-        assert ctx["t"].startswith("⌊1:1⌋")
-
-    def test_passage_resolves_pipeline_variables(self, editions_dir):
-        ctx = self._run({
-            "name": "fetch", "type": "scripture",
-            "edition": "WLC", "passage": "${ref}", "output": "t",
-        }, editions_dir, context={"ref": "GEN 1:2"})
-        assert "וְהָאָרֶץ" in ctx["t"]
-
-    def test_unregistered_edition_says_what_is_registered(self, editions_dir):
-        from llmflow.utils.scripture import EditionNotRegistered
-        with pytest.raises(EditionNotRegistered, match="WLC"):
-            self._run({
-                "name": "fetch", "type": "scripture",
-                "edition": "NIV11", "passage": "GEN 1:1", "output": "t",
-            }, editions_dir)
-
-    def test_a_passage_outside_the_edition_errors_rather_than_returning_empty(self, editions_dir):
-        """Silently empty source text is the failure mode that reaches a model unnoticed."""
-        with pytest.raises(ValueError, match="No text found"):
-            self._run({
-                "name": "fetch", "type": "scripture",
-                "edition": "WLC", "passage": "MRK 1:1", "output": "t",
-            }, editions_dir)
 
 
 class TestSchemaAndLinter:

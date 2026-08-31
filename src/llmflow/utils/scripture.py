@@ -12,8 +12,8 @@ one to reach for: `project/plans/design-scripture-representations.md`, and §3 o
 from __future__ import annotations
 
 import csv
+import json
 import re
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
@@ -43,87 +43,105 @@ USJ_VERSION = "3.1"
 #: sit inside a paragraph, so one plain `para` per chapter is the least the grammar allows.
 USJ_PARA_MARKER = "p"
 
-#: An `after` value that joins its word to the next, so no space follows it: the Greek elision
-#: apostrophe (`κατ’αὐτοῦ`) and the Hebrew maqqef (`עַל־פְּנֵי`). Every other non-empty, non-space
-#: `after` ends a word and takes a space after it. An empty `after` joins and adds nothing —
-#: Macula Hebrew splits a word into morphemes and marks the continuations that way.
-JOINING_MARKS = frozenset({"’", "־"})
+#: What each family delivers, declared in data rather than here: a family is edition-shaped, so
+#: the same declaration serves Greek and Hebrew without any code knowing about either.
+FAMILY_TABLE_FILENAME = "include-families.json"
+
+_FAMILY_TABLE: Optional[Mapping[str, Any]] = None
+
+
+def _family_table() -> Mapping[str, Any]:
+    global _FAMILY_TABLE
+    table = _FAMILY_TABLE
+    if table is None:
+        table = json.loads(_data_path(FAMILY_TABLE_FILENAME).read_text(encoding="utf-8"))
+        _FAMILY_TABLE = table
+    return table
+
+
+def _family(name: str) -> Mapping[str, Any]:
+    return _family_table().get("families", {}).get(name, {})
+
+
+def family_columns(name: str) -> tuple:
+    """The source columns *name* carries, across every edition it serves."""
+    return tuple(_family(name).get("columns", ()))
+
+
+def family_is_per_word(name: str) -> bool:
+    """Whether *name* annotates individual words, and so needs `ids` to be joinable."""
+    return bool(_family(name).get("per_word"))
+
+
+def family_usx_attributes(name: str) -> Mapping[str, Sequence[str]]:
+    """Fields USX already defines on a word node, and the source columns that fill each."""
+    return _family(name).get("usx_attributes", {})
+
+
+#: The annotation families `include` can ask for. See §3.0a of plan-scripture-step.md.
+INCLUDE_FAMILIES = ("ids", "morphology", "senses", "glosses", "referents", "discourse", "syntax")
+
+#: Families with a working implementation. The rest are named vocabulary, and asking for one
+#: raises rather than returning a document with the payload quietly missing.
+IMPLEMENTED_FAMILIES = frozenset(
+    {"ids", "discourse", "morphology", "senses", "glosses", "referents"}
+)
+
+#: The one key holding everything USJ has no place for. A consumer wanting standard USJ
+#: removes this key and is done; an extension anywhere else is one nobody could find.
+CONTAINER_KEY = "scripture_pipelines"
+
+#: An edition definition's field naming the directory of LGNTDF feature files.
+DISCOURSE_KEY = "discourse_path"
+
+#: `\w`, the USX character marker for a word. `ids` is spec-defined — it becomes the `srcloc`
+#: attribute here — so it does not belong in the container.
+USJ_WORD_MARKER = "w"
+USJ_SRCLOC = "srcloc"
+
+#: An `after` value that joins its word to the next, so no space follows it: the Hebrew maqqef
+#: (`עַל־פְּנֵי`). Every other non-empty, non-space `after` ends a word and takes a space after it. An
+#: empty `after` also joins and adds nothing — Macula Hebrew splits a word into morphemes and
+#: marks the continuations that way.
+#:
+#: The Greek elision apostrophe is deliberately absent. It reads like a joining mark, and we had
+#: it here, which spaced `κατ’οἶκόν` against the printed edition's `κατʼ οἶκόν` in 1,221 places.
+#: Macula Greek's convention is uniform — a space follows every non-space `after`, and a mark
+#: falling word-final is carried in `text` instead, which is why `ἀλλ’` appears there with `·` in
+#: `after`. Reconstructing 7,330 verses under that rule matches a printed SBLGNT in 7,197 of them,
+#: with no spacing difference among the rest.
+JOINING_MARKS = frozenset({"־"})
+
+#: An `after` value that stands *between* two words rather than ending one, so a space precedes it
+#: as well as following it: the Hebrew paseq (`אֱלֹהִים ׀ בֵּין`), and a bare setuma or petucha letter
+#: marking a section break mid-verse. The source carries these in the preceding word's `after`,
+#: where nothing else can supply the leading space.
+#:
+#: The compound values `׃ס` and `׃פ` are deliberately absent: there the sof pasuq ends the word and
+#: the letter follows it tight, which is how a WLC-derived text writes all 3,066 of them.
+STANDALONE_MARKS = frozenset({"׀", "ס", "פ"})
 
 #: USJ element types holding apparatus rather than the text being read. Their content is
 #: dropped. Inline `char` elements outside a note are part of the reading and are kept.
 SKIP_USJ_TYPES = frozenset({"note", "figure", "sidebar", "ref"})
 
 
-class EditionNotRegistered(KeyError):
-    """Raised when an edition has no registry entry, listing what is available."""
+class ResourceNotRegistered(KeyError):
+    """Raised when a resource has no registration, listing what is available.
+
+    Named for resources rather than editions since #217: a text is one kind of resource among
+    several the catalog describes, and the command that fixes this is `sp resource add`.
+    """
 
     def __str__(self) -> str:  # KeyError repr would quote the message
         return self.args[0] if self.args else ""
 
 
-@dataclass(frozen=True)
-class PassageRef:
-    """A parsed reference. ``None`` chapter means the whole book; ``None`` verse, the whole
-    chapter."""
-
-    book: str
-    start_chapter: Optional[int]
-    start_verse: Optional[int]
-    end_chapter: Optional[int]
-    end_verse: Optional[int]
-
-    def covers(self, chapter: int, verse: int) -> bool:
-        if self.start_chapter is None:
-            return True
-        if chapter < self.start_chapter or chapter > (self.end_chapter or self.start_chapter):
-            return False
-        if self.start_verse is None:
-            return True
-        if chapter == self.start_chapter and verse < self.start_verse:
-            return False
-        end_c = self.end_chapter or self.start_chapter
-        end_v = self.end_verse
-        if end_v is not None and chapter == end_c and verse > end_v:
-            return False
-        return True
-
-
-_BOOK = r"(?P<book>[A-Z1-9][A-Za-z0-9]{1,4})"
-_PATTERNS = (
-    # MRK 1:40-2:12
-    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+)\s*-\s*(?P<c2>\d+):(?P<v2>\d+)$"),
-    # MRK 1:1-8
-    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+)\s*-\s*(?P<v2>\d+)$"),
-    # MRK 1:1
-    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+):(?P<v1>\d+)$"),
-    # MRK 1
-    re.compile(rf"^{_BOOK}\s+(?P<c1>\d+)$"),
-    # PHM
-    re.compile(rf"^{_BOOK}$"),
-)
-
-
-def parse_passage_ref(passage: str) -> PassageRef:
-    """Parse ``"MRK 1:1-8"`` and friends.
-
-    Deliberately strict: an unrecognised string raises rather than being coerced into
-    something plausible, because a silently wrong range yields analysis of the wrong text.
-    """
-    text = (passage or "").strip()
-    for pattern in _PATTERNS:
-        m = pattern.match(text)
-        if not m:
-            continue
-        g = m.groupdict()
-        c1 = int(g["c1"]) if g.get("c1") else None
-        v1 = int(g["v1"]) if g.get("v1") else None
-        c2 = int(g["c2"]) if g.get("c2") else c1
-        v2 = int(g["v2"]) if g.get("v2") else v1
-        return PassageRef(g["book"].upper(), c1, v1, c2, v2)
-    raise ValueError(
-        f"{passage!r} is not a passage reference. Expected forms: 'MRK', 'MRK 1', "
-        f"'MRK 1:1', 'MRK 1:1-8', 'MRK 1:40-2:12'."
-    )
+#: The lean parser and its result live in `versification`, which is the lower layer: the mapper
+#: needs them and cannot import this module. Re-exported here because the read path is their
+#: other caller and imports from `scripture`.
+PassageRef = _versification.PassageRef
+parse_passage_ref = _versification.parse_passage_ref
 
 
 def _split_ref(ref: str) -> tuple[str, Optional[int], Optional[int]]:
@@ -158,14 +176,17 @@ def filter_rows(rows: Iterable[Mapping[str, Any]], ref: PassageRef) -> list[dict
 def join_rows(rows: Iterable[Mapping[str, Any]]) -> str:
     """Concatenate ``text + after``, adding a space only where ``after`` does not carry one.
 
-    ``after`` plays three roles: a space, a mark that joins (``JOINING_MARKS``, or empty), or
-    punctuation that ends a word. Only the third needs a space added, because the source
-    carries the mark without one. The single place this rule lives.
+    ``after`` plays four roles: a space; a mark that joins (``JOINING_MARKS``, or empty); a mark
+    that ends a word, which needs a space added because the source carries it without one; and a
+    mark that stands between two words (``STANDALONE_MARKS``), which needs one on each side. The
+    joining and standalone roles are Hebrew-only. The single place this rule lives.
     """
     parts: list[str] = []
     for row in rows:
         parts.append(str(row.get("text") or ""))
         after = str(row.get("after") or "")
+        if after in STANDALONE_MARKS:
+            parts.append(" ")
         parts.append(after)
         if after and not after.isspace() and after not in JOINING_MARKS:
             parts.append(" ")
@@ -244,29 +265,52 @@ def _edition_table() -> Mapping[str, Any]:
     return table
 
 
-def _edition_table_path() -> Path:
-    """Locate the table whether running from an installed wheel or a dev checkout.
+def _data_path(filename: str) -> Path:
+    """Locate a shipped data file whether running from an installed wheel or a dev checkout.
 
     The same two locations `file_catalog.catalog_path()` resolves.
     """
     import importlib.resources
 
     try:
-        ref = importlib.resources.files("llmflow").joinpath(f"data/{EDITION_TABLE_FILENAME}")
+        ref = importlib.resources.files("llmflow").joinpath(f"data/{filename}")
         path = Path(str(ref))
         if path.exists():
             return path
     except Exception:
         pass
-    return Path(__file__).resolve().parent.parent.parent.parent / "data" / EDITION_TABLE_FILENAME
+    return Path(__file__).resolve().parent.parent.parent.parent / "data" / filename
+
+
+def _edition_table_path() -> Path:
+    return _data_path(EDITION_TABLE_FILENAME)
 
 
 def _known_editions() -> dict:
-    return {
-        key.upper(): value
-        for key, value in _edition_table().get("known_editions", {}).items()
-        if isinstance(value, Mapping) and value.get("scheme")
-    }
+    """Editions whose scheme can be answered from a name alone, catalog first.
+
+    The catalog's answer is anchored to a repository and a file inside it; the hand-written
+    table's is keyed on the id string, which two people can choose independently. So a catalog
+    entry wins, and the table carries only what the catalog does not describe.
+    """
+    from llmflow import resources as _resources
+
+    known: dict = {}
+    try:
+        for identifier, item in _resources.readable().items():
+            if item.get("versification"):
+                known[identifier.upper()] = {
+                    "scheme": item["versification"],
+                    "why": item.get("versification_why", ""),
+                    "source": "catalog",
+                }
+    except Exception:  # a missing or malformed catalog must not break scheme resolution
+        pass
+
+    for key, value in _edition_table().get("known_editions", {}).items():
+        if isinstance(value, Mapping) and value.get("scheme"):
+            known.setdefault(key.upper(), dict(value))
+    return known
 
 
 def _paratext_scheme(definition: Mapping[str, Any]) -> Optional[str]:
@@ -334,7 +378,7 @@ def resolve_passage(
             edition_scheme_name,
             mappings_dir,
         )
-        _, new_chapter, new_verse, _ = _versification.parse_reference(mapped)
+        _, new_chapter, new_verse, _ = _versification.as_single_verse(mapped)
         return new_chapter, new_verse
 
     start_chapter, start_verse = moved(ref.start_chapter, ref.start_verse)
@@ -347,46 +391,189 @@ def resolve_passage(
     return f"{ref.book} {start_chapter}:{start_verse}-{end_chapter}:{end_verse}"
 
 
-def rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str) -> str | dict:
+def check_include(include: Any, fmt: str) -> tuple:
+    """Validate `include` against `fmt` and return it as a tuple. See §4's lint rules."""
+    if not include:
+        return ()
+    if isinstance(include, str):
+        raise ValueError(
+            f"include must be a list of families, not the string {include!r} — write "
+            f"`include: [{include}]`."
+        )
+    families = tuple(include)
+
+    if fmt != "usj":
+        raise ValueError(
+            f"include {list(families)} needs `format: usj`; `{fmt}` has nowhere to put a "
+            f"payload."
+        )
+    unknown = [f for f in families if f not in INCLUDE_FAMILIES]
+    if unknown:
+        raise ValueError(
+            f"unknown include {'family' if len(unknown) == 1 else 'families'} "
+            f"{unknown}; expected from {', '.join(INCLUDE_FAMILIES)}."
+        )
+    unbuilt = [f for f in families if f not in IMPLEMENTED_FAMILIES]
+    if unbuilt:
+        raise NotImplementedError(
+            f"include {unbuilt} is not implemented yet; available: "
+            f"{', '.join(sorted(IMPLEMENTED_FAMILIES))}."
+        )
+    return families
+
+
+def rows_to_output(
+    rows: Sequence[Mapping[str, Any]],
+    fmt: str,
+    book: str,
+    include: Sequence[str] = (),
+    versification: Optional[str] = None,
+    discourse: Optional[list] = None,
+) -> str | dict:
     """The requested representation of *rows*: a string, or a USJ document for ``fmt="usj"``."""
     if fmt not in FORMATS:
         raise ValueError(f"unknown format {fmt!r}; expected one of {', '.join(FORMATS)}")
     if fmt == "usj":
-        return rows_to_usj(rows, book=book)
+        return rows_to_usj(
+            rows, book=book, include=include, versification=versification, discourse=discourse
+        )
     return rows_to_text(rows, fmt=fmt)
 
 
-def rows_to_usj(rows: Sequence[Mapping[str, Any]], book: str) -> dict:
+def rows_to_usj(
+    rows: Sequence[Mapping[str, Any]],
+    book: str,
+    include: Sequence[str] = (),
+    versification: Optional[str] = None,
+    discourse: Optional[list] = None,
+) -> dict:
     """*rows* as a USJ document: the book, a chapter node per chapter, one `para` inside each.
 
     One `para` per chapter because the source has no paragraph structure to carry, and the USX
     grammar requires text to sit inside one. A caller wanting editorial structure asks for
     `format: print`. Nothing is added outside the USJ node types.
     """
+    want_ids = "ids" in include
+    per_word = [f for f in include if family_is_per_word(f)]
+    if per_word and not want_ids:
+        raise ValueError(
+            f"include {per_word} annotates individual words, and the container keys them by word "
+            f"id — add `ids` so the document carries a {USJ_SRCLOC} to match them against."
+        )
+
+    #: `{field: (columns, in order of preference)}` for the USX attributes the asked-for families
+    #: deliver. Only `lemma` and `strong` are here; everything else stays in the container.
+    attributes: dict = {}
+    for family in include:
+        for field, columns in family_usx_attributes(family).items():
+            attributes.setdefault(field, tuple(columns))
+
+    annotation: dict = {family: {} for family in per_word}
+
+    def annotate(row: Mapping[str, Any]) -> None:
+        """Collect a word's declared columns, verbatim, skipping the ones it leaves empty."""
+        identifier = row.get("xml:id")
+        if not identifier:
+            return
+        for family in per_word:
+            fields = {
+                column: str(row[column])
+                for column in family_columns(family)
+                if str(row.get(column) or "").strip()
+            }
+            if fields:
+                annotation[family][str(identifier)] = fields
+
     content: list = [{"type": "book", "marker": "id", "code": book}]
     chapter_open: Optional[int] = None
     para: Optional[dict] = None
 
+    def emit(target: list, group: Sequence[Mapping[str, Any]]) -> None:
+        """Append a verse's material: one string, or a `w` node per word when ids are asked.
+
+        Text nodes carry their own spacing, as USJ text nodes do, so a consumer rebuilds the
+        running text by concatenation. Space-joining the nodes instead would put a space
+        before every comma.
+        """
+        if not want_ids:
+            text = join_rows(group)
+            if text:
+                target.append(text)
+            return
+        for row in group:
+            word = str(row.get("text") or "")
+            if word:
+                node = {"type": "char", "marker": USJ_WORD_MARKER, "content": [word]}
+                identifier = row.get("xml:id")
+                if identifier:
+                    node[USJ_SRCLOC] = str(identifier)
+                for field, columns in attributes.items():
+                    value = next(
+                        (str(row[c]) for c in columns if str(row.get(c) or "").strip()), None
+                    )
+                    if value:
+                        node[field] = value
+                target.append(node)
+            annotate(row)
+            # What follows the word — a space, a joining mark, punctuation and the space the
+            # engine adds after it — is text. Dropping it would make the document
+            # unflattenable back to running text.
+            trailing = join_rows([{"text": "", "after": row.get("after")}])
+            if trailing:
+                target.append(trailing)
+
+    # `sid` only, and deliberately: USX pairs a start milestone with a closing `<verse eid=…/>`,
+    # but USJ does not — `usfmtc`, the USFM Technical Committee's reference implementation,
+    # discards verse and chapter ends when it converts USX to USJ. Emitting them anyway would put
+    # non-standard content in the standard node space, which is what CONTAINER_KEY exists to
+    # avoid, and any round-trip through a conformant tool would drop them again.
     for key, group in group_by_verse(rows):
-        text = join_rows(group).strip()
         if key is None:
-            if para is not None and text:
-                para["content"].append(text)
+            if para is not None:
+                emit(para["content"], group)
             continue
 
         chapter, verse = key
         if chapter != chapter_open:
             chapter_open = chapter
-            content.append({"type": "chapter", "marker": "c", "number": str(chapter)})
+            content.append(
+                {
+                    "type": "chapter",
+                    "marker": "c",
+                    "number": str(chapter),
+                    "sid": f"{book} {chapter}",
+                }
+            )
             para = {"type": "para", "marker": USJ_PARA_MARKER, "content": []}
             content.append(para)
 
         assert para is not None  # a chapter node always opens one
-        para["content"].append({"type": "verse", "marker": "v", "number": str(verse)})
-        if text:
-            para["content"].append(text)
+        para["content"].append(
+            {
+                "type": "verse",
+                "marker": "v",
+                "number": str(verse),
+                "sid": f"{book} {chapter}:{verse}",
+            }
+        )
+        emit(para["content"], group)
 
-    return {"type": "USJ", "version": USJ_VERSION, "content": content}
+    document = {"type": "USJ", "version": USJ_VERSION, "content": content}
+    if include:
+        container: dict = {}
+        if versification:
+            container["versification"] = versification
+        else:
+            logger.warning(
+                f"{book}: the edition does not say which versification its references are in, "
+                f"so the {CONTAINER_KEY} container cannot state one. Add "
+                f"`{SCHEME_KEY}: <scheme>` to the edition's registry entry."
+            )
+        if discourse is not None:
+            container["discourse"] = discourse
+        container.update(annotation)
+        document[CONTAINER_KEY] = container
+    return document
 
 
 def resolve_edition(
@@ -398,11 +585,25 @@ def resolve_edition(
     available = dict(registry_editions or {})
     if edition in available:
         return available[edition]
+
+    from llmflow import resources as _resources
+
     known = ", ".join(sorted(available)) or "(none registered)"
-    raise EditionNotRegistered(
-        f"Scripture edition {edition!r} is not registered.\n"
-        f"  Registered editions: {known}\n"
-        f"  Register one with `sp registry` so the path is not written into a pipeline."
+    try:
+        in_catalog = edition in _resources.readable()
+    except Exception:
+        in_catalog = False
+
+    remedy = (
+        f"  Register it with `sp resource add {edition}` so the path is not written into a "
+        f"pipeline."
+        if in_catalog
+        else f"  `sp resource list` shows what the catalog knows; `sp resource add <ID>` "
+        f"registers one, and a resource of your own is registered from its path."
+    )
+    raise ResourceNotRegistered(
+        f"Scripture resource {edition!r} is not registered.\n"
+        f"  Registered: {known}\n" + remedy
     )
 
 
@@ -442,9 +643,13 @@ def usj_to_text(usj: Mapping[str, Any], fmt: str = "milestones") -> str:
         if kind in SKIP_USJ_TYPES:
             return  # apparatus, not text — see SKIP_USJ_TYPES
         if kind == "chapter":
+            if node.get("eid"):
+                return  # a closing milestone, which names no new chapter
             chapter["n"] = node.get("number")
             return
         if kind == "verse":
+            if node.get("eid"):
+                return  # ends a verse rather than starting one
             if fmt == "milestones":
                 if parts and not parts[-1][-1:].isspace():
                     parts.append(" ")
@@ -566,37 +771,33 @@ def passage_text(
 # what load_usfm_passage() takes.
 # --------------------------------------------------------------------------------------
 
-EDITIONS_DIRNAME = "editions"
-
-
-def default_editions_dir() -> Path:
-    """The `editions` directory inside the store (#207)."""
-    from llmflow import paths as _paths
-
-    return _paths.sp_home() / EDITIONS_DIRNAME
-
-
 def load_registry_editions(editions_dir: Any = None) -> dict:
-    """Read every edition definition. Absence is normal; a fresh machine has none.
+    """Every registration this machine holds, with dataset-relative paths resolved.
 
-    A malformed file is skipped rather than allowed to make every edition unreadable — one
-    bad hand-edit should not take the whole registry down with it.
+    The store and its reader belong to `llmflow.resources`, which owns the whole question of
+    what is registered and where it lives; this is the read path's door onto it. A registration
+    recording `dataset` plus a relative `path` is resolved here, so a backend downstream always
+    receives a definition it can open without knowing the store exists.
     """
-    import yaml
+    from llmflow import resources as _resources
 
-    directory = Path(editions_dir) if editions_dir is not None else default_editions_dir()
-    if not directory.is_dir():
-        return {}
     out: dict = {}
-    for path in sorted(directory.glob("*.yaml")):
-        try:
-            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        except Exception:
-            continue  # a broken file hides itself, not its neighbours
-        if not isinstance(data, dict):
-            continue
-        name = data.get("id") or path.stem
-        out[str(name)] = data
+    for name, definition in _resources.load_registered(editions_dir).items():
+        entry = dict(definition)
+        if entry.get("path"):
+            try:
+                resolved = _resources.resolve_path(entry)
+            except ValueError:
+                out[name] = entry
+                continue
+            entry["path"] = str(resolved)
+            # A USFM project is a directory, and `load_usfm_passage` wants it as a parent plus
+            # a name. The catalog states one path because it describes where a thing is, not
+            # what one reader's signature happens to be, so the split belongs here.
+            if str(entry.get("kind", "")).lower() == "usfm" and not entry.get("base_dir"):
+                entry["base_dir"] = str(resolved.parent)
+                entry["project"] = resolved.name
+        out[name] = entry
     return out
 
 
@@ -629,6 +830,8 @@ def _tei_passage_text(
     passage: str,
     fmt: str,
     edition: str,
+    include: Sequence[str] = (),
+    versification: Optional[str] = None,
 ) -> str | dict:
     """Running text for *passage* from a directory of per-book TEI files."""
     tei_dir = definition.get("path")
@@ -640,7 +843,16 @@ def _tei_passage_text(
     rows = read_tei_rows(book_file, ref) if book_file else []
     if not rows:
         raise ValueError(_no_text_found(passage, edition))
-    return rows_to_output(rows, fmt=fmt, book=ref.book)
+    return rows_to_output(
+        rows,
+        fmt=fmt,
+        book=ref.book,
+        include=include,
+        versification=versification,
+        discourse=(
+            discourse_payload(definition, rows, edition) if "discourse" in include else None
+        ),
+    )
 
 
 def edition_text(
@@ -650,6 +862,7 @@ def edition_text(
     editions: Optional[Mapping[str, Any]] = None,
     versification: Optional[str] = None,
     mappings_dir: Optional[Path] = None,
+    include: Any = (),
 ) -> str | dict:
     """Running text for *passage* in *edition*, dispatched on the edition's `kind`.
 
@@ -661,11 +874,13 @@ def edition_text(
     # reporting it should not depend on the edition's data being present.
     if fmt not in FORMATS:
         raise ValueError(f"unknown format {fmt!r}; expected one of {', '.join(FORMATS)}")
+    families = check_include(include, fmt)
 
     definition = resolve_edition(edition, editions)
+    scheme = edition_scheme(definition, edition)
     passage = resolve_passage(
         passage,
-        edition_scheme(definition, edition),
+        scheme,
         versification,
         edition=edition,
         mappings_dir=mappings_dir,
@@ -674,10 +889,11 @@ def edition_text(
         definition = {"id": edition, "kind": "tsv", "path": definition}
     kind = str(definition.get("kind", "tsv")).lower()
 
+    result_scheme = versification or scheme
     if kind == "usfm":
         return _usfm_passage_text(definition, passage, fmt)
     if kind == "tei":
-        return _tei_passage_text(definition, passage, fmt, edition)
+        return _tei_passage_text(definition, passage, fmt, edition, families, result_scheme)
     if kind not in ("tsv",):
         raise ValueError(
             f"Edition {edition!r} has unknown kind {kind!r}; expected 'tsv', 'tei' or 'usfm'."
@@ -690,4 +906,53 @@ def edition_text(
     rows = filter_rows(read_rows(path), ref)
     if not rows:
         raise ValueError(_no_text_found(passage, edition))
-    return rows_to_output(rows, fmt=fmt, book=ref.book)
+    return rows_to_output(
+        rows,
+        fmt=fmt,
+        book=ref.book,
+        include=families,
+        versification=result_scheme,
+        discourse=(
+            discourse_payload(definition, rows, edition) if "discourse" in families else None
+        ),
+    )
+
+
+def discourse_payload(
+    definition: Any,
+    rows: Sequence[Mapping[str, Any]],
+    edition: str,
+) -> Optional[list]:
+    """Levinsohn items for *rows*, or None when this edition has no discourse source.
+
+    The source is Greek-only, so an edition that names none — a Hebrew text, or one simply not
+    configured — is a warning rather than a failure (§4).
+    """
+    from llmflow.utils import discourse as _discourse
+
+    path = definition.get(DISCOURSE_KEY) if isinstance(definition, Mapping) else None
+    if not path:
+        logger.warning(
+            f"include: [discourse] was requested but edition {edition!r} names no "
+            f"`{DISCOURSE_KEY}`, so no discourse features are attached. Levinsohn's corpus "
+            f"covers the Greek New Testament only."
+        )
+        return None
+
+    citations = _discourse.load_citations(path)
+    if not citations:
+        logger.warning(
+            f"include: [discourse]: no citations were read from {path!r} for edition "
+            f"{edition!r}."
+        )
+        return None
+
+    items: list = []
+    for key, group in group_by_verse(rows):
+        if key is None:
+            continue
+        book, _, _ = _split_ref(group[0].get("ref", ""))
+        for_verse = citations.get(f"{book} {key[0]}:{key[1]}")
+        if for_verse:
+            items.extend(_discourse.resolve_verse(for_verse, group))
+    return items

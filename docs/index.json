@@ -169,6 +169,11 @@
           "doc": "The rules document `sp init` writes, rendered from `data/ai-rules.yaml`."
         },
         {
+          "name": "template_text",
+          "signature": "template_text(relative_path: str) -> str",
+          "doc": "The text of a shipped template, read from the package."
+        },
+        {
           "name": "__getattr__",
           "signature": "__getattr__(name: str)",
           "doc": "Render `AI_RULES_DOC` on first access from the single source (2026-08-21)."
@@ -546,6 +551,79 @@
       ]
     },
     {
+      "module": "llmflow.books",
+      "imports": [
+        "__future__",
+        "functools",
+        "json",
+        "pathlib",
+        "re",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "table_path",
+          "signature": "table_path() -> Path",
+          "doc": "The declaration, whether running from a wheel or a dev checkout."
+        },
+        {
+          "name": "_document",
+          "signature": "_document() -> dict",
+          "doc": ""
+        },
+        {
+          "name": "table",
+          "signature": "table() -> dict",
+          "doc": "`{USFM code: {number, name, aliases}}`."
+        },
+        {
+          "name": "normalise",
+          "signature": "normalise(token: str) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_index",
+          "signature": "_index() -> dict",
+          "doc": "Every accepted spelling, normalised, to its USFM code."
+        },
+        {
+          "name": "_ambiguous",
+          "signature": "_ambiguous() -> dict",
+          "doc": ""
+        },
+        {
+          "name": "resolve",
+          "signature": "resolve(written: str) -> Optional[str]",
+          "doc": "The USFM code *written* names, or None."
+        },
+        {
+          "name": "entry",
+          "signature": "entry(code: str) -> Optional[dict]",
+          "doc": "Everything declared about one book, or None."
+        },
+        {
+          "name": "name",
+          "signature": "name(code: str) -> Optional[str]",
+          "doc": "The canonical display name for a USFM code."
+        },
+        {
+          "name": "number",
+          "signature": "number(code: str) -> Optional[str]",
+          "doc": "The two-digit book number, as filenames and sort keys use it."
+        },
+        {
+          "name": "testament",
+          "signature": "testament(code: str) -> Optional[str]",
+          "doc": "`OT` or `NT`, declared rather than inferred from the number."
+        },
+        {
+          "name": "original_language",
+          "signature": "original_language(code: str) -> Optional[str]",
+          "doc": "The language the book was written in, as declared."
+        }
+      ]
+    },
+    {
       "module": "llmflow.gui_launcher",
       "imports": [
         "sys"
@@ -611,6 +689,11 @@
           "name": "allowed_step_keys",
           "signature": "allowed_step_keys(step_type)",
           "doc": "Keys a step of *step_type* may carry, or ``None`` when the type is permissive."
+        },
+        {
+          "name": "step_value_enums",
+          "signature": "step_value_enums(step_type) -> dict",
+          "doc": "`{key: allowed values}` for every per-type key the schema constrains to an enum."
         },
         {
           "name": "step_keys",
@@ -791,13 +874,17 @@
     {
       "module": "llmflow.download_data",
       "imports": [
+        "__future__",
+        "datetime",
+        "hashlib",
         "io",
         "llmflow",
         "llmflow.modules.logger",
         "os",
         "pathlib",
         "shutil",
-        "sys",
+        "typing",
+        "urllib.parse",
         "urllib.request",
         "zipfile"
       ],
@@ -805,26 +892,26 @@
         {
           "name": "get_default_data_dir",
           "signature": "get_default_data_dir() -> Path",
-          "doc": "Return the base data directory, honouring LLMFLOW_DATA_DIR env var."
+          "doc": "Where corpora live — one answer, owned by `llmflow.resources`."
         },
         {
-          "name": "run_download_data",
-          "signature": "run_download_data(dataset: str | None = None, dest: str | None = None, list_only: bool = False) -> None",
-          "doc": ""
+          "name": "_archive_url",
+          "signature": "_archive_url(source: Mapping[str, Any]) -> str",
+          "doc": "Where to fetch from: a repository's default-branch zip, or a named download."
         },
         {
-          "name": "_show_usage_hint",
-          "signature": "_show_usage_hint() -> None",
-          "doc": ""
+          "name": "fetch",
+          "signature": "fetch(source: Mapping[str, Any], dest: Path | None = None) -> Path",
+          "doc": "Download *source* into the store and return the directory it landed in."
         },
         {
-          "name": "_show_catalog",
-          "signature": "_show_catalog() -> None",
-          "doc": ""
+          "name": "_github_prefix",
+          "signature": "_github_prefix(source: Mapping[str, Any]) -> str",
+          "doc": "GitHub wraps an archive in `<repo>-<branch>/`; a plain download has no such wrapper."
         },
         {
-          "name": "_download_dataset",
-          "signature": "_download_dataset(name: str, entry: dict, dest: Path) -> None",
+          "name": "_unpack",
+          "signature": "_unpack(data: bytes, dest: Path, strip: str = '') -> None",
           "doc": ""
         }
       ]
@@ -901,6 +988,11 @@
           "name": "command_lint",
           "signature": "command_lint(pipeline_path: str, fix_paths: bool, json_mode: bool, verbose: bool, cli_vars: dict | None = None, rewind_to: str | None = None)",
           "doc": ""
+        },
+        {
+          "name": "_make_output_encodable",
+          "signature": "_make_output_encodable() -> None",
+          "doc": "Let every command print its glyphs without dying on the console's encoding."
         },
         {
           "name": "main",
@@ -1009,6 +1101,113 @@
           "name": "__str__",
           "signature": "__str__(self)",
           "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "llmflow.resources",
+      "imports": [
+        "__future__",
+        "functools",
+        "json",
+        "llmflow",
+        "llmflow.modules.logger",
+        "os",
+        "pathlib",
+        "re",
+        "typing",
+        "urllib.parse"
+      ],
+      "functions": [
+        {
+          "name": "catalog_path",
+          "signature": "catalog_path() -> Path",
+          "doc": "The vendored catalog, whether running from a wheel or a dev checkout."
+        },
+        {
+          "name": "catalog",
+          "signature": "catalog() -> tuple",
+          "doc": "Every catalog entry. Absence is a packaging fault, not a user error."
+        },
+        {
+          "name": "_safe",
+          "signature": "_safe(segment: str) -> str",
+          "doc": "One path segment, with anything that could leave the directory removed."
+        },
+        {
+          "name": "dataset_dir",
+          "signature": "dataset_dir(entry: Mapping[str, Any]) -> str",
+          "doc": "Where a catalog entry unpacks, relative to the store's data directory."
+        },
+        {
+          "name": "readable",
+          "signature": "readable() -> dict",
+          "doc": "`{id: item}` for everything the catalog says can be opened."
+        },
+        {
+          "name": "default_resources_dir",
+          "signature": "default_resources_dir() -> Path",
+          "doc": "The `resources` directory inside the store."
+        },
+        {
+          "name": "legacy_resources_dirs",
+          "signature": "legacy_resources_dirs() -> tuple",
+          "doc": "Where registrations lived before #217, so `sp doctor` can carry them across."
+        },
+        {
+          "name": "data_dir",
+          "signature": "data_dir() -> Path",
+          "doc": "Where the corpora live."
+        },
+        {
+          "name": "legacy_data_dir",
+          "signature": "legacy_data_dir() -> Path",
+          "doc": "`~/.sp/data`, where corpora lived before they were made visible."
+        },
+        {
+          "name": "resolve_path",
+          "signature": "resolve_path(definition: Mapping[str, Any]) -> Path",
+          "doc": "The file a definition points at."
+        },
+        {
+          "name": "load_registered",
+          "signature": "load_registered(directory: Any = None) -> dict",
+          "doc": "Every registration this machine holds. Absence is normal; a fresh machine has none."
+        },
+        {
+          "name": "register",
+          "signature": "register(identifier: str, download: bool = True) -> Path",
+          "doc": "Write this machine's registration for one catalog resource, and return its path."
+        },
+        {
+          "name": "installed_version",
+          "signature": "installed_version(directory: Any) -> Optional[dict]",
+          "doc": "What was fetched into *directory*, or None if nothing recorded it."
+        },
+        {
+          "name": "record_version",
+          "signature": "record_version(directory: Any, **fields) -> Path",
+          "doc": "Write the record of what was just fetched."
+        },
+        {
+          "name": "_write_registration",
+          "signature": "_write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> Path",
+          "doc": "Write one registration, unlocking the store around it."
+        },
+        {
+          "name": "register_local",
+          "signature": "register_local(identifier: str, path: Any, kind: Optional[str] = None, versification: Optional[str] = None, name: Optional[str] = None) -> Path",
+          "doc": "Register something this machine already has, by its path."
+        },
+        {
+          "name": "report",
+          "signature": "report() -> list",
+          "doc": "One row per readable resource: what it is, where it comes from, and its status."
+        },
+        {
+          "name": "status",
+          "signature": "status(identifier: str, registered: Optional[Mapping[str, Any]] = None) -> str",
+          "doc": "`registered`, `available` or `absent` for one catalog id."
         }
       ]
     },
@@ -1122,6 +1321,7 @@
         "enum",
         "llmflow",
         "llmflow.file_catalog",
+        "llmflow.resources",
         "llmflow.utils.versification",
         "pathlib",
         "shutil",
@@ -1162,6 +1362,26 @@
           "name": "_repair_group",
           "signature": "_repair_group(entries: list[Entry], root: Path, restore_when_absent: bool) -> tuple[list[str], list[str], list[str]]",
           "doc": "Restore the entries that need it."
+        },
+        {
+          "name": "_migrate_resources_dir",
+          "signature": "_migrate_resources_dir(sp_home: Path) -> Optional[Check]",
+          "doc": "Carry `~/.sp/editions/` across to `~/.sp/resources/` (#217)."
+        },
+        {
+          "name": "_migrate_data_dir",
+          "signature": "_migrate_data_dir(sp_home: Path) -> Optional[Check]",
+          "doc": "Carry `~/.sp/data/` out to the visible resource directory (#217)."
+        },
+        {
+          "name": "_store_location_check",
+          "signature": "_store_location_check() -> Optional[Check]",
+          "doc": "Warn about a redirected store or data directory (#217)."
+        },
+        {
+          "name": "_resources_check",
+          "signature": "_resources_check(sp_home: Path) -> Check",
+          "doc": "Report what this machine has registered, and whether it still resolves."
         },
         {
           "name": "_group_check",
@@ -1634,6 +1854,7 @@
       "imports": [
         "__future__",
         "dataclasses",
+        "functools",
         "json",
         "llmflow",
         "llmflow.modules.logger",
@@ -1648,9 +1869,44 @@
           "doc": ""
         },
         {
-          "name": "parse_reference",
-          "signature": "parse_reference(reference: str) -> tuple[str, int, int, str]",
-          "doc": "Split a single-verse reference into book, chapter, verse and segment letter."
+          "name": "packaged_mappings_dir",
+          "signature": "packaged_mappings_dir() -> Path",
+          "doc": "The schemes bundled in the wheel, reachable without a store or an edition."
+        },
+        {
+          "name": "packaged_scheme_names",
+          "signature": "packaged_scheme_names() -> tuple",
+          "doc": "Every scheme name the package ships, from the directory rather than a second list."
+        },
+        {
+          "name": "packaged_scheme",
+          "signature": "packaged_scheme(name: str) -> Scheme",
+          "doc": "A shipped scheme, read once per process — the parser consults one on every call."
+        },
+        {
+          "name": "parse_passage_ref",
+          "signature": "parse_passage_ref(passage: str) -> PassageRef",
+          "doc": "Parse ``\"MRK 1:1-8\"`` and friends."
+        },
+        {
+          "name": "_split_tail",
+          "signature": "_split_tail(text: str)",
+          "doc": "`(\"Mark\", <1:40-2:12>)`. The tail is the last token when it has the numeric shape."
+        },
+        {
+          "name": "_book_code",
+          "signature": "_book_code(written: str)",
+          "doc": "The USFM code *written* names, whether it was written as a name or as a code."
+        },
+        {
+          "name": "_refuse",
+          "signature": "_refuse(passage: str, text: str) -> NoReturn",
+          "doc": ""
+        },
+        {
+          "name": "as_single_verse",
+          "signature": "as_single_verse(reference: str) -> tuple",
+          "doc": "*reference* as (book, chapter, verse, part), refusing anything that is not one verse."
         },
         {
           "name": "format_reference",
@@ -1706,6 +1962,11 @@
           "name": "contains",
           "signature": "contains(self, book: str, chapter: int, verse: int) -> bool",
           "doc": "Whether the scheme's own `maxVerses` covers this reference."
+        },
+        {
+          "name": "covers",
+          "signature": "covers(self, chapter: int, verse: int) -> bool",
+          "doc": ""
         }
       ]
     },
@@ -2450,13 +2711,82 @@
       ]
     },
     {
+      "module": "llmflow.utils.discourse",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "enum",
+        "llmflow.modules.logger",
+        "pathlib",
+        "re",
+        "typing",
+        "unicodedata"
+      ],
+      "functions": [
+        {
+          "name": "normalize_greek",
+          "signature": "normalize_greek(text: Optional[str]) -> str",
+          "doc": "Fold a Greek word to a form safe to compare: no diacritics, lowercase, no edge marks."
+        },
+        {
+          "name": "osis_to_usfm",
+          "signature": "osis_to_usfm(book: str) -> str",
+          "doc": "The USFM code for an OSIS book code."
+        },
+        {
+          "name": "parse_osis_ref",
+          "signature": "parse_osis_ref(osis_ref: str) -> tuple[str, int, int, int]",
+          "doc": "`Mark.1.14!3` as (USFM book, chapter, verse, 1-based word index)."
+        },
+        {
+          "name": "_phrase",
+          "signature": "_phrase(quote: Optional[str]) -> list[str]",
+          "doc": ""
+        },
+        {
+          "name": "_matches_at",
+          "signature": "_matches_at(words: Sequence[str], phrase: Sequence[str], start: int) -> bool",
+          "doc": "Whether *phrase* matches at *start*, allowing it to run past the verse end."
+        },
+        {
+          "name": "_positions",
+          "signature": "_positions(words: Sequence[str], phrase: Sequence[str]) -> list[int]",
+          "doc": ""
+        },
+        {
+          "name": "resolve_citation",
+          "signature": "resolve_citation(rows: Sequence[Mapping[str, Any]], word_index: int, quote: Optional[str]) -> Resolution",
+          "doc": "Reconcile one citation's index with its quote against one verse's rows."
+        },
+        {
+          "name": "load_citations",
+          "signature": "load_citations(lgntdf_dir: Any) -> dict",
+          "doc": "Every citation in a directory of LGNTDF feature files, keyed by `\"BOOK c:v\"`."
+        },
+        {
+          "name": "resolve_verse",
+          "signature": "resolve_verse(citations: Sequence[Citation], rows: Sequence[Mapping[str, Any]]) -> list",
+          "doc": "One verse's citations as payload items, each carrying the word id and the outcome."
+        },
+        {
+          "name": "identifier",
+          "signature": "identifier(at: int) -> Optional[str]",
+          "doc": ""
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.file_io",
       "imports": [
+        "csv",
+        "io",
         "json",
         "llmflow.modules.logger",
         "pathlib",
         "traceback",
-        "typing"
+        "typing",
+        "unicodedata",
+        "yaml"
       ],
       "functions": [
         {
@@ -2465,9 +2795,59 @@
           "doc": ""
         },
         {
+          "name": "_element_or_none",
+          "signature": "_element_or_none(content: Any)",
+          "doc": "*content* as an lxml element, or None."
+        },
+        {
+          "name": "resolve_format",
+          "signature": "resolve_format(fmt: Optional[str], path: str, content: Any) -> str",
+          "doc": "The writer to use, from an explicit format or from the path."
+        },
+        {
+          "name": "_as_json",
+          "signature": "_as_json(content: Any) -> str",
+          "doc": "JSON, re-parsing a string that already holds JSON so it is not double-encoded."
+        },
+        {
+          "name": "_as_yaml",
+          "signature": "_as_yaml(content: Any) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_as_text",
+          "signature": "_as_text(content: Any) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_as_markdown",
+          "signature": "_as_markdown(content: Any) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_as_delimited",
+          "signature": "_as_delimited(content: Any, delimiter: str, name: str) -> str",
+          "doc": "Rows as delimited text. A mapping per row takes its header from the first row's keys."
+        },
+        {
+          "name": "_as_xml",
+          "signature": "_as_xml(content: Any) -> str",
+          "doc": "XML from an element, or a string checked for well-formedness."
+        },
+        {
+          "name": "_as_usx",
+          "signature": "_as_usx(content: Any) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_as_usfm",
+          "signature": "_as_usfm(content: Any) -> str",
+          "doc": ""
+        },
+        {
           "name": "save_content_to_file",
           "signature": "save_content_to_file(content: Any, path: str, format: Optional[str] = None) -> str",
-          "doc": "Save content to file with optional format specification."
+          "doc": "Serialise *content* to *path*, in NFC."
         }
       ]
     },
@@ -2783,6 +3163,11 @@
           "doc": ""
         },
         {
+          "name": "_lint_step_enums",
+          "signature": "_lint_step_enums(step, errors)",
+          "doc": "Check values the schema constrains to an enum."
+        },
+        {
           "name": "_lint_step_keys",
           "signature": "_lint_step_keys(step, errors)",
           "doc": "Validate a step's keys against the schema's per-type vocabulary."
@@ -2828,7 +3213,7 @@
       "imports": [
         "__future__",
         "csv",
-        "dataclasses",
+        "json",
         "llmflow.modules.logger",
         "llmflow.utils",
         "lxml",
@@ -2838,9 +3223,29 @@
       ],
       "functions": [
         {
-          "name": "parse_passage_ref",
-          "signature": "parse_passage_ref(passage: str) -> PassageRef",
-          "doc": "Parse ``\"MRK 1:1-8\"`` and friends."
+          "name": "_family_table",
+          "signature": "_family_table() -> Mapping[str, Any]",
+          "doc": ""
+        },
+        {
+          "name": "_family",
+          "signature": "_family(name: str) -> Mapping[str, Any]",
+          "doc": ""
+        },
+        {
+          "name": "family_columns",
+          "signature": "family_columns(name: str) -> tuple",
+          "doc": "The source columns *name* carries, across every edition it serves."
+        },
+        {
+          "name": "family_is_per_word",
+          "signature": "family_is_per_word(name: str) -> bool",
+          "doc": "Whether *name* annotates individual words, and so needs `ids` to be joinable."
+        },
+        {
+          "name": "family_usx_attributes",
+          "signature": "family_usx_attributes(name: str) -> Mapping[str, Sequence[str]]",
+          "doc": "Fields USX already defines on a word node, and the source columns that fill each."
         },
         {
           "name": "_split_ref",
@@ -2878,14 +3283,19 @@
           "doc": ""
         },
         {
+          "name": "_data_path",
+          "signature": "_data_path(filename: str) -> Path",
+          "doc": "Locate a shipped data file whether running from an installed wheel or a dev checkout."
+        },
+        {
           "name": "_edition_table_path",
           "signature": "_edition_table_path() -> Path",
-          "doc": "Locate the table whether running from an installed wheel or a dev checkout."
+          "doc": ""
         },
         {
           "name": "_known_editions",
           "signature": "_known_editions() -> dict",
-          "doc": ""
+          "doc": "Editions whose scheme can be answered from a name alone, catalog first."
         },
         {
           "name": "_paratext_scheme",
@@ -2898,13 +3308,18 @@
           "doc": "*passage*, named in *requested_scheme*, rewritten as the edition numbers it."
         },
         {
+          "name": "check_include",
+          "signature": "check_include(include: Any, fmt: str) -> tuple",
+          "doc": "Validate `include` against `fmt` and return it as a tuple. See §4's lint rules."
+        },
+        {
           "name": "rows_to_output",
-          "signature": "rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str) -> str | dict",
+          "signature": "rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None) -> str | dict",
           "doc": "The requested representation of *rows*: a string, or a USJ document for ``fmt=\"usj\"``."
         },
         {
           "name": "rows_to_usj",
-          "signature": "rows_to_usj(rows: Sequence[Mapping[str, Any]], book: str) -> dict",
+          "signature": "rows_to_usj(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None) -> dict",
           "doc": "*rows* as a USJ document: the book, a chapter node per chapter, one `para` inside each."
         },
         {
@@ -2948,14 +3363,9 @@
           "doc": "Running text for *passage* in *edition* — the whole job in one call."
         },
         {
-          "name": "default_editions_dir",
-          "signature": "default_editions_dir() -> Path",
-          "doc": "The `editions` directory inside the store (#207)."
-        },
-        {
           "name": "load_registry_editions",
           "signature": "load_registry_editions(editions_dir: Any = None) -> dict",
-          "doc": "Read every edition definition. Absence is normal; a fresh machine has none."
+          "doc": "Every registration this machine holds, with dataset-relative paths resolved."
         },
         {
           "name": "_usfm_passage_text",
@@ -2969,13 +3379,18 @@
         },
         {
           "name": "_tei_passage_text",
-          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, edition: str) -> str | dict",
+          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, edition: str, include: Sequence[str] = (), versification: Optional[str] = None) -> str | dict",
           "doc": "Running text for *passage* from a directory of per-book TEI files."
         },
         {
           "name": "edition_text",
-          "signature": "edition_text(edition: str, passage: str, fmt: str = 'milestones', editions: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None) -> str | dict",
+          "signature": "edition_text(edition: str, passage: str, fmt: str = 'milestones', editions: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None, include: Any = ()) -> str | dict",
           "doc": "Running text for *passage* in *edition*, dispatched on the edition's `kind`."
+        },
+        {
+          "name": "discourse_payload",
+          "signature": "discourse_payload(definition: Any, rows: Sequence[Mapping[str, Any]], edition: str) -> Optional[list]",
+          "doc": "Levinsohn items for *rows*, or None when this edition has no discourse source."
         },
         {
           "name": "__str__",
@@ -2983,14 +3398,19 @@
           "doc": ""
         },
         {
-          "name": "covers",
-          "signature": "covers(self, chapter: int, verse: int) -> bool",
-          "doc": ""
-        },
-        {
           "name": "moved",
           "signature": "moved(chapter: Optional[int], verse: Optional[int]) -> tuple[int, int]",
           "doc": ""
+        },
+        {
+          "name": "annotate",
+          "signature": "annotate(row: Mapping[str, Any]) -> None",
+          "doc": "Collect a word's declared columns, verbatim, skipping the ones it leaves empty."
+        },
+        {
+          "name": "emit",
+          "signature": "emit(target: list, group: Sequence[Mapping[str, Any]]) -> None",
+          "doc": "Append a verse's material: one string, or a `w` node per word when ids are asked."
         },
         {
           "name": "walk",
@@ -3123,7 +3543,9 @@
       "module": "llmflow.utils.data",
       "imports": [
         "json",
+        "llmflow",
         "llmflow.modules.logger",
+        "llmflow.utils",
         "pathlib",
         "re",
         "yaml"
@@ -3155,8 +3577,18 @@
           "doc": "Ensure all arrays in structure have the same length"
         },
         {
+          "name": "_measuring_scheme",
+          "signature": "_measuring_scheme(book_code, requested, passage, extent_needed)",
+          "doc": "The scheme to measure *book_code* with, and whether *requested* itself defines it."
+        },
+        {
+          "name": "_check_reference",
+          "signature": "_check_reference(scheme, book_code, pairs, passage)",
+          "doc": "Refuse a chapter or verse the scheme does not have. Verse 0 is a superscription."
+        },
+        {
           "name": "parse_bible_reference",
-          "signature": "parse_bible_reference(passage)",
+          "signature": "parse_bible_reference(passage, versification = DEFAULT_REQUEST_VERSIFICATION, source_versification = None)",
           "doc": "Parse a Bible reference and return comprehensive range information."
         },
         {
@@ -4313,7 +4745,7 @@
     }
   ],
   "summary": {
-    "total_modules": 79,
-    "total_functions": 668
+    "total_modules": 82,
+    "total_functions": 743
   }
 }

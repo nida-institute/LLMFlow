@@ -64,6 +64,20 @@
 > summarising in place is right for a session cache, but a requirement has to move to a design
 > document rather than be shortened.
 
+### ⚠️ Paratext `custom.vrs` is detected and ignored → #222
+> **A project's own versification should win, and today it loses silently.** `_paratext_scheme`
+> finds a `custom.vrs`, warns that it will not read it, and uses the numbered scheme — so
+> references into such a project are wrong wherever the overlay changes something.
+>
+> The format is the three concepts `utils/versification.py` already models: 193 amended chapter
+> lengths, 465 mappings, 5 exclusions across 29 real files on this machine. A `custom.vrs` is a
+> Copenhagen scheme with `basedOn` set to the numbered one.
+>
+> The substance is not the parser but this: `edition_scheme()` returns a scheme *name* and
+> `map_reference` takes names, while an overlay has none. Synthetic name, or `Scheme` objects
+> through the API — that choice is the work. Scripture Burrito is #221 and follows, reusing
+> whatever shape this settles.
+
 ### 📖 Scripture editions — core landed, wiring incomplete → #200
 > Commits are parked on the **local** tag `wip/scripture-200` (`05d75a5`, `34c7931`) and are
 > **not on `dev`**, which was reset to `cb72cb7` so the release could ship without them.

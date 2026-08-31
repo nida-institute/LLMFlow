@@ -141,7 +141,15 @@ jobs:
           --include-data-dir=prompts=prompts \
           --include-data-dir=src/llmflow/templates=llmflow/templates \
           --include-data-dir=src/llmflow/gui/static=llmflow/gui/static \
+          --include-data-dir=docs/ai-context=llmflow/docs/ai-context \
+          --include-data-dir=docs/audits=llmflow/docs/audits \
           --include-data-file=data/models.json=llmflow/data/models.json \
+          --include-data-file=data/file-catalog.yaml=llmflow/data/file-catalog.yaml \
+          --include-data-file=data/ai-rules.yaml=llmflow/data/ai-rules.yaml \
+          --include-data-file=data/versification-editions.json=llmflow/data/versification-editions.json \
+          --include-data-file=data/include-families.json=llmflow/data/include-families.json \
+          --include-data-file=data/resources.json=llmflow/data/resources.json \
+          --include-data-file=data/book-names.json=llmflow/data/book-names.json \
           --include-distribution-metadata=scripture-pipelines \
           --include-package=certifi \
           --include-package-data=certifi \
@@ -152,7 +160,7 @@ jobs:
     - name: Build with Nuitka (Windows)
       if: runner.os == 'Windows'
       run: |
-        python -m nuitka --standalone --onefile --assume-yes-for-downloads --windows-dependency-tool=pefile --enable-plugin=dll-files --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=src/llmflow/templates=llmflow/templates --include-data-dir=src/llmflow/gui/static=llmflow/gui/static --include-data-file=data/models.json=llmflow/data/models.json --include-distribution-metadata=scripture-pipelines --include-package=certifi --include-package-data=certifi --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
+        python -m nuitka --standalone --onefile --assume-yes-for-downloads --windows-dependency-tool=pefile --enable-plugin=dll-files --include-package=llmflow --include-package=llm --include-package-data=puremagic --include-package-data=llm --include-package=llm_anthropic --include-package=llm_gemini --include-data-dir=prompts=prompts --include-data-dir=src/llmflow/templates=llmflow/templates --include-data-dir=src/llmflow/gui/static=llmflow/gui/static --include-data-dir=docs/ai-context=llmflow/docs/ai-context --include-data-dir=docs/audits=llmflow/docs/audits --include-data-file=data/file-catalog.yaml=llmflow/data/file-catalog.yaml --include-data-file=data/ai-rules.yaml=llmflow/data/ai-rules.yaml --include-data-file=data/versification-editions.json=llmflow/data/versification-editions.json --include-data-file=data/include-families.json=llmflow/data/include-families.json --include-data-file=data/resources.json=llmflow/data/resources.json --include-data-file=data/book-names.json=llmflow/data/book-names.json --include-data-file=data/models.json=llmflow/data/models.json --include-distribution-metadata=scripture-pipelines --include-package=certifi --include-package-data=certifi --output-dir=nuitka_dist --output-filename=${{ matrix.artifact_name }} src/llmflow/cli.py
 
     - name: Smoke test binary (Unix)
       if: runner.os != 'Windows'
@@ -162,6 +170,10 @@ jobs:
         if grep -qi unknown version.txt; then echo "::error::sp --version returned 'unknown' — package metadata not bundled (#184)"; exit 1; fi
         $BIN lint --pipeline tests/fixtures/smoke.yaml
         $BIN run --pipeline tests/fixtures/smoke.yaml --dry-run
+        # Reads the bundled data/file-catalog.yaml. --version and lint do not, which is
+        # why a binary missing it shipped green (#216).
+        $BIN doctor > doctor.txt || { echo "::error::sp doctor failed on the binary"; cat doctor.txt; exit 1; }
+        grep -qi "versification" doctor.txt || { echo "::error::sp doctor did not report the versification mappings — bundled data missing?"; cat doctor.txt; exit 1; }
 
     - name: Smoke test binary (Windows)
       if: runner.os == 'Windows'
@@ -171,8 +183,24 @@ jobs:
         $ver = & $bin --version
         Write-Output $ver
         if ($ver -match "unknown") { Write-Error "sp --version returned 'unknown' — package metadata not bundled (#184)"; exit 1 }
+        # PowerShell does not stop on a native command's non-zero exit, and the bash step gets
+        # that for free from `set -e`. Without an explicit check each command's failure is
+        # invisible: `sp lint` crashed here with a UnicodeEncodeError and the step carried on,
+        # reported only because `doctor` happened to fail too.
         & $bin lint --pipeline tests/fixtures/smoke.yaml
+        if ($LASTEXITCODE -ne 0) { Write-Error "sp lint failed on the binary"; exit 1 }
         & $bin run --pipeline tests/fixtures/smoke.yaml --dry-run
+        if ($LASTEXITCODE -ne 0) { Write-Error "sp run --dry-run failed on the binary"; exit 1 }
+        # Reads the bundled data/file-catalog.yaml, which --version and lint do not (#216).
+        $doc = & $bin doctor 2>&1
+        Write-Output $doc
+        if ($LASTEXITCODE -ne 0) { Write-Error "sp doctor failed on the binary"; exit 1 }
+        # Join before matching. With an array on the left, PowerShell's comparison operators
+        # *filter* rather than test: `$doc -notmatch "x"` returns every line lacking x, and a
+        # non-empty array is truthy — so the check fired whenever doctor printed more than one
+        # line, which is always. It had never run to completion before, so nobody saw it.
+        $docText = $doc | Out-String
+        if ($docText -notmatch "ersification") { Write-Error "sp doctor did not report the versification mappings — bundled data missing?"; exit 1 }
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v4

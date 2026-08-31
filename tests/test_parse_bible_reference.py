@@ -38,6 +38,10 @@ class TestParseBibleReference:
             "filename_prefix": "19023001-19023006",
             "display_name": "Psalms-23",
             "canonical_reference": "Psalms 23:1-6",
+            "requested_versification": "eng",
+            "source_versification": None,
+            "extent_versification": "eng",
+            "book_in_versification": True,
             "testament": "OT",
             "original_language": "Hebrew",
         }
@@ -59,6 +63,10 @@ class TestParseBibleReference:
             "filename_prefix": "42001005-42001025",
             "display_name": "Luke-1-5-25",
             "canonical_reference": "Luke 1:5-25",
+            "requested_versification": "eng",
+            "source_versification": None,
+            "extent_versification": None,
+            "book_in_versification": True,
             "testament": "NT",
             "original_language": "Greek",
         }
@@ -80,6 +88,10 @@ class TestParseBibleReference:
             "filename_prefix": "43003016-43003016",
             "display_name": "John-3-16",
             "canonical_reference": "John 3:16",
+            "requested_versification": "eng",
+            "source_versification": None,
+            "extent_versification": None,
+            "book_in_versification": True,
             "testament": "NT",
             "original_language": "Greek",
         }
@@ -177,16 +189,11 @@ class TestParseBibleReference:
             ("Psalm 23", "Psalms 23:1-6"),  # Changed from 176
             ("Luke 1:5-25", "Luke 1:5-25"),
             ("John 3:16", "John 3:16"),
-            ("Genesis 1", "Genesis 1:1-999"),  # Estimated
+            ("Genesis 1", "Genesis 1:1-31"),
         ]
 
         for passage, expected_canonical in test_cases:
-            result = parse_bible_reference(passage)
-            # For estimated verse counts, just check pattern
-            if expected_canonical.endswith("999"):
-                assert result["canonical_reference"].startswith("Genesis 1:1-")
-            else:
-                assert result["canonical_reference"] == expected_canonical
+            assert parse_bible_reference(passage)["canonical_reference"] == expected_canonical
 
     def test_invalid_book_names(self):
         """Test that invalid book names raise ValueError"""
@@ -386,15 +393,10 @@ class TestParseBibleReference:
             assert result["book_number"] == expected_number
             assert result["book_name"] == expected_display
 
-    def test_verse_count_estimation(self):
-        """Test verse count estimation for whole chapters"""
-        # Psalm 23 has 6 verses
-        result_psalm_23 = parse_bible_reference("Psalm 23")
-        assert result_psalm_23["end_verse"] == 6  # Actual verses in Psalm 23
-
-        # Test estimated verse counts (should be 999 for unknown)
-        result_unknown = parse_bible_reference("Leviticus 23")
-        assert result_unknown["end_verse"] == 999  # Default estimate
+    def test_verse_counts_come_from_the_scheme(self):
+        """Every book is resolved from `maxVerses`, not from a table of a few known ones."""
+        assert parse_bible_reference("Psalm 23")["end_verse"] == 6
+        assert parse_bible_reference("Leviticus 23")["end_verse"] == 44
 
     def test_filename_prefix_format_consistency(self):
         """Test that filename prefix format is consistent"""
@@ -484,18 +486,26 @@ class TestParseBibleReference:
         assert "Could not parse Bible reference" in str(exc_info.value)
 
     def test_ambiguous_abbreviation_handling(self):
-        """Test specific handling of ambiguous abbreviations"""
-        # Add real test cases if your function supports this
-        # Based on your code, "ph" could be Philippians or Philemon
-        if hasattr(parse_bible_reference, "_handles_ambiguous_abbreviations"):
-            with pytest.raises(ValueError) as exc_info:
-                parse_bible_reference("ph 1:1")
-            assert "Ambiguous" in str(exc_info.value)
-            assert "Philippians" in str(exc_info.value)
-            assert "Philemon" in str(exc_info.value)
-        else:
-            # Skip this test if ambiguous abbreviation handling isn't implemented
-            pytest.skip("Ambiguous abbreviation handling not implemented")
+        """An abbreviation naming two books is refused, and both are named.
+
+        This test used to skip itself behind a `hasattr` on an attribute that never existed, so
+        it asserted nothing while reading as coverage. The behaviour it describes is real:
+        `ph` is Philippians or Philemon, and picking one silently sends the pipeline to the
+        wrong text.
+        """
+        with pytest.raises(ValueError) as exc_info:
+            parse_bible_reference("ph 1:1")
+        message = str(exc_info.value)
+        assert "Ambiguous" in message
+        assert "Philippians" in message
+        assert "Philemon" in message
+
+    def test_an_ambiguous_abbreviation_is_not_merely_unrecognised(self):
+        """"I do not know that book" and "say which one you mean" are different answers."""
+        with pytest.raises(ValueError, match="Ambiguous"):
+            parse_bible_reference("p 1:1")
+        with pytest.raises(ValueError, match="Unrecognized"):
+            parse_bible_reference("Notabook 1:1")
 
     def test_performance_with_long_inputs(self):
         """Test performance doesn't degrade with longer book names"""
@@ -621,3 +631,119 @@ def test_psalm_pipeline_verse_content_mismatch():
     and produces separate leaders guide outputs for each verse/scene.
     """
     pass  # Implement this test with the real pipeline setup
+
+
+class TestVersificationResolution:
+    """`end_verse` for a whole chapter comes from a named scheme's `maxVerses` (#218).
+
+    The scheme is the one the *request* is written in — a fact about the person who typed it,
+    defaulting to `eng`. The scheme the *text* is numbered in is a property of an edition, which
+    this function never has, so it is recorded and never resolved against.
+    """
+
+    def test_a_whole_chapter_gets_its_real_last_verse(self):
+        assert parse_bible_reference("Mark 3")["end_verse"] == 35
+
+    def test_no_reference_resolves_to_the_999_sentinel(self):
+        for passage in ("Genesis 1", "Leviticus 23", "3 John 1", "Mark 3"):
+            assert parse_bible_reference(passage)["end_verse"] != 999
+
+    def test_the_canonical_reference_carries_the_real_extent(self):
+        assert parse_bible_reference("Genesis 1")["canonical_reference"] == "Genesis 1:1-31"
+
+    def test_the_default_request_scheme_is_english(self):
+        assert parse_bible_reference("Psalm 3")["requested_versification"] == "eng"
+
+    def test_a_named_scheme_changes_the_extent(self):
+        """`org` counts the superscription as verse 1, so the psalm is one verse longer."""
+        assert parse_bible_reference("Psalm 3")["end_verse"] == 8
+        assert parse_bible_reference("Psalm 3", versification="org")["end_verse"] == 9
+
+    def test_the_source_scheme_is_recorded_and_never_resolved_against(self):
+        """This function has no edition, so a source scheme is an echo for the reader."""
+        result = parse_bible_reference("Psalm 3", source_versification="org")
+        assert result["source_versification"] == "org"
+        assert result["requested_versification"] == "eng"
+        assert result["end_verse"] == 8  # still the requested scheme's count
+
+    def test_a_source_scheme_is_absent_unless_the_caller_names_one(self):
+        assert parse_bible_reference("Psalm 3")["source_versification"] is None
+
+    def test_the_extent_names_the_scheme_it_came_from(self):
+        assert parse_bible_reference("Mark 3")["extent_versification"] == "eng"
+
+    def test_a_reference_needing_no_extent_resolves_none(self):
+        """The end verse is as written, so no scheme was consulted for it."""
+        assert parse_bible_reference("Mark 3:14")["extent_versification"] is None
+
+    def test_a_whole_book_needs_no_extent(self):
+        result = parse_bible_reference("Romans")
+        assert result["end_verse"] is None
+        assert result["extent_versification"] is None
+
+
+class TestUsfmCodesAreAccepted:
+    """The prescribed parser rejected `MRK 3:14` while knowing the code for every name it took."""
+
+    def test_a_usfm_code_parses(self):
+        result = parse_bible_reference("MRK 3:14")
+        assert result["book_code"] == "MRK"
+        assert result["chapter"] == 3
+        assert result["start_verse"] == 14
+
+    def test_every_usfm_code_the_table_knows_is_accepted(self):
+        for code in ("GEN", "PSA", "SNG", "MRK", "JHN", "PHP", "1JN", "REV"):
+            assert parse_bible_reference(f"{code} 1:1")["book_code"] == code
+
+    def test_a_code_and_its_display_name_agree(self):
+        assert parse_bible_reference("MRK 1:1") == parse_bible_reference("Mark 1:1")
+
+
+class TestOutOfRangeIsRefused:
+    """`maxVerses` makes an impossible reference an error rather than a plausible answer."""
+
+    def test_a_verse_beyond_the_chapter_is_refused(self):
+        with pytest.raises(ValueError, match="MRK 3.*35 verses.*eng"):
+            parse_bible_reference("Mark 3:99")
+
+    def test_a_chapter_beyond_the_book_is_refused(self):
+        with pytest.raises(ValueError, match="MRK.*16 chapters.*eng"):
+            parse_bible_reference("Mark 99:1")
+
+    def test_the_end_of_a_range_is_checked_too(self):
+        with pytest.raises(ValueError, match="MRK 3"):
+            parse_bible_reference("Mark 3:1-99")
+
+    def test_a_verse_valid_in_one_scheme_and_not_another(self):
+        """`PSA 3:9` exists in `org` and not in `eng`; the error must name the scheme it used."""
+        with pytest.raises(ValueError, match="eng"):
+            parse_bible_reference("Psalm 3:9")
+        assert parse_bible_reference("Psalm 3:9", versification="org")["start_verse"] == 9
+
+    def test_a_superscription_is_verse_zero_and_is_allowed(self):
+        assert parse_bible_reference("Psalm 3:0", versification="org")["start_verse"] == 0
+
+
+class TestABookTheSchemeDoesNotDefine:
+    """Three cases, ruled in the design: resolve from one, refuse two, or parse without extent."""
+
+    def test_extent_from_a_scheme_lacking_the_book_names_the_candidates(self):
+        """`lxx` does not define `NEH`, and several other schemes do — so it refuses."""
+        with pytest.raises(ValueError, match="NEH.*lxx"):
+            parse_bible_reference("Nehemiah 1", versification="lxx")
+
+    def test_the_refusal_lists_the_schemes_that_could_answer(self):
+        with pytest.raises(ValueError, match="eng"):
+            parse_bible_reference("Nehemiah 1", versification="lxx")
+
+    def test_no_extent_needed_parses_and_records_the_gap(self):
+        result = parse_bible_reference("Nehemiah 1:1", versification="lxx")
+        assert result["book_in_versification"] is False
+        assert result["start_verse"] == 1
+
+    def test_a_book_the_scheme_defines_is_recorded_as_present(self):
+        assert parse_bible_reference("Mark 3:14")["book_in_versification"] is True
+
+    def test_a_gap_is_warned_about(self, caplog):
+        parse_bible_reference("Nehemiah 1:1", versification="lxx")
+        assert "NEH" in caplog.text

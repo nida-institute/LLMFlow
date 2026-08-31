@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "why": [
+    "What each `include:` family delivers, as source column names. Greek and Hebrew are different",
+    "languages and their analyses differ, so a family is edition-shaped: it emits whichever of its",
+    "columns the edition actually has, and nothing merges the two ontologies. A Greek verb has",
+    "tense, voice and mood; a Hebrew verb has stem and state. A Greek sense is a Louw-Nida number;",
+    "a Hebrew sense is an SDBH domain. Declaring both sets under one family lets the same code",
+    "serve both editions without knowing anything about either language.",
+    "",
+    "Container field names are the source's column names, verbatim. Nothing here is a name we",
+    "invented, so any field a consumer receives can be traced back to a column.",
+    "",
+    "`morph` is deliberately absent from `morphology`. Both editions carry it as a packed string",
+    "duplicating the decomposed columns beside it, and shipping the same information twice costs",
+    "payload for no reader."
+  ],
+
+  "families": {
+    "ids": {
+      "purpose": "The word's source identifier, so annotation can be joined back to the text.",
+      "columns": ["xml:id"],
+      "per_word": false
+    },
+    "morphology": {
+      "purpose": "Grammatical analysis per word, in whatever categories the edition analyses.",
+      "columns": [
+        "class", "role", "type", "person", "number", "gender",
+        "case", "tense", "voice", "mood", "degree",
+        "stem", "state", "pos", "lang"
+      ],
+      "usx_attributes": {"lemma": ["lemma"], "strong": ["strong", "strongnumberx"]},
+      "per_word": true
+    },
+    "senses": {
+      "purpose": "Lexical semantic domain per word, in the edition's own sense system.",
+      "columns": [
+        "domain", "ln",
+        "lexdomain", "contextualdomain", "coredomain", "sdbh", "sensenumber"
+      ],
+      "per_word": true
+    },
+    "glosses": {
+      "purpose": "Word-level glosses, for a reader or a prompt rather than for analysis.",
+      "columns": ["gloss", "english", "mandarin"],
+      "per_word": true
+    },
+    "referents": {
+      "purpose": "Participant reference, the strongest cohesion signal above the clause.",
+      "columns": ["referent", "participantref", "subjref"],
+      "per_word": true
+    },
+    "discourse": {
+      "purpose": "Discourse features and notes, resolved against the text being read.",
+      "columns": [],
+      "per_word": false
+    },
+    "syntax": {
+      "purpose": "Syntactic structure. Not implemented.",
+      "columns": [],
+      "per_word": false
+    }
+  },
+
+  "notes": {
+    "lang": "Hebrew only, and not strictly morphology — it distinguishes Hebrew from Aramaic, which selects a different paradigm, so it travels with the analysis that depends on it.",
+    "usx_attributes": "`lemma` and `strong` are attributes USX already defines on a `char` element with marker `w`, so they go there rather than into the container. The list gives the source columns that fill each, in order of preference: Greek names its Strong's column `strong`, Hebrew names it `strongnumberx`. These two are the only renames anywhere in this file, and they exist because the destination is spec-defined.",
+    "not_carried": "`morph` (packed duplicate), `normalized` and `transliteration` (alternative forms of `text`), `frame` (syntactic frame, belongs with `syntax`), `greek` and `greekstrong` (Hebrew-to-Greek alignment, not a property of the Hebrew word), `stronglemma` (a lemma spelling of the Strong's entry), `mandarin` is carried under `glosses` alongside `english`."
+  }
+}

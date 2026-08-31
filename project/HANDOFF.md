@@ -1,156 +1,171 @@
-# HANDOFF — 2026-08-25 (evening)
+# HANDOFF — 2026-08-29
 
-Supersedes the morning's handoff of the same date.
-
----
-
-## ▶ NEXT ACTION — commit two repositories, then USJ
-
-**Nothing is committed in either repository.** Both are green and both are the human's to commit.
-
-```bash
-# 1. the engine — 106+ paths, suite green at 2970 passed / 26 skipped
-cd ~/github/nida-institute/LLMFlow
-git add -A -- . ':!project/plans/*' ':!project/HANDOFF.md' ':!project/REVIEW.md' ':!project/tmp-context.md'
-git commit -F tmp/commit-1-engine.txt
-hatch run pytest -q
-git add project/plans/ project/HANDOFF.md project/REVIEW.md project/tmp-context.md
-git commit -F tmp/commit-2-records.txt
-rm tmp/commit-1-engine.txt tmp/commit-2-records.txt
-
-# 2. discourse-flow — its ai-context migration, on top of in-flight work
-cd ~/github/nida-institute/discourse-flow
-git status --short          # migration + their own uncommitted work, tangled
-```
-
-`project/REVIEW.md` says what to read in the engine commit and in what order. It is current for
-the code but predates the catalog rulings recorded below.
+Supersedes 2026-08-28. **This repository is clean, committed and pushed.** HEAD is **`5cc5a23`**,
+`## dev...origin/dev` with nothing else. Version is **0.2.1.25**, the CHANGELOG has its dated
+section, and **PR #224 is open** awaiting the Windows build.
 
 ---
 
-## Done today
+## ▶ NEXT ACTION — merge and tag PR #224
 
-**The engine** — #207 (the suite writes only inside the repository, and nothing lands in
-`~/.sp`, `$TMPDIR` or `/private/tmp`), #210 (the ai-context layout), #211's writer loop, #214
-(the audit method ships), the template tree mirroring its destinations, the block warning, and
-`sp doctor --help` no longer claiming to be read-only.
+**[PR #224](https://github.com/nida-institute/LLMFlow/pull/224) is open**, `dev` → `main`. Its
+Build job compiles all three binaries and smoke-tests each; Linux and macOS passed, **Windows
+takes about an hour and three quarters** — 0.2.1.24's took 1h45m — so a run still in progress is
+normal, not stuck.
 
-**The catalog holds only what sp specifies** — `project.md` and the three `docs/audits/`
-checklists are gone from it, with their constants.
+The remaining steps are `project/RELEASE_CHECKLIST.md` §6–§9, and **each is the Captain's**:
 
-**`nida-institute/discourse-flow` is migrated** to the two-half layout: `project/` holds their
-index, overview, `project.md` and rules; `sp/` holds sp's five. Their 12 KB `project.md` moved
-inside `project/` by `git mv` and their map now names it — it was unreachable before. Four broken
-pointers repaired in `AGENTS.md`, `project/TODO.md` and `rst-implementation-plan.md`. Their 27
-doc-hygiene tests pass. **`CLAUDE.md` there is now writable** — it was `-r--r--r--` and crashed
-`sp init`; re-lock it if that was deliberate protection.
+1. Merge with a **merge commit**, not a squash.
+2. Tag **the merge commit** — delete any stale tag first; §7 records why.
+3. Watch **every** `release.yml` job. §8 is marked MANDATORY VERIFICATION, and #216 shipped
+   because only part of the build was checked.
 
-**#215 filed** — three defects in `sp init`'s write paths, found by that migration.
+**The first Windows build failed, and the bundling was not the reason.** `data/book-names.json`
+is fine — doctor got far enough to read the catalog and build a whole report before dying. Two
+things were wrong instead, both fixed and both needing a fresh build to confirm:
 
----
+- **The CLI could not print its own output on a Windows console.** `Report.render()` emits
+  `✓ · ! ✗`, an em dash and `→`; `sp lint` prints `✅`; the downloader prints `📥`. A Windows
+  console is cp1252 and encodes none of them, so both `sp lint` and `sp doctor` died with
+  `UnicodeEncodeError`. It surfaced only now because `doctor` was added to the smoke test in
+  `64727d9`, *after* 0.2.1.24 shipped — this was its first Windows run. Fixed once at the CLI
+  entry, so every command is covered rather than the two that happened to fail.
+- **The Windows smoke test did not check what it ran.** PowerShell does not stop on a native
+  command's non-zero exit, and only `doctor` had a `$LASTEXITCODE` check — so `sp lint` crashed,
+  printed a traceback, and the step carried on. The bash step gets that behaviour free from
+  `set -e`. Every invocation is now checked, with a guard counting invocations against checks.
 
-## USJ (#200) — both replies are in, and both change the design
+**So the next Windows run is stricter than the one that failed**, and may surface something the
+previous one hid.
 
-Neither had been read by any session before today. **Read the documents, not this summary,**
-before designing: `discourse-flow/collab/sp/2026-08-24-usj-is-coming.md` from §148, and
-`ears-to-hear/scriptorium/collab/sp/2026-08-24-usj-is-coming.md` from §141.
+### What real-machine testing found, and why it is worth repeating
 
-### The producer — `discourse-flow`, three blockers
+Running two commands on a real machine found **four defects that 3,687 passing tests did not**,
+all fixed in `5cc5a23`. Every one was invisible for the same reason: the suite builds a world
+that is writable, unlocked and mocked, and the machine this ships to is none of those.
 
-1. **Levinsohn has no home.** 33 LGNTDF discourse feature types, merged at
-   `plugins/milestone_content.py:183`, are derivable from none of the five families. They need a
-   sixth family *or* explicit permission to add a key to the `scripture_pipelines` container.
-   Either answer unblocks them; silence does not.
-2. **Variants, and it is an alignment problem rather than a file to load.** Levinsohn's indices
-   are NA28-family; where SBL chose differently the index silently names the wrong word — every
-   one of Mark's 147 mismatching citations falls in an apparatus-flagged verse, none in a clean
-   one. But the Logos apparatus is **verse-keyed prose**, so making it usable means aligning a
-   second witness into the word sequence and minting ids. Their narrow version: per verse, the
-   words NA28 has that SBLGNT does not, in order, addressable.
-3. **`morphology` must reach Macula's `role`, `class` and `type`** — syntactic, not inflection.
+| found by | defect |
+|---|---|
+| `sp doctor` | the migration could not move a directory inside the read-only store |
+| `sp resource add` | the fetcher kept its own idea of the data directory and unpacked where nothing reads |
+| `sp resource add` | that failure surfaced as an unhandled `PermissionError` traceback |
+| `sp resource add` | writing the registration hit the same lock — the move was fixed and the write was not |
+| the Windows build | the CLI could not encode its own output on a cp1252 console |
+| the Windows build | the smoke test ran three commands and checked one |
 
-**Also theirs:** inter-word material must survive exactly · id density is the caller's choice ·
-`include` defaults lean, opt in never opt out · `plain`/`milestones` must stay cheap, because
-synthesis cannot window and reads 32 KB instead of 1.3 MB · `passage:` needs word-id spans, not
-only chapter:verse · senses unnormalised, and they decline to answer for Hebrew · **they want no
-paragraph source at all** — they built one, ratified it, and reversed it.
+**Six now, and every one invisible to a green suite.** Four needed a real machine; two needed a
+real Windows binary. The pattern is worth carrying: the suite tests behaviour on a writable,
+unlocked, UTF-8, mocked machine, and none of those four adjectives describes where this ships.
 
-### The consumer — `ears-to-hear`, two corrections to our premise
+Then re-run end to end and verified: three registrations moved out of a locked `~/.sp/editions`,
+150MB fetched into `~/sp/resources/Clear-Bible/macula-greek`, and the registration written with a
+dataset-relative path, its scheme and its licence.
 
-1. **There are two USJ payloads per pericope**, not one: `source_text` and `translation` (BSB),
-   both USJ, 131/131 in Mark. A design modelling one text per step models half of what arrives.
-2. **What reaches them carries no word-level annotation at all** — no `char` nodes, no ids, no
-   morphology. So "you pay 4.26x for structure you then flatten" is not what happens there;
-   there is nothing to discard.
-
-**The cost figure needs a unit.** Same books, three ways of counting: Mark 2.56x codepoints,
-1.78x UTF-8 bytes, 6.74x escaped JSON. Our 4.26x sits in that band matching none of it. Our
-milestone figure they corroborate exactly at 1.072x.
-
-**Their real argument for the feature** is better than ours: four scripture-acquisition paths in
-one repo, two serializations of the same edition, and two hand-written milestone builders that
-**disagree on all 131 Mark pericopes** — Greek `after` replaces the space rather than
-accompanying it, and their code applies the Hebrew rule to both.
-
-**Two traps worth more than the rest:** Macula's verse milestones contradict their own tokens'
-`ref` for **1,501 of 11,286 Mark tokens, 100 of 673 verses** — derive milestones from each
-token's `ref`, never from nesting. And a hand-rolled USJ flattener silently drops what it does
-not recognise, so the moment `format: usj` ships anything richer than today's, every consumer
-with its own flattener starts losing text quietly.
-
-**And one finding that is not about USJ at all.** Their reader HTML ships a book's complete
-Greek or Hebrew text — 102,739 and 14,944 characters — with **zero attribution**, while SBLGNT
-as they consume it is CC BY 4.0. Our own catalogue note calling SBLGNT's licence restrictive is
-out of date for that copy: the condition is attribution, which is mechanically satisfiable. The
-exception is MARBLE sense data (`@ln`, `@domain`), held under permission rather than a licence,
-and it feeds their published background layer. No record of anyone checking before today. This
-is time-sensitive in a way the engine work is not — artifacts are being generated now.
-
-### Still the human's to rule
-
-§4.4 of `design-scripture-representations.md`, the Greek/Hebrew asymmetry — five `=>` remain
-open there. `discourse-flow` answered for Greek (unnormalised) and declined for Hebrew.
-`ears-to-hear`'s §7 lists five rulings they are waiting on, including whether they adopt
-`type: scripture` at all and whether pairing moves into the engine.
-
-Start from the parked tag `wip/scripture-200` (`0bb1d5b`), which is on the remote.
+**One path is still only tested against a temp directory:** `~/.sp/data/` → `~/sp/resources/`,
+which only a machine that fetched under the old layout will exercise. This machine never had
+`~/.sp/data`, so nobody has run it for real.
 
 ---
 
-## Open, recorded, not started
+## What landed today
 
-Four `=>` slots in `project/plans/design-one-source-for-shipped-files.md`: **Q3** what `scope`
-should be called, **Q5** which directory structure states the root, **Q6** whether a project may
-change a file in its own directory. Q1 and Q2 are closed.
+Nine commits, `a49fd1d` through `5cc5a23`:
 
-**#211's migration itself** — 19 constants, 1,047 lines, one pass as ruled. **#215** — the three
-`sp init` write-path defects. **`docs/ai-context/sp/index.md` is stale**, four entries having left
-the catalog. **The docstring sweep** — 21 test files and 7 modules still carry rulings and history
-in comments. **`ears-to-hear` has not been migrated** to the two-half layout; discourse-flow was
-the first.
+| | |
+|---|---|
+| `a49fd1d` | the shipped document says which `include:` families are built |
+| `e88f751` | reference resolution — extent from a named versification, one lean parser — #218 |
+| `e8369a8` | the hook that makes file reads go through `Read` |
+| `9c629ce` | `sp resource` — a catalog says how to open a text, the store says where it is — #217 |
+| `06f0767` | one declaration of book names, so `Mark 1:1-8` and `MRK 1:1-8` both work |
+| `860e627` | `data/book-names.json` shipped nowhere, and nothing could tell |
+| `2794d6f` | the discipline says which tools a session actually has |
+| `db3c4d7` | 0.2.1.25, and a guard so the changelog cannot be forgotten |
+| `461760a` | this handoff |
+| `5cc5a23` | four defects real-machine testing found and the suite could not |
 
-**Unread:** `discourse-flow/collab/sp/windowing-semantics-gap.md`, 482 lines.
+**Test state: 3688 passed, 24 skipped.** The only intermittent failure is
+`test_mcp.py::test_connection_to_biblica_server`, an `httpx.ReadTimeout` against a live server.
+It passes on some runs. Do not "fix" it by changing the test. Verify with
+`hatch run pytest tests/ -q --ignore=tests/integration`.
 
----
+## Decisions settled today — do not reopen
 
-## Verify
+**`sp resource` is the whole surface, and `sp download-data` is gone.** `list`, `add` (fetching
+by default, `--no-download` to skip, `--path` for a Paratext project or a text of your own),
+`download` for a resource no reader can open. The old command carried a four-entry catalog beside
+the public one; its `berean-usx` entry pointed at a 404.
 
-```bash
-hatch run pytest -q                              # 2970 passed, 26 skipped
-git status --short | wc -l                       # 106+
-gh issue view 215                                # the init write-path defects
-grep -c '^=>' project/plans/design-scripture-representations.md   # 5
-git ls-remote --tags origin wip/scripture-200    # 0bb1d5b
-```
+**The catalog is `resources.json` in `awesome-biblical-data`, vendored into the wheel.** It
+carries **shape, never state**: which file holds a text, which backend reads it, its versification
+and canon. Anything that changes as a maintainer works stays in that resource's own repository —
+a copy here would eventually call a reviewed file unreviewed, authoritatively. Entries gained
+`provides`; a `validate_resources.py` and a pre-commit hook now check the file, which found a
+duplicate `scripture-burrito` nobody had noticed.
 
----
+**Corpora are visible, registrations are not.** `~/sp/resources/<owner>/<repo>/` for the texts —
+configuration belongs in a dotfile and a library of several hundred megabytes does not —
+`~/.sp/registrations/` for the small files saying what this machine may read. Directories are
+named for the source (`Clear-Bible/macula-greek`, or `https-<host>/<file>`), never a catalog id.
 
-## Do NOT
+**Every fetch records what it fetched** — source, archive SHA-256, size, timestamp — because a
+directory name says which resource it holds and nothing about which copy.
 
-- **Do not commit, push or merge.** Gates yes; the commit is the human's.
-- **Do not fill in a `=>`**, and do not record a ruling the human did not give.
-- **Do not put design, rulings or version history in docstrings or comments.**
-- **Do not run `sp doctor` here** — step 7 of `design-ai-context-layout.md` is undone.
-- **Do not commit or push `~/.claude`**; its 82 uncommitted files are deliberate.
-- **`~/.sp` has one dirty file**, `skills/load-context/SKILL.md`, identical to this repository's
-  template for it. Committing that store is the human's act.
+**`known_editions` is empty and should stay so.** WLC, SBLGNT and BSB answer from the catalog with
+their evidence. Add an entry there only for something the catalog cannot describe.
+
+**BSB comes from the official USFM release**, not `usfm-bible/examples.bsb`, which omits `\id` in
+Ecclesiastes and silently loses the book. The official release carries `\mt1`/`\mt2`, `\s1`, `\p`,
+`\q1` and full footnotes — what `format: print` needs.
+
+**`format: usj` emits `sid` and no `eid`.** USX pairs them; USJ does not, and `usfmtc` discards
+ends in its USX-to-USJ conversion. discourse-flow accepted this after seeing the evidence.
+
+**Both ways of naming a book work**, case-insensitively, from `data/book-names.json`. A reference
+is tokenized, not pattern-matched. A range may cross a chapter and not a book. Testament and
+original language are declared per book, not derived from a number threshold.
+
+## Do NOT / landmines
+
+- **Do not commit, push, or merge.** Run the gates, write the message, hand over the command.
+- **Do not run `sp doctor` in this repository** — #210, still open.
+- **Do not modify `docs/ai-context/`, `CLAUDE.md`, or project memory** without explicit approval.
+  The Captain authorised specific edits to `data-shapes.md`, `data-sources.md` and `CLAUDE.md`
+  today; those approvals were per-act and do not carry forward.
+- **Do not write after a `=>`.** Those are the Captain's.
+- **`data/book-names.json` and `data/resources.json` must stay in `pyproject.toml`'s
+  force-include and in *both* Nuitka commands.** `book-names.json` reached a release candidate
+  bundled nowhere; two guards now catch it.
+- **`Grep` and `Glob` do not exist in this installation.** A `general-purpose` subagent declared
+  `Tools: *` also lacks them, so it is not a session-launch quirk. Search with `grep` via bash,
+  one command at a time — a chained command matches no permission rule and costs an approval.
+
+## Open, with the reasoning recorded
+
+| | |
+|---|---|
+| **#223** | `type: scripture` records nothing about how it resolved a reference. Filed from discourse-flow's argument; explicitly *not* a change to `parse_bible_reference`, whose nulls are closed |
+| **#201** | datasets record no version — half-addressed: fetches now record one, but the catalog is still not validated against what is installed |
+| **#210, #211** | `overview.md` is two documents sharing one path; 21 shipped documents to `source: template`. #211 looks substantially done and wants re-scoping or closing |
+| **#215** | `sp init`'s write paths. The registry warning naming a retired filename still fires on every init |
+| **CHANGELOG history** | `0.1.5.04` carries two headings from a mis-merge. Left alone deliberately — editing it would rewrite the record to satisfy a new test |
+
+## Other repositories
+
+| where | what |
+|---|---|
+| `awesome-biblical-data` | committed. Now carries `provides` blocks, the validator and the pre-commit hook. We are taking over its maintenance |
+| `human-at-the-helm` | committed — `disciplines/workflow.md`, synced. It must move with this repository's copy or `test_helm_sync` goes red |
+| `discourse-flow` | our reply committed. **Their** `2026-08-29-reference-provenance.md` and a modified `2026-08-27-discourse-family-is-built.md` are still uncommitted there, and are theirs |
+| `~/.claude` | `settings.json` carries the hook fix. The Captain's store, `cgit`. **Report, never commit** |
+| `~/.sp` | uncommitted and awaiting the Captain's own commit: twelve deletions under `conventions/` (a superseded copy of `disciplines/` that nothing read — its `design-authority.md` was still the 49-line version), `editions/` → `registrations/` from the migration, and `disciplines/workflow.md` from the template. Also **`skills/load-context/SKILL.md`, modified by nobody we can name** — it matches this repository's layout and looks right, but its author is unknown, which is the condition the store's version control exists to surface. It wants its own commit, not absorption into another |
+
+## Key files
+
+| | |
+|---|---|
+| `src/llmflow/resources.py` | the catalog reader, path resolution, registration, status |
+| `src/llmflow/books.py` | which book a reference names |
+| `data/book-names.json`, `data/resources.json` | the two declarations added today |
+| `project/plans/design-edition-provisioning.md` | #217's decisions, D1–D6 with the Captain's `=>` answers |
+| `project/RELEASE_CHECKLIST.md` | §6–§9 are the remaining steps |

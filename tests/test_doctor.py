@@ -480,3 +480,110 @@ def test_a_failed_repair_is_an_error_not_a_silent_pass(tmp_path: Path, project: 
     assert not check.repaired
     assert check.remedy, "a repair doctor could not perform must tell the user what to do"
     assert not report.ok
+
+
+# --- resources (#217) ------------------------------------------------------------------
+
+
+def test_the_editions_directory_is_migrated_to_registrations(tmp_path: Path, project: Path):
+    """The rename must not cost anyone their registrations, nor need a manual move."""
+    sp_home = tmp_path / ".sp"
+    legacy = sp_home / "editions"
+    legacy.mkdir(parents=True)
+    (legacy / "WLC.yaml").write_text("id: WLC\nkind: tsv\npath: /tmp/wlc.tsv\n")
+
+    check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["resources_dir"]
+
+    assert (sp_home / "registrations" / "WLC.yaml").is_file(), "carried across"
+    assert not legacy.exists(), "and the old directory is gone, so there is one place to look"
+    assert check.severity is Severity.WARNING
+    assert check.repaired is True
+
+
+def test_the_migration_works_on_a_locked_store(tmp_path: Path, project: Path):
+    """`~/.sp` is deliberately read-only, and moving a non-empty directory needs write
+    permission on the *source* to unlink its entries. Every earlier test used a writable
+    tmpdir, so the migration passed in CI and failed on the first real machine it met."""
+    sp_home = tmp_path / ".sp"
+    legacy = sp_home / "editions"
+    legacy.mkdir(parents=True)
+    (legacy / "WLC.yaml").write_text("id: WLC\nkind: tsv\npath: /tmp/wlc.tsv\n")
+    legacy.chmod(0o555)
+    sp_home.chmod(0o555)
+    try:
+        check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["resources_dir"]
+        assert check.severity is not Severity.ERROR, check.detail
+        assert (sp_home / "registrations" / "WLC.yaml").is_file()
+    finally:
+        for path in (sp_home, sp_home / "registrations", legacy):
+            if path.exists():
+                path.chmod(0o755)
+
+
+def test_registrations_still_in_the_old_directory_are_reported(tmp_path: Path, project: Path):
+    """Saying "none registered" while three sit in `editions/` is worse than saying nothing."""
+    sp_home = tmp_path / ".sp"
+    legacy = sp_home / "editions"
+    legacy.mkdir(parents=True)
+    (legacy / "WLC.yaml").write_text("id: WLC\nkind: tsv\npath: /tmp/wlc.tsv\n")
+
+    checks = _by_id(run_doctor(sp_home=sp_home, project_dir=project))
+    assert "WLC" in (checks["resources"].detail or "")
+
+
+def test_a_machine_with_nothing_registered_is_told_how(tmp_path: Path, project: Path):
+    sp_home = tmp_path / ".sp"
+    sp_home.mkdir(parents=True)
+
+    check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["resources"]
+
+    assert check.severity is Severity.INFO, "a fresh machine has none; that is not a fault"
+    assert "sp resource" in (check.remedy or "")
+
+
+def test_registered_resources_are_reported(tmp_path: Path, project: Path):
+    sp_home = tmp_path / ".sp"
+    registered = sp_home / "registrations"
+    registered.mkdir(parents=True)
+    (registered / "WLC.yaml").write_text("id: WLC\nkind: tsv\npath: /tmp/wlc.tsv\n")
+
+    check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["resources"]
+
+    assert "WLC" in (check.detail or "")
+
+
+def test_a_default_store_says_nothing(tmp_path: Path, project: Path, monkeypatch):
+    monkeypatch.delenv("LLMFLOW_DATA_DIR", raising=False)
+    monkeypatch.delenv("SP_HOME", raising=False)  # the suite sets it to protect the real store
+    sp_home = tmp_path / ".sp"
+    sp_home.mkdir(parents=True)
+    assert "store_location" not in _by_id(run_doctor(sp_home=sp_home, project_dir=project))
+
+
+def test_a_redirected_data_directory_is_reported(tmp_path: Path, project: Path, monkeypatch):
+    """One machine with several copies is how two projects quietly disagree about a text."""
+    monkeypatch.setenv("LLMFLOW_DATA_DIR", str(tmp_path / "elsewhere"))
+    sp_home = tmp_path / ".sp"
+    sp_home.mkdir(parents=True)
+
+    report = run_doctor(sp_home=sp_home, project_dir=project)
+    check = _by_id(report)["store_location"]
+
+    assert check.severity is Severity.WARNING, "a real hazard on a working machine"
+    assert "LLMFLOW_DATA_DIR" in (check.detail or "")
+    assert "elsewhere" in (check.detail or "")
+    assert check.remedy, "and it says what to do about it"
+    assert report.ok, "but not an error: a container setting it deliberately is not broken"
+
+
+def test_a_registration_pointing_nowhere_is_reported(tmp_path: Path, project: Path):
+    """A path that has gone away is the failure this check exists to catch early."""
+    sp_home = tmp_path / ".sp"
+    registered = sp_home / "registrations"
+    registered.mkdir(parents=True)
+    (registered / "GONE.yaml").write_text("id: GONE\nkind: tsv\npath: /nowhere/at/all.tsv\n")
+
+    check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["resources"]
+
+    assert check.severity is Severity.WARNING
+    assert "GONE" in (check.detail or "")

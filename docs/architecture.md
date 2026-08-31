@@ -30,8 +30,13 @@ CLI (cli.py)
 ### 3.1 CLI Layer — `cli.py`
 
 Argument parsing and command dispatch. Entry point for `sp run`, `sp lint`,
-`sp init`, `sp list`, `sp registry`, and `sp clean`. Delegates immediately to
-`runner.py` or `cli_utils.py`; contains no pipeline logic.
+`sp init`, `sp list`, `sp registry`, `sp resource`, `sp doctor` and `sp clean`.
+Delegates immediately to `runner.py` or `cli_utils.py`; contains no pipeline logic.
+
+`sp resource` is the single surface for everything the resource catalog describes —
+`list`, `add` (registering a text so a pipeline can name it) and `download` (fetching
+something no reader can yet open, such as ACAI). It replaced `sp download-data` in
+#217, which carried its own four-entry catalog beside the public one.
 
 ### 3.2 Runner — `runner.py`
 
@@ -68,9 +73,58 @@ file defines exactly what one step type means when it executes. Reading
 | `steps/json_step.py` | `json` | JSON file loading |
 | `steps/load.py` | `load` | Structured data loading (YAML, JSON, TSV, XML) |
 | `steps/save.py` | `save` | Filesystem write with path resolution |
+| `steps/scripture.py` | `scripture` | Named-edition resolution, reference mapping, serialization dispatch, annotation payload |
 
 A new step type means a new file in `steps/`. The dispatch table in `runner.py`
 gets one line.
+
+### 3.3a How `type: scripture` resolves a passage
+
+Worth spelling out because four separate resolutions happen before any text is read, and each
+has a failure mode that used to be silent.
+
+```
+edition: SBLGNT          →  ~/.sp/editions/SBLGNT.yaml        which source, and which backend
+versification: eng       →  ~/.sp/versification/*.json        which verse the reference names
+passage: "MRK 1:1-8"     →  PassageRef                        what range is wanted
+format: / include:       →  rows_to_output                    what shape comes back
+```
+
+**1. The edition is a name, not a path.** `resolve_edition` reads `~/.sp/editions/*.yaml`, one
+file per edition, so a source is configuration rather than something written into a pipeline. An
+unregistered name raises with the registered names listed, because a bare `KeyError` sends the
+reader to the source instead of to their own configuration.
+
+**2. The reference is mapped before the read, not after.** A reference is not a location until a
+scheme is named: `PSA 51:1` is `PSA 51:3` in the original. The edition's own scheme comes from its
+registry entry, a Paratext project's `Settings.xml`, or `data/versification-editions.json` — and
+there is no global default, because a Byzantine text and a critical text are numbered differently
+and a guess would be wrong exactly where it mattered. Mapping *after* fetching would fetch the
+wrong verses first.
+
+**3. The backend is chosen by the edition's `kind`**, and all three produce the same row shape —
+`ref`, `text`, `after`, `xml:id` — so one text-assembly path serves them:
+
+| `kind` | reads | notes |
+|---|---|---|
+| `tsv` | a Macula TSV | the common case; a bare path string in a registry entry means this |
+| `tei` | a directory of per-book TEI | apparatus reference marks are dropped; they are not text |
+| `usfm` | a Paratext project | `base_dir` + `project` rather than `path` |
+
+**4. Assembly is one function, so the backends cannot disagree.** `join_rows` concatenates
+`text + after` and adds a space only where `after` does not carry one — `after` plays three roles
+(a space, a joining mark, or punctuation that ends a word) and only the third needs one. This is
+the single place that rule lives; the TSV and TEI backends are tested against each other for
+byte-identical output because agreement is evidence and duplication is not.
+
+**5. Annotation goes under one key.** Everything `include` delivers lives in
+`scripture_pipelines`, which the USJ specification does not define and never will. A consumer
+wanting standard USJ strips that key. Spec-defined fields stay where the spec puts them — `ids`
+becomes `srcloc` on a `\w` node rather than container content.
+
+Two of these resolve against `~/.sp`, so the step depends on machine state that `sp doctor`
+reports: an unregistered edition and an absent versification scheme are both configuration
+problems with named remedies, not code faults.
 
 ### 3.4 Recursive Handlers and Dependency Injection
 

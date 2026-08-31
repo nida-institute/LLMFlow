@@ -7,6 +7,7 @@ from llmflow.utils.scripture import (
     MILESTONE_TEMPLATE,
     edition_text,
     rows_to_usj,
+    usj_to_text,
 )
 
 MACULA = Path("/Users/jonathan/github/Clear/macula-greek/SBLGNT")
@@ -51,9 +52,9 @@ def flatten(usj: dict) -> str:
                     parts.append(item)
                 elif item["type"] == "verse":
                     parts.append(
-                        MILESTONE_TEMPLATE.format(chapter=chapter, verse=item["number"])
+                        MILESTONE_TEMPLATE.format(chapter=chapter, verse=item["number"]) + " "
                     )
-    return " ".join(parts)
+    return "".join(parts).strip()
 
 
 # --- structure ----------------------------------------------------------------------
@@ -77,10 +78,14 @@ def test_one_chapter_node_and_one_para_per_chapter():
 
 
 def test_a_para_holds_verse_nodes_and_text():
+    """A text node carries its own trailing space, so a consumer concatenates rather than
+    space-joins — otherwise every comma gains a space in front of it."""
     para = rows_to_usj(GREEK_ROWS, book="MRK")["content"][2]
     assert para["marker"] == "p"
-    assert para["content"][0] == {"type": "verse", "marker": "v", "number": "1"}
-    assert para["content"][1] == "Ἀρχὴ χριστοῦ."
+    assert para["content"][0] == {
+        "type": "verse", "marker": "v", "number": "1", "sid": "MRK 1:1",
+    }
+    assert para["content"][1] == "Ἀρχὴ χριστοῦ. "
 
 
 def test_every_verse_in_the_rows_appears_once():
@@ -151,3 +156,52 @@ def test_a_cross_chapter_range_carries_both_chapters():
 def test_an_unknown_format_is_rejected():
     with pytest.raises(ValueError, match="unknown format"):
         edition_text("SBLGNT-TSV", "MRK 1:1", fmt="parquet", editions=EDITIONS)
+
+
+# --- verse and chapter milestones ---------------------------------------------------
+
+
+def _paras(usj: dict) -> list:
+    return [node for node in usj["content"] if node["type"] == "para"]
+
+
+def _milestones(usj: dict, key: str) -> list:
+    return [
+        item[key]
+        for para in _paras(usj)
+        for item in para["content"]
+        if isinstance(item, dict) and item["type"] == "verse" and key in item
+    ]
+
+
+def test_a_verse_opens_with_a_sid_naming_its_reference():
+    para = rows_to_usj(GREEK_ROWS, book="MRK")["content"][2]
+    assert para["content"][0] == {
+        "type": "verse",
+        "marker": "v",
+        "number": "1",
+        "sid": "MRK 1:1",
+    }
+
+
+def test_no_verse_or_chapter_end_is_emitted():
+    """USX pairs `sid` with a closing `eid`; USJ does not, and the reference implementation
+    discards ends when it converts USX to USJ. Emitting them would be non-standard content in
+    the standard node space."""
+    usj = rows_to_usj(GREEK_ROWS, book="MRK")
+    assert _milestones(usj, "eid") == []
+    assert [node for node in usj["content"] if "eid" in node] == []
+
+
+def test_every_verse_still_opens_with_its_own_sid():
+    usj = rows_to_usj(GREEK_ROWS, book="MRK")
+    assert _milestones(usj, "sid") == ["MRK 1:1", "MRK 1:2", "MRK 2:1"]
+
+
+def test_flattening_tolerates_an_end_milestone_from_elsewhere():
+    """We emit none, but USX carries them, so USJ converted from USX by another tool may."""
+    usj = rows_to_usj(GREEK_ROWS, book="MRK")
+    para = next(node for node in usj["content"] if node["type"] == "para")
+    para["content"].append({"type": "verse", "marker": "v", "eid": "MRK 1:2"})
+    assert "⌊1:?⌋" not in usj_to_text(usj)
+    assert usj_to_text(usj).startswith("⌊1:1⌋ Ἀρχὴ")
