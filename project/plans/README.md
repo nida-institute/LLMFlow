@@ -9,6 +9,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | --- | --- | --- |
 | [design-ai-context-layout.md](design-ai-context-layout.md) | In progress, 2026-08-25. Eleven rulings recorded from the Captain (§2). | #204 #210 #211 |
 | [design-ai-drift-control.md](design-ai-drift-control.md) | Draft — awaiting Captain review | — |
+| [design-biblical-text-conventions.md](design-biblical-text-conventions.md) | proposed — not authorization to build. Four decisions remain marked => and are the | #226 |
 | [design-clean-command.md](design-clean-command.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
 | [design-cli-dev-tools.md](design-cli-dev-tools.md) | Partly implemented. replay shipped as sp tools replay; the wider family of dev | #175 #176 #177 #198 |
 | [design-edition-provisioning.md](design-edition-provisioning.md) | proposal, 2026-08-29. Not authorization to build. Four decisions are marked => and | #201 #203 #217 |
@@ -27,13 +28,14 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-resource-provisioning.md](design-resource-provisioning.md) | proposed, 2026-08-27. Not authorization to build. Nine decisions are marked => | #212 #216 |
 | [design-schema-single-source.md](design-schema-single-source.md) | Approved 2026-08-12 — (1) hybrid (per-type schema + per-type linter, generic-flat | #187 |
 | [design-scripture-editions.md](design-scripture-editions.md) | Sources approved; core implemented, wiring outstanding | #196 #200 #201 |
-| [design-scripture-representations.md](design-scripture-representations.md) | sources and precedence ruled; representation shape ruled; the schema shape and several | #38 #52 #200 #201 #203 #208 |
+| [design-scripture-representations.md](design-scripture-representations.md) | sources and precedence ruled; representation shape ruled; the schema shape and several | #38 #52 #200 #201 #203 #208 #227 |
 | [design-shipping-the-audit-method.md](design-shipping-the-audit-method.md) | Proposed, 2026-08-25. All four questions in §7 are answered — Q1 (templates mirror | #211 #214 |
 | [design-source-licensing.md](design-source-licensing.md) | Proposed, 2026-08-24. Four rulings recorded from the Captain (§3); six questions | #201 |
 | [design-structured-output-preflight.md](design-structured-output-preflight.md) | Implemented in 0.2.1.24 — historical record | #191 #197 |
 | [design-verse-range-operations.md](design-verse-range-operations.md) | Approved 2026-08-17 — authoritative for the data model. Not a work order: the | #168 |
 | [design-vocabulary.md](design-vocabulary.md) | Draft, but in force. The "use X, not Y" list is authoritative for user-facing text | — |
 | [plan-ai-rules-single-source.md](plan-ai-rules-single-source.md) | complete, 2026-08-21. The Captain approved §5 and §6 (*"I approve these rules"*) | — |
+| [plan-cite-rules-by-id.md](plan-cite-rules-by-id.md) | approved — ruled in conversation, building now. #225 | #225 |
 | [plan-init-doctor-unification.md](plan-init-doctor-unification.md) | All six catalog questions ruled — Q1 reopened and re-ruled 2026-08-24 (two | #75 #204 #207 |
 | [plan-memory-recovery.md](plan-memory-recovery.md) | transfer record. The audit is complete as of 2026-08-24 — all 81 files across 12 | #16 #64 #163 #200 #209 |
 | [plan-migrate-pipeline-directories.md](plan-migrate-pipeline-directories.md) | Rule corrected and executed 2026-08-17 — see the survey section at the foot for what was done, … | — |
@@ -44,4 +46,4 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-window-semantics.md](plan-window-semantics.md) | complete, 2026-08-21. Items 1 and 3 landed; item 2's two decisions were ruled and | #175 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-36 documents.
+38 documents.

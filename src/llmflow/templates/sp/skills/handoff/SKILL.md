@@ -58,6 +58,25 @@ action**, then the supporting map:
 6. **Key files & links** — the paths, issues, PRs, design docs, and external threads to open
    first.
 
+## HANDOFF and the task list are different files
+
+`HANDOFF.md` and `project/TODO.md` both answer "what next", which makes them look redundant. They
+are not, and the line between them is what keeps either one true:
+
+- **`HANDOFF.md` carries only what dies when the work is committed** — uncommitted files, which
+  test is RED, the branch, the SHAs, drafts in flight. Commit and push everything cleanly and
+  this file is nearly empty.
+- **`project/TODO.md` carries everything that survives** — the queue, its order, the rulings
+  still awaited. It is about the project, not the session, and it outlives both.
+
+So **the NEXT ACTION points at the task list rather than restating it**, unless the next action
+genuinely is "finish the uncommitted thing" — which, at the end of a session, it usually is.
+
+**The failure this prevents:** a queue item written into the handoff as the next action goes
+stale the moment somebody does it, and then misdirects every session afterwards. It reads as
+current because the file is short and confident. Merging a pull request, cutting a release,
+starting the next feature — all queue items. None of them belong here.
+
 ## Rules
 
 - **Lead with the next action.** The next instance's first question is "what do I do?" — answer
@@ -85,6 +104,9 @@ the **outcome**, so a section filled with vague text does not pass:
 - [ ] Nothing the next instance **cannot independently know** (audit results, external-thread
       state) is left implicit — it is captured or pointed to.
 - [ ] It is **short enough to read whole** — a map, not a narrative.
+- [ ] The NEXT ACTION is **session residue, not a queue item** — it names something that stops
+      being true once this session's work is committed. If it would still be the next action a
+      week from now, it belongs in the task list and this file should point at it.
 
 Then tell the Captain the path and offer to `/exit`.
 

@@ -27,6 +27,25 @@
   A project regenerating its AI context picks up the new rendering with no action; the renderer
   behind it, `llmflow.ai_rules.render_numbered`, is renamed `render_rules`.
 
+- **The `handoff` skill now says where the handoff file ends and the task list begins.** The
+  shipped skill — `sp init` installs it into every project — asked for a handoff and a "next
+  action" without ever distinguishing `HANDOFF.md` from `project/TODO.md`, so the queue leaked
+  into the handoff and went stale there.
+
+  `HANDOFF.md` carries only what dies when the work is committed: uncommitted files, which test
+  is RED, the branch, the SHAs. `project/TODO.md` carries what survives: the queue, its order,
+  the rulings still awaited. The next action therefore points at the task list rather than
+  restating it, unless it genuinely is "finish the uncommitted thing". A new adequacy-checklist
+  item enforces the distinction — a next action that would still be the next action a week from
+  now belongs in the task list.
+
+  The failure is a measured one, not a hypothetical: a handoff that led with "merge and tag
+  PR #224", a queue item, went stale the moment that pull request merged and then misdirected
+  for three days.
+
+  A project picks this up on the next `sp init --update`. The skill is shared with Human at the
+  Helm and the two copies were resynced, so `data/helm-sync.yaml` records it as identical again.
+
 ### Test Coverage
 
 - Added `tests/test_rules_are_cited_by_id.py` — four guards, 413 collected cases across the

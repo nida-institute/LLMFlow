@@ -1,171 +1,157 @@
-# HANDOFF — 2026-08-29
+# HANDOFF — 2026-09-01 (rewritten)
 
-Supersedes 2026-08-28. **This repository is clean, committed and pushed.** HEAD is **`5cc5a23`**,
-`## dev...origin/dev` with nothing else. Version is **0.2.1.25**, the CHANGELOG has its dated
-section, and **PR #224 is open** awaiting the Windows build.
+Supersedes the earlier 2026-09-01 handoff, whose NEXT ACTION — a ruling on the Helm sync — was
+given and executed this session. Its commit (a) is also history.
 
----
-
-## ▶ NEXT ACTION — merge and tag PR #224
-
-**[PR #224](https://github.com/nida-institute/LLMFlow/pull/224) is open**, `dev` → `main`. Its
-Build job compiles all three binaries and smoke-tests each; Linux and macOS passed, **Windows
-takes about an hour and three quarters** — 0.2.1.24's took 1h45m — so a run still in progress is
-normal, not stuck.
-
-The remaining steps are `project/RELEASE_CHECKLIST.md` §6–§9, and **each is the Captain's**:
-
-1. Merge with a **merge commit**, not a squash.
-2. Tag **the merge commit** — delete any stale tag first; §7 records why.
-3. Watch **every** `release.yml` job. §8 is marked MANDATORY VERIFICATION, and #216 shipped
-   because only part of the build was checked.
-
-**The first Windows build failed, and the bundling was not the reason.** `data/book-names.json`
-is fine — doctor got far enough to read the catalog and build a whole report before dying. Two
-things were wrong instead, both fixed and both needing a fresh build to confirm:
-
-- **The CLI could not print its own output on a Windows console.** `Report.render()` emits
-  `✓ · ! ✗`, an em dash and `→`; `sp lint` prints `✅`; the downloader prints `📥`. A Windows
-  console is cp1252 and encodes none of them, so both `sp lint` and `sp doctor` died with
-  `UnicodeEncodeError`. It surfaced only now because `doctor` was added to the smoke test in
-  `64727d9`, *after* 0.2.1.24 shipped — this was its first Windows run. Fixed once at the CLI
-  entry, so every command is covered rather than the two that happened to fail.
-- **The Windows smoke test did not check what it ran.** PowerShell does not stop on a native
-  command's non-zero exit, and only `doctor` had a `$LASTEXITCODE` check — so `sp lint` crashed,
-  printed a traceback, and the step carried on. The bash step gets that behaviour free from
-  `set -e`. Every invocation is now checked, with a guard counting invocations against checks.
-
-**So the next Windows run is stricter than the one that failed**, and may surface something the
-previous one hid.
-
-### What real-machine testing found, and why it is worth repeating
-
-Running two commands on a real machine found **four defects that 3,687 passing tests did not**,
-all fixed in `5cc5a23`. Every one was invisible for the same reason: the suite builds a world
-that is writable, unlocked and mocked, and the machine this ships to is none of those.
-
-| found by | defect |
-|---|---|
-| `sp doctor` | the migration could not move a directory inside the read-only store |
-| `sp resource add` | the fetcher kept its own idea of the data directory and unpacked where nothing reads |
-| `sp resource add` | that failure surfaced as an unhandled `PermissionError` traceback |
-| `sp resource add` | writing the registration hit the same lock — the move was fixed and the write was not |
-| the Windows build | the CLI could not encode its own output on a cp1252 console |
-| the Windows build | the smoke test ran three commands and checked one |
-
-**Six now, and every one invisible to a green suite.** Four needed a real machine; two needed a
-real Windows binary. The pattern is worth carrying: the suite tests behaviour on a writable,
-unlocked, UTF-8, mocked machine, and none of those four adjectives describes where this ships.
-
-Then re-run end to end and verified: three registrations moved out of a locked `~/.sp/editions`,
-150MB fetched into `~/sp/resources/Clear-Bible/macula-greek`, and the registration written with a
-dataset-relative path, its scheme and its licence.
-
-**One path is still only tested against a temp directory:** `~/.sp/data/` → `~/sp/resources/`,
-which only a machine that fetched under the old layout will exercise. This machine never had
-`~/.sp/data`, so nobody has run it for real.
+Branch **`dev`**, HEAD **`fcd4c67`**, `## dev...origin/dev [ahead 2]` — **both commits unpushed**.
+**7 uncommitted paths**, forming two commits. See *In flight*.
 
 ---
 
-## What landed today
+## ▶ NEXT ACTION — two commits here, one in Human at the Helm
 
-Nine commits, `a49fd1d` through `5cc5a23`:
+Nothing is blocked. The work is done and verified; what remains is the Captain's to commit
+(`commit-authority`). Three commits, in any order:
 
-| | |
+- **(b) the design record** — 5 files, the four plan documents plus this one
+- **(c) the shared skill** — 2 files here
+- **(c-helm)** — the same skill change in `nida-institute/human-at-the-helm`, already on disk
+
+**Verify before committing:** `hatch run pytest -q` → **1 failed, 4118 passed, 25 skipped**. The
+single failure is `tests/integration/test_mcp_batch_calls.py`, network-dependent and pre-existing.
+
+**Squash first, if at all.** `2b75894` and `fcd4c67` carry the same subject and near-identical
+bodies. Squashing them is only a two-command job while they are still at the tip — do it **before
+staging anything for (b) or (c)**, or it becomes an interactive rebase:
+
+```
+git reset --soft HEAD~2
+git commit -C fcd4c67          # -c to edit: its body still says two helm_sync tests await a ruling
+```
+
+---
+
+## Active threads
+
+### 1. #225 — rules cited by id, not by position — **complete, committed, unpushed**
+
+Two commits, both carrying the same subject line: **`2b75894`** the change (14 files), **`fcd4c67`**
+the CHANGELOG (1 file). Not duplicates. The Captain may wish to squash before pushing.
+
+**Verify.** `hatch run pytest tests/test_rules_are_cited_by_id.py -q` — green.
+
+### 2. Helm sync — **ruled and applied this session, green**
+
+The Captain ruled **A (`--apply`)** on the `skills/handoff` divergence. `tools/sync_helm.py --apply`
+copied one file to Helm and refreshed `data/helm-sync.yaml`. Nothing else in the shared set of 11
+was touched.
+
+**Verify.** `hatch run pytest tests/test_helm_sync.py -q` → **70 passed** (was 2 failed / 68).
+
+**Helm repo state:** ` M skills/handoff/SKILL.md` on `main`, uncommitted. That repo was **already
+`ahead 1` of `origin/main`** before this session — that unpushed commit is not from this work.
+
+### 3. #226–#230 — moved to the task list
+
+Opened 2026-09-01 and never recorded in the queue, so this file had become their only record —
+the arrangement the boundary shipped in (c) says is wrong. They are now in **`project/TODO.md`**,
+under *Opened 2026-09-01*, and that is where to read them. **Their order relative to the
+Captain's ordered list above them is not set, and is his.**
+
+Nothing else about them belongs here: none of them is session residue.
+
+---
+
+## In flight — 9 uncommitted paths on `dev`
+
+**(b) the project record**
+
+```
+project/HANDOFF.md                                 (this file, rewritten to current state)
+project/TODO.md                                    (#226–#230 added; the Captain's order untouched)
+project/plans/README.md                            (regenerated by tools/update_plans_index.py)
+project/plans/design-biblical-text-conventions.md  (new — #226, four open => slots)
+project/plans/design-scripture-representations.md  (§4.5 rewritten, §6.3 resolved, §7 rulings)
+project/plans/plan-cite-rules-by-id.md             (new — #225)
+```
+
+**(c) the shared skill**
+
+```
+src/llmflow/templates/sp/skills/handoff/SKILL.md   (+22 lines: the HANDOFF/task-list boundary)
+data/helm-sync.yaml                                (hash refreshed by --apply)
+CHANGELOG.md                                       (Unreleased entry for the shipped skill change)
+```
+
+**(c-helm)** — `nida-institute/human-at-the-helm`, ` M skills/handoff/SKILL.md` on `main`.
+
+**`~/.sp` has 20 uncommitted files and `~/.claude` has 82** (bare repos `~/.sp-git`,
+`~/.claude-git`). Under `~/.sp`: the `editions/`→`registrations/` migration, 12 retired
+`conventions/`, and `skills/load-context/SKILL.md` — that last one verified byte-identical to
+`src/llmflow/templates/sp/skills/load-context/SKILL.md`, so installer output rather than an
+unreviewed edit. **The Captain commits stores; the agent does not.**
+
+---
+
+## Decisions settled — do not reopen
+
+- **The `skills/handoff` divergence is cleared by copying, not by a ruling record.** Captain,
+  2026-09-01, choosing A over recording the difference: the added section is methodology any Helm
+  project has, carries no engine vocabulary, and `test_portable_skills` passes on it.
+- **`HANDOFF.md` and `project/TODO.md` are not redundant**, and the boundary is now written into
+  the `/handoff` skill and shared with Helm. This file carries only what dies when the work is
+  committed. The task list carries what survives.
+- **Rules are cited by id, never by number.** The rendered list carries no numbers at all.
+  A number *qualified by its file* remains acceptable for `docs/ai-context/project/rules.md`, a
+  separate hand-written id-less list. `CHANGELOG.md` and `project/plans/*` keep their numeric
+  citations — dated record, exempt by path in the guard.
+- **Syntax rides on `include: [syntax]`, not a new `format:` value**, serialised **standoff** —
+  text in the USJ document in textual order, tree in `scripture_pipelines` in tree order, leaves
+  referencing `xml:id` via `srcloc`. **No `tokens` array**; the USJ document already is the text.
+- **`syntax` requires `ids`** — leaves reference `srcloc` and would dangle without them. Making
+  `syntax` `per_word: true` is the *wrong* fix: it is a tree over words, not an annotation on one.
+- **`ref` does not appear in the syntax payload** — derivable from position; a third encoding of identity.
+- **BaseX is not displaced.** It remains the tool for global queries over the whole XML corpus;
+  #227 is the local, single-passage case only.
+- **The middle layer lives in `awesome-biblical-data`** (#226).
+- **Clear-Bible repositories are the Captain's to permit.** *"Biblica bought Clear, it's the same
+  team, and I am the only remaining member of that team."*
+- **A checkable staleness guard for this file is proposed but not built:** `HANDOFF.md` is stale if
+  its date is older than HEAD's commit date. Offered for #230; the Captain has not ruled on whether
+  it belongs there or in its own issue.
+
+---
+
+## Do NOT / deferred
+
+- **Do not edit `docs/ai-context/` without per-file permission in the current conversation.**
+- **Do not answer a `=>` slot.** Those are the Captain's.
+- **Do not commit, push, merge, or run `sp run` / `sp doctor`.** Run the gates, write the message,
+  hand over the command.
+- **Do not edit `~/.sp/skills/` or `~/.claude/skills/` to change a skill.** Those are installed
+  copies; the source is `src/llmflow/templates/sp/skills/`, and the next `sp init --update`
+  overwrites anything written to the installed copy.
+- **Do not fix `xml_entry_to_base_json.py`'s `xml.etree` import** as a drive-by — it is #230's
+  first work item and its motivating evidence.
+- **Do not fix the eight-space indent in `sp/rules.md`.** Pre-existing, from the frame in
+  `tools/update_ai_context.py:40-54`. Reported; not filed, not authorised.
+- **`tmp/` holds ten spent `commit-*.txt` drafts** from the 0.2.1.25 release. Left deliberately.
+- **`tests/test_mcp.py::test_connection_to_biblica_server` and
+  `tests/integration/test_mcp_batch_calls.py` are network-dependent.** Confirmed pre-existing.
+- **#210, #211, #215 and the `wip/scripture-200` tag** in `project/TODO.md` are untouched by this
+  session and their ordering still stands.
+
+---
+
+## Key files & links
+
+| what | where |
 |---|---|
-| `a49fd1d` | the shipped document says which `include:` families are built |
-| `e88f751` | reference resolution — extent from a named versification, one lean parser — #218 |
-| `e8369a8` | the hook that makes file reads go through `Read` |
-| `9c629ce` | `sp resource` — a catalog says how to open a text, the store says where it is — #217 |
-| `06f0767` | one declaration of book names, so `Mark 1:1-8` and `MRK 1:1-8` both work |
-| `860e627` | `data/book-names.json` shipped nowhere, and nothing could tell |
-| `2794d6f` | the discipline says which tools a session actually has |
-| `db3c4d7` | 0.2.1.25, and a guard so the changelog cannot be forgotten |
-| `461760a` | this handoff |
-| `5cc5a23` | four defects real-machine testing found and the suite could not |
-
-**Test state: 3688 passed, 24 skipped.** The only intermittent failure is
-`test_mcp.py::test_connection_to_biblica_server`, an `httpx.ReadTimeout` against a live server.
-It passes on some runs. Do not "fix" it by changing the test. Verify with
-`hatch run pytest tests/ -q --ignore=tests/integration`.
-
-## Decisions settled today — do not reopen
-
-**`sp resource` is the whole surface, and `sp download-data` is gone.** `list`, `add` (fetching
-by default, `--no-download` to skip, `--path` for a Paratext project or a text of your own),
-`download` for a resource no reader can open. The old command carried a four-entry catalog beside
-the public one; its `berean-usx` entry pointed at a 404.
-
-**The catalog is `resources.json` in `awesome-biblical-data`, vendored into the wheel.** It
-carries **shape, never state**: which file holds a text, which backend reads it, its versification
-and canon. Anything that changes as a maintainer works stays in that resource's own repository —
-a copy here would eventually call a reviewed file unreviewed, authoritatively. Entries gained
-`provides`; a `validate_resources.py` and a pre-commit hook now check the file, which found a
-duplicate `scripture-burrito` nobody had noticed.
-
-**Corpora are visible, registrations are not.** `~/sp/resources/<owner>/<repo>/` for the texts —
-configuration belongs in a dotfile and a library of several hundred megabytes does not —
-`~/.sp/registrations/` for the small files saying what this machine may read. Directories are
-named for the source (`Clear-Bible/macula-greek`, or `https-<host>/<file>`), never a catalog id.
-
-**Every fetch records what it fetched** — source, archive SHA-256, size, timestamp — because a
-directory name says which resource it holds and nothing about which copy.
-
-**`known_editions` is empty and should stay so.** WLC, SBLGNT and BSB answer from the catalog with
-their evidence. Add an entry there only for something the catalog cannot describe.
-
-**BSB comes from the official USFM release**, not `usfm-bible/examples.bsb`, which omits `\id` in
-Ecclesiastes and silently loses the book. The official release carries `\mt1`/`\mt2`, `\s1`, `\p`,
-`\q1` and full footnotes — what `format: print` needs.
-
-**`format: usj` emits `sid` and no `eid`.** USX pairs them; USJ does not, and `usfmtc` discards
-ends in its USX-to-USJ conversion. discourse-flow accepted this after seeing the evidence.
-
-**Both ways of naming a book work**, case-insensitively, from `data/book-names.json`. A reference
-is tokenized, not pattern-matched. A range may cross a chapter and not a book. Testament and
-original language are declared per book, not derived from a number threshold.
-
-## Do NOT / landmines
-
-- **Do not commit, push, or merge.** Run the gates, write the message, hand over the command.
-- **Do not run `sp doctor` in this repository** — #210, still open.
-- **Do not modify `docs/ai-context/`, `CLAUDE.md`, or project memory** without explicit approval.
-  The Captain authorised specific edits to `data-shapes.md`, `data-sources.md` and `CLAUDE.md`
-  today; those approvals were per-act and do not carry forward.
-- **Do not write after a `=>`.** Those are the Captain's.
-- **`data/book-names.json` and `data/resources.json` must stay in `pyproject.toml`'s
-  force-include and in *both* Nuitka commands.** `book-names.json` reached a release candidate
-  bundled nowhere; two guards now catch it.
-- **`Grep` and `Glob` do not exist in this installation.** A `general-purpose` subagent declared
-  `Tools: *` also lacks them, so it is not a session-launch quirk. Search with `grep` via bash,
-  one command at a time — a chained command matches no permission rule and costs an approval.
-
-## Open, with the reasoning recorded
-
-| | |
-|---|---|
-| **#223** | `type: scripture` records nothing about how it resolved a reference. Filed from discourse-flow's argument; explicitly *not* a change to `parse_bible_reference`, whose nulls are closed |
-| **#201** | datasets record no version — half-addressed: fetches now record one, but the catalog is still not validated against what is installed |
-| **#210, #211** | `overview.md` is two documents sharing one path; 21 shipped documents to `source: template`. #211 looks substantially done and wants re-scoping or closing |
-| **#215** | `sp init`'s write paths. The registry warning naming a retired filename still fires on every init |
-| **CHANGELOG history** | `0.1.5.04` carries two headings from a mis-merge. Left alone deliberately — editing it would rewrite the record to satisfy a new test |
-
-## Other repositories
-
-| where | what |
-|---|---|
-| `awesome-biblical-data` | committed. Now carries `provides` blocks, the validator and the pre-commit hook. We are taking over its maintenance |
-| `human-at-the-helm` | committed — `disciplines/workflow.md`, synced. It must move with this repository's copy or `test_helm_sync` goes red |
-| `discourse-flow` | our reply committed. **Their** `2026-08-29-reference-provenance.md` and a modified `2026-08-27-discourse-family-is-built.md` are still uncommitted there, and are theirs |
-| `~/.claude` | `settings.json` carries the hook fix. The Captain's store, `cgit`. **Report, never commit** |
-| `~/.sp` | uncommitted and awaiting the Captain's own commit: twelve deletions under `conventions/` (a superseded copy of `disciplines/` that nothing read — its `design-authority.md` was still the 49-line version), `editions/` → `registrations/` from the migration, and `disciplines/workflow.md` from the template. Also **`skills/load-context/SKILL.md`, modified by nobody we can name** — it matches this repository's layout and looks right, but its author is unknown, which is the condition the store's version control exists to surface. It wants its own commit, not absorption into another |
-
-## Key files
-
-| | |
-|---|---|
-| `src/llmflow/resources.py` | the catalog reader, path resolution, registration, status |
-| `src/llmflow/books.py` | which book a reference names |
-| `data/book-names.json`, `data/resources.json` | the two declarations added today |
-| `project/plans/design-edition-provisioning.md` | #217's decisions, D1–D6 with the Captain's `=>` answers |
-| `project/RELEASE_CHECKLIST.md` | §6–§9 are the remaining steps |
+| the queue | `project/TODO.md` — but see thread 3: #226–#230 are not in it |
+| #225's plan | `project/plans/plan-cite-rules-by-id.md` |
+| middle-layer design, 4 open `=>` | `project/plans/design-biblical-text-conventions.md` |
+| syntax design, ruled | `project/plans/design-scripture-representations.md` §4.5, §7 |
+| the rules source | `data/ai-rules.yaml` |
+| the shared-file record | `data/helm-sync.yaml` |
+| the sync tool | `tools/sync_helm.py` (read-only by default; `--apply` writes to Helm) |
+| issues open | #226, #227, #228, #229, #230 (#225 closed by `fcd4c67`) |

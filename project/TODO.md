@@ -45,6 +45,33 @@
 > **Deliberately not scheduled:** #209, the repository rename. Filed with its migration detail
 > and an order of operations, to be picked up when the Captain chooses.
 
+### 🆕 Opened 2026-09-01 — five issues, order not yet set
+> **Where these sit relative to the ordered list above is the Captain's to set.** They are
+> recorded here because the task list is the queue; `HANDOFF.md` carries only session residue.
+> One is done: #225, rules cited by id, closed by `fcd4c67`.
+- [ ] **Remove `optional:` from prompt frontmatter → #228.** Every `optional:` in the tree is
+      already `optional: []`; no non-empty one exists. **Do before #227** — it tightens the prompt
+      contract #227's payload gets written against.
+- [ ] **`include: [syntax]`, Lowfat as standoff JSON → #227.** Design ruled and recorded in
+      `project/plans/design-scripture-representations.md` §4.5 and §7. Read the issue for the JSON
+      shape, not the handoff.
+- [ ] **Extract the biblical-text convention layer → #226.** Design in
+      `project/plans/design-biblical-text-conventions.md`; the middle layer lives in
+      `awesome-biblical-data`. D3 is ruled. **D1, D2, D4 and D5 are unanswered `=>` slots and are
+      the Captain's** — do not answer them.
+- [ ] **Epic: enforce rules, don't instruct them → #230.** The AI context is ~27,000 words read at
+      session start, and keeping it enforced currently depends on the Captain knowing all of it.
+      Carries the triage of all 35 rules. Start with the two violated *during* the session that
+      produced it — `lxml-for-xml` and `branching-workflow`, both cheap.
+  - [ ] **Live violation, unfixed:** `src/llmflow/plugins/xml_entry_to_base_json.py:1` imports
+        `xml.etree.ElementTree`, breaking `lxml-for-xml`. Left deliberately as #230's first work
+        item and its motivating evidence — **not a drive-by fix.**
+  - [ ] **Candidate guard, unruled:** `HANDOFF.md` is stale if its date is older than HEAD's
+        commit date. The Captain has not ruled whether this belongs in #230 or its own issue.
+- [ ] **Completion reports, requirement softening, decision churn → #229.** Filed; **explicitly
+      not being chased.** The remedy is recorded in it: checklists, and never ticking a box
+      without showing the evidence.
+
 ### ✅ Settled 2026-08-24 — the #204 catalog questions are all ruled
 > `project/plans/plan-init-doctor-unification.md` Q1–Q6. **Built:** nine catalog rows (the four
 > hello-world examples `generated`, the four audit documents `create-once`),
