@@ -1261,9 +1261,9 @@
           "doc": "Just the instructions, in order."
         },
         {
-          "name": "render_numbered",
-          "signature": "render_numbered() -> str",
-          "doc": "The rules as a markdown ordered list, each note indented beneath its rule."
+          "name": "render_rules",
+          "signature": "render_rules() -> str",
+          "doc": "The rules as a markdown list, each led by its id and followed by any note."
         }
       ]
     },
