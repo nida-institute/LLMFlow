@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+### Changed
+
+- **A rule is cited by its id, not by its position in the list (#225).** The shipped rules
+  document — `docs/ai-context/sp/rules.md`, installed into every project by `sp init` — rendered
+  an ordered list, so a citation could only name a position. Collapsing or adding a rule
+  renumbered everything after it and silently repointed every existing citation at the wrong
+  rule. Each entry now leads with its stable id and carries no number:
+
+  ```
+  - `verses-are-milestones` — **Verses are milestones, not units.** …
+  ```
+
+  `data/ai-rules.yaml` had asked for id citations since it was written, and numeric citations
+  kept being written anyway: the number was where the eye landed, and the id appeared nowhere in
+  the rendered output at all. Order still groups related rules for reading, and reordering is now
+  free — renaming an id is the breaking change.
+
+  Nine numeric citations across the documentation, tools and tests were converted to ids. Two
+  remain numbers deliberately: `docs/ai-context/project/rules.md` is a separate, hand-written,
+  id-less list, so a number qualified by the file that holds it is unambiguous. `CHANGELOG.md`
+  and the plan documents keep theirs, because rewriting a dated record would falsify it.
+
+  A project regenerating its AI context picks up the new rendering with no action; the renderer
+  behind it, `llmflow.ai_rules.render_numbered`, is renamed `render_rules`.
+
+### Test Coverage
+
+- Added `tests/test_rules_are_cited_by_id.py` — four guards, 413 collected cases across the
+  files it scans: a citation names an id rather than a number, every cited id resolves to a rule
+  that exists, ids are unique, and every rule has one.
+- The resolution guard found a citation naming `output-and-intermediates-are-separate`, a slug
+  whose halves had been reversed; the rule is `separate-output-from-intermediates`. It had been
+  green for as long as it had existed, because nothing checked that a cited id was a real one.
+- Full suite: **4116 tests passing**, 25 skipped.
+
 ## 0.2.1.25 — 2026-08-29
 
 ### New Features
