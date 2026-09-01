@@ -10,7 +10,8 @@ them would have turned two real guards green while they checked nothing.
 runner, or a machine where the store belongs somewhere other than the home directory.
 
 Before this, eleven call sites across four modules each wrote `Path.home() / ".sp"` — eleven
-encodings of one fact, which is the defect rule 29 names. Now they ask `sp_home()`.
+encodings of one fact, which is the defect rule `design-is-declarative` names. Now they ask
+`sp_home()`.
 """
 from pathlib import Path
 

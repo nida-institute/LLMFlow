@@ -48,8 +48,8 @@ def rules_path() -> Path:
 def entries() -> tuple[dict, ...]:
     """Every rule as recorded: `id`, `rule`, and an optional `note`.
 
-    Order is significant — it is the numbering readers see. `id` is the stable citation,
-    because collapsing or adding a rule renumbers everything after it.
+    Order is significant for reading — related rules sit together — but it is not an identity.
+    `id` is the citation, because collapsing or adding a rule reorders everything after it.
     """
     path = rules_path()
     if not path.is_file():
@@ -70,17 +70,21 @@ def rules() -> tuple[str, ...]:
     return tuple(entry["rule"] for entry in entries())
 
 
-def render_numbered() -> str:
-    """The rules as a markdown ordered list, each note indented beneath its rule.
+def render_rules() -> str:
+    """The rules as a markdown list, each led by its id and followed by any note.
+
+    The id leads and no number is emitted, so the only handle a reader can take hold of is the
+    stable one. An ordered list put the number where the eye lands and the id nowhere at all,
+    which is why citations by position kept being written while the source file said not to.
 
     A note carries provenance or detail that would otherwise compete with the imperative —
     the versification specification, or why a rule was moved out of a skill. Keeping it
     beneath the sentence rather than inside it is the point: the rule stays an instruction.
     """
     lines = []
-    for number, entry in enumerate(entries(), 1):
-        lines.append(f"{number}. {entry['rule']}")
+    for entry in entries():
+        lines.append(f"- `{entry['id']}` — {entry['rule']}")
         note = (entry.get("note") or "").strip()
         if note:
-            lines.append(f"   - _{note}_")
+            lines.append(f"  - _{note}_")
     return "\n".join(lines)

@@ -15,7 +15,8 @@ Usage:
     hatch run python tools/update_plans_index.py          # write the index
     hatch run python tools/update_plans_index.py --check  # exit 1 if out of date
 
-Convention: rule 14 — plans live in `project/plans/`, named `design-*.md` or `plan-*.md`.
+Convention: rule `file-organisation` — plans live in `project/plans/`, named `design-*.md`
+or `plan-*.md`.
 Dates are deliberately absent: `~/.sp/disciplines/project-tracking.md` puts dates on
 items rather than in filenames or indexes, and git history is the audit trail.
 """

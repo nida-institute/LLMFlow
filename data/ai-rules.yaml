@@ -19,10 +19,12 @@
 # The rules are the Captain's. An AI proposes changes in conversation and never edits this
 # file without approval — the same standing rule as CLAUDE.md and docs/ai-context/.
 #
-# Order is significant: it is the numbering readers cite. Append rather than reorder.
+# Order groups related rules for reading. It is not an identity, and nothing cites it: the
+# rendered list carries no numbers, so `id` is the only handle a reader can take hold of.
+# Reorder freely; renaming an id is the breaking change.
 #
 # Fields per entry:
-#   id     stable slug. Cite this, not the number — collapsing or adding a rule renumbers.
+#   id     stable slug, and the citation. Written as: rule `some-id`.
 #   rule   the instruction, opening with a **bolded lead phrase** that names it.
 #   note   provenance or detail that would otherwise compete with the imperative.
 #          Rendered beneath its rule, never inside the sentence.

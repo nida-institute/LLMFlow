@@ -256,8 +256,8 @@ Using `schema_file` keeps pipelines clean and allows schema reuse across multipl
   enumerate later families either way. **`gpt-4.1` works** — four arms, 200+ calls, strict
   `json_schema`, zero schema failures, measured 2026-08-22 in `nida-institute/discourse-flow`.
   A revision of this line before that date claimed `gpt-4.1` was incompatible because it "uses
-  a different API"; that was wrong, and `docs/ai-context/rules.md` rule 5 already said
-  "GPT-4o/4.1 families".
+  a different API"; that was wrong, and rule `model-capabilities` in
+  `docs/ai-context/sp/rules.md` already said "GPT-4o/4.1 families".
 - **`strict: true`** (recommended): Enables strict schema adherence
 - **`additionalProperties: false`**: Prevents LLM from adding unexpected fields
 - **All required fields documented**: Use `description` fields to guide LLM

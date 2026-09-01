@@ -304,9 +304,9 @@ def ai_rules_doc() -> str:
     used *within* the module — that raises `NameError`, which is what happened when this was
     first written and what `ruff`'s F821 caught.
     """
-    from llmflow.ai_rules import render_numbered
+    from llmflow.ai_rules import render_rules
 
-    return _AI_RULES_FRAME.format(rules=render_numbered())
+    return _AI_RULES_FRAME.format(rules=render_rules())
 
 
 #: Constants whose content is a shipped template file rather than a literal here. The document
