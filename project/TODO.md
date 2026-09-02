@@ -49,9 +49,18 @@
 > **Where these sit relative to the ordered list above is the Captain's to set.** They are
 > recorded here because the task list is the queue; `HANDOFF.md` carries only session residue.
 > One is done: #225, rules cited by id, closed by `fcd4c67`.
-- [ ] **Remove `optional:` from prompt frontmatter → #228.** Every `optional:` in the tree is
-      already `optional: []`; no non-empty one exists. **Do before #227** — it tightens the prompt
-      contract #227's payload gets written against.
+- [ ] **Remove `optional:` from prompt frontmatter → #228. ⚠️ The issue's premise is incomplete —
+      correct it before building anything.** #228 was filed on "every `optional:` in the tree is
+      already `optional: []`", which is true *in this repository* and is why removal looked like a
+      keyword deletion. It surveyed neither consumer repositories nor what we ship:
+  - [ ] `nida-institute/discourse-flow` carries **non-empty** `optional:` lists. Evidence and the
+        full mechanism: `collab/discourse-flow/2026-09-01-dotted-requires.md`.
+  - [ ] `src/llmflow/templates/sp/disciplines/llmflow-prompt-organization.md:40` documents
+        `optional: [perspectives]` as the house pattern, and `sp init` installs that file into
+        every project — **the engine teaches what the convention retires.**
+  - [ ] So removal needs a migration path and a ruling. The "do before #227" ordering still holds
+        on its merits — it tightens the prompt contract #227's payload is written against — but it
+        is no longer the cheap prerequisite it was filed as, and #227 is not blocked by it.
 - [ ] **`include: [syntax]`, Lowfat as standoff JSON → #227.** Design ruled and recorded in
       `project/plans/design-scripture-representations.md` §4.5 and §7. Read the issue for the JSON
       shape, not the handoff.
