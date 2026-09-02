@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+### Added
+
+- **A record may no longer claim an issue closed before its commit reaches `main` (#230).** A
+  GitHub closing keyword fires only when the commit lands on the default branch. Under this
+  project's `branching-workflow` — work on `dev`, `main` holds what has been released — every
+  `Closes #N` written on `dev` leaves its issue open until the `dev` → `main` pull request
+  merges. The tracking documents recorded such work as *"closed by `<sha>`"*, so a session read
+  finished-and-closed where GitHub showed open.
+
+  The shipped convention taught it: `docs/ai-context/sp/github-workflow.md`, installed into
+  every project by `sp init`, said *"When this commit is pushed to GitHub, Issue #96 will
+  automatically close."* It now states the default-branch condition and separates the three
+  states work passes through, because they are easy to conflate and only the second is "closed":
+
+  | state | who has it | the issue |
+  |---|---|---|
+  | committed to `dev` | consumer repos on the same machine, via the editable install | open |
+  | merged to `main` | anyone tracking `main` | closes here |
+  | released | anyone, from PyPI or a binary | closed already |
+
+  `tests/test_record_closure_claims.py` enforces both directions, offline, from git rather than
+  from prose: no record may say an issue was closed by a commit that has not reached `main`, and
+  no record may list as an unfinished task an issue that a `dev`-only commit declares finished.
+  The second is the half that matters locally — since GitHub cannot tell a session what is
+  already implemented here, the record must, and it is now checked instead of trusted.
+
+  **What it does not catch:** work whose commit carries no closing keyword. #210 and #211 are
+  both implemented and both still open for exactly that reason, and no test can infer it.
+
 ### Changed
 
 - **A rule is cited by its id, not by its position in the list (#225).** The shipped rules

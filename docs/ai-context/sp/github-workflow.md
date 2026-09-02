@@ -68,7 +68,25 @@ Closes #96
 Version: 0.2.1.14
 ```
 
-When this commit is pushed to GitHub, Issue #96 will automatically close.
+**A closing keyword fires only when the commit reaches the repository's default branch.**
+Pushing it to a working branch does not close anything. So in a project following
+`branching-workflow` — commit to `dev`, `main` holds what has been released — Issue #96 stays
+**open** until the `dev` -> `main` pull request merges, however many times `dev` is pushed.
+
+That matters because the change is not therefore unavailable. Consumer repositories on the same
+machine install this engine as an editable dependency (`disciplines/consumer-repo-conventions.md`),
+so they see a `dev` commit immediately. Work on `dev` is in three states at once, and only the
+second is "closed":
+
+| state | who has it | the issue |
+|---|---|---|
+| committed to `dev` | consumer repos on this machine, via the editable install | **open** |
+| merged to `main` | anyone tracking `main` | **closes here** |
+| released | anyone, from PyPI or a binary | closed already |
+
+**Never record an issue as closed while its commit is on `dev`.** Name the state instead —
+"committed to `dev`, closes at the release" — because a reader who is told "closed" goes looking
+for a closed issue and finds an open one. Guarded by `tests/test_record_closure_claims.py`.
 
 ## Version Numbering
 

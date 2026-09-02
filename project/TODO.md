@@ -48,7 +48,10 @@
 ### 🆕 Opened 2026-09-01 — five issues, order not yet set
 > **Where these sit relative to the ordered list above is the Captain's to set.** They are
 > recorded here because the task list is the queue; `HANDOFF.md` carries only session residue.
-> One is done: #225, rules cited by id, closed by `fcd4c67`.
+> One is built: #225, rules cited by id — `fcd4c67` on `dev`, carrying `Closes #225`. **The issue
+> is still open on GitHub** and closes when `dev` merges to `main`; the change is already live in
+> consumer repos here through the editable install. Guarded by
+> `tests/test_record_closure_claims.py`.
 - [ ] **Remove `optional:` from prompt frontmatter → #228. ⚠️ The issue's premise is incomplete —
       correct it before building anything.** #228 was filed on "every `optional:` in the tree is
       already `optional: []`", which is true *in this repository* and is why removal looked like a
