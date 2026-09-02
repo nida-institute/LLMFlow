@@ -146,9 +146,22 @@ def extract_template_variables(template_content):
     return variables
 
 
-def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
-    """Check that every {{var}} used in a .gpt body is declared in requires: or optional:.
+def dotted_template_names(names) -> List[str]:
+    """The `{{a.b}}`-style names among *names*, which no substitution can fill.
 
+    A `{{name}}` placeholder is filled by matching *name* against a literal key of the
+    pipeline context. A dotted name is not such a key — the context holds `scene`, not
+    `scene.title` — so the match never succeeds. `resolve()` does not reach it either: it
+    substitutes `${var}` and `{var}`, and leaves a `{{...}}` placeholder untouched, inner
+    braces included.
+    """
+    return sorted(name for name in names if "." in name)
+
+
+def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
+    """Check that every {{var}} used in a .gpt body is flat and declared.
+
+    A dotted name is rejected outright; the rest must appear in requires: or optional:.
     Returns a list of error strings (empty list means the file is clean).
     """
     header = parse_prompt_header(prompt_path)
@@ -173,12 +186,20 @@ def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
     body = text[frontmatter_match.end():] if frontmatter_match else text
 
     body_vars = extract_template_variables(body)
-    undeclared = body_vars - declared
 
-    return [
+    errors = [
+        f"❌ {prompt_path}: '{{{{{var}}}}}' uses a dotted name. A placeholder is filled by "
+        f"matching its name against a literal context key, and '{var}' is not one — so nothing "
+        f"would fill it. Pass the value under a flat name from the step's prompt.inputs."
+        for var in dotted_template_names(body_vars)
+    ]
+
+    undeclared = {var for var in body_vars - declared if "." not in var}
+    errors.extend(
         f"❌ {prompt_path}: uses '{{{{var}}}}' for '{var}' but '{var}' is not declared in requires: or optional:"
         for var in sorted(undeclared)
-    ]
+    )
+    return errors
 
 
 def format_diff_box(step, file, declared, passed):

@@ -57,11 +57,29 @@ step outputs:
 - `${scene_list[*].Title}` – extract one field from every item; returns a flat list.
 - `${scene_list[-3:][*].Title}` – field from each of the last 3 items.
 
-In prompt and template files (`*.gpt`, `*.md`), use `{{var}}`:
+In prompt and template files (`*.gpt`, `*.md`), use `{{var}}` — and **only flat names**:
 
 - `{{language_count}}`
 - `{{greeting_markdown}}`
-- `{{scene.WLC}}`
+
+**`{{scene.WLC}}` is not valid, even though `${scene.WLC}` is.** The two syntaxes are not
+symmetrical: `${...}` resolves a path through an object, while `{{...}}` is filled by matching
+its name against a literal key of the context — and `scene.WLC` is not a key, so nothing fills
+it. Field access belongs on the pipeline side: pass the value in under a flat name.
+
+```yaml
+prompt:
+  file: analyse.gpt
+  inputs:
+    wlc_text: "${scene.WLC}"      # the path is resolved here …
+```
+
+```
+Analyse {{wlc_text}}.                # … and the prompt names the result
+```
+
+Both `sp lint` and `sp run` refuse a dotted name in a prompt body rather than sending the model
+an unfilled placeholder.
 
 Prompt files usually include a small contract (often in a comment
 block) that documents which inputs they expect ("requires" / "optional").

@@ -1,18 +1,13 @@
-"""`docs/ai-context/sp/rules.md` must have one source, not two.
+"""`docs/ai-context/sp/rules.md` must have one source, and must be current with it.
 
-Found 2026-08-21 while checking what `sp doctor` would overwrite. Two generators in this
-repository write the same file from two independently hand-maintained texts:
+Two documents state this project's rules: the one `sp init` writes into a new project
+(`llmflow.cli_utils.AI_RULES_DOC`) and this repository's own
+`docs/ai-context/sp/rules.md`, written by `tools/update_ai_context.py`. Each once held its own
+hand-maintained list — 17 items in the tool, a different 12 in `cli_utils` — so which rules a
+project was held to depended on which generator last ran, and `sp doctor` would replace one set
+with the other without saying which text it considered authoritative.
 
-- `tools/update_ai_context.py` — its `RULES` list, 17 items, produces this repo's
-  `docs/ai-context/sp/rules.md`
-- `llmflow.cli_utils.AI_RULES_DOC` — a *different* 12 items, and what `sp init` writes into
-  every new project
-
-Neither derives from the other. So which rules a project is held to depends on which
-generator last ran, and `sp doctor` in this repo would replace the 17 with the 12 — silently,
-because `data/file-catalog.yaml` marks the file `policy: generated` and both claims are true.
-
-Rules that existed in only one of the two when this was found:
+Rules that existed in only one of the two when that was found:
 
 | only in the repo's 17 | only in the shipped 12 |
 |---|---|
@@ -22,46 +17,75 @@ Rules that existed in only one of the two when this was found:
 | audits are diagnostic, not gates | draft GH issues for human approval |
 | verses are milestones; four-column boards | nothing is intentional unless the human says so |
 
-The Captain, 2026-08-21: *"we need to fix this NOW, not file an issue for later."*
+Four checks:
+  1. The parse finds every rule the data declares — so no check here can pass vacuously.
+  2. Both documents carry every declared rule id.
+  3. Each shared rule is worded identically in both.
+  4. The generated file matches what its generator produces now.
 
-**This test asserts agreement, not content.** It does not care which rules survive the merge
-or where the single list ends up living — only that a project and this repository are held to
-the same set. That keeps it valid whatever the Captain rules the merged set to be.
+**These assert agreement and currency, not content.** Which rules exist, and what they say, is
+the Captain's; `data/ai-rules.yaml` is where that lives.
 """
 
 from __future__ import annotations
 
+import importlib.util
 import re
+import sys
 from pathlib import Path
 
+from llmflow import ai_rules
 from llmflow.cli_utils import AI_RULES_DOC
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 GENERATED_RULES = REPO_ROOT / "docs" / "ai-context" / "sp" / "rules.md"
 
-# A rule is a numbered list item. Both texts are markdown ordered lists, and the leading
-# `**Bold lead.**` is what makes two phrasings of the same rule recognisable as one rule.
-NUMBERED = re.compile(r"^\s*\d+\.\s+(.*)$", re.M)
-LEAD = re.compile(r"\*\*(.+?)\*\*")
+# `tools/` is not a package, so the generator is loaded by path rather than imported.
+_TOOL = REPO_ROOT / "tools" / "update_ai_context.py"
+_spec = importlib.util.spec_from_file_location("update_ai_context", _TOOL)
+update_ai_context = importlib.util.module_from_spec(_spec)
+sys.modules[_spec.name] = update_ai_context
+_spec.loader.exec_module(update_ai_context)
+
+#: A rendered rule: `- `some-id` — **Lead.** text`. The id leads because it is the citation;
+#: an earlier ordered-list rendering is why the parse below is keyed on it.
+RENDERED = re.compile(r"^- `([a-z0-9-]+)` — (.*)$", re.M)
 
 
 def _rules(text: str) -> dict[str, str]:
-    """Rules keyed by their bolded lead phrase, or by the whole item when there is none."""
-    found = {}
-    for item in NUMBERED.findall(text):
-        item = re.sub(r"\s+", " ", item).strip()
-        lead = LEAD.search(item)
-        key = (lead.group(1) if lead else item)[:60].rstrip(".:").lower()
-        found[key] = item
-    return found
+    """Rules keyed by id, each collapsed to one line so wording can be compared."""
+    return {rule_id: re.sub(r"\s+", " ", body).strip() for rule_id, body in RENDERED.findall(text)}
+
+
+def _declared_ids() -> set[str]:
+    return {entry["id"] for entry in ai_rules.entries()}
+
+
+def test_the_parse_finds_every_rule_the_data_declares():
+    """Without this, every other check here can pass on an empty parse.
+
+    That is not hypothetical: when the rendering moved from a numbered list to an
+    id-led one, this module's regex matched nothing, and the two tests below compared two
+    empty sets and passed. A guard whose subject can silently become empty is worse than no
+    guard, because the triage counts it.
+    """
+    declared = _declared_ids()
+    assert declared, "data/ai-rules.yaml declares no rules"
+
+    for name, text in (("cli_utils.AI_RULES_DOC", AI_RULES_DOC),
+                       (str(GENERATED_RULES.relative_to(REPO_ROOT)), GENERATED_RULES.read_text(encoding="utf-8"))):
+        parsed = set(_rules(text))
+        assert parsed == declared, (
+            f"the rule parse in this module does not match what {name} contains.\n"
+            f"  declared but not parsed: {sorted(declared - parsed)}\n"
+            f"  parsed but not declared: {sorted(parsed - declared)}\n"
+            "If the rendering changed, update RENDERED here — until then every check in this "
+            "module is measuring nothing."
+        )
 
 
 def test_a_project_and_this_repository_are_held_to_the_same_rules():
-    """One file, one source. Two hand-maintained texts is the defect.
-
-    `sp init` writes `AI_RULES_DOC`; `tools/update_ai_context.py` writes this repo's copy.
-    Both are ours, which is exactly why they must not be able to disagree.
-    """
+    """One source, two documents. Two hand-maintained texts is the defect."""
     shipped = _rules(AI_RULES_DOC)
     generated = _rules(GENERATED_RULES.read_text(encoding="utf-8"))
 
@@ -69,21 +93,22 @@ def test_a_project_and_this_repository_are_held_to_the_same_rules():
     only_generated = sorted(set(generated) - set(shipped))
 
     assert not only_shipped and not only_generated, (
-        "docs/ai-context/sp/rules.md is written from two independent texts.\n"
+        "docs/ai-context/sp/rules.md and the shipped rules document disagree on which rules "
+        "exist.\n"
         f"  in cli_utils.AI_RULES_DOC only ({len(only_shipped)}): {only_shipped}\n"
         f"  in the generated file only ({len(only_generated)}): {only_generated}\n"
         "A project scaffolded by `sp init` is held to the first; this repository to the "
-        "second. Derive both from one list."
+        "second. Derive both from `data/ai-rules.yaml`."
     )
 
 
 def test_the_two_texts_word_each_shared_rule_identically():
     """Agreeing on which rules exist is not enough if the wording drifts.
 
-    Two copies of one rule in slightly different words is how the shorter one silently
-    becomes a weaker version — the failure this repository has now hit three times
-    (`.cursorrules` losing the `sp run` prohibition, `load-context` paraphrasing
-    `rules.md`, and `design-authority.md` shortened across two repositories).
+    Two copies of one rule in slightly different words is how the shorter one silently becomes
+    a weaker version — the failure this repository has hit three times: `.cursorrules` losing
+    the `sp run` prohibition, `load-context` paraphrasing `rules.md`, and `design-authority.md`
+    shortened across two repositories.
     """
     shipped = _rules(AI_RULES_DOC)
     generated = _rules(GENERATED_RULES.read_text(encoding="utf-8"))
@@ -91,6 +116,21 @@ def test_the_two_texts_word_each_shared_rule_identically():
     differing = sorted(key for key in set(shipped) & set(generated) if shipped[key] != generated[key])
 
     assert not differing, (
-        "these rules exist in both texts but are worded differently, so one is a paraphrase "
+        "these rules exist in both documents but are worded differently, so one is a paraphrase "
         f"of the other and will drift: {differing}"
+    )
+
+
+def test_the_generated_file_is_current_with_its_generator():
+    """Agreement between the two renderers says nothing about the file on disk.
+
+    Both documents can render identically from the data while the committed file is stale,
+    which is what happened when the renderer gained its grouping: the suite stayed green with
+    the file still carrying the previous rendering.
+    """
+    expected = update_ai_context._build_rules_content()
+    actual = GENERATED_RULES.read_text(encoding="utf-8")
+    assert actual == expected, (
+        "docs/ai-context/sp/rules.md is out of date with its generator.\n"
+        "   Regenerate it: hatch run python tools/update_ai_context.py"
     )

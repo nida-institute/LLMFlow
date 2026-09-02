@@ -67,7 +67,22 @@ def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, 
         body = rendered_prompt[frontmatter_match.end():] if frontmatter_match else rendered_prompt
         body_vars = extract_template_variables(body)
 
-        undeclared = body_vars - declared
+        from llmflow.utils.linter import dotted_template_names
+
+        dotted = dotted_template_names(body_vars)
+        if dotted:
+            raise ValueError(
+                f"❌ Prompt contract violation in {full_prompt_path.name}:\n"
+                f"   Dotted names in the prompt body, which no substitution can fill:\n"
+                f"   {', '.join(dotted)}\n\n"
+                f"   A placeholder is filled by matching its name against a literal key of "
+                f"the context, and a dotted name is not one — the context holds the object, "
+                f"not the path. Nothing would fill it, so this step is refused rather than "
+                f"sending the model an unfilled placeholder.\n"
+                f"   Pass the value under a flat name from this step's prompt.inputs."
+            )
+
+        undeclared = {var for var in body_vars - declared if "." not in var}
         if undeclared:
             raise ValueError(
                 f"❌ Prompt contract violation in {full_prompt_path.name}:\n"

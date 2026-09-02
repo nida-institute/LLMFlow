@@ -2,7 +2,47 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Two guards had stopped guarding, silently, and the triage still counted them (#230).**
+  `tests/test_ai_rules_single_source.py` parsed rules out of both rules documents with a regex
+  for *numbered* list items. When the rendering moved to an id-led list, the regex matched
+  nothing — so both of its checks compared two empty sets and passed. The single-source
+  guarantee and the wording-drift check had been inert ever since, while #230's triage listed
+  the test as one of six live guards.
+
+  Repaired, and given a check that makes the failure impossible to repeat: the parse must find
+  exactly the rules `data/ai-rules.yaml` declares, so a rendering change fails loudly instead of
+  emptying the test. A fourth check compares the generated file with what its generator produces
+  now — agreement between the two renderers said nothing about the file on disk, which is how a
+  stale `sp/rules.md` survived a full green suite.
+
+- **The shipped language reference taught a placeholder form that cannot work (#230).**
+  `docs/llmflow-language-quickref.md` listed `{{scene.WLC}}` beside `{{language_count}}` as
+  though `{{...}}` and `${...}` were symmetrical. They are not: `${...}` resolves a path through
+  an object, while `{{...}}` is filled by matching its name against a literal key of the
+  context — and `scene.WLC` is not a key. The reference now says so, shows passing the value in
+  under a flat name via `prompt.inputs`, and keeps the invalid form as a named counter-example.
+
 ### Added
+
+- **A dotted name in a prompt body is refused, by both `sp lint` and `sp run` (#230).** Nothing
+  can fill `{{scene.title}}`: a placeholder is filled by matching its name against a literal
+  context key, and a dotted name is not one. `resolve()` does not reach it either — it
+  substitutes `${var}` and `{var}` and leaves a `{{...}}` placeholder untouched, inner braces
+  included. Measured, not assumed.
+
+  Nothing had refused it. Declaring the name satisfied the declaration check, declaring it
+  optional satisfied the required-variables check, and the placeholder was then sent to the
+  model unfilled. It is now an error in `validate_gpt_body_declares_all_vars` and in the
+  runtime contract check, so a run that never lints fails too. Declaring the name no longer
+  silences it — that was what hid the defect.
+
+  `tests/test_prompt_bodies_use_flat_names.py` covers the linter, the runtime, the
+  declared-anyway case, and every prompt this repository holds or ships. It scopes itself by
+  location — a `.gpt` file, or markdown inside a `prompts/` directory — because documentation
+  that shows an example contract parses as though it had one, and prose must stay free to name
+  the form it warns against.
 
 - **The rules no test can catch are listed apart from the rest, and the split is declared in the
   data (#230).** `sp/rules.md` ran 35 rules together as one list, so the twelve that genuinely

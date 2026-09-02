@@ -2993,9 +2993,14 @@
           "doc": "Extract variables from templates that use {{ variable }} syntax"
         },
         {
+          "name": "dotted_template_names",
+          "signature": "dotted_template_names(names) -> List[str]",
+          "doc": "The `{{a.b}}`-style names among *names*, which no substitution can fill."
+        },
+        {
           "name": "validate_gpt_body_declares_all_vars",
           "signature": "validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]",
-          "doc": "Check that every {{var}} used in a .gpt body is declared in requires: or optional:."
+          "doc": "Check that every {{var}} used in a .gpt body is flat and declared."
         },
         {
           "name": "format_diff_box",
@@ -4751,6 +4756,6 @@
   ],
   "summary": {
     "total_modules": 82,
-    "total_functions": 744
+    "total_functions": 745
   }
 }
