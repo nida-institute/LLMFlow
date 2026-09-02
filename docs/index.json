@@ -1261,9 +1261,14 @@
           "doc": "Just the instructions, in order."
         },
         {
+          "name": "_rendered",
+          "signature": "_rendered(entry: dict) -> list[str]",
+          "doc": ""
+        },
+        {
           "name": "render_rules",
           "signature": "render_rules() -> str",
-          "doc": "The rules as a markdown list, each led by its id and followed by any note."
+          "doc": "The rules as markdown, grouped by whether a test can catch a breach."
         }
       ]
     },
@@ -1691,9 +1696,9 @@
       "module": "llmflow.plugins.xml_entry_to_base_json",
       "imports": [
         "llmflow.modules.logger",
+        "lxml",
         "re",
-        "unicodedata",
-        "xml.etree.ElementTree"
+        "unicodedata"
       ],
       "functions": [
         {
@@ -4746,6 +4751,6 @@
   ],
   "summary": {
     "total_modules": 82,
-    "total_functions": 743
+    "total_functions": 744
   }
 }

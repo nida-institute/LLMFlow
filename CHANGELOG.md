@@ -4,6 +4,39 @@
 
 ### Added
 
+- **The rules no test can catch are listed apart from the rest, and the split is declared in the
+  data (#230).** `sp/rules.md` ran 35 rules together as one list, so the twelve that genuinely
+  require attention sat among twenty-three a test already catches or could — which spends a
+  reader's attention on the wrong ones. Each entry in `data/ai-rules.yaml` now declares
+  `enforcement:` — `guarded`, `partial`, `guardable` or `judgment` — and the renderer groups by
+  it, so the twelve appear under their own heading at the end, with a line saying why they are
+  the ones to carry.
+
+  The classification is the triage recorded in #230, transcribed rather than re-derived. It is
+  declared in the data so nothing keeps a second copy: a rule gaining a guard moves group by one
+  edit, and `rules-a-test-can-catch` is never a hand-maintained list. Totals: 7 guarded, 4
+  partial, 12 guardable, 12 judgment.
+
+- **`lxml-for-xml` is enforced, and the violation it had been describing is fixed (#230).**
+  `tests/test_lxml_not_elementtree.py` walks the AST of every module under `src/llmflow/` and
+  fails on any `xml.etree` import, in either form. `plugins/xml_entry_to_base_json.py` had
+  imported `xml.etree.ElementTree` since before the rule existed and now uses `lxml`.
+
+  One behaviour change came with it: `lxml` refuses a `str` carrying an encoding declaration, so
+  the plugin parses bytes, and malformed input now raises `lxml.etree.XMLSyntaxError` rather than
+  `xml.etree.ElementTree.ParseError`. Both subclass `SyntaxError` but neither subclasses the
+  other, so a caller catching the old class must be updated. Covered by two tests.
+
+  This is the first of the six rule guards scheduled in #230; five remain.
+
+### Fixed
+
+- **The generated rules document had its own headings indented into code blocks (#230).**
+  `tools/update_ai_context.py` interpolated the rendered rules into an indented f-string and
+  then called `dedent`, but `dedent` takes the *common* leading whitespace of every line — and
+  the rendered rules are unindented, so the common prefix was empty and the frame's eight spaces
+  survived into the output. The frame is now dedented before substitution.
+
 - **A record may no longer claim an issue closed before its commit reaches `main` (#230).** A
   GitHub closing keyword fires only when the commit lands on the default branch. Under this
   project's `branching-workflow` — work on `dev`, `main` holds what has been released — every

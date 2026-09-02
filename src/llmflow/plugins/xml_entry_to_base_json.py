@@ -1,6 +1,6 @@
-import xml.etree.ElementTree as ET
 import unicodedata
 import re
+from lxml import etree  # type: ignore[attr-defined]
 from llmflow.modules.logger import Logger
 
 logger = Logger()
@@ -9,7 +9,9 @@ logger = Logger()
 def xml_entry_to_base_json(entry_xml: str) -> dict:
     logger.debug(f"xml_entry_to_base_json called with XML length: {len(entry_xml)} chars")
 
-    root = ET.fromstring(entry_xml)
+    # lxml refuses a str carrying an encoding declaration, so parse bytes (#230).
+    source = entry_xml.encode("utf-8") if isinstance(entry_xml, str) else entry_xml
+    root = etree.fromstring(source)
     ns = {'tei': root.tag.split('}')[0].strip('{')}
     entry_key = root.get('key')
 

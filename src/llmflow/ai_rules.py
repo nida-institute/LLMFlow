@@ -70,21 +70,51 @@ def rules() -> tuple[str, ...]:
     return tuple(entry["rule"] for entry in entries())
 
 
-def render_rules() -> str:
-    """The rules as a markdown list, each led by its id and followed by any note.
+#: The `enforcement` value for a rule no test can catch.
+JUDGMENT = "judgment"
 
-    The id leads and no number is emitted, so the only handle a reader can take hold of is the
-    stable one. An ordered list put the number where the eye lands and the id nowhere at all,
-    which is why citations by position kept being written while the source file said not to.
+#: Heading above the rules a test can catch, and above those it cannot.
+CHECKED_HEADING = "## Rules a test can catch"
+JUDGMENT_HEADING = "## Rules no test can catch — these are the ones to carry"
+
+JUDGMENT_PREAMBLE = (
+    "A breach of every rule above either fails a test today or could. These cannot be "
+    "checked by any test, so they hold only while they are actually in attention — which "
+    "makes them the short list worth re-reading, and the only one a reader has to carry."
+)
+
+
+def _rendered(entry: dict) -> list[str]:
+    lines = [f"- `{entry['id']}` — {entry['rule']}"]
+    note = (entry.get("note") or "").strip()
+    if note:
+        lines.append(f"  - _{note}_")
+    return lines
+
+
+def render_rules() -> str:
+    """The rules as markdown, grouped by whether a test can catch a breach.
+
+    Rules a test can catch come first, then the `judgment` rules under their own heading.
+    The split is read from each entry's `enforcement` field, so nothing holds a second list
+    of which rules are checkable — a rule gaining a guard moves group by one edit to the
+    data.
+
+    Within each group the recorded order is kept: it groups related rules for reading. The
+    id leads and no number is emitted, so the only handle a reader can take hold of is the
+    stable one.
 
     A note carries provenance or detail that would otherwise compete with the imperative —
     the versification specification, or why a rule was moved out of a skill. Keeping it
     beneath the sentence rather than inside it is the point: the rule stays an instruction.
     """
-    lines = []
+    checked, judgment = [], []
     for entry in entries():
-        lines.append(f"- `{entry['id']}` — {entry['rule']}")
-        note = (entry.get("note") or "").strip()
-        if note:
-            lines.append(f"  - _{note}_")
-    return "\n".join(lines)
+        (judgment if entry.get("enforcement") == JUDGMENT else checked).extend(_rendered(entry))
+
+    if not judgment:
+        return "\n".join(checked)
+
+    return "\n".join(
+        [CHECKED_HEADING, "", *checked, "", JUDGMENT_HEADING, "", JUDGMENT_PREAMBLE, "", *judgment]
+    )
