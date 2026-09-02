@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### Added
+
+- **New rule `check-the-source-not-the-rendering` (#230).** A check takes what it verifies from
+  the declaration that produced the artifact — the YAML, the JSON, the schema, the AST — and
+  compares an artifact against what its generator emits. Where a subject genuinely must be
+  derived, because free prose has no parser, the check asserts the derived set is non-empty and
+  compares it against a declared count where one exists.
+
+  Written after two guards in this repository were found inert, and a third generator found to
+  have gone stale for seven months while appearing maintained. Classified `judgment`: no
+  non-fragile test for it is apparent, which is the rule making its own case.
+
+- **`reference-data-is-json` is enforced (#230).** `tests/test_reference_data_is_json.py` asks
+  PyYAML for each scalar's resolved tag and compares it with the text as written, so a bare
+  `1:1` read as the integer `61` and a bare `NO` read as `False` are both caught — the two
+  coercions the rule exists for. No pattern is matched against the file.
+
+  Scoped to the YAML this codebase loads: `data/`, `pipelines/` and the shipped templates.
+  `.github/workflows/*.yml` are parsed by GitHub rather than by us, and their `on:` key resolves
+  to `True` under PyYAML — correct there, and noise here.
+
+  This is the third of #230's six rule guards. Nothing in scope violates it today.
+
 ### Fixed
 
 - **Two guards had stopped guarding, silently, and the triage still counted them (#230).**

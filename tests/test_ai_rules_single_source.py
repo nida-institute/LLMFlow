@@ -1,11 +1,11 @@
-"""`docs/ai-context/sp/rules.md` must have one source, and must be current with it.
+"""The two rules documents must be rendered from one source, and be current with it.
 
 Two documents state this project's rules: the one `sp init` writes into a new project
-(`llmflow.cli_utils.AI_RULES_DOC`) and this repository's own
-`docs/ai-context/sp/rules.md`, written by `tools/update_ai_context.py`. Each once held its own
-hand-maintained list — 17 items in the tool, a different 12 in `cli_utils` — so which rules a
-project was held to depended on which generator last ran, and `sp doctor` would replace one set
-with the other without saying which text it considered authoritative.
+(`llmflow.cli_utils.AI_RULES_DOC`) and this repository's own `docs/ai-context/sp/rules.md`,
+written by `tools/update_ai_context.py`. Each once held its own hand-maintained list — 17 items
+in the tool, a different 12 in `cli_utils` — so which rules a project was held to depended on
+which generator last ran, and `sp doctor` would replace one set with the other without saying
+which text it considered authoritative.
 
 Rules that existed in only one of the two when that was found:
 
@@ -17,22 +17,28 @@ Rules that existed in only one of the two when that was found:
 | audits are diagnostic, not gates | draft GH issues for human approval |
 | verses are milestones; four-column boards | nothing is intentional unless the human says so |
 
-Four checks:
-  1. The parse finds every rule the data declares — so no check here can pass vacuously.
-  2. Both documents carry every declared rule id.
-  3. Each shared rule is worded identically in both.
-  4. The generated file matches what its generator produces now.
+**Nothing here parses a rendered document.** An earlier version of this module recovered the
+rules from both documents with a regex over markdown list items, and when the rendering changed
+shape the regex matched nothing: two empty sets compared equal and every check passed, silently,
+for as long as it took someone to change the renderer and notice the suite stayed green.
+
+The subject is taken from the structured source instead — `data/ai-rules.yaml` through
+`llmflow.ai_rules` — and each document is checked for the rendered text verbatim. A document
+that paraphrases, hand-maintains, or omits a rule fails, and there is no derivation step that
+can quietly yield nothing.
 
 **These assert agreement and currency, not content.** Which rules exist, and what they say, is
-the Captain's; `data/ai-rules.yaml` is where that lives.
+the Captain's.
 """
 
 from __future__ import annotations
 
+import difflib
 import importlib.util
-import re
 import sys
 from pathlib import Path
+
+import pytest
 
 from llmflow import ai_rules
 from llmflow.cli_utils import AI_RULES_DOC
@@ -47,82 +53,99 @@ update_ai_context = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = update_ai_context
 _spec.loader.exec_module(update_ai_context)
 
-#: A rendered rule: `- `some-id` — **Lead.** text`. The id leads because it is the citation;
-#: an earlier ordered-list rendering is why the parse below is keyed on it.
-RENDERED = re.compile(r"^- `([a-z0-9-]+)` — (.*)$", re.M)
+
+def _documents() -> dict[str, str]:
+    """Each rules document by name, so a failure says which one is wrong."""
+    return {
+        "cli_utils.AI_RULES_DOC (what `sp init` writes)": AI_RULES_DOC,
+        str(GENERATED_RULES.relative_to(REPO_ROOT)): GENERATED_RULES.read_text(encoding="utf-8"),
+    }
 
 
-def _rules(text: str) -> dict[str, str]:
-    """Rules keyed by id, each collapsed to one line so wording can be compared."""
-    return {rule_id: re.sub(r"\s+", " ", body).strip() for rule_id, body in RENDERED.findall(text)}
+def _rendered_lines(entry: dict) -> list[str]:
+    """The lines `render_rules` emits for one rule, taken from the renderer's own output."""
+    lines = [f"- `{entry['id']}` — {entry['rule']}"]
+    note = (entry.get("note") or "").strip()
+    if note:
+        lines.append(f"  - _{note}_")
+    return lines
 
 
-def _declared_ids() -> set[str]:
-    return {entry["id"] for entry in ai_rules.entries()}
+#: Diff lines to show before truncating. A whole rules document is ~24,000 characters, and a
+#: failure message that long is not read.
+DIFF_LIMIT = 40
 
 
-def test_the_parse_finds_every_rule_the_data_declares():
-    """Without this, every other check here can pass on an empty parse.
+def _diff(actual: str, expected: str, actual_name: str, expected_name: str) -> str:
+    """A unified diff of two texts, truncated, for a failure message.
 
-    That is not hypothetical: when the rendering moved from a numbered list to an
-    id-led one, this module's regex matched nothing, and the two tests below compared two
-    empty sets and passed. A guard whose subject can silently become empty is worse than no
-    guard, because the triage counts it.
+    Line-based rather than structural on purpose: it says what differs without recovering any
+    structure from the rendered text, which is the mistake this module is written to avoid.
+
+    When the comparison is containment rather than equality, the document's frame — title,
+    preamble, closing line — appears as removals, because a whole document is being compared
+    against the block it contains. Bounded and harmless; narrowing the diff to the aligned
+    region would mean locating that region, and machinery in a failure path earns its keep less
+    than a few noisy lines cost.
     """
-    declared = _declared_ids()
-    assert declared, "data/ai-rules.yaml declares no rules"
-
-    for name, text in (("cli_utils.AI_RULES_DOC", AI_RULES_DOC),
-                       (str(GENERATED_RULES.relative_to(REPO_ROOT)), GENERATED_RULES.read_text(encoding="utf-8"))):
-        parsed = set(_rules(text))
-        assert parsed == declared, (
-            f"the rule parse in this module does not match what {name} contains.\n"
-            f"  declared but not parsed: {sorted(declared - parsed)}\n"
-            f"  parsed but not declared: {sorted(parsed - declared)}\n"
-            "If the rendering changed, update RENDERED here — until then every check in this "
-            "module is measuring nothing."
+    lines = list(
+        difflib.unified_diff(
+            actual.splitlines(),
+            expected.splitlines(),
+            fromfile=actual_name,
+            tofile=expected_name,
+            lineterm="",
+            n=1,
         )
-
-
-def test_a_project_and_this_repository_are_held_to_the_same_rules():
-    """One source, two documents. Two hand-maintained texts is the defect."""
-    shipped = _rules(AI_RULES_DOC)
-    generated = _rules(GENERATED_RULES.read_text(encoding="utf-8"))
-
-    only_shipped = sorted(set(shipped) - set(generated))
-    only_generated = sorted(set(generated) - set(shipped))
-
-    assert not only_shipped and not only_generated, (
-        "docs/ai-context/sp/rules.md and the shipped rules document disagree on which rules "
-        "exist.\n"
-        f"  in cli_utils.AI_RULES_DOC only ({len(only_shipped)}): {only_shipped}\n"
-        f"  in the generated file only ({len(only_generated)}): {only_generated}\n"
-        "A project scaffolded by `sp init` is held to the first; this repository to the "
-        "second. Derive both from `data/ai-rules.yaml`."
     )
+    if not lines:
+        return "   (no line differs; the texts differ only in trailing whitespace)"
+    shown = lines[:DIFF_LIMIT]
+    rendered = "\n".join(f"   {line[:160]}" for line in shown)
+    if len(lines) > DIFF_LIMIT:
+        rendered += f"\n   … {len(lines) - DIFF_LIMIT} further diff lines not shown"
+    return rendered
 
 
-def test_the_two_texts_word_each_shared_rule_identically():
-    """Agreeing on which rules exist is not enough if the wording drifts.
+def test_the_data_declares_rules():
+    """The subject of every check below, asserted directly rather than derived."""
+    assert ai_rules.entries(), "data/ai-rules.yaml declares no rules"
 
-    Two copies of one rule in slightly different words is how the shorter one silently becomes
-    a weaker version — the failure this repository has hit three times: `.cursorrules` losing
-    the `sp run` prohibition, `load-context` paraphrasing `rules.md`, and `design-authority.md`
-    shortened across two repositories.
+
+@pytest.mark.parametrize("name", sorted(_documents()))
+def test_each_document_contains_the_rendered_rules_verbatim(name):
+    """One renderer, two documents. A paraphrase or a second hand-maintained list fails here.
+
+    Checks the whole rendered block as one string, so ordering and spacing are covered too —
+    a document holding the right rules in the wrong order is still two sources.
     """
-    shipped = _rules(AI_RULES_DOC)
-    generated = _rules(GENERATED_RULES.read_text(encoding="utf-8"))
+    document = _documents()[name]
+    rendered = ai_rules.render_rules()
 
-    differing = sorted(key for key in set(shipped) & set(generated) if shipped[key] != generated[key])
+    if rendered in document:
+        return
 
-    assert not differing, (
-        "these rules exist in both documents but are worded differently, so one is a paraphrase "
-        f"of the other and will drift: {differing}"
+    # Not present as a block: name the rules whose text is absent, then show what differs.
+    # Both are diagnostics, and both read the declared data rather than the document.
+    missing = [
+        entry["id"]
+        for entry in ai_rules.entries()
+        if not all(line in document for line in _rendered_lines(entry))
+    ]
+    pytest.fail(
+        f"{name} does not contain the text `llmflow.ai_rules.render_rules()` produces.\n"
+        f"  rules whose rendered text is absent or altered ({len(missing)}): {missing}\n"
+        f"  (an empty list here means every rule is present but the block differs in order or "
+        f"spacing)\n\n"
+        + _diff(document, rendered, name, "llmflow.ai_rules.render_rules()")
+        + "\n\nBoth documents must be rendered from `data/ai-rules.yaml`. A second "
+        "hand-maintained text is the defect this module exists to prevent, and a paraphrase is "
+        "how the weaker wording silently wins."
     )
 
 
 def test_the_generated_file_is_current_with_its_generator():
-    """Agreement between the two renderers says nothing about the file on disk.
+    """Agreement between the two renderers says nothing about the file committed to disk.
 
     Both documents can render identically from the data while the committed file is stale,
     which is what happened when the renderer gained its grouping: the suite stayed green with
@@ -132,5 +155,6 @@ def test_the_generated_file_is_current_with_its_generator():
     actual = GENERATED_RULES.read_text(encoding="utf-8")
     assert actual == expected, (
         "docs/ai-context/sp/rules.md is out of date with its generator.\n"
-        "   Regenerate it: hatch run python tools/update_ai_context.py"
+        "   Regenerate it: hatch run python tools/update_ai_context.py\n\n"
+        + _diff(actual, expected, "docs/ai-context/sp/rules.md", "its generator")
     )

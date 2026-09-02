@@ -388,3 +388,22 @@ rules:
     configuration a human edits, which is what `pipelines/*.yaml` and `data/*.yaml` are; the
     distinction is data *about references* versus configuration. Appended rather than inserted,
     because rules are cited by position across this repository.'
+- id: check-the-source-not-the-rendering
+  enforcement: judgment
+  rule: '**A check reads the structured source, not the rendered artifact.** Take what a test
+    verifies from the declaration that produced it — the YAML, the JSON, the schema, the AST —
+    and compare an artifact against what its generator emits. Re-extracting structure from
+    rendered text with a pattern is the path that fails silently: the artifact changes shape, the
+    pattern stops matching, the derived set is empty, and the assertion passes. Where a subject
+    genuinely must be derived, because free prose has no parser, assert the derived set is
+    non-empty and compare it against a declared count where one exists. A guard that can quietly
+    reduce to nothing is worse than an absent one, because a triage counts it as present.'
+  note: 'Added 2026-09-02. `tests/test_ai_rules_single_source.py` recovered the rules from two
+    rendered documents with a regex for numbered list items. The rendering later became an
+    id-led list, the regex matched nothing, and its two checks compared two empty sets and
+    passed — inert from the commit that added guards until a renderer change left the suite green
+    with a stale generated file. It now takes the rules from this file and checks each document
+    contains the rendered text verbatim, so no derivation step can yield nothing. The same
+    failure had already happened once in a different form: a generator writing to stdout without
+    a redirect left `docs/index.json` stale for seven months while appearing maintained, and no
+    test asserted it was current.'
