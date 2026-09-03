@@ -46,6 +46,10 @@ files:
   sha256: fe85ae4728b8c2affdb65f42b79408b919fcee2d16765b1e6c34eacbd518f61d
   status: identical
 - set: disciplines
+  name: working-for-a-person.md
+  sha256: 0b75dc0c42aef8adcdfb9829dfe0e8b5923c7a46494adfe8d71c364a1f0ba2c5
+  status: identical
+- set: disciplines
   name: workflow.md
   sha256: 5765afd8e474ccfc349aa5f579550f194242e947cafaeaeff913fe95f9128ba9
   status: identical

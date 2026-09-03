@@ -49,6 +49,21 @@
   Septuagint's `1-4 Kgdms` for Samuel and Kings. `3 Kgs` and `4 Kgs` name nothing in any scheme
   and are asserted to stay unresolved.
 
+- **New shared discipline `working-for-a-person.md`.** Installed into every project by
+  `sp init`, and shared with Human at the Helm. Two rules, checked at different moments: be
+  curious about the person you are working for *before* choosing an approach — what this is for,
+  who it serves, why the data matters to them, what they know that you do not — and optimize for
+  their time rather than the machine's, because their attention is the scarce resource while
+  compute, tokens, a re-run and a rewritten file are cheap.
+
+  Written from two sessions of evidence rather than from theory. What it names: asking late and
+  narrowly, in the AI's own vocabulary, about implementation details instead of early and plainly
+  about the goal; treating the file tree as the specification and reasoning from it as though it
+  were the human's design; adding a third option to a question that posed two; delivering an
+  analysis where an issue recording a question was asked for; withholding a recommendation that
+  costs cents in order to spend hours of the human's time; and answering a one-sentence question
+  at a hundred lines.
+
 - **New rule `check-the-source-not-the-rendering` (#230).** A check takes what it verifies from
   the declaration that produced the artifact — the YAML, the JSON, the schema, the AST — and
   compares an artifact against what its generator emits. Where a subject genuinely must be

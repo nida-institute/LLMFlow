@@ -40,6 +40,7 @@ EXPECTED_DISCIPLINES = {
     "tests-and-audits.md",
     "surface-decisions.md",
     "workflow.md",
+    "working-for-a-person.md",
 }
 
 # Files installed at the root of ~/.sp/ rather than into a subdirectory.
