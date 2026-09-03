@@ -784,7 +784,7 @@ def passage_text(
 # --------------------------------------------------------------------------------------
 # Edition registry
 #
-# One YAML file per edition under ``~/.sp/editions/``:
+# One YAML file per edition under ``~/.sp/registrations/``:
 #
 #   id: SBLGNT
 #   name: SBL Greek New Testament
@@ -950,10 +950,11 @@ def discourse_payload(
     rows: Sequence[Mapping[str, Any]],
     edition: str,
 ) -> Optional[list]:
-    """Levinsohn items for *rows*, or None when this edition has no discourse source.
+    """Discourse items for *rows*, or None when this edition has no discourse source.
 
-    The source is Greek-only, so an edition that names none — a Hebrew text, or one simply not
-    configured — is a warning rather than a failure (§4).
+    Which corpus applies follows from the edition, not from the language: an edition names its
+    own with `discourse_path`, and the loader reads either Levinsohn's Greek features or the
+    Hebrew ones. An edition naming none is a warning rather than a failure (§4).
     """
     from llmflow.utils import discourse as _discourse
 
@@ -961,8 +962,8 @@ def discourse_payload(
     if not path:
         logger.warning(
             f"include: [discourse] was requested but edition {edition!r} names no "
-            f"`{DISCOURSE_KEY}`, so no discourse features are attached. Levinsohn's corpus "
-            f"covers the Greek New Testament only."
+            f"`{DISCOURSE_KEY}`, so no discourse features are attached. Add one to the "
+            f"edition's registry entry, pointing at the corpus for its language."
         )
         return None
 

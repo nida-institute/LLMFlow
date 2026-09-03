@@ -244,6 +244,27 @@ match" — but a merged record needs one rule, which is the **extent** position 
 a reference plus digits against BHS or, where the NT quotes the LXX, against the LXX. Making that
 text available is separate work and is not proposed here.
 
+**The Hebrew feature corpus is not the Greek one in another language, and the frequency trap
+repeats.** Reported by discourse-flow on 2026-09-03, from HOTDF-LS. Recorded here because it
+constrains any Hebrew prompt work built on the positions above; **measured by them, not verified
+here** — the corpus is on this machine at the `discourse_path` of the WLC registration, so the
+counts can be checked.
+
+- **53% of all HOTDF-LS citations are Masoretic accent ranks** — Servants 88,419, Kings 63,968,
+  Viceroys 37,466, Emperors 35,987. That is the exact analogue of Main clauses at 47% in
+  Levinsohn's Greek, and the same trap: a feature carried by half the corpus discriminates
+  nothing, so a prompt handed all of them is handed mostly noise. `§2`'s point about throwing
+  away the outcome applies with more force here, not less.
+- **Only 9 of 54 feature types are shared with Greek** — Focus+, Referential PoD, Situational PoD,
+  Cataphoric Focus, DFE, Highlighter, Reported Speech, Verb Focus+, Appositive. The remaining 45
+  are Hebrew-only.
+
+The consequence for this design: a combined record's *shape* carries over to Hebrew, because it is
+about quotations and sources rather than about a feature vocabulary. Any prompt that names feature
+types does **not** carry over — 45 of 54 have no Greek counterpart to have been written against.
+Treating a Greek prompt as a Hebrew one by changing the edition would silently produce a prompt
+addressed to features the corpus does not contain.
+
 ---
 
 ## 6. The design, and what each position follows from

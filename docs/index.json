@@ -1357,7 +1357,7 @@
         {
           "name": "_migrate_resources_dir",
           "signature": "_migrate_resources_dir(sp_home: Path) -> Optional[Check]",
-          "doc": "Carry `~/.sp/editions/` across to `~/.sp/resources/` (#217)."
+          "doc": "Carry `~/.sp/editions/` across to `~/.sp/registrations/` (#217)."
         },
         {
           "name": "_migrate_data_dir",
@@ -3384,7 +3384,7 @@
         {
           "name": "discourse_payload",
           "signature": "discourse_payload(definition: Any, rows: Sequence[Mapping[str, Any]], edition: str) -> Optional[list]",
-          "doc": "Levinsohn items for *rows*, or None when this edition has no discourse source."
+          "doc": "Discourse items for *rows*, or None when this edition has no discourse source."
         },
         {
           "name": "__str__",

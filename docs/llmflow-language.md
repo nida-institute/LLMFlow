@@ -750,7 +750,7 @@ Writes content directly to a file. No LLM call, no Python function — just a wr
 ### type: `scripture`
 
 Fetches one passage from one **named** edition. The edition is a name resolved through the
-registry in `~/.sp/editions/`, never a path in the pipeline — so the same pipeline runs on a
+registry in `~/.sp/registrations/`, never a path in the pipeline — so the same pipeline runs on a
 machine where the sources live somewhere else.
 
 ```yaml
@@ -930,10 +930,12 @@ addresses individual words.
 
 #### `include: [discourse]` — Levinsohn's features, reconciled rather than attached
 
-Greek New Testament only. The edition names its source, so no path appears in a pipeline:
+Which corpus applies follows from the edition rather than from the language: a Greek edition
+names Levinsohn's features, a Hebrew one names the Hebrew corpus, and the edition names it — so
+no path appears in a pipeline:
 
 ```yaml
-# ~/.sp/editions/SBLGNT.yaml
+# ~/.sp/registrations/SBLGNT.yaml
 id: SBLGNT
 kind: tsv
 path: /path/to/macula-greek-SBLGNT.tsv

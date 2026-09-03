@@ -273,7 +273,7 @@ or all items if fewer than 10 have accumulated so far.
 ### type: `scripture`
 
 Fetch one passage from one **named** edition. The name resolves through
-`~/.sp/editions/*.yaml`, so no path appears in a pipeline and the same
+`~/.sp/registrations/*.yaml`, so no path appears in a pipeline and the same
 pipeline runs on any machine.
 
 ```yaml
