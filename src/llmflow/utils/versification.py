@@ -193,7 +193,6 @@ def _book_code(written: str):
 
 
 def _refuse(passage: str, text: str) -> NoReturn:
-    from llmflow import books as _books
 
     if "-" in text:
         after = text.rsplit("-", 1)[1].strip()

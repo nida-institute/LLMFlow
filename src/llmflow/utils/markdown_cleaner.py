@@ -1,6 +1,7 @@
 from typing import Optional
-from markdown_it import MarkdownIt
+
 import mdformat
+from markdown_it import MarkdownIt
 
 
 def clean_markdown(content: str, style: Optional[str] = None) -> str:

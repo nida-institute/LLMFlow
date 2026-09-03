@@ -1,6 +1,7 @@
 """Echo plugin - returns a static message or value."""
 
 from typing import Any, Dict
+
 from llmflow.modules.logger import Logger
 
 logger = Logger()

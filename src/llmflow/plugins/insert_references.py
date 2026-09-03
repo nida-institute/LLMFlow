@@ -2,7 +2,8 @@
 
 import json
 import re
-from typing import Dict, Any
+from typing import Any, Dict
+
 from llmflow.modules.logger import Logger
 
 logger = Logger()
@@ -86,7 +87,7 @@ def insert_references(
         try:
             refs_data = json.loads(cleaned)
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse reference_analysis JSON")
+            logger.error("Failed to parse reference_analysis JSON")
             logger.error(f"Error: {e}")
             logger.error(f"First 500 chars of cleaned text: {cleaned[:500]}")
             logger.error(f"Last 500 chars of cleaned text: {cleaned[-500:]}")
@@ -148,7 +149,10 @@ def insert_references(
                 if needs_review:
                     # Show EDITOR note in blockquote format
                     lines.append(f"- **{citation}**: {greek} / \"{translation}\"")
-                    lines.append(f"  > **EDITOR:** Abbott-Smith cited this reference but didn't quote the text. Greek extracted from SBLGNT.")
+                    lines.append(
+                        "  > **EDITOR:** Abbott-Smith cited this reference but didn't quote "
+                        "the text. Greek extracted from SBLGNT."
+                    )
                 else:
                     # Normal reference (Abbott-Smith quoted it)
                     lines.append(f"- **{citation}**: {greek} / \"{translation}\"")

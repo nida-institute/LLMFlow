@@ -9,8 +9,7 @@ All data sources come from https://github.com/nida-institute/awesome-biblical-da
 
 import json
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
-
+from typing import Any, Dict, List, Optional, Tuple
 
 # =============================================================================
 # DATA REGISTRY - Paths to all awesome-biblical-data resources
@@ -440,7 +439,8 @@ def load_acai_to_duckdb(con=None, entity_types: Optional[List[str]] = None):
         ... ''').fetchall()
     """
     try:
-        import duckdb
+        # Imported to check availability: the connection is made by the helper below.
+        import duckdb  # noqa: F401
     except ImportError:
         raise ImportError("DuckDB not installed. Run: pip install duckdb")
 
@@ -672,7 +672,6 @@ def example_usage():
     # =============================================================================
     # Example 3: DuckDB - Query Macula morphology with proper Unicode sorting
     # =============================================================================
-    import duckdb
 
     # Query Hebrew verbs in Genesis
     result = query_macula_hebrew('Genesis', "pos = 'verb'")
@@ -703,7 +702,7 @@ def example_usage():
     con = load_acai_to_duckdb()
 
     # Query entities by type
-    type_counts = con.execute("""
+    con.execute("""
         SELECT type, COUNT(*) as count
         FROM acai_entities
         GROUP BY type
@@ -711,7 +710,7 @@ def example_usage():
     """).fetchall()
 
     # Find most frequently mentioned people
-    top_people = con.execute("""
+    con.execute("""
         SELECT preferred_label, reference_count
         FROM acai_entities
         WHERE type = 'person'

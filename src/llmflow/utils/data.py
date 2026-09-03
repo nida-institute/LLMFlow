@@ -320,7 +320,8 @@ def parse_bible_reference(
                 display_name = f"{book_display_name.replace(' ', '-')}-{chapter}"
                 canonical_reference = f"{book_display_name} {chapter}:1-{end_verse}"
             elif end_chapter != chapter:  # Cross-chapter
-                display_name = f"{book_display_name.replace(' ', '-')}-{chapter}-{start_verse}-{end_chapter}-{end_verse}"
+                hyphenated = book_display_name.replace(" ", "-")
+                display_name = f"{hyphenated}-{chapter}-{start_verse}-{end_chapter}-{end_verse}"
                 canonical_reference = f"{book_display_name} {chapter}:{start_verse}-{end_chapter}:{end_verse}"
             elif start_verse == end_verse:  # Single verse
                 display_name = (
@@ -1102,6 +1103,7 @@ def load_usfm_passage(base_dir: str, project_name: str, passage: str, format: st
 
     # Convert extracted USJ back to USX element
     import json
+
     from usfmtc import USX as _USX
     usx_obj = _USX.fromUsj(json.dumps(chapter_usj))
     return _usx_to_element(usx_obj)
@@ -1180,6 +1182,7 @@ def serialize_usx(content) -> str | bool | None:
         return tostring(content, encoding="unicode", pretty_print=True)
     # USJ dict path
     import json
+
     from usfmtc import USX as _USX
     usx_obj = _USX.fromUsj(json.dumps(content))
     return usx_obj.outUsx()
@@ -1195,8 +1198,8 @@ def serialize_usfm(content) -> str | bool | None:
     Returns:
         USFM as a unicode string.
     """
-    from usfmtc import USX as _USX
     from lxml.etree import _Element, tostring
+    from usfmtc import USX as _USX
     if isinstance(content, _Element):
         xml_str = tostring(content, encoding="unicode")
         usx_obj = _USX.fromUsx(xml_str)
@@ -1309,6 +1312,7 @@ def load_project_file(base_dir: str, project_name: str, file: str, required: boo
         >>> lang_tag = meta['languages'][0]['tag'] if meta else None
     """
     import json
+
     from lxml import etree  # type: ignore[attr-defined]
 
     project_dir = Path(base_dir) / project_name

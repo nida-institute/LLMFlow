@@ -20,7 +20,10 @@ def handle_step_outputs(step: Dict[str, Any], result: Any, context: Dict[str, An
     if outputs is not None:
         if isinstance(outputs, str):
             context[outputs] = result
-            logger.debug(f"📦 Stored in context['{outputs}']: {type(result).__name__}, length={len(str(result)) if result else 0}")
+            logger.debug(
+                f"📦 Stored in context['{outputs}']: {type(result).__name__}, "
+                f"length={len(str(result)) if result else 0}"
+            )
             if step.get("name") == "bodies":
                 logger.debug(f"   First 100 chars: {repr(str(result)[:100]) if result else 'NONE'}")
         elif isinstance(outputs, list):

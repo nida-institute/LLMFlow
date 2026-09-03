@@ -581,11 +581,10 @@ async def _run_with_responses_api(
     pipeline_config: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """Execute LLM using Responses API (for GPT-5, O1)."""
-    from llmflow.runner import save_content_to_file
-    import json
-    from openai import OpenAI
     import asyncio
-    from functools import partial
+    import json
+
+    from openai import OpenAI
 
     # Responses API is only available in sync client, so we'll use it in a thread pool
     client = OpenAI(api_key=resolve_provider_key("openai"))
@@ -649,7 +648,11 @@ async def _run_with_responses_api(
 
         for iteration in range(max_iterations):
             logger.debug(f"🔄 MCP iteration {iteration + 1}/{max_iterations}")
-            logger.info(f"📤 API params: model={api_params['model']}, tools={len(api_params.get('tools', []))}, input_messages={len(api_params.get('input', []))}")
+            logger.info(
+                f"📤 API params: model={api_params['model']}, "
+                f"tools={len(api_params.get('tools', []))}, "
+                f"input_messages={len(api_params.get('input', []))}"
+            )
 
             try:
                 response = await asyncio.to_thread(
@@ -692,7 +695,10 @@ async def _run_with_responses_api(
             logger.debug(f"📊 Response status: {response.status}")
             logger.debug(f"📊 Response output items: {len(response.output)}")
             for i, item in enumerate(response.output):
-                logger.debug(f"📊 Output item {i}: type={getattr(item, 'type', 'NO TYPE')}, hasattr text={hasattr(item, 'text')}")
+                logger.debug(
+                    f"📊 Output item {i}: type={getattr(item, 'type', 'NO TYPE')}, "
+                    f"hasattr text={hasattr(item, 'text')}"
+                )
                 if hasattr(item, '__dict__'):
                     logger.debug(f"📊 Output item {i} attributes: {list(item.__dict__.keys())}")
 
@@ -741,7 +747,7 @@ async def _run_with_responses_api(
                     }
 
                 # Has function calls - fall through to handle them
-                logger.debug(f"🛠️  LLM requesting tool calls")
+                logger.debug("🛠️  LLM requesting tool calls")
 
             # Check for tool calls (even if status is not "completed")
             tool_calls_found = False
@@ -779,7 +785,7 @@ async def _run_with_responses_api(
                 }
 
             # Execute tool calls and add results to input
-            logger.debug(f"🛠️  LLM requesting tool calls")
+            logger.debug("🛠️  LLM requesting tool calls")
 
             new_input_items = list(api_params["input"])  # Copy existing input
 
@@ -826,10 +832,19 @@ async def _run_with_responses_api(
                             # Truncate if needed
                             if len(result_str) > max_tool_response_size:
                                 truncated_chars = len(result_str) - max_tool_response_size
-                                result_str = result_str[:max_tool_response_size] + f"\n\n[...truncated {truncated_chars:,} characters]"
-                                logger.warning(f"      ⚠️  Tool response truncated from {len(str(result)):,} to {len(result_str):,} chars")
+                                result_str = (
+                                    result_str[:max_tool_response_size]
+                                    + f"\n\n[...truncated {truncated_chars:,} characters]"
+                                )
+                                logger.warning(
+                                    f"      ⚠️  Tool response truncated from "
+                                    f"{len(str(result)):,} to {len(result_str):,} chars"
+                                )
                             else:
-                                logger.debug(f"      ℹ️  Tool response size: {len(result_str):,} chars (within {max_tool_response_size:,} limit)")
+                                logger.debug(
+                                    f"      ℹ️  Tool response size: {len(result_str):,} chars "
+                                    f"(within {max_tool_response_size:,} limit)"
+                                )
 
                             result_preview = result_str[:200] + "..." if len(result_str) > 200 else result_str
                             logger.debug(f"      ✅ Result: {result_preview}")
@@ -872,6 +887,7 @@ async def _run_with_chat_completions(
 ) -> Dict[str, Any]:
     """Execute LLM using Chat Completions API (for GPT-4, GPT-3.5)."""
     import json
+
     from openai import AsyncOpenAI
 
     client = AsyncOpenAI(api_key=resolve_provider_key("openai"))
@@ -1032,10 +1048,19 @@ async def _run_with_chat_completions(
                     # Truncate if needed
                     if len(result_str) > max_tool_response_size:
                         truncated_chars = len(result_str) - max_tool_response_size
-                        result_str = result_str[:max_tool_response_size] + f"\n\n[...truncated {truncated_chars:,} characters]"
-                        logger.warning(f"      ⚠️  Tool response truncated from {len(str(result)):,} to {len(result_str):,} chars")
+                        result_str = (
+                            result_str[:max_tool_response_size]
+                            + f"\n\n[...truncated {truncated_chars:,} characters]"
+                        )
+                        logger.warning(
+                            f"      ⚠️  Tool response truncated from "
+                            f"{len(str(result)):,} to {len(result_str):,} chars"
+                        )
                     else:
-                        logger.debug(f"      ℹ️  Tool response size: {len(result_str):,} chars (within {max_tool_response_size:,} limit)")
+                        logger.debug(
+                            f"      ℹ️  Tool response size: {len(result_str):,} chars "
+                            f"(within {max_tool_response_size:,} limit)"
+                        )
 
                     result_preview = result_str[:200] + "..." if len(result_str) > 200 else result_str
                     logger.debug(f"      ✅ Result: {result_preview}")
@@ -1057,7 +1082,11 @@ async def _run_with_chat_completions(
 
         # If we hit max iterations without finishing
         logger.debug(f"⚠️  Max MCP iterations ({max_iterations}) reached")
-        final_content = message.content if message is not None else "" or "Error: Maximum tool calling iterations exceeded"
+        final_content = (
+            message.content
+            if message is not None
+            else "" or "Error: Maximum tool calling iterations exceeded"
+        )
 
         # Parse JSON if requested
         if output_type.lower() == "json":

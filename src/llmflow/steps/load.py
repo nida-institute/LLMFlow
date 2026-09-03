@@ -36,11 +36,11 @@ def _load_one(path, fmt, load_json_file, load_yaml, load_xml_file,
 def run_load_step(step: Dict[str, Any], context: Dict[str, Any]) -> None:
     """Execute a load_* step — resolve path, load file(s), store in context."""
     from llmflow.utils.data import (
-        load_json_file,
-        load_yaml,
-        load_xml_file,
         load_csv_file,
+        load_json_file,
         load_text_file,
+        load_xml_file,
+        load_yaml,
     )
 
     name = step.get("name", "unnamed")

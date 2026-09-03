@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, Optional
 
 from llmflow.modules.logger import Logger
 from llmflow.utils.context import resolve
-from llmflow.utils.guards import build_eval_locals, _safe_eval
+from llmflow.utils.guards import _safe_eval, build_eval_locals
 from llmflow.utils.step_outputs import handle_step_outputs
 
 logger = Logger()

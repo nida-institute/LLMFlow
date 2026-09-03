@@ -1,8 +1,8 @@
 import json
 import re
 
-from llmflow.modules.logger import Logger
 from llmflow.modules.llm_response_clean import clean_llm_response_text
+from llmflow.modules.logger import Logger
 
 # Use unified logger
 logger = Logger()
@@ -40,7 +40,7 @@ def parse_llm_json_response(text: str):
 
             return result
         except json.JSONDecodeError as final_error:
-            logger.error(f"⚠️  Could not fix JSON after attempted repairs")
+            logger.error("⚠️  Could not fix JSON after attempted repairs")
             logger.error(f"   First 500 chars: {repr(cleaned[:500])}")
             raise ValueError(f"JSON parse failed: {final_error.msg} at position {final_error.pos}") from final_error
 

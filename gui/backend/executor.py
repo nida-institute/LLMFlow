@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+
 def _is_valid_var_key(key: str) -> bool:
     return key.isidentifier()
 
@@ -144,7 +145,6 @@ class PipelineExecutor:
         '2026-03-27 18:37:35,689 - INFO - Pipeline: ...'
         -> 'Pipeline: ...'
         """
-        import re
 
         # Pattern: timestamp - LEVEL - message
         # Example: 2026-03-27 18:37:35,689 - INFO - Pipeline Summary
@@ -256,7 +256,12 @@ class PipelineExecutor:
                 output_dir = str(first_file.parent)
             else:
                 # File path might be absolute or project-relative
-                output_dir = str(Path(created_files[0]).parent if Path(created_files[0]).is_absolute() else Path(cwd) / Path(created_files[0]).parent)
+                first_file = Path(created_files[0])
+                output_dir = str(
+                    first_file.parent
+                    if first_file.is_absolute()
+                    else Path(cwd) / first_file.parent
+                )
 
         return {
             'success': exit_code == 0,

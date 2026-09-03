@@ -11,8 +11,8 @@ from llmflow.model import Pipeline, ResolvedPipeline, Step, load_pipeline
 from llmflow.pipeline_schema import PIPELINE_SCHEMA
 
 if TYPE_CHECKING:  # lazy at runtime (see __getattr__), to keep `import llmflow` light
-    from llmflow.modules.telemetry import get_model_metadata as model_metadata  # noqa: F401
     from llmflow.books import resolve as resolve_book  # noqa: F401
+    from llmflow.modules.telemetry import get_model_metadata as model_metadata  # noqa: F401
     from llmflow.utils.data import parse_bible_reference  # noqa: F401
     from llmflow.utils.llm_runner import call_llm  # noqa: F401
 

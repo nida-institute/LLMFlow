@@ -39,10 +39,9 @@ except ImportError:
     from executor import PipelineExecutor  # pyright: ignore[reportMissingImports]
 
 # Import content lifecycle utilities
-from llmflow.utils.content_status import get_content_status as get_content_status_util
-from llmflow.utils.content_stages_loader import get_content_stages_config
 from llmflow.utils.content_list import list_content
-
+from llmflow.utils.content_stages_loader import get_content_stages_config
+from llmflow.utils.content_status import get_content_status as get_content_status_util
 
 #: Directories that are never a project's own, so a `pipelines/` inside them is not the one.
 _NOT_THE_PROJECTS = {".venv", "venv", "node_modules", "__pycache__", ".git", "site-packages"}
@@ -369,7 +368,8 @@ def create_app():
             stages_data = [
                 {
                     'name': stage.name,
-                    'label': stage.description or stage.name.title(),  # Use description as label, or fallback to capitalized name
+                    # Use description as label, or fall back to the capitalized name
+                    'label': stage.description or stage.name.title(),
                     'protected': stage.protected,
                     'immutable': stage.immutable,
                     'file_permissions': stage.file_permissions,
@@ -500,9 +500,7 @@ def create_app():
     @app.route('/api/content/transition', methods=['POST'])
     def content_transition():
         """Transition a file from one stage to another."""
-        data = request.json
-
-        # TODO: Implement actual file transition logic
+        # TODO: Implement actual file transition logic, reading the body via `request.json`
         return jsonify({
             'success': False,
             'error': 'Content lifecycle transitions not yet implemented'
@@ -586,8 +584,8 @@ def create_app():
     @socketio.on('execute_pipeline')
     def handle_execute_pipeline(data):
         """Execute pipeline with real-time output streaming via WebSocket."""
-        import time
         import random
+        import time
 
         # Generate execution ID on backend if not provided
         execution_id = data.get('execution_id')

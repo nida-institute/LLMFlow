@@ -5,16 +5,14 @@ Shows where a content file exists across stages, metadata, and suggests next act
 """
 
 import json
-import os
-from pathlib import Path
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
 
+from llmflow.modules.logger import Logger
 from llmflow.utils.content_stages_loader import (
     ContentStagesConfigLoader,
-    get_content_stages_config,
 )
-from llmflow.modules.logger import Logger
 
 logger = Logger()
 
@@ -182,7 +180,7 @@ def format_status(status: Dict[str, Any], json_output: bool = False) -> str:
                     output.append(f"    {key}: {value}")
         else:
             output.append(f"\n✗ {name}")
-            output.append(f"  (File not present)")
+            output.append("  (File not present)")
 
     # Show next actions
     next_actions = status.get("next_actions", [])

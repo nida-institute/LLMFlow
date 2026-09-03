@@ -5,11 +5,11 @@ import re
 import stat
 from contextlib import contextmanager
 from pathlib import Path
-
-from llmflow import paths as _paths
 from typing import Optional
 
 import click
+
+from llmflow import paths as _paths
 
 logger = logging.getLogger(__name__)
 
@@ -820,7 +820,6 @@ def sync_ai_context_files(base_dir: Path) -> None:
     without manually copying them or keeping them in sync.
     """
     import importlib.resources
-    import shutil
 
     # Target directory in consumer repo
     target_dir = base_dir / ".github" / "ai-context"

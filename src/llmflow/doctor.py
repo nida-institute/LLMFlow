@@ -45,10 +45,9 @@ import enum
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-
-from llmflow import paths as _paths
 from typing import Optional
 
+from llmflow import paths as _paths
 from llmflow.file_catalog import Entry, Scope, Source, managed_by_doctor, shipped_content, shipped_path
 from llmflow.resources import RESOURCES_DIRNAME
 from llmflow.utils.versification import MAPPINGS_DIRNAME

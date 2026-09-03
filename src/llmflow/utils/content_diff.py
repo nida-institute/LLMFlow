@@ -6,10 +6,10 @@ Compare content versions across stages.
 
 import difflib
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
-from llmflow.utils.content_stages_loader import ContentStagesConfigLoader
 from llmflow.modules.logger import Logger
+from llmflow.utils.content_stages_loader import ContentStagesConfigLoader
 
 logger = Logger()
 
@@ -119,7 +119,7 @@ def diff_content(
                 for line in diff_lines:
                     print(line)
             else:
-                print(f"\n✓ Files are identical")
+                print("\n✓ Files are identical")
                 print(f"  {from_stage}/{from_file.name}")
                 print(f"  {to_stage}/{to_file.name}")
 

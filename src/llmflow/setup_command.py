@@ -117,7 +117,7 @@ def run_setup(update=False):
 
     for i, p in enumerate(PROVIDERS, 1):
         current = data.get(p["key"])
-        status = f"  ✅ key set" if current else "  (not configured)"
+        status = "  ✅ key set" if current else "  (not configured)"
         print(f"  {i}. {p['name']}{status}")
     print(f"  {len(PROVIDERS) + 1}. Done\n")
 
