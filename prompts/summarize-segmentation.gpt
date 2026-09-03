@@ -2,7 +2,6 @@
 requires:
   - book
   - segmentation_json
-optional: []
 format: JSON
 description: Summarise a book segmentation, returned as a strict JSON schema.
 ---

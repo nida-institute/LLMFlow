@@ -31,7 +31,7 @@ class TestGptBodyDeclaresAllVars:
     def test_undeclared_var_in_body_is_error(self, tmp_path):
         gpt = tmp_path / "bad.gpt"
         gpt.write_text(
-            "---\nrequires: []\noptional: []\n---\nuser: |\n  Hello {{name}}\n",
+            "---\nrequires: []\n---\nuser: |\n  Hello {{name}}\n",
             encoding="utf-8",
         )
         from llmflow.utils.linter import validate_gpt_body_declares_all_vars
@@ -43,7 +43,7 @@ class TestGptBodyDeclaresAllVars:
     def test_required_var_in_body_passes(self, tmp_path):
         gpt = tmp_path / "good.gpt"
         gpt.write_text(
-            "---\nrequires:\n  - name\noptional: []\n---\nuser: |\n  Hello {{name}}\n",
+            "---\nrequires:\n  - name\n---\nuser: |\n  Hello {{name}}\n",
             encoding="utf-8",
         )
         from llmflow.utils.linter import validate_gpt_body_declares_all_vars
@@ -51,16 +51,9 @@ class TestGptBodyDeclaresAllVars:
         errors = validate_gpt_body_declares_all_vars(str(gpt))
         assert not errors
 
-    def test_optional_var_in_body_passes(self, tmp_path):
-        gpt = tmp_path / "optional.gpt"
-        gpt.write_text(
-            "---\nrequires: []\noptional:\n  - tone\n---\nuser: |\n  {{tone}} Hello!\n",
-            encoding="utf-8",
-        )
-        from llmflow.utils.linter import validate_gpt_body_declares_all_vars
-
-        errors = validate_gpt_body_declares_all_vars(str(gpt))
-        assert not errors
+    # A body variable declared `optional:` used to pass this check. The key was withdrawn —
+    # every prompt parameter is required — and its refusal is covered by
+    # tests/test_prompt_headers_have_no_optional.py rather than duplicated here.
 
     def test_hello_gpt_in_repo_passes(self):
         """The canonical prompts/hello.gpt in the repo must declare all its {{vars}}."""
@@ -75,7 +68,7 @@ class TestGptBodyDeclaresAllVars:
         prompts_dir = tmp_path / "prompts"
         prompts_dir.mkdir()
         (prompts_dir / "bad.gpt").write_text(
-            "---\nrequires: []\noptional: []\n---\nuser: |\n  Hello {{name}}\n",
+            "---\nrequires: []\n---\nuser: |\n  Hello {{name}}\n",
             encoding="utf-8",
         )
         pipeline = tmp_path / "pipeline.yaml"

@@ -4,7 +4,6 @@ requires:
   - title
   - passage
   - theme
-optional: []
 format: JSON
 description: Analyse one pericope's literary features, returned as a strict JSON schema.
 ---

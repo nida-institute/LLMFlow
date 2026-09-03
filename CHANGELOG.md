@@ -2,7 +2,52 @@
 
 ## Unreleased
 
+## 0.2.1.26 — 2026-09-03
+
 ### Added
+
+- **`include: [discourse]` reads a Hebrew corpus, not only a Greek one (#230).** The loader
+  accepted a single corpus shape: `<feature>` document roots, OSIS book names, and one flat
+  directory. HOTDF-LS — Hebrew Old Testament discourse features — uses `<markup>` and
+  `<annotations>` roots, references already written in USFM (`LEV.1.14`, `1SA.2.15`), and files in
+  subdirectories. Every file was therefore skipped and the payload came back empty, which is
+  indistinguishable from a passage with no data.
+
+  Three changes, and the second removes a duplicate rather than adding a table: document roots are
+  now declared as a set; book names resolve through `llmflow.books.resolve`, which accepts either
+  spelling because `data/book-names.json` single-sources them (#218); and the corpus glob recurses.
+  The 27-entry OSIS translation table this module carried was a second copy of part of that file,
+  and being New Testament only it refused every Old Testament reference.
+
+  With this, every implemented `include:` family serves both Greek and Hebrew. An edition points
+  at its corpus with `discourse_path` in its registry entry.
+
+- **An edition that declares no versification is read as English, and says so (#203).** Much of
+  the translation world uses English versification without meeting the issue, so a project may
+  have no versification file at all. Reading such an edition across schemes used to raise; it now
+  assumes `eng` and warns, every time, because where the assumption is wrong it is wrong by whole
+  verses.
+
+  The payload keeps the guess apart from a declaration:
+
+  ```json
+  "versification": null,
+  "versification_guessed": "eng"
+  ```
+
+  so a consumer reading only `versification` gets the honest answer and cannot mistake a guess for
+  a fact. `versification_guessed` appears only where there was a guess to report.
+
+- **Book names resolve for every published scheme, and it is now guarded (#218).** All 66 OSIS ids
+  from CrossWire and all 73 SBL abbreviations from *The SBL Handbook of Style* (2nd ed., 124-125)
+  resolve to the right USFM code, in plain and dotted form — 140 checks. Most of that was already
+  true, as a consequence of matching being case-insensitive and ignoring dots and spaces, and
+  nothing asserted it: a tidy-up of `normalise()` could have broken every commentary-style
+  citation with a green suite.
+
+  Two spellings were missing and are added from those sources: `Qoh` for Ecclesiastes, and the
+  Septuagint's `1-4 Kgdms` for Samuel and Kings. `3 Kgs` and `4 Kgs` name nothing in any scheme
+  and are asserted to stay unresolved.
 
 - **New rule `check-the-source-not-the-rendering` (#230).** A check takes what it verifies from
   the declaration that produced the artifact — the YAML, the JSON, the schema, the AST — and
@@ -13,6 +58,38 @@
   Written after two guards in this repository were found inert, and a third generator found to
   have gone stale for seven months while appearing maintained. Classified `judgment`: no
   non-fragile test for it is apparent, which is the rule making its own case.
+
+- **`llmflow.runner` declares its import surface in `__all__`.** Nineteen names are imported from
+  this module elsewhere in the tree, and only three of them — `logger`, `run_pipeline`, `run_step`
+  — are defined there. The rest are re-exports, kept because `llmflow.runner` was their home
+  before they moved into their own modules.
+
+  Nothing said so, which made them look like dead imports. Clearing the source tree's lint
+  deleted two, and each deletion broke callers at *import* time rather than at the call:
+  `save_content_to_file`, which `llmflow.utils.llm_runner` imports back from the runner, and
+  `_MISSING`. `tests/test_runner_reexports.py` now parses every `from llmflow.runner import` in
+  `src/` and `tests/` and requires each name to be declared, so removing one is a deliberate act
+  rather than a side effect. It found a nineteenth name on its first run that a line-based search
+  had missed, imported inside a function body.
+
+- **New rule `say-which-kind-of-nothing` (#230).** A payload distinguishes *asked and there is
+  none* from *never asked*: an empty container for the first, `null` for the second. A consumer
+  cannot tell those apart from an absent field, and the difference decides whether silence is a
+  finding or a gap.
+
+  Two states, each with one meaning: `{}` or `[]` says the lookup ran and found nothing, and
+  `null` says there was nothing to look in, so no lookup ran. A key may be absent where another
+  declaration accounts for it — `include:` is such a declaration — but absence carries no meaning
+  of its own, and cannot: OpenAI's strict structured output marks every property `required`, so a
+  model's response has no way to express it.
+
+  The engine reports which of the two it produced and stops there. What either one *means* is
+  application semantics and stays with the pipeline that declares it, which is why the rule asks
+  only that whichever is meant be visible in the data.
+
+  This is what made the empty Hebrew discourse payload above a reportable defect rather than a
+  plausible answer: it said the lookup had run and found nothing, when no lookup had run. Guarded
+  for the scripture container by `tests/test_say_which_kind_of_nothing.py`; `judgment` elsewhere.
 
 - **`reference-data-is-json` is enforced (#230).** `tests/test_reference_data_is_json.py` asks
   PyYAML for each scalar's resolved tag and compares it with the text as written, so a bare
@@ -25,29 +102,6 @@
 
   This is the third of #230's six rule guards. Nothing in scope violates it today.
 
-### Fixed
-
-- **Two guards had stopped guarding, silently, and the triage still counted them (#230).**
-  `tests/test_ai_rules_single_source.py` parsed rules out of both rules documents with a regex
-  for *numbered* list items. When the rendering moved to an id-led list, the regex matched
-  nothing — so both of its checks compared two empty sets and passed. The single-source
-  guarantee and the wording-drift check had been inert ever since, while #230's triage listed
-  the test as one of six live guards.
-
-  Repaired, and given a check that makes the failure impossible to repeat: the parse must find
-  exactly the rules `data/ai-rules.yaml` declares, so a rendering change fails loudly instead of
-  emptying the test. A fourth check compares the generated file with what its generator produces
-  now — agreement between the two renderers said nothing about the file on disk, which is how a
-  stale `sp/rules.md` survived a full green suite.
-
-- **The shipped language reference taught a placeholder form that cannot work (#230).**
-  `docs/llmflow-language-quickref.md` listed `{{scene.WLC}}` beside `{{language_count}}` as
-  though `{{...}}` and `${...}` were symmetrical. They are not: `${...}` resolves a path through
-  an object, while `{{...}}` is filled by matching its name against a literal key of the
-  context — and `scene.WLC` is not a key. The reference now says so, shows passing the value in
-  under a flat name via `prompt.inputs`, and keeps the invalid form as a named counter-example.
-
-### Added
 
 - **A dotted name in a prompt body is refused, by both `sp lint` and `sp run` (#230).** Nothing
   can fill `{{scene.title}}`: a placeholder is filled by matching its name against a literal
@@ -92,41 +146,6 @@
 
   This is the first of the six rule guards scheduled in #230; five remain.
 
-### Fixed
-
-- **The generated rules document had its own headings indented into code blocks (#230).**
-  `tools/update_ai_context.py` interpolated the rendered rules into an indented f-string and
-  then called `dedent`, but `dedent` takes the *common* leading whitespace of every line — and
-  the rendered rules are unindented, so the common prefix was empty and the frame's eight spaces
-  survived into the output. The frame is now dedented before substitution.
-
-- **A record may no longer claim an issue closed before its commit reaches `main` (#230).** A
-  GitHub closing keyword fires only when the commit lands on the default branch. Under this
-  project's `branching-workflow` — work on `dev`, `main` holds what has been released — every
-  `Closes #N` written on `dev` leaves its issue open until the `dev` → `main` pull request
-  merges. The tracking documents recorded such work as *"closed by `<sha>`"*, so a session read
-  finished-and-closed where GitHub showed open.
-
-  The shipped convention taught it: `docs/ai-context/sp/github-workflow.md`, installed into
-  every project by `sp init`, said *"When this commit is pushed to GitHub, Issue #96 will
-  automatically close."* It now states the default-branch condition and separates the three
-  states work passes through, because they are easy to conflate and only the second is "closed":
-
-  | state | who has it | the issue |
-  |---|---|---|
-  | committed to `dev` | consumer repos on the same machine, via the editable install | open |
-  | merged to `main` | anyone tracking `main` | closes here |
-  | released | anyone, from PyPI or a binary | closed already |
-
-  `tests/test_record_closure_claims.py` enforces both directions, offline, from git rather than
-  from prose: no record may say an issue was closed by a commit that has not reached `main`, and
-  no record may list as an unfinished task an issue that a `dev`-only commit declares finished.
-  The second is the half that matters locally — since GitHub cannot tell a session what is
-  already implemented here, the record must, and it is now checked instead of trusted.
-
-  **What it does not catch:** work whose commit carries no closing keyword. #210 and #211 are
-  both implemented and both still open for exactly that reason, and no test can infer it.
-
 ### Changed
 
 - **A rule is cited by its id, not by its position in the list (#225).** The shipped rules
@@ -170,6 +189,134 @@
 
   A project picks this up on the next `sp init --update`. The skill is shared with Human at the
   Helm and the two copies were resynced, so `data/helm-sync.yaml` records it as identical again.
+
+### Removed
+
+- **`optional:` is no longer a key of the prompt header syntax (#228).** Every prompt parameter
+  is required. An optional one needs a branch somewhere, and the branch nobody tests is where
+  defects live.
+
+  **Breaking.** Removing a key from a language means the parser refuses it: `sp lint` and
+  `sp run` both reject a header declaring `optional:`, with one shared message, in both the flat
+  and the nested `prompt:` header forms. Old keys fail loud, as the `for`/`in` migration did.
+  Migration is one line per prompt — move the name to `requires:`, or delete it if the body does
+  not use it.
+
+- **71 invented book-name aliases, across 55 books (#218).** `data/book-names.json` had accumulated
+  spellings belonging to no published scheme — coined by whoever added a book and never reviewed
+  as a set. Supported input is now SBL, OSIS and USFM, complete in each case, plus the handful of
+  widely-used forms that predate this and are kept deliberately: `Psalm`, `Mt`, `Mk`, `Lk`, `Jn`,
+  `Rv`, `1-2 Pt`, `Philem`, `SoS`, `Canticles`, `Qoheleth`, `1-2 Chron`, `Mar`, `Lu`.
+
+  **Breaking** for anything that relied on one of the removed spellings; an unresolved book name
+  raises rather than guessing. Three schemes with a stated authority each can be checked against
+  their sources, which an open-ended alias list cannot.
+
+  The abuse it enabled is why it went rather than being policed. The linter checked only that a
+  body variable was *declared*, and both lists counted, so demoting a required name to
+  `optional:` silenced the error, the step ran without the value, the placeholder was never
+  substituted, and the model received a malformed prompt with no warning.
+
+  Removed in the same pass, so nothing is left teaching it: eight prompts held or shipped here;
+  four reads in `utils/linter.py` and `steps/llm.py`; two error messages that instructed the
+  reader to *add* the key; the `optional: [perspectives]` house pattern in the shipped
+  prompt-organization discipline; the shipped language quickref; `docs/architecture.md`,
+  `docs/llmflow-language.md`, `docs/getting-started.md`, `docs/global-conventions.md`; and the
+  pipeline half of `docs/design/optional-parameters.md`, whose reasoning is kept because it is
+  the argument for the removal. Nine tests migrated, two of which asserted the withdrawn
+  behaviour and were deleted with it.
+
+  Guarded by `tests/test_prompt_headers_have_no_optional.py` — the linter, the runtime, the
+  `optional: []` case, and every prompt held or shipped here.
+
+### Fixed
+
+- **A placeholder is expanded exactly once, and nothing else is expanded at all (#230).** Two
+  defects, both silent.
+
+  **Expanded more than once.** Values were substituted into the template and the resolver then ran
+  over the result, so any value carrying braces was expanded a second time against the pipeline
+  context. Fetched content — a passage, a lexicon entry, a prior response — became a template, and
+  the output still read as a well-rendered prompt. Measured: a value of `"the scroll said
+  {greeting}"` came back with `greeting` substituted from the context. The template's own
+  references are now resolved *before* values are injected, and never afterwards. Braces arriving
+  inside a value are that data's own characters and are left alone.
+
+  **Expanded zero times.** Names beginning with `#`, `/` or `%` were exempt from the variable
+  extractor — Handlebars convention in an engine that has no conditionals — so they escaped the
+  declaration check and nothing substituted them, and `{{#directive}}` reached the model verbatim.
+  No prompt, template or document in the repository used those forms and nothing handled them, and
+  the two skip-lists naming them disagreed with each other. They now extract as ordinary names,
+  and the contract check refuses them.
+
+  Also: `{{ name }}` with surrounding whitespace is now the same placeholder as `{{name}}` — the
+  extractor stripped the spaces while substitution matched literally, so the spaced form was
+  extracted, demanded of the header, and then never filled. And after substitution, any of the
+  template's own placeholders still present refuses the step instead of being sent.
+
+- **The scripture container named a versification its labels were not in (#203).** `versification:`
+  states the scheme a caller's *reference* is written in; the engine maps it inward to fetch the
+  right verses. It does not relabel the result — the verse markers come from the edition's own
+  rows — but the container reported the request rather than the edition. Asking for `shifted`
+  against an edition numbered `org` returned `⌊1:3⌋` under a label saying `shifted`, and shifted
+  1:3 is a different verse. The one field telling a consumer which scheme the labels were in was
+  asserting the wrong answer, and a consumer that trusted it would mis-cite every verse it quoted.
+
+  The container now names the edition's own scheme, always.
+
+- **Two guards had stopped guarding, silently, and the triage still counted them (#230).**
+  `tests/test_ai_rules_single_source.py` parsed rules out of both rules documents with a regex
+  for *numbered* list items. When the rendering moved to an id-led list, the regex matched
+  nothing — so both of its checks compared two empty sets and passed. The single-source
+  guarantee and the wording-drift check had been inert ever since, while #230's triage listed
+  the test as one of six live guards.
+
+  Repaired, and given a check that makes the failure impossible to repeat: the parse must find
+  exactly the rules `data/ai-rules.yaml` declares, so a rendering change fails loudly instead of
+  emptying the test. A fourth check compares the generated file with what its generator produces
+  now — agreement between the two renderers said nothing about the file on disk, which is how a
+  stale `sp/rules.md` survived a full green suite.
+
+- **The shipped language reference taught a placeholder form that cannot work (#230).**
+  `docs/llmflow-language-quickref.md` listed `{{scene.WLC}}` beside `{{language_count}}` as
+  though `{{...}}` and `${...}` were symmetrical. They are not: `${...}` resolves a path through
+  an object, while `{{...}}` is filled by matching its name against a literal key of the
+  context — and `scene.WLC` is not a key. The reference now says so, shows passing the value in
+  under a flat name via `prompt.inputs`, and keeps the invalid form as a named counter-example.
+
+
+- **The generated rules document had its own headings indented into code blocks (#230).**
+  `tools/update_ai_context.py` interpolated the rendered rules into an indented f-string and
+  then called `dedent`, but `dedent` takes the *common* leading whitespace of every line — and
+  the rendered rules are unindented, so the common prefix was empty and the frame's eight spaces
+  survived into the output. The frame is now dedented before substitution.
+
+- **A record may no longer claim an issue closed before its commit reaches `main` (#230).** A
+  GitHub closing keyword fires only when the commit lands on the default branch. Under this
+  project's `branching-workflow` — work on `dev`, `main` holds what has been released — every
+  `Closes #N` written on `dev` leaves its issue open until the `dev` → `main` pull request
+  merges. The tracking documents recorded such work as *"closed by `<sha>`"*, so a session read
+  finished-and-closed where GitHub showed open.
+
+  The shipped convention taught it: `docs/ai-context/sp/github-workflow.md`, installed into
+  every project by `sp init`, said *"When this commit is pushed to GitHub, Issue #96 will
+  automatically close."* It now states the default-branch condition and separates the three
+  states work passes through, because they are easy to conflate and only the second is "closed":
+
+  | state | who has it | the issue |
+  |---|---|---|
+  | committed to `dev` | consumer repos on the same machine, via the editable install | open |
+  | merged to `main` | anyone tracking `main` | closes here |
+  | released | anyone, from PyPI or a binary | closed already |
+
+  `tests/test_record_closure_claims.py` enforces both directions, offline, from git rather than
+  from prose: no record may say an issue was closed by a commit that has not reached `main`, and
+  no record may list as an unfinished task an issue that a `dev`-only commit declares finished.
+  The second is the half that matters locally — since GitHub cannot tell a session what is
+  already implemented here, the record must, and it is now checked instead of trusted.
+
+  **What it does not catch:** work whose commit carries no closing keyword. #210 and #211 are
+  both implemented and both still open for exactly that reason, and no test can infer it.
 
 ### Test Coverage
 

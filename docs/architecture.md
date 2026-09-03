@@ -186,7 +186,6 @@ prompt:
   requires:
     - passage
     - scene
-  optional: []
   format: Markdown
 -->
 ```

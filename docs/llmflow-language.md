@@ -890,8 +890,31 @@ consumer wanting standard USJ removes `scripture_pipelines` and is done. **One p
 an extension outside that key would be an extension nobody could find.
 
 The container appears only when `include` is non-empty, and it states the versification scheme
-the verse references are in. If the edition does not say which scheme that is, the key is
-omitted and a warning names the field to add — the container never invents one.
+the verse references are in. If the edition does not say which scheme that is, the value is
+`null` and a warning names the field to add — the container never invents one.
+
+**A key says which kind of nothing it means.** This is a contract, not an implementation
+detail: a consumer reads it, and so does a model when the payload reaches a prompt.
+
+| what you see | what it means |
+|---|---|
+| a value | the question was asked and this is the answer |
+| `{}` or `[]` | the question was asked, and the answer is nothing — the lookup ran and found none |
+| `null` | the question could not be asked, or does not apply — the edition supplies no such data |
+| the key is absent | you did not request that family; `include:` is what says so |
+
+So `"discourse": {}` means the discourse source was consulted and has nothing for this
+passage, while `"discourse": null` means this edition's registry entry names no discourse source
+at all, so there was nothing to consult. Those are different facts and a consumer acts differently
+on them, which is why the container states them rather than leaving one to a log line that never
+travels with the data.
+
+Which editions have which sources is a fact about the data available to you, not about the
+language — so the payload says whether *this* edition could answer, and never why.
+
+**What `null` means beyond that is the caller's to decide.** The engine guarantees the key is
+there; whether "does not apply" or "not fetched" is the right reading in a given family is
+domain knowledge, and the engine does not claim it. See rule `say-which-kind-of-nothing`.
 
 **Spec-defined fields stay where the spec puts them.** `ids` is not container content: it
 becomes `srcloc` on a `\w` character node, which is where USX already carries a word's source
@@ -1618,7 +1641,6 @@ prompt:
     - passage
     - scene
     - citation
-  optional: []
   format: Markdown
   description: Description of what this prompt does
 -->
@@ -1635,7 +1657,7 @@ Supports:
 ```
 
 **Key features:**
-- **Contract in HTML comments**: YAML frontmatter defines `requires:`, `optional:`, `format:`, `description:`
+- **Contract in HTML comments**: YAML frontmatter defines `requires:`, `format:`, `description:`. There is no `optional:` key — every prompt parameter is required, and a header declaring it is refused by `sp lint` and `sp run`
 - **Variable syntax**: `{{variable_name}}` for substitution
 - **Validation**: Linter checks that all `requires:` inputs are provided
 

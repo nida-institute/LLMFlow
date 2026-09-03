@@ -1,21 +1,63 @@
 # Decisions awaiting the Captain's ruling
 
-**Status:** open — twelve decisions, none answered. Written 2026-09-02 to collect them in one
-place. #169 #217 #201 #212 #228 #230
+**Status:** **four decisions need answering.** Nine are deferred — they block nothing in the ruled
+scope. One is answered. Reduced from fourteen on 2026-09-02 at the Captain's direction: *"reduce
+the set of decisions based on this scope, let's simplify."* #169 #217 #201 #212 #228 #230
 
-**Answer inline after each `=>`.**
+## One decision is genuinely yours. The rest were assumptions dressed as decisions
 
-Every decision below blocks work that is otherwise ready to start. Each one is written to be read
-cold: what the thing is, why a choice is needed, what changes depending on the answer, and a `=>`
-slot for your ruling.
+The Captain, 2026-09-02: *"drift drift drift ... LLMs making assumptions and asking me to make
+detailed decisions about those assumptions."*
 
-**Nothing here is decided.** Where I have a recommendation it is labelled as one.
+He is right, and it is the defect this sheet had rather than its length. Each entry was written as
+a menu of options — which looks like deference and is not: it hands back the work of understanding
+instead of doing it. `disciplines/surface-decisions.md:36-40` names exactly this.
+
+So every entry was re-tested against one question: **did the Captain pose this, or was it
+constructed?** Thirteen of fourteen are answerable from rules and rulings already given, and are
+recorded below as derived rather than asked. Their `=>` slots remain — a derivation can be
+overruled, and being derivable is not the same as being right.
+
+### The one that is genuinely open
+
+| # | the question | why no rule settles it |
+|---|---|---|
+| **7** | What should happen to a reference with extra text after it — `1JN 2:5b-6`? | `project/overview.md` says prefer a loud error, which points at rejecting it. But rejecting it breaks another project's live pipelines on data they hold today. A rule of this project and a real consequence outside it point opposite ways, and nothing ranks them. That is a judgement, not a derivation. |
+
+### The thirteen, and what answers each
+
+| # | answered by |
+|---|---|
+| **1** shortened rule pointing at an absent test | A file installed into another project must stand alone there — that is what shipping it means, the same reasoning as `optional:`. So: state each rule completely in one sentence, name the test as a footnote. |
+| **2** six tests or thirteen | Not a decision. The six can be written now; the other seven sit in #230 with no date. |
+| **3** licence when one download holds many works | `project/overview.md` — prefer a loud error to a plausible result. Record "varies, check per work" and refuse to resolve it. Also: the code is already built and this is not in scope. |
+| **4** where the shared-file check lives | `design-is-declarative` — two encodings of one fact are the defect. A portability test already exists; widen it rather than adding a second. |
+| **5** comparing across books | **Already ruled by the Captain, 2026-08-17: answer "no".** The contradiction is that a plan document disagrees with his ruling. `design-authority` — his ruling wins. Not a decision; a document to correct. |
+| **6** two references or lists | **Already ruled, 2026-08-17: both.** His reason, quoted: *"iterating sets in caller code is the problem being solved."* Same as 5. |
+| **8** do gaps count in containment | Determined by what the function is for — finding gaps in pericope coverage. Outer-bounds containment cannot find a gap by construction. |
+| **9** one canonical written form | Belongs to #218, which is out of scope and must not be settled here. Defer. |
+| **10, 11, 12** where three recovered rules live | Low-stakes placement. `surface-decisions:10` — mechanical work proceeds without gating. Each has one obvious home; three rulings were manufactured out of a filing task. |
+| **13** scope | Answered in conversation 2026-09-02, transcribed beneath its slot. |
+| **14** one design document or two | **Already ruled by the Captain, 2026-09-01:** the engine gains mechanism, not knowledge of particular resources. That answers it — mechanism here, the join in the resource layer. Turning his own ruling back into a question for him was the clearest instance of the pattern he named. |
+
+**Nothing above is being built on the strength of a derivation.** Where a derivation touches a file
+the Captain controls, or another repository, it still needs his word for that act.
+
+**Two questions left this sheet entirely on 2026-09-02:**
+
+- **Scope** — decision 13, answered in conversation and transcribed beneath its slot.
+- **What happens to a prompt still declaring `optional:`** — never a decision. The Captain:
+  *"our syntax does not allow 'optional' as a keyword in headings"*, and *"removing a keyword from
+  the syntax of a language does WHAT in a parser?"* Removing a keyword means the parser rejects it.
+  That is what removal is, and it needed no ruling. The precedent is already in this project: the
+  `for`/`in` migration is recorded in `project/TODO.md` as *"breaking — one syntax, no aliases…
+  Old keys fail loud."*
 
 **This file is a ruling sheet, not where the decisions live.** A decision belongs in the design
 document or plan it governs, and that is where each answer gets written once it is given — the
-last table in this file names the destination for every one. When all nine have been written back,
-this file has done its job and goes; leaving it in place would create a second copy of nine
-decisions, drifting from the documents that actually govern them.
+last table in this file names the destination for every one. When the answers have been written
+back, this file has done its job and goes; leaving it in place would create a second copy of them,
+drifting from the documents that actually govern them.
 
 ---
 
@@ -121,6 +163,9 @@ a good discipline in its own right.
 
 ## 2. Are six new tests the whole of the rules-enforcement work this release, or a first batch?
 
+> **Deferred — not blocking.** Writing the six tests can start without this answered; the other
+> seven stay in #230 with no date. Answer it when the six are done and the question is real.
+
 **What this is about.** Issue #230 catalogued all 35 rules and found 13 that no test checks but
 easily could. The release plan schedules six of them:
 
@@ -152,6 +197,10 @@ failure that matters most in this domain.
 ---
 
 ## 3. How is a licence recorded when one download holds many works under different licences?
+
+> **Deferred — not blocking.** Catalogue fetching is already built and tested (`resources.py`,
+> 53 tests passing), and it is not in the ruled scope. This refines shipped code rather than
+> unblocking new work. The one case that forces it is Perseus, marked `"Various CC"`.
 
 **What this is about.** Issue #217 asks the engine to fetch freely-licensed source texts instead
 of you placing them by hand. The catalogue in `awesome-biblical-data/resources.json` already
@@ -219,6 +268,10 @@ would be two encodings of one idea.
 
 ## 5. Comparing references from two different books: answer "no", or fail?
 
+> **Deferred — not blocking.** Decisions 5, 6 and 8 all belong to #169, passage comparison, which
+> is not in the ruled scope. They stay together: answering one without the others leaves the two
+> contradicting documents still contradicting.
+
 This is contradiction 1 from the top of this document.
 
 **Concrete example.** A caller asks whether `Mark 1:1-10` overlaps `John 3:16`.
@@ -240,6 +293,8 @@ across lists, and a list spanning two books is a normal thing to hold, not an er
 ---
 
 ## 6. Do the comparison functions take two references, or accept lists?
+
+> **Deferred — not blocking.** #169, with decisions 5 and 8.
 
 This is contradiction 2, and the one that decides whether the feature is worth building.
 
@@ -479,6 +534,224 @@ Option 1 is defensible; a new file spends a whole discipline on what is a paragr
 
 ---
 
+## 13. What is in scope for the next release?
+
+Added 2026-09-02 at your direction: *"ask if this is in the scope of the next release or not in the
+decisions document - give me a list of all the things proposed so far and make me choose."*
+
+**What this is about.** Scope for 0.2.1.26 was ruled on 2026-09-01 and recorded in
+`plan-release-0-2-1-26.md`. Since then three things have changed it: two reports arrived from
+discourse-flow, a third arrived on 2026-09-02, and the combined-quotation work below was proposed.
+Meanwhile the ordered queue in `project/TODO.md` — set by you on 2026-08-24 — was never merged with
+the release scope, so there are two lists and neither references the other.
+
+This decision is one list. **Choose what is in.** Everything not chosen stays where it is recorded
+and is not lost.
+
+**How to answer:** write the labels you want in, after the `=>`. Anything you do not name stays out
+of this release. Where you want something in but later than the rest, say so.
+
+### Already ruled into 0.2.1.26 on 2026-09-01
+
+Listed so you can take something *out*, not only add.
+
+| | what | recorded in | blocked by |
+|---|---|---|---|
+| **a** | #230 — six tests for rules that have none, plus a seventh for the reference parser | release plan §2.1 | decision 2 |
+| **b** | #230 — shorten every rule that has a test | release plan §2.2 | **decision 1** |
+| **c** | #230 — separate the twelve rules no test can check | release plan §2.3 | — |
+| **d** | #230 — make the eleven shared methodology files fit for non-Python projects | release plan §2.4 | decision 4, decision 1 |
+| **e** | #217 / #201 / #212 — fetch source texts from the catalogue, validate versions, gate on licence | release plan §3.1 | decision 3 |
+| **f** | ACAI — design and ruling only, no implementation | release plan §3.2 | — |
+| **g** | #169 — verse comparison, after reconciling the two contradicting documents | release plan §5 | decisions 5, 6, 8 |
+| **h** | the dotted-name prompt defect — a `{{a.b}}` placeholder reaches the model verbatim | release plan §6.1 | — |
+| **i** | the reference parser silently narrowing `1JN 2:5b-6` | release plan §6.2 | **decision 7** |
+
+### Newly proposed, never scheduled
+
+| | what | recorded in |
+|---|---|---|
+| **j** | **Keep both ends of a Levinsohn span.** `parse_osis_ref` drops the end of every range: **13,753 spans** across 26 feature types, 82,574 words of extent, discarded before any model sees them. Same defect shape as **i** | `design-combining-levinsohn-and-ubs.md` decision 1 |
+| **k** | **Combine Levinsohn and UBS into one quotation record** — your 2026-09-02 request. Levinsohn gives the span, UBS gives the OT source; measured, the join has no counterexample in 266 verses | `design-combining-levinsohn-and-ubs.md` |
+| **l** | Reply to discourse-flow's **second** report (verse reference handling) | waits on decision 7 |
+| **m** | Reply to discourse-flow's **third** report (carrying source annotations), 2026-09-02 | waits on **j**, **k** |
+| **n** | A staleness guard for `HANDOFF.md` — stale if its date is older than HEAD's commit date | `project/TODO.md`; you have not ruled whether this is #230 or its own issue |
+
+### On the ordered queue in `project/TODO.md`, order set by you 2026-08-24
+
+Not part of the release scope as ruled, and not withdrawn either.
+
+| | what |
+|---|---|
+| **o** | #210 — `overview.md` is two documents sharing one path. First in your order; it is why `sp doctor` must not be run here |
+| **p** | #211 — 21 shipped documents from Python constants to `source: template`. Second; blocked on **o** |
+| **q** | #200 — `format: usj`. Third; blocked on one unruled `=>` in `design-scripture-representations.md` §4.4, the Greek/Hebrew asymmetry. Commits are parked on the **local-only** tag `wip/scripture-200` |
+| **r** | #215 — three `sp init` write-path defects found migrating discourse-flow. One needs a ruling: unlock and write, or skip and report? |
+| **s** | #203 — a reference means different verses in different editions. **Blocks OT use of `sil-translator-notes`** |
+| **t** | #222 — Paratext `custom.vrs` is detected and ignored, so a project's own versification loses silently |
+| **u** | #204 — the setup failures a new user hit on his own machine; workshop readiness |
+| **v** | The GUI Content Lifecycle page displays blank. No issue; `project/TODO.md` is its only record |
+| **w** | #226 — extract the biblical-text convention layer. Four unanswered `=>` slots in its design, and it is the layer decision 14 depends on |
+
+### Explicitly out of scope on 2026-09-01, listed so you can reverse it
+
+| | what |
+|---|---|
+| **x** | #227 — Lowfat syntax trees. Ruled and designed; implementation deferred |
+| **y** | #228 — remove `optional:` from prompt frontmatter. Its premise needs correcting first |
+| **z** | Lexicons and semantic domains. Your words put these after the resource work |
+| **aa** | #153 — versioning policy. 0.2.1.26 is a choice, not a policy |
+| **bb** | #218 — a passage reference has no data structure until a versification is named. Decision 9 touches it and must not settle it |
+| **cc** | The three same-subject commits on `dev`, and `ddc404d`'s message describing #225 while carrying something else. Already pushed; not release work |
+
+### Two items are time-sensitive, on the Captain's word
+
+An earlier recommendation here said: keep **a**–**i**, add **j** alone, let **k**, **l** and **m**
+follow next release, and add none of **o**–**w**. **It is withdrawn.** It rested on nothing in the
+Old Testament area being time-critical, and the Captain corrected that on 2026-09-02: *"the old
+testament references are also time sensitive"*, then, asked which of two candidates he meant:
+*"I mean k, but s is also time sensitive."*
+
+So **both** of these are time-sensitive, and they are unrelated work in different subsystems:
+
+| | what it is | granularity | depends on |
+|---|---|---|---|
+| **k** | combining Levinsohn and UBS — Old Testament **quotations in the New Testament** | word | **j**, necessarily |
+| **s** | #203 — a reference means **different verses in different editions** | verse | nothing outstanding |
+
+**They do not compete for the same code.** **k** is `discourse.py` and the quotation record; **s**
+is `versification.py` and the edition registry. Both can be in scope without either blocking the
+other. What they compete for is your ruling attention and the twelve decisions above.
+
+**A correction to what this document said an hour earlier.** It claimed **s** *"sits behind* **o**,
+**p** *and* **q** *in that order"*. That is wrong. The order you set on 2026-08-24 covers three
+issues — #210, #211, #200 — and #203 is not among them; it is recorded in `project/TODO.md` as its
+own section with no stated position. Nothing you have ruled puts **s** behind anything.
+
+**And it is not blocked by the parked work either.** #203's own notes tie it to editions declaring
+their scheme, which reads as a dependency on #200 — the issue whose commits sit on the local-only
+tag `wip/scripture-200` and are not on `dev`. Checked: `edition_scheme` (`scripture.py:235`),
+`_paratext_scheme` (`scripture.py:316`) and `map_reference` (`versification.py:411`) are all
+present on `dev` today. **s** is actionable now.
+
+**What #203 needs decided is not a parser but a type**, and its own entry says so: `edition_scheme`
+returns a scheme *name*, `map_reference` takes names, and a `custom.vrs` overlay has no name — so
+the choice is a synthetic name or `Scheme` objects through the API. #222 (**t**) is the same
+subsystem and reuses whatever that settles, which is an argument for taking **s** and **t**
+together rather than **s** alone.
+
+**No recommendation is offered on scope.** The Captain's instruction, 2026-09-02: *"make a list of
+features under consideration and ask me which ones are time sensitive... and don't guess for me."*
+Two guesses had already been corrected by then, both about which work was urgent, and a third
+would be the same mistake. What is time-sensitive is his knowledge; the list is the request.
+
+**Two facts that are not guesses, because they constrain rather than advise:**
+
+- **j is required for k.** A combined record cannot carry an extent the engine discards, so
+  wanting **k** means taking **j** first. This is a dependency, not a preference.
+- **Four items are blocked by no unruled decision** and could start immediately: **c**, **h**,
+  **j**, **v**. Every other item on the list waits on a decision above.
+
+Adding scope does not shorten the critical path; answering the decisions does.
+
+=>
+
+### Rulings given in conversation, 2026-09-02 — transcribed, not written into the slot
+
+The Captain gave these in conversation rather than in the file. They are recorded here **verbatim
+and beneath the slot**, because only he writes after a `=>` and he has not authorised anyone else
+to. If he wants them to stand as the ruling, he moves them up or says so.
+
+> *"OK, a-d are important and time critical. y is important and time critical. h can simply be an
+> error - no dots allowed in prompts, detectable at lint time. i is an important bug that needs
+> fixing. j-m are all aspects of the same single feature."*
+
+And earlier the same day: *"I mean k, but s is also time sensitive."*
+
+**What follows from those words:**
+
+| | ruled |
+|---|---|
+| **a, b, c, d** — the rules-enforcement work | important, **time critical** |
+| **y** — remove `optional:` from prompt headers | important, **time critical** |
+| **h** — the dotted prompt placeholder | **fix it as an error at lint time: no dots allowed in a prompt.** Not by making substitution resolve dotted paths |
+| **i** — the reference reader shortening a range | an important bug that needs fixing |
+| **j, k, l, m** | **one feature, not four items** |
+| **k**, and **s** | time sensitive |
+
+**The `h` ruling settles a design question, and it settles it the way the evidence pointed.** The
+report on that defect warned against the other route — making the required-variables check resolve
+dotted paths — because that clears the error and leaves the placeholder unfilled, turning a loud
+failure into a silent one. A lint-time refusal is the loud version. **This ruling belongs in
+`plan-release-0-2-1-26.md` §6.1**, which is where `h` is recorded, and has not been moved there
+yet.
+
+**`j`–`m` as one feature changes how it is tracked.** `j` is the engine keeping both ends of a
+span, `k` is the combined record, `l` and `m` are the replies telling the discourse project what
+was decided. Recorded as four rows they look like four choices; they are one piece of work with a
+necessary order — `j`, then `k`, then `l` and `m` as its report back.
+`design-combining-levinsohn-and-ubs.md` now says so.
+
+**What is still not ruled, and now sits on the critical path.** Naming these is not a request to
+answer them here; it is the consequence of what was just made time critical:
+
+| the time-critical item | the decision that blocks it |
+|---|---|
+| **a** | decision 2 — six tests this release, or all thirteen |
+| **b** | **decision 1** — how a shortened rule points at its test where the test does not exist |
+| **c** | nothing. It can start immediately |
+| **d** | decision 4 — where the portability check lives; and decision 1 |
+| **i** | **decision 7** — reject the input, drop the sub-verse letter visibly, or carry it |
+| **k** | decision 14, and the seven in `design-combining-levinsohn-and-ubs.md` |
+| **y** | **no decision exists for it.** See below |
+
+**`y` was made time critical and has no decision written for it.** `project/TODO.md` and the
+release plan both record that removing `optional:` *"needs a migration path and a ruling"*, but no
+decision on this sheet asks for that ruling — the sheet was written before `y` was urgent. The
+ruling needed is what happens to a prompt that still declares `optional:` after the keyword goes:
+refuse it, warn and ignore it, or accept it silently for a stated period. That question is not
+posed anywhere, and a fifteenth decision has not been added unasked.
+
+---
+
+## 14. One design document, or two across two repositories?
+
+**What this is about.** You approved a design document for combining Levinsohn and UBS. It is
+written: `project/plans/design-combining-levinsohn-and-ubs.md`. One question in it decides whether
+a *second* document is needed, and I could not answer it from your instruction.
+
+Your 2026-09-01 release ruling: **the engine gains mechanism, not knowledge of particular
+resources** — anything specific to one resource stays in `awesome-biblical-data`, where #226 put
+that layer. Levinsohn and UBS are particular resources, so read strictly that ruling splits this
+work in two.
+
+**Why I am asking rather than choosing.** You said *"yes to all of these"*, which authorised the
+document and the accompanying issue. It cannot select between one document and two, because those
+are alternatives — and one of them means writing into a second repository, which is an act I do not
+take without your word for it specifically.
+
+**Options.**
+
+1. **Two documents.** The mechanism — carrying spans and source-anchored annotation — stays in this
+   repository. The join, the two dataset names and the licence question go to a document in
+   `awesome-biblical-data`. Consistent with your ruling; needs your word for the other repository.
+2. **One document, here**, covering both, on the grounds that OT quotation is general enough to be
+   engine knowledge like `versification-editions.json`.
+3. **One document, here, for the mechanism only** — and discourse-flow builds the join themselves,
+   which is what they offered to do if told the answer.
+
+**What changes.** Under 1 the written document is split and half of it moves. Under 2 it stays as
+written. Under 3 sections 3 to 5 of it — the join, the record shape, the composite gap — become
+someone else's document and should be sent to them rather than kept.
+
+**My recommendation: option 1**, because it is what your own ruling says, and because the split is
+clean — the span fix is mechanism and belongs here under any of the three answers. This is also
+decision 2 inside the design document; answer it in either place and I will carry it to the other.
+
+=>
+
+---
+
 ## What each decision blocks, and where the answer gets written
 
 | # | blocks | the ruling is written back into |
@@ -491,6 +764,8 @@ Option 1 is defensible; a new file spends a whole discipline on what is a paragr
 | 7 | the parser fix here, **and** discourse-flow's decision on mid-verse boundaries | `docs/ai-context/sp/passage-references.md`, which is the documented contract for what parses |
 | 9 | the input shape the #169 functions accept | `docs/ai-context/sp/passage-references.md`; must not contradict #218 |
 | 10, 11, 12 | three recovered rules reaching any session at all, including the mentees' | `src/llmflow/templates/sp/disciplines/` — the source, not the installed copies — then `tools/sync_helm.py --apply` as a separate act, because it writes to another repository |
+| 13 | what is built next, and what stays waiting | `plan-release-0-2-1-26.md` §8, and `project/TODO.md` for anything you order but do not schedule |
+| 14 | whether a second design document is written, and in which repository | `design-combining-levinsohn-and-ubs.md` decision 2 |
 
 Two files above are under `docs/ai-context/`, which an AI session may not edit without your
 per-file permission in the conversation. Decisions 7 and 9 therefore need that permission as well
@@ -499,3 +774,7 @@ as the ruling, or they need someone else to make the edit.
 **Time-sensitive:** decision 1, because mentoring starts next week and the shared files are what
 mentees read. Decision 7, because another project is waiting on it and is currently feeding
 silently narrowed references to a model.
+
+**Decision 13 comes before the rest in practice**, not because it is urgent but because it decides
+which of the other thirteen are worth answering this cycle. Answering it first may take several of
+them off the table.

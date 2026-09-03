@@ -210,7 +210,7 @@ def test_the_documented_trap_keeps_its_index():
 
 
 def test_an_edition_with_no_discourse_source_warns_rather_than_failing(tmp_path, caplog):
-    """§4: a family the edition has no data for is a warning — Levinsohn is Greek-only."""
+    """§4: a requested family the edition names no source for warns rather than failing."""
     from llmflow.utils.scripture import edition_text
 
     tsv = tmp_path / "hebrew.tsv"
@@ -220,4 +220,7 @@ def test_an_edition_with_no_discourse_source_warns_rather_than_failing(tmp_path,
     with caplog.at_level("WARNING"):
         usj = edition_text("WLC", "GEN 1:1", fmt="usj", editions=editions, include=["discourse"])
     assert "discourse" in caplog.text.lower()
-    assert "discourse" not in usj["scripture_pipelines"]
+    # `null`, not omitted: the family was requested and the edition cannot supply it, which is
+    # a different fact from nobody having asked. The warning does not travel with the payload,
+    # so the payload states it. Rule `say-which-kind-of-nothing`.
+    assert usj["scripture_pipelines"]["discourse"] is None

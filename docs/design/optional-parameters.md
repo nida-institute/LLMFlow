@@ -9,7 +9,10 @@ The result is runtime failures where you expected parse-time or lint-time errors
 The problem has two surfaces in Scripture Pipelines:
 
 1. **Python code** — `Optional[T]` in function signatures and Pydantic models
-2. **YAML pipelines** — `optional:` declarations and missing variable bindings in prompt contracts
+2. **YAML pipelines** — missing variable bindings in prompt contracts. The prompt header's
+   `optional:` key was the other half of this and has since been **withdrawn**: every prompt
+   parameter is required. The reasoning is kept below, because it is the argument for removing
+   the key rather than policing it.
 
 This document covers both, defines the legitimate uses of Optional in each context,
 and provides concrete patterns to prevent abuse.
@@ -323,24 +326,24 @@ Analyze {{passage}} in the context of {{scene}}.
 
 The linter's contract validation (`validate_all_step_contracts`) checks that every key
 in `requires:` is provided by the calling step's `prompt.inputs`. An LLM that wants to
-avoid a lint error about a missing variable has two escape routes:
+avoid a lint error about a missing variable had two escape routes.
 
-**Route A — demote to `optional:`:**
-```
----
-prompt:
-  requires: []
-  optional:
-    - passage    # ← was required, now optional
-    - scene
----
-Analyze {{passage}} in the context of {{scene}}.
-```
+**Route A — demote to `optional:` — no longer exists. The key was withdrawn.**
 
-The linter sees the body uses `{{passage}}` and checks that it's *declared* in either
-`requires:` or `optional:`. Both lists count as "declared," so no error fires.
-The step runs without providing `passage`, the template renders `{{passage}}` as an
-empty string, and the LLM receives a malformed prompt. No warning anywhere.
+It worked like this: the linter checked that a body variable was *declared*, and both
+`requires:` and `optional:` counted as declared, so no error fired. The step then ran
+without providing the value, the placeholder was never substituted, and the model received
+a malformed prompt with no warning anywhere.
+
+That is the whole argument for removing the key rather than policing it. An optional
+parameter needs a branch somewhere, and the branch nobody tests is where defects live —
+so **every prompt parameter is required**. `sp lint` and `sp run` both refuse a header
+declaring `optional:`, and the refusal is guarded by
+`tests/test_prompt_headers_have_no_optional.py`. Where a prompt genuinely reads
+differently with and without some context, that is a branch in the pipeline — two prompts,
+or a `condition:` on the step — not a hidden condition inside the prompt.
+
+Route B below concerns `requires:` and is unaffected.
 
 **Route B — omit `requires:` entirely:**
 ```
@@ -359,12 +362,10 @@ are used in the body but not declared anywhere — but that check is only run on
 with a resolvable prompt file path. If the path check earlier fails for any reason,
 this second check is skipped.
 
-**The correct behaviour:** `passage` and `scene` are structurally required by this
-prompt. They are not optional enrichment — the prompt is meaningless without them.
-The linter should refuse to pass a prompt that uses `{{var}}` in its body unless that
-var appears in `requires:`, period. `optional:` should only be valid for vars that
-the body uses *conditionally* (guarded by template logic), not for vars the body
-uses unconditionally.
+**The behaviour now:** `passage` and `scene` are structurally required by this prompt —
+the prompt is meaningless without them. The linter refuses a prompt that uses `{{var}}`
+in its body unless that var appears in `requires:`, period. There is no second list a
+variable can be hidden in.
 
 ---
 
@@ -415,13 +416,17 @@ When reading a pipeline, this step tells you nothing about which inputs are requ
     inputs:
       passage: "${passage}"
       scene: "${scene}"
-      commentary: "${commentary}"   # ← is this required? optional? no way to tell here
+      commentary: "${commentary}"   # ← does the prompt actually need this? not visible here
 ```
 
-To answer that question, you must open `analyze.gpt`, find the frontmatter, and read
-the `requires:` and `optional:` lists. That is information hiding in the wrong place.
-The pipeline is where the *caller* makes decisions — it should be readable without
-cross-referencing the prompt file for every step.
+To answer that question you must open `analyze.gpt`, find the frontmatter, and read its
+`requires:` list. That is information hiding in the wrong place. The pipeline is where the
+*caller* makes decisions — it should be readable without cross-referencing the prompt file
+for every step.
+
+Withdrawing `optional:` removed half of this problem: there is now one list to read rather
+than two, and a name in it is required. What remains is that the list lives in the prompt
+file at all.
 
 An LLM authoring a pipeline has the same information gap. It cannot see which inputs
 are optional without reading the prompt file, so it either omits inputs entirely
@@ -461,12 +466,15 @@ Either form makes the pipeline self-documenting and gives the linter an explicit
 signal: `passage` and `scene` must be bound variables; `commentary` may be absent.
 
 The linter can then enforce consistency:
-- A var in the step's required inputs that is listed as `optional:` in the prompt
-  file's frontmatter → warning (step treats it as required but prompt doesn't need it)
-- A var in the step's `optional_inputs` that is in the prompt's `requires:` list →
-  error (prompt needs it, caller says it might not be there)
+- A var in the step's required inputs that the prompt does not name in `requires:` →
+  warning (the caller is passing something the prompt never reads)
+- A var in the prompt's `requires:` list that the step does not pass → error, which is
+  what `validate_all_step_contracts` already reports
 - A var in the step's required inputs where `${var}` references an unbound context
   variable → error (the existing gap in `prompt.inputs` traversal)
+
+The two checks that compared the step's optionality against the prompt's are gone with the
+keyword: there is one list, and everything in it is required.
 
 This is additive — existing pipelines without the marker continue to work. The marker
 is documentation that the linter learns to verify.
@@ -524,14 +532,17 @@ completes:
 ```
 
 If a loop genuinely needs prior iterations' results (e.g. "don't repeat what's been
-said"), declare `results` as `optional:` in the frontmatter and write the prompt body
-so it is coherent when `{{results}}` renders as `[]`:
+said"), the accumulator is still **required** — name it in `requires:` and seed it in the
+pipeline's `variables:` block so it is bound on the first pass. Write the prompt body so it
+is coherent when `{{results}}` renders as an empty list:
 
 ```
 Prior analysis (empty on first pass): {{results}}
 ```
 
-This is the only option available today because the template engine has no conditionals.
+The value being empty is not the same as the value being absent, and only the first needs
+handling. Seeding it in `variables:` is what makes the difference visible to the linter,
+which is the mitigation the next section describes.
 
 ---
 
@@ -559,7 +570,7 @@ covers `prompt.inputs`.
 An absent `requires:` key causes `linter.py:338` to default to `[]`, meaning the
 contract check passes trivially. Even `requires: []` is a meaningful statement: "this
 prompt intentionally takes no required inputs." A prompt that uses `{{var}}` in its
-body must always have a non-empty `requires:` or a deliberate `optional:` entry.
+body must name every one of those variables in `requires:`.
 
 **3. Audit `prompt.inputs` for unbound `${var}` references manually**
 
@@ -568,23 +579,23 @@ inside `prompt.inputs` are not checked. Before running a pipeline, verify manual
 that every `${var}` used as a `prompt.inputs` value is either in `variables:` or
 appears in an earlier step's `outputs:`.
 
-**4. Use `optional:` only for variables the prompt body treats as absent-safe**
+**4. Do not reach for `optional:` — it is not a key of the header syntax**
 
-If removing the variable from `prompt.inputs` would cause the LLM to receive a
-nonsensical or incomplete prompt, the variable belongs in `requires:`, not `optional:`.
-`optional:` is only correct for variables that the prompt body can render meaningfully
-as an empty string — which, given the template engine has no conditionals, is a narrow
-set.
+Every prompt parameter is required. If removing a variable from `prompt.inputs` would
+leave the model with a nonsensical or incomplete prompt, it belongs in `requires:`; if it
+would not, delete it. A variable whose presence genuinely changes what the prompt should
+say is a branch, and a branch belongs in the pipeline — two prompts, or a `condition:` on
+the step — not hidden in a prompt the template engine cannot make conditional anyway.
 
 ---
 
 ### Protective Rules for YAML Pipelines
 
-**Rule 1: `optional:` in a prompt frontmatter must be justified.**
+**Rule 1: a prompt header declares `requires:` and nothing else about optionality.**
 
-A variable should be in `optional:` only if the prompt body guards its use — i.e.,
-the body contains conditional logic that handles the absent case. Unconditional use
-of `{{var}}` in a body means `var` belongs in `requires:`, not `optional:`.
+There is no `optional:` key. Every `{{var}}` in a body names a variable the step must
+pass, and `sp lint` and `sp run` both refuse a header that declares the withdrawn key.
+Guarded by `tests/test_prompt_headers_have_no_optional.py`.
 
 Human review criterion: if removing the variable from inputs would cause the LLM to
 receive a nonsensical prompt, it is required, not optional.
@@ -622,6 +633,6 @@ contract" — that is always an error if the body contains any `{{var}}` pattern
 | Field required by another schema or contract | Wrong — make it required |
 | Field added to a signature but never used | Wrong — remove it |
 | Multiple Optional fields where at least one is required | Optional fields + `model_post_init` validator |
-| Prompt var in `optional:` but used unconditionally in body | Wrong — move to `requires:` |
+| Prompt header declares `optional:` | Wrong — the key is withdrawn; refused by `sp lint` and `sp run` |
 | Prompt `requires:` key absent, body uses `{{var}}` | Wrong — missing contract declaration |
 | `${var}` inside `prompt.inputs` referencing unbound variable | Wrong — linter gap; validate `prompt.inputs` refs |

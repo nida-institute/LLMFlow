@@ -52,18 +52,15 @@
 > is still open on GitHub** and closes when `dev` merges to `main`; the change is already live in
 > consumer repos here through the editable install. Guarded by
 > `tests/test_record_closure_claims.py`.
-- [ ] **Remove `optional:` from prompt frontmatter → #228. ⚠️ The issue's premise is incomplete —
-      correct it before building anything.** #228 was filed on "every `optional:` in the tree is
-      already `optional: []`", which is true *in this repository* and is why removal looked like a
-      keyword deletion. It surveyed neither consumer repositories nor what we ship:
-  - [ ] `nida-institute/discourse-flow` carries **non-empty** `optional:` lists. Evidence and the
-        full mechanism: `collab/discourse-flow/2026-09-01-dotted-requires.md`.
-  - [ ] `src/llmflow/templates/sp/disciplines/llmflow-prompt-organization.md:40` documents
-        `optional: [perspectives]` as the house pattern, and `sp init` installs that file into
-        every project — **the engine teaches what the convention retires.**
-  - [ ] So removal needs a migration path and a ruling. The "do before #227" ordering still holds
-        on its merits — it tightens the prompt contract #227's payload is written against — but it
-        is no longer the cheap prerequisite it was filed as, and #227 is not blocked by it.
+- [x] **Remove `optional:` from prompt frontmatter → #228.** Shipped in 0.2.1.26. Breaking: both
+      header forms are refused by `sp lint` and `sp run` with one shared message. The shipped
+      discipline now teaches the key's absence rather than `optional: [perspectives]`, so `sp init`
+      no longer installs the retired convention.
+  - [ ] **Consumer migration is outstanding.** `nida-institute/discourse-flow` carries **non-empty**
+        `optional:` lists, so it will fail lint against 0.2.1.26 until each name moves to
+        `requires:` or is deleted. Mechanism and evidence:
+        `collab/discourse-flow/2026-09-01-dotted-requires.md`. Their repository, their change —
+        tell them the release is out.
 - [ ] **`include: [syntax]`, Lowfat as standoff JSON → #227.** Design ruled and recorded in
       `project/plans/design-scripture-representations.md` §4.5 and §7. Read the issue for the JSON
       shape, not the handoff.
@@ -73,11 +70,15 @@
       the Captain's** — do not answer them.
 - [ ] **Epic: enforce rules, don't instruct them → #230.** The AI context is ~27,000 words read at
       session start, and keeping it enforced currently depends on the Captain knowing all of it.
-      Carries the triage of all 35 rules. Start with the two violated *during* the session that
-      produced it — `lxml-for-xml` and `branching-workflow`, both cheap.
-  - [ ] **Live violation, unfixed:** `src/llmflow/plugins/xml_entry_to_base_json.py:1` imports
-        `xml.etree.ElementTree`, breaking `lxml-for-xml`. Left deliberately as #230's first work
-        item and its motivating evidence — **not a drive-by fix.**
+      Substantially advanced in 0.2.1.26 and still open — read `CHANGELOG.md` for what shipped,
+      not this entry. Each rule now declares `enforcement:` and `scope:` in `data/ai-rules.yaml`,
+      which is the single source for the triage; the counts once kept here are not maintained.
+  - [x] **The `lxml-for-xml` violation is fixed.** `src/llmflow/plugins/xml_entry_to_base_json.py`
+        imports `lxml.etree`, and `tests/test_lxml_not_elementtree.py` refuses an
+        `xml.etree.ElementTree` import anywhere in `src/`, so the rule now holds by test rather
+        than by attention.
+  - [ ] **Still open in the epic:** the nine rules classified `guardable` — a test is possible and
+        not yet written. `data/ai-rules.yaml` names them; no separate list is kept.
   - [ ] **Candidate guard, unruled:** `HANDOFF.md` is stale if its date is older than HEAD's
         commit date. The Captain has not ruled whether this belongs in #230 or its own issue.
 - [ ] **Completion reports, requirement softening, decision churn → #229.** Filed; **explicitly
@@ -102,6 +103,13 @@
 > before fetching. It is recorded there because an earlier condensation of *this* entry lost it:
 > summarising in place is right for a session cache, but a requirement has to move to a design
 > document rather than be shortened.
+>
+> **Two pieces shipped in 0.2.1.26, and the entry stays open.** The container now reports the
+> edition's own scheme instead of the caller's requested one — it was labelling verses with a
+> scheme they were not numbered in — and an edition declaring no versification is read as `eng`
+> with a warning, rather than raising, with `versification: null` plus `versification_guessed`
+> keeping the guess distinguishable from a declaration. Neither closes the entry: the `PSA 51:1`
+> disagreement above is about the mapping being applied on the way in, not about labelling.
 
 ### ⚠️ Paratext `custom.vrs` is detected and ignored → #222
 > **A project's own versification should win, and today it loses silently.** `_paratext_scheme`

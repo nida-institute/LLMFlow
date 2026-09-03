@@ -6,8 +6,9 @@ literal key of the pipeline context, and a dotted name is not such a key — the
 `{var}`, and leaves a `{{...}}` placeholder untouched, inner braces included.
 
 Without the checks below nothing refuses it: declaring the name satisfies the declaration
-check, declaring it optional satisfies the required-variables check, and the placeholder is
-then sent to the model unfilled.
+check, and the placeholder is then sent to the model unfilled. When prompt headers still had
+an `optional:` key, declaring the name there also satisfied the required-variables check,
+which is how the defect stayed invisible.
 
 Checks the linter rejects one, the runtime rejects one, and no prompt shipped or held in this
 repository contains one.
@@ -52,7 +53,6 @@ PROMPTS = sorted(
 DOTTED_PROMPT = """---
 requires:
   - scene
-optional: []
 format: Markdown
 description: A prompt whose body names a nested field.
 ---
@@ -63,7 +63,6 @@ user: |
 FLAT_PROMPT = """---
 requires:
   - scene_title
-optional: []
 format: Markdown
 description: A prompt whose body names a flat value.
 ---

@@ -81,7 +81,6 @@ When creating a new `.gpt` file, follow the standard structure:
 ---
 prompt:
   requires: [passage_ref, verses]
-  optional: [perspectives]
   format: JSON
   description: Generate questions from passage
 ---

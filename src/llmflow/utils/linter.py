@@ -134,16 +134,27 @@ def extract_template_variables(template_content):
 
     for match in re.finditer(variable_pattern, template_content):
         var_name = match.group(1).strip()
-        # Skip template logic and mixin directives
-        if (
-            not var_name.startswith("#")
-            and not var_name.startswith("/")
-            and not var_name.startswith("%")
-            and not var_name.startswith("mixin:")
-        ):
+        # `mixin:` is a real mechanism, expanded by `expand_mixins` before this runs. Nothing
+        # else is exempt: `{{#if}}`-style names are Handlebars convention, not syntax this
+        # engine has, and skipping them let a placeholder reach the model unfilled (#230).
+        if not var_name.startswith("mixin:"):
             variables.add(var_name)
 
     return variables
+
+
+def withdrawn_optional_error(prompt_path) -> str:
+    """The message for a prompt header still declaring `optional:`.
+
+    One wording, used by the linter and by the runtime contract check, so the two cannot
+    describe the same refusal differently.
+    """
+    return (
+        f"❌ {prompt_path}: declares `optional:`, which is not a key of the prompt header "
+        f"syntax. Every prompt parameter is required — an optional one needs a branch "
+        f"somewhere, and the branch nobody tests is where defects live. Move the name to "
+        f"`requires:`, or delete it if the body does not use it."
+    )
 
 
 def dotted_template_names(names) -> List[str]:
@@ -159,10 +170,11 @@ def dotted_template_names(names) -> List[str]:
 
 
 def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
-    """Check that every {{var}} used in a .gpt body is flat and declared.
+    """Check that every {{var}} used in a .gpt body is flat and declared in requires:.
 
-    A dotted name is rejected outright; the rest must appear in requires: or optional:.
-    Returns a list of error strings (empty list means the file is clean).
+    A dotted name is rejected outright, `optional:` is refused as a withdrawn key, and the
+    rest must appear in requires:. Returns a list of error strings (empty list means the file
+    is clean).
     """
     header = parse_prompt_header(prompt_path)
     if header is None:
@@ -170,13 +182,13 @@ def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
             f"❌ {prompt_path}: No parseable frontmatter — cannot validate template variables"
         ]
 
+    if "optional" in header:
+        return [withdrawn_optional_error(prompt_path)]
+
     declared: Set[str] = set()
     requires = header.get("requires") or []
-    optional = header.get("optional") or []
     if isinstance(requires, list):
         declared.update(requires)
-    if isinstance(optional, list):
-        declared.update(optional)
 
     # Extract body (everything after the closing --- of the frontmatter)
     text = Path(prompt_path).read_text(encoding="utf-8")
@@ -196,7 +208,7 @@ def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
 
     undeclared = {var for var in body_vars - declared if "." not in var}
     errors.extend(
-        f"❌ {prompt_path}: uses '{{{{var}}}}' for '{var}' but '{var}' is not declared in requires: or optional:"
+        f"❌ {prompt_path}: uses '{{{{var}}}}' for '{var}' but '{var}' is not declared in requires:"
         for var in sorted(undeclared)
     )
     return errors
@@ -323,7 +335,7 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
                     continue
 
                 # NEW: Handle both old and new header formats
-                # Old format: { prompt: { requires: [...], optional: [...] } }
+                # Old format: { prompt: { requires: [...] } }
                 # New format: { inputs: {...}, outputs: {...} }
 
                 step_inputs = prompt_config.get("inputs", {})
@@ -1094,7 +1106,7 @@ def lint_pipeline_full(
     else:
         logger.info(f"✅ All {validated_count} step contracts valid")
 
-    # 2.1) .gpt body declaration validation: every {{var}} must be in requires:/optional:
+    # 2.1) .gpt body declaration validation: every {{var}} must be in requires:
     logger.info("🔍 Validating .gpt template variable declarations...")
     gpt_decl_errors: List[str] = []
     pipeline_vars_for_prompts = pipeline_config.get("variables", {})
@@ -1264,6 +1276,10 @@ def validate_step_prompt_contract(step, prompt_file, step_name):
         errors.append(f"❌ Step '{step_name}': Missing or invalid YAML header in {prompt_path}")
         return errors
 
+    if "optional" in header:
+        errors.append(f"❌ Step '{step_name}': {withdrawn_optional_error(prompt_path)}")
+        return errors
+
     step_inputs = set(step.get("prompt", {}).get("inputs", {}).keys())
 
     # Support both formats
@@ -1281,7 +1297,8 @@ def validate_step_prompt_contract(step, prompt_file, step_name):
             )
             return errors
         required_inputs = set(header.get("requires", []))
-        optional_inputs = set(header.get("optional", []))
+        # Every prompt parameter is required; `optional:` is refused above.
+        optional_inputs: Set[str] = set()
 
     missing_required = required_inputs - step_inputs
     if missing_required:

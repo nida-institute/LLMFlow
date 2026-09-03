@@ -9,7 +9,6 @@ from llmflow.modules.logger import Logger
 from llmflow.modules.mcp import init_mcp_client
 from llmflow.utils.context import resolve
 from llmflow.utils.llm_runner import call_llm, run_llm_with_mcp_tools
-from llmflow.utils.step_outputs import handle_step_outputs
 
 logger = Logger()
 
@@ -37,7 +36,7 @@ def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, 
     else:
         raise ValueError(f"Prompt config must be string or dict, got {type(resolved_prompt)}")
 
-    from llmflow.utils.io import resolve_prompt_path, expand_mixins
+    from llmflow.utils.io import expand_mixins, resolve_prompt_path
     prompts_dir = str(context.get("prompts_dir", "prompts"))
     full_prompt_path = resolve_prompt_path(str(prompt_path), prompts_dir)
 
@@ -46,17 +45,31 @@ def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, 
 
     rendered_prompt = expand_mixins(rendered_prompt, full_prompt_path)
 
-    from llmflow.utils.linter import parse_prompt_header, extract_template_variables
+    # `${...}` and `{...}` in the *template* are resolved here, before any value is injected.
+    # Running the resolver afterwards expanded the injected values themselves — data carrying
+    # braces became a template against the pipeline context, silently. A placeholder is
+    # expanded once, and nothing else is expanded at all.
+    # project/plans/design-expand-once-and-only-once.md (#230)
+    rendered_prompt = str(resolve(rendered_prompt, context))
+
+    from llmflow.utils.linter import extract_template_variables, parse_prompt_header
 
     header = parse_prompt_header(str(full_prompt_path))
+
+    # Bound before the branch so the substitution below reads one name in both cases: with a
+    # header, only what it declares may be substituted; without one, the whole context may.
+    declared: set = set()
+    body_vars: set = set()
+
     if header is not None:
-        declared = set()
+        if "optional" in header:
+            from llmflow.utils.linter import withdrawn_optional_error
+
+            raise ValueError(withdrawn_optional_error(full_prompt_path.name))
+
         requires = header.get("requires") or []
-        optional = header.get("optional") or []
         if isinstance(requires, list):
             declared.update(requires)
-        if isinstance(optional, list):
-            declared.update(optional)
 
         frontmatter_match = re.search(
             r"^---[ \t]*\n.*?\n---[ \t]*\n?", rendered_prompt, re.DOTALL | re.MULTILINE
@@ -88,7 +101,7 @@ def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, 
                 f"❌ Prompt contract violation in {full_prompt_path.name}:\n"
                 f"   Variables used in prompt body but not declared in header:\n"
                 f"   {', '.join(sorted(undeclared))}\n\n"
-                f"   Add these to 'requires:' or 'optional:' in the prompt header."
+                f"   Add these to 'requires:' in the prompt header."
             )
 
         missing_required = [var for var in requires if var not in context]
@@ -100,22 +113,35 @@ def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, 
                 f"   These must be provided via prompt.inputs or earlier pipeline steps."
             )
 
-    if header is not None:
-        declared = set()
-        requires = header.get("requires") or []
-        optional = header.get("optional") or []
-        if isinstance(requires, list):
-            declared.update(requires)
-        if isinstance(optional, list):
-            declared.update(optional)
-        for key in declared:
-            if key in context:
-                rendered_prompt = rendered_prompt.replace(f"{{{{{key}}}}}", str(context[key]))
-    else:
-        for key, val in context.items():
-            rendered_prompt = rendered_prompt.replace(f"{{{{{key}}}}}", str(val))
+    # Substitution is the last step, and it happens once. `{{ name }}` with surrounding
+    # whitespace is the same placeholder as `{{name}}`: the extractor strips it, so a literal
+    # replace would have missed the spaced form and left it to reach the model.
+    substitutable = declared if header is not None else set(context)
+    for key in substitutable:
+        if key in context:
+            rendered_prompt = re.sub(
+                r"\{\{\s*" + re.escape(key) + r"\s*\}\}",
+                lambda _match, value=str(context[key]): value,
+                rendered_prompt,
+            )
 
-    rendered_prompt = resolve(rendered_prompt, context)
+    if header is not None:
+        # The backstop. Only the *template's* placeholders are the engine's business — braces
+        # arriving inside a value are that data's own characters and are left alone.
+        survivors = sorted(
+            name
+            for name in body_vars
+            if re.search(r"\{\{\s*" + re.escape(name) + r"\s*\}\}", rendered_prompt)
+        )
+        if survivors:
+            raise ValueError(
+                f"❌ Prompt contract violation in {full_prompt_path.name}:\n"
+                f"   Placeholders still unexpanded after rendering:\n"
+                f"   {', '.join(survivors)}\n\n"
+                f"   A placeholder is expanded exactly once. Reaching this means one was "
+                f"declared and passed and still not substituted, so the model would have "
+                f"received the placeholder text itself."
+            )
 
     logger.debug(f"Rendered prompt length: {len(rendered_prompt)} chars")
     logger.debug(f"Rendered prompt preview (after substitution): {rendered_prompt[:300]}...")

@@ -4,7 +4,6 @@
 ---
 requires:
   - language_count
-optional: []
 format: Markdown
 description: Generate a multilingual greeting list for {language_count} languages.
 ---

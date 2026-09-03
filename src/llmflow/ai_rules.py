@@ -86,6 +86,9 @@ JUDGMENT_PREAMBLE = (
 
 def _rendered(entry: dict) -> list[str]:
     lines = [f"- `{entry['id']}` — {entry['rule']}"]
+    guard = (entry.get("guard") or "").strip()
+    if guard:
+        lines.append(f"  - _Guarded by {guard}._")
     note = (entry.get("note") or "").strip()
     if note:
         lines.append(f"  - _{note}_")

@@ -29,6 +29,9 @@ capture drift drift drift."*
 
 ## 1. What the release already contains
 
+**As of 2026-09-01, when this plan was written.** For what the release actually shipped, read
+`CHANGELOG.md` — it is the record, and this section is not maintained against it.
+
 Since `v0.2.1.25` (2026-08-29), four commits, three sharing one subject line:
 
 | | |
@@ -45,8 +48,13 @@ Two entries under *Unreleased*. Nothing in the runner, linter, scripture step or
 
 #230 measured the AI context at ~27,000 words read at the start of every session, and concluded
 that reading is a weak way to enforce a rule: it sits at the top of the context while the work
-happens hundreds of turns later. It catalogued all 35 rules — 6 already have tests, 13 could
-easily have one, 12 can never be checked and must genuinely be held in attention.
+happens hundreds of turns later. It catalogued the rules by whether a test could hold them at
+all.
+
+That catalogue is no longer kept here. Each rule now carries `enforcement:` in
+`data/ai-rules.yaml` — `guarded`, `partial`, `guardable` or `judgment` — which is the single
+source for the counts, and `tests/test_ai_rules_classification.py` checks that every rule
+declares one and that each `guarded` rule names a guard that exists.
 
 **Ruled: all four pieces below.**
 

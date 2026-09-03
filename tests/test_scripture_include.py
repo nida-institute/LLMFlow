@@ -103,7 +103,10 @@ def test_the_container_carries_the_versification_scheme():
 def test_an_unknown_edition_scheme_is_reported_rather_than_invented(caplog):
     with caplog.at_level("WARNING"):
         usj = edition_text("NO-SCHEME", "MRK 1:1", fmt="usj", editions=EDITIONS, include=["ids"])
-    assert "versification" not in usj[CONTAINER_KEY]
+    # Stated as `null` rather than omitted: the warning does not travel with the payload, so a
+    # later reader could not tell an undeclared scheme from a key nobody asked for. Still not
+    # invented, which is what this test is for. Rule `say-which-kind-of-nothing`.
+    assert usj[CONTAINER_KEY]["versification"] is None
     assert "versification" in caplog.text.lower()
 
 

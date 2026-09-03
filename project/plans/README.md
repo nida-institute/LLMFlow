@@ -12,8 +12,11 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-biblical-text-conventions.md](design-biblical-text-conventions.md) | proposed — not authorization to build. Four decisions remain marked => and are the | #226 |
 | [design-clean-command.md](design-clean-command.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
 | [design-cli-dev-tools.md](design-cli-dev-tools.md) | Partly implemented. replay shipped as sp tools replay; the wider family of dev | #175 #176 #177 #198 |
-| [design-decisions-awaiting-ruling.md](design-decisions-awaiting-ruling.md) | open — twelve decisions, none answered. Written 2026-09-02 to collect them in one | #169 #201 #212 #217 #218 #228 #230 |
+| [design-combining-levinsohn-and-ubs.md](design-combining-levinsohn-and-ubs.md) | proposed — not authorization to build. The design is stated in §6 as seven positions, | #169 #226 |
+| [design-decisions-awaiting-ruling.md](design-decisions-awaiting-ruling.md) | four decisions need answering. Nine are deferred — they block nothing in the ruled | #153 #169 #200 #201 #203 #204 #210 #211 #212 #215 #217 #218 #222 #225 #226 #227 #228 #230 |
+| [design-declaring-field-roles.md](design-declaring-field-roles.md) | proposed — not authorization to build. Six decisions are marked => and are the | #162 #230 |
 | [design-edition-provisioning.md](design-edition-provisioning.md) | proposal, 2026-08-29. Not authorization to build. Four decisions are marked => and | #201 #203 #217 |
+| [design-expand-once-and-only-once.md](design-expand-once-and-only-once.md) | approved in conversation 2026-09-02 — *"double expansion is always a defect"*, and | #230 |
 | [design-foreach-syntax-migration.md](design-foreach-syntax-migration.md) | Proposed — awaiting Captain review | #153 |
 | [design-format-keyword-split.md](design-format-keyword-split.md) | Design note — not approved, nothing built. Requested 2026-08-12 as item 4 of the | — |
 | [design-helm-parity.md](design-helm-parity.md) | awaiting the Captain's review. Not authorization to implement (rules.md #15). | #15 #195 #204 |
@@ -48,4 +51,4 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-window-semantics.md](plan-window-semantics.md) | complete, 2026-08-21. Items 1 and 3 landed; item 2's two decisions were ruled and | #175 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-40 documents.
+43 documents.

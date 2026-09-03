@@ -24,18 +24,15 @@ EDGE_PUNCTUATION = " ,.;:·—–-()[]{}⟦⟧«»‹›\"'’‘“”·;"
 #: before it counts. One word would let any verse ending in a common word verify a long quote.
 MIN_TRUNCATED_MATCH = 2
 
-#: OSIS book codes as LGNTDF writes them, to USFM as the engine uses them.
-OSIS_TO_USFM = {
-    "Matt": "MAT", "Mark": "MRK", "Luke": "LUK", "John": "JHN", "Acts": "ACT",
-    "Rom": "ROM", "1Cor": "1CO", "2Cor": "2CO", "Gal": "GAL", "Eph": "EPH",
-    "Phil": "PHP", "Col": "COL", "1Thess": "1TH", "2Thess": "2TH", "1Tim": "1TI",
-    "2Tim": "2TI", "Titus": "TIT", "Phlm": "PHM", "Heb": "HEB", "Jas": "JAS",
-    "1Pet": "1PE", "2Pet": "2PE", "1John": "1JN", "2John": "2JN", "3John": "3JN",
-    "Jude": "JUD", "Rev": "REV",
-}
-
 #: `Mark.1.14!3`, or a range whose opening is the citation.
 OSIS_REF = re.compile(r"^(?P<book>[0-9A-Za-z]+)\.(?P<chapter>\d+)\.(?P<verse>\d+)!(?P<index>\d+)")
+
+
+#: The document roots a discourse corpus uses. LGNTDF writes `feature`; HOTDF-LS writes
+#: `markup` for features and `annotations` for notes. A file whose root is none of these, or
+#: which declares no header name, is skipped — which is how `levinsohn.xml`, a wrapper that
+#: only xi:includes the others, stays out.
+CORPUS_ROOTS = ("feature", "markup", "annotations")
 
 
 #: A citation quoting the Greek it points at, so its index can be checked.
@@ -95,14 +92,23 @@ def normalize_greek(text: Optional[str]) -> str:
 
 
 def osis_to_usfm(book: str) -> str:
-    """The USFM code for an OSIS book code."""
-    try:
-        return OSIS_TO_USFM[book]
-    except KeyError:
+    """The USFM code for a book as a discourse corpus writes it.
+
+    `llmflow.books.resolve` accepts either spelling and returns the USFM code, so a corpus
+    writing OSIS names (`Mark`, `1Sam`) and one writing USFM codes (`MRK`, `1SA`) both parse
+    with no configuration. It reads `data/book-names.json`, which is the single source for
+    book names (#218); the 27-entry table this function used to carry was a second copy of
+    part of it, and being New Testament only it refused every Old Testament reference.
+    """
+    from llmflow import books
+
+    resolved = books.resolve(book)
+    if resolved is None:
         raise ValueError(
-            f"{book!r} is not an OSIS book code this corpus uses. Known: "
-            f"{', '.join(sorted(OSIS_TO_USFM))}."
-        ) from None
+            f"{book!r} is not a book name or code this engine recognises, so a discourse "
+            f"reference naming it cannot be placed."
+        )
+    return resolved
 
 
 def parse_osis_ref(osis_ref: str) -> tuple[str, int, int, int]:
@@ -205,7 +211,8 @@ def load_citations(lgntdf_dir: Any) -> dict:
         return {}
 
     found: dict = {}
-    for path in sorted(directory.glob("*.xml")):
+    # `rglob`: HOTDF-LS keeps its files in subdirectories, LGNTDF in one flat directory.
+    for path in sorted(directory.rglob("*.xml")):
         if not path.is_file():
             continue
         try:
@@ -215,7 +222,7 @@ def load_citations(lgntdf_dir: Any) -> dict:
             continue
 
         name = root.findtext("header/name")
-        if etree.QName(root).localname != "feature" or not name:
+        if etree.QName(root).localname not in CORPUS_ROOTS or not name:
             continue
         declared = root.find("header/type")
         kind = (

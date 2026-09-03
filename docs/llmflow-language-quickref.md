@@ -418,7 +418,6 @@ the variables it expects. The linter enforces this contract.
 ---
 requires:
   - language_count
-optional: []
 format: Markdown
 description: Brief description of what this prompt does.
 ---
@@ -431,7 +430,10 @@ user: |
 Key rules:
 
 - `requires:` — list of variable names the caller *must* provide via `prompt.inputs`.
-- `optional:` — list of variable names the caller *may* provide.
-- Variables in the body use `{{double_braces}}`.
+- **There is no `optional:` key.** Every prompt parameter is required. `sp lint` and `sp run`
+  both refuse a header that declares it. Where a prompt genuinely reads differently with and
+  without some context, that is a branch in the pipeline — two prompts, or a `condition:` on the
+  step — not a hidden condition inside the prompt.
+- Variables in the body use `{{double_braces}}`, and only flat names.
 - If `requires:` is missing, the linter cannot validate the contract and will
   emit warnings about undeclared inputs.

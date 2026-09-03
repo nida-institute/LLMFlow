@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from llmflow.utils.scripture import (
+    ASSUMED_SCHEME,
     SCHEME_KEY,
     edition_scheme,
     edition_text,
@@ -103,14 +104,23 @@ def test_a_paratext_custom_vrs_is_reported_as_unread(tmp_path, caplog):
     assert "custom.vrs" in caplog.text
 
 
-def test_mapping_without_a_known_edition_scheme_is_an_error(store):
-    """Asking to cross schemes when the edition does not say which it uses must not guess."""
+def test_mapping_without_a_known_edition_scheme_assumes_english_and_warns(store, caplog):
+    """An edition that declares no scheme is read as English, loudly.
+
+    This test previously required a refusal, on the reasoning that mapping without a declared
+    source scheme has to guess. The guess is now made, because much of the translation world
+    uses English versification without meeting the issue and a project may have no
+    versification file at all — but never silently, since a wrong assumption returns the wrong
+    verses rather than the wrong label. Covered in full by
+    `tests/test_assumed_versification.py`.
+    """
     definition = {"kind": "tsv", "path": store["tsv"]}
-    with pytest.raises(UnmappableReference, match=SCHEME_KEY):
+    with caplog.at_level("WARNING"):
         edition_text(
             "MYSTERY", "TST 1:1", fmt="plain", editions={"MYSTERY": definition},
-            versification="shifted", mappings_dir=store["dir"],
+            versification=ASSUMED_SCHEME, mappings_dir=store["dir"],
         )
+    assert SCHEME_KEY in caplog.text, "the warning must name the field to add"
 
 
 def test_an_unknown_edition_scheme_is_fine_when_nothing_is_mapped(store):

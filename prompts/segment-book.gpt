@@ -1,7 +1,6 @@
 ---
 requires:
   - book
-optional: []
 format: JSON
 description: Segment a book of the Bible into pericopes, returned as a strict JSON schema.
 ---
