@@ -1,6 +1,7 @@
 """XSLT transformation plugin for LLMFlow"""
 
 from pathlib import Path
+
 from llmflow.modules.logger import Logger
 
 logger = Logger()
@@ -29,7 +30,7 @@ def execute(config: dict) -> str:
     if not xml_string and not xml_path:
         raise ValueError("xslt_transform requires either 'xml_string' or 'xml_path'")
 
-    logger.debug(f"🔧 Using Saxon XSLT 3.0 processor")
+    logger.debug("🔧 Using Saxon XSLT 3.0 processor")
     logger.debug(f"🔧 Loading XSLT stylesheet: {stylesheet_path}")
 
     xslt_path = Path(stylesheet_path)

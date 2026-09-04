@@ -45,6 +45,46 @@
 > **Deliberately not scheduled:** #209, the repository rename. Filed with its migration detail
 > and an order of operations, to be picked up when the Captain chooses.
 
+### 🆕 Opened 2026-09-01 — five issues, order not yet set
+> **Where these sit relative to the ordered list above is the Captain's to set.** They are
+> recorded here because the task list is the queue; `HANDOFF.md` carries only session residue.
+> One is built: #225, rules cited by id — `fcd4c67` on `dev`, carrying `Closes #225`. **The issue
+> is still open on GitHub** and closes when `dev` merges to `main`; the change is already live in
+> consumer repos here through the editable install. Guarded by
+> `tests/test_record_closure_claims.py`.
+- [x] **Remove `optional:` from prompt frontmatter → #228.** Shipped in 0.2.1.26. Breaking: both
+      header forms are refused by `sp lint` and `sp run` with one shared message. The shipped
+      discipline now teaches the key's absence rather than `optional: [perspectives]`, so `sp init`
+      no longer installs the retired convention.
+  - [ ] **Consumer migration is outstanding.** `nida-institute/discourse-flow` carries **non-empty**
+        `optional:` lists, so it will fail lint against 0.2.1.26 until each name moves to
+        `requires:` or is deleted. Mechanism and evidence:
+        `collab/discourse-flow/2026-09-01-dotted-requires.md`. Their repository, their change —
+        tell them the release is out.
+- [ ] **`include: [syntax]`, Lowfat as standoff JSON → #227.** Design ruled and recorded in
+      `project/plans/design-scripture-representations.md` §4.5 and §7. Read the issue for the JSON
+      shape, not the handoff.
+- [ ] **Extract the biblical-text convention layer → #226.** Design in
+      `project/plans/design-biblical-text-conventions.md`; the middle layer lives in
+      `awesome-biblical-data`. D3 is ruled. **D1, D2, D4 and D5 are unanswered `=>` slots and are
+      the Captain's** — do not answer them.
+- [ ] **Epic: enforce rules, don't instruct them → #230.** The AI context is ~27,000 words read at
+      session start, and keeping it enforced currently depends on the Captain knowing all of it.
+      Substantially advanced in 0.2.1.26 and still open — read `CHANGELOG.md` for what shipped,
+      not this entry. Each rule now declares `enforcement:` and `scope:` in `data/ai-rules.yaml`,
+      which is the single source for the triage; the counts once kept here are not maintained.
+  - [x] **The `lxml-for-xml` violation is fixed.** `src/llmflow/plugins/xml_entry_to_base_json.py`
+        imports `lxml.etree`, and `tests/test_lxml_not_elementtree.py` refuses an
+        `xml.etree.ElementTree` import anywhere in `src/`, so the rule now holds by test rather
+        than by attention.
+  - [ ] **Still open in the epic:** the nine rules classified `guardable` — a test is possible and
+        not yet written. `data/ai-rules.yaml` names them; no separate list is kept.
+  - [ ] **Candidate guard, unruled:** `HANDOFF.md` is stale if its date is older than HEAD's
+        commit date. The Captain has not ruled whether this belongs in #230 or its own issue.
+- [ ] **Completion reports, requirement softening, decision churn → #229.** Filed; **explicitly
+      not being chased.** The remedy is recorded in it: checklists, and never ticking a box
+      without showing the evidence.
+
 ### ✅ Settled 2026-08-24 — the #204 catalog questions are all ruled
 > `project/plans/plan-init-doctor-unification.md` Q1–Q6. **Built:** nine catalog rows (the four
 > hello-world examples `generated`, the four audit documents `create-once`),
@@ -63,6 +103,13 @@
 > before fetching. It is recorded there because an earlier condensation of *this* entry lost it:
 > summarising in place is right for a session cache, but a requirement has to move to a design
 > document rather than be shortened.
+>
+> **Two pieces shipped in 0.2.1.26, and the entry stays open.** The container now reports the
+> edition's own scheme instead of the caller's requested one — it was labelling verses with a
+> scheme they were not numbered in — and an edition declaring no versification is read as `eng`
+> with a warning, rather than raising, with `versification: null` plus `versification_guessed`
+> keeping the guess distinguishable from a declaration. Neither closes the entry: the `PSA 51:1`
+> disagreement above is about the mapping being applied on the way in, not about labelling.
 
 ### ⚠️ Paratext `custom.vrs` is detected and ignored → #222
 > **A project's own versification should win, and today it loses silently.** `_paratext_scheme`

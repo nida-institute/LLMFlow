@@ -5,15 +5,14 @@ Lists all files in a content stage with optional metadata.
 """
 
 import json
-from pathlib import Path
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
 
+from llmflow.modules.logger import Logger
 from llmflow.utils.content_stages_loader import (
     ContentStagesConfigLoader,
-    get_content_stages_config,
 )
-from llmflow.modules.logger import Logger
 
 logger = Logger()
 
@@ -43,7 +42,6 @@ def list_content(
 
         # Load configuration
         loader = ContentStagesConfigLoader(config_path)
-        config = loader.config
 
         # Validate stage exists
         stage_config = loader.get_stage(stage)

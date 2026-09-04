@@ -1,6 +1,8 @@
-import xml.etree.ElementTree as ET
-import unicodedata
 import re
+import unicodedata
+
+from lxml import etree  # type: ignore[attr-defined]
+
 from llmflow.modules.logger import Logger
 
 logger = Logger()
@@ -9,7 +11,9 @@ logger = Logger()
 def xml_entry_to_base_json(entry_xml: str) -> dict:
     logger.debug(f"xml_entry_to_base_json called with XML length: {len(entry_xml)} chars")
 
-    root = ET.fromstring(entry_xml)
+    # lxml refuses a str carrying an encoding declaration, so parse bytes (#230).
+    source = entry_xml.encode("utf-8") if isinstance(entry_xml, str) else entry_xml
+    root = etree.fromstring(source)
     ns = {'tei': root.tag.split('}')[0].strip('{')}
     entry_key = root.get('key')
 
@@ -255,11 +259,19 @@ def xml_entry_to_base_json(entry_xml: str) -> dict:
                 # Create form or incomplete segment
                 foreign_list = [s["text"] for s in current_group_segments if s["type"] == "foreign"]
                 primary_foreign = foreign_list[0] if foreign_list else ""
-                normalized_primary = [s["normalizedForm"] for s in current_group_segments if s["type"] == "foreign"][0] if foreign_list else ""
+                normalized_primary = (
+                    [s["normalizedForm"] for s in current_group_segments if s["type"] == "foreign"][0]
+                    if foreign_list
+                    else ""
+                )
                 glosses = [s["text"] for s in current_group_segments if s["type"] == "gloss"]
                 refs = [s["osisRef"] for s in current_group_segments if s["type"] == "ref"]
 
-                is_incomplete = any(s.get("status") == "incomplete" for s in current_group_segments if s["type"] == "foreign")
+                is_incomplete = any(
+                    s.get("status") == "incomplete"
+                    for s in current_group_segments
+                    if s["type"] == "foreign"
+                )
                 pattern_flags = check_pattern_flags(primary_foreign, foreign_list)
 
                 source_indices = [s["index"] for s in current_group_segments]
@@ -321,11 +333,17 @@ def xml_entry_to_base_json(entry_xml: str) -> dict:
                 foreign_list = [s["text"] for s in current_group_segments if s["type"] == "foreign"]
                 if foreign_list:
                     primary_foreign = foreign_list[0]
-                    normalized_primary = [s["normalizedForm"] for s in current_group_segments if s["type"] == "foreign"][0]
+                    normalized_primary = [
+                        s["normalizedForm"] for s in current_group_segments if s["type"] == "foreign"
+                    ][0]
                     glosses = [s["text"] for s in current_group_segments if s["type"] == "gloss"]
                     refs = [s["osisRef"] for s in current_group_segments if s["type"] == "ref"]
 
-                    is_incomplete = any(s.get("status") == "incomplete" for s in current_group_segments if s["type"] == "foreign")
+                    is_incomplete = any(
+                        s.get("status") == "incomplete"
+                        for s in current_group_segments
+                        if s["type"] == "foreign"
+                    )
                     pattern_flags = check_pattern_flags(primary_foreign, foreign_list)
                     source_indices = [s["index"] for s in current_group_segments]
 
@@ -384,7 +402,11 @@ def xml_entry_to_base_json(entry_xml: str) -> dict:
             glosses = [s["text"] for s in current_group_segments if s["type"] == "gloss"]
             refs = [s["osisRef"] for s in current_group_segments if s["type"] == "ref"]
 
-            is_incomplete = any(s.get("status") == "incomplete" for s in current_group_segments if s["type"] == "foreign")
+            is_incomplete = any(
+                s.get("status") == "incomplete"
+                for s in current_group_segments
+                if s["type"] == "foreign"
+            )
             pattern_flags = check_pattern_flags(primary_foreign, foreign_list)
             source_indices = [s["index"] for s in current_group_segments]
 
@@ -422,7 +444,10 @@ def xml_entry_to_base_json(entry_xml: str) -> dict:
                     "demoOrigin": False
                 })
 
-    logger.debug(f"Result: {len(segments)} segments, {len(groups)} groups, {len(forms)} forms, {len(incomplete_segments)} incomplete")
+    logger.debug(
+        f"Result: {len(segments)} segments, {len(groups)} groups, "
+        f"{len(forms)} forms, {len(incomplete_segments)} incomplete"
+    )
 
     return {
         "lemma": entry_key,

@@ -1,13 +1,13 @@
 """Model Context Protocol (MCP) client using official SDK."""
 
 import asyncio
-from typing import Dict, List, Any, Optional
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
-from llmflow.modules.logger import Logger
-import httpx
 import json
 import time
+from typing import Any, Dict, List, Optional
+
+import httpx
+
+from llmflow.modules.logger import Logger
 
 logger = Logger()
 
@@ -130,7 +130,7 @@ class MCPClient:
             return self._tool_definitions
 
         try:
-            logger.debug(f"🔧 Fetching MCP tool definitions")
+            logger.debug("🔧 Fetching MCP tool definitions")
 
             # List available tools via JSON-RPC
             result = await self._send_jsonrpc("tools/list")
@@ -219,7 +219,7 @@ class MCPClient:
     def get_tool_definitions(self) -> List[Dict[str, Any]]:
         """Fetch tool definitions (sync wrapper)."""
         try:
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()
             raise RuntimeError(
                 "get_tool_definitions() called from async context. "
                 "Use 'await client._async_get_tool_definitions()' instead or use the client as async context manager."
@@ -230,7 +230,7 @@ class MCPClient:
     def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> str:
         """Execute tool call (sync wrapper)."""
         try:
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()
             raise RuntimeError(
                 "call_tool() called from async context. "
                 "Use 'await client._async_call_tool()' instead or use the client as async context manager."
@@ -241,7 +241,7 @@ class MCPClient:
     def close(self):
         """Close the MCP session (sync wrapper)."""
         try:
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()
             raise RuntimeError(
                 "close() called from async context. "
                 "Use 'await client._async_close()' instead or use the client as async context manager."

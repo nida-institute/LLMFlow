@@ -176,7 +176,7 @@ class TestMissingRequiresIsError:
         """requires: [] with no inputs provided → no errors."""
         errors = self._run_contract(
             tmp_path,
-            "---\nrequires: []\noptional: []\n---\nYou are helpful.\n",
+            "---\nrequires: []\n---\nYou are helpful.\n",
             {},
         )
         assert not errors, f"Expected no errors, got: {errors}"
@@ -185,7 +185,7 @@ class TestMissingRequiresIsError:
         """requires: [x] with x provided → no errors."""
         errors = self._run_contract(
             tmp_path,
-            "---\nrequires:\n  - language_count\noptional: []\n---\nDo {{language_count}} things.\n",
+            "---\nrequires:\n  - language_count\n---\nDo {{language_count}} things.\n",
             {"language_count": "5"},
         )
         assert not errors, f"Expected no errors, got: {errors}"

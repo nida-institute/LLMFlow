@@ -270,15 +270,57 @@ project says; a declared `source` says which project is speaking. A consumer can
 the payload states instead of sniffing key names — and a consumer that meets an unfamiliar source
 knows it has met one, rather than silently finding fields missing.*
 
-### 4.5 What `include` does not carry
+### 4.5 Syntax rides on `include`, standoff (#227)
 
-The **Lowfat syntax tree** (`wg` groups — 4,009 clauses in Mark) and **paragraph structure** are
-not `include` members. Neither is a field on a word: USJ has nowhere to put a constituency tree,
-and paragraphs change the `para` elements themselves rather than annotating anything inside them.
-Both are shape, not payload — which is what #200's format table implied by listing `tokens`,
-`syntax`, `senses` and `entities` as *formats*.
+An earlier draft of this section held that the **Lowfat syntax tree** could not be an `include`
+member, on the reasoning that USJ has nowhere to put a constituency tree and that the tree is
+shape rather than payload. **Ruled otherwise, 2026-08-31: `include: [syntax]`.** The objection
+is answered by not putting the tree inside USJ at all.
 
-Where they go is unsettled. `format: syntax` is the obvious guess and is not a decision.
+The two orders cannot be reconciled, so neither is converted into the other. A constituent whose
+words are interrupted by words from elsewhere is **discontinuous**, and no ordering of a tree's
+children makes traversal emit sentence order while the tree keeps that shape — the obstruction
+is the tree's shape, not the arrangement of its branches. Greek has discontinuous constituents
+because hyperbaton is a live rhetorical device, which is what §6.1 measures. A treebank that
+recorded constituency faithfully has to come out of document order wherever the author did it.
+
+So each fact is stated once, in the order native to it:
+
+```json
+{
+  "content": [ "… USJ, each word carrying \"srcloc\": \"n41001001001\" …" ],
+  "scripture_pipelines": {
+    "syntax": {
+      "class": "cl",
+      "children": [
+        {"class": "np", "children": [{"token": "n41001001001"},
+                                     {"token": "n41001001003"}]},
+        {"token": "n41001001002"}
+      ]
+    }
+  }
+}
+```
+
+- **Text** stays in the USJ document, in textual order, once. Reading it needs no tree walk.
+- **Structure** sits in the `scripture_pipelines` container (§4.3), in tree order, carrying no
+  text — only references.
+- The discontinuity stays visible: the `np` reaches `…001` and `…003` across `…002`.
+
+**`syntax` requires `ids`.** The leaf references are `xml:id` values, which reach the document as
+`srcloc` through the `ids` family (§3, §4.4). Without `ids` there is nothing for a leaf to point
+at, so the payload is unusable rather than merely thinner. This is a stronger condition than
+`check_include` currently enforces, which demands `ids` only for *per-word* families; `syntax` is
+a tree over words, not an annotation on one, so `per_word: true` would be the wrong way to get
+there.
+
+**`ref` does not appear in the payload.** Book, chapter and verse are structural in USJ and the
+`!n` index is position, so `ref` is derivable from where a word sits. Carrying it would be a
+third encoding of identity beside `xml:id` and position.
+
+**Paragraph structure remains unsettled** and is not covered by this ruling. It changes the
+`para` elements themselves rather than annotating anything inside them, so the standoff argument
+above does not reach it. See Q4.
 
 ## 5. Prior art — reference, not baseline
 
@@ -342,10 +384,14 @@ failure mode — see #208.
 them requires `LC_ALL=C`, or distinct variation-unit types silently merge. Observed while counting
 markers in Mark: a UTF-8 locale reported one marker type where there are five.
 
-### 6.3 `format: usj` is specified and unimplemented
+### 6.3 `format: usj` is specified and unimplemented — *resolved*
 
-`FORMATS = ("plain", "milestones")` in the parked `utils/scripture.py`, and the schema `enum`
-matches, while `design-scripture-editions.md` specifies three formats including `usj`.
+Recorded when `FORMATS = ("plain", "milestones")` in the parked `utils/scripture.py` and the
+schema `enum` matched it, while `design-scripture-editions.md` specified three formats including
+`usj`. The specification and the code disagreed, and the code was the shorter list.
+
+`FORMATS = ("plain", "milestones", "usj")` now, and `usj` is implemented. The trap this section
+recorded — a format named in a design document and absent from the enum — is closed.
 
 ---
 
@@ -366,6 +412,8 @@ matches, while `design-scripture-editions.md` specifies three formats including 
 | `include:` takes a **list** | 2026-08-23 |
 | Extensions live in one container, **`scripture_pipelines`**; spec attributes stay in their spec places | 2026-08-23 |
 | `include` members are **families, not columns**: `ids`, `morphology`, `senses`, `glosses`, `referents` | 2026-08-23 |
+| Syntax rides on **`include: [syntax]`**, not a new `format:` value | 2026-08-31 |
+| Syntax is serialised **standoff**: text in the USJ document in textual order, tree in the payload in tree order, leaves referencing word ids | 2026-08-31 |
 
 ### 7.1 Purpose → representation (Captain, 2026-08-22)
 
@@ -374,7 +422,8 @@ matches, while `design-scripture-editions.md` specifies three formats including 
 | running text | Macula TSV, `text` + `after` |
 | USJ | synthesised from the TSV |
 | morphology | Macula TSV — "usually most convenient" |
-| syntax | Lowfat — "often in BaseX where it can be queried easily" |
+| syntax, **whole corpus** | Lowfat XML in BaseX — "often in BaseX where it can be queried easily"; global queries are what an XML database is for, and nothing displaces it |
+| syntax, **one passage** | Lowfat as standoff JSON via `include: [syntax]` (2026-08-31) — the local case, inside a pipeline, headed for a model or a JSON-consuming step |
 | text variants, other editions | SBLGNT (LogosBible) apparatus — "extremely helpful" |
 
 ---

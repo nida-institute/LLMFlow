@@ -41,6 +41,7 @@ SHARED_WITH_HELM = (
     "project-tracking.md",
     "surface-decisions.md",
     "workflow.md",
+    "working-for-a-person.md",
 )
 
 ENGINE_ONLY = (

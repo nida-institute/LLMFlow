@@ -2,7 +2,7 @@
 
 import re
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List
 
 
 def extract_description(content: str, max_length: int = 100) -> str:

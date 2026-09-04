@@ -188,7 +188,8 @@ def extract_template_variables(template_content):
     curly_pattern = r"\{\{\s*([^}]+?)\s*\}\}"
     for match in re.finditer(curly_pattern, template_content):
         var_name = match.group(1).strip()
-        if not var_name.startswith("#") and not var_name.startswith("/"):
+        # See llmflow.utils.linter.extract_template_variables — one rule, not two (#230).
+        if not var_name.startswith("mixin:"):
             variables.add(var_name)
 
     # Find ${variable} patterns

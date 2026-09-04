@@ -1,6 +1,5 @@
 """BaseX plugin — run XQuery against a local BaseX database."""
 
-import os
 import subprocess
 
 from llmflow.modules.logger import Logger

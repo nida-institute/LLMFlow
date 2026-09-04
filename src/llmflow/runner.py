@@ -1,59 +1,68 @@
-import importlib
-import inspect
-import json
 import os
 import re
+import sys
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
-import argparse
-import logging
-import sys
+from typing import Any, Dict
 
-import httpx
 import yaml
-from openai import APIError as OpenAIAPIError, APITimeoutError, RateLimitError
 
-from llmflow.modules.logger import Logger
-from llmflow.modules.telemetry import TelemetryCollector, generate_optimization_suggestions
-from llmflow.plugins import plugin_registry
-from llmflow.plugins.basex import run_basex
-from llmflow.plugins.loader import discover_plugins
-from llmflow.utils.io import validate_all_templates
-from llmflow.utils.linter import lint_pipeline_full
-from llmflow.utils.llm_runner import call_llm, run_llm_with_mcp_tools
-from llmflow.utils.context import _MISSING, get_from_context, resolve
-from llmflow.utils.file_io import WRITTEN_FILES, _record_written_file, save_content_to_file
-from llmflow.utils.step_outputs import handle_step_outputs, handle_step_saveas
-from llmflow.utils.debug import _get_debug_dir, _clear_debug_dir
-from llmflow.steps.plugin import run_plugin_step
-from llmflow.steps.basex import run_basex_step
-from llmflow.steps.scripture import run_scripture_step
-from llmflow.steps.function import run_function_step
-from llmflow.steps.duckdb import run_duckdb_step
-from llmflow.steps.json_step import run_json_step
-from llmflow.steps.load import run_load_step
-from llmflow.steps.save import run_save_step
-from llmflow.steps.llm import render_prompt, apply_output_template, run_llm_step
-from llmflow.steps.for_each import run_for_each_step
-from llmflow.steps.window import run_window_step, run_window_advance_step
-from llmflow.steps.if_step import run_if_step
 from llmflow.exceptions import (
-    StepExecutionError,
-    ForEachIterationError,
-    VariableResolutionError,
-    LLMProviderError,
-    PluginError,
     StepRetryError,
     StepRewindError,
 )
-from llmflow.modules.mcp import init_mcp_client
-from llmflow.utils.guards import build_eval_locals, build_step_eval_ctx, enforce_require, collect_warnings, _safe_eval
-from llmflow.utils.io import sanitize_filename
+from llmflow.modules.logger import Logger
+from llmflow.modules.telemetry import TelemetryCollector
+from llmflow.plugins import plugin_registry
+from llmflow.plugins.loader import discover_plugins
+from llmflow.steps.basex import run_basex_step
+from llmflow.steps.duckdb import run_duckdb_step
+from llmflow.steps.for_each import run_for_each_step
+from llmflow.steps.function import run_function_step
+from llmflow.steps.if_step import run_if_step
+from llmflow.steps.json_step import run_json_step
+from llmflow.steps.llm import render_prompt, run_llm_step
+from llmflow.steps.load import run_load_step
+from llmflow.steps.plugin import run_plugin_step
+from llmflow.steps.save import run_save_step
+from llmflow.steps.scripture import run_scripture_step
+from llmflow.steps.window import run_window_advance_step, run_window_step
+from llmflow.utils.context import _MISSING, get_from_context, resolve
+from llmflow.utils.debug import _clear_debug_dir, _get_debug_dir
+from llmflow.utils.file_io import save_content_to_file
+from llmflow.utils.guards import _safe_eval, build_eval_locals, build_step_eval_ctx, collect_warnings, enforce_require
+from llmflow.utils.io import validate_all_templates
+from llmflow.utils.linter import lint_pipeline_full
 from llmflow.utils.rewind import StepRewindManager
-from datetime import datetime
+from llmflow.utils.step_outputs import handle_step_outputs
+
+#: This module's surface, declared rather than incidental. Only `logger`, `run_pipeline` and
+#: `run_step` are defined here; the rest are re-exported, because `llmflow.runner` was their
+#: home before they moved into their own modules and callers still import them from it. Naming
+#: them keeps an unused-import check from deleting them and makes removing one a deliberate act.
+#: Guarded by `tests/test_runner_reexports.py`.
+__all__ = [
+    "_MISSING",
+    "get_from_context",
+    "handle_step_outputs",
+    "load_pipeline_config",
+    "logger",
+    "render_prompt",
+    "resolve",
+    "run_basex_step",
+    "run_for_each_step",
+    "run_function_step",
+    "run_json_step",
+    "run_llm_step",
+    "run_load_step",
+    "run_pipeline",
+    "run_plugin_step",
+    "run_save_step",
+    "run_step",
+    "run_window_step",
+    "save_content_to_file",
+]
 
 # Single unified logger instance
 logger = Logger()
@@ -61,7 +70,6 @@ logger = Logger()
 # Shared YAML loader that recognises LLMFlow tags such as !window_advance.
 # Defined in yaml_loader.py to avoid circular imports with linter.py.
 from llmflow.yaml_loader import load_pipeline_config  # noqa: E402
-
 
 _RETRY_MISSING = object()
 
@@ -385,7 +393,12 @@ def run_step(
                     scene = context.get("scene")
                     if isinstance(scene, dict):
                         context_info["scene_citation"] = scene.get("Citation", "unknown")
-                enforce_require(eval_ctx, step.get("require") or [], step_name=step.get("name"), context_info=context_info)
+                enforce_require(
+                    eval_ctx,
+                    step.get("require") or [],
+                    step_name=step.get("name"),
+                    context_info=context_info,
+                )
 
             # Non-blocking warnings: collect and attach to context
             if "warn" in step and step.get("warn"):
@@ -451,7 +464,9 @@ def run_pipeline(
     discover_plugins()
 
     from pathlib import Path
+
     from pydantic import ValidationError
+
     from llmflow.pipeline_schema import PipelineConfig  # FIX: Correct module name
 
     # Reset per-run state
@@ -471,7 +486,9 @@ def run_pipeline(
         logger.set_level("DEBUG")
 
     # Initialize telemetry collector
-    telemetry = TelemetryCollector(pipeline_name=str(pipeline_file) if not isinstance(pipeline_file, dict) else "inline")
+    telemetry = TelemetryCollector(
+        pipeline_name=str(pipeline_file) if not isinstance(pipeline_file, dict) else "inline"
+    )
 
     # Add current working directory to sys.path for local plugin imports
     cwd = os.getcwd()

@@ -414,13 +414,18 @@ class TestExtractTemplateVariables:
         result = extract_template_variables(template)
         assert result == expected
 
-    def test_extract_ignores_handlebars_helpers(self):
-        """Test that handlebars helper syntax is ignored."""
+    # Handlebars `{{#if}}` / `{{/if}}` are no longer exempt from extraction. They are not
+    # syntax this engine has — it has no conditionals — and skipping them meant such a name
+    # escaped the declaration check and was substituted by nothing, so the placeholder reached
+    # the model verbatim. They now extract as ordinary names and the contract check refuses
+    # them. See project/plans/design-expand-once-and-only-once.md and
+    # tests/test_expand_once_and_only_once.py.
+
+    def test_extract_does_not_exempt_handlebars_helpers(self):
         template = "{{#if condition}}text{{/if}}"
         result = extract_template_variables(template)
-        # Should not include #if or /if
-        assert "#if condition" not in result
-        assert "/if" not in result
+        assert "#if condition" in result
+        assert "/if" in result
 
     def test_extract_multiline_template(self):
         """Test extracting from multi-line template."""

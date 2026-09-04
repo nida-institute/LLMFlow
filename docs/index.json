@@ -243,20 +243,11 @@
     {
       "module": "llmflow.runner",
       "imports": [
-        "argparse",
-        "concurrent.futures",
         "copy",
-        "datetime",
-        "httpx",
-        "importlib",
-        "inspect",
-        "json",
         "llmflow.exceptions",
         "llmflow.modules.logger",
-        "llmflow.modules.mcp",
         "llmflow.modules.telemetry",
         "llmflow.plugins",
-        "llmflow.plugins.basex",
         "llmflow.plugins.loader",
         "llmflow.steps.basex",
         "llmflow.steps.duckdb",
@@ -276,12 +267,9 @@
         "llmflow.utils.guards",
         "llmflow.utils.io",
         "llmflow.utils.linter",
-        "llmflow.utils.llm_runner",
         "llmflow.utils.rewind",
         "llmflow.utils.step_outputs",
         "llmflow.yaml_loader",
-        "logging",
-        "openai",
         "os",
         "pathlib",
         "re",
@@ -878,9 +866,7 @@
         "datetime",
         "hashlib",
         "io",
-        "llmflow",
         "llmflow.modules.logger",
-        "os",
         "pathlib",
         "shutil",
         "typing",
@@ -1261,9 +1247,14 @@
           "doc": "Just the instructions, in order."
         },
         {
-          "name": "render_numbered",
-          "signature": "render_numbered() -> str",
-          "doc": "The rules as a markdown ordered list, each note indented beneath its rule."
+          "name": "_rendered",
+          "signature": "_rendered(entry: dict) -> list[str]",
+          "doc": ""
+        },
+        {
+          "name": "render_rules",
+          "signature": "render_rules() -> str",
+          "doc": "The rules as markdown, grouped by whether a test can catch a breach."
         }
       ]
     },
@@ -1366,7 +1357,7 @@
         {
           "name": "_migrate_resources_dir",
           "signature": "_migrate_resources_dir(sp_home: Path) -> Optional[Check]",
-          "doc": "Carry `~/.sp/editions/` across to `~/.sp/resources/` (#217)."
+          "doc": "Carry `~/.sp/editions/` across to `~/.sp/registrations/` (#217)."
         },
         {
           "name": "_migrate_data_dir",
@@ -1649,7 +1640,6 @@
       "module": "llmflow.plugins.basex",
       "imports": [
         "llmflow.modules.logger",
-        "os",
         "subprocess"
       ],
       "functions": [
@@ -1665,9 +1655,7 @@
       "imports": [
         "importlib",
         "llmflow.modules.logger",
-        "llmflow.plugins.tsv_reader",
-        "pathlib",
-        "pkgutil"
+        "llmflow.plugins.tsv_reader"
       ],
       "functions": [
         {
@@ -1691,9 +1679,9 @@
       "module": "llmflow.plugins.xml_entry_to_base_json",
       "imports": [
         "llmflow.modules.logger",
+        "lxml",
         "re",
-        "unicodedata",
-        "xml.etree.ElementTree"
+        "unicodedata"
       ],
       "functions": [
         {
@@ -1762,7 +1750,6 @@
       "imports": [
         "json",
         "llmflow.modules.logger",
-        "pathlib",
         "typing"
       ],
       "functions": [
@@ -2230,7 +2217,6 @@
       "imports": [
         "llmflow.content_stages_schema",
         "llmflow.modules.logger",
-        "os",
         "pathlib",
         "pydantic",
         "typing",
@@ -2563,7 +2549,6 @@
       "module": "llmflow.utils.content_transition",
       "imports": [
         "datetime",
-        "hashlib",
         "json",
         "llmflow.modules.logger",
         "llmflow.utils.content_stages_loader",
@@ -2731,7 +2716,7 @@
         {
           "name": "osis_to_usfm",
           "signature": "osis_to_usfm(book: str) -> str",
-          "doc": "The USFM code for an OSIS book code."
+          "doc": "The USFM code for a book as a discourse corpus writes it."
         },
         {
           "name": "parse_osis_ref",
@@ -2988,9 +2973,19 @@
           "doc": "Extract variables from templates that use {{ variable }} syntax"
         },
         {
+          "name": "withdrawn_optional_error",
+          "signature": "withdrawn_optional_error(prompt_path) -> str",
+          "doc": "The message for a prompt header still declaring `optional:`."
+        },
+        {
+          "name": "dotted_template_names",
+          "signature": "dotted_template_names(names) -> List[str]",
+          "doc": "The `{{a.b}}`-style names among *names*, which no substitution can fill."
+        },
+        {
           "name": "validate_gpt_body_declares_all_vars",
           "signature": "validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]",
-          "doc": "Check that every {{var}} used in a .gpt body is declared in requires: or optional:."
+          "doc": "Check that every {{var}} used in a .gpt body is flat and declared in requires:."
         },
         {
           "name": "format_diff_box",
@@ -3191,7 +3186,6 @@
         "json",
         "llmflow.modules.logger",
         "llmflow.utils.content_stages_loader",
-        "os",
         "pathlib",
         "typing"
       ],
@@ -3390,7 +3384,7 @@
         {
           "name": "discourse_payload",
           "signature": "discourse_payload(definition: Any, rows: Sequence[Mapping[str, Any]], edition: str) -> Optional[list]",
-          "doc": "Levinsohn items for *rows*, or None when this edition has no discourse source."
+          "doc": "Discourse items for *rows*, or None when this edition has no discourse source."
         },
         {
           "name": "__str__",
@@ -3944,7 +3938,6 @@
         "llmflow.modules.mcp",
         "llmflow.utils.context",
         "llmflow.utils.llm_runner",
-        "llmflow.utils.step_outputs",
         "pathlib",
         "re",
         "time",
@@ -4631,8 +4624,6 @@
         "httpx",
         "json",
         "llmflow.modules.logger",
-        "mcp",
-        "mcp.client.stdio",
         "time",
         "typing"
       ],
@@ -4746,6 +4737,6 @@
   ],
   "summary": {
     "total_modules": 82,
-    "total_functions": 743
+    "total_functions": 746
   }
 }

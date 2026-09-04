@@ -1,7 +1,6 @@
 ---
 requires:
   - greeting_markdown
-optional: []
 format: Markdown
 description: Reply to the {greeting_markdown} bullet list with cultural notes.
 ---

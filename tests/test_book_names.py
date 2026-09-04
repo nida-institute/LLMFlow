@@ -110,9 +110,9 @@ def test_the_two_parsers_agree_on_every_book():
 
 
 def test_the_new_arguments_are_reachable_from_a_pipeline(tmp_path):
-    """Rule 1's third edge: a direct call satisfies the runner and the object model by
-    construction, so it cannot see an argument the API does not expose. Only running a
-    pipeline can.
+    """The third edge named by rule 1 in `docs/ai-context/project/rules.md`: a direct call
+    satisfies the runner and the object model by construction, so it cannot see an argument
+    the API does not expose. Only running a pipeline can.
 
     `Psalm 3` is 8 verses in `eng` and 9 in `org`, where the superscription is verse 1 — so the
     number proves the argument arrived, not merely that the step ran.

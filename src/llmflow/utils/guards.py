@@ -161,7 +161,7 @@ def build_eval_locals(context: Dict[str, Any]) -> dict:
     Adds all identifier-safe context keys as locals plus a ``ctx`` lookup
     function for dot-notation access via get_from_context.
     """
-    from llmflow.utils.context import get_from_context, _MISSING
+    from llmflow.utils.context import _MISSING, get_from_context
 
     def ctx_lookup(expr):
         result = get_from_context(expr, context)
@@ -215,7 +215,12 @@ def build_step_eval_ctx(step: dict, context: Mapping[str, Any]) -> Dict[str, obj
     eval_ctx.update(context or {})
     return eval_ctx
 
-def enforce_require(eval_ctx: Mapping[str, Any], rules: Sequence[Mapping[str, Any]], step_name: Optional[str] = None, context_info: Optional[Mapping[str, Any]] = None):
+def enforce_require(
+    eval_ctx: Mapping[str, Any],
+    rules: Sequence[Mapping[str, Any]],
+    step_name: Optional[str] = None,
+    context_info: Optional[Mapping[str, Any]] = None,
+):
     for rule in rules or []:
         expr = rule.get("if")
         msg = rule.get("message", "Require condition failed")

@@ -84,13 +84,13 @@ Worth spelling out because four separate resolutions happen before any text is r
 has a failure mode that used to be silent.
 
 ```
-edition: SBLGNT          →  ~/.sp/editions/SBLGNT.yaml        which source, and which backend
+edition: SBLGNT          →  ~/.sp/registrations/SBLGNT.yaml   which source, and which backend
 versification: eng       →  ~/.sp/versification/*.json        which verse the reference names
 passage: "MRK 1:1-8"     →  PassageRef                        what range is wanted
 format: / include:       →  rows_to_output                    what shape comes back
 ```
 
-**1. The edition is a name, not a path.** `resolve_edition` reads `~/.sp/editions/*.yaml`, one
+**1. The edition is a name, not a path.** `resolve_edition` reads `~/.sp/registrations/*.yaml`, one
 file per edition, so a source is configuration rather than something written into a pipeline. An
 unregistered name raises with the registered names listed, because a bare `KeyError` sends the
 reader to the source instead of to their own configuration.
@@ -186,7 +186,6 @@ prompt:
   requires:
     - passage
     - scene
-  optional: []
   format: Markdown
 -->
 ```

@@ -5,7 +5,6 @@ Loads and validates content-stages.yaml configuration, providing
 access to stage and transition definitions.
 """
 
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -13,8 +12,8 @@ import yaml
 from pydantic import ValidationError
 
 from llmflow.content_stages_schema import (
-    ContentStagesConfig,
     DEFAULT_CONTENT_STAGES,
+    ContentStagesConfig,
     StageConfig,
     TransitionConfig,
 )

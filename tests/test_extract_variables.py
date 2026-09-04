@@ -181,20 +181,18 @@ class TestExtractTemplateVariablesEdgeCases:
         # Should extract something, exact behavior depends on regex
         assert isinstance(result, set)
 
-    def test_handlebars_if_block_ignored(self):
-        """Handlebars #if blocks should be ignored."""
-        result = extract_template_variables("{{#if condition}}text{{/if}}")
-        # Should not include #if or /if
-        assert "#if condition" not in result
-        assert "/if" not in result
+    # Handlebars `{{#if}}` / `{{/if}}` are no longer exempt from extraction. They are not
+    # syntax this engine has — it has no conditionals — and skipping them meant such a name
+    # escaped the declaration check and was substituted by nothing, so the placeholder reached
+    # the model verbatim. They now extract as ordinary names and the contract check refuses
+    # them. See project/plans/design-expand-once-and-only-once.md and
+    # tests/test_expand_once_and_only_once.py.
 
-    def test_handlebars_each_block_ignored(self):
-        """Handlebars #each blocks should be ignored."""
+    def test_a_handlebars_name_extracts_like_any_other(self):
+        """It is a name, so it is extracted — and then refused as undeclared."""
         result = extract_template_variables("{{#each items}}{{name}}{{/each}}")
-        # Should extract name but not #each or /each
         assert "name" in result
-        assert "#each items" not in result
-        assert "/each" not in result
+        assert "#each items" in result
 
     def test_unicode_variable_names(self):
         """Unicode variable names should be extracted."""

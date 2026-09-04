@@ -1,8 +1,7 @@
 """Coverage validator plugin for ensuring all Abbott-Smith references are accounted for."""
 
 import json
-from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set
 
 from llmflow.modules.logger import Logger
 

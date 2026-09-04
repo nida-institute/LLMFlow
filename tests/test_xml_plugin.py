@@ -1,7 +1,7 @@
 """Tests for src/llmflow/plugins/xml_entry_to_base_json.py."""
 
 import pytest
-import xml.etree.ElementTree as ET
+from lxml import etree
 
 from llmflow.plugins.xml_entry_to_base_json import xml_entry_to_base_json, run
 
@@ -113,8 +113,13 @@ class TestXmlEntryToBaseJson:
         assert result["lemma"] == "nons.001"
 
     def test_invalid_xml_raises(self):
-        with pytest.raises(ET.ParseError):
+        with pytest.raises(etree.XMLSyntaxError):
             xml_entry_to_base_json("<broken xml")
+
+    def test_entry_with_an_encoding_declaration_parses(self):
+        """lxml rejects a str carrying an encoding declaration, so the plugin parses bytes."""
+        declared = '<?xml version="1.0" encoding="utf-8"?>\n' + SIMPLE_ENTRY
+        assert xml_entry_to_base_json(declared)["lemma"] == "test.001"
 
 
 class TestRunWrapper:

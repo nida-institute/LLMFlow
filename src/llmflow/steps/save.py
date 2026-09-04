@@ -1,6 +1,6 @@
 """Save step handler — write content to disk."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from llmflow.modules.logger import Logger
 from llmflow.utils.context import resolve

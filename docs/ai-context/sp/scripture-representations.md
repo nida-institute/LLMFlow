@@ -68,6 +68,26 @@ anything non-standard. An extension anywhere else would be one nobody could find
 Spec-defined fields stay where the spec puts them. `ids` is not container content — it becomes
 `srcloc` on a `\w` character node, where USX already carries a word's source location.
 
+**A key says which kind of nothing it means:**
+
+| what you see | what it means |
+|---|---|
+| `{}` or `[]` | the lookup ran, and found nothing |
+| `null` | there was nothing to look in, so no lookup ran |
+
+A key you did not ask for may be absent instead, and `include:` is the declaration that explains
+that absence — which is what the rule requires before a key may be left out at all.
+
+The engine reports which of these it produced, and stops there. What either one *means* for your
+work is application semantics, and belongs in your pipeline's own documentation.
+
+For example, with `include: [discourse]`: `"discourse": {}` says the discourse source was
+consulted and had nothing to return, and `"discourse": null` says this edition's registry entry
+names no discourse source at all. A pipeline counting how often a feature occurs would document
+the first as a real zero and the second as something it cannot count; one checking coverage might
+document the second as a reason to stop the run. The engine does not choose between those
+readings — your pipeline states which one it means. Rule `say-which-kind-of-nothing`.
+
 ## `include: [discourse]` — read the outcome, not just the id
 
 Levinsohn's word indices are NA28-family; the text is SBLGNT. Where the editions differ his index

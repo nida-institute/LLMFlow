@@ -118,7 +118,6 @@ class TestMCPBatchCalls:
         prompt_file.write_text("""---
 prompt:
   requires: []
-  optional: []
   format: JSON
   description: Fetch multiple Bible passages in one batch call
 ---

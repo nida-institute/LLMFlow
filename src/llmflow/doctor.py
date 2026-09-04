@@ -45,10 +45,9 @@ import enum
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-
-from llmflow import paths as _paths
 from typing import Optional
 
+from llmflow import paths as _paths
 from llmflow.file_catalog import Entry, Scope, Source, managed_by_doctor, shipped_content, shipped_path
 from llmflow.resources import RESOURCES_DIRNAME
 from llmflow.utils.versification import MAPPINGS_DIRNAME
@@ -268,7 +267,11 @@ def _repair_group(
 
 
 def _migrate_resources_dir(sp_home: Path) -> Optional[Check]:
-    """Carry `~/.sp/editions/` across to `~/.sp/resources/` (#217).
+    """Carry `~/.sp/editions/` across to `~/.sp/registrations/` (#217).
+
+    Not to `~/.sp/resources/`: that name is taken, and it holds the corpora themselves. Reading
+    one as the other would parse a library of texts as YAML, which `llmflow.resources` warns
+    about where it declines to list `resources` as a legacy registrations directory.
 
     A rename that costs someone their registrations is not a rename, it is a breakage. Doctor
     does the move so nobody is told to shuffle files by hand, and so there is one place to look

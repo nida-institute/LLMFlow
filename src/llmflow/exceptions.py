@@ -11,7 +11,13 @@ class LLMFlowError(Exception):
 class PipelineExecutionError(LLMFlowError):
     """Error during pipeline execution."""
 
-    def __init__(self, message: str, step_name: Optional[str] = None, context: Optional[dict] = None, original_error: Optional[Exception] = None):
+    def __init__(
+        self,
+        message: str,
+        step_name: Optional[str] = None,
+        context: Optional[dict] = None,
+        original_error: Optional[Exception] = None,
+    ):
         self.step_name = step_name
         self.context = context
         self.original_error = original_error
@@ -37,7 +43,14 @@ class PipelineExecutionError(LLMFlowError):
 class StepExecutionError(PipelineExecutionError):
     """Error executing a specific step."""
 
-    def __init__(self, message: str, step_name: str, step_type: str, context: Optional[dict] = None, original_error: Optional[Exception] = None):
+    def __init__(
+        self,
+        message: str,
+        step_name: str,
+        step_type: str,
+        context: Optional[dict] = None,
+        original_error: Optional[Exception] = None,
+    ):
         self.step_type = step_type
         super().__init__(message, step_name, context, original_error)
 
@@ -51,7 +64,15 @@ class StepExecutionError(PipelineExecutionError):
 class ForEachIterationError(PipelineExecutionError):
     """Error during for-each loop iteration."""
 
-    def __init__(self, message: str, step_name: str, iteration_index: int, item_value: object, context: Optional[dict] = None, original_error: Optional[Exception] = None):
+    def __init__(
+        self,
+        message: str,
+        step_name: str,
+        iteration_index: int,
+        item_value: object,
+        context: Optional[dict] = None,
+        original_error: Optional[Exception] = None,
+    ):
         self.iteration_index = iteration_index
         self.item_value = item_value
         super().__init__(message, step_name, context, original_error)
@@ -90,13 +111,27 @@ class StepRetryError(PipelineExecutionError):
 class StepRewindError(PipelineExecutionError):
     """Raised when a rewind checkpoint cannot be used."""
 
-    def __init__(self, message: str, step_name: str, context: dict | None = None, original_error: Exception | None = None):
-        super().__init__(message, step_name=step_name, context=context, original_error=original_error)
+    def __init__(
+        self,
+        message: str,
+        step_name: str,
+        context: dict | None = None,
+        original_error: Exception | None = None,
+    ):
+        super().__init__(
+            message, step_name=step_name, context=context, original_error=original_error
+        )
 
 class VariableResolutionError(LLMFlowError):
     """Error resolving a variable expression."""
 
-    def __init__(self, message: str, expression: str, context: Optional[dict] = None, original_error: Optional[Exception] = None):
+    def __init__(
+        self,
+        message: str,
+        expression: str,
+        context: Optional[dict] = None,
+        original_error: Optional[Exception] = None,
+    ):
         self.expression = expression
         self.context = context
         self.original_error = original_error

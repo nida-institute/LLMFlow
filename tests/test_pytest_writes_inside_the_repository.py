@@ -83,7 +83,7 @@ def test_the_intermediates_are_not_committable(tmp_path_factory):
     behaviour was correct. Reading an ignore file is a second encoding of a decision git already
     holds — rule `design-is-declarative` — and `git check-ignore` is the decision itself.
 
-    Rule `output-and-intermediates-are-separate` is the one being satisfied: the ignore list
+    Rule `separate-output-from-intermediates` is the one being satisfied: the ignore list
     follows the declared intermediate directory rather than anyone's memory.
     """
     basetemp = tmp_path_factory.getbasetemp()

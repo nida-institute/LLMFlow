@@ -57,11 +57,29 @@ step outputs:
 - `${scene_list[*].Title}` – extract one field from every item; returns a flat list.
 - `${scene_list[-3:][*].Title}` – field from each of the last 3 items.
 
-In prompt and template files (`*.gpt`, `*.md`), use `{{var}}`:
+In prompt and template files (`*.gpt`, `*.md`), use `{{var}}` — and **only flat names**:
 
 - `{{language_count}}`
 - `{{greeting_markdown}}`
-- `{{scene.WLC}}`
+
+**`{{scene.WLC}}` is not valid, even though `${scene.WLC}` is.** The two syntaxes are not
+symmetrical: `${...}` resolves a path through an object, while `{{...}}` is filled by matching
+its name against a literal key of the context — and `scene.WLC` is not a key, so nothing fills
+it. Field access belongs on the pipeline side: pass the value in under a flat name.
+
+```yaml
+prompt:
+  file: analyse.gpt
+  inputs:
+    wlc_text: "${scene.WLC}"      # the path is resolved here …
+```
+
+```
+Analyse {{wlc_text}}.                # … and the prompt names the result
+```
+
+Both `sp lint` and `sp run` refuse a dotted name in a prompt body rather than sending the model
+an unfilled placeholder.
 
 Prompt files usually include a small contract (often in a comment
 block) that documents which inputs they expect ("requires" / "optional").
@@ -255,7 +273,7 @@ or all items if fewer than 10 have accumulated so far.
 ### type: `scripture`
 
 Fetch one passage from one **named** edition. The name resolves through
-`~/.sp/editions/*.yaml`, so no path appears in a pipeline and the same
+`~/.sp/registrations/*.yaml`, so no path appears in a pipeline and the same
 pipeline runs on any machine.
 
 ```yaml
@@ -400,7 +418,6 @@ the variables it expects. The linter enforces this contract.
 ---
 requires:
   - language_count
-optional: []
 format: Markdown
 description: Brief description of what this prompt does.
 ---
@@ -413,7 +430,10 @@ user: |
 Key rules:
 
 - `requires:` — list of variable names the caller *must* provide via `prompt.inputs`.
-- `optional:` — list of variable names the caller *may* provide.
-- Variables in the body use `{{double_braces}}`.
+- **There is no `optional:` key.** Every prompt parameter is required. `sp lint` and `sp run`
+  both refuse a header that declares it. Where a prompt genuinely reads differently with and
+  without some context, that is a branch in the pipeline — two prompts, or a `condition:` on the
+  step — not a hidden condition inside the prompt.
+- Variables in the body use `{{double_braces}}`, and only flat names.
 - If `requires:` is missing, the linter cannot validate the contract and will
   emit warnings about undeclared inputs.

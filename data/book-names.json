@@ -14,9 +14,7 @@
       "name": "Genesis",
       "aliases": [
         "genesis",
-        "gen",
-        "ge",
-        "gn"
+        "gen"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -27,8 +25,7 @@
       "aliases": [
         "exodus",
         "exod",
-        "exo",
-        "ex"
+        "exo"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -38,9 +35,7 @@
       "name": "Leviticus",
       "aliases": [
         "leviticus",
-        "lev",
-        "le",
-        "lv"
+        "lev"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -50,9 +45,7 @@
       "name": "Numbers",
       "aliases": [
         "numbers",
-        "num",
-        "nu",
-        "nm"
+        "num"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -63,8 +56,6 @@
       "aliases": [
         "deuteronomy",
         "deut",
-        "dt",
-        "de",
         "deu"
       ],
       "testament": "OT",
@@ -76,8 +67,7 @@
       "aliases": [
         "joshua",
         "josh",
-        "jos",
-        "jsh"
+        "jos"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -88,8 +78,7 @@
       "aliases": [
         "judges",
         "judg",
-        "jdg",
-        "jg"
+        "jdg"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -99,9 +88,7 @@
       "name": "Ruth",
       "aliases": [
         "ruth",
-        "rut",
-        "ru",
-        "rt"
+        "rut"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -113,8 +100,9 @@
         "1 samuel",
         "1sam",
         "1sa",
-        "1s",
-        "1 sam"
+        "1 sam",
+        "1 kgdms",
+        "1kgdms"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -126,8 +114,9 @@
         "2 samuel",
         "2sam",
         "2sa",
-        "2s",
-        "2 sam"
+        "2 sam",
+        "2 kgdms",
+        "2kgdms"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -139,8 +128,9 @@
         "1 kings",
         "1kgs",
         "1ki",
-        "1k",
-        "1 kgs"
+        "1 kgs",
+        "3 kgdms",
+        "3kgdms"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -152,8 +142,9 @@
         "2 kings",
         "2kgs",
         "2ki",
-        "2k",
-        "2 kgs"
+        "2 kgs",
+        "4 kgdms",
+        "4kgdms"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -199,8 +190,7 @@
       "name": "Nehemiah",
       "aliases": [
         "nehemiah",
-        "neh",
-        "ne"
+        "neh"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -211,8 +201,7 @@
       "aliases": [
         "esther",
         "esth",
-        "est",
-        "es"
+        "est"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -221,8 +210,7 @@
       "number": "18",
       "name": "Job",
       "aliases": [
-        "job",
-        "jb"
+        "job"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -246,8 +234,7 @@
       "aliases": [
         "proverbs",
         "prov",
-        "pro",
-        "pr"
+        "pro"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -259,7 +246,8 @@
         "ecclesiastes",
         "eccl",
         "ecc",
-        "ec"
+        "qoheleth",
+        "qoh"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -271,7 +259,6 @@
         "song of songs",
         "song",
         "sos",
-        "so",
         "canticles",
         "cant",
         "sng"
@@ -284,8 +271,7 @@
       "name": "Isaiah",
       "aliases": [
         "isaiah",
-        "isa",
-        "is"
+        "isa"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -295,9 +281,7 @@
       "name": "Jeremiah",
       "aliases": [
         "jeremiah",
-        "jer",
-        "je",
-        "jr"
+        "jer"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -307,8 +291,7 @@
       "name": "Lamentations",
       "aliases": [
         "lamentations",
-        "lam",
-        "la"
+        "lam"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -319,7 +302,6 @@
       "aliases": [
         "ezekiel",
         "ezek",
-        "eze",
         "ezk"
       ],
       "testament": "OT",
@@ -330,9 +312,7 @@
       "name": "Daniel",
       "aliases": [
         "daniel",
-        "dan",
-        "da",
-        "dn"
+        "dan"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -342,8 +322,7 @@
       "name": "Hosea",
       "aliases": [
         "hosea",
-        "hos",
-        "ho"
+        "hos"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -353,8 +332,6 @@
       "name": "Joel",
       "aliases": [
         "joel",
-        "joe",
-        "jl",
         "jol"
       ],
       "testament": "OT",
@@ -365,8 +342,7 @@
       "name": "Amos",
       "aliases": [
         "amos",
-        "amo",
-        "am"
+        "amo"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -377,7 +353,6 @@
       "aliases": [
         "obadiah",
         "obad",
-        "ob",
         "oba"
       ],
       "testament": "OT",
@@ -388,8 +363,7 @@
       "name": "Jonah",
       "aliases": [
         "jonah",
-        "jon",
-        "jnh"
+        "jon"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -399,8 +373,7 @@
       "name": "Micah",
       "aliases": [
         "micah",
-        "mic",
-        "mi"
+        "mic"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -411,7 +384,6 @@
       "aliases": [
         "nahum",
         "nah",
-        "na",
         "nam"
       ],
       "testament": "OT",
@@ -422,8 +394,7 @@
       "name": "Habakkuk",
       "aliases": [
         "habakkuk",
-        "hab",
-        "hb"
+        "hab"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -434,8 +405,7 @@
       "aliases": [
         "zephaniah",
         "zeph",
-        "zep",
-        "zp"
+        "zep"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -445,8 +415,7 @@
       "name": "Haggai",
       "aliases": [
         "haggai",
-        "hag",
-        "hg"
+        "hag"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -457,8 +426,7 @@
       "aliases": [
         "zechariah",
         "zech",
-        "zec",
-        "zc"
+        "zec"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -468,8 +436,7 @@
       "name": "Malachi",
       "aliases": [
         "malachi",
-        "mal",
-        "ml"
+        "mal"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -493,7 +460,6 @@
         "mark",
         "mar",
         "mk",
-        "mr",
         "mrk"
       ],
       "testament": "NT",
@@ -516,7 +482,6 @@
       "name": "John",
       "aliases": [
         "john",
-        "joh",
         "jn",
         "jhn"
       ],
@@ -528,8 +493,7 @@
       "name": "Acts",
       "aliases": [
         "acts",
-        "act",
-        "ac"
+        "act"
       ],
       "testament": "NT",
       "original_language": "Greek"
@@ -539,9 +503,7 @@
       "name": "Romans",
       "aliases": [
         "romans",
-        "rom",
-        "ro",
-        "rm"
+        "rom"
       ],
       "testament": "NT",
       "original_language": "Greek"
@@ -553,7 +515,6 @@
         "1 corinthians",
         "1cor",
         "1co",
-        "1c",
         "1 cor"
       ],
       "testament": "NT",
@@ -566,7 +527,6 @@
         "2 corinthians",
         "2cor",
         "2co",
-        "2c",
         "2 cor"
       ],
       "testament": "NT",
@@ -577,8 +537,7 @@
       "name": "Galatians",
       "aliases": [
         "galatians",
-        "gal",
-        "ga"
+        "gal"
       ],
       "testament": "NT",
       "original_language": "Greek"
@@ -588,8 +547,7 @@
       "name": "Ephesians",
       "aliases": [
         "ephesians",
-        "eph",
-        "ep"
+        "eph"
       ],
       "testament": "NT",
       "original_language": "Greek"
@@ -600,8 +558,7 @@
       "aliases": [
         "philippians",
         "phil",
-        "php",
-        "phi"
+        "php"
       ],
       "testament": "NT",
       "original_language": "Greek"
@@ -611,8 +568,7 @@
       "name": "Colossians",
       "aliases": [
         "colossians",
-        "col",
-        "co"
+        "col"
       ],
       "testament": "NT",
       "original_language": "Greek"
@@ -674,8 +630,7 @@
       "name": "Titus",
       "aliases": [
         "titus",
-        "tit",
-        "ti"
+        "tit"
       ],
       "testament": "NT",
       "original_language": "Greek"
@@ -697,8 +652,7 @@
       "name": "Hebrews",
       "aliases": [
         "hebrews",
-        "heb",
-        "he"
+        "heb"
       ],
       "testament": "NT",
       "original_language": "Greek"
@@ -708,9 +662,7 @@
       "name": "James",
       "aliases": [
         "james",
-        "jas",
-        "jm",
-        "ja"
+        "jas"
       ],
       "testament": "NT",
       "original_language": "Greek"
@@ -723,7 +675,6 @@
         "1pet",
         "1pe",
         "1pt",
-        "1p",
         "1 pet"
       ],
       "testament": "NT",
@@ -737,7 +688,6 @@
         "2pet",
         "2pe",
         "2pt",
-        "2p",
         "2 pet"
       ],
       "testament": "NT",
@@ -748,10 +698,7 @@
       "name": "1 John",
       "aliases": [
         "1 john",
-        "1joh",
         "1jn",
-        "1j",
-        "1 joh",
         "1john"
       ],
       "testament": "NT",
@@ -762,10 +709,7 @@
       "name": "2 John",
       "aliases": [
         "2 john",
-        "2joh",
         "2jn",
-        "2j",
-        "2 joh",
         "2john"
       ],
       "testament": "NT",
@@ -776,10 +720,7 @@
       "name": "3 John",
       "aliases": [
         "3 john",
-        "3joh",
         "3jn",
-        "3j",
-        "3 joh",
         "3john"
       ],
       "testament": "NT",
@@ -790,8 +731,7 @@
       "name": "Jude",
       "aliases": [
         "jude",
-        "jud",
-        "jd"
+        "jud"
       ],
       "testament": "NT",
       "original_language": "Greek"
@@ -802,7 +742,6 @@
       "aliases": [
         "revelation",
         "rev",
-        "re",
         "rv"
       ],
       "testament": "NT",

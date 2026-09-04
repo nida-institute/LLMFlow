@@ -143,7 +143,6 @@ prompt:
   requires:
     - passage
     - source
-  optional: []
   format: Markdown
   description: Intro section for passage
 -->

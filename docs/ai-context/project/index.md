@@ -18,7 +18,7 @@ job.
 |---|---|---|
 | What this repository *is* — the engine, not a project using it | [overview.md](overview.md) | Once, and whenever advice meant for a consumer repo seems to apply here |
 | Live session state, next step, established facts | [project/HANDOFF.md](../../../project/HANDOFF.md) | **First** — before TODO.md |
-| Active work, what is in flight, what not to touch | [project/TODO.md](../../../project/TODO.md) | Every session (rule 20) |
+| Active work, what is in flight, what not to touch | [project/TODO.md](../../../project/TODO.md) | Every session (rule `todo-is-the-session-cache`) |
 | The rules every session here is held to | [../sp/rules.md](../sp/rules.md) | **Before any change** — authoritative |
 | Constraints that hold in **this** repository and nowhere else | [rules.md](rules.md) | Alongside `sp/rules.md`; short, and it is where local prohibitions live |
 

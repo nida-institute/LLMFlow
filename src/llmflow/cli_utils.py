@@ -5,11 +5,11 @@ import re
 import stat
 from contextlib import contextmanager
 from pathlib import Path
-
-from llmflow import paths as _paths
 from typing import Optional
 
 import click
+
+from llmflow import paths as _paths
 
 logger = logging.getLogger(__name__)
 
@@ -304,9 +304,9 @@ def ai_rules_doc() -> str:
     used *within* the module — that raises `NameError`, which is what happened when this was
     first written and what `ruff`'s F821 caught.
     """
-    from llmflow.ai_rules import render_numbered
+    from llmflow.ai_rules import render_rules
 
-    return _AI_RULES_FRAME.format(rules=render_numbered())
+    return _AI_RULES_FRAME.format(rules=render_rules())
 
 
 #: Constants whose content is a shipped template file rather than a literal here. The document
@@ -820,7 +820,6 @@ def sync_ai_context_files(base_dir: Path) -> None:
     without manually copying them or keeping them in sync.
     """
     import importlib.resources
-    import shutil
 
     # Target directory in consumer repo
     target_dir = base_dir / ".github" / "ai-context"

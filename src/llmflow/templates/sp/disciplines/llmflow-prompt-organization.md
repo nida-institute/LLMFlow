@@ -37,12 +37,21 @@ Use this structure for prompts that transform structured JSON input into structu
 ---
 prompt:
   requires: [passage_ref, scenes, verses]
-  optional: [perspectives]
   format: JSON
   description: >-
     One-line description of what this prompt does
 ---
 ```
+
+**There is no `optional:` key.** Every prompt parameter is required. An optional parameter needs
+a branch somewhere, and the branch nobody tests is where defects live — so a name either belongs
+in `requires:` or does not belong in the prompt. `sp lint` and `sp run` both refuse a header that
+declares `optional:`; this is a breaking change, and old keys fail loud rather than being
+silently accepted.
+
+Where a prompt genuinely renders differently with and without some context, that is a branch in
+the pipeline, not a hidden condition in the prompt: use two prompts, or a `condition:` on the
+step.
 
 ### 2. VARIABLES Section (if applicable)
 ```markdown

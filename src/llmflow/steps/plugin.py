@@ -1,7 +1,7 @@
 """Plugin step handler."""
 
 import types
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from llmflow.modules.logger import Logger
 from llmflow.plugins import plugin_registry

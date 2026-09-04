@@ -4,12 +4,13 @@ Global registry for Scripture Pipeline resources.
 Tracks projects, datasets, and databases in ~/.sp/ for AI context and resource discovery.
 """
 import os
-import yaml
+from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import yaml
 
 from llmflow import paths as _paths
-from datetime import datetime
-from typing import Optional, Dict, List, Any
 
 
 class ProjectRegistry:

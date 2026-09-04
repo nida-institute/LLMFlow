@@ -37,6 +37,12 @@ MILESTONE_TEMPLATE = "⌊{chapter}:{verse}⌋"
 
 FORMATS = ("plain", "milestones", "usj")
 
+#: The scheme assumed for an edition that declares none. Much of the translation world uses
+#: English versification without meeting the issue, so a project may have no versification file
+#: and assume it. Assuming is supported; assuming silently is not — the caller gets a warning
+#: and the payload reports the guess under its own key, never as a declaration.
+ASSUMED_SCHEME = "eng"
+
 USJ_VERSION = "3.1"
 
 #: `\p`, an ordinary paragraph. The source carries no paragraphing, and USX requires text to
@@ -358,12 +364,17 @@ def resolve_passage(
     if not requested_scheme:
         return passage
     if edition_scheme_name is None:
-        raise _versification.UnmappableReference(
-            f"Cannot read {passage!r} as {requested_scheme!r}: edition "
+        # Much of the translation world uses English versification without meeting the issue,
+        # so an edition may simply have no versification file. Refusing left those projects
+        # unable to read their own text; assuming is supported, and warned about every time,
+        # because where the assumption is wrong it is wrong by whole verses.
+        logger.warning(
             f"{edition or '(unnamed)'} does not say which versification its references are "
-            f"in.\n  Add `{SCHEME_KEY}: <scheme>` to its registry entry. Mapping without it "
-            f"would have to guess, and a guess is wrong exactly where schemes differ."
+            f"in, so `{ASSUMED_SCHEME}` is assumed while reading {passage!r} as "
+            f"{requested_scheme!r}. Add `{SCHEME_KEY}: <scheme>` to its registry entry: where "
+            f"the assumption is wrong, the verses returned are the wrong ones."
         )
+        edition_scheme_name = ASSUMED_SCHEME
     if requested_scheme == edition_scheme_name:
         return passage
 
@@ -560,16 +571,29 @@ def rows_to_usj(
 
     document = {"type": "USJ", "version": USJ_VERSION, "content": content}
     if include:
-        container: dict = {}
-        if versification:
-            container["versification"] = versification
-        else:
+        # A key carries which kind of nothing it means: an empty collection is "asked, and the
+        # answer is nothing"; `None` is "could not ask". Omitting the key says neither, and a
+        # log warning does not travel with the payload to whoever reads it later — so a
+        # consumer could not tell an edition with no discourse source from a passage where
+        # discourse was never requested. A family the caller did not request stays absent,
+        # because `include:` declares why. Rule `say-which-kind-of-nothing`.
+        # `versification` names the scheme the labels in *this document* are in, which is the
+        # edition's own: the verse markers come from its rows. It is never the scheme a caller
+        # requested — a request maps the caller's reference inward to fetch the right verses,
+        # and does not relabel the result. Reporting the request made the container assert
+        # labels the document did not have, off by exactly the difference between the schemes,
+        # and a consumer had nothing else to check it against.
+        container: dict = {"versification": versification or None}
+        if not versification:
+            container["versification_guessed"] = ASSUMED_SCHEME
             logger.warning(
                 f"{book}: the edition does not say which versification its references are in, "
-                f"so the {CONTAINER_KEY} container cannot state one. Add "
-                f"`{SCHEME_KEY}: <scheme>` to the edition's registry entry."
+                f"so `{ASSUMED_SCHEME}` is assumed; the {CONTAINER_KEY} container states "
+                f"`versification: null` with `versification_guessed: {ASSUMED_SCHEME}` beside "
+                f"it. Add `{SCHEME_KEY}: <scheme>` to the edition's registry entry to declare "
+                f"it properly."
             )
-        if discourse is not None:
+        if "discourse" in include:
             container["discourse"] = discourse
         container.update(annotation)
         document[CONTAINER_KEY] = container
@@ -598,8 +622,8 @@ def resolve_edition(
         f"  Register it with `sp resource add {edition}` so the path is not written into a "
         f"pipeline."
         if in_catalog
-        else f"  `sp resource list` shows what the catalog knows; `sp resource add <ID>` "
-        f"registers one, and a resource of your own is registered from its path."
+        else "  `sp resource list` shows what the catalog knows; `sp resource add <ID>` "
+        "registers one, and a resource of your own is registered from its path."
     )
     raise ResourceNotRegistered(
         f"Scripture resource {edition!r} is not registered.\n"
@@ -760,7 +784,7 @@ def passage_text(
 # --------------------------------------------------------------------------------------
 # Edition registry
 #
-# One YAML file per edition under ``~/.sp/editions/``:
+# One YAML file per edition under ``~/.sp/registrations/``:
 #
 #   id: SBLGNT
 #   name: SBL Greek New Testament
@@ -889,7 +913,10 @@ def edition_text(
         definition = {"id": edition, "kind": "tsv", "path": definition}
     kind = str(definition.get("kind", "tsv")).lower()
 
-    result_scheme = versification or scheme
+    # The scheme the returned labels are in, which is the edition's — reading a passage does
+    # not renumber the text. `versification` said which scheme the caller's reference was
+    # written in, and was wrongly used here as though it described the result.
+    result_scheme = scheme
     if kind == "usfm":
         return _usfm_passage_text(definition, passage, fmt)
     if kind == "tei":
@@ -923,10 +950,11 @@ def discourse_payload(
     rows: Sequence[Mapping[str, Any]],
     edition: str,
 ) -> Optional[list]:
-    """Levinsohn items for *rows*, or None when this edition has no discourse source.
+    """Discourse items for *rows*, or None when this edition has no discourse source.
 
-    The source is Greek-only, so an edition that names none — a Hebrew text, or one simply not
-    configured — is a warning rather than a failure (§4).
+    Which corpus applies follows from the edition, not from the language: an edition names its
+    own with `discourse_path`, and the loader reads either Levinsohn's Greek features or the
+    Hebrew ones. An edition naming none is a warning rather than a failure (§4).
     """
     from llmflow.utils import discourse as _discourse
 
@@ -934,8 +962,8 @@ def discourse_payload(
     if not path:
         logger.warning(
             f"include: [discourse] was requested but edition {edition!r} names no "
-            f"`{DISCOURSE_KEY}`, so no discourse features are attached. Levinsohn's corpus "
-            f"covers the Greek New Testament only."
+            f"`{DISCOURSE_KEY}`, so no discourse features are attached. Add one to the "
+            f"edition's registry entry, pointing at the corpus for its language."
         )
         return None
 

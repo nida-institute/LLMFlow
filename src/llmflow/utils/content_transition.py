@@ -5,19 +5,17 @@ Handles transitioning content between stages (copy/move operations,
 permission management, metadata tracking).
 """
 
-import os
 import json
+import os
 import shutil
-from pathlib import Path
-from typing import Dict, Any, Optional, List
 from datetime import datetime
-import hashlib
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
+from llmflow.modules.logger import Logger
 from llmflow.utils.content_stages_loader import (
     ContentStagesConfigLoader,
-    get_content_stages_config,
 )
-from llmflow.modules.logger import Logger
 
 logger = Logger()
 
@@ -79,7 +77,7 @@ def _create_or_update_gitattributes(content_root: Path) -> None:
         gitattributes.write_text(
             "# LLMFlow content lifecycle management\n" + merge_rule, encoding="utf-8"
         )
-        logger.info(f"Created .gitattributes with sentinel merge rule")
+        logger.info("Created .gitattributes with sentinel merge rule")
 
 
 def _reapply_all_permissions(
@@ -219,7 +217,6 @@ def transition_content(
 
         # Load configuration
         loader = ContentStagesConfigLoader(config_path)
-        config = loader.config
 
         # Validate stages exist
         from_stage_config = loader.get_stage(from_stage)

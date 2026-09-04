@@ -2,7 +2,7 @@
 
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from llmflow.modules.logger import Logger
 from llmflow.utils.context import resolve
@@ -19,7 +19,10 @@ def run_duckdb_step(
     """Execute a DuckDB query step and return its result."""
     try:
         import duckdb
-        import pandas as pd
+
+        # Imported to check availability, not to use here: duckdb converts results via pandas,
+        # so a missing pandas must fail with the message below rather than mid-query.
+        import pandas as pd  # noqa: F401
     except ImportError as e:
         raise ImportError(
             "DuckDB step requires 'duckdb' package. "

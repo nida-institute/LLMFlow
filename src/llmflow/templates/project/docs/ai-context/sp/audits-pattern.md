@@ -3,8 +3,8 @@
 > **Use this file for:** which audit to run and how, the `docs/audits` vs `project/audits`
 > split, the checklist format, and how to test a fix cheaply before proposing it.
 
-An audit is diagnostic, not a gate (rule 17). It is how you find out what needs to change, and
-it often produces the plan or the issues that then authorize the work. Findings are reported;
+An audit is diagnostic, not a gate (rule `audits-are-diagnostic`). It is how you find out what
+needs to change, and it often produces the plan or the issues that then authorize the work. Findings are reported;
 **the verdict is the human's** — never write "Approved", "Needs attention" or "Production ready".
 
 ---

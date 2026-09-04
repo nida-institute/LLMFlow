@@ -8,13 +8,13 @@ Provides per-step and pipeline-level metrics including:
 - Optimization suggestions
 """
 
+import importlib.resources
+import json
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, List, Dict, Any
-import time
-import json
-import importlib.resources
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from llmflow.modules.logger import Logger
 
@@ -556,7 +556,8 @@ class TelemetryCollector:
 
             models_used = {s.model for s in self.pipeline.steps if s.model}
             model_label = f", {next(iter(models_used))}" if len(models_used) == 1 else ""
-            lines.append(f"⏱️ Steps — {total_invocations} invocation{'s' if total_invocations != 1 else ''}{model_label}")
+            plural = "s" if total_invocations != 1 else ""
+            lines.append(f"⏱️ Steps — {total_invocations} invocation{plural}{model_label}")
 
             # Build rows sorted by cost descending (zero-cost steps sort to bottom)
             rows = []
@@ -575,7 +576,9 @@ class TelemetryCollector:
             avg_strs = [f"avg {format_duration(r[2] / r[1])}" if r[1] > 1 else "" for r in rows]
             avg_w = max((len(a) for a in avg_strs), default=0)
 
-            for (name, count, total_secs, cost, cost_pct, step_model), time_str, avg_str in zip(rows, time_strs, avg_strs):
+            for (name, count, total_secs, cost, cost_pct, step_model), time_str, avg_str in zip(
+                rows, time_strs, avg_strs
+            ):
                 count_col = f"{count}×" if count > 1 else " 1"
                 avg_col = f"  {avg_str:<{avg_w}}" if avg_w else ""
                 cost_col = f"   ${cost:.4f}  {cost_pct:3.0f}%" if cost > 0 else ""

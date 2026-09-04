@@ -18,7 +18,6 @@ class TestPromptContractEnforcement:
 prompt:
   requires:
     - passage
-  optional: []
 ---
 
 Analyze {{passage}} for {{name}}.
@@ -74,7 +73,6 @@ Analyze {{passage}} from {{source}}.
 prompt:
   requires:
     - passage
-  optional:
     - source
 ---
 
@@ -94,32 +92,10 @@ Analyze {{passage}} from {{source}}.
         assert "{{passage}}" not in result
         assert "{{source}}" not in result
 
-    def test_optional_variable_can_be_missing(self, tmp_path):
-        """Optional variables should not raise error if missing."""
-        prompt_file = tmp_path / "prompts" / "test.gpt"
-        prompt_file.parent.mkdir()
-
-        prompt_file.write_text("""---
-prompt:
-  requires:
-    - passage
-  optional:
-    - source
----
-
-Analyze {{passage}}.
-""")
-
-        context = {
-            "prompts_dir": str(tmp_path / "prompts"),
-            "passage": "John 3:16"
-            # source is optional and missing - should not error
-        }
-
-        result = render_prompt({"file": "test.gpt"}, context)
-
-        assert "John 3:16" in result
-        assert "{{passage}}" not in result
+    # A variable declared `optional:` used to be allowed to be missing from the context. The
+    # key was withdrawn — every prompt parameter is required, because an optional one needs a
+    # branch somewhere and the branch nobody tests is where defects live. Its refusal at lint
+    # time and at run time is covered by tests/test_prompt_headers_have_no_optional.py.
 
     def test_html_comment_header_format(self, tmp_path):
         """HTML comment header format should also be validated."""

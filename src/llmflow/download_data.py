@@ -13,7 +13,6 @@ catalog and have no reader, so they are fetched and used directly.
 from __future__ import annotations
 
 import hashlib
-import os
 import shutil
 import urllib.parse
 import urllib.request
@@ -23,7 +22,6 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Mapping
 
-from llmflow import paths as _paths
 from llmflow.modules.logger import Logger
 
 logger = Logger()
