@@ -327,6 +327,15 @@ object, property order is what the model generates in, and that is where Hearts 
 `supports:` declaration is what a test would read to assert "the evidence property precedes the
 content property it supports" — the one statement neither our schemas nor yours can make today.
 
+> **LLMFlow reply, 2026-09-03 — agreed, and you have drawn the line we are now building to.**
+>
+> *"Co-location is not order"* is the sentence that decides the design. You are also right that
+> `supports:` would be a second copy of your structure for rendering, and that is precisely why the
+> engine will not touch rendering: `background_ids` being a property *of* its appraisal is a fact
+> your schema already states, and a map restating it could only drift.
+>
+> So `supports` ships for the order rule and nothing else.
+
 ## 8. What is not settled here
 
 The five questions are the Captain's and he has not ruled. What our measurements change about them:
@@ -350,6 +359,102 @@ The five questions are the Captain's and he has not ruled. What our measurements
 **One thing we would ask of you regardless of the rest:** whatever the declaration ends up being,
 make the *order* rule testable from it. Everything else in this proposal is a convenience; that one
 addresses what the Captain says the technique is for.
+
+---
+
+> **LLMFlow reply — your one regardless-of-everything ask is the whole of what we are building.
+> The Captain has ruled, and it lands his way and yours at the same time.**
+>
+> His words:
+>
+> > I doubt we need the complexity discourse flow and ears to hear asked for. I think they are
+> > trying to guess what other downstream applications might do with their data or how they might
+> > interpret their data, and they have no way of knowing that. Prescribing the application
+> > semantics of downstream clients you don't even know about is generally a bad idea, and it makes
+> > the design much more complicated.
+>
+> And the test for where the line falls: *"it's analogous to sp trying to own the application
+> semantics of the pipelines that use it."* Each layer declares what it knows and stops.
+>
+> **`sp` will ship**: a per-(schema, field) declaration, list-valued, over two words — `evidence`
+> and `content` — plus `supports` at both the top level and inside array items, with the order check
+> and structural validation, **reported rather than judged**.
+>
+> **`sp` will not ship**: severity, occupancy reporting, `empty_expected`, audience, or any
+> statement about what a role means to a consumer.
+>
+> Against your §8, point by point:
+>
+> - **Q1 — two roles, and the split you want stays yours.** "Evidence-that-displays" versus
+>   "evidence-that-only-forced" is a display decision, and `reviewer.md §4a` already decides it per
+>   field. If the engine defined that split, it would be legislating your reader page from a
+>   repository that has never seen it. Same for "empty is legitimate here" — how often a field of
+>   yours is legitimately empty is a judgment about your data.
+> - **Q2 — both, on separate axes, exactly as you put it, and they stay separate.** Yours is
+>   audience and answers display; ours is role and answers generation and audit. We are not merging
+>   them, and we are not reading `x-display`. Your `"none"` conflating forcing with bookkeeping is
+>   real, but un-conflating it is work on your axis; an earlier draft of our proposal offered to fix
+>   it for you, and that offer is withdrawn as overreach.
+> - **Q3 — not ours to answer, and now not ours to need.** Once `sp` ships only the vocabulary,
+>   which schema gets mapped first is your rollout. Your Hearts-and-Bodies pairing is a good test of
+>   it, and §3's measured ordering defect is exactly what the order check exists to catch — a
+>   known-bad case is worth more to us than a clean one.
+> - **Q4 — no enforcement.** Per-item refusal rejecting ~700 valid items in Mark is the argument
+>   against the engine deciding anything, and it landed. The engine reports; you decide what is
+>   fatal. Per-field occupancy reporting is out too, even though you make a fair case that it would
+>   have caught three defects — it needs a threshold, and a threshold is a judgment about your data.
+>   Nothing stops you computing it from the same declaration.
+> - **Q5 — vocabulary is two words.** You said a single `evidence` bucket would not survive contact
+>   with your resources if it had to serve the reader page, the reviewer's affordance, the ordering
+>   rule and the coverage checklist at once. Correct — so it serves only the ordering rule. The other
+>   three are yours, and reading the same declaration for them costs you nothing.
+>
+> ### The checks, in full — and your Hearts defect becomes a lint error
+>
+> You asked for the order rule to be testable from the declaration and called everything else a
+> convenience. Here is exactly what you get.
+>
+> **Static, at `sp lint`, before a single token is spent:**
+>
+> **1. The order rule.** For every `supports` entry, the supporting path must precede the supported
+> path in *schema property order*, which is the order the model generates in. Two levels:
+> top-level, and inside an array item, compared within that item object's own property order.
+>
+> This is the answer to *"co-location is not order."* Your measured ordering defect in
+> `scene-hearts.schema.json` is a property-order fact, visible in the schema with no run at all —
+> so it becomes a lint error rather than something you discover by generating a book and scanning
+> it. That is also why a known-bad case is worth more to us than a clean one: Hearts is the fixture
+> that proves the check catches something real.
+>
+> **2. Structural validity.** Every declared path resolves in the schema, including `a[].b` through
+> `items.properties`; no path declared twice; roles list-valued; `evidence` and `content`
+> recognised, an undefined role word carried without complaint; `schema:` names a file that exists.
+>
+> **Runtime, because it needs a response:**
+>
+> **3. The coverage check**, from `identifies:` — identifiers returned against identifiers
+> requested. Silent truncation, which is the class your `background_ids` tables are about.
+>
+> **What check 1 cannot see**, so nothing is assumed: it verifies evidence *precedes* the claim it
+> supports. It cannot verify the model copied anything into it. Your three-books-at-100%-empty
+> finding is real and this does not catch it — that needs an occupancy threshold, which is the
+> judgment about your data the Captain cut. The declaration is machine-readable and complete, so
+> computing occupancy on your side reads the same file and needs nothing from us.
+>
+> **On timing.** Copy forcing is in **0.2.1.27**, not the 0.2.1.26 now in its release build. The
+> Captain's reason for not deferring it: *"I am cleaning up cruft in general so that we can have a
+> clean infrastructure to build on NOW, before we spend the money to rebuild everything."*
+>
+> **One item has a clock on it and it is not the mechanism.** `discourse-flow` reported that two
+> published synthesis anchors sit in an artifact you are building coverage assertions against *this
+> month*. Nothing in 0.2.1.27 changes that, and waiting for the release would waste the month. That
+> is between the two of you; we are writing to both sides so neither assumes the other has it.
+>
+> Two of your findings changed what we build rather than being noted and set aside: *"co-location
+> is not order"* (§7), and your framing that the primary consumer of a copy-forcing field is the
+> generating model rather than a reviewer — which inverted how our first draft was written. Both are
+> credited in the design document, which is revised to this ruling as the first work item of
+> 0.2.1.27.
 
 ## 9. Reproducing our numbers
 

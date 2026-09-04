@@ -1,246 +1,259 @@
-# HANDOFF — 2026-09-02 (second session of the day)
+# HANDOFF — 2026-09-04
 
-Branch **`dev`**, HEAD **`c68861c`**, `## dev...origin/dev [ahead 1]` — **one commit unpushed**.
+## ▶ NEXT ACTION
 
-**Nothing was built this session. No code changed.** What it produced is a verification finding
-that invalidates part of the planning record, two documents, and one fact that settles a decision.
+**Commit the seven uncommitted files, then push `dev`.** They are all x.27 correspondence and
+design — no code. The Captain has approved the content of each; the commit and push are his.
 
-**Read the drift record at the bottom before doing anything.** The Captain named the same failure
-three times in this session. It is the most important thing here.
-
----
-
-## ▶ NEXT ACTION — run `/load-context`, then build the time-critical set
-
-**The Captain has delegated what to build to a fresh instance**, 2026-09-02: *"building is up to
-an LLM instance that has read a fresh context."* So: read context first, then start. Do not ask
-him to re-choose scope — he has already ruled it.
-
-**Build these, in this order. All five are actionable — nothing is waiting on a decision.**
-
-| | what | where |
-|---|---|---|
-| 1 | **Separate the twelve rules no test can check** into their own short list | `data/ai-rules.yaml` is the single source; the rules file is generated from it |
-| 2 | **Write the six tests** for rules that have none — lxml not `xml.etree`; branch is not `main`; the phrases "production ready"/"approved"/"suitable for use" appear nowhere; no YAML file holds verse-shaped keys; no `type: llm` step lacks source text among its inputs; no dotted name in a prompt body | new files in `tests/`. **`src/llmflow/plugins/xml_entry_to_base_json.py:1` breaks the lxml rule today — fix it *with* the test, not before** |
-| 3 | **Shorten every rule that has a test** to one sentence that stands alone, naming the test as a footnote | `data/ai-rules.yaml` |
-| 4 | **Make the eleven shared files fit non-Python projects** — widen the existing portability test rather than adding a second | `tests/test_helm_sync.py` / `test_portable_*`; sources in `src/llmflow/templates/sp/` |
-| 5 | **Remove `optional:` from prompt headers** — the parser rejects it; old keys fail loud | `utils/linter.py`, `steps/llm.py`, the 6 prompts in `prompts/`, the 2 shipped starter prompts, and the 2 shipped docs that still teach it |
-
-Then, as one feature in this order: **both ends of a Levinsohn span** →
-**the combined Levinsohn/UBS record** → **the two replies to discourse-flow**. And separately,
-**the reference reader must carry the subverse** (see the USFM finding below).
-
-**Write the failing test first** — `sp/rules.md` `authorization-workflow`, and this project is
-test-driven.
-
-**The design for items 1–5 and for the quotation work is already written** as derived positions in
-`project/plans/design-decisions-awaiting-ruling.md` and
-`project/plans/design-combining-levinsohn-and-ubs.md`. Those are **derivations, not the Captain's
-rulings** — if one looks wrong, say so before building on it rather than after.
-
-**One thing still needs his word and is not building:** permission to correct the stale record —
-`project/TODO.md`, and issues #210 / #211 which are done but open. Closing an issue is a hard stop
-(`github-authority.md`).
-
----
-
-## The finding that matters: five queued items are already implemented
-
-Measured this session against the tree, not the task file. **`project/TODO.md` is stale and was
-the basis of the whole scoping discussion.**
-
-| item | state | verify |
-|---|---|---|
-| #211 — 21 documents out of Python constants | **done.** 25 of 30 catalogue entries are `source: template`, 1 is `constant` (`sp/rules.md`, rendered from `data/ai-rules.yaml`). Four small strings remain in Python, none a shipped document: `SP_BLOCK_WARNING`, `SP_INDEX_HEADER`, `SP_DOC_LINKS`, `_AI_RULES_FRAME` | `grep -o 'source: [a-z_]*' data/file-catalog.yaml \| sort \| uniq -c` |
-| #210 — `overview.md` two documents one path | **done.** No flat `docs/ai-context/overview.md`; `sp/` and `project/` each hold overview, index, rules | `ls docs/ai-context/*/` |
-| #200 — `format: usj` | **largely done.** `FORMATS = ("plain","milestones","usj")`, `rows_to_usj`, `usj_to_text` all present | `grep -n 'FORMATS =' src/llmflow/utils/scripture.py` |
-| #203 — a reference means different verses in different editions | **largely done.** `resolve_passage` maps between schemes and raises rather than guessing | `grep -n 'def resolve_passage' src/llmflow/utils/scripture.py` |
-| #217/#201/#212 — fetch from the catalogue | **largely done.** `resources.py` reads `resources.json`; `register(id, download=True)`; `license` a registered field | `grep -n 'def register' src/llmflow/resources.py` |
-
-**`hatch run pytest tests/test_versification.py tests/test_versification_wiring.py
-tests/test_scripture_usj.py tests/test_scripture_families.py tests/test_discourse_resolution.py
-tests/test_resource_provisioning.py tests/test_catalog.py -q` → 195 passed** at `c68861c`.
-
-**#210 and #211 are still OPEN on GitHub**, untouched since 2026-08-24T18:04. The code moved; the
-issues and the task file did not.
-
-### The worst of it: `syntax` is announced and does nothing
-
-`INCLUDE_FAMILIES` at `src/llmflow/utils/scripture.py:82` lists `"syntax"`. That is the **only**
-occurrence of the word in the entire source tree — no handler, no payload, no test. So
-`include: [syntax]` passes validation, runs, and silently returns nothing. The Captain believed
-#227 was implemented; it is announced, which is why.
-
-**Verify:** `grep -rn "syntax" src/llmflow/utils/scripture.py` → one line only.
-
----
-
-## Confirmed NOT implemented (checked, not assumed)
-
-| | evidence |
-|---|---|
-| six tests for rules that have none | none of the six test files exist in `tests/` |
-| rules shortened to a sentence naming their test | still full paragraphs |
-| the twelve uncheckable rules separated | one flat list |
-| shared method files fit for TypeScript | 7 shared files still name pytest / ruff / hatch, 26 mentions |
-| passage comparison (#169) | no `overlaps`/`contains`/`intersection`/`union`; no `tests/test_verse_range_ops.py` |
-| dotted prompt placeholder (`{{a.b}}`) | `src/llmflow/steps/llm.py:96-98` substitutes flat names only; `resolve()` at `:103` never touches `{{ }}` |
-| reference reader shortening a range | `src/llmflow/utils/data.py:234-243` — only the 4th of 4 patterns is anchored with `$` |
-| both ends of a Levinsohn span | `src/llmflow/utils/discourse.py:38`, documented at `:111` |
-| Paratext `custom.vrs` (#222) | `scripture.py` still warns *"which this engine does not read"* |
-| `optional:` removed (#228) | still read in `utils/linter.py` and `steps/llm.py`. **No implementation commit exists on any branch** — `git log --all --grep=228` returns only `c68861c` |
-
-**Not verifiable by reading, and not verified:** the setup failures on a fresh machine (#204) need
-a run from a clean clone with an empty `HOME`; the blank GUI Content Lifecycle page needs the app
-running.
-
----
-
-## Rulings the Captain gave this session — do not reopen
-
-Quoted, because they are his words:
-
-- *"a-d are important and time critical"* — the rules-enforcement work: write the six tests,
-  shorten the rules, separate the uncheckable ones, make the shared files fit TypeScript.
-- *"y is important and time critical"* — remove `optional:`.
-- *"h can simply be an error - no dots allowed in prompts, detectable at lint time."* **This is a
-  design ruling** and it belongs in `plan-release-0-2-1-26.md` §6.1, which has **not** been
-  updated. Not by making the check resolve dotted paths — that turns a loud failure into a silent
-  one.
-- *"i is an important bug that needs fixing"* — the reference reader.
-- *"j-m are all aspects of the same single feature"* — the span fix, the combined record, and the
-  two replies to discourse-flow are one feature in that order, not four items.
-- *"I mean k, but s is also time sensitive"* — the Levinsohn/UBS quotation work **and** #203.
-- **`optional:` needed no ruling.** *"our syntax does not allow 'optional' as a keyword in
-  headings"* and *"removing a keyword from the syntax of a language does WHAT in a parser?"* —
-  removal means the parser rejects it. Precedent already in `TODO.md`: the `for`/`in` migration,
-  *"one syntax, no aliases… Old keys fail loud."*
-
-### Settled by fact, not preference: sub-verse letters are valid USFM 3.1
-
-The Captain asked whether the standard supports `a`/`b`/`c` on a verse. **It does, as a
-first-class concept.** `~/github/usfm-bible/tcdocs/grammar/usx.rnc:1137` — verse `number` pattern:
-
-```
-[1-9][0-9]*[\p{L}\p{Mn}]*(&#x200F;?[\-,][0-9]+[\p{L}\p{Mn}]*)*
+```bash
+git add -A
+git commit -F tmp/commit-field-roles-ruled.txt   # REWRITE FIRST — see "In flight" below
+git push origin dev
 ```
 
-Any Unicode letter after the number, and again after each element of a range or list. So
-`1JN 2:5b-6` is **conformant**. Chapters are digits only; letters are verse-level.
+`tmp/commit-field-roles-ruled.txt` is **stale**: it predates the checks sections added to both
+collab threads and the whole Hebrew-defects thread. Rewrite it to cover the full set before
+committing.
 
-**Consequence:** the reference reader must carry the subverse, not reject the input and not drop
-the letter. Rejecting would refuse valid USFM. This dissolved the last open decision on the ruling
-sheet — a decision that existed only because of a wrong assumption that `5b` was malformed.
-
----
-
-## In flight — uncommitted
-
-| path | state |
-|---|---|
-| `project/plans/design-decisions-awaiting-ruling.md` | **modified.** Reduced from 14 asked decisions to 0 genuinely open. 14 `=>` slots remain, all empty; each non-live one carries a line saying what answers it |
-| `project/plans/design-combining-levinsohn-and-ubs.md` | **new, untracked.** The Levinsohn/UBS design. Collapsed from 7 option menus to 7 derived positions and **one** `=>` |
-| `collab/discourse-flow/2026-09-02-carrying-source-annotations.md` | **untracked** — their third report, arrived this session. Not replied to |
-| `project/HANDOFF.md` | this file |
-| `data/models.json` | **one line**, `last_updated` `2026-07-03` → `2026-09-02`, no model data changed. Origin still unknown across two sessions. Do not commit a bare timestamp |
-
-**Verify slots:** `grep -c '^=>$' project/plans/design-decisions-awaiting-ruling.md` → **14**;
-same command on `design-combining-levinsohn-and-ubs.md` → **1**. **No slot is filled.** Only the
-Captain writes after a `=>`.
-
-`project/plans/README.md` is generated and now **stale** — it has no entry for the new design
-document. `hatch run python tools/update_plans_index.py` regenerates it. Not run.
+After that, x.27 work begins. The Captain's ordering, given 2026-09-03: the guard refactor first
+(item 1 under "x.27 cleanup"), because everything touching disciplines pays the old cost until it
+lands.
 
 ---
 
-## The one question that is genuinely the Captain's, and it is a fact
-
-Mark 1:2 is conventionally read as Exodus 23:20 fused with Malachi 3:1. UBS Parallel Passages names
-only Malachi, and `EXO 23:20` appears nowhere in its file. **Is UBS's attribution incomplete for
-composite quotations generally, or is Malachi the whole of it here?**
-
-`ask-about-the-data` puts this in his domain. It changes what a combined record may honestly claim.
-
----
-
-## Do NOT / deferred
-
-- **Do not fill a `=>` slot.** Text in a slot *is* the ruling.
-- **Do not edit `docs/ai-context/` without per-file permission in the current conversation.**
-- **Do not commit, push, merge, close an issue, or run `sp run` / `sp doctor`.**
-- **Do not close #210 or #211** on the strength of this file's "done" findings. The Captain rules
-  on that; the remnant in #211 is the four Python-held strings.
-- **Do not fix `src/llmflow/plugins/xml_entry_to_base_json.py:1`'s `xml.etree` import** as a
-  drive-by — it is #230's first work item and its motivating evidence.
-- **Do not edit `~/.sp/` or `~/.claude/`** without explicit approval. `~/.sp` has 20 uncommitted
-  paths (the `conventions/`→`disciplines/` and `editions/`→`registrations/` migrations);
-  `disciplines/workflow.md` and `skills/load-context/SKILL.md` were checked and are **byte-identical
-  to `src/llmflow/templates/sp/`**, so installer output, not unreviewed edits.
-- **`ddc404d` carries the wrong commit message.** Already pushed; the correction is the Captain's
-  and is not release work.
-- **`tests/test_mcp.py::test_connection_to_biblica_server` and `tests/integration/test_mcp_batch_calls.py`
-  are network-dependent** and fail on an unreachable server. Pre-existing.
-- **Two documents still say "nine decisions"** where there are fourteen —
-  `design-decisions-awaiting-ruling.md:17-18` was corrected, but `plan-release-0-2-1-26.md` §7 still
-  says *"Nine, none answered"*. Pre-existing; flagged twice; not corrected without his word.
-
----
-
-## ⚠️ Drift record — read this before working
-
-The Captain named the same failure three times in one session. It cost most of the session.
-
-1. **Manufactured decisions.** *"drift drift drift ... LLMs making assumptions and asking me to
-   make detailed decisions about those assumptions."* A 14-entry ruling sheet was written where
-   thirteen entries were answerable from rules or rulings he had **already given** — including one
-   that simply restated his own 2026-09-01 ruling back to him as a question. **Before writing a
-   decision, test it: did he pose this, or was it constructed? Can it be derived from
-   `sp/rules.md`, the disciplines, or a ruling already recorded?** Both documents have now been
-   collapsed on that basis, but the habit is what to watch.
-2. **Ignoring the trusted resource list.** *"we have an official set of trusted resources, and you
-   go off and find whatever."* **`~/github/nida-institute/awesome-biblical-data/resources.json` is
-   the source of truth for what data exists and where to get it** — 70 entries with `github`,
-   `url`, `acquire`, `license`. This session instead ran `find` across `~/github` and read
-   whichever copy appeared first; for Levinsohn that returned **four** copies and one was picked
-   without checking. The two that were read do match the catalogue
-   (`biblicalhumanities/levinsohn`, `ubsicap/ubs-open-license` → `parallel passages/ParallelPassages.xml`),
-   so the measurements stand — **by luck, not method**. Start from the catalogue.
-3. **Volume and option menus.** *"make a list of features under consideration and ask me which
-   ones are time sensitive. a bullet point list, compact, and don't guess for me. no jargon."*
-   And: *"yes, let ME be the captain."* Compact, plain language, no invented labels, no
-   recommendation unless asked.
-
-`~/.sp/disciplines/surface-decisions.md:36-40` names failure 1 exactly: an option menu that looks
-like deference but offloads the work of understanding.
-
----
-
-## Measurements taken this session (reproducible, no network)
-
-From the catalogue's Levinsohn and UBS sources:
+## Where the repository actually is
 
 | | |
 |---|---|
-| Levinsohn `OT_quotes.xml` references | **691**, every one `label=""` — it never names the OT source |
-| LGNTDF references the engine loads in total | **52,257** |
-| of those, spans whose end `parse_osis_ref` discards | **13,753** across 26 of 33 feature types |
-| words of extent lost | 82,574 |
-| UBS passage groups | **2,193** — 249 OT-and-NT, 1,184 OT-only, 760 NT-only |
-| NT verses with an OT source, UBS | 340 · Levinsohn 367 · **both 291** · Levinsohn-only 76 · UBS-only 49 |
-| word-count alignment test | **0 counterexamples in 266 verses** (Levinsohn's max index never exceeds UBS's digit count) |
-| Mark 1:2 → **MAL 3:1** · Mark 1:3 → **ISA 40:3** | `EXO 23:20` absent from the UBS file entirely |
+| `dev` | `5822104` (local) — `origin/dev` is at `c00f50d`, behind by 11 historical merge commits |
+| `main` | `5822104`, pushed. Same commit as local `dev`; trees identical |
+| tag | `v0.2.1.26` on `c00f50d` |
+| PR #231 | **MERGED** 2026-09-04 13:08 |
+| suite | **4714 passed, 24 skipped, 26 deselected** with `-m "not integration"` (the CI selection) |
+| `ruff check src/` | **clean** — first time; 182 findings cleared 2026-09-03 |
+
+**Verify:** `git log --oneline -1 dev main origin/dev`, `hatch run pytest -q -m "not integration"`,
+`ruff check src/`.
+
+The "ahead 11" on `dev` is harmless: `git merge --ff-only main` pulled eleven main-only
+`Merge pull request #NNN` commits that had never been on `dev`. `git diff main dev` is empty.
 
 ---
 
-## Key files & links
+## 0.2.1.26 — released, one item outstanding
 
-| what | where |
-|---|---|
-| **the trusted resource list** | `~/github/nida-institute/awesome-biblical-data/resources.json` |
-| the ruling sheet (0 open, 14 slots) | `project/plans/design-decisions-awaiting-ruling.md` |
-| the Levinsohn/UBS design | `project/plans/design-combining-levinsohn-and-ubs.md` |
-| the release scope | `project/plans/plan-release-0-2-1-26.md` — §6.1 needs the `h` ruling |
-| the queue, **stale** | `project/TODO.md` |
-| the three reports from discourse-flow | `collab/discourse-flow/` |
-| USFM 3.1 spec | `~/github/usfm-bible/tcdocs` — `grammar/usx.rnc`, `markers/cv/v.adoc` |
-| full suite | `hatch run pytest -q` → 1 failed, 4124 passed, 25 skipped at `c68861c` (the failure is network-dependent) |
+Published 2026-09-04 13:04. Not a draft, not a prerelease. `sp-linux` 140MB, `sp-macos` 96MB,
+`sp-windows.exe` 98MB attached. Install script verified on macOS, Windows and Ubuntu.
+
+**PyPI is at 0.2.1.25.** The Captain first rejected the `pypi` environment gate deliberately, then
+changed his mind and wants 0.2.1.26 published. The run is complete, so the gate is closed; the
+route is to re-run that one job, which re-requests approval:
+
+```bash
+gh run rerun 33875987740 --job 101033180577
+```
+
+Then he approves at https://github.com/nida-institute/LLMFlow/actions/runs/33875987740
+
+Verified before recommending it: `pyproject.toml` at `v0.2.1.26` reads `0.2.1.26`, and the job
+checks out the tag ref, so it builds 0.2.1.26 — 0.2.1.25 cannot be republished, and PyPI refuses
+re-upload of an existing version anyway.
+
+**The run's overall conclusion will stay `failure`** because the rejected attempt is in its
+history. Check the job and PyPI, not the run badge.
+
+---
+
+## ⚠️ Read this before trusting any plan document in this repository
+
+**Five plan and TODO documents asserted state that was false, found in one day.** This is the
+repository's dominant defect class. Verify against code, tests and CI — never against the record.
+
+| document | claimed | actual |
+|---|---|---|
+| `plan-release-0-2-1-26.md` §3.1 | catalogue fetch "build this release" (#217, #201, #212) | **shipped in 0.2.1.25**; #212 declined by ruling |
+| 7 shipped docs | registrations live in `~/.sp/editions/` | `editions` is `LEGACY_REGISTRATION_DIRNAMES`; it is `~/.sp/registrations/` |
+| `TODO.md` workshop section | 10 blockers, "2620 tests pass" | several fixed; 4714 tests; consent prompts and the TTY early-return are gone |
+| `plan-release-0-2-1-26.md` | `include: [syntax]` "named but not implemented" | it is a **shipped silent no-op** — accepted by lint, returns no key at all |
+| #38 | closed as completed 2026-08-26 | never implemented. Closed on an AI's conversational claim; no commit, no test. **Reopened 2026-09-03** |
+
+The Captain, on the last one: **"We had to implement this because it's not in SP" is not proof
+that it isn't needed, it is often proof that it is needed.**
+
+Also note `test_record_closure_claims.py` cannot catch this class — it scans `TODO.md` and
+`HANDOFF.md` for "closed by `<sha>`". A claim made only in conversation never enters a record.
+
+---
+
+## x.27 — scope ruled 2026-09-03
+
+| # | Feature | Issue | State |
+|---|---|---|---|
+| 1 | Hebrew resolves in `include: [discourse]` | #230 | root cause **verified**: `resolve_citation` matches Levinsohn's index against *row position*; Hebrew rows are morphemes (`RUT 1:1` = 33 rows, 19 words, 1.74/word), Greek is 1.00/word. Fix: match `!N` from `ref`. Also `label` is read and dropped; `text` is kept for notes only (`discourse.py:285`) |
+| 2 | Copy forcing — declare evidence vs content | #230 | design **ruled and revised**; build order in `design-declaring-field-roles.md` §10 |
+| 3 | Paratext via `type: scripture`, own versification | #222 | `custom.vrs` found, warned about, ignored — references silently wrong |
+| 4 | Comparing verse references | #169 | ruled into 0.2.1.26 and **never built**; blocked on decisions below |
+| 5 | `include: [syntax]` — Lowfat, standoff | #227 | design **fully ruled** 2026-08-31, `design-scripture-representations.md` §4.5; nothing open |
+| 6 | BaseX for all XML sources — *if it fits* | #38 | plumbing exists (`sp load-db basex`, `$database` binding, `sp resource download/add`); missing is collection organization |
+
+**Not in x.27, by ruling:** ACAI entity data (the largest gap — 26,531 references in ears-to-hear,
+engine has nothing), Lowfat beyond #227, lexicons and semantic domains.
+
+### x.27 cleanup, also directed
+
+1. **Guard refactor** — move the shared/engine-only/rewritten classification into
+   `data/helm-sync.yaml`, have `EXPECTED_DISCIPLINES` (`test_global_disciplines.py`) and
+   `SHARED_WITH_HELM`/`ENGINE_ONLY`/`REWRITTEN` (`test_portable_disciplines.py`) read it, and
+   generate `disciplines/README.md`. Adding one discipline currently costs five edits across four
+   files. **The Captain gave the word; do this first.**
+2. `github-authority.md` — add the "show the body before running the command" rule. *Which home is
+   undecided* (see Decisions).
+3. `query_macula_hebrew` / `query_macula_greek` — both confirmed broken, both uncalled anywhere.
+   Fix or delete is the Captain's.
+
+---
+
+## Decisions awaiting the Captain
+
+**#169 — three left; the fourth is ruled.**
+- **RULED:** scheme is a **required parameter, no default.** Four of the six operations need
+  `Scheme.max_verses`/`excluded_verses` (`union` across a chapter boundary, `adjacent`,
+  `verse_count`), and all six are only meaningful if both refs are in one numbering.
+- Singletons only, or both? *Recommended: both* — singletons-only leaves the iteration in consumer
+  Python, which is the thing being fixed.
+- Bare names (`overlaps`) or `verse_range_*`? *Recommended: prefixed.*
+- Confirm the plan's cross-book split: `overlaps` → False, `intersection` → None, `union` →
+  **raises**.
+
+**Hebrew (#230)**
+- When a word spans rows 6–7, **which row's `xml:id` anchors the citation** — first morpheme, or
+  the one the quote matched?
+- Payload shape: sp emits a flat list, discourse-flow consumes a verse-keyed dict.
+  `verses-are-milestones` argues for sp's. Who adapts?
+- Is per-morpheme correct for every per-word `include:` family on Hebrew, or was only the resolver
+  wrong?
+- Structural vs prominence features (accent ranks are 225,840 of 422,211 HOTDF-LS citations).
+  discourse-flow argues the **corpus** should declare it; HOTDF-LS does not. May be out of scope.
+
+**Paratext (#222)** — `edition_scheme()` returns a scheme *name* and `map_reference` takes names;
+an overlay has none. Synthetic name, or `Scheme` objects through the API?
+
+**BaseX (#38)** — collection naming. #38 proposes semantic (`macula/gnt-lowfat`), #52 proposes
+provenance (`github/<org>/<repo>/<path>`), both call theirs canonical. discourse-flow's input:
+semantic name as the identifier, provenance as a declared attribute, following
+`registrations/SBLGNT.yaml`'s existing `id:` + `dataset:` shape.
+
+**`include: [syntax]` today** — it is accepted and returns nothing. Refuse at lint time now, or let
+#227's implementation close it?
+
+**`github-authority.md` prose rule** — shared discipline (reaches every project and Human at the
+Helm, but needs a `helm-sync.yaml` hash update and a twin commit in that repo), or a narrower
+`CLAUDE.md` line?
+
+---
+
+## Settled this cycle — do not reopen
+
+- **Field roles are two words**, `evidence` and `content`. `handoff` and `adjudication` were cut:
+  both describe what a *downstream* consumer does. The Captain's test — *"it's analogous to sp
+  trying to own the application semantics of the pipelines that use it."* Each layer declares what
+  it knows and stops. `adjudication` is carried by `supports`; `handoff` a project declares for
+  itself, and `sp` does not reject a role word it has not defined.
+- **`empty_expected`, occupancy reporting, severity and audience are out** of the engine. Each needs
+  a judgment about somebody else's data.
+- **`say-which-kind-of-nothing` is two states, not three.** `{}`/`[]` = the lookup ran and found
+  nothing; `null` = there was nothing to look in. A key may be absent where another declaration
+  accounts for it (`include:` is one), but absence carries no meaning — and cannot, since OpenAI
+  strict mode marks every property `required`.
+- **`pyproject.toml` stays at the released version during development** and is bumped as release
+  prep. **`RELEASE_CHECKLIST.md` §12 is wrong** — it says to bump post-release and start a fresh
+  CHANGELOG section, which fails three guards in `test_changelog_covers_the_version.py` (the
+  declared version needs a *dated* section) and one in `test_changelog_is_not_a_transcript.py` (no
+  prose before the first `###`). **Correcting §12 is unclaimed work.**
+- **A scope note does not belong in the CHANGELOG.** It records changes, not plans.
+
+---
+
+## Landmines
+
+- **Never write to `docs/ai-context/` by hand.** Both files modified this cycle are
+  `policy: generated` in `data/file-catalog.yaml`: `sp/rules.md` renders from `data/ai-rules.yaml`
+  via `AI_RULES_DOC`, and `sp/scripture-representations.md` is a copy of a shipped template held
+  byte-identical by `test_template_layout.py:106`. Edit the source, regenerate the copy.
+- **`data/ai-rules.yaml`, `CLAUDE.md`, `~/.sp` and `~/.claude` are the Captain's.** `~/.sp` is
+  read-only by design; never unlock it. Its 20 uncommitted files are mostly install trace, but
+  `disciplines/workflow.md` and `skills/load-context/SKILL.md` are genuine drift candidates.
+- **`~/.sp` is *not* the source for disciplines.** `src/llmflow/templates/sp/` is; `~/.sp/` is the
+  installed copy. This was got backwards once already.
+- **Two pytest runs collide** on `tmp/pytest/` and produce an `INTERNALERROR`. One at a time.
+- **`git rev-parse HEAD^2` needs quoting in zsh** — `^` globs. `"HEAD^2"`.
+- **`ruff check src/ --fix` deleted `llmflow.runner`'s re-export surface** and broke the suite at
+  *import* time, twice. It is now declared in `__all__` and guarded by
+  `tests/test_runner_reexports.py`, which parses the tree. Do not delete a name from that list
+  casually.
+- **The GUI has two copies.** `build_gui.py` copies `gui/backend/{server,executor}.py` over
+  `src/llmflow/gui/`. Fixing only the `src/` side gets erased by the next build;
+  `test_gui_copies_are_identical.py` catches it.
+- **Never run `sp run`** (costs money) or **`sp doctor`** (unsafe in this repo until #210/#211).
+- **`tests/integration/test_mcp_batch_calls.py` needs a live external MCP server** and fails
+  without it. CI deselects `integration`.
+- **Prose is guarded.** `test_product_name_in_prose.py` forbids the deprecated product name in
+  `.md` files; **Scripture Pipelines** is the ruled term, and `llmflow` stays only as the import
+  namespace. See `design-vocabulary.md`. It caught three drafts this cycle — including the line
+  that first described this landmine.
+
+---
+
+## Consumer threads — both live, neither needs a reply
+
+**discourse-flow** has answered everything and asks for nothing. Outstanding from their side: they
+offered a failing test for the morpheme defect (Ruth 1:1, `Kings` at index 4, expecting `verified`)
+if wanted. They also reported, and it was verified here, that `plugins/levinsohn.py` carries the
+exact three limitations removed from `discourse.py` on 2026-09-03 — `ElementTree`, an OSIS table
+commented *"NT only (book numbers 40–66)"*, and `feature` roots only. **`sp` is now strictly ahead
+of their fork.** 4,774 lines across 25 plugins, of which 4 import `llmflow`.
+
+The Captain: *"I do want them to include [discourse], so we need to address this."* They were asked
+to investigate whether their prompts render `label` and `text` and respond. **Nothing gets built on
+that until they have looked.**
+
+**The live-coupling item is closed.** They named the two copy-forcing fields to `ears-to-hear`
+before our note was written. They also corrected a claim of ours worth keeping: an assertion
+against a forcing field whose content is a **verbatim copy of the stage's input** is a genuine
+cross-stage check, not a measurement of the device — and it caught two real faults, John 121 vs 123
+leaves and Revelation 70 vs 72 with `REV 8:1-6` claimed by two divisions, which they had not found.
+
+---
+
+## Not on any list, and time-critical
+
+**Workshop readiness is marked "main next goal" in `TODO.md`, and mentoring is the week of
+2026-09-08.** Nothing in x.27 addresses it. Acceptance criterion, the Captain 2026-08-17: *a user
+clones a mentoring repository such as `sil-translator-notes`, runs `sp init`, and `/load-context`
+works. Nothing hand-carried.* That section's blocker list needs verifying against current code
+before anyone works from it — see the staleness table above.
+
+**`pip install scripture-pipelines` gets 0.2.1.25** until the PyPI job is re-run. A workshop
+participant following pip-based install docs would get none of 0.2.1.26's fixes.
+
+**`🔥 Monday priorities` in `TODO.md`** — the GUI Content Lifecycle page displays blank. No GitHub
+issue; that file is the only record. `/api/content/transition` in `gui/server.py` is a stub
+returning 501, which may be related and is unverified.
+
+---
+
+## Key files
+
+- `project/plans/design-declaring-field-roles.md` — x.27 item 2, ruled; §10 is the build order
+- `project/plans/design-scripture-representations.md` §4.5 — x.27 item 5, ruled
+- `project/plans/design-verse-range-operations.md` + `plan-verse-range-set-ops.md` — #169's two
+  approved documents; reconciling them into one is the first deliverable
+- `project/plans/design-combining-levinsohn-and-ubs.md` §5 — HOTDF-LS measurements, attributed to
+  discourse-flow and marked unverified here, with the command to re-derive them
+- `collab/discourse-flow/2026-09-03-hebrew-discourse-defects.md` — the morpheme finding, both sides
+- `collab/{discourse-flow,ears-to-hear}/2026-09-03-declaring-evidence-and-content.md` — the ruling,
+  replied inline
+- `data/ai-rules.yaml` — 39 rules, each with `enforcement` and `scope`; the single source
+- `src/llmflow/templates/sp/disciplines/working-for-a-person.md` — added this cycle, shared with
+  Human at the Helm
+- `project/RELEASE_CHECKLIST.md` — **§12 is wrong**, see above

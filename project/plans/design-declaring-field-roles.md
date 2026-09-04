@@ -1,7 +1,12 @@
 # Design — declaring what each field in a response is for
 
-**Status:** proposed — **not authorization to build.** Six decisions are marked `=>` and are the
-Captain's. Whether any of it belongs in release 0.2.1.26 is the last of them. #230
+**Status: ruled 2026-09-03, and scoped to release 0.2.1.27.** All six open decisions in §8 are
+answered; the ruling cut the design down rather than approving it as drafted. §10 states what
+building it means. #230
+
+The one ruling to read first, because it is what the rest follows from: *"it's analogous to sp
+trying to own the application semantics of the pipelines that use it."* Each layer declares what it
+knows and stops.
 
 Origin: the Captain, 2026-09-02, on why the engine needs this at all —
 
@@ -99,31 +104,47 @@ opening_word_id: [evidence, content]
 artifact is minted from (`pericope:n41001001001-n41001008014`), which `ears-to-hear` keys on. One
 value per field forces a wrong answer on their most important field.
 
-Four values. The first two are the Captain's words; the third and fourth are named from live
-instances the consumers supplied, and the names are mine:
+**Two values, ruled by the Captain on 2026-09-03.** Both are his words:
 
 | role | what it is |
 |---|---|
 | `evidence` | copied from the input so the model attends to it before deciding, and so a human or an audit can check the claim beside it |
 | `content` | what the pipeline exists to produce |
-| `handoff` | consumed by a later step; no reader ever sees it |
-| `adjudication` | the model's per-item disposition of evidence it has just copied |
 
-`handoff` is not hypothetical: `segment_directives` is produced by `pericope-analysis.gpt`,
-consumed by `segments.gpt`, dropped by `merge_results`, copied from nothing, seen by nobody.
+An earlier draft of this section proposed four, adding `handoff` and `adjudication`. The Captain
+cut both, and the test he gave applies to this document as much as to the consumers who asked:
 
-**`adjudication` is the one that earns its place, and the measurement is the argument.**
-`discourse-flow`, 2026-09-03, across seven artifacts: `levinsohn_signals` is already copied
-verbatim at property 6 of `pericope-analysis.json`, and yet **1,985 of 3,593 signals never appear
-in the claim it supports — 55.2%**, with 555 of 740 pericopes dropping at least one, ranging from
-27% in Mark to 82% in Revelation.
+> Prescribing the application semantics of downstream clients you don't even know about is
+> generally a bad idea, and it makes the design much more complicated.
+
+> it's analogous to sp trying to own the application semantics of the pipelines that use it.
+
+Each layer declares what it knows and stops. `sp` owns the vocabulary and the mechanism; a pipeline
+declares which of its fields are which; a consumer decides what to do about it.
+
+**`handoff` describes what a later step does, which the engine cannot check.** The fact is real —
+`segment_directives` is produced by `pericope-analysis.gpt`, consumed by `segments.gpt`, dropped by
+`merge_results`, copied from nothing, seen by nobody — and it is a fact `discourse-flow` knows about
+their own pipeline. But the engine's two checks are the order rule and structural validity, and a
+handoff field takes part in neither. So `sp` defines `evidence` and `content` and **does not reject
+a role it has not defined**: a project needing `handoff` declares it and writes its own check. The
+alternative — leaving such a field out of the map — would make an undeclared field and a handoff
+field indistinguishable, which `say-which-kind-of-nothing` forbids.
+
+**`adjudication` is answered by `supports`, on the evidence that was offered for it.**
+`discourse-flow` measured, across seven artifacts, that `levinsohn_signals` is copied verbatim at
+property 6 of `pericope-analysis.json` and yet **1,985 of 3,593 signals never appear in the claim
+it supports — 55.2%**, with 555 of 740 pericopes dropping at least one, from 27% in Mark to 82% in
+Revelation. Their conclusion:
 
 > A flat copy adjacent to the claim was therefore **already present and inert**. What we added was
-> the per-item verdict. If the role vocabulary cannot distinguish `signal` from `verdict`, it
-> cannot express the difference between the anchor that works and the one that does not.
+> the per-item verdict.
 
-So `{lemma, verdict, reason}` is `[evidence, adjudication, adjudication]`, and a vocabulary that
-called all three `evidence` would describe the working and the inert device identically.
+What makes the per-item verdict work is that `signal` precedes `verdict` **within the item**. That
+is an ordering fact, it is what `supports` states, and it is what §4's check enforces. Naming the
+field `adjudication` adds a word no check reads. So the finding survives in full and lands in
+§4 — which is why `supports` must be expressible inside an array item, and why that is the first
+thing built.
 
 **The role belongs to the (schema, field) pair, not to the field name.** `levinsohn_signals` is
 copy-forced evidence in `pericope-analysis.gpt` — its schema block reads `"<COPY from pericope>"` —
@@ -220,8 +241,20 @@ Three books at 100% — 3,061 sensory items and 3,194 appraisals where the citat
 made at all, and every existing check passes because each field is individually well-formed. Same
 class: `boundary_signals`, present on **735 of 735 pericope nodes and non-empty on none**.
 
-So: **per-field occupancy, reported; not per-item refusal.** And an evidence field must be able to
-say that empty is legitimate for it.
+So **not per-item refusal**, which is settled. What the first draft went on to propose — per-field
+occupancy reporting, with `empty_expected` as a declarable property — the Captain cut on
+2026-09-03, and the tables above are the reason it looked attractive rather than a reason to keep
+it. Reporting "this evidence field is empty 936 of 936 times" needs a threshold before it is a
+finding rather than a number, and where that threshold sits is a judgment about somebody else's
+data. Likewise `empty_expected`: whether *"empty when the detail is purely text-grounded
+perception"* is legitimate is a statement about the domain, and `ears-to-hear` already carries it
+in their own nullability rule (`schema-requirements.md §5`), so restating it here would be a second
+encoding that can only drift from theirs.
+
+The measurements keep their force and change hands. Nothing stops either project computing
+occupancy from the very same declaration — the map is machine-readable and complete, which is what
+`discourse-flow` asked for in order to test it against `merge_results`. The engine supplies the
+declaration; the threshold and the verdict are theirs.
 
 **Severity is the pipeline's, not the engine's** — `discourse-flow`, reconciling two of their own
 rules (*a crash on bad data is often correct*, and *never soften a raise to make a run pass*):
@@ -229,7 +262,15 @@ rules (*a crash on bad data is often correct*, and *never soften a raise to make
 > `sp` computes the verdict and exposes it; the pipeline says `fatal` or `report`.
 
 That also matches how they debug — `--stop-after` and reading intermediates needs the response to
-exist even when its evidence is empty.
+exist even when its evidence is empty. It is also the same division the Captain ruled the same day
+for empty payloads under `say-which-kind-of-nothing`: the engine reports what it found and stops,
+and what it means for the run belongs to whoever declared the pipeline.
+
+So the verdicts `sp` computes are the two it can compute without knowing any domain:
+
+1. **the order rule** — every `supports` entry, supporting path before supported path, at both the
+   top level and inside an array item
+2. **structural validity** — every declared path exists in the schema, no path declared twice
 
 ## 7. The declaration, entire
 
@@ -238,17 +279,12 @@ exist even when its evidence is empty.
 schema: schemas/pericope-analysis.json
 
 fields:
-  verse:                                 [evidence]
-  greek_quoted:                          [evidence]
-  opening_word_id:                       [evidence, content]
-  levinsohn_signals_to_cite[].signal:    [evidence]
-  levinsohn_signals_to_cite[].verdict:   [adjudication]
-  levinsohn_signals_to_cite[].reason:    [adjudication]
-  segment_directives:                    [handoff]
-  is_boundary:                           [content]
-  rhetorical_features:                   [content]
-  background_ids:                        [evidence]
-    empty_expected: true       # "empty when the detail is purely text-grounded perception"
+  verse:                               [evidence]
+  greek_quoted:                        [evidence]
+  opening_word_id:                     [evidence, content]
+  levinsohn_signals_to_cite[].signal:  [evidence]
+  is_boundary:                         [content]
+  rhetorical_features:                 [content]
 
 supports:
   levinsohn_signals_to_cite[].verdict: [levinsohn_signals_to_cite[].signal]
@@ -259,76 +295,120 @@ identifies:
   segments[]: canonical_reference
 ```
 
-Read by four things, none of which needs to ask anyone:
+That is the whole vocabulary: two role words, a list per field, `supports`, `identifies`. Nine
+lines of declaration for a schema with three anchors.
 
-1. **the order check** — every `supports` entry, supporting path before supported path
-2. **the coverage check** — `identifies` against what was requested
-3. **occupancy reporting** — per evidence field, how often empty, with `empty_expected` as context rather than exemption
-4. **`/audit-output`** — every claim against its declared basis, replacing the five-claim hand-picked spot check the shared skill does today against Mark's 1,150 appraisals
+Read by three things, none of which needs to ask anyone:
 
-Audience stays in `ears-to-hear`'s `x-display`. The role map lets them un-conflate their `"none"`:
-a `"none"` field is now either `handoff`, `evidence` that did not earn display, or bookkeeping.
+1. **the order check** — every `supports` entry, supporting path before supported path, at the top
+   level and inside an array item
+2. **structural validity** — every declared path exists in the schema, no path declared twice
+3. **the coverage check** — `identifies` against what was requested
 
-## 8. Decisions
+`levinsohn_signals_to_cite[].verdict` appears in `supports` without appearing in `fields`, and that
+is deliberate: what the engine needs to know about it is what it is ordered against, not what to
+call it. A project wanting a name for it — `adjudication`, or anything else — declares one, and
+`sp` will not reject a role word it has not defined.
 
-**Answer inline after each `=>`.**
+**Audience is not here and will not be.** It stays in `ears-to-hear`'s `x-display`, on their axis,
+decided by `reviewer.md §4a` per field. An earlier draft of this section offered to un-conflate
+their `"none"` for them; that offer is withdrawn as the same overreach this design was cut back
+for, pointed the other way.
 
-### 1. Four roles, or fewer?
+**`identifies` is the one item still worth arguing about.** It carries the coverage check, which is
+a real silent-truncation defect (`discourse-flow`'s #162: 3 of 99 leaf pericopes in Mark, silently).
+But "this array is keyed by that field" may be a coverage concern rather than a role one, in which
+case it belongs in its own declaration rather than sharing this file. It ships here because the two
+travel together today; splitting it later costs a rename.
 
-`evidence` and `content` are yours. `handoff` and `adjudication` come from live instances, but
-`adjudication` in particular could be argued as a kind of content. The 55.2% measurement says the
-distinction is what separates a working forcing device from an inert one — but that is an argument
-for the *mechanism*, not necessarily for a fourth vocabulary item.
+## 8. Decisions — ruled 2026-09-03
 
-=>
+Five of the six were closed by one ruling, and the sixth stopped being ours. The ruling, in the
+Captain's words:
 
-### 2. Are `handoff` and `adjudication` the right names?
+> I doubt we need the complexity discourse flow and ears to hear asked for. I think they are trying
+> to guess what other downstream applications might do with their data or how they might interpret
+> their data, and they have no way of knowing that. Prescribing the application semantics of
+> downstream clients you don't even know about is generally a bad idea, and it makes the design much
+> more complicated.
 
-`discourse-flow` offered `handoff` or `intermediate` and had no strong view. `adjudication` is
-mine. Both become vocabulary the moment a map is written.
+> it's analogous to sp trying to own the application semantics of the pipelines that use it.
 
-=>
+The second sentence is the test, and it applies to this document as much as to the consumers whose
+proposals it was aimed at. Read the questions below as answered; they are kept with their original
+wording so the reasoning is checkable, per `one-design`.
 
-### 3. Does `sp` own the checks, or only the vocabulary?
+### 1. Four roles, or fewer? — **RULED: two.**
 
-The engine could ship all four checks and expose verdicts, with the pipeline declaring severity —
-which is what `discourse-flow` asked for. Or `sp` could define the declaration and leave every
-check to the projects. The first is uniform and is real engine work; the second ships in a day.
+`evidence` and `content`. `handoff` describes what a later step does; `adjudication` describes a
+field's part in a decision. Both are statements about what someone *else* does with the data, which
+is the thing this ruling says a producer cannot know. §3 records how each is met: `handoff` is a
+fact its project declares for itself and `sp` does not reject undefined role words; `adjudication`
+is carried by `supports`, on the evidence offered for it.
 
-=>
+### 2. Are `handoff` and `adjudication` the right names? — **MOOT.** Neither is engine vocabulary.
 
-### 4. Is `empty_expected` the right shape for legitimate emptiness?
+Whether a project's own map calls it `handoff` or `intermediate` is that project's naming.
 
-It is a per-field exemption from the occupancy expectation. `ears-to-hear` carries the same
-distinction in a nullability rule (`schema-requirements.md §5`), so this may be a second encoding
-of something they already declare — in which case the role map should read theirs rather than
-restate it.
+### 3. Does `sp` own the checks, or only the vocabulary? — **RULED: the vocabulary, plus the two checks that need no domain knowledge.**
 
-=>
+The order rule and structural validity. Not severity — that is the pipeline's, which is also what
+`discourse-flow` asked for. Not occupancy. The distinction is whether the check can be computed
+without knowing whose data it is.
 
-### 5. Which schema is mapped first?
+### 4. Is `empty_expected` the right shape for legitimate emptiness? — **RULED: dropped.**
 
-`ears-to-hear` suggests `scene-hearts.schema.json` (a known ordering defect) paired with Bodies (a
-known-good case), to test the vocabulary against both. `discourse-flow` owes five maps once the
-vocabulary settles.
+It was a per-field exemption from an occupancy expectation that no longer exists. `ears-to-hear`
+already carries the distinction in a nullability rule (`schema-requirements.md §5`), so declaring
+it here would have been a second encoding, able only to drift from theirs. Whether an empty value
+is legitimate is a statement about a domain.
 
-=>
+### 5. Which schema is mapped first? — **NOT OURS.**
 
-### 6. Does any of this go in 0.2.1.26?
+Once `sp` ships only the vocabulary, which schema a project maps first is that project's rollout.
+`ears-to-hear`'s suggestion — `scene-hearts.schema.json`, where their ordering defect is measured,
+paired with Bodies where the pattern is already right — is a good way to test it, and a known-bad
+case is worth more to us than a clean one. But we do not choose it for them.
 
-My recommendation is **no, with one exception.** The vocabulary is two days old, three of its four
-values were discovered by these replies, and both projects have asked for changes to the shape.
-Designing it under release pressure is how it ends up wrong.
+### 6. Which release? — **RULED: 0.2.1.27.**
 
-The exception is not a feature: **`discourse-flow`'s §1 finding is live.** Evidence arrays are
-published in an artifact `ears-to-hear` is building coverage assertions on *this month*. That
-wants a note between the two projects now, whatever happens to the mechanism.
+Not 0.2.1.26, which was in its release build when this was ruled. The Captain's reason for not
+deferring it further:
 
-=>
+> I am cleaning up cruft in general so that we can have a clean infrastructure to build on NOW,
+> before we spend the money to rebuild everything.
+
+So it ships before the rebuild it exists to support, not after it.
+
+**One item keeps its clock and is not the mechanism.** `discourse-flow`'s §1 finding: two synthesis
+anchors are published in an artifact `ears-to-hear` is building coverage assertions against *this
+month*. Nothing in 0.2.1.27 changes that and waiting for it would waste the month. Written to both
+projects on 2026-09-03 as `collab/*/2026-09-03-the-live-coupling-between-you-two.md`; the
+drop-or-keep decision is the Captain's and is in front of him.
 
 ## 9. What is not proposed
 
-- No change to `x-display`, which is `ears-to-hear`'s and adequate for what it scopes.
+- No change to `x-display`, which is `ears-to-hear`'s and adequate for what it scopes. An earlier
+  draft offered to un-conflate their `"none"`; withdrawn as overreach.
 - No change to how copy forcing works, to any prompt, or to property order — beyond making the
   existing ordering rule *stated* so it can be tested.
+- No occupancy reporting, no `empty_expected`, no severity, no audience. Each needs a judgment about
+  somebody else's data.
 - Nothing built. No role map exists; every example here is a sketch.
+
+## 10. What building it means, for 0.2.1.27
+
+In dependency order. The first item is the one that carries `discourse-flow`'s 55.2% finding, so it
+is not optional:
+
+1. **`supports` inside an array item.** Path syntax that reaches `a[].b`, and the order check over
+   it. Without this the check degrades to "some evidence exists somewhere", which is the defect it
+   exists to catch.
+2. **The declaration read and structurally validated.** Every declared path exists in the schema,
+   no path declared twice, list-valued roles over `evidence` and `content`, undefined role words
+   carried without complaint.
+3. **The order check at the top level**, which falls out of 1.
+4. **`identifies` and the coverage check** — or a decision to split it into its own declaration
+   first, per §7.
+
+Reported, never judged. A pipeline says what is fatal.
