@@ -45,18 +45,38 @@ working step and an error — check it before designing a step around a family.
 | `glosses` | built | the edition's gloss columns |
 | `referents` | built | the edition's referent columns |
 | `discourse` | built | Levinsohn's features, each with the `outcome` field described below |
-| `syntax` | not built | held deliberately — see below |
+| `syntax` | built | the constituency tree, standoff — one entry per sentence |
 
 A family emits whichever of its declared columns the edition actually has, and nothing merges
 the two systems: a Greek verb has `tense`, `voice` and `mood`; a Hebrew verb has `stem` and
 `state`. Field names are the source's column names verbatim, so any field traces back to a
 column.
 
-**Why `syntax` is held.** The cheap half of it — `frame`, one line per word — is populated on
-under a fifth of words. The other half is a nested tree roughly ten times the payload of
-everything else combined. Shipping the cheap half under the name `syntax` and adding the tree
-later would multiply every consumer's payload without their pipeline changing a character, so
-the name stays unbuilt until it means the whole thing.
+**`syntax` is the tree, and only the tree.** It was held while the name might have meant two
+things: a nested constituency tree, and `frame` — the predicate's semantic roles, one line per
+word. Shipping the cheap half under the name and adding the tree later would have multiplied every
+consumer's payload without their pipeline changing a character. `frame` now rides with
+`referents`, where it belongs — it is the semantic-role counterpart to `subjref`'s grammatical one
+— so the name means the whole thing and nothing else.
+
+**What it costs.** The tree is the largest family by a wide margin: `MRK 1:1-8` is 127 words and
+about 9,500 characters of payload. Ask for it when something downstream reads constituency, not
+by default.
+
+**`syntax` requires `ids`**, and asking for it alone raises. Its leaves are word ids, which reach
+the document as `srcloc` through `ids`; without them the payload names words the document does not
+identify, which is unusable rather than merely thinner. This is a stronger condition than the
+per-word families have, because a tree is *over* words rather than an annotation *on* one.
+
+**The payload is a list, one entry per sentence**, in the order the source states them. So "which
+subtree is a sentence" is answered by the structure rather than by a class the engine invents —
+which matters because a point of departure is defined as sentence-initial, and Mark has 726
+sentences against 4,021 clause groups.
+
+Nodes and leaves both carry `class`, the syntactic category, and `role`, the role with respect to
+the governing verb. A leaf also carries a word-level `token`. Hebrew is morpheme-based, so a word
+written in several pieces appears as several leaves naming the same word and differing in `class`
+or `role` — an article and a noun, a conjunction and a verb.
 
 ## The annotation container
 

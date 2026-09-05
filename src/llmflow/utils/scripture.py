@@ -21,6 +21,7 @@ from lxml import etree  # type: ignore[attr-defined]
 
 from llmflow.modules.logger import Logger
 from llmflow.utils import versification as _versification
+from llmflow.utils.syntax import syntax_payload
 
 logger = Logger()
 
@@ -90,8 +91,15 @@ INCLUDE_FAMILIES = ("ids", "morphology", "senses", "glosses", "referents", "disc
 #: Families with a working implementation. The rest are named vocabulary, and asking for one
 #: raises rather than returning a document with the payload quietly missing.
 IMPLEMENTED_FAMILIES = frozenset(
-    {"ids", "discourse", "morphology", "senses", "glosses", "referents"}
+    {"ids", "discourse", "morphology", "senses", "glosses", "referents", "syntax"}
 )
+
+#: Families whose payload references words by id and so cannot be read without them. Stronger
+#: than the per-word rule: `syntax` is a tree *over* words rather than an annotation *on* one, so
+#: `per_word: true` would be the wrong way to reach the same requirement (§4.5). Without `ids`
+#: nothing in the document carries the `srcloc` its leaves point at, and the payload is unusable
+#: rather than merely thinner.
+FAMILIES_NEEDING_IDS = frozenset({"syntax"})
 
 #: The one key holding everything USJ has no place for. A consumer wanting standard USJ
 #: removes this key and is done; an extension anywhere else is one nobody could find.
@@ -430,6 +438,17 @@ def check_include(include: Any, fmt: str) -> tuple:
             f"include {unbuilt} is not implemented yet; available: "
             f"{', '.join(sorted(IMPLEMENTED_FAMILIES))}."
         )
+
+    if "ids" not in families:
+        needs_ids = sorted(f for f in families if f in FAMILIES_NEEDING_IDS)
+        if needs_ids:
+            raise ValueError(
+                f"include {needs_ids} references words by id and needs `ids` beside it — "
+                f"write `include: [ids, {', '.join(needs_ids)}]`. Without it no word in the "
+                f"document carries the `srcloc` the payload points at, so the payload names "
+                f"words the document does not identify."
+            )
+
     return families
 
 
@@ -440,13 +459,19 @@ def rows_to_output(
     include: Sequence[str] = (),
     versification: Optional[str] = None,
     discourse: Optional[list] = None,
+    syntax: Optional[list] = None,
 ) -> str | dict:
     """The requested representation of *rows*: a string, or a USJ document for ``fmt="usj"``."""
     if fmt not in FORMATS:
         raise ValueError(f"unknown format {fmt!r}; expected one of {', '.join(FORMATS)}")
     if fmt == "usj":
         return rows_to_usj(
-            rows, book=book, include=include, versification=versification, discourse=discourse
+            rows,
+            book=book,
+            include=include,
+            versification=versification,
+            discourse=discourse,
+            syntax=syntax,
         )
     return rows_to_text(rows, fmt=fmt)
 
@@ -457,6 +482,7 @@ def rows_to_usj(
     include: Sequence[str] = (),
     versification: Optional[str] = None,
     discourse: Optional[list] = None,
+    syntax: Optional[list] = None,
 ) -> dict:
     """*rows* as a USJ document: the book, a chapter node per chapter, one `para` inside each.
 
@@ -595,6 +621,8 @@ def rows_to_usj(
             )
         if "discourse" in include:
             container["discourse"] = discourse
+        if "syntax" in include:
+            container["syntax"] = syntax
         container.update(annotation)
         document[CONTAINER_KEY] = container
     return document
@@ -876,6 +904,7 @@ def _tei_passage_text(
         discourse=(
             discourse_payload(definition, rows, edition) if "discourse" in include else None
         ),
+        syntax=(syntax_payload(definition, rows, edition) if "syntax" in include else None),
     )
 
 
@@ -942,6 +971,7 @@ def edition_text(
         discourse=(
             discourse_payload(definition, rows, edition) if "discourse" in families else None
         ),
+        syntax=(syntax_payload(definition, rows, edition) if "syntax" in families else None),
     )
 
 

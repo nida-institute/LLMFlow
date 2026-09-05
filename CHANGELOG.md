@@ -4,6 +4,49 @@
 
 ### Added
 
+- **`include: [syntax]` — the constituency tree, standoff (#227).** Ruled 2026-08-31, built now.
+  Every declared `include:` family is implemented; nothing is named-but-missing.
+
+  Text and tree are two orders that cannot be reconciled — a constituent whose words are
+  interrupted by words from elsewhere is discontinuous, and 276 of Mark's 726 sentences carry an
+  inversion somewhere in traversal — so each is stated once in the order native to it. The reading
+  text stays in the USJ document; the tree sits in the container carrying no text.
+
+  **A list, one entry per sentence.** That makes "which subtree is a sentence" structural rather
+  than a class the engine invents, which is what `discourse-flow` needed: a point of departure is
+  defined as sentence-initial, and Mark has 726 sentences against 4,021 clause groups, so
+  answering that against clauses would be wrong roughly five times in six.
+
+  Nodes and leaves both carry `class` — the syntactic category — and `role`, the role with respect
+  to the governing verb. A leaf also carries a word-level `token`, and nothing further: no text,
+  because the text is in the document, and no `ref`, because a word's book, chapter and verse
+  follow from where it sits there. `rule` is not carried; it names the parser's derivation rather
+  than a fact about the constituent.
+
+  **Hebrew is morpheme-based and stays that way.** A word written in several pieces appears as
+  several leaves naming the same word and differing in `class` or `role` — 171 of Ruth 1's 172
+  multi-morpheme words differ in one or the other, `וַ` a conjunction against `יְהִ֗י` a verb.
+  Collapsing them would have destroyed the analysis. `<c>` compound words are carried as nodes
+  because they span two *words* rather than two morphemes of one; every one in Ruth 1 is
+  `בֵּית לֶחֶם`, the same compound that makes a discourse citation's index run one behind the
+  edition's.
+
+  **`syntax` requires `ids`** and raises without it — a stronger condition than the per-word
+  families have, because a tree is *over* words rather than an annotation *on* one. Its leaves are
+  word ids, which reach the document as `srcloc` through `ids`; without them the payload names
+  words the document does not identify.
+
+  An edition points at its trees with `lowfat_path`, beside `discourse_path`. Files are matched by
+  the `ref` each declares rather than by filename, since the Greek corpus names files `02-mark.xml`
+  and the Hebrew one `08-Rut-001-lowfat.xml` and neither declares a convention — 0.33s to identify
+  all 930 Hebrew files. A sentence meeting the passage is carried whole, so some tokens may name
+  words outside the rows returned: the constituency of half a sentence is not a fact about the
+  text.
+
+  It is the largest family by a wide margin — `MRK 1:1-8` is 127 words and about 9,500 characters.
+
+  `frame` is **not** part of it, and its move to `referents` is what let the name mean one thing.
+
 - **A rule can now say a gate stops the act, which two rules were already relying on and could not
   express (#230).** `enforcement` had four values, all describing *detection*: a test that fails
   today, one that could, one that could not. The strongest mechanism in use here is neither — a
@@ -124,6 +167,21 @@
   from the earlier cast.
 
 ### Fixed
+
+- **`--resume` produced an empty accumulator and reported success.** A resumed step is skipped and
+  its saved artifact loaded into its declared `output`. `_load_resume_output` never mentioned
+  `append_to`, so a step that also accumulates gained nothing: the output was set, the list stayed
+  empty, and every later step ran on nothing while the run reported success.
+
+  `--rewind-to` has refused such a step since it was written, behind a deliberate guard at
+  `utils/rewind.py:77`. `--resume` now refuses the same way, naming the accumulator that would
+  have been left empty and pointing at `--stop-after`. Nothing is written to the context before it
+  raises, so a refusal cannot leave a half-applied resume behind.
+
+  Reported by `discourse-flow`, who lost a full Mark run — 17 windows, 57 subdivisions, 128
+  pericope analyses and a synthesis — to a crash on a later step, and then found neither salvage
+  path usable. Their framing decided it: *"a resume that produces an empty accumulator is worse
+  than one that refuses, because the run appears to succeed."*
 
 - **A citation's index and its quote now resolve by a stated order, and a quote found nowhere says
   so (#230).** Three steps: the quote matches at the index, so `verified`; it matches in exactly

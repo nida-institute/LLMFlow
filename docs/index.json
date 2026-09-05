@@ -364,7 +364,7 @@
         {
           "name": "_load_resume_output",
           "signature": "_load_resume_output(step: dict, path: 'Path', context: dict) -> None",
-          "doc": "Load file content into the step's declared output variable in context."
+          "doc": "Load a saved artifact into the step's declared output, or refuse where that is not enough."
         },
         {
           "name": "run_step",
@@ -2828,6 +2828,56 @@
       ]
     },
     {
+      "module": "llmflow.utils.syntax",
+      "imports": [
+        "__future__",
+        "llmflow.utils.discourse",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "_localname",
+          "signature": "_localname(element: Any) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_leaf",
+          "signature": "_leaf(element: Any) -> Optional[dict]",
+          "doc": "One terminal — a Greek word or a Hebrew morpheme — or None where it names no id."
+        },
+        {
+          "name": "_node",
+          "signature": "_node(element: Any) -> Optional[dict]",
+          "doc": "A group as a node with its children, or a leaf as a token. None where neither."
+        },
+        {
+          "name": "_first_ref",
+          "signature": "_first_ref(path: Any) -> Optional[str]",
+          "doc": "The first `ref` a file declares, read without parsing the rest of it."
+        },
+        {
+          "name": "lowfat_files_for",
+          "signature": "lowfat_files_for(directory: Any, book: str) -> list",
+          "doc": "Every Lowfat file in *directory* whose content is *book*, in name order."
+        },
+        {
+          "name": "sentence_covers",
+          "signature": "sentence_covers(sentence: Any, word_ids: Any) -> bool",
+          "doc": "Whether any terminal of *sentence* is one of *word_ids*."
+        },
+        {
+          "name": "sentences_from_lowfat",
+          "signature": "sentences_from_lowfat(root: Any) -> list",
+          "doc": "Every `<sentence>` under *root* as a payload entry, in the order the file states them."
+        },
+        {
+          "name": "syntax_payload",
+          "signature": "syntax_payload(definition: Any, rows: Any, edition: str) -> Optional[list]",
+          "doc": "The trees covering *rows*, or None where this edition names no Lowfat source."
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.file_io",
       "imports": [
         "csv",
@@ -3282,6 +3332,7 @@
         "json",
         "llmflow.modules.logger",
         "llmflow.utils",
+        "llmflow.utils.syntax",
         "lxml",
         "pathlib",
         "re",
@@ -3380,12 +3431,12 @@
         },
         {
           "name": "rows_to_output",
-          "signature": "rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None) -> str | dict",
+          "signature": "rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None) -> str | dict",
           "doc": "The requested representation of *rows*: a string, or a USJ document for ``fmt=\"usj\"``."
         },
         {
           "name": "rows_to_usj",
-          "signature": "rows_to_usj(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None) -> dict",
+          "signature": "rows_to_usj(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None) -> dict",
           "doc": "*rows* as a USJ document: the book, a chapter node per chapter, one `para` inside each."
         },
         {
@@ -4808,7 +4859,7 @@
     }
   ],
   "summary": {
-    "total_modules": 83,
-    "total_functions": 758
+    "total_modules": 84,
+    "total_functions": 766
   }
 }

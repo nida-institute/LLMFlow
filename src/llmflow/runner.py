@@ -44,6 +44,7 @@ from llmflow.utils.step_outputs import handle_step_outputs
 #: Guarded by `tests/test_runner_reexports.py`.
 __all__ = [
     "_MISSING",
+    "_load_resume_output",
     "get_from_context",
     "handle_step_outputs",
     "load_pipeline_config",
@@ -265,7 +266,28 @@ def _resolve_saveas_path_for_resume(step: dict, context: dict) -> "Path | None":
 
 
 def _load_resume_output(step: dict, path: "Path", context: dict) -> None:
-    """Load file content into the step's declared output variable in context."""
+    """Load a saved artifact into the step's declared output, or refuse where that is not enough.
+
+    A step that also appends cannot be resumed this way: the artifact becomes the `output` and the
+    accumulator gains nothing, so every later step runs on an empty list and **the run reports
+    success**. That is worse than refusing, because the failure has no symptom — `discourse-flow`
+    lost a full Mark run and found the salvage path would have produced an empty book.
+
+    `--rewind-to` already refuses such a step, at `utils/rewind.py:77`. This is the same refusal on
+    the other path, and nothing is written to the context before raising.
+    """
+    append_to = step.get("append_to")
+    if append_to:
+        name = step.get("name", "unnamed")
+        raise StepRewindError(
+            f"Step '{name}' appends to '{append_to}', which --resume cannot restore: loading the "
+            f"saved artifact would set its output and leave '{append_to}' empty, so the steps "
+            f"after it would run on nothing and the run would report success. Re-run the step, "
+            f"or use --stop-after to keep what is already saved.",
+            step_name=name,
+            context=context,
+        )
+
     content = path.read_text(encoding="utf-8")
     outputs = step.get("output")
     if isinstance(outputs, str):

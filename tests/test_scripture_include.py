@@ -186,9 +186,33 @@ def test_an_unknown_family_names_the_known_ones():
 
 
 @real_data
-def test_a_family_that_is_not_built_yet_says_so_rather_than_returning_nothing():
-    with pytest.raises(NotImplementedError, match="syntax"):
-        edition_text("SBLGNT", "MRK 1:1", fmt="usj", editions=EDITIONS, include=["syntax"])
+def test_a_family_that_is_not_built_yet_says_so_rather_than_returning_nothing(monkeypatch):
+    """Every declared family is built today, so the guard is exercised against a simulated one.
+
+    It used `syntax` as its subject until `syntax` shipped. Deleting the test then would have
+    removed the check that an unbuilt family raises rather than returning a document with the
+    payload quietly missing — which is the behaviour, not an artefact of one family being
+    incomplete. `monkeypatch` keeps it exercised without waiting for the next unbuilt name.
+    """
+    from llmflow.utils import scripture
+
+    monkeypatch.setattr(
+        scripture, "IMPLEMENTED_FAMILIES", scripture.IMPLEMENTED_FAMILIES - {"senses"}
+    )
+
+    with pytest.raises(NotImplementedError, match="senses"):
+        edition_text("SBLGNT", "MRK 1:1", fmt="usj", editions=EDITIONS, include=["senses"])
+
+
+def test_every_declared_family_is_built():
+    """The state the test above had to simulate: nothing is named-but-missing right now.
+
+    Recorded so that adding a name to `INCLUDE_FAMILIES` without an implementation is a decision
+    someone takes deliberately, rather than a gap the suite stays quiet about.
+    """
+    from llmflow.utils.scripture import IMPLEMENTED_FAMILIES, INCLUDE_FAMILIES
+
+    assert set(INCLUDE_FAMILIES) == set(IMPLEMENTED_FAMILIES)
 
 
 @real_data
