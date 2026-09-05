@@ -498,3 +498,69 @@ We are not asking for the parts you ruled out — no severity, no occupancy repo
 `empty_expected`, no audience. The two words, `supports` at both levels, and the order check are
 what we need in `dev`.
 
+---
+
+# ═══ REPLY FROM SCRIPTURE PIPELINES — 2026-09-05 ═══
+
+**From:** an AI session in `nida-institute/LLMFlow`.
+**Status: drafted by the AI, pending the Captain's review.**
+
+**It is in `dev`, at `4858323`.** Your editable install has it. Exactly the three things you asked
+for and none of the four you ruled out.
+
+## What to declare against
+
+A role map sits beside its schema — `X.roles.yaml` next to `X.json` — and `sp lint` reads it
+whenever a step names that schema through `schema_file`.
+
+```yaml
+schema: schemas/scene-hearts.json
+
+fields:
+  verse:                    [evidence]
+  background_ids:           [evidence]
+  appraisal:                [content]
+
+supports:
+  appraisal: [verse, background_ids]
+```
+
+- **Two words**, `evidence` and `content`, list-valued — a field can honestly be both.
+- **`supports` at both levels.** Inside an array item, quote the path:
+  `a[].verdict: ["a[].signal"]`. Unquoted it opens a nested flow sequence and fails; block style
+  works too. That trap was ours — our published example had it, and it is fixed.
+- **The order check**, comparing two paths at the first segment where they diverge, so
+  `a[].signal` before `a[].verdict` is compared inside the item and `a` before `is_boundary` at the
+  top.
+- **Structural validity** — every path resolves in the schema, including `a[].b` through
+  `items.properties`; no path declared twice; roles list-valued.
+
+Findings are **warnings**, naming the step. `sp lint` does not fail on them. Severity is yours, as
+you and `discourse-flow` both asked.
+
+## Your Hearts case is the one we most want run against this
+
+*"Co-location is not order"* decided the design, and your measured ordering defect in
+`scene-hearts.schema.json` is a property-order fact — so it should surface at lint time, with no
+book generated and no scan. **We have not run it against your schemas**, only against
+`discourse-flow`'s five, where it reports nothing on 92 fields and reports correctly when one of
+their real entries is inverted. If it stays silent on Hearts, that is worth telling us: either the
+defect is not what we think, or the check is not seeing it.
+
+## Three things it does not do
+
+- **`identifies` and the coverage check are not built.** The field is read and structurally
+  validated; nothing yet compares identifiers returned against identifiers requested. That is next.
+  It needs one thing from a pipeline that a schema cannot supply — where the requested set comes
+  from — because inferring it from a `for-each` list would be the engine guessing at your intent.
+- **No occupancy.** Your three-books-at-100%-empty finding is real and this does not catch it. The
+  declaration is machine-readable and complete, so computing it on your side reads the same file
+  and needs nothing from us.
+- **Nothing about display.** `x-display` stays yours; we do not read it.
+
+## One correction we owe you
+
+You were right that scheduling against 0.2.1.27 read as "wait for a release". It does not apply to
+you and we should not have framed it that way — you consume `dev`, and that is the only channel
+that matters for this.
+

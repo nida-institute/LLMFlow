@@ -83,6 +83,41 @@ def test_greek_is_unchanged():
     )
 
 
+def test_a_maqqef_separates_words_in_a_quote_as_it_does_in_the_edition():
+    """Hebrew joins words with a maqqef, and Macula holds the mark in `after`, not in `text`.
+
+    A citation writes it attached — `בֶן־ אֲמִתַּ֖י` — so a quote comparing `בן־` against Macula's
+    `בן` fails on every maqqef-joined word. Splitting the quote there reads the edition's own
+    model: the WLC registration states that `after` carries the space, maqqef and sof pasuq, so
+    word joining is data rather than logic.
+
+    Measured on Jonah 1: every one of its fifteen unresolved citations was this, and the passage
+    goes to 100%.
+    """
+    rows = [
+        {"ref": "JON 1:1!5", "xml:id": "o320010010051", "text": "יוֹנָ֥ה"},
+        {"ref": "JON 1:1!6", "xml:id": "o320010010061", "text": "בֶן"},
+        {"ref": "JON 1:1!7", "xml:id": "o320010010071", "text": "אֲמִתַּ֖י"},
+    ]
+    resolution = resolve_citation(rows, 2, "בֶן־ אֲמִתַּ֖י")
+
+    assert resolution.outcome is Outcome.VERIFIED, (
+        f"the quote names words 6-7 with a maqqef between them, got {resolution.outcome.value}"
+    )
+    assert resolution.word_id == "o32001001006", "the word, with the part digit dropped"
+
+
+def test_a_maqqef_with_no_space_after_it_also_separates():
+    """`כל־הארץ` is two words in the edition, written as one string in a quote."""
+    rows = [
+        {"ref": "GEN 1:1!1", "xml:id": "o01001001011", "text": "כָּל"},
+        {"ref": "GEN 1:1!2", "xml:id": "o01001001021", "text": "הָאֶָרֶץ"},
+    ]
+    resolution = resolve_citation(rows, 1, "כָּל־הָאֶָרֶץ")
+
+    assert resolution.outcome is Outcome.VERIFIED
+
+
 def test_a_note_anchors_to_a_word_too():
     """A note carries no quote, so it is anchored at its index — which counts words.
 

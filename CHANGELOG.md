@@ -125,6 +125,47 @@
 
 ### Fixed
 
+- **A citation's index and its quote now resolve by a stated order, and a quote found nowhere says
+  so (#230).** Three steps: the quote matches at the index, so `verified`; it matches in exactly
+  one other place, so the id is **that** word, reported as `disagrees` with `index` unchanged and
+  `resolved_index` saying where it landed; it matches nowhere, so **both facts are reported** — the
+  id is the index's word, because it is the only address there is, and the outcome is `not_found`,
+  because nothing in the verse supports it.
+
+  The third step corrects a real dishonesty. Those citations previously reported `disagrees` and
+  handed back the index's word as though it were resolved — **39 across nine passages**, presenting
+  an unverified word as a settled one.
+
+  The second reverses a previous ruling that a usable index is never moved. An index is an address
+  in a text this engine does not hold: Levinsohn numbered words in NA27 and BHS under his own
+  grammatical analysis, Macula numbers its own text under its own, and `מִבֵּ֧ית לֶ֣חֶם` is one
+  place name to the first and two space-separated words to the second. From that word on, the two
+  numberings differ by one — which is exactly where `RUT 1:1`'s failures begin. The quote is the
+  text this engine does hold, so where it is unambiguous it decides. **100% agreement between two
+  independently produced editions was never available**, in either language, which is also why
+  Greek sits at 94–100%.
+
+  **What this costs, stated rather than buried.** `Main clauses` index where a clause begins,
+  conjunction included, while quoting the clause's first substantive word — so there the index is
+  the word to trust, and a consumer who moved boundaries on the quote once relocated 84 of them.
+  Under the chain those ids move to the constituent: **8 of 626 citations across MRK 1–3, 1JN 1 and
+  PHM 1, five of them `Main clauses`**. Nothing is lost, since `index`, `resolved_index`,
+  `quote_found_at` and `outcome` are all in the payload, but the default changed.
+
+  Detecting that case in the engine was attempted and abandoned: the obvious discriminator, the
+  word at the index being a conjunction, separates nothing — in Hebrew it is a preposition, a noun
+  or a conjunction. The corpus declares `type` empty in all 33 files, and `level` is nesting depth.
+  Hardcoding feature names would assert a convention the corpus does not state.
+
+- **A maqqef in a quote stopped it matching the text it named (#230).** Hebrew joins words with a
+  maqqef, and Macula holds the mark in `after`, not in the word's `text` — the WLC registration
+  states it: *"`after` carries the space, maqqef and sof pasuq, so word joining is data rather than
+  logic."* A citation writes it attached, `בֶן־ אֲמִתַּ֖י`, so comparing `בן־` against Macula's
+  `בן` failed on every maqqef-joined word.
+
+  Splitting the quote at the maqqef reads the edition's own model. **Jonah 1 went from 96% to
+  100%** — every one of its unresolved citations was this.
+
 - **A Hebrew discourse citation resolved against the wrong word, and 85–99% of them failed
   (#230).** `resolve_citation` matched Levinsohn's 1-based index against *row position*. That is
   right for Macula Greek, which has exactly one row per word, and wrong for Macula Hebrew, where a

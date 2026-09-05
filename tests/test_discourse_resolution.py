@@ -115,16 +115,23 @@ def test_a_multi_word_quote_verifies_across_words():
     assert got.word_id == "n002"
 
 
-def test_a_usable_index_is_kept_even_when_the_quote_points_elsewhere():
-    """The trap: Main clauses index the clause onset and quote the constituent.
+def test_an_unambiguous_quote_decides_and_the_index_is_still_reported():
+    """Step 2 of the chain: the index did not match, the quote matched once, so the quote decides.
 
-    Mark 1:14 indexes `Καὶ` and quotes `μετὰ`. Moving the index on that basis relocated 84
-    clause boundaries in a consumer's corrected pass.
+    Mark 1:14 is the case that argues both ways. `Main clauses` index the clause onset and quote a
+    constituent inside it, so there the index is the word to trust — and nothing in the corpus
+    says which features behave that way, so the engine reports both rather than guessing:
+    `word_id` from the quote, `index` unchanged, `quote_found_at` saying where it landed.
+
+    Against it: wherever two editions count words differently the index names the neighbour, which
+    was 86 of 124 disagreements across six Hebrew passages. The engine cannot tell those apart, so
+    it states what each source said and leaves the choice to whoever knows the feature.
     """
     got = resolve_citation(rows("Καὶ", "μετὰ", "τὸ"), 1, "μετὰ")
     assert got.outcome is Outcome.DISAGREES
-    assert got.word_id == "n001", "the index must not move"
-    assert got.index == 1
+    assert got.word_id == "n002", "the word the quote names"
+    assert got.index == 1, "the citation's own index, unchanged"
+    assert got.resolved_index == 2
     assert got.quote_found_at == 2, "where the quote is, as information"
 
 

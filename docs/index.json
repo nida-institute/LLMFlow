@@ -2773,7 +2773,7 @@
         {
           "name": "_phrase",
           "signature": "_phrase(quote: Optional[str]) -> list[str]",
-          "doc": ""
+          "doc": "A quote as the words it names, split where the edition separates words."
         },
         {
           "name": "_word_index",

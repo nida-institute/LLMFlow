@@ -190,8 +190,22 @@ def parse_osis_ref(
     return (book, chapter, verse, int(match.group("index")), end)
 
 
+#: Hebrew joins words with a maqqef, and Macula treats it as a separator: the mark travels in the
+#: `after` column and the `text` of a joined word carries none of it. A citation's quote writes it
+#: attached — `בֶן־ אֲמִתַּ֖י` — so comparing quote to text fails on every maqqef-joined word unless
+#: the quote is split there too. The WLC registration states the model: "`after` carries the space,
+#: maqqef and sof pasuq, so word joining is data rather than logic."
+MAQQEF = "־"
+
+
 def _phrase(quote: Optional[str]) -> list[str]:
-    return [w for w in (normalize_greek(part) for part in (quote or "").split()) if w]
+    """A quote as the words it names, split where the edition separates words.
+
+    Whitespace and maqqef both separate. Splitting on the maqqef is reading Macula's own data
+    model rather than adjusting for a quirk: the mark is a separator there, held in `after`.
+    """
+    spaced = (quote or "").replace(MAQQEF, " ")
+    return [w for w in (normalize_greek(part) for part in spaced.split()) if w]
 
 
 def _word_index(row: Mapping[str, Any]) -> Optional[str]:
@@ -273,11 +287,22 @@ def resolve_citation(
 ) -> Resolution:
     """Reconcile one citation's index with its quote against one verse's rows.
 
-    *word_index* is Levinsohn's 1-based index; *rows* are the verse's words in document order,
+    *word_index* is the citation's 1-based index; *rows* are the verse's words in document order,
     each carrying `xml:id` and `text`.
 
-    A usable index is never moved. Only an impossible one is rescued, and only when the quote
-    appears exactly once.
+    **The index first, then the quote, then neither.** In order:
+
+    1. the quote matches at the index — `verified`, and the id is that word;
+    2. it does not, and matches in exactly one other place — the id is *that* word, reported as
+       `disagrees` with `resolved_index` saying where it landed. Two independently produced
+       datasets disagree about what a word is, so an index is an address in a text this engine
+       does not hold while the quote is the text it does;
+    3. it matches nowhere — **both facts are reported**: the id is the index's word, because it is
+       the only address there is, and the outcome is `not_found`, because nothing in the verse
+       corroborates it. An id without that outcome would present an unverified word as resolved.
+
+    Several matches decide nothing, so the index keeps the word and the count is reported. An index
+    out of range with a unique quote is `rescued`, which is step 2 reached from the other side.
     """
     words, identifiers = _words(rows)
     phrase = _phrase(quote)
@@ -297,14 +322,37 @@ def resolve_citation(
 
     found = _positions(words, phrase)
 
+    if in_range and len(found) == 1:
+        # The index did not match and the quote does, in one place. Two independently produced
+        # datasets disagree about what a word is — `מִבֵּ֧ית לֶ֣חֶם` is one place name to a
+        # discourse corpus and two space-separated words to Macula — so an index is an address in
+        # a text this engine does not hold while the quote is the text it does. The disagreement
+        # stays visible as `disagrees`, with `resolved_index` saying where it landed.
+        return Resolution(
+            Outcome.DISAGREES,
+            identifier(found[0]),
+            word_index,
+            found[0] + 1,
+            candidates=1,
+            quote_found_at=found[0] + 1,
+        )
+
+    if in_range and not found:
+        # Neither corroborates the other: the index's word is not the quote, and the quote is
+        # nowhere in the verse. Both facts are reported — the id is the index's word, because it
+        # is the only address there is, and the outcome says the quote was not found, because
+        # nothing here supports it. Returning the id without the outcome would present an
+        # unverified word as a resolved one.
+        return Resolution(Outcome.NOT_FOUND, identifier(position), word_index, word_index)
+
     if in_range:
+        # Several matches decide nothing, so the index keeps the word and the count is reported.
         return Resolution(
             Outcome.DISAGREES,
             identifier(position),
             word_index,
             word_index,
             candidates=len(found),
-            quote_found_at=(found[0] + 1) if len(found) == 1 else None,
         )
     if len(found) == 1:
         return Resolution(Outcome.RESCUED, identifier(found[0]), word_index, found[0] + 1)
