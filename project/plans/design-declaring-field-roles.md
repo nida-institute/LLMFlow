@@ -177,10 +177,12 @@ draft could not express:
 
 ```yaml
 supports:
-  levinsohn_signals_to_cite[].verdict: [levinsohn_signals_to_cite[].signal]
+  levinsohn_signals_to_cite[].verdict: ["levinsohn_signals_to_cite[].signal"]
   rhetorical_features:                 [levinsohn_signals_to_cite]
   is_boundary:                         [verse, greek_quoted, feature_type]
 ```
+
+A path used as a value is quoted; see §7 for why, and for the block-style alternative.
 
 The check: for every entry, each supporting path must appear **earlier in property order** than
 the path it supports, at the same nesting level. That is one statement, generic over every schema,
@@ -287,13 +289,31 @@ fields:
   rhetorical_features:                 [content]
 
 supports:
-  levinsohn_signals_to_cite[].verdict: [levinsohn_signals_to_cite[].signal]
+  levinsohn_signals_to_cite[].verdict: ["levinsohn_signals_to_cite[].signal"]
   rhetorical_features:                 [levinsohn_signals_to_cite]
   is_boundary:                         [verse, greek_quoted]
 
 identifies:
   segments[]: canonical_reference
 ```
+
+**A path used as a value must be quoted.** An earlier version of this example was not, and did not
+parse — `discourse-flow` copied it and four of their five maps failed with
+`ParserError: while parsing a flow sequence`, reported 2026-09-04. The cause is YAML rather than
+anything about roles: inside a flow sequence, the `[` of `[]` opens a nested sequence.
+
+| construct | parses |
+|---|---|
+| `a[].b: evidence` — array path as a **key** | yes — YAML reads a plain scalar up to the colon |
+| `a[].b: [evidence, content]` — a role list | yes |
+| `a[].v: [a[].s]` — array path as an unquoted **value** | **no** |
+| `a[].v: ["a[].s"]` | yes |
+| `a[].v:` then `- a[].s` — block style | yes |
+
+So only `supports` and `identifies` values need the quotes, and only when the path reaches into an
+array. Block style is equally valid and may read better for a long list. The reader must accept
+both, and the structural check should say *"quote paths used as values"* when a map fails to parse,
+because that error message is otherwise about flow sequences and tells nobody what to do.
 
 That is the whole vocabulary: two role words, a list per field, `supports`, `identifies`. Nine
 lines of declaration for a schema with three anchors.

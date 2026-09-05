@@ -100,6 +100,53 @@
       ]
     },
     {
+      "module": "llmflow.field_roles",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "pathlib",
+        "re",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "_duplicate_keys",
+          "signature": "_duplicate_keys(text: str) -> tuple",
+          "doc": "Keys repeated within one block, which the parser would silently collapse to the last."
+        },
+        {
+          "name": "load_role_map",
+          "signature": "load_role_map(path: Any) -> RoleMap",
+          "doc": "Read a `.roles.yaml`, refusing the one YAML trap this syntax walks into."
+        },
+        {
+          "name": "_properties",
+          "signature": "_properties(node: Any) -> Mapping[str, Any]",
+          "doc": ""
+        },
+        {
+          "name": "resolve_path",
+          "signature": "resolve_path(path: str, schema: Mapping[str, Any]) -> Optional[list]",
+          "doc": "Each segment's position among its siblings, or None where the path is not in *schema*."
+        },
+        {
+          "name": "validate_structure",
+          "signature": "validate_structure(roles: RoleMap, schema: Mapping[str, Any]) -> list",
+          "doc": "Findings about the declaration itself, in reading order. Empty when it is sound."
+        },
+        {
+          "name": "check_order",
+          "signature": "check_order(roles: RoleMap, schema: Mapping[str, Any]) -> list",
+          "doc": "Findings where evidence is generated after the claim it supports. Empty when order holds."
+        },
+        {
+          "name": "_precedes",
+          "signature": "_precedes(supporting: Sequence[int], supported: Sequence[int]) -> bool",
+          "doc": "Whether *supporting* is generated before *supported*, comparing where they diverge."
+        }
+      ]
+    },
+    {
       "module": "llmflow.cli_utils",
       "imports": [
         "click",
@@ -2720,13 +2767,28 @@
         },
         {
           "name": "parse_osis_ref",
-          "signature": "parse_osis_ref(osis_ref: str) -> tuple[str, int, int, int]",
-          "doc": "`Mark.1.14!3` as (USFM book, chapter, verse, 1-based word index)."
+          "signature": "parse_osis_ref(osis_ref: str) -> tuple[str, int, int, int, Optional[tuple[str, int, int, int]]]",
+          "doc": "`Mark.1.14!3` as (USFM book, chapter, verse, opening index, closing reference or None)."
         },
         {
           "name": "_phrase",
           "signature": "_phrase(quote: Optional[str]) -> list[str]",
           "doc": ""
+        },
+        {
+          "name": "_word_index",
+          "signature": "_word_index(row: Mapping[str, Any]) -> Optional[str]",
+          "doc": "The `!N` of a row's `ref`, or None when it carries none."
+        },
+        {
+          "name": "_word_identifier",
+          "signature": "_word_identifier(row: Mapping[str, Any], index: str) -> Optional[str]",
+          "doc": "A row's `xml:id` addressed at the word rather than the morpheme."
+        },
+        {
+          "name": "_words",
+          "signature": "_words(rows: Sequence[Mapping[str, Any]]) -> tuple[list[str], list[Optional[str]]]",
+          "doc": "One text and one word-level id per *word*, in document order."
         },
         {
           "name": "_matches_at",
@@ -2752,6 +2814,11 @@
           "name": "resolve_verse",
           "signature": "resolve_verse(citations: Sequence[Citation], rows: Sequence[Mapping[str, Any]]) -> list",
           "doc": "One verse's citations as payload items, each carrying the word id and the outcome."
+        },
+        {
+          "name": "__post_init__",
+          "signature": "__post_init__(self) -> None",
+          "doc": "A bare `end_index` closes in the opening verse, which is the common span."
         },
         {
           "name": "identifier",
@@ -3056,6 +3123,11 @@
           "name": "validate_model_parameters",
           "signature": "validate_model_parameters(all_steps, pipeline_config)",
           "doc": "Validate that LLM parameters are compatible with the model being used."
+        },
+        {
+          "name": "_check_role_map",
+          "signature": "_check_role_map(schema_path, schema, step_name, warnings) -> None",
+          "doc": "Run the role-map checks where a map sits beside the schema, and report what they find."
         },
         {
           "name": "validate_structured_output_schemas",
@@ -4736,7 +4808,7 @@
     }
   ],
   "summary": {
-    "total_modules": 82,
-    "total_functions": 746
+    "total_modules": 83,
+    "total_functions": 758
   }
 }

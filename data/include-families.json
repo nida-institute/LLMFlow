@@ -47,7 +47,7 @@
     },
     "referents": {
       "purpose": "Participant reference, the strongest cohesion signal above the clause.",
-      "columns": ["referent", "participantref", "subjref"],
+      "columns": ["referent", "participantref", "subjref", "frame"],
       "per_word": true
     },
     "discourse": {
@@ -65,6 +65,7 @@
   "notes": {
     "lang": "Hebrew only, and not strictly morphology — it distinguishes Hebrew from Aramaic, which selects a different paradigm, so it travels with the analysis that depends on it.",
     "usx_attributes": "`lemma` and `strong` are attributes USX already defines on a `char` element with marker `w`, so they go there rather than into the container. The list gives the source columns that fill each, in order of preference: Greek names its Strong's column `strong`, Hebrew names it `strongnumberx`. These two are the only renames anywhere in this file, and they exist because the destination is spec-defined.",
-    "not_carried": "`morph` (packed duplicate), `normalized` and `transliteration` (alternative forms of `text`), `frame` (syntactic frame, belongs with `syntax`), `greek` and `greekstrong` (Hebrew-to-Greek alignment, not a property of the Hebrew word), `stronglemma` (a lemma spelling of the Strong's entry), `mandarin` is carried under `glosses` alongside `english`."
+    "not_carried": "`morph` (packed duplicate), `normalized` and `transliteration` (alternative forms of `text`), `greek` and `greekstrong` (Hebrew-to-Greek alignment, not a property of the Hebrew word), `stronglemma` (a lemma spelling of the Strong's entry), `mandarin` is carried under `glosses` alongside `english`.",
+    "frame": "Carried under `referents`. It was listed as not carried, on the grounds that a syntactic frame belongs with `syntax` — filed before `include: [syntax]` was ruled standoff. The `syntax` payload is the constituency tree with leaves carrying only references, so a per-word attribute cannot ride in it: in Lowfat terms `syntax` is the `wg` tree and `frame` is an `m` leaf attribute. Families are organised by form, and `frame` is the semantic-role counterpart to `subjref`'s grammatical one — they come apart at a passive whose subject is the undergoer, where `subjref` reads no change and `A0` against `A1` states one. Present in both corpora."
   }
 }

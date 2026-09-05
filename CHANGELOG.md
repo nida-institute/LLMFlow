@@ -2,6 +2,198 @@
 
 ## Unreleased
 
+### Added
+
+- **A rule can now say a gate stops the act, which two rules were already relying on and could not
+  express (#230).** `enforcement` had four values, all describing *detection*: a test that fails
+  today, one that could, one that could not. The strongest mechanism in use here is neither — a
+  `PreToolUse` hook or an `ask` entry in the operator's permissions refuses the act or puts it in
+  front of a human **before it happens**. Rules held that way were recorded as `judgment`, the
+  weakest value, because the vocabulary had no word for them.
+
+  `enforcement: gated` and `scope: harness` are that word, and the generated rules document leads
+  with them — prevention above detection, judgment last.
+
+  | rule | was | gated by |
+  |---|---|---|
+  | `issues-need-approval` | `judgment` | `Bash(gh issue create:*)` |
+  | `commit-authority` | `guardable` | `Bash(git push:*)`, `Bash(gh pr merge:*)` |
+
+  **A gate is not verifiable from this repository**, and the value says so rather than hiding it:
+  it lives in the operator's environment, so on an unconfigured machine those rules are `judgment`
+  like any other. `guard:` names a file the tests open; `gate:` names something they take on trust,
+  which is why a `gated` rule must name it — a reader can then check their own configuration.
+
+- **New rule `declared-not-inferred`.** Rely on a published format, on a declaration this project
+  maintains, or on a measurement anyone can re-derive; not on the file tree, a directory layout, a
+  naming convention, how often a value occurs, or a mechanism that merely sounds plausible. A
+  hand-kept list is not a declaration — it is an inference about one, and it drifts.
+
+  The general form of three separate rulings, with the worked cases in
+  `project/plans/design-what-the-engine-may-rely-on.md`, including the four inferences that
+  produced wrong answers in two days: the file tree read as a specification, a plausible mechanism
+  that measurement refused, a frequency described as a failure rate before that was established,
+  and assuming what a value means to whoever receives it.
+
+### Fixed
+
+- **`reference-data-is-json` said no test held it while its test was passing.** Classified
+  `guardable` — "a test is possible and nobody has written it" — with
+  `tests/test_reference_data_is_json.py` in the repository and a CHANGELOG entry saying the rule was
+  enforced. So the file told every session the rule depended on attention.
+
+  The classification checks had run one direction only: a rule *claiming* a guard must name one
+  that exists. Nothing asked the reverse. `test_a_rule_whose_test_exists_is_not_still_called_guardable`
+  now derives the correspondence — a rule id maps to `tests/test_<id>.py` with dashes as
+  underscores — so writing the obvious test and forgetting to reclassify is a red test. It is a
+  floor rather than a ceiling: `lxml-for-xml` is guarded by `test_lxml_not_elementtree.py`, which
+  the pattern cannot see.
+
+### Added
+
+- **Copy forcing: a field's role is declared, and two checks read it (#230).** A role map sits
+  beside its schema — `X.roles.yaml` next to `X.json` — and says which fields are `evidence`,
+  copied from the input so the model attends to it before deciding, and which are `content`, the
+  thing the pipeline exists to produce. `supports` states which evidence backs which claim.
+
+  ```yaml
+  fields:
+    verse:                               [evidence]
+    opening_word_id:                     [evidence, content]
+    levinsohn_signals_to_cite[].signal:  [evidence]
+    is_boundary:                         [content]
+
+  supports:
+    levinsohn_signals_to_cite[].verdict: ["levinsohn_signals_to_cite[].signal"]
+    is_boundary:                         [verse, greek_quoted]
+  ```
+
+  Two role words, list-valued because a field can honestly be both. The role belongs to the
+  (schema, field) pair rather than to the field name: the same name is copy-forced evidence in one
+  step and payload in the next, so a project-level file could only lie about one of them.
+
+  **`sp lint` runs two checks, and neither needs a model call.**
+
+  1. **The order rule** — a supporting path must precede what it supports in schema property
+     order, because that is the order the model generates in. Checked at the top level *and*
+     inside an array item, comparing two paths at the first segment where they diverge. Evidence
+     written after its claim cannot have forced it.
+  2. **Structural validity** — every declared path exists in the schema, including `a[].b` through
+     `items.properties`; no path declared twice; roles list-valued.
+
+  This is why declaring beats inferring: `discourse-flow` found the failure the order rule catches
+  by generating seven artifacts and scanning them, and the cause was ordering — visible in the
+  schema alone. `ears-to-hear` measured the same class of defect in one of their own schemas.
+
+  **Reported, never judged.** Findings are warnings; a pipeline decides what is fatal.
+  `discourse-flow`, reconciling two of their own rules: *"`sp` computes the verdict and exposes it;
+  the pipeline says `fatal` or `report`."*
+
+  A role word the engine does not define is carried without complaint — a project may declare a
+  role of its own for a field a later step consumes and no reader sees, and these checks do not
+  touch it. A `supports` path need not appear in `fields`: what the engine needs about a field it
+  orders is its position, not a name for it.
+
+  **Not included, by ruling:** severity, occupancy reporting, `empty_expected`, audience. Each
+  needs a judgment about somebody else's data. The declaration is machine-readable and complete,
+  so a project computing any of those reads the same file.
+
+  Verified against the five role maps `discourse-flow` had already written — 92 fields, 21
+  `supports` entries, no findings — and against inverting one of their real entries, which
+  produces one. A check that reports nothing on sound input and something on unsound input is the
+  only kind worth shipping.
+
+  Unbuilt from the design: `identifies` and the coverage check, which compares identifiers
+  returned against identifiers requested and so needs a response rather than a schema.
+
+- **`frame` is carried by `include: [referents]`.** It holds the predicate's semantic roles as
+  participant ids — `A0:190230010031; A1:190230010022` — populated on about a fifth of words in
+  both corpora, and it belonged to no family, so no pipeline could ask for it.
+
+  `data/include-families.json` had listed it under `not_carried` as *"syntactic frame, belongs with
+  `syntax`"*. That was filed before `include: [syntax]` was ruled standoff: the `syntax` payload is
+  the constituency tree with leaves carrying only references, so a per-word attribute cannot ride
+  in it. In Lowfat terms `syntax` is the `wg` node tree while `frame` is an `m` leaf attribute, and
+  the families are organised by form.
+
+  `referents` is the right home because `frame` is the semantic-role counterpart to `subjref`'s
+  grammatical one, and the two come apart where a discourse boundary criterion bites: a passive
+  whose subject is the undergoer reads to `subjref` as "same participant, still the subject", and
+  the role reversal is invisible. Reported by `discourse-flow`, who found it correcting a Psalm 23
+  division — `A0` and `A1` reverse between vv. 2–3 and v4, and v6 introduces a participant absent
+  from the earlier cast.
+
+### Fixed
+
+- **A Hebrew discourse citation resolved against the wrong word, and 85–99% of them failed
+  (#230).** `resolve_citation` matched Levinsohn's 1-based index against *row position*. That is
+  right for Macula Greek, which has exactly one row per word, and wrong for Macula Hebrew, where a
+  word written with a prefix or suffix occupies several rows: Ruth 1:1 is 33 rows over 19 words, so
+  word 4 begins at row 6. Reported by `discourse-flow` while migrating to `include: [discourse]`,
+  and confirmed here before anything changed.
+
+  | | rows per word | `verified` before | after |
+  |---|---:|---:|---:|
+  | Greek `MRK 1`, `1JN 1`, `PHM 1` | 1.00 | 94–100% | unchanged |
+  | Hebrew `JON 1` | 1.62 | 1% | **96%** |
+  | Hebrew `RUT 1` | 1.58 | 2% | **85%** |
+  | Hebrew `OBA 1` | 1.51 | 5% | **91%** |
+  | Hebrew `HAG 1` | 1.53 | 7% | **87%** |
+  | Hebrew `PSA 51` | 1.66 | 10% | **87%** |
+
+  The `ref` column already carries the word index in both corpora — `RUT 1:1!4` *is* word 4 — so
+  the fix reads what the edition declares instead of inferring it from how the file is laid out. No
+  new configuration, no per-edition flag, and no knowledge of morphology.
+
+  **The word id now addresses the word.** Macula ids are `BBCCCVVVWWWP` in Hebrew and
+  `BBCCCVVVWWW` in Greek, per *MACULA Hebrew Treebank for OSHB* §2.1, where `WWW` is the word
+  index and `P` the word part. The payload had been reporting a morpheme id, so a consumer
+  highlighting it showed `הַ` rather than `הַשֹּׁפְטִ֔ים`. Dropping `P` yields the same shape Greek
+  already uses, so one format serves both languages.
+
+  A second instance of the same defect was in `resolve_verse`, which carried its own row-indexing
+  for notes: a note at index 4 anchored to the second morpheme of word 2.
+
+  **What this does not fix**, stated so it is not assumed: 79 of 521 citations in `RUT 1` still
+  report `disagrees`, and the offsets scatter — +1, +2 and −1 — with 28 having no single found
+  position. There is no further systematic cause. A maqqef hypothesis was measured and refused:
+  `RUT 1:1` has a failure at index 11 with no maqqef in the verse. `Reported Speech` at 1 verified
+  against 7 disagreeing is the one outlier worth a look.
+
+- **A citation's span was discarded, for a quarter of the corpus (#230).** `OSIS_REF` had no
+  end-capture, so `Mark.1.2!9-Mark.1.2!15` matched, consumed `Mark.1.2!9`, and dropped `!15`;
+  `Citation` carried one index and no end. Every spanning citation therefore loaded with its
+  opening word and its Greek intact, and its extent gone.
+
+  `discourse-flow` reported it for quotations — 47 in Mark carrying 0 spans, their issue #92, a
+  loss they had assumed was their own. Measured against LGNTDF, it is far wider: **13,096 of
+  52,257 citations name a span**, led by `Focus+` (2,750), `Referential PoD` (2,065),
+  `Reported Speech` (1,491) and `Situational PoD` (1,474), with `OT quotes` sixth at 644.
+
+  `Citation` now carries the closing end as a reference in its own right — book, chapter, verse,
+  word — because **657 spans close in a later verse** and some cross three
+  (`Acts.26.16!14-Acts.26.18!71`). The payload reports `end_index`, `end_verse` and, where it
+  differs, `end_chapter`; and `id_end` where this verse holds the closing word. A span closing
+  elsewhere is reported without an id rather than dropped, and rather than given an id from the
+  wrong verse's rows.
+
+  The end is stated in full whether or not it falls in the opening verse, so `None` means "no
+  span" and nothing reads a missing verse as "the same one". A `Citation` built by hand with only
+  `end_index` fills the rest from its opening, so a bare closing index cannot silently become a
+  span that closes in no verse at all.
+
+  **Breaking:** `parse_osis_ref` returns five values instead of four, the fifth being the closing
+  reference or `None`.
+
+### Changed
+
+- **The role-map example in `design-declaring-field-roles.md` §7 parses.** It did not: a path used
+  as a value inside a flow sequence opens a nested sequence, so
+  `a[].v: [a[].s]` fails with `ParserError`. `discourse-flow` copied the published example and four
+  of their five maps failed. Paths used as values are quoted now, with the parse table and the
+  block-style alternative beside them. A second broken block, which they had not hit, was found by
+  parsing every block in the document rather than only the one reported.
+
 ## 0.2.1.26 — 2026-09-03
 
 ### Added

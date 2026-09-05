@@ -75,12 +75,23 @@ def test_an_unknown_osis_book_is_reported():
 
 
 def test_a_citation_reference_is_split_into_its_parts():
-    assert parse_osis_ref("Mark.1.14!3") == ("MRK", 1, 14, 3)
+    """A single-word reference has no closing index, and reports None rather than its opening."""
+    assert parse_osis_ref("Mark.1.14!3") == ("MRK", 1, 14, 3, None)
 
 
-def test_a_range_reference_takes_its_opening():
-    """Only the opening is cited, so the closing half is not a second citation."""
-    assert parse_osis_ref("Matt.6.9!5-Matt.6.13!61") == ("MAT", 6, 9, 5)
+def test_a_span_within_one_verse_keeps_both_ends():
+    """A quarter of LGNTDF's citations name a span, and the extent is part of the citation."""
+    assert parse_osis_ref("Mark.1.2!9-Mark.1.2!15") == ("MRK", 1, 2, 9, ("MRK", 1, 2, 15))
+
+
+def test_a_span_across_verses_keeps_both_ends_too():
+    """`Matt.6.9!5-Matt.6.13!61` is the Lord's Prayer, opening in 6:9 and closing in 6:13.
+
+    The closing end is a reference in its own right, not an index into the opening verse. That
+    the resolver holds one verse's rows and so cannot address a word in another is a limit on
+    what it can give an id for — not a reason for the citation to forget where it ends.
+    """
+    assert parse_osis_ref("Matt.6.9!5-Matt.6.13!61") == ("MAT", 6, 9, 5, ("MAT", 6, 13, 61))
 
 
 def test_a_malformed_reference_is_rejected():

@@ -735,6 +735,40 @@ def validate_model_parameters(all_steps, pipeline_config):
     return errors
 
 
+def _check_role_map(schema_path, schema, step_name, warnings) -> None:
+    """Run the role-map checks where a map sits beside the schema, and report what they find.
+
+    The map is `X.roles.yaml` beside `X.json`, which is where it has to live: the role belongs to
+    the (schema, field) pair, not to the field name. The same name is copy-forced evidence in one
+    step and payload in the next, so a single project-level file could only lie about one of them.
+
+    Silence where no map exists. Most schemas declare no anchors, and a missing map is not a
+    finding — it is the common case.
+
+    Findings are warnings. The order rule is the engine's to compute and the pipeline's to price:
+    an inverted anchor is inert rather than invalid, and whether that stops a run is not something
+    this can know.
+    """
+    if schema_path.suffix != ".json":
+        return
+    map_path = schema_path.with_suffix("").with_suffix(".roles.yaml")
+    if not map_path.is_file():
+        map_path = schema_path.with_name(f"{schema_path.stem}.roles.yaml")
+    if not map_path.is_file():
+        return
+
+    from llmflow.field_roles import check_order, load_role_map, validate_structure
+
+    try:
+        roles = load_role_map(map_path)
+    except ValueError as error:
+        warnings.append(f"⚠️  Step '{step_name}': {error}")
+        return
+
+    for finding in validate_structure(roles, schema) + check_order(roles, schema):
+        warnings.append(f"⚠️  Step '{step_name}': role map {map_path.name}: {finding}")
+
+
 def validate_structured_output_schemas(all_steps, pipeline_config, warnings):
     """Check `response_format` schemas against OpenAI's strict subset (LLMFlow#196).
 
@@ -809,6 +843,9 @@ def validate_structured_output_schemas(all_steps, pipeline_config, warnings):
                 f"neither 'schema' nor 'schema_file'"
             )
             continue
+
+        if schema_file:
+            _check_role_map(_Path(schema_file), schema, step_name, warnings)
 
         strict = json_schema.get("strict") is True
         findings = check_strict_schema(schema)

@@ -25,7 +25,16 @@ EDGE_PUNCTUATION = " ,.;:·—–-()[]{}⟦⟧«»‹›\"'’‘“”·;"
 MIN_TRUNCATED_MATCH = 2
 
 #: `Mark.1.14!3`, or a range whose opening is the citation.
-OSIS_REF = re.compile(r"^(?P<book>[0-9A-Za-z]+)\.(?P<chapter>\d+)\.(?P<verse>\d+)!(?P<index>\d+)")
+#: `Mark.1.14!3`, or a span whose two ends are written in full: `Mark.1.2!9-Mark.1.2!15`.
+#:
+#: A feature anchors at one word and has no end. A quotation is a span, and `OT_quotes.xml` writes
+#: both ends — so the closing index is captured rather than discarded, which is what dropped the
+#: extent of all 691 quotations before any consumer saw them.
+OSIS_REF = re.compile(
+    r"^(?P<book>[0-9A-Za-z]+)\.(?P<chapter>\d+)\.(?P<verse>\d+)!(?P<index>\d+)"
+    r"(?:-(?:(?P<end_book>[0-9A-Za-z]+)\.(?P<end_chapter>\d+)\.(?P<end_verse>\d+)!)?"
+    r"(?P<end_index>\d+))?"
+)
 
 
 #: The document roots a discourse corpus uses. LGNTDF writes `feature`; HOTDF-LS writes
@@ -62,7 +71,14 @@ class Outcome(enum.Enum):
 
 @dataclass(frozen=True)
 class Citation:
-    """One `<reference>`: what it says, where it points, and whether it can be verified."""
+    """One `<reference>`: what it says, where it points, and whether it can be verified.
+
+    `book`, `chapter` and `verse` are the **opening** of the reference, and `load_citations` keys
+    its result on that opening. A span closing in a later verse therefore belongs to the verse it
+    starts in: `Mark.4.26!5-Mark.4.27!3` is 4:26, not 4:27. A consumer grouping by verse gets a
+    different answer if it keys on the closing end instead, which is worth knowing before the two
+    are compared.
+    """
 
     feature: str
     kind: str
@@ -72,6 +88,31 @@ class Citation:
     index: int
     text: str
     level: Optional[int] = None
+    #: The closing end where the reference names a span, all `None` where it names one word.
+    #: A span may close in a later verse — 657 of LGNTDF's do, some three verses on — so the end
+    #: is a reference in its own right rather than an index into the opening verse. The four move
+    #: together: either every one is set or none is.
+    end_book: Optional[str] = None
+    end_chapter: Optional[int] = None
+    end_verse: Optional[int] = None
+    end_index: Optional[int] = None
+
+    def __post_init__(self) -> None:
+        """A bare `end_index` closes in the opening verse, which is the common span.
+
+        `load_citations` always sets all four, so this is for a citation built by hand: giving
+        only the closing word index would otherwise leave the end unplaceable, and silently, by
+        looking like a span that closes in no verse at all.
+        """
+        if self.end_index is None:
+            return
+        for name, opening in (
+            ("end_book", self.book),
+            ("end_chapter", self.chapter),
+            ("end_verse", self.verse),
+        ):
+            if getattr(self, name) is None:
+                object.__setattr__(self, name, opening)
 
 
 @dataclass(frozen=True)
@@ -111,26 +152,101 @@ def osis_to_usfm(book: str) -> str:
     return resolved
 
 
-def parse_osis_ref(osis_ref: str) -> tuple[str, int, int, int]:
-    """`Mark.1.14!3` as (USFM book, chapter, verse, 1-based word index).
+def parse_osis_ref(
+    osis_ref: str,
+) -> tuple[str, int, int, int, Optional[tuple[str, int, int, int]]]:
+    """`Mark.1.14!3` as (USFM book, chapter, verse, opening index, closing reference or None).
 
-    A range reference keeps its opening: only that end is the citation.
+    A span gives both ends. `Mark.1.2!9-Mark.1.2!15` is words 9 through 15 of one verse;
+    `Matt.6.9!5-Matt.6.13!61` is the Lord's Prayer, opening in 6:9 and closing four verses
+    later; `Acts.26.16!14-Acts.26.18!71` crosses three. So the closing end is a reference in its
+    own right — book, chapter, verse, word — not merely an index into the opening verse.
+
+    It is stated in full whether or not it falls in the opening verse, so that `None` means
+    "no span" and nothing has to read a missing verse as "the same one".
+
+    A single-word reference reports `None`: a one-word anchor and a span of one word are not the
+    same claim.
     """
     match = OSIS_REF.match((osis_ref or "").strip())
     if not match:
         raise ValueError(
             f"{osis_ref!r} is not a Levinsohn reference (expected e.g. 'Mark.1.14!3')."
         )
-    return (
-        osis_to_usfm(match.group("book")),
-        int(match.group("chapter")),
-        int(match.group("verse")),
-        int(match.group("index")),
-    )
+
+    book = osis_to_usfm(match.group("book"))
+    chapter, verse = int(match.group("chapter")), int(match.group("verse"))
+
+    end: Optional[tuple[str, int, int, int]] = None
+    if match.group("end_index"):
+        # A bare `-15` means the same verse; a written-out end names its own.
+        end = (
+            osis_to_usfm(match.group("end_book")) if match.group("end_book") else book,
+            int(match.group("end_chapter")) if match.group("end_chapter") else chapter,
+            int(match.group("end_verse")) if match.group("end_verse") else verse,
+            int(match.group("end_index")),
+        )
+
+    return (book, chapter, verse, int(match.group("index")), end)
 
 
 def _phrase(quote: Optional[str]) -> list[str]:
     return [w for w in (normalize_greek(part) for part in (quote or "").split()) if w]
+
+
+def _word_index(row: Mapping[str, Any]) -> Optional[str]:
+    """The `!N` of a row's `ref`, or None when it carries none."""
+    ref = str(row.get("ref") or "")
+    _, marker, index = ref.partition("!")
+    return index.strip() if marker and index.strip().isdigit() else None
+
+
+def _word_identifier(row: Mapping[str, Any], index: str) -> Optional[str]:
+    """A row's `xml:id` addressed at the word rather than the morpheme.
+
+    Macula ids are `BBCCCVVVWWWP` in Hebrew and `BBCCCVVVWWW` in Greek — the same shape, with a
+    trailing **word part** where a word is written in several pieces. The format is declared in
+    *MACULA Hebrew Treebank for OSHB* §2.1: `WWW` is the word index within the verse and `P` the
+    word part. Greek carries no `P`, having no such words.
+
+    So the part is dropped when doing so leaves the id ending in this row's own word index, and
+    kept otherwise. That reads the declared format rather than guessing from length: a Hebrew
+    `…0041` becomes `…004`, and a Greek `…003` is already the word.
+    """
+    value = row.get("xml:id")
+    if not value:
+        return None
+    identifier = str(value)
+    if identifier.endswith(index.zfill(3)):
+        return identifier
+    if len(identifier) > 1 and identifier[:-1].endswith(index.zfill(3)):
+        return identifier[:-1]
+    return identifier
+
+
+def _words(rows: Sequence[Mapping[str, Any]]) -> tuple[list[str], list[Optional[str]]]:
+    """One text and one word-level id per *word*, in document order.
+
+    Macula Hebrew splits a word into morphemes, so a row is not a word: Ruth 1:1 is 33 rows over
+    19 words. A citation's index counts words, so the comparison has to as well. Where `ref`
+    carries no `!N` — any edition that is not Macula — each row stands as its own word, which is
+    what the previous behaviour did everywhere.
+    """
+    texts: list[str] = []
+    identifiers: list[Optional[str]] = []
+    current: Optional[str] = None
+
+    for row in rows:
+        index = _word_index(row)
+        text = normalize_greek(row.get("text"))
+        if index is not None and index == current:
+            texts[-1] += text
+            continue
+        texts.append(text)
+        identifiers.append(_word_identifier(row, index) if index else _word_identifier(row, ""))
+        current = index
+
+    return texts, identifiers
 
 
 def _matches_at(words: Sequence[str], phrase: Sequence[str], start: int) -> bool:
@@ -163,14 +279,13 @@ def resolve_citation(
     A usable index is never moved. Only an impossible one is rescued, and only when the quote
     appears exactly once.
     """
-    words = [normalize_greek(row.get("text")) for row in rows]
+    words, identifiers = _words(rows)
     phrase = _phrase(quote)
     position = word_index - 1
     in_range = 0 <= position < len(words)
 
     def identifier(at: int) -> Optional[str]:
-        value = rows[at].get("xml:id")
-        return str(value) if value else None
+        return identifiers[at]
 
     if not phrase:
         if in_range:
@@ -233,7 +348,7 @@ def load_citations(lgntdf_dir: Any) -> dict:
 
         for element in root.findall("references/reference"):
             try:
-                book, chapter, verse, index = parse_osis_ref(element.get("osisRef") or "")
+                book, chapter, verse, index, end = parse_osis_ref(element.get("osisRef") or "")
             except ValueError as error:
                 logger.warning(f"Discourse: {path.name}: {error}")
                 continue
@@ -248,6 +363,10 @@ def load_citations(lgntdf_dir: Any) -> dict:
                     index=index,
                     text=(element.text or "").strip(),
                     level=int(level) if level is not None and level.isdigit() else None,
+                    end_book=end[0] if end else None,
+                    end_chapter=end[1] if end else None,
+                    end_verse=end[2] if end else None,
+                    end_index=end[3] if end else None,
                 )
             )
     return found
@@ -262,12 +381,16 @@ def resolve_verse(
     A feature is reconciled against its quote. A note has no quote, so it is anchored at its
     index when that index exists and reported without one when it does not.
     """
+    # Words, not rows: a note is anchored by index like a feature, so it counts the same units.
+    # See `_words` — Macula Hebrew gives a word several rows, and this path had its own indexing.
+    _, identifiers = _words(rows)
+
     items = []
     for citation in citations:
         if citation.kind == NOTE_KIND:
             position = citation.index - 1
-            usable = 0 <= position < len(rows)
-            identifier = str(rows[position].get("xml:id")) if usable else None
+            usable = 0 <= position < len(identifiers)
+            identifier = identifiers[position] if usable else None
             outcome = Outcome.ANCHORED if usable else Outcome.OUT_OF_RANGE
             resolution = Resolution(outcome, identifier, citation.index)
         else:
@@ -282,6 +405,24 @@ def resolve_verse(
         }
         if citation.level is not None:
             item["level"] = citation.level
+        # A span states its closing end. The reference is always reported; the closing *id* only
+        # where this verse holds that word, because these rows are one verse's. A span closing
+        # in a later verse — 657 of LGNTDF's do — is reported without an id rather than dropped,
+        # which is the extent this change exists to keep, and rather than given an id from the
+        # wrong verse's rows, which would be worse than saying nothing.
+        if citation.end_index is not None:
+            item["end_index"] = citation.end_index
+            item["end_verse"] = citation.end_verse
+            if citation.end_chapter != citation.chapter:
+                item["end_chapter"] = citation.end_chapter
+            in_this_verse = (
+                citation.end_verse == citation.verse
+                and citation.end_chapter == citation.chapter
+                and citation.end_book == citation.book
+            )
+            closing = citation.end_index - 1
+            if in_this_verse and 0 <= closing < len(identifiers):
+                item["id_end"] = identifiers[closing]
         if citation.kind == NOTE_KIND:
             item["text"] = citation.text
         if resolution.resolved_index is not None and resolution.resolved_index != citation.index:

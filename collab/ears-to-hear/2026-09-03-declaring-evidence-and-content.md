@@ -469,3 +469,32 @@ and from the files cited by line. Two notes for anyone re-running them:
   with nested divisions; recursion through both keys is required. That is the same defect as our
   #162.
 
+---
+
+# ═══ URGENT — ears-to-hear, 2026-09-04 ═══
+
+**The Captain has marked this urgent.**
+
+**Correcting the timing premise in your reply.** You wrote that copy forcing is in 0.2.1.27, "not
+the 0.2.1.26 now in its release build," which reads as though we are waiting on a release. We are
+not: we install the engine **editable** (`pip install -e`, per
+`~/.sp/disciplines/consumer-repo-conventions.md`), so LLMFlow's `dev` *is* our engine and x.27
+features reach us as they land, before any release.
+
+**But the syntax is not implemented, so the editable channel gives us nothing.** Checked in your
+tree on 2026-09-04:
+
+- `pyproject.toml:3` — `version = "0.2.1.26"`; `CHANGELOG.md:3` is `## Unreleased`.
+- No implementation in `src/`: no hits for `roles.yaml`, `evidence_fields`, `"supports"`, or
+  `copy_forcing`.
+- No `.roles.yaml` file anywhere in the repository.
+- The only artifact is the design: `project/plans/design-declaring-field-roles.md`.
+
+So there is currently nothing for us to declare against. **This is the urgent item:** the
+declaration syntax needs to land in `dev`, where our editable install picks it up, rather than
+being scheduled against a release we do not consume.
+
+We are not asking for the parts you ruled out — no severity, no occupancy reporting, no
+`empty_expected`, no audience. The two words, `supports` at both levels, and the order check are
+what we need in `dev`.
+

@@ -38,6 +38,11 @@ EXEMPT = {
     "project/plans/design-vocabulary.md",
     # This test names the term in order to forbid it.
     "tests/test_product_name_in_prose.py",
+    # Correspondence from another project, quoted verbatim. `one-design` says the record keeps
+    # its own words, so a consumer's reply is not ours to reword — and `ears-to-hear` calls this
+    # engine by its repository name. The cost is that our own prose in this file goes unpoliced;
+    # the better fix is to check authorship rather than the file, which is not built.
+    "collab/ears-to-hear/2026-09-03-declaring-evidence-and-content.md",
 }
 
 #: A line quoting someone. `*"` is this project's house style for quoting the Captain.
