@@ -48,7 +48,7 @@ SBL = {
     "Gen": "GEN", "Exod": "EXO", "Lev": "LEV", "Num": "NUM", "Deut": "DEU",
     "Josh": "JOS", "Judg": "JDG", "Ruth": "RUT", "1 Sam": "1SA", "2 Sam": "2SA",
     "1 Kgs": "1KI", "2 Kgs": "2KI", "1 Chr": "1CH", "2 Chr": "2CH", "Ezra": "EZR",
-    "Neh": "NEH", "Esth": "EST", "Job": "JOB", "Ps": "PSA", "Pss": "PSA",
+    "Neh": "NEH", "Esth": "EST", "Job": "JOB", "Ps": "PSA",
     "Prov": "PRO", "Eccl": "ECC", "Qoh": "ECC", "Song": "SNG", "Cant": "SNG",
     "Isa": "ISA", "Jer": "JER", "Lam": "LAM", "Ezek": "EZK", "Dan": "DAN",
     "Hos": "HOS", "Joel": "JOL", "Amos": "AMO", "Obad": "OBA", "Jonah": "JON",
@@ -73,6 +73,11 @@ LXX_KINGDOMS = {"1 Kgdms": "1SA", "2 Kgdms": "2SA", "3 Kgdms": "1KI", "4 Kgdms":
 #: because `3 Kgdms` resolving must not drag a plausible-looking neighbour along with it.
 NOT_BOOKS = ("3 Kgs", "4 Kgs", "5 Kgdms")
 
+#: The Handbook's plural for Psalms, which USFM spends on Psalms of Solomon. Held out of `SBL`
+#: above because it is the one abbreviation two published standards both claim, and this engine
+#: reads both: the schemes it ships carry Psalms of Solomon as a book in its own right.
+CLAIMED_BY_TWO_CANONS = "Pss"
+
 
 def test_both_scheme_lists_cover_the_canon():
     """Without this, a truncated list would make every check below pass on less."""
@@ -90,6 +95,28 @@ def test_every_osis_id_resolves(osis, expected):
 def test_every_sbl_abbreviation_resolves(sbl, expected):
     assert books.resolve(sbl) == expected
     assert books.resolve(sbl + ".") == expected, "the Handbook prints these with a period"
+
+
+def test_the_one_abbreviation_two_canons_both_claim_is_refused():
+    """The Handbook's `Pss` is Psalms; USFM's `PSS` is Psalms of Solomon, which the shipped
+    schemes carry as a book of its own — 18 chapters in `org` and `lxx`.
+
+    Both claims are sourced, so neither can be dropped, and the token is refused instead. It used
+    to resolve to Psalms because `_index()` adds `other_codes` with `setdefault` and the alias got
+    there first: a pipeline asking for Psalms of Solomon silently received Psalms.
+
+    **Psalms of Solomon is now unreachable rather than wrong.** It has no display name here, and
+    `other_codes` deliberately invents none, so the refusal's advice to write the book out cannot
+    be followed for it. Refusing beats returning the wrong text; naming it is separate work.
+    """
+    with pytest.raises(books.AmbiguousBook) as raised:
+        books.resolve(CLAIMED_BY_TWO_CANONS)
+
+    message = str(raised.value)
+    assert "Psalms" in message and "Psalms of Solomon" in message
+
+    assert books.resolve("Ps") == "PSA", "the singular is untouched"
+    assert books.resolve("Psalms") == "PSA"
 
 
 @pytest.mark.parametrize("written,expected", sorted(LXX_KINGDOMS.items()))

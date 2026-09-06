@@ -1,8 +1,11 @@
 # Verse regions
 
-**Status:** proposal, awaiting the Captain on the items in §9. Nothing is built.
+**Status:** built as `llmflow.utils.verse_ranges`, tested in `tests/test_verse_ranges.py`.
 **Issue:** #169.
 **Supersedes:** `design-verse-range-operations.md` and `plan-verse-range-set-ops.md`.
+
+**What was found on contact with the code — §10.** The engine already had the parsing half, twice
+over, and one book resolves to the wrong book.
 
 **Ruled by the Captain during design, 2026-09-05:**
 
@@ -335,16 +338,58 @@ changing a return shape cannot.
 | relation as `str` | widening | deferred |
 | `Range.from_member` | widening | deferred |
 
-### 9.3 One open item, because it is the only unclean deferral
+### 9.3 Settled at implementation
 
-**Is `ref` a flat key or a path resolved by `resolve()`?** This does *not* widen. A key literally
-named `a.b` means that key under flat lookup and a nested path under `resolve()` — same input,
-different result, no error. Both call sites use flat keys (`verse_range`, `canonical`), so nothing
-today distinguishes them.
-
-*Recommended: use `resolve()` from the start.* It is one call to a function the engine already has,
-it makes `ref` behave like every other path in sp, and it forecloses the silent change. The
-alternative that also stays clean is to refuse a `ref` containing a dot for now, leaving the meaning
-unclaimed.
+**`ref` is a resolved path, not a flat key.** This was the one deferral that did not widen — a key
+literally named `a.b` means that key under flat lookup and a nested path under resolution, same
+input, different result, no error — so it was closed rather than left. `select` uses the engine's
+own `get_from_context`, which gives `meta.range` and `items[0].ref` and makes `ref` behave like
+every other path in sp.
 
 Not asked, treated as settled: whether point-set operations are in scope. Say so if that is wrong.
+
+---
+
+## 10. What contact with the code changed
+
+**The parsing half already existed, twice.** `versification.parse_passage_ref` returns a
+`PassageRef` — frozen, carrying the book — and `data.parse_bible_reference` returns an 18-key dict
+that is scheme-aware and resolves whole chapters. §2 proposed building the type this design needs;
+most of it was there. `Range` therefore **wraps `PassageRef`** rather than extending it, leaving the
+shipped scripture step untouched, and adds only what was missing: a scheme, book-local ordinals, and
+a refusal for `Mark 1:5-1:2`, which the existing parser accepts.
+
+**So the engine carried the duplication it reports in the plugins.** The two parsers are layered
+rather than duplicated — syntax, then scheme and presentation — and both resolve books through
+`llmflow.books`. But each carries its own regex pattern set, and nothing held them in agreement.
+`test_the_engines_two_parsers_agree_on_the_syntax_they_share` is the pin; if it fires, unify them.
+That unification is the real fix and is **deferred, not denied**.
+
+**A book resolved to the wrong book — found here, fixed at the Captain's direction.**
+`books.resolve("PSS")` returned `PSA`. It is not a typo but a collision between two published
+standards this engine reads: the SBL Handbook gives `Pss` for Psalms (plural), USFM gives `PSS` for
+Psalms of Solomon, which `org` and `lxx` carry as a book of 18 chapters. `_index()` adds
+`other_codes` with `setdefault`, so the alias won and a pipeline asking for Psalms of Solomon
+silently received Psalms.
+
+Neither claim can be dropped, so the token is **refused** — the `ambiguous` mechanism, used for what
+the declaration says it is for. The guard that should have caught this compared aliases only against
+each other, never against `other_codes`; widened, so the next collision fails.
+
+Psalms of Solomon is now **unreachable rather than wrong**: it has no display name, `other_codes`
+invents none, and so the refusal's advice to write the book out cannot be followed for it. That is a
+known limit, not an oversight.
+
+**Verification was laws over the real corpus rather than examples.** Every book and chapter of all
+six packaged schemes — 1,584 chapters in `org` alone — checked for verse counts against the scheme,
+whole-book containment, and consecutive chapters touching without overlapping. `hypothesis` is not
+in the project, and the corpus is real where generated input would not be.
+
+### 10.1 Known limits of what was built
+
+- **`select` over bare reference strings warns and skips.** A collection of plain strings has
+  nothing for `ref` to resolve against. Supporting it is a widening and can be added without
+  breaking a caller; nothing has asked.
+- **Nothing consumes it yet.** The four plugins in `ears-to-hear` are unchanged; adopting it is
+  theirs, and the three defects in `division_lookup.py` are reported rather than fixed.
+- `partialVerses` remains uninterpreted — 74 entries in `lxx`.

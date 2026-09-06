@@ -1,6 +1,6 @@
 {
   "metadata_version": "1.0",
-  "last_updated": "2026-07-03",
+  "last_updated": "2026-09-06",
   "models": {
     "gpt-5": {
       "provider": "openai",

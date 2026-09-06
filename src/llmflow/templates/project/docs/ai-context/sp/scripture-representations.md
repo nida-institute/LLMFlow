@@ -78,6 +78,26 @@ the governing verb. A leaf also carries a word-level `token`. Hebrew is morpheme
 written in several pieces appears as several leaves naming the same word and differing in `class`
 or `role` — an article and a noun, a conjunction and a verb.
 
+**What else a node carries**, where the source states it: `articular`, `head`, `type`, `clauseType`,
+`junction`, `predication`. A leaf may also carry `junction` and `discontinuous`.
+
+Those are here because each is a property of a **constituent** and none has a route through the
+TSV, which is one row per word. `articular` is the clearest case: in `τῇ κατ᾽ οἶκόν σου ἐκκλησίᾳ`
+the article governs a phrase containing a prepositional phrase, not the word beside it, so
+articularity cannot ride in a per-word family however the families are arranged. `discontinuous`
+earns its place because this family is standoff *for* the mismatch between text order and tree
+order, and it is the source's own marking of exactly that.
+
+Three things to expect. **Absence is the negative** for `articular`, `discontinuous` and `head` —
+the source writes them only when true. **The two languages differ**: `head` is Hebrew-only,
+`articular`, `type`, `junction` and `predication` are Greek-only, and a family emits whichever of
+its fields the edition actually has. And **`clauseType` is the one field name that is not the
+source's verbatim** — Greek writes `clauseType`, Hebrew `clausetype`, and the payload states it
+once under the Greek spelling rather than making a reader know which corpus they have.
+
+`rule` and `nodeId` are not carried. They name how the parser derived a node rather than a fact
+about the constituent, and nothing downstream can check them against the text.
+
 ## The annotation container
 
 Everything `include` delivers lives under one key, `scripture_pipelines`, which the USJ

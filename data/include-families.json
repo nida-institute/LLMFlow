@@ -56,7 +56,7 @@
       "per_word": false
     },
     "syntax": {
-      "purpose": "Syntactic structure. Not implemented.",
+      "purpose": "The constituency tree, standoff: a list with one entry per sentence. Requires `ids`.",
       "columns": [],
       "per_word": false
     }

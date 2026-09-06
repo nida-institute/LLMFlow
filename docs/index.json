@@ -2024,6 +2024,69 @@
       ]
     },
     {
+      "module": "llmflow.utils.verse_ranges",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "llmflow.modules.logger",
+        "llmflow.utils.context",
+        "llmflow.utils.versification",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "overlaps",
+          "signature": "overlaps(a: Range, b: Range) -> bool",
+          "doc": "Do these share at least one verse? Containment and equality count."
+        },
+        {
+          "name": "contains",
+          "signature": "contains(a: Range, b: Range) -> bool",
+          "doc": "Does `a` cover every verse of `b`? A range contains itself."
+        },
+        {
+          "name": "touches",
+          "signature": "touches(a: Range, b: Range) -> bool",
+          "doc": "Are these adjacent — **no gap and no shared verse**?"
+        },
+        {
+          "name": "equals",
+          "signature": "equals(a: Range, b: Range) -> bool",
+          "doc": ""
+        },
+        {
+          "name": "verse_count",
+          "signature": "verse_count(a: Range) -> int",
+          "doc": ""
+        },
+        {
+          "name": "select",
+          "signature": "select(collection: Iterable[Any], probe: Any, relation: str, ref: str, scheme: str) -> list",
+          "doc": "Every member of `collection` standing in `relation` to `probe`."
+        },
+        {
+          "name": "_same_book",
+          "signature": "_same_book(a: Range, b: Range) -> bool",
+          "doc": ""
+        },
+        {
+          "name": "_chapters",
+          "signature": "_chapters(book: str, scheme: str, reference: str) -> list",
+          "doc": ""
+        },
+        {
+          "name": "_ordinal",
+          "signature": "_ordinal(book: str, chapter: int, verse: int, chapters: list, reference: str) -> int",
+          "doc": "The verse's position counted from the first verse of its book."
+        },
+        {
+          "name": "parse",
+          "signature": "parse(cls, reference: str, scheme: str) -> 'Range'",
+          "doc": "Build a range, or refuse."
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.guards",
       "imports": [
         "ast",
@@ -2844,6 +2907,11 @@
           "name": "_leaf",
           "signature": "_leaf(element: Any) -> Optional[dict]",
           "doc": "One terminal — a Greek word or a Hebrew morpheme — or None where it names no id."
+        },
+        {
+          "name": "_carry",
+          "signature": "_carry(element: Any, names: tuple, into: dict) -> None",
+          "doc": "Copy the attributes the source states, in declared order, skipping those it omits."
         },
         {
           "name": "_node",
@@ -4859,7 +4927,7 @@
     }
   ],
   "summary": {
-    "total_modules": 84,
-    "total_functions": 766
+    "total_modules": 85,
+    "total_functions": 777
   }
 }

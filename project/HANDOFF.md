@@ -1,22 +1,24 @@
-# HANDOFF — 2026-09-05
+# HANDOFF — 2026-09-06
 
 ## ▶ NEXT ACTION
 
-**Commit the one uncommitted file, then get the Captain's rulings on the three open decisions
-below.** All remaining x.27 work is decision-gated; nothing can start without them.
+**Commit the seven uncommitted files** — #169 is built and green, plus a book-resolution defect
+found and fixed on the way. Content approved in conversation; the commit and push are the Captain's.
 
 ```bash
-git add collab/discourse-flow/2026-09-03-hebrew-discourse-defects.md
-git commit -F tmp/commit-collab-syntax-addendum.txt   # write this first; content is in the log
+git add CHANGELOG.md data/book-names.json project/HANDOFF.md project/plans/README.md \
+        project/plans/design-verse-regions.md src/llmflow/utils/verse_ranges.py \
+        tests/test_verse_ranges.py tests/test_book_names.py \
+        tests/test_book_names_from_published_schemes.py
+git commit -F tmp/commit-verse-ranges.txt   # covers #169; add the PSS fix before committing
 git push origin dev
 ```
 
-The file is an addendum telling `discourse-flow` that `syntax` landed at `2af0c66` and giving them
-the four consumer-facing facts the original reply lacked. Content approved in conversation; the
-commit and push are the Captain's.
+**`tmp/commit-verse-ranges.txt` predates the PSS fix** — it still says the defect was found and
+*not* fixed. Correct that paragraph before using it.
 
-After the rulings: the **guard refactor** is the Captain's stated first item (see "x.27 cleanup"),
-because everything touching disciplines pays the old cost until it lands.
+Then: **#222 Paratext** is the next x.27 feature, and its one decision is in "Decisions" below.
+The **guard refactor** remains the Captain's stated first item for cleanup.
 
 ---
 
@@ -24,13 +26,13 @@ because everything touching disciplines pays the old cost until it lands.
 
 | | |
 |---|---|
-| `dev` | `2af0c66`, pushed — `origin/dev` matches. **5 commits ahead of `main`**; all x.27 work is here and unreleased |
+| `dev` | `f1df3b6`, pushed — `origin/dev` matches. **6 commits ahead of `main`**; all x.27 work is here and unreleased |
 | `main` | `5822104`, pushed — `origin/main` matches |
 | tag | `v0.2.1.26` on `0edb6d1` |
 | PyPI | **`0.2.1.26` — published.** No longer outstanding |
 | `pyproject.toml` | `0.2.1.26` (stays at the released version during development, by ruling) |
 | CHANGELOG | `## Unreleased` has content; `## 0.2.1.26 — 2026-09-03` is dated and closed |
-| suite | **4897 passed, 25 skipped, 26 deselected in 110s**, exit 0 — measured at `2af0c66` |
+| suite | **4956 passed, 25 skipped, 26 deselected in 109s**, exit 0 — at `f1df3b6` plus the uncommitted #169 work |
 | `ruff check src/` | **clean** |
 
 **Verify:** `git for-each-ref --format='%(refname:short) %(objectname:short)' refs/heads/dev
@@ -51,6 +53,7 @@ against the record. Two found since:
 |---|---|---|
 | `design-verse-range-operations.md` §§182–204 | the verse-count table blocks `adjacent` and `verse_count` — "covers only Psalms, Luke, and John" | **false now.** `packaged_scheme("org").max_verses` has complete counts for **95 books** across six schemes (`eng lxx org rsc vul rso`). Verified 2026-09-05 |
 | the previous `HANDOFF.md` | `include: [syntax]` is a shipped silent no-op | it **raised** `NotImplementedError`; now built |
+| `data/book-names.json` | `pss` is an alias of Psalms | it is **also** the USFM code for Psalms of Solomon, which `org` and `lxx` carry. The alias won via `setdefault`, so the book resolved to Psalms. Now refused. Fixed 2026-09-06 |
 
 `test_record_closure_claims.py` cannot catch this class — it scans for "closed by `<sha>`", and a
 claim made only in prose never enters that form.
@@ -64,7 +67,7 @@ claim made only in prose never enters that form.
 | 1 | Hebrew resolves in `include: [discourse]` | #230 | **SHIPPED** `4858323`, `623916e`. Three fixes: word index read from `ref`'s `!N` rather than row position; maqqef (`־`) as a phrase separator; and the precedence chain — index first, then quote, then say you could not find it. Cross-verse span closings carried too |
 | 2 | Copy forcing — declare evidence vs content | #230 | **SHIPPED** `4858323`. `src/llmflow/field_roles.py`, read by the linter |
 | 3 | Paratext via `type: scripture` | #222 | **OPEN — blocked on a decision** |
-| 4 | Comparing verse references | #169 | **OPEN — blocked on three decisions** |
+| 4 | Comparing verse references | #169 | **BUILT, uncommitted.** `llmflow.utils.verse_ranges` + `tests/test_verse_ranges.py`; designed in `design-verse-regions.md`, which supersedes the two earlier documents |
 | 5 | `include: [syntax]` | #227 | **SHIPPED** `2af0c66`. Both languages, measured end to end. **The GitHub issue is still open — closing it is the Captain's** |
 | 6 | BaseX for all XML sources — *if it fits* | #38 | **OPEN — blocked on a decision** |
 
@@ -88,31 +91,8 @@ claim made only in prose never enters that form.
 
 ## Decisions awaiting the Captain
 
-Walked through with him 2026-09-05; **no rulings received yet.** Recommendations are the AI's.
-
-### #169 — comparing verse references (three open)
-
-The previous handoff listed three; the design doc actually holds six. **Two are now dead** — see
-the staleness table: complete verse counts exist, so `adjacent` and `verse_count` need no
-deferral and the table is not a blocker. What remains:
-
-- **`contains` set semantics.** Union-covers, or some-single-range-covers? The doc's example:
-  `Mark 1:1-5` + `Mark 1:8-12` against `Mark 1:3-10` — union says yes, single range says no.
-  *Recommended: both, as `contains_any` / `contains_all`*, because they are different questions
-  and collapsing them means the caller cannot say which they meant.
-- **Bare names (`overlaps`) or `verse_range_*`?** *Recommended: prefixed* — flat namespace, and
-  `contains` will collide.
-- **Singletons only, or singletons and lists?** *Recommended: both* (the doc agrees) — singleton-only
-  leaves the iteration in consumer Python, which is what #169 exists to remove.
-
-**Already ruled, do not reopen:** scheme is a **required parameter, no default** (four of six
-operations need `Scheme.max_verses`/`excluded_verses`, and all six are meaningless across two
-numberings). Cross-book, ruled 2026-08-17: `overlaps` → False, `intersection` → None, `union` →
-**raises**; the doc asks only that implementation confirm it.
-
-**Not a decision, but document it loudly:** `union` is the **convex hull**, so
-`Mark 1:1-5 ∪ Mark 1:8-12` = `Mark 1:1-12` *including the gap*. Right for "what is the span",
-wrong for "what is covered". An exact-set-union `merge` can come later if anyone needs it.
+Recommendations are the AI's. **#169 is closed** — every question it held was ruled and it is
+built; see "Settled" below rather than reopening any of it.
 
 ### #222 — Paratext versification
 
@@ -140,6 +120,34 @@ prevents is not specific to this repo.
 ---
 
 ## Settled — do not reopen
+
+**From #169, verse ranges — all ruled during design, and built:**
+- **Books are distinct documents.** The largest simplification: no range spans books, so ordinals
+  are book-local, canon order never arises, and the schemes disagreeing on book inventory (95 books
+  in `org` against 66 in `rsc`) stops mattering. Chapter-boundary adjacency — which the superseded
+  design called the hardest case and grounds for deferring the operation — becomes `a.end + 1 ==
+  b.start`.
+- **`overlaps` means the colloquial thing**: shares at least one verse, containment and equality
+  included. Interval algebra reserves the word for the strictly partial case; nobody means that.
+  The strict case is handled and **deliberately unnamed**, which is what let the relation partition
+  stay internal — consumers never meet interval-algebra vocabulary, and no word means two things.
+- **`touches`, not Allen's `meets`** — plain vocabulary over jargon. The docstring says *adjacency*
+  explicitly, because GIS uses the word for shared boundaries.
+- **Both `select` and the predicates.** An AI retraction mid-design argued `filter` already exists
+  so `select` is redundant; that judged the design against Python callers in a declarative-pipeline
+  project. YAML has no comprehension. `sp` already has map and collect (`for-each` + `append_to`),
+  fold (`append_to`) and the conditional (`if`) — **filter was the missing combinator.**
+- **Module `verse_ranges`, not `verse_algebra`** — an algebra's operations return elements of the
+  same kind, and the ones that would make it one are the declined coverage half, so the name would
+  advertise an absent piece as a gap. **Bare predicate names.**
+- **Point-set operations are out**: `union` as previously specified was the convex hull, so
+  `Mark 1:1-5 ∪ Mark 1:8-12` = `Mark 1:1-12` *including the gap*. The question it serves is the
+  declined coverage check.
+- **Deferred because they widen** (the Captain's own test — adding later breaks nobody): relation
+  as a `Callable` alongside the string, and `Range.from_member`. Also `select` over bare reference
+  strings, which currently warns and skips.
+- **Verse comprehensions are parked** for want of requirements, with the reasoning recorded in
+  `design-verse-regions.md` §8.1 so they are not re-derived.
 
 **From the `syntax` work (2026-09-05):**
 - **Only the first, primary interpretation** of a Lowfat tree. Measured across 137,741 Greek words
@@ -253,9 +261,11 @@ returning 501, which may be related and is unverified.
 
 ## Key files
 
-- `project/plans/design-verse-range-operations.md` + `plan-verse-range-set-ops.md` — #169's two
-  approved documents. **Reconciling them into one is the first deliverable**, and the verse-count
-  sections are stale
+- `project/plans/design-verse-regions.md` — #169 as built. **§10 is the part to read**: what
+  contact with the code changed, including that the engine already had the parsing half twice over
+- `project/plans/design-verse-range-operations.md` + `plan-verse-range-set-ops.md` — **superseded**
+  by the above. Their verse-count sections are stale and their `contains` question is unasked by
+  any call site. Do not work from them
 - `project/plans/design-scripture-representations.md` §4.5 — the `syntax` ruling, now built
 - `project/plans/design-declaring-field-roles.md` §10 — copy forcing, built
 - `project/plans/design-what-the-engine-may-rely-on.md` — the declared-vs-inferred principle

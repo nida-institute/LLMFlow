@@ -222,8 +222,7 @@
         "psalms",
         "psalm",
         "ps",
-        "psa",
-        "pss"
+        "psa"
       ],
       "testament": "OT",
       "original_language": "Hebrew"
@@ -752,6 +751,10 @@
     "ph": [
       "Philippians",
       "Philemon"
+    ],
+    "pss": [
+      "Psalms",
+      "Psalms of Solomon"
     ],
     "p": [
       "Psalms",

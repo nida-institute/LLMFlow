@@ -23,10 +23,36 @@ USJ document; no `ref`, because a word's book, chapter and verse follow from whe
 so carrying it would be a third encoding of identity beside the id and the position.
 """
 
+from pathlib import Path
+
 import pytest
 from lxml import etree
 
+from llmflow.utils.scripture import edition_text
 from llmflow.utils.syntax import sentences_from_lowfat
+
+MACULA_GREEK = Path("/Users/jonathan/github/Clear/macula-greek/SBLGNT")
+MACULA_HEBREW = Path("/Users/jonathan/github/Clear/macula-hebrew/WLC")
+
+EDITIONS = {
+    "SBLGNT": {
+        "kind": "tsv",
+        "path": str(MACULA_GREEK / "tsv/macula-greek-SBLGNT.tsv"),
+        "versification_scheme": "org",
+        "lowfat_path": str(MACULA_GREEK / "lowfat"),
+    },
+    "WLC": {
+        "kind": "tsv",
+        "path": str(MACULA_HEBREW / "tsv/macula-hebrew.tsv"),
+        "versification_scheme": "org",
+        "lowfat_path": str(MACULA_HEBREW / "lowfat"),
+    },
+}
+
+real_data = pytest.mark.skipif(
+    not (MACULA_GREEK / "lowfat").is_dir() or not (MACULA_HEBREW / "lowfat").is_dir(),
+    reason="the Macula corpora are not on this machine",
+)
 
 #: One sentence, with a discontinuous noun phrase: its words are 1 and 3, interrupted by 2.
 DISCONTINUOUS = """
@@ -207,6 +233,179 @@ def test_no_word_is_dropped_from_a_tree():
 def test_an_empty_document_yields_an_empty_list():
     """Asked and found none, which is not the same as never asked."""
     assert sentences_from_lowfat(parse("<chapter/>")) == []
+
+
+# --- the attributes the source states, beyond class and role ------------------------------------
+
+#: A group carrying the attributes Macula puts on `wg`. `articular` is the one a consumer asked
+#: for by name: it has no route through the TSV, and articularity is a property of a phrase rather
+#: than of a word — the article in `τῇ κατ᾽ οἶκόν σου ἐκκλησίᾳ` governs a phrase containing a
+#: prepositional phrase, not the word beside it — so no per-word family could carry it.
+ATTRIBUTED = """
+<sentence>
+  <p>a</p>
+  <wg class="cl" role="s" rule="ClCl" clauseType="nominalized" predication="verbless">
+    <wg class="np" role="adv" articular="true" type="common" junction="apposition" nodeId="n1">
+      <w xml:id="n41001001001" ref="MRK 1:1!1" class="noun" discontinuous="true">Ἀρχὴ</w>
+      <w xml:id="n41001001003" ref="MRK 1:1!3" class="noun" junction="apposition">εὐαγγελίου</w>
+    </wg>
+  </wg>
+</sentence>
+"""
+
+#: Hebrew spells the clause-type attribute in lower case and adds `head`, which Greek never uses.
+HEBREW_ATTRIBUTED = """
+<sentence>
+  <p>a</p>
+  <wg class="cl" clausetype="verbal" head="true">
+    <m xml:id="o080010010041" ref="RUT 1:1!4" class="art">הַ</m>
+  </wg>
+</sentence>
+"""
+
+
+def test_a_group_carries_the_ruled_attributes():
+    payload = sentences_from_lowfat(parse(ATTRIBUTED))
+    clause = payload[0]
+    phrase = clause["children"][0]
+
+    assert clause["clauseType"] == "nominalized"
+    assert clause["predication"] == "verbless"
+    assert phrase["articular"] == "true"
+    assert phrase["type"] == "common"
+    assert phrase["junction"] == "apposition"
+
+
+def test_a_group_carries_neither_the_parsers_derivation_nor_its_bookkeeping():
+    """`rule` names how the parser built the node, not a fact about the constituent, and `nodeId`
+    is an internal identifier — it pairs with a second, capitalised `Rule` convention that runs
+    through all 27 Greek books. Both are the tool's, not the text's."""
+    payload = sentences_from_lowfat(parse(ATTRIBUTED))
+
+    assert "rule" not in payload[0]
+    assert "Rule" not in payload[0]
+    assert "nodeId" not in payload[0]["children"][0]
+
+
+def test_hebrews_lower_case_clause_type_arrives_under_one_key():
+    """Greek writes `clauseType` and Hebrew `clausetype` for the same fact. **This is the one place
+    a field name is not the source's verbatim**: emitting both spellings would present an
+    inconsistency in the sources as though it were a distinction in the grammar, and a consumer
+    would have to know which corpus it was reading to find the value.
+    """
+    payload = sentences_from_lowfat(parse(HEBREW_ATTRIBUTED))
+
+    assert payload[0]["clauseType"] == "verbal"
+    assert "clausetype" not in payload[0]
+
+
+def test_a_hebrew_only_attribute_is_carried_where_the_source_has_it():
+    """`head` appears on 59% of Hebrew group nodes and never in Greek. A family emits whichever of
+    its fields the edition actually has, so a Greek payload simply lacks the key."""
+    assert sentences_from_lowfat(parse(HEBREW_ATTRIBUTED))[0]["head"] == "true"
+    assert "head" not in sentences_from_lowfat(parse(ATTRIBUTED))[0]
+
+
+def test_a_leaf_carries_discontinuous():
+    """The standoff design exists *because* text order and tree order cannot be reconciled, and
+    Macula marks which words are discontinuous — 6,038 of them, in 4,404 of the Greek corpus's
+    8,010 sentences. It sits only on leaves, never on `wg`, and has no route through the TSV, so
+    dropping it discarded the source's own marking of the phenomenon this family is built around.
+    """
+    payload = sentences_from_lowfat(parse(ATTRIBUTED))
+    first, second = payload[0]["children"][0]["children"]
+
+    assert first["discontinuous"] == "true"
+    assert "discontinuous" not in second, "the source marks only the positive"
+
+
+def test_a_leaf_carries_junction():
+    payload = sentences_from_lowfat(parse(ATTRIBUTED))
+    _, second = payload[0]["children"][0]["children"]
+
+    assert second["junction"] == "apposition"
+
+
+def test_a_leaf_carries_nothing_the_per_word_families_already_deliver():
+    """Almost every leaf attribute — `lemma`, `strong`, `morph`, `gloss`, `domain`, the parsing
+    fields, `frame`, `subjref`, `referent` — is a TSV column and arrives through `morphology`,
+    `senses`, `glosses` or `referents`. Carrying it here too would be a second encoding that can
+    disagree with the first. Families are organised by form: `syntax` is the tree.
+    """
+    leaf = sentences_from_lowfat(parse(ATTRIBUTED))[0]["children"][0]["children"][0]
+
+    assert set(leaf) <= {"token", "class", "role", "junction", "discontinuous"}
+
+
+# --- against the real corpora --------------------------------------------------------------------
+#
+# The fixtures above prove the shape; these prove the attributes are actually there to carry. A
+# fixture I wrote agrees with itself by construction, so on its own it would only show that the
+# code does what the fixture says — not that Macula states these things where the design claims.
+
+
+def payload_for(edition, passage):
+    usj = edition_text(edition, passage, fmt="usj", editions=EDITIONS, include=["ids", "syntax"])
+    return usj["scripture_pipelines"]["syntax"]
+
+
+def every_field(payload):
+    """Every key used anywhere in the tree, `children` aside."""
+    found = set()
+
+    def walk(node):
+        found.update(key for key in node if key != "children")
+        for child in node.get("children", ()):
+            walk(child)
+
+    for entry in payload:
+        walk(entry)
+    return found
+
+
+@real_data
+def test_the_greek_corpus_supplies_the_greek_attributes():
+    """Philemon is the passage the consumer who asked for `articular` measured, so it is the one
+    that shows their ask was answered rather than merely accepted."""
+    fields = every_field(payload_for("SBLGNT", "PHM 1:1-7"))
+
+    assert {"class", "role", "articular", "type", "token"} <= fields
+    assert "rule" not in fields and "nodeId" not in fields
+
+
+@real_data
+def test_the_greek_corpus_supplies_discontinuous():
+    """4,404 of the corpus's 8,010 sentences contain one, so a passage of any size should."""
+    fields = every_field(payload_for("SBLGNT", "MRK 1:1-45"))
+
+    assert "discontinuous" in fields
+
+
+@real_data
+def test_the_hebrew_corpus_supplies_head_and_not_the_greek_only_attributes():
+    """`head` is on 59% of Hebrew group nodes and absent from Greek; `articular` is the reverse.
+    A family emits whichever of its fields the edition actually has, so the two languages
+    legitimately differ — asserted so that neither starts leaking into the other."""
+    hebrew = every_field(payload_for("WLC", "RUT 1:1-5"))
+
+    assert {"class", "role", "head", "token"} <= hebrew
+    assert "articular" not in hebrew
+
+
+@real_data
+def test_no_field_outside_the_ruled_set_reaches_a_payload():
+    """The guard on the whole ruling. Macula puts ten attributes on a group node and thirty on a
+    leaf; this family carries the ones ruled and nothing else, so a source gaining an attribute
+    cannot quietly widen the payload.
+    """
+    allowed = {
+        "children", "token",
+        "class", "role", "articular", "head", "type", "clauseType", "junction", "predication",
+        "discontinuous",
+    }
+    for edition, passage in (("SBLGNT", "PHM 1:1-7"), ("WLC", "RUT 1:1-5")):
+        found = every_field(payload_for(edition, passage))
+        assert found <= allowed, f"{edition} {passage} carried {found - allowed}"
 
 
 # --- the family, as a pipeline reaches it --------------------------------------------------

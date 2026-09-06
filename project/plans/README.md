@@ -37,6 +37,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-source-licensing.md](design-source-licensing.md) | Proposed, 2026-08-24. Four rulings recorded from the Captain (§3); six questions | #201 |
 | [design-structured-output-preflight.md](design-structured-output-preflight.md) | Implemented in 0.2.1.24 — historical record | #191 #197 |
 | [design-verse-range-operations.md](design-verse-range-operations.md) | Approved 2026-08-17 — authoritative for the data model. Not a work order: the | #168 |
+| [design-verse-regions.md](design-verse-regions.md) | built as llmflow.utils.verse_ranges, tested in tests/test_verse_ranges.py. | #169 |
 | [design-vocabulary.md](design-vocabulary.md) | Draft, but in force. The "use X, not Y" list is authoritative for user-facing text | — |
 | [design-what-the-engine-may-rely-on.md](design-what-the-engine-may-rely-on.md) | the general form of three rulings the Captain made on 2026-09-03 and 2026-09-04. Each | #38 |
 | [plan-ai-rules-single-source.md](plan-ai-rules-single-source.md) | complete, 2026-08-21. The Captain approved §5 and §6 (*"I approve these rules"*) | — |
@@ -52,4 +53,4 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-window-semantics.md](plan-window-semantics.md) | complete, 2026-08-21. Items 1 and 3 landed; item 2's two decisions were ruled and | #175 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-44 documents.
+45 documents.

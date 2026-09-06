@@ -4,6 +4,105 @@
 
 ### Added
 
+- **`include: [syntax]` carries the attributes Macula states on a constituent.** Nodes now carry
+  `articular`, `head`, `type`, `clauseType`, `junction` and `predication` beside `class` and `role`;
+  leaves carry `junction` and `discontinuous`.
+
+  Each is a property of a **constituent** with no route through the TSV, which is one row per word.
+  `articular` is the clearest: in `τῇ κατ᾽ οἶκόν σου ἐκκλησίᾳ` the article governs a phrase
+  containing a prepositional phrase, not the word beside it, so articularity cannot ride in a
+  per-word family however the families are arranged — it is `syntax` or nowhere. Asked for by
+  `discourse-flow`, who need it for Levinsohn's test distinguishing topic-like from focus-like
+  constituents, together with `referents.referent` and `referents.subjref`, which already shipped.
+
+  **`discontinuous` was the engine's own gap.** This family is standoff *because* text order and
+  tree order cannot be reconciled, and Macula marks which words are discontinuous — 6,038 of them,
+  in 4,404 of the Greek corpus's 8,010 sentences, on leaves only and never on a group. The source's
+  own marking of the phenomenon the design is built around was being dropped.
+
+  Nothing else on a leaf is carried: `lemma`, `strong`, `morph`, `gloss`, the parsing fields,
+  `frame`, `subjref` and `referent` are TSV columns delivered by the per-word families, and a
+  second encoding here could disagree with the first. `rule` and `nodeId` are not carried either —
+  they name how the parser derived a node rather than a fact about the constituent, and `rule`
+  comes in two conventions, a capitalised `Rule` paired with `nodeId` running through all 27 Greek
+  books.
+
+  Three consequences for a consumer. **Absence is the negative** for `articular`, `discontinuous`
+  and `head`, which the source writes only when true. **The two languages differ** — `head` is
+  Hebrew-only, the other four Greek-only — as a family emits whichever of its fields the edition
+  has. And **`clauseType` is the one field name that is not the source's verbatim**: Greek writes
+  `clauseType`, Hebrew `clausetype`, and the payload states it once under the Greek spelling rather
+  than presenting an inconsistency between sources as a distinction in the grammar.
+
+  Guarded by a test asserting no field outside the ruled set reaches a payload, so a corpus gaining
+  an attribute cannot quietly widen it, and by real-corpus tests over Philemon, Mark and Ruth.
+
+- **`include-families.json` said `syntax` was not implemented.** The family is built and listed in
+  `IMPLEMENTED_FAMILIES`, but the `purpose` string in the table that declares *"What each `include:`
+  family delivers"* still read `"Syntactic structure. Not implemented."` — and that file is what
+  consumers read instead of the code. Reported by `discourse-flow`.
+
+- **`Pss` named two books, and returned the wrong one.** The SBL Handbook gives `Pss` for Psalms
+  (plural); USFM gives `PSS` for Psalms of Solomon, which the shipped schemes carry as a book of
+  its own — 18 chapters in `org` and `lxx`. `_index()` adds `other_codes` with `setdefault`, so
+  the alias got there first and a pipeline asking for Psalms of Solomon silently received Psalms.
+
+  Both claims are sourced and neither can be dropped, so the token is now **refused** — which is
+  what `ambiguous` is for, and what the declaration already said: *"choosing one silently is how
+  the wrong text gets read."* `Ps`, `Psa`, `Psalm` and `Psalms` are untouched.
+
+  Found by the verse-range sweep below: `PSS`'s verse counts did not match the book it returned.
+  The guard that should have caught it, `test_no_alias_points_at_two_books`, compared aliases only
+  against each other and never against `other_codes`; it has been widened, so the next such
+  collision fails rather than resolving.
+
+  **Psalms of Solomon is now unreachable rather than wrong.** It has no display name — `other_codes`
+  deliberately invents none — so the refusal's advice to write the book out cannot be followed for
+  it. Refusing beats returning the wrong text; naming it is separate work.
+
+- **`llmflow.utils.verse_ranges` — comparing verse ranges (#169).** Designed in
+  `design-verse-regions.md`, which supersedes two earlier documents.
+
+  The issue reports duplicated overlap logic across four plugins. Reading them, the duplication is
+  worse and lower down: **five reference parsers** between the four files, three incompatible
+  return types, two of them with identical signatures in one file — and **not one returns the
+  book**. That is why `division_lookup.py:31` compares `Mark 1:1-5` against `John 1:1-5` as
+  overlapping: the parsed type has nowhere to put a book, so no care in the comparison code could
+  have caught it. The deliverable is therefore a type built once at the boundary, not a library of
+  predicates over strings.
+
+  **No third parser was added.** `parse_passage_ref` already gives the syntax; a scheme turns that
+  into concrete verses. Only the comparison layer was missing. A differential test now pins the
+  engine's two existing parsers together — they are layered rather than duplicated, but each
+  carries its own pattern set and nothing held them in agreement.
+
+  **Books are distinct documents**, so no range spans books and ordinals are **book-local**: canon
+  order never arises, and the schemes disagreeing on book inventory — 95 books in `org` against 66
+  in `rsc` — stops mattering. Chapter-boundary adjacency, which the superseded design called the
+  hardest case and grounds for deferring the operation, becomes `a.end + 1 == b.start`.
+
+  `overlaps` means **shares at least one verse**, containment and equality included. Interval
+  algebra reserves the word for the strictly partial case; every one of the four plugins, and any
+  pipeline author, means the other. The strict case is handled and deliberately not named, so no
+  word means two things — which is what let the relation partition stay internal, and consumers
+  never meet interval-algebra vocabulary.
+
+  Exported: `Range.parse`, `overlaps`, `contains`, `touches`, `equals`, `verse_count`, `select`.
+  `touches` is adjacency — no gap and no shared verse — and is named for the reader rather than
+  after Allen's `meets`.
+
+  **`select` is the filter the pipeline language lacks.** Python has a comprehension; YAML has
+  neither, which is why four plugins wrote the loop by hand and one takes the first match, so a
+  passage spanning two divisions silently gets whichever comes first. `select` returns every match,
+  and an empty list rather than `None` where nothing matched. It costs no engine surface: the
+  existing `function` step reaches it with no new step type. `ref` is required and resolved the way
+  every other path in the engine is, so `meta.range` works.
+
+  Verified against real data: every book and chapter of all six packaged schemes — 95 books, 1,584
+  chapters in `org` alone — checked for verse counts, whole-book containment, and consecutive
+  chapters touching without overlapping. Kept as a test, since laws over the real corpus are the
+  closest thing available to generated input without adding `hypothesis`.
+
 - **`include: [syntax]` — the constituency tree, standoff (#227).** Ruled 2026-08-31, built now.
   Every declared `include:` family is implemented; nothing is named-but-missing.
 

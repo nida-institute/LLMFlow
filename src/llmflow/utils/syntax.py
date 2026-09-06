@@ -15,18 +15,28 @@ rather than a class the engine invents — which matters because a point of depa
 sentence-initial, and Mark has 726 sentences against 4,021 clause groups, so answering that
 question against clauses would be wrong roughly five times in six.
 
-**What a node carries.**
+**What a node carries.** `class`, the syntactic category, and `role`, its role with respect to the
+governing verb; then `articular`, `head`, `type`, `clauseType`, `junction` and `predication` where
+the source states them, and `children` in tree order.
 
-- `class` — the node's syntactic category: `cl`, `np`, `pp`, `vp`, `advp`, `adjp`.
-- `role` — its role with respect to the governing verb: `v`, `s`, `o`, `io`, `o2`, `adv`, `p`,
-  `vc`, `aux`. Absent where the source states none.
-- `children` — nested nodes and leaves, in tree order.
+Those six are carried because they are properties of a *constituent* and none of them has a route
+through the TSV, which is one row per word. `articular` is the clearest case: in
+`τῇ κατ᾽ οἶκόν σου ἐκκλησίᾳ` the article governs a phrase containing a prepositional phrase, not
+the word beside it, so articularity cannot ride in a per-word family however the families are
+arranged.
 
-`rule` is not carried: it names the parser's derivation rather than a fact about the constituent.
+`rule` and `nodeId` are not carried: they name how the parser derived the node rather than a fact
+about the constituent.
 
-**What a leaf carries.** One `token`, the word-level id. No text, because the text is in the USJ
-document; no `ref`, because a word's book, chapter and verse follow from where it sits there, and
-carrying it would be a third encoding of identity beside the id and the position.
+**What a leaf carries.** One `token`, the word-level id, plus `class`, `role`, `junction` and
+`discontinuous`. No text, because the text is in the USJ document; no `ref`, because a word's book,
+chapter and verse follow from where it sits there, and carrying it would be a third encoding of
+identity beside the id and the position. Nothing the per-word families already deliver, because a
+second encoding of `lemma` or `morph` is one that can disagree with the first.
+
+`discontinuous` earns its place: this family is standoff *because* text order and tree order cannot
+be reconciled, and it is the source's own marking of exactly that — 6,038 Greek words, in 4,404 of
+the corpus's 8,010 sentences, and never on a group node.
 
 Hebrew leaves are `<m>` morpheme nodes, so a word written in several pieces appears as several
 leaves. Each names the **word**, through `_word_identifier` — a consumer keying on a leaf gets an
@@ -52,8 +62,45 @@ LEAF_TAGS = ("w", "m")
 #: and `role` come across like any other node's.
 GROUP_TAGS = ("wg", "c")
 
-#: Carried onto a node, in this order. `rule` is deliberately absent.
-NODE_ATTRIBUTES = ("class", "role")
+#: Carried onto a group node, in this order.
+#:
+#: `rule` and `nodeId` are deliberately absent. `rule` names how the parser derived the node rather
+#: than a fact about the constituent, and it comes in two conventions — a capitalised `Rule`, paired
+#: with `nodeId`, runs through all 27 Greek books alongside the lower-case one. Both are the tool's
+#: bookkeeping.
+#:
+#: `articular` is the reason this list is longer than `class` and `role`. It has no route through
+#: the TSV, and articularity is a property of a *phrase*: in `τῇ κατ᾽ οἶκόν σου ἐκκλησίᾳ` the
+#: article governs a phrase containing a prepositional phrase, not the word beside it. So no
+#: per-word family could carry it, and it is `syntax` or nowhere.
+GROUP_ATTRIBUTES = (
+    "class",
+    "role",
+    "articular",
+    "head",
+    "type",
+    "clauseType",
+    "junction",
+    "predication",
+)
+
+#: Carried onto a leaf. Everything else Macula puts on a `w` or `m` — `lemma`, `strong`, `morph`,
+#: `gloss`, the parsing fields, `frame`, `subjref`, `referent` — is a TSV column that arrives
+#: through a per-word family, and a second encoding here could disagree with the first.
+#:
+#: `discontinuous` is on leaves only, never on `wg`, and has no TSV route. It marks the very
+#: phenomenon this family is standoff *for*: 6,038 Greek words carry it, in 4,404 of the corpus's
+#: 8,010 sentences.
+#:
+#: `role` is carried on leaves for a reason beyond symmetry: the **Hebrew** TSV has no `role`
+#: column, so for Hebrew this is its only route.
+LEAF_ATTRIBUTES = ("class", "role", "junction", "discontinuous")
+
+#: Greek writes `clauseType`, Hebrew `clausetype`, for one fact. The payload states it once, under
+#: the Greek spelling — **the one place a field name is not the source's verbatim.** Emitting both
+#: would present an inconsistency between the sources as though it were a distinction in the
+#: grammar, and make a consumer know which corpus it was reading in order to find the value.
+SPELLINGS = {"clauseType": ("clauseType", "clausetype")}
 
 XML_ID = "{http://www.w3.org/XML/1998/namespace}id"
 
@@ -94,11 +141,22 @@ def _leaf(element: Any) -> Optional[dict]:
     index = _word_index(row)
 
     leaf: dict = {"token": _word_identifier(row, index or "")}
-    for name in NODE_ATTRIBUTES:
-        value = (element.get(name) or "").strip()
-        if value:
-            leaf[name] = value
+    _carry(element, LEAF_ATTRIBUTES, leaf)
     return leaf
+
+
+def _carry(element: Any, names: tuple, into: dict) -> None:
+    """Copy the attributes the source states, in declared order, skipping those it omits.
+
+    An attribute Macula writes only when true — `articular`, `discontinuous`, `head` — is absent
+    rather than false, so the payload says nothing where the source says nothing.
+    """
+    for name in names:
+        for spelling in SPELLINGS.get(name, (name,)):
+            value = (element.get(spelling) or "").strip()
+            if value:
+                into[name] = value
+                break
 
 
 def _node(element: Any) -> Optional[dict]:
@@ -112,10 +170,7 @@ def _node(element: Any) -> Optional[dict]:
         return None
 
     node: dict = {}
-    for name in NODE_ATTRIBUTES:
-        value = (element.get(name) or "").strip()
-        if value:
-            node[name] = value
+    _carry(element, GROUP_ATTRIBUTES, node)
 
     children = [child for child in (_node(c) for c in element) if child is not None]
     if children:
