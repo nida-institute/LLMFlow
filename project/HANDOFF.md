@@ -64,6 +64,13 @@ semantic domains.
 - **`RELEASE_CHECKLIST.md` §12 is wrong** and fails four guards. Unclaimed.
 - **`#204`'s recorded cause is false** and `TODO.md:201` says so — *"needs correcting before
   anything is built against it."* Unclaimed, and it sits under the workshop goal.
+- **`sp lint` checks the prompt contract in one direction only** — added to `TODO.md` by the
+  Captain's direction. `validate_gpt_body_declares_all_vars` computes `body_vars - declared`
+  (`linter.py:214`) and never the reverse, so a `requires:` entry the body never uses passes
+  silently, while every calling step is still obliged to supply it. Error or warning is unruled.
+- **The shell/file-tool rules have no teeth** — also added to `TODO.md` this session. The rule
+  offers no ask-first path, so an agent with a genuine reason either fails the task or violates
+  silently; the cost lands on the Captain's attention. Which file owns the change is undecided.
 - **`query_macula_hebrew` / `query_macula_greek`** — both broken, both uncalled. Fix or delete.
 - **`load_db.py` has four defects**, all recorded in `design-basex-collections.md` §6 and none
   fixed: no `INTPARSE` (so loading `macula-greek/SBLGNT/lowfat` **fails on Luke**, element depth

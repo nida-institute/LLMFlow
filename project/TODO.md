@@ -7,6 +7,55 @@
 
 ## 🔥 Active
 
+### 🦷 The shell/file-tool rules have no teeth — the AI must ask, not just violate
+
+> **Targets this release.** The Captain's words, verbatim: *"The File Commands part of the ai
+> context has no teeth. I want to change it so that LLMs ask permission when there is a good
+> reason to do something else, e.g. File Tools does not support this operation, it's testing
+> candidate Python code from a file (not a heredoc), etc."* And: *"otherwise, I have to give it
+> permission on the command line to violate each rule, then interrupt and ask why it did it, and
+> it requires my attention, which I want to focus elsewhere."*
+>
+> The rule is written as a prohibition with no sanctioned exception, so an agent with a genuine
+> reason has two moves: obey and fail the task, or violate silently and get caught at the
+> permission prompt. **Asking first is not a path the text offers.** The cost lands on the
+> Captain's attention, which is the thing the rule was supposed to protect.
+>
+> **Where the text lives is undecided and is the Captain's call.** `docs/ai-context/` has no
+> "File Commands" section. The rules are in `CLAUDE.md` "Shell Commands" (this repo only) and
+> `~/.sp/disciplines/workflow.md` "Shell Commands" (every project on this machine, and shared
+> with Human at the Helm, so a change there costs a `helm-sync.yaml` hash update and a twin
+> commit). A third home is `data/ai-rules.yaml`, the enforced single source, where each rule
+> already declares `enforcement:` and `scope:`.
+- [ ] Decide the home, then rewrite the rule so that a named exception obliges the AI to ask
+      first rather than proceed
+
+### 🔍 `sp lint` checks the prompt contract in one direction only
+
+> **Targets this release.** The Captain's words, verbatim: *"sp lint checks one direction only —
+> linter.py:1326, 'every {{var}} must be in requires:'. There is no reverse check. Its own message
+> for a withdrawn key even says 'delete it if the body does not use it', which is advice to a
+> human, not an enforced rule."*
+>
+> `validate_gpt_body_declares_all_vars` computes `undeclared = body_vars - declared`
+> (`linter.py:214`) and stops. The reverse set — a name in `requires:` that the body never uses —
+> is never computed. So a prompt can declare an input, `validate_all_step_contracts` can oblige
+> every calling step to supply it, and the body can ignore it, with nothing said anywhere. The
+> remedy the withdrawn-`optional:` message advises at `linter.py:161` *is* this check, unenforced.
+> **The `audit-prompts` skill has the same blind spot.** Its nine steps check convention
+> structure, grounding of *output* fields, example diversity, guardrail integrity, AI-written
+> examples, JSON formatting and structured outputs. None compares a prompt's `requires:` list
+> against the `{{var}}` names its body uses, so a declared-but-unused input passes the audit
+> exactly as it passes lint. The Captain: *"ALSO should catch this error."*
+>
+> **Two surfaces, one defect, but not one fix.** The linter is ours. The skill lives in
+> `~/.sp/skills/audit-prompts/SKILL.md`, which is the Captain's store — and per #204 most of
+> `~/.sp` is not in the package, so a check added there reaches this machine and no other until
+> that is fixed.
+- [ ] **Ruling needed first:** is an unused `requires:` entry an error or a warning? Then add the
+      reverse check to `validate_gpt_body_declares_all_vars`
+- [ ] Add the same check to the `audit-prompts` skill — **the Captain's store, needs his approval**
+
 ### 🐛 `sp init`'s write paths — three defects, found migrating discourse-flow → #215
 > Filed together because they share a cause: `sp init` writes through paths `sp doctor` has
 > already hardened, and reports failure inconsistently.
