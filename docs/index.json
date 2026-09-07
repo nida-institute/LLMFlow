@@ -1955,7 +1955,7 @@
         {
           "name": "_pairs",
           "signature": "_pairs(mapped_verses: Mapping[str, str], scheme_name: str) -> dict",
-          "doc": "`{\"PSA 51:1-19\": \"PSA 51:3-21\"}` as nineteen single-verse pairs."
+          "doc": "`{\"PSA 51:1-19\": \"PSA 51:3-21\"}` as nineteen single-verse pairs, each verse to a list."
         },
         {
           "name": "_warn_about_unread_fields",

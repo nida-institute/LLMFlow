@@ -37,8 +37,13 @@ class Scheme:
     name: str
     max_verses: Mapping[str, list] = field(default_factory=dict)
     excluded_verses: frozenset = frozenset()
-    #: One entry per verse, this scheme -> hub, with every range already expanded.
-    to_hub: Mapping[str, str] = field(default_factory=dict)
+    #: One entry per verse, this scheme -> every hub verse it names, with ranges already expanded.
+    #:
+    #: Many-valued in both directions, because both occur in the shipped data. `PSA 89:0-1 =>
+    #: PSA 90:0` joins two verses into one, so both keys hold the same single target;
+    #: `PSA 141:0 => PSA 142:0-1` divides one into two, so one key holds both. Holding a single
+    #: string could express the first but not the second, and `_pairs` refused both.
+    to_hub: Mapping[str, list] = field(default_factory=dict)
 
     @property
     def from_hub(self) -> dict:
@@ -49,8 +54,10 @@ class Scheme:
         span would be true to the data.
         """
         reverse: dict = {}
-        for own, hub in self.to_hub.items():
-            reverse.setdefault(hub, []).append(own)
+        for own, hub_verses in self.to_hub.items():
+            for hub in hub_verses:
+                if own not in reverse.setdefault(hub, []):
+                    reverse[hub].append(own)
         return reverse
 
     def contains(self, book: str, chapter: int, verse: int) -> bool:
@@ -267,32 +274,52 @@ def _expand(entry: str) -> list[str]:
 
 
 def _pairs(mapped_verses: Mapping[str, str], scheme_name: str) -> dict:
-    """`{"PSA 51:1-19": "PSA 51:3-21"}` as nineteen single-verse pairs.
+    """`{"PSA 51:1-19": "PSA 51:3-21"}` as nineteen single-verse pairs, each verse to a list.
 
-    An entry whose two sides cover different numbers of verses is skipped, and all such entries
-    in one scheme are reported together. Skipping rather than guessing keeps a reference from
-    landing where the data does not put it; one bad entry does not make a scheme unusable.
+    Three shapes are meaningful, and the third used to be refused with the second:
+
+    - **verse for verse**, equal runs: paired in order.
+    - **a run joining into one verse** — `PSA 89:0-1 => PSA 90:0` — every verse of the run names
+      that one. Common: `DAG 13:1-63 => SUS 1:63` folds a whole chapter of Greek Daniel into one
+      verse of Susanna.
+    - **one verse dividing into a run** — `PSA 141:0 => PSA 142:0-1` — that verse names both.
+
+    Anything else is skipped and reported. Five verses to six does not say which verse gained, and
+    a range written backwards names none, so both would be guesses — which is what the skip is for.
+    A reference the scheme cannot place must not silently pass through as itself.
     """
-    pairs, skipped = {}, []
+    pairs: dict = {}
+    skipped = []
     for own_entry, hub_entry in (mapped_verses or {}).items():
         try:
             own, hub = _expand(own_entry), _expand(hub_entry)
         except UnmappableReference as error:
             skipped.append(f"{own_entry!r} -> {hub_entry!r} ({error})")
             continue
-        if len(own) != len(hub):
+
+        if len(own) == len(hub):
+            joined = zip(own, [[one] for one in hub])
+        elif len(hub) == 1 and own:
+            joined = zip(own, [list(hub) for _ in own])
+        elif len(own) == 1 and hub:
+            joined = zip(own, [list(hub)])
+        else:
             skipped.append(
                 f"{own_entry!r} ({len(own)} verses) -> {hub_entry!r} ({len(hub)} verses)"
             )
             continue
-        pairs.update(zip(own, hub))
+
+        for verse, targets in joined:
+            for target in targets:
+                if target not in pairs.setdefault(verse, []):
+                    pairs[verse].append(target)
 
     if skipped:
         logger.warning(
             f"Versification scheme {scheme_name!r}: {len(skipped)} mapping "
             f"{'entry' if len(skipped) == 1 else 'entries'} skipped because the two sides cover "
-            f"different numbers of verses. References in these ranges are left unmapped:\n  "
-            + "\n  ".join(skipped)
+            f"numbers of verses that name no join. References in these ranges are left "
+            f"unmapped:\n  " + "\n  ".join(skipped)
         )
     return pairs
 
@@ -399,12 +426,19 @@ def map_candidates(
             f"{book} {chapter} has {_extent(source, book, chapter)}."
         )
 
-    in_hub = own if from_scheme == HUB_SCHEME else source.to_hub.get(own, own)
+    # A verse may name several hub verses where the schemes divide it differently, and each of
+    # those may be reached from several verses of the target. Order follows the mapping file's.
+    in_hub = [own] if from_scheme == HUB_SCHEME else list(source.to_hub.get(own) or [own])
     if to_scheme == HUB_SCHEME:
-        return [in_hub]
+        return in_hub
 
     target = load_scheme(to_scheme, mappings_dir)
-    return list(target.from_hub.get(in_hub) or [in_hub])
+    found: list = []
+    for hub in in_hub:
+        for candidate in target.from_hub.get(hub) or [hub]:
+            if candidate not in found:
+                found.append(candidate)
+    return found
 
 
 def map_reference(

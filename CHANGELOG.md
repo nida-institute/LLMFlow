@@ -37,6 +37,53 @@
   Guarded by a test asserting no field outside the ruled set reaches a payload, so a corpus gaining
   an attribute cannot quietly widen it, and by real-corpus tests over Philemon, Mark and Ruth.
 
+- **Versification merges are representable, and seven shipped mapping entries stop being dropped.**
+  A mapping whose two sides covered different numbers of verses was skipped, on the reasoning that
+  guessing would put a reference where the data does not. But the commonest such entry is not a
+  guess: it states that a run of verses in one scheme is **one verse** in another, or the reverse.
+
+  `rsc` carries `PSA 89:0-1 => PSA 90:0` and `PSA 141:0 => PSA 142:0-1`; `vul` folds all 63 verses
+  of Greek Daniel 13 into `SUS 1:63`. Seven such entries across `rsc`, `rso` and `vul` were being
+  dropped at load — and a reference inside a dropped range then **passed through unchanged**,
+  landing on the wrong verse despite an honest warning. That warning fired on every scheme load.
+
+  `to_hub` now holds a list per verse, since both directions occur: a join repeats one target
+  across several keys, a division holds several targets under one. `_pairs` recognises equal runs,
+  a run joining into one verse, and one verse dividing into a run. `map_candidates` accumulates
+  across both hops in the mapping file's order, which is what its documentation always promised —
+  *"more than one where the target scheme divides what the source joins."*
+
+  **Two entries stay refused, and should.** `rso`'s `PSA 89:2-6 => PSA 90:1-6` is five verses to
+  six and does not say which gained one; `vul`'s `DAG 3:52-23` names a range running backwards.
+  Supporting joins is not the same as guessing, and that distinction was the whole reason for the
+  original skip.
+
+  Found while designing Paratext support (#222): a real `custom.vrs` states `REV 13:1 = REV 12:18`
+  and `REV 13:1 = REV 13:1`, which an earlier reading took for an ambiguity to refuse. It is a
+  merge — NIV-like numbering puts the content of org's REV 12:18 in REV 13:1 — and the engine could
+  not express it. Fixing that first means Paratext needs no special case for it.
+
+- **Hebrew participant ids do not join onto Hebrew ids, and now the declaration says so.** Every
+  Greek `referent` value — all 18,213 — begins with `n`, matching the ids beside it. Every Hebrew
+  `participantref` value — all 59,227 — is digits only, while every Hebrew id carries a leading
+  `o`. Of 50 sampled, 50 resolve when prefixed and 0 as written, so a participant chain built by
+  joining the column onto the ids returns nothing at all and does not raise. `frame` and `subjref`
+  carry the same bare ids.
+
+  **Declared rather than repaired.** Repairing `frame` would mean parsing its `A0:`/`A1:`
+  structure, which is the consumer's by ruling, so only `participantref` could be repaired — fixing
+  one column, leaving two, and teaching a rule that then fails silently on the others. The rule now
+  lives in `notes.participant_ids` in `data/include-families.json`, which is the file consumers read
+  instead of the code, with a test asserting it names all three columns.
+
+  The note also records that `referent` is Greek-only and `participantref` Hebrew-only — one concept
+  under two names, not unified, because the corpora were produced independently and declaring the
+  equivalence would be an editorial judgment about someone else's data.
+
+  Raised by `discourse-flow`, whose actual question — whether a Hebrew pronominal suffix carries its
+  own participant — is answered yes: 45,336 of 47,442 suffix morphemes do, and of 200 that do not,
+  one had a same-word morpheme that did. Nothing merges morphemes, so no suffixed reference is lost.
+
 - **`include-families.json` said `syntax` was not implemented.** The family is built and listed in
   `IMPLEMENTED_FAMILIES`, but the `purpose` string in the table that declares *"What each `include:`
   family delivers"* still read `"Syntactic structure. Not implemented."` — and that file is what
