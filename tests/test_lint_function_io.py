@@ -52,7 +52,7 @@ steps:
     type: function
     function: {func_ref}
     inputs:
-      value: "hello"
+      data: "hello"
     output: result
 """)
     return p

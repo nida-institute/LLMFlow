@@ -102,3 +102,78 @@ now because we changed it when we changed the pipeline. A guard written per-inpu
 input someone remembered to write a guard for.
 
 No schedule pressure. We caught this one in seconds and the conversion is committed and green.
+
+---
+
+# ══ REPLY FROM SCRIPTURE PIPELINES ══
+
+**Built, and as an error rather than a warning.** `sp lint` now checks every `type: function` step
+against the signature of the function it names. Your case, run through the CLI:
+
+```
+🔍 Validating function step signatures...
+❌ Function signature validation failed with 2 errors:
+  ❌ Step 'derive_boundary_fields': plugins.derive_boundaries.run does not accept ['morphology'] — it accepts ['content']
+  ❌ Step 'derive_boundary_fields': plugins.derive_boundaries.run requires ['content'], which this step does not supply
+❌ Pipeline has errors
+```
+
+Two errors, not one, because a rename is two separate true facts: an argument the function cannot
+receive, and a parameter that nothing supplies.
+
+## All three shapes you named
+
+1. **An input the function does not accept** — your case, a rename with a missed call site.
+2. **A required parameter with no input and no default** — a signature gaining a parameter.
+3. **A `function:` path that does not import** — a moved or renamed module, and also a path that
+   resolves to something uncallable.
+
+## Name arity only, as you asked for
+
+No type checking. Only names and counts; no value is examined. Where it cannot be certain it says
+nothing rather than guessing:
+
+- `**kwargs` accepts any input name, so the unknown-name check is dropped for such a signature. A
+  required *named* parameter is still required, because `**kwargs` cannot satisfy one.
+- `*args` lifts the positional limit.
+- A callable whose signature cannot be introspected is skipped.
+- `context` is never reported missing — the runner supplies it when the signature asks for it.
+- A list-form `inputs:` is positional, so names cannot be checked and only the count is. A
+  parameter reachable only by name is reported, because a list cannot bind it.
+
+## One thing to know: lint now imports your plugin modules
+
+Reading a signature means importing the module, and lint never did that before. It could not have,
+either: `run_pipeline` puts the working directory on `sys.path` and lint does not, so
+`plugins.derive_boundaries` was importable at run time and not at lint time. The check adds that
+entry for its own duration and removes it afterwards.
+
+Two consequences. **Module-level code in a plugin now runs during `sp lint`** — if any of your
+plugins do work at import time, that work happens on every lint. And **a plugin that fails to
+import now fails lint**, which is shape 3 working as asked, but it means one broken module in a
+`plugins/` file that a pipeline names will stop that pipeline linting.
+
+## What this asks of you
+
+**It reaches you without a pull.** If your checkout still installs this tree editable — which
+`consumer-repo-conventions.md` says it must — then this is your engine's behaviour as soon as it is
+in the working tree here, not when a release ships.
+
+**Run `sp lint` over every pipeline you have.** Any latent mismatch that has never executed will
+now fail. Six such steps were sitting in *our own* test fixtures: two passing no arguments to
+`identity(value)`, three passing `value` to a function taking `data`, and one passing nothing to
+`mock_function(a, p)`. Every one was a pipeline that could never have run, inside a suite of more
+than 5,000 passing tests. We had no more idea they were there than you had about yours — which is
+the argument for the check, made by the check.
+
+Your `tests/test_pipeline_structure.py` per-input assertions are redundant for this class now, and
+you observed yourself that the guard did not generalise. Whether they go is yours.
+
+## Known gap
+
+`merge: {function: ...}` on a `window` step is a second place the language names a callable, and it
+is **not** covered — only a step's own `function:` key is. If you use it, the same mistake still
+passes lint there.
+
+Your reasoning was right on every point, including that the information was available statically
+and that name arity is enough. The only thing asked of you is the lint sweep above.

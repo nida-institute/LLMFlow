@@ -354,6 +354,45 @@ Calls a Python function from the Scripture Pipelines library or custom code.
 - `append_to`: List variable name to append result to (used in `for-each`)
 - `log`: Log level for this step
 
+#### The signature is the step's contract
+
+An `llm` step's contract is its prompt's `requires:` header. A `function` step's contract is the
+signature of the function it names, and `sp lint` checks the step against it — so a rename on one
+side and not the other is refused before the run starts rather than raising `TypeError` partway
+through.
+
+Three mismatches are reported as errors:
+
+- an input the function does not accept — the case a rename produces
+- a parameter with no default that the step does not supply
+- a `function:` path that does not import, or that names something uncallable
+
+```yaml
+# plugins/derive_boundaries.py declares:  def run(content): ...
+
+- name: derive_boundary_fields
+  type: function
+  function: plugins.derive_boundaries.run
+  inputs:
+    morphology: "${annotated_book.morphology}"   # ❌ lint: run does not accept ['morphology']
+```
+
+Only names and arity are compared. **This is not type checking** — a parameter annotated
+`Mapping[str, Any]` receiving a list is a runtime question, and lint has no values. Where the
+check cannot be certain it stays silent: a signature taking `**kwargs` accepts any input name,
+`*args` lifts the positional limit, and a callable whose signature cannot be introspected is
+skipped.
+
+Two details follow from how the runner calls a function:
+
+- **`context` is never an input.** The runner passes it when the signature asks for it, so a
+  `context` parameter is not reported as missing.
+- **A list-form `inputs:` is positional**, so names cannot be checked — only how many arguments
+  the function takes. A parameter that can only be passed by name cannot be supplied this way.
+
+Because lint imports the module to read the signature, a `function:` path is resolved with the
+working directory on `sys.path`, which is where a project's own `plugins/` package lives.
+
 **Common functions:**
 - `llmflow.utils.data.load_json_file(file_path)` — load and parse a JSON file from disk; raises `FileNotFoundError` if missing
 - `llmflow.utils.data.load_json(file_path)` — alias for `load_json_file` in the data module

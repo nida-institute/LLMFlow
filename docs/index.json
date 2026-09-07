@@ -1954,7 +1954,7 @@
         },
         {
           "name": "_pairs",
-          "signature": "_pairs(mapped_verses: Mapping[str, str], scheme_name: str) -> dict",
+          "signature": "_pairs(mapped_verses, scheme_name: str) -> dict",
           "doc": "`{\"PSA 51:1-19\": \"PSA 51:3-21\"}` as nineteen single-verse pairs, each verse to a list."
         },
         {
@@ -1973,13 +1973,43 @@
           "doc": ""
         },
         {
+          "name": "_vrs_book",
+          "signature": "_vrs_book(token: str) -> Optional[str]",
+          "doc": "The USFM code a `.vrs` book token names, or None when it is not code-shaped."
+        },
+        {
+          "name": "_overlay_verse",
+          "signature": "_overlay_verse(reference: str, source: Path, number: int) -> str",
+          "doc": "One reference from a `.vrs` line, in the form the rest of this module writes."
+        },
+        {
+          "name": "read_custom_vrs",
+          "signature": "read_custom_vrs(path) -> CustomOverlay",
+          "doc": "Read a Paratext `custom.vrs`."
+        },
+        {
+          "name": "fold_custom",
+          "signature": "fold_custom(base: Scheme, overlay: CustomOverlay, name: str) -> Scheme",
+          "doc": "*base* with *overlay* applied, labelled *name*."
+        },
+        {
+          "name": "scheme_name",
+          "signature": "scheme_name(scheme) -> str",
+          "doc": "The name of a scheme given either as a name or as a `Scheme`."
+        },
+        {
+          "name": "_as_scheme",
+          "signature": "_as_scheme(scheme, mappings_dir: Optional[Path] = None) -> Scheme",
+          "doc": "A scheme given as a name or as a `Scheme`, as a `Scheme`."
+        },
+        {
           "name": "map_candidates",
-          "signature": "map_candidates(reference: str, from_scheme: str, to_scheme: str, mappings_dir: Optional[Path] = None) -> list",
+          "signature": "map_candidates(reference: str, from_scheme, to_scheme, mappings_dir: Optional[Path] = None) -> list",
           "doc": "Every verse of *to_scheme* that *reference* corresponds to, in the mapping's own order."
         },
         {
           "name": "map_reference",
-          "signature": "map_reference(reference: str, from_scheme: str, to_scheme: str, mappings_dir: Optional[Path] = None) -> str",
+          "signature": "map_reference(reference: str, from_scheme, to_scheme, mappings_dir: Optional[Path] = None) -> str",
           "doc": "*reference*, read in *from_scheme*, expressed as the one verse of *to_scheme* it names."
         },
         {
@@ -2001,6 +2031,11 @@
           "name": "covers",
           "signature": "covers(self, chapter: int, verse: int) -> bool",
           "doc": ""
+        },
+        {
+          "name": "states_nothing",
+          "signature": "states_nothing(self) -> bool",
+          "doc": "Whether the file declared no numbering — comments and blank lines only."
         }
       ]
     },
@@ -3115,8 +3150,11 @@
       "imports": [
         "ast",
         "click",
+        "contextlib",
         "dataclasses",
         "difflib",
+        "importlib",
+        "inspect",
         "llmflow.exceptions",
         "llmflow.modules.logger",
         "llmflow.pipeline_schema",
@@ -3125,9 +3163,11 @@
         "llmflow.utils.get_prefix_directory",
         "llmflow.utils.llm_runner",
         "llmflow.yaml_loader",
+        "os",
         "pathlib",
         "pydantic",
         "re",
+        "sys",
         "typing",
         "yaml"
       ],
@@ -3286,6 +3326,46 @@
           "name": "check_function_step_no_internal_paths",
           "signature": "check_function_step_no_internal_paths(all_steps: list) -> list[str]",
           "doc": "Warn when a function: step constructs hardcoded paths to outputs/ internally."
+        },
+        {
+          "name": "_cwd_importable",
+          "signature": "_cwd_importable()",
+          "doc": "Put the working directory on `sys.path` for the duration of the block."
+        },
+        {
+          "name": "_resolve_step_function",
+          "signature": "_resolve_step_function(func_ref: str)",
+          "doc": "Import `func_ref` and return `(callable, failure)`, exactly one of which is None."
+        },
+        {
+          "name": "_has_kind",
+          "signature": "_has_kind(sig, kind) -> bool",
+          "doc": ""
+        },
+        {
+          "name": "_bindable_by_name",
+          "signature": "_bindable_by_name(sig) -> set",
+          "doc": "Parameter names an `inputs:` mapping can bind."
+        },
+        {
+          "name": "_positional_slots",
+          "signature": "_positional_slots(sig) -> list",
+          "doc": "Parameter names an `inputs:` list can fill, in order."
+        },
+        {
+          "name": "_required_params",
+          "signature": "_required_params(sig) -> list",
+          "doc": "Parameter names with no default, which the step must therefore supply."
+        },
+        {
+          "name": "_input_binding_errors",
+          "signature": "_input_binding_errors(inputs, sig, func_ref: str) -> list",
+          "doc": "Every way `inputs` fails to bind to `sig`, at name and arity level only."
+        },
+        {
+          "name": "check_function_step_signatures",
+          "signature": "check_function_step_signatures(all_steps: list) -> list[str]",
+          "doc": "Report function steps whose inputs the named callable cannot receive."
         },
         {
           "name": "lint_pipeline_full",
@@ -3459,8 +3539,18 @@
         },
         {
           "name": "edition_scheme",
-          "signature": "edition_scheme(definition: Any, edition: Optional[str] = None) -> Optional[str]",
-          "doc": "The versification scheme an edition's references are in, or None when unknown."
+          "signature": "edition_scheme(definition: Any, edition: Optional[str] = None, mappings_dir: Optional[Path] = None)",
+          "doc": "The versification an edition's references are in, or None when unknown."
+        },
+        {
+          "name": "_custom_vrs_path",
+          "signature": "_custom_vrs_path(definition: Mapping[str, Any]) -> Optional[Path]",
+          "doc": "The project's own versification file, in either spelling that occurs on disk."
+        },
+        {
+          "name": "_project_scheme",
+          "signature": "_project_scheme(definition: Mapping[str, Any], base_name: str, overlay_path: Path, mappings_dir: Optional[Path])",
+          "doc": "*base_name* with the project's `custom.vrs` folded on, labelled for the project."
         },
         {
           "name": "_edition_table",
@@ -3489,7 +3579,7 @@
         },
         {
           "name": "resolve_passage",
-          "signature": "resolve_passage(passage: str, edition_scheme_name: Optional[str], requested_scheme: Optional[str], edition: Optional[str] = None, mappings_dir: Optional[Path] = None) -> str",
+          "signature": "resolve_passage(passage: str, edition_scheme_name: Any, requested_scheme: Optional[str], edition: Optional[str] = None, mappings_dir: Optional[Path] = None) -> str",
           "doc": "*passage*, named in *requested_scheme*, rewritten as the edition numbers it."
         },
         {
@@ -4928,6 +5018,6 @@
   ],
   "summary": {
     "total_modules": 85,
-    "total_functions": 777
+    "total_functions": 794
   }
 }

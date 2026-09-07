@@ -4,6 +4,40 @@
 
 ### Added
 
+- **`sp lint` checks a function step against the signature of the function it names.** An `llm`
+  step's contract is its prompt's `requires:` header, and the linter has always enforced it. A
+  `function` step has a contract of the same kind — the callable's signature — and nothing
+  compared the two, so a pipeline could be unrunnable while lint reported success.
+
+  Reported by `discourse-flow`, from their own case: a plugin's parameter was renamed
+  `morphology` → `content` and three calling steps were not updated. `sp lint` printed four
+  green checks and their 1,232-test suite was green, because neither looks at the wiring. The
+  run would have died at the first call with `TypeError`, after two earlier steps had already
+  done their work. The cost of missing it scales with where the step sits: theirs was step 6 of
+  28, but the same mistake late in a book-length pipeline surfaces an hour and many dollars in.
+
+  Three mismatches are errors: an input the function does not accept, a parameter with no
+  default the step does not supply, and a `function:` path that does not import or does not name
+  something callable.
+
+  **It is not type checking, and it fails open.** Only names and arity are compared, because
+  lint holds no values. A `**kwargs` signature accepts any input name, `*args` lifts the
+  positional limit, and a callable whose signature cannot be introspected is skipped — the check
+  stays silent wherever it cannot be certain. `context` is excluded throughout, since the runner
+  supplies it when the signature asks for it. A list-form `inputs:` is positional, so only the
+  count is checked.
+
+  Reading a signature means importing the module, and lint previously never did: `run_pipeline`
+  puts the working directory on `sys.path` and lint does not, so a project's `plugins.*` module
+  imported at run time and not at lint time. The check adds that entry for its own duration and
+  removes it afterwards.
+
+  **This rejects pipelines that lint previously accepted, which is the point.** Six such steps
+  were already in this repository's own test fixtures — two passing no arguments to
+  `identity(value)`, three passing `value` to a function taking `data`, one passing nothing to
+  `mock_function(a, p)` — every one of them a pipeline that could never have run, in a suite
+  that was green.
+
 - **`include: [syntax]` carries the attributes Macula states on a constituent.** Nodes now carry
   `articular`, `head`, `type`, `clauseType`, `junction` and `predication` beside `class` and `role`;
   leaves carry `junction` and `discontinuous`.

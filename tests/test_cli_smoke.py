@@ -60,7 +60,12 @@ def test_verbose_flag_dry_run():
         "name": "test_verbose",
         "vars": {"test": "value"},
         "steps": [
-            {"name": "step1", "type": "function", "function": "llmflow.utils.data.identity"}
+            {
+                "name": "step1",
+                "type": "function",
+                "function": "llmflow.utils.data.identity",
+                "inputs": {"value": "${test}"},
+            }
         ],
     }
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:

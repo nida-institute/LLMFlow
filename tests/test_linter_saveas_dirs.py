@@ -18,6 +18,7 @@ def _step(name: str, saveas: str) -> dict:
         "name": name,
         "type": "function",
         "function": _FN,
+        "inputs": {"a": "x", "p": "y"},
         "output": "result",
         "saveas": saveas,
     }

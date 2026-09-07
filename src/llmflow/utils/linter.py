@@ -1,5 +1,10 @@
 import ast
+import importlib
+import inspect
+import os
 import re
+import sys
+from contextlib import contextmanager
 from dataclasses import dataclass
 from difflib import unified_diff
 from pathlib import Path
@@ -1064,6 +1069,181 @@ def check_function_step_no_internal_paths(all_steps: list) -> list[str]:
     return warnings
 
 
+# The runner passes `context` itself, so no step ever supplies it as an input.
+_RUNNER_INJECTED = "context"
+
+
+@contextmanager
+def _cwd_importable():
+    """Put the working directory on `sys.path` for the duration of the block.
+
+    `run_pipeline` does this before importing plugins; lint runs without it, so a
+    `plugins.*` module is importable at run time and not at lint time. Any entry
+    added here is removed on the way out.
+    """
+    cwd = os.getcwd()
+    if cwd in sys.path:
+        yield
+        return
+    sys.path.insert(0, cwd)
+    try:
+        yield
+    finally:
+        try:
+            sys.path.remove(cwd)
+        except ValueError:
+            pass
+
+
+def _resolve_step_function(func_ref: str):
+    """Import `func_ref` and return `(callable, failure)`, exactly one of which is None."""
+    module_dotted, func_name = func_ref.rsplit(".", 1)
+
+    try:
+        module = importlib.import_module(module_dotted)
+    except Exception as exc:
+        return None, f"cannot import '{module_dotted}' ({type(exc).__name__}: {exc})"
+
+    if not hasattr(module, func_name):
+        return None, f"'{module_dotted}' defines no '{func_name}'"
+
+    func = getattr(module, func_name)
+    if not callable(func):
+        return None, f"'{func_ref}' is not callable"
+
+    return func, None
+
+
+def _has_kind(sig, kind) -> bool:
+    return any(param.kind is kind for param in sig.parameters.values())
+
+
+def _bindable_by_name(sig) -> set:
+    """Parameter names an `inputs:` mapping can bind."""
+    kinds = (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+    return {
+        name
+        for name, param in sig.parameters.items()
+        if param.kind in kinds and name != _RUNNER_INJECTED
+    }
+
+
+def _positional_slots(sig) -> list:
+    """Parameter names an `inputs:` list can fill, in order."""
+    kinds = (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+    return [
+        name
+        for name, param in sig.parameters.items()
+        if param.kind in kinds and name != _RUNNER_INJECTED
+    ]
+
+
+def _required_params(sig) -> list:
+    """Parameter names with no default, which the step must therefore supply."""
+    kinds = (
+        inspect.Parameter.POSITIONAL_ONLY,
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        inspect.Parameter.KEYWORD_ONLY,
+    )
+    return [
+        name
+        for name, param in sig.parameters.items()
+        if param.default is inspect.Parameter.empty
+        and param.kind in kinds
+        and name != _RUNNER_INJECTED
+    ]
+
+
+def _input_binding_errors(inputs, sig, func_ref: str) -> list:
+    """Every way `inputs` fails to bind to `sig`, at name and arity level only."""
+    messages = []
+    required = _required_params(sig)
+
+    if isinstance(inputs, dict):
+        supplied = set(inputs.keys())
+        if not _has_kind(sig, inspect.Parameter.VAR_KEYWORD):
+            accepted = _bindable_by_name(sig)
+            unknown = sorted(supplied - accepted)
+            if unknown:
+                messages.append(
+                    f"{func_ref} does not accept {unknown} — it accepts {sorted(accepted)}"
+                )
+        missing = [name for name in required if name not in supplied]
+        if missing:
+            messages.append(f"{func_ref} requires {missing}, which this step does not supply")
+        return messages
+
+    if isinstance(inputs, list):
+        slots = _positional_slots(sig)
+        given = len(inputs)
+
+        if not _has_kind(sig, inspect.Parameter.VAR_POSITIONAL) and given > len(slots):
+            messages.append(
+                f"{func_ref} takes at most {len(slots)} positional argument(s), "
+                f"and this step passes {given}"
+            )
+
+        required_slots = [
+            name for name in slots if sig.parameters[name].default is inspect.Parameter.empty
+        ]
+        if given < len(required_slots):
+            messages.append(
+                f"{func_ref} requires {len(required_slots)} positional argument(s) "
+                f"{required_slots}, and this step passes {given}"
+            )
+
+        keyword_only = [
+            name
+            for name, param in sig.parameters.items()
+            if param.kind is inspect.Parameter.KEYWORD_ONLY
+            and param.default is inspect.Parameter.empty
+            and name != _RUNNER_INJECTED
+        ]
+        if keyword_only:
+            messages.append(
+                f"{func_ref} requires {keyword_only} by name, which a list of inputs "
+                f"cannot supply"
+            )
+        return messages
+
+    if required:
+        messages.append(f"{func_ref} requires {required}, and this step declares no inputs")
+    return messages
+
+
+def check_function_step_signatures(all_steps: list) -> list[str]:
+    """Report function steps whose inputs the named callable cannot receive.
+
+    Three static mismatches are reported: an input the function does not accept, a
+    required parameter the step does not supply, and a `function:` path that does not
+    import or names something uncallable. Only names and arity are compared — no value
+    is inspected, so this is not type checking.
+    """
+    errors: list[str] = []
+
+    with _cwd_importable():
+        for step in all_steps:
+            func_ref = step.get("function")
+            if not isinstance(func_ref, str) or "." not in func_ref or "${" in func_ref:
+                continue
+
+            step_name = step.get("name", "unnamed")
+            func, failure = _resolve_step_function(func_ref)
+            if func is None:
+                errors.append(f"❌ Step '{step_name}': {failure}")
+                continue
+
+            try:
+                sig = inspect.signature(func)
+            except (TypeError, ValueError):
+                continue
+
+            for message in _input_binding_errors(step.get("inputs"), sig, func_ref):
+                errors.append(f"❌ Step '{step_name}': {message}")
+
+    return errors
+
+
 def lint_pipeline_full(
     pipeline_path,
     *,
@@ -1218,14 +1398,25 @@ def lint_pipeline_full(
             logger.error(error)
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
 
+    # 5) Function step signature validation
+    logger.info("🔍 Validating function step signatures...")
+    signature_errors = check_function_step_signatures(all_steps)
+    if signature_errors:
+        all_errors.extend(signature_errors)
+        logger.error(f"\n❌ Function signature validation failed with {len(signature_errors)} errors:")
+        for error in signature_errors:
+            logger.error(f"  {error}")
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
+    logger.info("✅ All function step inputs match their function's signature")
+
     if all_errors:
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
 
-    # 5) Function step internal path check (GH #165)
+    # 6) Function step internal path check (GH #165)
     func_io_warnings = check_function_step_no_internal_paths(all_steps)
     all_warnings.extend(func_io_warnings)
 
-    # 6) Saveas directory declaration warnings
+    # 7) Saveas directory declaration warnings
     _intermediate_raw = pipeline_config.get("intermediate_file_directory")
     _output_raw = pipeline_config.get("output_file_directory")
     if _intermediate_raw or _output_raw:

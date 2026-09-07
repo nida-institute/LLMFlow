@@ -194,6 +194,25 @@ The linter validates that all `requires` entries are present in `prompt.inputs`
 before execution. This is the boundary where the pipeline's runtime contract
 meets the prompt author's declared intent.
 
+### 5.1 Function Step Contract
+
+A `function` step has a contract of the same kind, and it is the signature of the callable
+`function:` names. `check_function_step_signatures` in `utils/linter.py` imports the module,
+reads the signature with `inspect.signature`, and compares it against the step's `inputs:`.
+Three mismatches are errors: an input the function does not accept, a parameter with no
+default the step does not supply, and a path that does not import or is not callable.
+
+The comparison is name- and arity-level only, because lint holds no values — a `**kwargs`
+signature accepts any name, `*args` lifts the positional limit, and an uninspectable callable
+is skipped, so the check fails open rather than rejecting a pipeline that would run. `context`
+is excluded throughout: `steps/function.py` supplies it when the signature asks for it, so no
+step declares it as an input.
+
+Reading the signature requires importing the module, which `run_pipeline` does with the working
+directory on `sys.path`. Lint has no such setup, so the check adds that entry for its own
+duration and removes it afterwards — otherwise a project's `plugins.*` module would import at
+run time and not at lint time.
+
 ## 6. Context
 
 The pipeline context is a plain `dict` that evolves as steps execute. Each step
