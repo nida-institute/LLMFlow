@@ -246,26 +246,73 @@ def rows_to_text(rows: Sequence[Mapping[str, Any]], fmt: str = "milestones") -> 
     return "".join(parts).strip()
 
 
-def edition_scheme(definition: Any, edition: Optional[str] = None) -> Optional[str]:
-    """The versification scheme an edition's references are in, or None when unknown.
+def edition_scheme(
+    definition: Any,
+    edition: Optional[str] = None,
+    mappings_dir: Optional[Path] = None,
+):
+    """The versification an edition's references are in, or None when unknown.
 
-    Three sources, in order: the edition's own ``versification_scheme``; a Paratext project's
-    ``Settings.xml``; the table of editions we construct. There is no global default — a
-    Byzantine Greek text and a critical text are numbered differently, so a guess would be
+    Three sources for the base, in order: the edition's own ``versification_scheme``; a Paratext
+    project's ``Settings.xml``; the table of editions we construct. There is no global default —
+    a Byzantine Greek text and a critical text are numbered differently, so a guess would be
     wrong exactly where it mattered.
+
+    The answer is a scheme *name* where a standard scheme is in force, and a `Scheme` named for
+    the project where a Paratext project carries its own `custom.vrs`: such a project is not
+    using the standard scheme any more, and its numbering has no other name. A declared
+    ``versification_scheme`` chooses which base the overlay is folded onto; it does not suppress
+    the project's own file.
     """
+    base = None
     if isinstance(definition, Mapping):
         declared = definition.get(SCHEME_KEY)
-        if declared:
-            return str(declared)
-        from_paratext = _paratext_scheme(definition)
-        if from_paratext:
-            return from_paratext
+        base = str(declared) if declared else _paratext_scheme(definition)
 
-    for name in (edition, definition.get("id") if isinstance(definition, Mapping) else None):
-        if name and str(name).upper() in _known_editions():
-            return _known_editions()[str(name).upper()]["scheme"]
+    if base is None:
+        for name in (edition, definition.get("id") if isinstance(definition, Mapping) else None):
+            if name and str(name).upper() in _known_editions():
+                base = _known_editions()[str(name).upper()]["scheme"]
+                break
+
+    if base is None:
+        return None
+
+    overlay = _custom_vrs_path(definition) if isinstance(definition, Mapping) else None
+    if overlay is None:
+        return base
+    return _project_scheme(definition, base, overlay, mappings_dir)
+
+
+def _custom_vrs_path(definition: Mapping[str, Any]) -> Optional[Path]:
+    """The project's own versification file, in either spelling that occurs on disk."""
+    base_dir, project = definition.get("base_dir"), definition.get("project")
+    if not base_dir or not project:
+        return None
+    directory = Path(base_dir) / str(project)
+    for name in ("custom.vrs", "Custom.vrs"):
+        candidate = directory / name
+        if candidate.is_file():
+            return candidate
     return None
+
+
+def _project_scheme(
+    definition: Mapping[str, Any],
+    base_name: str,
+    overlay_path: Path,
+    mappings_dir: Optional[Path],
+):
+    """*base_name* with the project's `custom.vrs` folded on, labelled for the project.
+
+    An overlay stating nothing leaves the base numbering in force, so the base's name is still
+    the true answer and is returned unchanged.
+    """
+    overlay = _versification.read_custom_vrs(overlay_path)
+    if overlay.states_nothing():
+        return base_name
+    base = _versification.load_scheme(str(base_name), mappings_dir)
+    return _versification.fold_custom(base, overlay, name=str(definition.get("project")))
 
 
 def _edition_table() -> Mapping[str, Any]:
@@ -346,19 +393,12 @@ def _paratext_scheme(definition: Mapping[str, Any]) -> Optional[str]:
     if not isinstance(entry, Mapping) or not entry.get("scheme"):
         return None
 
-    # A custom.vrs overlays the numbered scheme; this engine reads only the numbered one.
-    if any((settings.parent / name).is_file() for name in ("custom.vrs", "Custom.vrs")):
-        logger.warning(
-            f"Paratext project {project!r} declares versification "
-            f"{entry.get('paratext_name', number.group(1))!r} and also carries a custom.vrs, "
-            f"which this engine does not read. References its overlay changes will be wrong."
-        )
     return str(entry["scheme"])
 
 
 def resolve_passage(
     passage: str,
-    edition_scheme_name: Optional[str],
+    edition_scheme_name: Any,
     requested_scheme: Optional[str],
     edition: Optional[str] = None,
     mappings_dir: Optional[Path] = None,
@@ -383,7 +423,7 @@ def resolve_passage(
             f"the assumption is wrong, the verses returned are the wrong ones."
         )
         edition_scheme_name = ASSUMED_SCHEME
-    if requested_scheme == edition_scheme_name:
+    if requested_scheme == _versification.scheme_name(edition_scheme_name):
         return passage
 
     ref = parse_passage_ref(passage)
@@ -930,7 +970,7 @@ def edition_text(
     families = check_include(include, fmt)
 
     definition = resolve_edition(edition, editions)
-    scheme = edition_scheme(definition, edition)
+    scheme = edition_scheme(definition, edition, mappings_dir=mappings_dir)
     passage = resolve_passage(
         passage,
         scheme,
@@ -945,7 +985,7 @@ def edition_text(
     # The scheme the returned labels are in, which is the edition's — reading a passage does
     # not renumber the text. `versification` said which scheme the caller's reference was
     # written in, and was wrongly used here as though it described the result.
-    result_scheme = scheme
+    result_scheme = _versification.scheme_name(scheme) if scheme else None
     if kind == "usfm":
         return _usfm_passage_text(definition, passage, fmt)
     if kind == "tei":

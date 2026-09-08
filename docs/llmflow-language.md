@@ -928,9 +928,12 @@ Two things follow, and both matter to a consumer more than to us. **One key to s
 consumer wanting standard USJ removes `scripture_pipelines` and is done. **One place to look:**
 an extension outside that key would be an extension nobody could find.
 
-The container appears only when `include` is non-empty, and it states the versification scheme
-the verse references are in. If the edition does not say which scheme that is, the value is
-`null` and a warning names the field to add — the container never invents one.
+The container appears only when `include` is non-empty, and it states the versification the
+verse references are in. Usually that is a standard scheme's name. For a Paratext project
+carrying its own `custom.vrs` it is the **project's name** instead, because the project's
+numbering is not any standard scheme and has no other name — see *Versification* below. If the
+edition does not say which scheme it uses, the value is `null` and a warning names the field to
+add — the container never invents one.
 
 **A key says which kind of nothing it means.** This is a contract, not an implementation
 detail: a consumer reads it, and so does a model when the payload reaches a prompt.
@@ -1063,10 +1066,21 @@ three ways, in order:
 
 1. **`versification_scheme` in the edition's registry entry** — always wins.
 2. **A Paratext project's `Settings.xml`**, for `kind: usfm` editions. Paratext records a
-   number; `data/versification-editions.json` maps it to a scheme. A project carrying a
-   `custom.vrs` overlay is reported, because that overlay is not read.
+   number; `data/versification-editions.json` maps it to a scheme.
 3. **The table of editions we construct**, in the same file — `SBLGNT` and `WLC` are `org`,
    `BSB` is `eng`, each with the evidence recorded beside it.
+
+**A Paratext project may carry its own numbering, and it wins where it speaks.** A `custom.vrs`
+beside `Settings.xml` states amended chapter lengths, verses the project does not have, verse
+segments, and mappings; it is read and folded onto whichever scheme the three steps above chose.
+A registry `versification_scheme` therefore selects the *base* the overlay is folded onto — it
+does not suppress the project's own file.
+
+Such a project is no longer using the standard scheme, so **it reports the project's name** —
+`spaNVIv3`, not `eng`. That name is the project's own and does not resolve outside its Paratext
+installation, which is the point: reporting `eng` for a text whose Revelation 12 has seventeen
+verses instead of eighteen would be a plain falsehood. An overlay that states nothing leaves the
+base in force, and that project reports the base's name as before.
 
 If none of the three answers and you ask for a cross-scheme mapping, that is an **error** naming
 the field to add. Without `versification:` no mapping happens, so an edition with an unknown

@@ -1,6 +1,6 @@
 # Paratext versification: a project's own numbering
 
-**Status:** proposal, awaiting the Captain. Nothing is built.
+**Status:** implemented.
 **Issue:** #222.
 
 **Ruled by the Captain during design:**
@@ -27,23 +27,55 @@ the engine does.
 
 ## 2. What a `custom.vrs` contains
 
-Read from five real files on this machine, not from the format description. **Three constructs:**
+Measured across every `custom.vrs` on this machine — **66 files** — and cross-checked against a
+declaration of the format rather than a reading of the files. `json2vrs.py` in the Copenhagen
+specification writes `.vrs` from the JSON scheme, and it emits **four** constructs, one per
+scheme field:
 
 ```
-3JN 1:15                      chapter length — this book's chapter has this many verses
--MAT 17:21                    a verse the project deliberately does not have
-REV 13:1 = REV 12:18          a mapping, left side the project's, right side org
-NEH 7:68-73 = NEH 7:67-72     …and a mapping may be a range
+GEN 1:31 2:25 3:24 … 50:26 END   maxVerses       — every chapter of a book, on one line
+-MAT 17:21                       excludedVerses  — a verse the project deliberately lacks
+*PSA 3:1,-,a,b                   partialVerses   — a verse published in segments
+REV 13:1 = REV 12:18             mappedVerses    — left side the project's, right side org
+NEH 7:68-73 = NEH 7:67-72        …and either side may be a range
 ```
 
-Comments are `#` to end of line, and lines may be indented. That is the whole grammar in evidence.
+313 chapter-length lines stating 3,515 chapters (39 terminated by the literal `END`), 990
+mappings, 280 excluded verses, 58 partial-verse declarations. The file count re-derives with:
+
+```bash
+find "$HOME/My Paratext 9 Projects" -maxdepth 2 \( -name custom.vrs -o -name Custom.vrs \) | wc -l
+```
+
+Five lexical facts the parser must carry:
+
+- **A mapping's left side may carry a segment letter** — `PSA 3:1a = PSA 3:2`, 200 lines, letters
+  `a` through `t` and no `j`. `as_single_verse` and `format_reference` already model a segment.
+- **`=` is not reliably surrounded by spaces** — one file omits them.
+- **A book code may contain a digit or mixed case** — `S3Y`, `PS2`, `1Sa`. A `.vrs` names books by
+  code and never by name, so the code is what it means: `PSS` is Psalms of Solomon, though as a
+  *name* it is ambiguous with Psalms and the name resolver refuses it.
+- **11 of the 66 files open with a UTF-8 byte order mark**, before the first book code.
+- **`END` terminates a chapter-length line** and is not a chapter.
+
+Comments are `#` to end of line, and lines may be indented.
+
+**Chapter lengths cannot be held as a list per book.** Of the 313 chapter-length lines, 103 do not
+begin at chapter 1 and 27 name chapters that do not run consecutively — `NUM 6:26 25:18` states
+two chapters of thirty-six. A list could not say which chapters went unmentioned, so the overlay
+holds them per chapter and folds each onto the base's already-resolved lengths.
 
 Each construct already has a field in the scheme format — `maxVerses`, `excludedVerses`,
-`mappedVerses` — and the base is `basedOn`. `spaNVIv3`'s own header says *"custom modifications to
-eng.vrs"*. Nothing new needs designing; the overlay is a derived scheme, which `load_scheme`
-already folds (`versification.py:319`, derived wins over base).
+`partialVerses`, `mappedVerses` — and the base is `basedOn`. `spaNVIv3`'s own header says *"custom
+modifications to eng.vrs"*. Nothing new needs designing; the overlay is a derived scheme, which
+`load_scheme` already folds (`versification.py:381`, derived wins over base).
 
-`_pairs` (`versification.py:269`) already expands `"PSA 51:1-19": "PSA 51:3-21"` into nineteen
+**`partialVerses` needs no interpretation in order to be parsed.** `UNREAD_FIELDS`
+(`versification.py:329`) already declares that this engine does not read it and warns when a
+scheme carries one, so the overlay parses the construct, the field is populated, and the engine's
+existing position applies unchanged.
+
+`_pairs` (`versification.py:276`) already expands `"PSA 51:1-19": "PSA 51:3-21"` into nineteen
 single-verse pairs and skips uneven entries with a collected report, so range mappings need no
 special handling.
 
@@ -95,6 +127,26 @@ and reporting the base only when there is no `custom.vrs` would make the field m
 
 The shipped documentation must say this, since consumers read that key.
 
+**Corrected during implementation.** The ruling above reads "for every Paratext project… whether
+standard or custom". The Captain's clarification narrows it: *"the project name means 'whatever
+versification the project uses, including eng + custom.vrs on top of it'. a standard mapping means
+'the standard mapping'."*
+
+The field has one meaning — which numbering is in force — and the name it carries follows from
+what is in force. A project using a standard scheme reports that scheme's name. A project using a
+standard scheme with its own `custom.vrs` on top reports the project's name, that numbering having
+no other. An overlay stating nothing leaves the base in force and reports the base's name; one
+shipped project's `custom.vrs` is comments only. This does not make the field mean two things,
+which the paragraph above was guarding against: it means one thing, and both standard scheme names
+and project names are names for a numbering.
+
+**The original wording would have shipped a defect.** Labelling a plain `eng` project with its
+project id stops the equality short-circuit in `resolve_passage` from firing, so an `eng` request
+is mapped `eng → org → eng` instead of left alone. Measured: 31 of 2,422 mapped `eng` verses do not
+survive that round trip — 30 return several candidates so `map_reference` refuses, and `BAR 6:73`
+raises "outside versification scheme 'org'". All are deuterocanonical, which is exactly the
+material a project carrying a `custom.vrs` is most likely to have.
+
 ## 6. The blocker, found and cleared before Paratext
 
 `spaNVIv3` states the same left-hand side twice:
@@ -134,6 +186,11 @@ custom.
 Remaining work, all of it ordinary: the `custom.vrs` parser for the three constructs, wiring it
 into `_paratext_scheme`, `map_candidates` accepting `str | Scheme`, and the shipped documentation
 for what the container's `versification` key now reports.
+
+**All four landed.** `read_custom_vrs` and `fold_custom` in `utils/versification.py`, the wiring in
+`edition_scheme`, `map_candidates` and `map_reference` taking a name or a `Scheme`, and the
+documentation in `docs/llmflow-language.md` and the shipped `sp/scripture-representations.md`. The
+parser covers **four** constructs rather than the three named above — see the correction in §2.
 
 ## 8. Not in scope
 

@@ -11,7 +11,12 @@ from llmflow.utils.scripture import (
     edition_text,
     resolve_passage,
 )
-from llmflow.utils.versification import HUB_SCHEME, UnmappableReference, load_scheme
+from llmflow.utils.versification import (
+    HUB_SCHEME,
+    UnmappableReference,
+    load_scheme,
+    scheme_name,
+)
 
 #: Two verses of a fictional book in two schemes, so a mapping is visible in the text itself.
 ROWS = "\n".join(
@@ -91,7 +96,13 @@ def test_a_paratext_project_with_no_versification_is_unknown(tmp_path):
     assert edition_scheme(definition) is None
 
 
-def test_a_paratext_custom_vrs_is_reported_as_unread(tmp_path, caplog):
+def test_a_paratext_custom_vrs_stating_nothing_leaves_the_base_in_force(tmp_path, caplog):
+    """An overlay of comments only is not a numbering, so the base's name is still the answer.
+
+    This test previously required the opposite of what the engine now does: it asserted that a
+    `custom.vrs` was detected, warned about as unread, and ignored. That was the defect, and
+    reading the file is the fix. What survives from it is the base-in-force case.
+    """
     project = tmp_path / "PROJ"
     project.mkdir()
     (project / "Settings.xml").write_text(
@@ -101,7 +112,20 @@ def test_a_paratext_custom_vrs_is_reported_as_unread(tmp_path, caplog):
     definition = {"kind": "usfm", "base_dir": str(tmp_path), "project": "PROJ"}
     with caplog.at_level("WARNING"):
         assert edition_scheme(definition) == "org"
-    assert "custom.vrs" in caplog.text
+    assert "does not read" not in caplog.text
+
+
+def test_a_paratext_custom_vrs_that_states_something_names_the_project(tmp_path):
+    project = tmp_path / "PROJ"
+    project.mkdir()
+    (project / "Settings.xml").write_text(
+        "<ScriptureText><Versification>1</Versification></ScriptureText>", encoding="utf-8"
+    )
+    (project / "custom.vrs").write_text("3JN 1:14\n", encoding="utf-8")
+    definition = {"kind": "usfm", "base_dir": str(tmp_path), "project": "PROJ"}
+    scheme = edition_scheme(definition)
+    assert scheme_name(scheme) == "PROJ"
+    assert int(scheme.max_verses["3JN"][0]) == 14
 
 
 def test_mapping_without_a_known_edition_scheme_assumes_english_and_warns(store, caplog):

@@ -273,8 +273,11 @@ def _expand(entry: str) -> list[str]:
     return [format_reference(ref.book, ref.start_chapter, ref.start_verse, ref.start_part)]
 
 
-def _pairs(mapped_verses: Mapping[str, str], scheme_name: str) -> dict:
+def _pairs(mapped_verses, scheme_name: str) -> dict:
     """`{"PSA 51:1-19": "PSA 51:3-21"}` as nineteen single-verse pairs, each verse to a list.
+
+    Takes a mapping, or an iterable of `(own, hub)` pairs where one left-hand side may be
+    stated more than once — which is how a `custom.vrs` writes a merge and a mapping cannot.
 
     Three shapes are meaningful, and the third used to be refused with the second:
 
@@ -290,7 +293,12 @@ def _pairs(mapped_verses: Mapping[str, str], scheme_name: str) -> dict:
     """
     pairs: dict = {}
     skipped = []
-    for own_entry, hub_entry in (mapped_verses or {}).items():
+    entries = (
+        mapped_verses.items()
+        if isinstance(mapped_verses, Mapping)
+        else list(mapped_verses or ())
+    )
+    for own_entry, hub_entry in entries:
         try:
             own, hub = _expand(own_entry), _expand(hub_entry)
         except UnmappableReference as error:
@@ -399,40 +407,232 @@ def _read(name: str, directory: Path, wanted_by: Optional[str] = None) -> dict:
         raise UnmappableReference(f"Versification scheme {name!r} at {path} is not valid JSON: {error}")
 
 
+_CHAPTER_LENGTH = re.compile(r"^(\d+):(\d+)$")
+
+#: Ends a chapter-length line in a `.vrs` file. A terminator, not a chapter.
+_LINE_END = "END"
+
+
+@dataclass(frozen=True)
+class CustomOverlay:
+    """What a Paratext `custom.vrs` states, as its four constructs.
+
+    Chapter lengths are held per chapter rather than as a list per book: a line names any
+    chapters in any order, and most name neither chapter 1 nor a consecutive run, so a list
+    could not say which chapters went unmentioned.
+
+    Mappings are ordered pairs rather than a mapping, because one left-hand side may be stated
+    twice — two lines naming two hub verses for one project verse, which is a merge.
+    """
+
+    chapter_lengths: Mapping[str, Mapping[int, int]] = field(default_factory=dict)
+    excluded_verses: frozenset = frozenset()
+    partial_verses: Mapping[str, tuple] = field(default_factory=dict)
+    mapped_verses: tuple = ()
+
+    def states_nothing(self) -> bool:
+        """Whether the file declared no numbering — comments and blank lines only.
+
+        A project whose overlay states nothing is numbered by its base after all, so it is not
+        a numbering of its own and has no need of the project's name.
+        """
+        return not (
+            self.chapter_lengths
+            or self.excluded_verses
+            or self.partial_verses
+            or self.mapped_verses
+        )
+
+
+def _vrs_book(token: str) -> Optional[str]:
+    """The USFM code a `.vrs` book token names, or None when it is not code-shaped.
+
+    A `.vrs` names books by code and never by name, so this does not consult the name
+    resolver: `PSS` is the code for Psalms of Solomon, while as a *name* it is ambiguous with
+    Psalms and would raise. Case is normalised because real files write `1Sa`.
+    """
+    code = (token or "").upper()
+    return code if _CODE.match(code) else None
+
+
+def _overlay_verse(reference: str, source: Path, number: int) -> str:
+    """One reference from a `.vrs` line, in the form the rest of this module writes."""
+    try:
+        book, chapter, verse, segment = as_single_verse(reference)
+    except (ValueError, UnmappableReference) as error:
+        raise UnmappableReference(f"{source}:{number}: {error}")
+    return format_reference(book, chapter, verse, segment)
+
+
+def read_custom_vrs(path) -> CustomOverlay:
+    """Read a Paratext `custom.vrs`.
+
+    Four constructs, which are the four the Copenhagen specification's `json2vrs.py` writes:
+
+        GEN 1:31 2:25 3:24 ... 50:26 END    chapter lengths, any chapters, optional terminator
+        -MAT 17:21                          a verse the project does not have
+        *PSA 3:1,-,a,b                      a verse published in segments
+        REV 13:1 = REV 12:18                a mapping, left side the project's, right side hub
+
+    Comments run from `#` to end of line, lines may be indented, and a leading byte order mark
+    is discarded. A line matching none of the four is refused with its number rather than
+    skipped, because a construct read as nothing is a project's numbering silently ignored.
+    """
+    source = Path(path)
+    if not source.is_file():
+        raise UnmappableReference(f"No custom versification file at {source}.")
+
+    chapter_lengths: dict = {}
+    excluded: list = []
+    partial: dict = {}
+    mapped: list = []
+
+    text = source.read_text(encoding="utf-8-sig", errors="replace")
+    for number, raw in enumerate(text.splitlines(), start=1):
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+
+        if line.startswith("*"):
+            reference, _, segments = line[1:].partition(",")
+            partial[_overlay_verse(reference, source, number)] = tuple(
+                part.strip() for part in segments.split(",") if part.strip()
+            )
+            continue
+
+        if line.startswith("-"):
+            excluded.append(_overlay_verse(line[1:], source, number))
+            continue
+
+        if "=" in line:
+            own, _, hub = line.partition("=")
+            mapped.append((own.strip(), hub.strip()))
+            continue
+
+        book, *tokens = line.split()
+        code = _vrs_book(book)
+        if code is None or not tokens:
+            raise UnmappableReference(
+                f"{source}:{number}: {line!r} is not a versification line. Expected a book with "
+                f"`chapter:verses` pairs, `-BOOK C:V`, `*BOOK C:V,a,b`, or `A = B`."
+            )
+        chapters = chapter_lengths.setdefault(code, {})
+        for token in tokens:
+            if token == _LINE_END:
+                continue
+            stated = _CHAPTER_LENGTH.match(token)
+            if not stated:
+                raise UnmappableReference(
+                    f"{source}:{number}: {token!r} is not a `chapter:verses` pair in a chapter "
+                    f"length line for {code}."
+                )
+            chapters[int(stated.group(1))] = int(stated.group(2))
+
+    return CustomOverlay(
+        chapter_lengths=chapter_lengths,
+        excluded_verses=frozenset(excluded),
+        partial_verses=partial,
+        mapped_verses=tuple(mapped),
+    )
+
+
+def fold_custom(base: Scheme, overlay: CustomOverlay, name: str) -> Scheme:
+    """*base* with *overlay* applied, labelled *name*.
+
+    The overlay wins where it speaks, which is what `load_scheme` already does for a `basedOn`
+    chain: a chapter length and a verse's mapping are replaced, excluded verses are added to.
+    Assigning onto the base's resolved chapter list is what makes a sparse override cheap — a
+    line naming two chapters of thirty-six costs two assignments, not a restatement of the book.
+
+    A chapter the base neither covers nor immediately follows is refused: the chapters in
+    between would have to be given lengths nothing states.
+    """
+    max_verses = {book: list(chapters) for book, chapters in base.max_verses.items()}
+
+    for book, stated in overlay.chapter_lengths.items():
+        chapters = max_verses.setdefault(book, [])
+        for chapter in sorted(stated):
+            # Shipped scheme files write verse counts as strings, and `contains` coerces. The
+            # folded scheme keeps that encoding so one book's chapters are not half of each.
+            length = str(stated[chapter])
+            if chapter <= len(chapters):
+                chapters[chapter - 1] = length
+            elif chapter == len(chapters) + 1:
+                chapters.append(length)
+            else:
+                raise UnmappableReference(
+                    f"Versification overlay {name!r} states {book} {chapter}:{stated[chapter]}, "
+                    f"but {base.name!r} describes {len(chapters)} chapters of {book}. Chapters "
+                    f"{len(chapters) + 1}-{chapter - 1} would have to be invented."
+                )
+
+    to_hub = {verse: list(targets) for verse, targets in base.to_hub.items()}
+    to_hub.update(_pairs(overlay.mapped_verses, name))
+
+    _warn_about_unread_fields(name, {"partialVerses": overlay.partial_verses})
+
+    return Scheme(
+        name=name,
+        max_verses=max_verses,
+        excluded_verses=frozenset(base.excluded_verses | overlay.excluded_verses),
+        to_hub=to_hub,
+    )
+
+
+def scheme_name(scheme) -> str:
+    """The name of a scheme given either as a name or as a `Scheme`.
+
+    A scheme folded from a project's `custom.vrs` has no file to be named by, so it travels as
+    an object. Everything that reports or compares a scheme goes through here, so a message
+    never shows a dataclass where a reader expects a name.
+    """
+    return scheme.name if isinstance(scheme, Scheme) else str(scheme)
+
+
+def _as_scheme(scheme, mappings_dir: Optional[Path] = None) -> Scheme:
+    """A scheme given as a name or as a `Scheme`, as a `Scheme`."""
+    return scheme if isinstance(scheme, Scheme) else load_scheme(str(scheme), mappings_dir)
+
+
 def map_candidates(
     reference: str,
-    from_scheme: str,
-    to_scheme: str,
+    from_scheme,
+    to_scheme,
     mappings_dir: Optional[Path] = None,
 ) -> list:
     """Every verse of *to_scheme* that *reference* corresponds to, in the mapping's own order.
 
     Usually one. More than one where the target scheme divides what the source joins, and those
     are not always adjacent, so a caller wanting a single answer must choose deliberately.
+
+    Either scheme may be a name or a `Scheme`. A project's own numbering has no file to be named
+    by, so it arrives as an object.
     """
-    if from_scheme == to_scheme:
+    from_name, to_name = scheme_name(from_scheme), scheme_name(to_scheme)
+
+    if from_name == to_name:
         as_single_verse(reference)  # Reject a malformed reference even when nothing moves.
         return [str(reference).strip()]
 
-    source = load_scheme(from_scheme, mappings_dir)
+    source = _as_scheme(from_scheme, mappings_dir)
     book, chapter, verse, segment = as_single_verse(reference)
     own = format_reference(book, chapter, verse, segment)
 
     if own in source.excluded_verses:
-        raise UnmappableReference(f"{own} does not exist in versification scheme {from_scheme!r}.")
+        raise UnmappableReference(f"{own} does not exist in versification scheme {from_name!r}.")
     if not source.contains(book, chapter, verse):
         raise UnmappableReference(
-            f"{own} is outside versification scheme {from_scheme!r}: "
+            f"{own} is outside versification scheme {from_name!r}: "
             f"{book} {chapter} has {_extent(source, book, chapter)}."
         )
 
     # A verse may name several hub verses where the schemes divide it differently, and each of
     # those may be reached from several verses of the target. Order follows the mapping file's.
-    in_hub = [own] if from_scheme == HUB_SCHEME else list(source.to_hub.get(own) or [own])
-    if to_scheme == HUB_SCHEME:
+    in_hub = [own] if from_name == HUB_SCHEME else list(source.to_hub.get(own) or [own])
+    if to_name == HUB_SCHEME:
         return in_hub
 
-    target = load_scheme(to_scheme, mappings_dir)
+    target = _as_scheme(to_scheme, mappings_dir)
     found: list = []
     for hub in in_hub:
         for candidate in target.from_hub.get(hub) or [hub]:
@@ -443,8 +643,8 @@ def map_candidates(
 
 def map_reference(
     reference: str,
-    from_scheme: str,
-    to_scheme: str,
+    from_scheme,
+    to_scheme,
     mappings_dir: Optional[Path] = None,
 ) -> str:
     """*reference*, read in *from_scheme*, expressed as the one verse of *to_scheme* it names.
@@ -452,13 +652,15 @@ def map_reference(
     A verse the source scheme does not list is already aligned with the hub and passes through
     unchanged. A verse outside the source scheme, and a verse the target scheme reaches from
     more than one place, both raise rather than returning something that looks like an answer.
+
+    Either scheme may be a name or a `Scheme`.
     """
     candidates = map_candidates(reference, from_scheme, to_scheme, mappings_dir)
     if len(candidates) > 1:
         raise UnmappableReference(
-            f"{reference} in {from_scheme!r} corresponds to {len(candidates)} verses in "
-            f"{to_scheme!r}: {', '.join(candidates)}. Use `map_candidates` and choose, or name "
-            f"a passage range."
+            f"{reference} in {scheme_name(from_scheme)!r} corresponds to {len(candidates)} "
+            f"verses in {scheme_name(to_scheme)!r}: {', '.join(candidates)}. Use "
+            f"`map_candidates` and choose, or name a passage range."
         )
     return candidates[0]
 

@@ -25,7 +25,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-loader-steps.md](design-loader-steps.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
 | [design-onboarding-fresh-clone.md](design-onboarding-fresh-clone.md) | D1–D7 ruled by the Captain 2026-08-18. D1 has a blocking technical conflict — see D1. | #15 #28 #29 #32 #181 #199 #204 #205 |
 | [design-one-source-for-shipped-files.md](design-one-source-for-shipped-files.md) | Proposed, 2026-08-25. Nothing built. Four questions in §4 await a ruling. | #211 |
-| [design-paratext-versification.md](design-paratext-versification.md) | proposal, awaiting the Captain. Nothing is built. | #222 |
+| [design-paratext-versification.md](design-paratext-versification.md) | implemented. | #222 |
 | [design-pipeline-schema.md](design-pipeline-schema.md) | Decisions implemented — historical record, and the decision log is still binding. | — |
 | [design-pr-build-promote.md](design-pr-build-promote.md) | Proposed — awaiting Captain review | #173 |
 | [design-prompt-mixins.md](design-prompt-mixins.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |

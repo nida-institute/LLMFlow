@@ -4,6 +4,49 @@
 
 ### Added
 
+- **A Paratext project's own `custom.vrs` is read, and its numbering wins where it speaks
+  (Issue #222).** The engine detected such a file, warned that it would not read it, and used the
+  numbered scheme anyway — so references into a project whose overlay moved verses landed on the
+  wrong ones, with an honest warning as the only sign. The warning is gone because the file is
+  read.
+
+  **The format's grammar had one more construct than the design recorded.** That design read five
+  files and reported three constructs. Measured across all 66 `custom.vrs` files on this machine
+  and checked against `json2vrs.py` in the Copenhagen specification — which writes this format
+  from the JSON scheme, and is therefore a declaration of it rather than a reading — there are
+  **four**: `maxVerses`, `excludedVerses`, `partialVerses` and `mappedVerses`. `partialVerses`
+  was absent from the design entirely. It is parsed and reported through the existing
+  unread-fields warning, which already names it as a field this engine does not interpret.
+
+  Five lexical facts came with it, none of them optional: a mapping's left side may carry a
+  segment letter (`PSA 3:1a = PSA 3:2`, 200 such lines), `=` is not reliably surrounded by
+  spaces, a book code may hold a digit or mixed case (`S3Y`, `PS2`, `1Sa`), 11 files open with a
+  byte order mark, and `END` terminates a chapter-length line rather than naming a chapter. A
+  line matching none of the four constructs is refused with its file and line number, because a
+  construct silently read as nothing is a project's numbering silently ignored.
+
+  Chapter lengths are held per chapter rather than as a list per book: of 313 chapter-length
+  lines, 103 do not begin at chapter 1 and 27 name chapters that do not run consecutively —
+  `NUM 6:26 25:18` states two chapters of thirty-six. A list could not say which chapters went
+  unmentioned, and folding onto the base's already-resolved lengths makes each override one
+  assignment instead of a restatement of the book.
+
+  **What the container reports now answers which numbering is in force.** A project using a
+  standard scheme reports that scheme's name, exactly as before. A project using a standard
+  scheme *with its own overlay on top* is not using that scheme any more, so it reports the
+  project's name — the only name that numbering has. An overlay stating nothing leaves the base
+  in force and reports the base's name; one shipped project's `custom.vrs` is comments only.
+
+  A registry `versification_scheme` chooses **which base** the overlay is folded onto, and no
+  longer suppresses the project's own file. `map_candidates` and `map_reference` accept a scheme
+  object as well as a name, since a project's numbering has no file to be named by.
+
+  Verified against real data rather than fixtures: all 66 files parse with none refused, and all
+  93 Paratext projects resolve — 65 reporting their own name, 28 a standard scheme. The design's
+  worked example holds: `spaNVIv3` reports `spaNVIv3`, its Revelation 12 has seventeen verses
+  where `eng` has eighteen, and its `REV 13:1` names both `REV 12:18` and `REV 13:1` — the merge
+  the engine could not represent at all before verse-run mappings shipped.
+
 - **`sp lint` checks a function step against the signature of the function it names.** An `llm`
   step's contract is its prompt's `requires:` header, and the linter has always enforced it. A
   `function` step has a contract of the same kind — the callable's signature — and nothing

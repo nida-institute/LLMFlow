@@ -154,6 +154,15 @@ A reference is not a location until a scheme is named. `versification:` states t
 Byzantine text and a critical text are numbered differently — so an unknown scheme plus a
 cross-scheme request is an error naming the field to add, never a guess.
 
+**The container's `versification` answers which numbering is in force, and that is not always a
+standard scheme's name.** A Paratext project may carry a `custom.vrs` stating its own chapter
+lengths, missing verses, verse segments and mappings; the engine reads it and folds it onto the
+scheme the project declares. Such a project is not using the standard scheme any more, so the
+value is the **project's name** — `spaNVIv3`, not `eng`. That name does not resolve outside that
+Paratext installation, which is the point: calling it `eng` when its Revelation 12 has seventeen
+verses rather than eighteen would be false. An overlay stating nothing leaves the base in force,
+and the base's name is reported as before.
+
 ## Where the detail is
 
 `docs/llmflow-language.md` under `type: scripture` for the grammar and every key;
