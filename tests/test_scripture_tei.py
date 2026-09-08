@@ -1,10 +1,10 @@
-"""A `kind: tei` edition read into rows (#200 step 1). Design: plan-scripture-step.md §3.0."""
+"""A `kind: tei` resource read into rows (#200 step 1). Design: plan-scripture-step.md §3.0."""
 from pathlib import Path
 
 import pytest
 
 from llmflow.utils.scripture import (
-    edition_text,
+    resource_text,
     parse_passage_ref,
     read_tei_rows,
     tei_book_files,
@@ -107,8 +107,8 @@ def test_a_whole_chapter_and_a_whole_book_are_addressable():
 @pytest.mark.parametrize("fmt", ["plain", "milestones"])
 def test_tei_matches_the_tsv_backend(passage, fmt):
     """The TSV backend is tested and in use, so agreement is evidence, not restatement."""
-    assert (edition_text("SBLGNT-TEI", passage, fmt=fmt, editions=EDITIONS)
-            == edition_text("SBLGNT-TSV", passage, fmt=fmt, editions=EDITIONS))
+    assert (resource_text("SBLGNT-TEI", passage, fmt=fmt, resources=EDITIONS)
+            == resource_text("SBLGNT-TSV", passage, fmt=fmt, resources=EDITIONS))
 
 
 @real_data
@@ -116,8 +116,8 @@ def test_tei_matches_the_tsv_backend(passage, fmt):
 def test_divergence_from_the_tsv_is_only_in_the_known_characters(passage):
     import difflib
 
-    tsv = edition_text("SBLGNT-TSV", passage, fmt="plain", editions=EDITIONS)
-    tei = edition_text("SBLGNT-TEI", passage, fmt="plain", editions=EDITIONS)
+    tsv = resource_text("SBLGNT-TSV", passage, fmt="plain", resources=EDITIONS)
+    tei = resource_text("SBLGNT-TEI", passage, fmt="plain", resources=EDITIONS)
     def significant(text: str) -> set[str]:
         return {c for c in text if not c.isspace()}
 
@@ -133,15 +133,15 @@ def test_divergence_from_the_tsv_is_only_in_the_known_characters(passage):
 @real_data
 def test_a_passage_the_edition_does_not_cover_errors_rather_than_returning_empty():
     with pytest.raises(ValueError, match="No text found"):
-        edition_text("SBLGNT-TEI", "GEN 1:1", editions=EDITIONS)
+        resource_text("SBLGNT-TEI", "GEN 1:1", resources=EDITIONS)
 
 
 @real_data
 def test_an_unknown_book_code_errors():
     with pytest.raises(ValueError, match="No text found"):
-        edition_text("SBLGNT-TEI", "XYZ 1:1", editions=EDITIONS)
+        resource_text("SBLGNT-TEI", "XYZ 1:1", resources=EDITIONS)
 
 
 def test_a_tei_edition_needs_a_path():
     with pytest.raises(ValueError, match="needs a 'path'"):
-        edition_text("broken", "MRK 1:1", editions={"broken": {"kind": "tei"}})
+        resource_text("broken", "MRK 1:1", resources={"broken": {"kind": "tei"}})

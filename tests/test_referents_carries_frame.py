@@ -170,7 +170,7 @@ def test_the_declaration_says_the_two_corpora_use_different_columns():
 
 def test_the_two_corpora_name_participants_differently():
     """Greek states `referent`, Hebrew `participantref`; neither has the other's column. The family
-    declares the union and emits whichever the edition actually has, so a Hebrew payload lacks
+    declares the union and emits whichever the resource actually has, so a Hebrew payload lacks
     `referent` and a Greek one lacks `participantref`. Recorded because a consumer reading one
     language would otherwise take its column list for the family's.
     """

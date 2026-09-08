@@ -110,7 +110,7 @@ def validate_array_lengths(json_structure):
 
 #: The scheme a reference is assumed to be written in when the caller names none. This is the
 #: request side — a fact about the person who typed it — and is deliberately unlike the source
-#: side, where an edition's scheme is a property of the text and has no default at all.
+#: side, where a resource's scheme is a property of the text and has no default at all.
 DEFAULT_REQUEST_VERSIFICATION = "eng"
 
 
@@ -187,8 +187,8 @@ def parse_bible_reference(
     Args:
         passage (str): "Psalm 23", "Luke 12:5-19", "John 3:16", "MRK 3:14", "Romans"
         versification (str): the scheme the *request* is written in. Defaults to `eng`.
-        source_versification (str): the scheme an edition's text is numbered in, recorded on the
-            result and never resolved against — this function has no edition to read.
+        source_versification (str): the scheme a resource's text is numbered in, recorded on the
+            result and never resolved against — this function has no resource to read.
 
     Returns:
         dict: {

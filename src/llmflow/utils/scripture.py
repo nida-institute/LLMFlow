@@ -1,6 +1,6 @@
-"""Named scripture editions: a reference range in, running text out.
+"""Named scripture resources: a reference range in, running text out.
 
-An edition names a source in the registry and a backend that can read it. Text is assembled
+A resource names a source in the registry and a backend that can read it. Text is assembled
 by concatenating each word with its own trailing string, so whitespace and punctuation are
 read from the source rather than inferred per language.
 
@@ -21,11 +21,11 @@ from lxml import etree  # type: ignore[attr-defined]
 
 from llmflow.modules.logger import Logger
 from llmflow.utils import versification as _versification
-from llmflow.utils.syntax import syntax_payload
+from llmflow.utils.syntax import LOWFAT_KEY, syntax_payload
 
 logger = Logger()
 
-#: An edition definition's field naming the versification scheme its references are in.
+#: A resource definition's field naming the versification scheme its references are in.
 SCHEME_KEY = "versification_scheme"
 
 #: Editions whose scheme we know, and Paratext's versification numbers.
@@ -38,7 +38,7 @@ MILESTONE_TEMPLATE = "⌊{chapter}:{verse}⌋"
 
 FORMATS = ("plain", "milestones", "usj")
 
-#: The scheme assumed for an edition that declares none. Much of the translation world uses
+#: The scheme assumed for a resource that declares none. Much of the translation world uses
 #: English versification without meeting the issue, so a project may have no versification file
 #: and assume it. Assuming is supported; assuming silently is not — the caller gets a warning
 #: and the payload reports the guess under its own key, never as a declaration.
@@ -50,7 +50,7 @@ USJ_VERSION = "3.1"
 #: sit inside a paragraph, so one plain `para` per chapter is the least the grammar allows.
 USJ_PARA_MARKER = "p"
 
-#: What each family delivers, declared in data rather than here: a family is edition-shaped, so
+#: What each family delivers, declared in data rather than here: a family is resource-shaped, so
 #: the same declaration serves Greek and Hebrew without any code knowing about either.
 FAMILY_TABLE_FILENAME = "include-families.json"
 
@@ -71,7 +71,7 @@ def _family(name: str) -> Mapping[str, Any]:
 
 
 def family_columns(name: str) -> tuple:
-    """The source columns *name* carries, across every edition it serves."""
+    """The source columns *name* carries, across every resource it serves."""
     return tuple(_family(name).get("columns", ()))
 
 
@@ -105,7 +105,7 @@ FAMILIES_NEEDING_IDS = frozenset({"syntax"})
 #: removes this key and is done; an extension anywhere else is one nobody could find.
 CONTAINER_KEY = "scripture_pipelines"
 
-#: An edition definition's field naming the directory of LGNTDF feature files.
+#: A resource definition's field naming the directory of LGNTDF feature files.
 DISCOURSE_KEY = "discourse_path"
 
 #: `\w`, the USX character marker for a word. `ids` is spec-defined — it becomes the `srcloc`
@@ -119,7 +119,7 @@ USJ_SRCLOC = "srcloc"
 #: marks the continuations that way.
 #:
 #: The Greek elision apostrophe is deliberately absent. It reads like a joining mark, and we had
-#: it here, which spaced `κατ’οἶκόν` against the printed edition's `κατʼ οἶκόν` in 1,221 places.
+#: it here, which spaced `κατ’οἶκόν` against the printed resource's `κατʼ οἶκόν` in 1,221 places.
 #: Macula Greek's convention is uniform — a space follows every non-space `after`, and a mark
 #: falling word-final is carried in `text` instead, which is why `ἀλλ’` appears there with `·` in
 #: `after`. Reconstructing 7,330 verses under that rule matches a printed SBLGNT in 7,197 of them,
@@ -246,15 +246,15 @@ def rows_to_text(rows: Sequence[Mapping[str, Any]], fmt: str = "milestones") -> 
     return "".join(parts).strip()
 
 
-def edition_scheme(
+def resource_scheme(
     definition: Any,
-    edition: Optional[str] = None,
+    resource: Optional[str] = None,
     mappings_dir: Optional[Path] = None,
 ):
-    """The versification an edition's references are in, or None when unknown.
+    """The versification a resource's references are in, or None when unknown.
 
-    Three sources for the base, in order: the edition's own ``versification_scheme``; a Paratext
-    project's ``Settings.xml``; the table of editions we construct. There is no global default —
+    Three sources for the base, in order: the resource's own ``versification_scheme``; a Paratext
+    project's ``Settings.xml``; the table of resources we construct. There is no global default —
     a Byzantine Greek text and a critical text are numbered differently, so a guess would be
     wrong exactly where it mattered.
 
@@ -270,7 +270,7 @@ def edition_scheme(
         base = str(declared) if declared else _paratext_scheme(definition)
 
     if base is None:
-        for name in (edition, definition.get("id") if isinstance(definition, Mapping) else None):
+        for name in (resource, definition.get("id") if isinstance(definition, Mapping) else None):
             if name and str(name).upper() in _known_editions():
                 base = _known_editions()[str(name).upper()]["scheme"]
                 break
@@ -398,12 +398,12 @@ def _paratext_scheme(definition: Mapping[str, Any]) -> Optional[str]:
 
 def resolve_passage(
     passage: str,
-    edition_scheme_name: Any,
+    resource_scheme_name: Any,
     requested_scheme: Optional[str],
-    edition: Optional[str] = None,
+    resource: Optional[str] = None,
     mappings_dir: Optional[Path] = None,
 ) -> str:
-    """*passage*, named in *requested_scheme*, rewritten as the edition numbers it.
+    """*passage*, named in *requested_scheme*, rewritten as the resource numbers it.
 
     A reference naming no verse — a whole chapter or book — has nothing to move. A range maps
     at both ends; an end the target scheme reaches from more than one place raises rather than
@@ -411,19 +411,19 @@ def resolve_passage(
     """
     if not requested_scheme:
         return passage
-    if edition_scheme_name is None:
+    if resource_scheme_name is None:
         # Much of the translation world uses English versification without meeting the issue,
-        # so an edition may simply have no versification file. Refusing left those projects
+        # so a resource may simply have no versification file. Refusing left those projects
         # unable to read their own text; assuming is supported, and warned about every time,
         # because where the assumption is wrong it is wrong by whole verses.
         logger.warning(
-            f"{edition or '(unnamed)'} does not say which versification its references are "
+            f"{resource or '(unnamed)'} does not say which versification its references are "
             f"in, so `{ASSUMED_SCHEME}` is assumed while reading {passage!r} as "
             f"{requested_scheme!r}. Add `{SCHEME_KEY}: <scheme>` to its registry entry: where "
             f"the assumption is wrong, the verses returned are the wrong ones."
         )
-        edition_scheme_name = ASSUMED_SCHEME
-    if requested_scheme == _versification.scheme_name(edition_scheme_name):
+        resource_scheme_name = ASSUMED_SCHEME
+    if requested_scheme == _versification.scheme_name(resource_scheme_name):
         return passage
 
     ref = parse_passage_ref(passage)
@@ -434,7 +434,7 @@ def resolve_passage(
         mapped = _versification.map_reference(
             _versification.format_reference(ref.book, chapter or 0, verse or 0),
             requested_scheme,
-            edition_scheme_name,
+            resource_scheme_name,
             mappings_dir,
         )
         _, new_chapter, new_verse, _ = _versification.as_single_verse(mapped)
@@ -640,11 +640,11 @@ def rows_to_usj(
         # A key carries which kind of nothing it means: an empty collection is "asked, and the
         # answer is nothing"; `None` is "could not ask". Omitting the key says neither, and a
         # log warning does not travel with the payload to whoever reads it later — so a
-        # consumer could not tell an edition with no discourse source from a passage where
+        # consumer could not tell a resource with no discourse source from a passage where
         # discourse was never requested. A family the caller did not request stays absent,
         # because `include:` declares why. Rule `say-which-kind-of-nothing`.
         # `versification` names the scheme the labels in *this document* are in, which is the
-        # edition's own: the verse markers come from its rows. It is never the scheme a caller
+        # resource's own: the verse markers come from its rows. It is never the scheme a caller
         # requested — a request maps the caller's reference inward to fetch the right verses,
         # and does not relabel the result. Reporting the request made the container assert
         # labels the document did not have, off by exactly the difference between the schemes,
@@ -653,10 +653,10 @@ def rows_to_usj(
         if not versification:
             container["versification_guessed"] = ASSUMED_SCHEME
             logger.warning(
-                f"{book}: the edition does not say which versification its references are in, "
+                f"{book}: the resource does not say which versification its references are in, "
                 f"so `{ASSUMED_SCHEME}` is assumed; the {CONTAINER_KEY} container states "
                 f"`versification: null` with `versification_guessed: {ASSUMED_SCHEME}` beside "
-                f"it. Add `{SCHEME_KEY}: <scheme>` to the edition's registry entry to declare "
+                f"it. Add `{SCHEME_KEY}: <scheme>` to the resource's registry entry to declare "
                 f"it properly."
             )
         if "discourse" in include:
@@ -668,33 +668,33 @@ def rows_to_usj(
     return document
 
 
-def resolve_edition(
-    edition: str,
-    registry_editions: Optional[Mapping[str, Any]] = None,
+def resolve_resource(
+    resource: str,
+    registry_resources: Optional[Mapping[str, Any]] = None,
 ) -> Any:
-    """Return the definition for a named edition: a TSV path string, or a mapping carrying a
+    """Return the definition for a named resource: a TSV path string, or a mapping carrying a
     `kind` and what that backend needs."""
-    available = dict(registry_editions or {})
-    if edition in available:
-        return available[edition]
+    available = dict(registry_resources or {})
+    if resource in available:
+        return available[resource]
 
     from llmflow import resources as _resources
 
     known = ", ".join(sorted(available)) or "(none registered)"
     try:
-        in_catalog = edition in _resources.readable()
+        in_catalog = resource in _resources.readable()
     except Exception:
         in_catalog = False
 
     remedy = (
-        f"  Register it with `sp resource add {edition}` so the path is not written into a "
+        f"  Register it with `sp resource add {resource}` so the path is not written into a "
         f"pipeline."
         if in_catalog
         else "  `sp resource list` shows what the catalog knows; `sp resource add <ID>` "
         "registers one, and a resource of your own is registered from its path."
     )
     raise ResourceNotRegistered(
-        f"Scripture resource {edition!r} is not registered.\n"
+        f"Scripture resource {resource!r} is not registered.\n"
         f"  Registered: {known}\n" + remedy
     )
 
@@ -831,28 +831,28 @@ def read_rows(tsv_path: str | Path) -> list[dict]:
 
 
 def passage_text(
-    edition: str,
+    resource: str,
     passage: str,
     fmt: str = "milestones",
-    registry_editions: Optional[Mapping[str, str]] = None,
+    registry_resources: Optional[Mapping[str, str]] = None,
 ) -> str | dict:
-    """Running text for *passage* in *edition* — the whole job in one call."""
-    path = resolve_edition(edition, registry_editions)
+    """Running text for *passage* in *resource* — the whole job in one call."""
+    path = resolve_resource(resource, registry_resources)
     ref = parse_passage_ref(passage)
     rows = filter_rows(read_rows(path), ref)
     if not rows:
         raise ValueError(
-            f"No text found for {passage!r} in edition {edition!r}. "
-            f"Check the book code and that the edition covers it "
+            f"No text found for {passage!r} in resource {resource!r}. "
+            f"Check the book code and that the resource covers it "
             f"(WLC is Old Testament only; SBLGNT is New Testament only)."
         )
     return rows_to_output(rows, fmt=fmt, book=ref.book)
 
 
 # --------------------------------------------------------------------------------------
-# Edition registry
+# Resource registry
 #
-# One YAML file per edition under ``~/.sp/registrations/``:
+# One YAML file per resource under ``~/.sp/registrations/``:
 #
 #   id: SBLGNT
 #   name: SBL Greek New Testament
@@ -863,7 +863,7 @@ def passage_text(
 # what load_usfm_passage() takes.
 # --------------------------------------------------------------------------------------
 
-def load_registry_editions(editions_dir: Any = None) -> dict:
+def load_registry_resources(resources_dir: Any = None) -> dict:
     """Every registration this machine holds, with dataset-relative paths resolved.
 
     The store and its reader belong to `llmflow.resources`, which owns the whole question of
@@ -874,7 +874,7 @@ def load_registry_editions(editions_dir: Any = None) -> dict:
     from llmflow import resources as _resources
 
     out: dict = {}
-    for name, definition in _resources.load_registered(editions_dir).items():
+    for name, definition in _resources.load_registered(resources_dir).items():
         entry = dict(definition)
         if entry.get("path"):
             try:
@@ -889,19 +889,27 @@ def load_registry_editions(editions_dir: Any = None) -> dict:
             if str(entry.get("kind", "")).lower() == "usfm" and not entry.get("base_dir"):
                 entry["base_dir"] = str(resolved.parent)
                 entry["project"] = resolved.name
+
+        # The annotation sources resolve the same way, so a registration can name them without
+        # an absolute path. They are not `path`: one may live outside the resource's dataset, so
+        # a registered dataset id is accepted as well as a dataset-relative value.
+        for key in (DISCOURSE_KEY, LOWFAT_KEY):
+            if entry.get(key):
+                entry[key] = str(_resources.resolve_declared_path(entry[key], entry))
+
         out[name] = entry
     return out
 
 
 def _usfm_passage_text(definition: Mapping[str, Any], passage: str, fmt: str) -> str:
-    """BSB and other USFM editions: passage -> USJ -> running text."""
+    """BSB and other USFM resources: passage -> USJ -> running text."""
     from llmflow.utils.data import load_usfm_passage
 
     base_dir = definition.get("base_dir")
     project = definition.get("project")
     if not base_dir or not project:
         raise ValueError(
-            f"USFM edition {definition.get('id')!r} needs 'base_dir' and 'project' in its "
+            f"USFM resource {definition.get('id')!r} needs 'base_dir' and 'project' in its "
             f"registry entry."
         )
     usj = load_usfm_passage(str(base_dir), str(project), passage, "usj")
@@ -910,10 +918,10 @@ def _usfm_passage_text(definition: Mapping[str, Any], passage: str, fmt: str) ->
     return usj_to_text(usj, fmt=fmt)
 
 
-def _no_text_found(passage: str, edition: str) -> str:
+def _no_text_found(passage: str, resource: str) -> str:
     return (
-        f"No text found for {passage!r} in edition {edition!r}. Check the book code and "
-        f"that the edition covers it (WLC is Old Testament only; SBLGNT New Testament only)."
+        f"No text found for {passage!r} in resource {resource!r}. Check the book code and "
+        f"that the resource covers it (WLC is Old Testament only; SBLGNT New Testament only)."
     )
 
 
@@ -921,20 +929,20 @@ def _tei_passage_text(
     definition: Mapping[str, Any],
     passage: str,
     fmt: str,
-    edition: str,
+    resource: str,
     include: Sequence[str] = (),
     versification: Optional[str] = None,
 ) -> str | dict:
     """Running text for *passage* from a directory of per-book TEI files."""
     tei_dir = definition.get("path")
     if not tei_dir:
-        raise ValueError(f"TEI edition {edition!r} needs a 'path' in its registry entry.")
+        raise ValueError(f"TEI resource {resource!r} needs a 'path' in its registry entry.")
 
     ref = parse_passage_ref(passage)
     book_file = tei_book_files(tei_dir).get(ref.book)
     rows = read_tei_rows(book_file, ref) if book_file else []
     if not rows:
-        raise ValueError(_no_text_found(passage, edition))
+        raise ValueError(_no_text_found(passage, resource))
     return rows_to_output(
         rows,
         fmt=fmt,
@@ -942,66 +950,66 @@ def _tei_passage_text(
         include=include,
         versification=versification,
         discourse=(
-            discourse_payload(definition, rows, edition) if "discourse" in include else None
+            discourse_payload(definition, rows, resource) if "discourse" in include else None
         ),
-        syntax=(syntax_payload(definition, rows, edition) if "syntax" in include else None),
+        syntax=(syntax_payload(definition, rows, resource) if "syntax" in include else None),
     )
 
 
-def edition_text(
-    edition: str,
+def resource_text(
+    resource: str,
     passage: str,
     fmt: str = "milestones",
-    editions: Optional[Mapping[str, Any]] = None,
+    resources: Optional[Mapping[str, Any]] = None,
     versification: Optional[str] = None,
     mappings_dir: Optional[Path] = None,
     include: Any = (),
 ) -> str | dict:
-    """Running text for *passage* in *edition*, dispatched on the edition's `kind`.
+    """Running text for *passage* in *resource*, dispatched on the resource's `kind`.
 
     *versification* names the scheme *passage* is written in. When it differs from the
-    edition's own, the reference is mapped before any text is read — a reference is not a
+    resource's own, the reference is mapped before any text is read — a reference is not a
     location until a scheme is named, and fetching first would fetch the wrong verses.
     """
     # Before any filesystem work: an unusable format is a mistake in the pipeline, and
-    # reporting it should not depend on the edition's data being present.
+    # reporting it should not depend on the resource's data being present.
     if fmt not in FORMATS:
         raise ValueError(f"unknown format {fmt!r}; expected one of {', '.join(FORMATS)}")
     families = check_include(include, fmt)
 
-    definition = resolve_edition(edition, editions)
-    scheme = edition_scheme(definition, edition, mappings_dir=mappings_dir)
+    definition = resolve_resource(resource, resources)
+    scheme = resource_scheme(definition, resource, mappings_dir=mappings_dir)
     passage = resolve_passage(
         passage,
         scheme,
         versification,
-        edition=edition,
+        resource=resource,
         mappings_dir=mappings_dir,
     )
     if isinstance(definition, str):  # bare path == a TSV, the common case
-        definition = {"id": edition, "kind": "tsv", "path": definition}
+        definition = {"id": resource, "kind": "tsv", "path": definition}
     kind = str(definition.get("kind", "tsv")).lower()
 
-    # The scheme the returned labels are in, which is the edition's — reading a passage does
+    # The scheme the returned labels are in, which is the resource's — reading a passage does
     # not renumber the text. `versification` said which scheme the caller's reference was
     # written in, and was wrongly used here as though it described the result.
     result_scheme = _versification.scheme_name(scheme) if scheme else None
     if kind == "usfm":
         return _usfm_passage_text(definition, passage, fmt)
     if kind == "tei":
-        return _tei_passage_text(definition, passage, fmt, edition, families, result_scheme)
+        return _tei_passage_text(definition, passage, fmt, resource, families, result_scheme)
     if kind not in ("tsv",):
         raise ValueError(
-            f"Edition {edition!r} has unknown kind {kind!r}; expected 'tsv', 'tei' or 'usfm'."
+            f"Resource {resource!r} has unknown kind {kind!r}; expected 'tsv', 'tei' or 'usfm'."
         )
 
     path = definition.get("path")
     if not path:
-        raise ValueError(f"TSV edition {edition!r} needs a 'path' in its registry entry.")
+        raise ValueError(f"TSV resource {resource!r} needs a 'path' in its registry entry.")
     ref = parse_passage_ref(passage)
     rows = filter_rows(read_rows(path), ref)
     if not rows:
-        raise ValueError(_no_text_found(passage, edition))
+        raise ValueError(_no_text_found(passage, resource))
     return rows_to_output(
         rows,
         fmt=fmt,
@@ -1009,39 +1017,39 @@ def edition_text(
         include=families,
         versification=result_scheme,
         discourse=(
-            discourse_payload(definition, rows, edition) if "discourse" in families else None
+            discourse_payload(definition, rows, resource) if "discourse" in families else None
         ),
-        syntax=(syntax_payload(definition, rows, edition) if "syntax" in families else None),
+        syntax=(syntax_payload(definition, rows, resource) if "syntax" in families else None),
     )
 
 
 def discourse_payload(
     definition: Any,
     rows: Sequence[Mapping[str, Any]],
-    edition: str,
+    resource: str,
 ) -> Optional[list]:
-    """Discourse items for *rows*, or None when this edition has no discourse source.
+    """Discourse items for *rows*, or None when this resource has no discourse source.
 
-    Which corpus applies follows from the edition, not from the language: an edition names its
+    Which corpus applies follows from the resource, not from the language: a resource names its
     own with `discourse_path`, and the loader reads either Levinsohn's Greek features or the
-    Hebrew ones. An edition naming none is a warning rather than a failure (§4).
+    Hebrew ones. A resource naming none is a warning rather than a failure (§4).
     """
     from llmflow.utils import discourse as _discourse
 
     path = definition.get(DISCOURSE_KEY) if isinstance(definition, Mapping) else None
     if not path:
         logger.warning(
-            f"include: [discourse] was requested but edition {edition!r} names no "
+            f"include: [discourse] was requested but resource {resource!r} names no "
             f"`{DISCOURSE_KEY}`, so no discourse features are attached. Add one to the "
-            f"edition's registry entry, pointing at the corpus for its language."
+            f"resource's registry entry, pointing at the corpus for its language."
         )
         return None
 
     citations = _discourse.load_citations(path)
     if not citations:
         logger.warning(
-            f"include: [discourse]: no citations were read from {path!r} for edition "
-            f"{edition!r}."
+            f"include: [discourse]: no citations were read from {path!r} for resource "
+            f"{resource!r}."
         )
         return None
 

@@ -488,7 +488,7 @@ def test_a_failed_repair_is_an_error_not_a_silent_pass(tmp_path: Path, project: 
 def test_the_editions_directory_is_migrated_to_registrations(tmp_path: Path, project: Path):
     """The rename must not cost anyone their registrations, nor need a manual move."""
     sp_home = tmp_path / ".sp"
-    legacy = sp_home / "editions"
+    legacy = sp_home / "resources"
     legacy.mkdir(parents=True)
     (legacy / "WLC.yaml").write_text("id: WLC\nkind: tsv\npath: /tmp/wlc.tsv\n")
 
@@ -505,7 +505,7 @@ def test_the_migration_works_on_a_locked_store(tmp_path: Path, project: Path):
     permission on the *source* to unlink its entries. Every earlier test used a writable
     tmpdir, so the migration passed in CI and failed on the first real machine it met."""
     sp_home = tmp_path / ".sp"
-    legacy = sp_home / "editions"
+    legacy = sp_home / "resources"
     legacy.mkdir(parents=True)
     (legacy / "WLC.yaml").write_text("id: WLC\nkind: tsv\npath: /tmp/wlc.tsv\n")
     legacy.chmod(0o555)
@@ -521,9 +521,9 @@ def test_the_migration_works_on_a_locked_store(tmp_path: Path, project: Path):
 
 
 def test_registrations_still_in_the_old_directory_are_reported(tmp_path: Path, project: Path):
-    """Saying "none registered" while three sit in `editions/` is worse than saying nothing."""
+    """Saying "none registered" while three sit in `resources/` is worse than saying nothing."""
     sp_home = tmp_path / ".sp"
-    legacy = sp_home / "editions"
+    legacy = sp_home / "resources"
     legacy.mkdir(parents=True)
     (legacy / "WLC.yaml").write_text("id: WLC\nkind: tsv\npath: /tmp/wlc.tsv\n")
 

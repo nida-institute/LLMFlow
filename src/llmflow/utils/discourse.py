@@ -199,7 +199,7 @@ MAQQEF = "־"
 
 
 def _phrase(quote: Optional[str]) -> list[str]:
-    """A quote as the words it names, split where the edition separates words.
+    """A quote as the words it names, split where the resource separates words.
 
     Whitespace and maqqef both separate. Splitting on the maqqef is reading Macula's own data
     model rather than adjusting for a quirk: the mark is a separator there, held in `after`.
@@ -243,7 +243,7 @@ def _words(rows: Sequence[Mapping[str, Any]]) -> tuple[list[str], list[Optional[
 
     Macula Hebrew splits a word into morphemes, so a row is not a word: Ruth 1:1 is 33 rows over
     19 words. A citation's index counts words, so the comparison has to as well. Where `ref`
-    carries no `!N` — any edition that is not Macula — each row stands as its own word, which is
+    carries no `!N` — any resource that is not Macula — each row stands as its own word, which is
     what the previous behaviour did everywhere.
     """
     texts: list[str] = []

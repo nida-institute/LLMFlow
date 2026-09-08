@@ -42,11 +42,11 @@ clearly. **They are different questions and have different answers.**
 | | what it is | default |
 |---|---|---|
 | **request** | the numbering *you* are thinking in when you write the reference | `eng` |
-| **source** | the numbering the *text* uses — a property of the edition | none, ever |
+| **source** | the numbering the *text* uses — a property of the resource | none, ever |
 
 The request side has a default because most people who name no scheme mean English numbering.
 The source side has none and never will: a Byzantine text and a critical text are numbered
-differently, so guessing picks a side silently. An edition states its own scheme, or a Paratext
+differently, so guessing picks a side silently. A resource states its own scheme, or a Paratext
 project's `Settings.xml` does, or the resource catalog does — and if none of them answers, asking
 to map across schemes is an error rather than a guess.
 
@@ -55,7 +55,7 @@ In a pipeline:
 ```yaml
 - name: fetch
   type: scripture
-  edition: WLC            # numbered `org` — the source side, declared by the resource
+  resource: WLC            # numbered `org` — the source side, declared by the resource
   passage: "PSA 51:1"     # ...but you are counting in English
   versification: eng      # the request side
   output: psalm           # returns org PSA 51:3 — the verse an English reader means

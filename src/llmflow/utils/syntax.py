@@ -104,7 +104,7 @@ SPELLINGS = {"clauseType": ("clauseType", "clausetype")}
 
 XML_ID = "{http://www.w3.org/XML/1998/namespace}id"
 
-#: The edition registry key naming a Lowfat directory, parallel to `discourse_path`.
+#: The resource registry key naming a Lowfat directory, parallel to `discourse_path`.
 LOWFAT_KEY = "lowfat_path"
 
 
@@ -126,7 +126,7 @@ def _leaf(element: Any) -> Optional[dict]:
 
     `token` is the **word-level** id in both languages, so two morphemes of one Hebrew word name
     the same word while remaining separate terminals. That is the join a consumer keys on; the
-    morpheme's own id is in the edition's rows for anyone who needs it.
+    morpheme's own id is in the resource's rows for anyone who needs it.
     """
     from llmflow.utils.discourse import _word_identifier, _word_index
 
@@ -247,7 +247,7 @@ def sentences_from_lowfat(root: Any) -> list:
     """Every `<sentence>` under *root* as a payload entry, in the order the file states them.
 
     A `<sentence>` holds the running text and the tree; only the tree is read here, the text
-    coming from the edition's own rows. Where *root* is itself a `<sentence>`, it is the only one.
+    coming from the resource's own rows. Where *root* is itself a `<sentence>`, it is the only one.
     """
     if _localname(root) == "sentence":
         found = [root]
@@ -265,14 +265,14 @@ def sentences_from_lowfat(root: Any) -> list:
     return payload
 
 
-def syntax_payload(definition: Any, rows: Any, edition: str) -> Optional[list]:
-    """The trees covering *rows*, or None where this edition names no Lowfat source.
+def syntax_payload(definition: Any, rows: Any, resource: str) -> Optional[list]:
+    """The trees covering *rows*, or None where this resource names no Lowfat source.
 
     Sentence-ordered, because Lowfat's `<sentence>` elements are in canonical order in the file
     even where the tree inside one is not — 276 of Mark's 726 have an inversion somewhere in
     traversal, which is the whole reason text and tree are carried separately.
 
-    `None` rather than an empty list where the edition declares no `lowfat_path`: the question
+    `None` rather than an empty list where the resource declares no `lowfat_path`: the question
     could not be asked, as against asked and answered with nothing.
     """
     from llmflow.modules.logger import Logger
@@ -282,8 +282,8 @@ def syntax_payload(definition: Any, rows: Any, edition: str) -> Optional[list]:
     path = definition.get(LOWFAT_KEY) if isinstance(definition, dict) else None
     if not path:
         logger.warning(
-            f"include: [syntax] was requested but edition {edition!r} names no `{LOWFAT_KEY}`, "
-            f"so no syntax is attached. Add one to the edition's registry entry, pointing at the "
+            f"include: [syntax] was requested but resource {resource!r} names no `{LOWFAT_KEY}`, "
+            f"so no syntax is attached. Add one to the resource's registry entry, pointing at the "
             f"Lowfat directory for its text."
         )
         return None

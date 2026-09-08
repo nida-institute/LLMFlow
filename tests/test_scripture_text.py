@@ -1,4 +1,4 @@
-"""Named scripture editions: a reference range in, running text out.
+"""Named scripture resources: a reference range in, running text out.
 
 Text is `text + after` per word, with a space added after every `after` that is not itself
 whitespace — the source carries the mark without one. Two Hebrew cases join instead: the maqqef,
@@ -56,7 +56,7 @@ class TestJoining:
         assert "עַל ־" not in out and "עַל־ פְּנֵ֣י" not in out
 
     def test_greek_elision_takes_a_space_after_it(self):
-        """The printed edition spaces after the elision mark in all 1,221 places it occurs."""
+        """The printed resource spaces after the elision mark in all 1,221 places it occurs."""
         rows = [{"ref": "MAT 1:20!1", "text": "κατ", "after": "’"},
                 {"ref": "MAT 1:20!2", "text": "ὄναρ", "after": " "}]
         assert rows_to_text(rows, fmt="plain") == "κατ’ ὄναρ"
@@ -184,16 +184,16 @@ class TestFiltering:
 class TestEditionResolution:
     def test_unregistered_edition_names_what_is_available(self):
         """A bare KeyError would send the reader to the source; the error should say what
-        editions exist and how to register one."""
-        from llmflow.utils.scripture import resolve_edition
+        resources exist and how to register one."""
+        from llmflow.utils.scripture import resolve_resource
         with pytest.raises(ResourceNotRegistered) as exc:
-            resolve_edition("NO_SUCH_EDITION", registry_editions={"WLC": "/tmp/wlc.tsv"})
+            resolve_resource("NO_SUCH_EDITION", registry_resources={"WLC": "/tmp/wlc.tsv"})
         msg = str(exc.value)
         assert "NO_SUCH_EDITION" in msg and "WLC" in msg
 
     def test_a_registered_edition_resolves_to_its_path(self):
-        from llmflow.utils.scripture import resolve_edition
-        assert resolve_edition("WLC", registry_editions={"WLC": "/tmp/wlc.tsv"}) == "/tmp/wlc.tsv"
+        from llmflow.utils.scripture import resolve_resource
+        assert resolve_resource("WLC", registry_resources={"WLC": "/tmp/wlc.tsv"}) == "/tmp/wlc.tsv"
 
 
 class TestTheLeanParserResolvesBookNames:

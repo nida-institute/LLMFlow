@@ -5,9 +5,9 @@ in his text; Macula counts words in its own. `מִבֵּ֧ית לֶ֣חֶם` is 
 space-separated words to Macula, so from that point in Ruth 1:1 his numbering runs one behind and
 every later citation in the verse lands on the neighbour. Nothing is wrong with either dataset.
 
-That is why an index is not a reliable address across editions and a quote is: the index names a
+That is why an index is not a reliable address across resources and a quote is: the index names a
 position in a text this engine does not hold, while the quote is the text itself, matched against
-what the edition actually has. Greek reaches 94-100% rather than 100% for the same reason, having
+what the resource actually has. Greek reaches 94-100% rather than 100% for the same reason, having
 fewer compounds and no morpheme splitting to disagree about.
 
 Previously a usable index was never moved, and only an impossible one was rescued. That kept the

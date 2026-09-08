@@ -38,7 +38,7 @@ author: "Jonathan Robie · R&D Fellow, Biblica · jonathan.robie@biblica.com"
 
 | Category | Key datasets |
 |---|---|
-| Source texts | Greek NT, Hebrew Bible, LXX — multiple editions |
+| Source texts | Greek NT, Hebrew Bible, LXX — multiple resources |
 | Morphology & syntax | Macula Hebrew/Greek, treebanks |
 | Discourse analysis | Levinsohn LGNTDF |
 | Lexicons & dictionaries | Abbott-Smith, LSJ, Mounce, Tyndale Bible Dictionary |

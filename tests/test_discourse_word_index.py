@@ -11,7 +11,7 @@ at index 4, quoting `הַשֹּׁפְטִ֔ים`, which is word 4 and rows 6-7. 
 row 4 — the second morpheme of word 2 — and reported `disagrees`.
 
 The `ref` column carries the word index in both corpora, so `RUT 1:1!4` *is* word 4. Reading it
-removes an assumption rather than adding a per-edition flag.
+removes an assumption rather than adding a per-resource flag.
 
 The word-level id follows the format the Macula Hebrew documentation declares for `n`, in
 *MACULA Hebrew Treebank for OSHB* §2.1: `BBCCCVVVWWWP`, where `WWW` is the word index within the
@@ -87,7 +87,7 @@ def test_a_maqqef_separates_words_in_a_quote_as_it_does_in_the_edition():
     """Hebrew joins words with a maqqef, and Macula holds the mark in `after`, not in `text`.
 
     A citation writes it attached — `בֶן־ אֲמִתַּ֖י` — so a quote comparing `בן־` against Macula's
-    `בן` fails on every maqqef-joined word. Splitting the quote there reads the edition's own
+    `בן` fails on every maqqef-joined word. Splitting the quote there reads the resource's own
     model: the WLC registration states that `after` carries the space, maqqef and sof pasuq, so
     word joining is data rather than logic.
 
@@ -108,7 +108,7 @@ def test_a_maqqef_separates_words_in_a_quote_as_it_does_in_the_edition():
 
 
 def test_a_maqqef_with_no_space_after_it_also_separates():
-    """`כל־הארץ` is two words in the edition, written as one string in a quote."""
+    """`כל־הארץ` is two words in the resource, written as one string in a quote."""
     rows = [
         {"ref": "GEN 1:1!1", "xml:id": "o01001001011", "text": "כָּל"},
         {"ref": "GEN 1:1!2", "xml:id": "o01001001021", "text": "הָאֶָרֶץ"},

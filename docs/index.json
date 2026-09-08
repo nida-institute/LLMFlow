@@ -1173,6 +1173,31 @@
           "doc": "Where a catalog entry unpacks, relative to the store's data directory."
         },
         {
+          "name": "_xpath_text",
+          "signature": "_xpath_text(value: Any) -> str",
+          "doc": "An XPath argument as a string, whether it arrived as a node set or a literal."
+        },
+        {
+          "name": "_lower_case",
+          "signature": "_lower_case(context, value) -> str",
+          "doc": "XPath 2.0 `lower-case()`, which lxml's XPath 1.0 does not provide."
+        },
+        {
+          "name": "_matches",
+          "signature": "_matches(context, value, pattern, flags = '') -> bool",
+          "doc": "XPath 2.0 `matches()`: a regular expression, not a containment test."
+        },
+        {
+          "name": "_catalog_tree",
+          "signature": "_catalog_tree()",
+          "doc": "The catalog as an XML tree, so a search is real XPath rather than a language of ours."
+        },
+        {
+          "name": "search",
+          "signature": "search(query: str) -> list",
+          "doc": "Catalog entries matching *query*, which is an XPath predicate over a `resource`."
+        },
+        {
           "name": "readable",
           "signature": "readable() -> dict",
           "doc": "`{id: item}` for everything the catalog says can be opened."
@@ -1200,7 +1225,17 @@
         {
           "name": "resolve_path",
           "signature": "resolve_path(definition: Mapping[str, Any]) -> Path",
-          "doc": "The file a definition points at."
+          "doc": "The file a definition's `path` points at."
+        },
+        {
+          "name": "dataset_registration",
+          "signature": "dataset_registration(identifier: str) -> Optional[dict]",
+          "doc": "The datasets-store entry for *identifier*, or None when nothing is registered under it."
+        },
+        {
+          "name": "resolve_declared_path",
+          "signature": "resolve_declared_path(value: Any, definition: Mapping[str, Any]) -> Path",
+          "doc": "Where a path declared in a registration points. One resolver for every such key."
         },
         {
           "name": "load_registered",
@@ -1404,7 +1439,7 @@
         {
           "name": "_migrate_resources_dir",
           "signature": "_migrate_resources_dir(sp_home: Path) -> Optional[Check]",
-          "doc": "Carry `~/.sp/editions/` across to `~/.sp/registrations/` (#217)."
+          "doc": "Carry `~/.sp/resources/` across to `~/.sp/registrations/` (#217)."
         },
         {
           "name": "_migrate_data_dir",
@@ -1905,7 +1940,7 @@
         {
           "name": "packaged_mappings_dir",
           "signature": "packaged_mappings_dir() -> Path",
-          "doc": "The schemes bundled in the wheel, reachable without a store or an edition."
+          "doc": "The schemes bundled in the wheel, reachable without a store or a resource."
         },
         {
           "name": "packaged_scheme_names",
@@ -2871,7 +2906,7 @@
         {
           "name": "_phrase",
           "signature": "_phrase(quote: Optional[str]) -> list[str]",
-          "doc": "A quote as the words it names, split where the edition separates words."
+          "doc": "A quote as the words it names, split where the resource separates words."
         },
         {
           "name": "_word_index",
@@ -2975,8 +3010,8 @@
         },
         {
           "name": "syntax_payload",
-          "signature": "syntax_payload(definition: Any, rows: Any, edition: str) -> Optional[list]",
-          "doc": "The trees covering *rows*, or None where this edition names no Lowfat source."
+          "signature": "syntax_payload(definition: Any, rows: Any, resource: str) -> Optional[list]",
+          "doc": "The trees covering *rows*, or None where this resource names no Lowfat source."
         }
       ]
     },
@@ -3500,7 +3535,7 @@
         {
           "name": "family_columns",
           "signature": "family_columns(name: str) -> tuple",
-          "doc": "The source columns *name* carries, across every edition it serves."
+          "doc": "The source columns *name* carries, across every resource it serves."
         },
         {
           "name": "family_is_per_word",
@@ -3538,9 +3573,9 @@
           "doc": "Running text for *rows*."
         },
         {
-          "name": "edition_scheme",
-          "signature": "edition_scheme(definition: Any, edition: Optional[str] = None, mappings_dir: Optional[Path] = None)",
-          "doc": "The versification an edition's references are in, or None when unknown."
+          "name": "resource_scheme",
+          "signature": "resource_scheme(definition: Any, resource: Optional[str] = None, mappings_dir: Optional[Path] = None)",
+          "doc": "The versification a resource's references are in, or None when unknown."
         },
         {
           "name": "_custom_vrs_path",
@@ -3579,8 +3614,8 @@
         },
         {
           "name": "resolve_passage",
-          "signature": "resolve_passage(passage: str, edition_scheme_name: Any, requested_scheme: Optional[str], edition: Optional[str] = None, mappings_dir: Optional[Path] = None) -> str",
-          "doc": "*passage*, named in *requested_scheme*, rewritten as the edition numbers it."
+          "signature": "resolve_passage(passage: str, resource_scheme_name: Any, requested_scheme: Optional[str], resource: Optional[str] = None, mappings_dir: Optional[Path] = None) -> str",
+          "doc": "*passage*, named in *requested_scheme*, rewritten as the resource numbers it."
         },
         {
           "name": "check_include",
@@ -3598,9 +3633,9 @@
           "doc": "*rows* as a USJ document: the book, a chapter node per chapter, one `para` inside each."
         },
         {
-          "name": "resolve_edition",
-          "signature": "resolve_edition(edition: str, registry_editions: Optional[Mapping[str, Any]] = None) -> Any",
-          "doc": "Return the definition for a named edition: a TSV path string, or a mapping carrying a"
+          "name": "resolve_resource",
+          "signature": "resolve_resource(resource: str, registry_resources: Optional[Mapping[str, Any]] = None) -> Any",
+          "doc": "Return the definition for a named resource: a TSV path string, or a mapping carrying a"
         },
         {
           "name": "usj_to_text",
@@ -3634,38 +3669,38 @@
         },
         {
           "name": "passage_text",
-          "signature": "passage_text(edition: str, passage: str, fmt: str = 'milestones', registry_editions: Optional[Mapping[str, str]] = None) -> str | dict",
-          "doc": "Running text for *passage* in *edition* — the whole job in one call."
+          "signature": "passage_text(resource: str, passage: str, fmt: str = 'milestones', registry_resources: Optional[Mapping[str, str]] = None) -> str | dict",
+          "doc": "Running text for *passage* in *resource* — the whole job in one call."
         },
         {
-          "name": "load_registry_editions",
-          "signature": "load_registry_editions(editions_dir: Any = None) -> dict",
+          "name": "load_registry_resources",
+          "signature": "load_registry_resources(resources_dir: Any = None) -> dict",
           "doc": "Every registration this machine holds, with dataset-relative paths resolved."
         },
         {
           "name": "_usfm_passage_text",
           "signature": "_usfm_passage_text(definition: Mapping[str, Any], passage: str, fmt: str) -> str",
-          "doc": "BSB and other USFM editions: passage -> USJ -> running text."
+          "doc": "BSB and other USFM resources: passage -> USJ -> running text."
         },
         {
           "name": "_no_text_found",
-          "signature": "_no_text_found(passage: str, edition: str) -> str",
+          "signature": "_no_text_found(passage: str, resource: str) -> str",
           "doc": ""
         },
         {
           "name": "_tei_passage_text",
-          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, edition: str, include: Sequence[str] = (), versification: Optional[str] = None) -> str | dict",
+          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, resource: str, include: Sequence[str] = (), versification: Optional[str] = None) -> str | dict",
           "doc": "Running text for *passage* from a directory of per-book TEI files."
         },
         {
-          "name": "edition_text",
-          "signature": "edition_text(edition: str, passage: str, fmt: str = 'milestones', editions: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None, include: Any = ()) -> str | dict",
-          "doc": "Running text for *passage* in *edition*, dispatched on the edition's `kind`."
+          "name": "resource_text",
+          "signature": "resource_text(resource: str, passage: str, fmt: str = 'milestones', resources: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None, include: Any = ()) -> str | dict",
+          "doc": "Running text for *passage* in *resource*, dispatched on the resource's `kind`."
         },
         {
           "name": "discourse_payload",
-          "signature": "discourse_payload(definition: Any, rows: Sequence[Mapping[str, Any]], edition: str) -> Optional[list]",
-          "doc": "Discourse items for *rows*, or None when this edition has no discourse source."
+          "signature": "discourse_payload(definition: Any, rows: Sequence[Mapping[str, Any]], resource: str) -> Optional[list]",
+          "doc": "Discourse items for *rows*, or None when this resource has no discourse source."
         },
         {
           "name": "__str__",
@@ -4433,7 +4468,7 @@
         {
           "name": "run_scripture_step",
           "signature": "run_scripture_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> None",
-          "doc": "Fetch one passage from one edition, in the format the step asks for."
+          "doc": "Fetch one passage from one resource, in the format the step asks for."
         }
       ]
     },
@@ -5018,6 +5053,6 @@
   ],
   "summary": {
     "total_modules": 85,
-    "total_functions": 794
+    "total_functions": 801
   }
 }

@@ -75,6 +75,10 @@ COMMON_TYPOS = {
     # was wired up (LLMFlow#189). BaseX drops bindings for variables a query never
     # declares — exit 0, no warning — so a stale `db` would fail silently forever.
     "db": "database",
+    # A dataset provides resources. `edition` claimed the NA26/NA27 distinction, which these do
+    # not make: the same edition may be registered twice in two encodings. See
+    # project/plans/design-resource-vocabulary.md.
+    "edition": "resource",
 }
 
 from llmflow.modules.logger import Logger

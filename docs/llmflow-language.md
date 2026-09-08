@@ -429,8 +429,8 @@ A reference is not a location until a scheme is named, so this function takes on
 
 `versification:` is the scheme the **request** is written in — a fact about the person who typed
 it, which is why it has a default. It is not the scheme the **text** is numbered in: that is a
-property of an edition, it has no default anywhere in this engine, and this function never has an
-edition to read. Pass `source_versification:` to record one on the result; it is echoed for the
+property of a resource, it has no default anywhere in this engine, and this function never has an
+resource to read. Pass `source_versification:` to record one on the result; it is echoed for the
 reader and never resolved against.
 
 The whole-chapter extent comes from the named scheme's `maxVerses`, so `Psalm 3` ends at verse 8
@@ -788,14 +788,14 @@ Writes content directly to a file. No LLM call, no Python function — just a wr
 
 ### type: `scripture`
 
-Fetches one passage from one **named** edition. The edition is a name resolved through the
+Fetches one passage from one **named** resource. The resource is a name resolved through the
 registry in `~/.sp/registrations/`, never a path in the pipeline — so the same pipeline runs on a
 machine where the sources live somewhere else.
 
 ```yaml
 - name: fetch-source
   type: scripture
-  edition: SBLGNT             # a registered edition
+  resource: SBLGNT             # a registered resource
   passage: "${passage}"       # MRK · MRK 1 · MRK 1:1 · MRK 1:1-8 · MRK 1:40-2:12
   format: milestones          # plain | milestones | usj   (default: milestones)
   versification: eng          # optional; the scheme `passage` is written in
@@ -804,7 +804,7 @@ machine where the sources live somewhere else.
 ```
 
 **Required Fields:**
-- `edition`: Name of a registered resource
+- `resource`: Name of a registered resource
 - `passage`: A reference, in any of the five forms above
 - `output`: Variable name to store the result
 
@@ -814,7 +814,8 @@ A pipeline names a resource; it never carries a path. That is what keeps a pipel
 a machine other than the one it was written on.
 
 ```bash
-sp resource list                 # what the catalog knows, and what this machine has
+sp resource list                 # the resources sp can open, and what this machine has
+sp dataset search discourse     # anything in the catalog, readable or not
 sp resource add WLC              # fetches the data if needed, then registers it
 sp resource add WLC --no-download   # register now, fetch later
 ```
@@ -822,6 +823,42 @@ sp resource add WLC --no-download   # register now, fetch later
 `add` downloads by default, because asking for a resource is asking to use it — a registration
 pointing at data that is not there fails later, in the middle of a run, after the pipeline has
 linted clean.
+
+**`list` shows only what sp can open as text** — three entries of seventy. The rest are
+annotation corpora, lexicons and treebanks that a pipeline reaches through a resource rather than
+by name, and `search` is how you find them.
+
+#### `sp dataset search` — the catalog, queried in XPath
+
+A bare word is a keyword: free text across id, name, category, description, notes, licence and
+formats, case-insensitively.
+
+```bash
+sp dataset search levinsohn
+```
+
+Anything that is not a bare word is evaluated as a real **XPath predicate** over a `resource`.
+The catalog is JSON, but it is built into a tree and queried with `lxml`, so this is the actual
+language rather than an imitation of it — and there is no query syntax of ours to learn:
+
+```bash
+sp dataset search 'contains(category, "Treebank")'
+sp dataset search 'starts-with(id, "morphgnt")'
+sp dataset search '@readable = "true"'
+sp dataset search 'contains(., "greek") and not(contains(category, "Lexicon"))'
+```
+
+`lower-case()` and `matches()` are supplied, with their XPath 2.0 meanings — `matches()` is a
+**regular expression** with an optional flags argument, not a containment test:
+
+```bash
+sp dataset search 'matches(name, "LEVINSOHN", "i")'
+sp dataset search 'contains(lower-case(description), "septuagint")'
+```
+
+Three attributes describe each entry rather than its content: `@readable` (sp can open it as
+text), `@registered` (this machine has registered it), and `@fetch` (`download`, `git` or
+`manual`).
 
 **Something of your own** — a Paratext project, or a text you maintain — is registered by path:
 
@@ -906,7 +943,7 @@ error.
 ```yaml
 - name: fetch-addressable
   type: scripture
-  edition: SBLGNT
+  resource: SBLGNT
   passage: "MRK 1:1"
   format: usj
   include: [ids]
@@ -932,7 +969,7 @@ The container appears only when `include` is non-empty, and it states the versif
 verse references are in. Usually that is a standard scheme's name. For a Paratext project
 carrying its own `custom.vrs` it is the **project's name** instead, because the project's
 numbering is not any standard scheme and has no other name — see *Versification* below. If the
-edition does not say which scheme it uses, the value is `null` and a warning names the field to
+resource does not say which scheme it uses, the value is `null` and a warning names the field to
 add — the container never invents one.
 
 **A key says which kind of nothing it means.** This is a contract, not an implementation
@@ -942,17 +979,17 @@ detail: a consumer reads it, and so does a model when the payload reaches a prom
 |---|---|
 | a value | the question was asked and this is the answer |
 | `{}` or `[]` | the question was asked, and the answer is nothing — the lookup ran and found none |
-| `null` | the question could not be asked, or does not apply — the edition supplies no such data |
+| `null` | the question could not be asked, or does not apply — the resource supplies no such data |
 | the key is absent | you did not request that family; `include:` is what says so |
 
 So `"discourse": {}` means the discourse source was consulted and has nothing for this
-passage, while `"discourse": null` means this edition's registry entry names no discourse source
+passage, while `"discourse": null` means this resource's registry entry names no discourse source
 at all, so there was nothing to consult. Those are different facts and a consumer acts differently
 on them, which is why the container states them rather than leaving one to a log line that never
 travels with the data.
 
-Which editions have which sources is a fact about the data available to you, not about the
-language — so the payload says whether *this* edition could answer, and never why.
+Which resources have which sources is a fact about the data available to you, not about the
+language — so the payload says whether *this* resource could answer, and never why.
 
 **What `null` means beyond that is the caller's to decide.** The engine guarantees the key is
 there; whether "does not apply" or "not fetched" is the right reading in a given family is
@@ -972,31 +1009,58 @@ addresses individual words.
 
 #### `include: [discourse]` — Levinsohn's features, reconciled rather than attached
 
-Which corpus applies follows from the edition rather than from the language: a Greek edition
-names Levinsohn's features, a Hebrew one names the Hebrew corpus, and the edition names it — so
+Which corpus applies follows from the resource rather than from the language: a Greek resource
+names Levinsohn's features, a Hebrew one names the Hebrew corpus, and the resource names it — so
 no path appears in a pipeline:
 
 ```yaml
 # ~/.sp/registrations/SBLGNT.yaml
 id: SBLGNT
 kind: tsv
-path: /path/to/macula-greek-SBLGNT.tsv
+dataset: Clear-Bible/macula-greek
+path: SBLGNT/tsv/macula-greek-SBLGNT.tsv   # relative to the dataset
 versification_scheme: org
-discourse_path: /path/to/LGNTDF        # the 33 LGNTDF feature files
+discourse_path: levinsohn-lgntdf/LGNTDF    # a registered dataset, and a path inside it
+lowfat_path: SBLGNT/lowfat                 # relative to this resource's own dataset
 ```
+
+**No key here needs an absolute path**, and `path`, `discourse_path` and `lowfat_path` all resolve
+the same three ways:
+
+| form | resolves to | reaches |
+|---|---|---|
+| `SBLGNT/lowfat` | the resource's `dataset`, inside the store | what the dataset itself contains |
+| `levinsohn-lgntdf/LGNTDF` | a registered dataset, plus a path inside it | a corpus **outside** this resource's dataset |
+| `/opt/corpora/LGNTDF` | itself | a maintainer's own clone |
+
+A dataset id is looked up in `~/.sp/datasets/`, the one file per machine that `sp` writes and a
+project never does — so the machine-specific path lives there and the registration means the same
+thing everywhere. The subpath is not a convenience: neither corpus sits at a repository root.
+
+Where a first segment is both a registered dataset id and a directory inside this resource's
+dataset, the id wins: a declaration beats a coincidence of naming. A subpath that would leave its
+dataset is refused rather than followed.
+
+**Choose one form per registration and stay in it.** A dataset-relative value resolves inside
+whichever copy of the corpus the store holds; a dataset id resolves wherever that dataset was
+registered, which may be a different clone of the same corpus. Text and annotations join on word
+ids, so mixing the forms across keys can draw them from two copies — a silent mismatch rather than
+an error, which no check can catch for you. Where a machine's corpora are working clones rather
+than store downloads, naming the dataset throughout is the consistent choice, and it lets the
+duplicate download be deleted.
 
 ```yaml
 - name: fetch_with_discourse
   type: scripture
-  edition: SBLGNT
+  resource: SBLGNT
   passage: "MRK 1:14"
   format: usj
   include: [ids, discourse]
   output: source
 ```
 
-An edition naming no `discourse_path` **warns and attaches nothing** — Levinsohn's corpus covers
-the Greek NT only, so a Hebrew edition asking for it is a configuration mismatch rather than a
+A resource naming no `discourse_path` **warns and attaches nothing** — Levinsohn's corpus covers
+the Greek NT only, so a Hebrew resource asking for it is a configuration mismatch rather than a
 failure.
 
 **Why "reconciled" and not "attached".** Levinsohn's word indices are NA28-family; the text is
@@ -1056,18 +1120,18 @@ mis-costs every decision downstream.
 
 **A reference is not a location until a scheme is named.** `PSA 51:1` is `PSA 51:3` in the
 original-language numbering and `PSA 50:3` in the Vulgate; Malachi has four chapters in English
-and three in Hebrew. A pipeline that asks two editions for "the same" reference without saying
+and three in Hebrew. A pipeline that asks two resources for "the same" reference without saying
 which numbering it means is comparing unrelated verses, and nothing reports an error.
 
-**An edition's scheme is a property of that edition, and there is no global default.** A
+**A resource's scheme is a property of that resource, and there is no global default.** A
 Byzantine Greek text and a critical text are numbered differently; so are two English
 translations. Guessing would be wrong exactly where schemes differ. The scheme is found in
 three ways, in order:
 
-1. **`versification_scheme` in the edition's registry entry** — always wins.
-2. **A Paratext project's `Settings.xml`**, for `kind: usfm` editions. Paratext records a
+1. **`versification_scheme` in the resource's registry entry** — always wins.
+2. **A Paratext project's `Settings.xml`**, for `kind: usfm` resources. Paratext records a
    number; `data/versification-editions.json` maps it to a scheme.
-3. **The table of editions we construct**, in the same file — `SBLGNT` and `WLC` are `org`,
+3. **The table of resources we construct**, in the same file — `SBLGNT` and `WLC` are `org`,
    `BSB` is `eng`, each with the evidence recorded beside it.
 
 **A Paratext project may carry its own numbering, and it wins where it speaks.** A `custom.vrs`
@@ -1083,22 +1147,22 @@ verses instead of eighteen would be a plain falsehood. An overlay that states no
 base in force, and that project reports the base's name as before.
 
 If none of the three answers and you ask for a cross-scheme mapping, that is an **error** naming
-the field to add. Without `versification:` no mapping happens, so an edition with an unknown
+the field to add. Without `versification:` no mapping happens, so a resource with an unknown
 scheme keeps working for everything else.
 
 `versification:` on the step names the scheme **your `passage` is written in**. When it differs
-from the edition's, the reference is mapped *before* any text is read:
+from the resource's, the reference is mapped *before* any text is read:
 
 ```yaml
 - name: hebrew-by-english-reference
   type: scripture
-  edition: WLC                # numbered `org`
+  resource: WLC                # numbered `org`
   passage: "PSA 51:1"         # ...but I am counting in English
   versification: eng
   output: psalm               # returns org PSA 51:3 — the verse an English reader means
 ```
 
-Omit it and the edition's own scheme governs, which is the right default for a single edition.
+Omit it and the resource's own scheme governs, which is the right default for a single resource.
 
 Schemes are the Copenhagen Alliance mappings, installed into `~/.sp/versification/` by
 `sp init` and repaired by `sp doctor`. Six ship: `org` (the hub every scheme maps through),

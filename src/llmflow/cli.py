@@ -175,13 +175,17 @@ def build_parser():
     subparsers.add_parser("update-ai-context", help="Regenerate docs/ai-context/ helper files for AI assistants")
 
     # resource command — one surface for everything the catalog describes (#217).
-    res_p = subparsers.add_parser("resource", help="Scripture texts and other catalog resources")
+    # Two layers, two nouns. A dataset is an obtainable body of data — a repository or a
+    # download — and the catalog lists those. A resource is a readable text inside one, carrying
+    # a reader and a versification. One noun covered both until the help text was found calling
+    # `WLC` and `acai` alike "Catalog id", having sent a reader looking for the wrong thing.
+    res_p = subparsers.add_parser("resource", help="Readable texts a pipeline can name")
     res_sub = res_p.add_subparsers(dest="resource_command", help="Resource commands")
 
-    res_sub.add_parser("list", help="What the catalog knows, and what this machine has")
+    res_sub.add_parser("list", help="The texts this machine can open, and their status")
 
     res_add = res_sub.add_parser("add", help="Register a resource so pipelines can name it")
-    res_add.add_argument("id", help="Catalog id (e.g. WLC), or the name to register yours under")
+    res_add.add_argument("id", help="A resource id (e.g. WLC), or the name to register yours under")
     res_add.add_argument("--path", default=None, help="Register something of your own by path")
     res_add.add_argument("--kind", default=None, choices=["tsv", "tei", "usfm"],
                          help="With --path: how to read it. A Paratext project says so itself")
@@ -189,8 +193,21 @@ def build_parser():
     res_add.add_argument("--no-download", action="store_true", dest="no_download",
                          help="Register without fetching the data yet")
 
-    res_dl = res_sub.add_parser("download", help="Fetch a catalog resource without registering it")
-    res_dl.add_argument("id", help="Catalog id (e.g. acai)")
+    ds_p = subparsers.add_parser("dataset", help="Bodies of data the catalog describes")
+    ds_sub = ds_p.add_subparsers(dest="dataset_command", help="Dataset commands")
+
+    ds_sub.add_parser("list", help="Datasets registered on this machine")
+
+    ds_search = ds_sub.add_parser(
+        "search", help="Search the whole catalog, not only what is readable"
+    )
+    ds_search.add_argument(
+        "query",
+        help='A keyword, or an XPath predicate: contains(category, "Treebank")',
+    )
+
+    res_dl = ds_sub.add_parser("download", help="Fetch a dataset without registering a resource")
+    res_dl.add_argument("id", help="A dataset id (e.g. acai)")
     res_dl.add_argument("--dest", default=None, help="Download destination (default: ~/.sp/data/)")
 
     # load-db command
@@ -563,6 +580,10 @@ def main(argv=None):
                 )
             print("\n  registered = usable now · available = downloaded, run `sp resource add`")
             print("  absent     = not downloaded yet; `sp resource add <ID>` fetches it")
+            print(
+                "\n  This lists the texts sp can open. The catalog describes more — annotation "
+                "corpora,\n  lexicons, treebanks — which `sp dataset search <keyword>` finds."
+            )
             return
 
         if args.resource_command == "add":
@@ -584,7 +605,54 @@ def main(argv=None):
             print(f"✅ Registered '{args.id}' — {written}")
             return
 
-        if args.resource_command == "download":
+        parser.parse_args([args.command, "--help"])
+        return
+
+    if args.command == "dataset":
+        from llmflow import resources
+
+        if args.dataset_command == "search":
+            try:
+                hits = resources.search(args.query)
+            except ValueError as error:
+                print(f"❌ {error}")
+                raise SystemExit(1)
+            if not hits:
+                print(f"Nothing in the catalog matches {args.query!r}.")
+                return
+            print(f"  {'ID':<32} {'READ':<5} {'GET':<9} CATEGORY")
+            print(f"  {'-'*32} {'-'*5} {'-'*9} {'-'*32}")
+            for entry in hits:
+                readable_here = "yes" if entry.get("provides") else "no"
+                fetch_how = (
+                    "download" if entry.get("download")
+                    else "git" if entry.get("github") else "manual"
+                )
+                print(
+                    f"  {entry.get('id', ''):<32} {readable_here:<5} {fetch_how:<9} "
+                    f"{entry.get('category', '')}"
+                )
+            print(f"\n  {len(hits)} of {len(resources.catalog())} catalog entries")
+            print("  read = sp has a reader for it · get = how to obtain it")
+            return
+
+        if args.dataset_command == "list":
+            from llmflow.registry import Registry
+
+            registered = Registry().datasets.list()
+            if not registered:
+                print("No datasets registered on this machine.")
+                return
+            print(f"  {'ID':<34} {'FORMAT':<8} PATH")
+            print(f"  {'-'*34} {'-'*8} {'-'*40}")
+            for entry in sorted(registered, key=lambda d: str(d.get("id", ""))):
+                print(
+                    f"  {str(entry.get('id', '')):<34} {str(entry.get('format', '')):<8} "
+                    f"{entry.get('path', '')}"
+                )
+            return
+
+        if args.dataset_command == "download":
             from llmflow.download_data import fetch
 
             entry = next(
@@ -592,7 +660,7 @@ def main(argv=None):
             )
             if entry is None:
                 known = ", ".join(sorted(str(e.get("id")) for e in resources.catalog()))
-                print(f"❌ The catalog has no resource '{args.id}'.\n   It knows: {known}")
+                print(f"❌ The catalog has no dataset '{args.id}'.\n   It knows: {known}")
                 sys.exit(1)
             fetch(entry, dest=args.dest)
             return

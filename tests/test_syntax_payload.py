@@ -28,7 +28,7 @@ from pathlib import Path
 import pytest
 from lxml import etree
 
-from llmflow.utils.scripture import edition_text
+from llmflow.utils.scripture import resource_text
 from llmflow.utils.syntax import sentences_from_lowfat
 
 MACULA_GREEK = Path("/Users/jonathan/github/Clear/macula-greek/SBLGNT")
@@ -199,7 +199,7 @@ def test_a_compound_word_is_carried_and_keeps_both_words():
 
     Every `<c>` in Ruth 1 is `בֵּית לֶחֶם`, which is the same compound that makes a citation's word
     index run one behind Macula's from that point in the verse: the discourse corpus counts the
-    place name as one word and the edition counts two.
+    place name as one word and the resource counts two.
     """
     payload = sentences_from_lowfat(parse(COMPOUND))
     compound = payload[0]["children"][0]
@@ -301,7 +301,7 @@ def test_hebrews_lower_case_clause_type_arrives_under_one_key():
 
 def test_a_hebrew_only_attribute_is_carried_where_the_source_has_it():
     """`head` appears on 59% of Hebrew group nodes and never in Greek. A family emits whichever of
-    its fields the edition actually has, so a Greek payload simply lacks the key."""
+    its fields the resource actually has, so a Greek payload simply lacks the key."""
     assert sentences_from_lowfat(parse(HEBREW_ATTRIBUTED))[0]["head"] == "true"
     assert "head" not in sentences_from_lowfat(parse(ATTRIBUTED))[0]
 
@@ -344,8 +344,8 @@ def test_a_leaf_carries_nothing_the_per_word_families_already_deliver():
 # code does what the fixture says — not that Macula states these things where the design claims.
 
 
-def payload_for(edition, passage):
-    usj = edition_text(edition, passage, fmt="usj", editions=EDITIONS, include=["ids", "syntax"])
+def payload_for(resource, passage):
+    usj = resource_text(resource, passage, fmt="usj", resources=EDITIONS, include=["ids", "syntax"])
     return usj["scripture_pipelines"]["syntax"]
 
 
@@ -384,7 +384,7 @@ def test_the_greek_corpus_supplies_discontinuous():
 @real_data
 def test_the_hebrew_corpus_supplies_head_and_not_the_greek_only_attributes():
     """`head` is on 59% of Hebrew group nodes and absent from Greek; `articular` is the reverse.
-    A family emits whichever of its fields the edition actually has, so the two languages
+    A family emits whichever of its fields the resource actually has, so the two languages
     legitimately differ — asserted so that neither starts leaking into the other."""
     hebrew = every_field(payload_for("WLC", "RUT 1:1-5"))
 
@@ -403,9 +403,9 @@ def test_no_field_outside_the_ruled_set_reaches_a_payload():
         "class", "role", "articular", "head", "type", "clauseType", "junction", "predication",
         "discontinuous",
     }
-    for edition, passage in (("SBLGNT", "PHM 1:1-7"), ("WLC", "RUT 1:1-5")):
-        found = every_field(payload_for(edition, passage))
-        assert found <= allowed, f"{edition} {passage} carried {found - allowed}"
+    for resource, passage in (("SBLGNT", "PHM 1:1-7"), ("WLC", "RUT 1:1-5")):
+        found = every_field(payload_for(resource, passage))
+        assert found <= allowed, f"{resource} {passage} carried {found - allowed}"
 
 
 # --- the family, as a pipeline reaches it --------------------------------------------------
@@ -430,7 +430,7 @@ def test_syntax_needs_ids_beside_it():
 def test_an_edition_naming_no_lowfat_warns_rather_than_failing(caplog):
     """The same shape as a missing discourse source: a warning, and `None` rather than `[]`.
 
-    `null` says the question could not be asked — this edition supplies no tree — as against
+    `null` says the question could not be asked — this resource supplies no tree — as against
     asked and answered with nothing.
     """
     from llmflow.utils.syntax import syntax_payload

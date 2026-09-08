@@ -4,6 +4,124 @@
 
 ### Added
 
+- **BREAKING: a dataset provides resources. `edition` is retired from the language and the API.**
+  `edition` claimed a distinction the data does not make: `SBLGNT` is a TSV inside
+  `Clear-Bible/macula-greek`, not a critical edition of the Greek New Testament, and the same
+  edition could be registered twice in two encodings. Captain: *"these are not, for instance,
+  NA26 vs. NA27, so that vocabulary is confusing."*
+
+  Two layers, two words. A **dataset** is an obtainable body of data — a repository or a
+  download. A **resource** is a readable text inside one, carrying a reader and a versification.
+  A resource is more than a path, and the excess is what matters: a wrong path fails loudly, a
+  wrong versification returns the wrong verses in silence.
+
+  **The pipeline key changes**: `edition:` becomes `resource:` on a `type: scripture` step. One
+  syntax, no aliases — the old key fails lint naming its replacement, as the `for`/`in` migration
+  established. The rename is driven from `pipeline_schema.py`, where the language is declared, so
+  the object model's attributes followed without being edited.
+
+  **The CLI splits in two.** `sp resource` covers readable texts (`list`, `add`); `sp dataset`
+  covers bodies of data (`list`, `search`, `download`). One noun covered both, and its own help
+  text called `WLC` and `acai` alike "Catalog id" — the conflation that led a downstream session
+  to conclude the catalog did not know Levinsohn's corpus and to propose hand-writing an absolute
+  path into a version-controlled store.
+
+  This completes a migration begun and abandoned: the error type was already
+  `ResourceNotRegistered`, and #217 had already moved `~/.sp/editions/` → `~/.sp/registrations/`,
+  so both vocabularies were live at once.
+
+  **What a consumer must change:** `edition:` → `resource:` in any `type: scripture` step.
+  Measured on one machine, that is four files — three in `discourse-flow`, one in
+  `sil-translator-notes`. Both install this engine as an editable dependency, so the old key stops
+  working when this reaches `dev`, not when a release ships.
+
+  **What deliberately did not change.** `data/resources.json` is vendored from
+  `awesome-biblical-data`. `project/` keeps its 197 occurrences: those are plans, handoffs and
+  audits recording decisions made when the word was "edition", and the record is corrected by
+  adding alongside rather than rewording. `data/versification-editions.json` keeps its name — a
+  rename there was proposed for consistency and withdrawn, because the file's only live content
+  is Paratext's versification numbers and its `known_editions` key is an empty husk kept alive by
+  a guard asserting it stays empty. That is its own change, not this one.
+
+  Design and the measured surface: `project/plans/design-resource-vocabulary.md`.
+
+- **`sp dataset search` queries the whole catalog, in XPath.** `sp resource list` shows only
+  entries carrying a `provides` block — **3 of 70** — beneath a legend reading *"absent = not
+  downloaded yet"*, which reads as a complete inventory with a status column. Nothing listed the
+  other 67, and an absent resource is exactly what a reader running that command is looking for.
+  The cost was not hypothetical: a downstream session read that output, concluded the engine did
+  not know Levinsohn's corpus, and proposed hand-writing an absolute path to a manual clone into
+  a version-controlled store.
+
+  A bare word is a keyword — free text across id, name, category, description, notes, licence and
+  formats, case-insensitively. Anything else is a **real XPath predicate**: the catalog is JSON,
+  but it is built into a tree and evaluated by `lxml`, so the query language is XPath itself
+  rather than an imitation, and there is nothing of ours to document or let drift.
+  `contains(., "…")` is free text because XPath concatenates a node's descendant text.
+
+  `lower-case()` and `matches()` are registered as extension functions, since lxml implements
+  XPath 1.0. Both keep their XPath 2.0 meanings — `matches()` is a **regular expression with a
+  flags argument**, not a containment test, because a standard function that means something
+  else in one tool is worse than no function at all. They are scoped to the query rather than
+  registered globally, so they cannot leak into the XPath and XSLT plugins.
+
+  Three attributes describe an entry rather than its content: `@readable`, `@registered` and
+  `@fetch`. The `list` legend now says what it shows and names `search` for the rest.
+
+- **`path` resolves a registered dataset id too, so a machine whose corpora are clones can stop
+  keeping a duplicate download alive.** `path` accepted a dataset-relative value or an absolute
+  one, and dataset-relative resolves inside the store — so an edition's *text* had to come from a
+  store download even where that download is a redundant copy of a clone the machine already has,
+  and deleting the duplicate broke the registration. `path`, `discourse_path` and `lowfat_path`
+  now resolve identically: absolute, a registered dataset id with an optional subpath, or
+  dataset-relative.
+
+  One resolver serves all three rather than two that agree until they do not. The
+  annotation-specific function added earlier in this release is gone rather than left beside its
+  replacement.
+
+  **The choice between the forms is the author's and no check can make it.** A dataset-relative
+  value resolves inside the store's copy; a dataset id resolves wherever that dataset was
+  registered, possibly a different clone of the same corpus. Text and annotations join on word
+  ids, so mixing the forms across keys can draw them from two copies — silently. On this machine
+  `macula-greek` exists twice, so this is a live hazard rather than a theoretical one, and the
+  language reference now says to choose one form per registration and stay in it.
+
+- **An edition can name its discourse and syntax sources without an absolute path.** `path` has
+  always resolved against the store, so a registration means the same thing on every machine.
+  `discourse_path` and `lowfat_path` reached `Path()` raw, so absolute was the only form that
+  worked — and a registration therefore contradicted its own header comment. Reported by
+  `discourse-flow`, who could satisfy the rule against hard-coded paths everywhere except this
+  one file.
+
+  Both keys now accept what `path` accepts — a **dataset-relative** value — and additionally a
+  **registered dataset id with an optional subpath**, `levinsohn-lgntdf/LGNTDF`. The second form
+  is what reaches a corpus living outside the edition's own dataset, as Levinsohn's Greek features
+  do, and the subpath is not a convenience: the data rarely sits at a repository root. The id
+  resolves through `~/.sp/datasets/`, which `sp` writes and a project never does, so the one
+  machine-specific path per dataset stays in the file whose job that is. Absolute paths still
+  work, for a maintainer against their own clone.
+
+  Two rules where the forms could collide. A first segment that is both a registered id and a
+  directory inside the edition's dataset resolves as the **id** — a declaration beats a
+  coincidence of naming. A subpath that would leave its dataset is **refused**, so naming a
+  dataset cannot become a route to an arbitrary file.
+
+  The datasets store is read **without ever creating it**: it is write-protected by design and
+  absent on a fresh machine, so a reader that made the directory would fail where it should have
+  answered "nothing registered".
+
+  Verified against the real store rather than fixtures. `SBLGNT/lowfat` and
+  `macula-greek-lowfat/SBLGNT/lowfat` both resolve to directories that exist;
+  `levinsohn-lgntdf/LGNTDF` does not, because that dataset is not registered on this machine —
+  which is the correct answer and shows what the Greek discourse case still waits on.
+
+  **Worth knowing when choosing a form:** a dataset-relative value resolves inside the same copy
+  of the corpus the text came from, while a dataset id resolves wherever that dataset was
+  registered — possibly a different clone. Text and annotations join on word ids, so two copies
+  is a silent mismatch rather than an error. On this machine `macula-greek` exists twice, so the
+  hazard is present rather than hypothetical.
+
 - **The shell and file-tool rules are in the rules file, and asking for an exception is one of
   them.** They had never been in `data/ai-rules.yaml` — the file whose first line calls itself the
   only place the rules are written — so they carried no `enforcement` classification, nothing

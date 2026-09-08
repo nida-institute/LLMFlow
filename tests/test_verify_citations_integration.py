@@ -121,20 +121,20 @@ async def test_mcp_client_with_tool_filter():
 
 @pytest.mark.asyncio
 async def test_get_textual_editions():
-    """Get the list of valid textual editions to use."""
+    """Get the list of valid textual resources to use."""
 
     client = MCPClient(
         server_url="https://bible-resource-server-preview.labs.biblica.com/mcp"
     )
 
     async with client as mcp:
-        # Call the tool that lists available editions
+        # Call the tool that lists available resources
         result = await mcp._async_call_tool(
             "get_textual_edition_abbreviations",
             {}
         )
 
-        print(f"\n📚 Available textual editions:")
+        print(f"\n📚 Available textual resources:")
         print(f"   Type: {type(result)}")
         print(f"   Content:\n{result}")
 
@@ -195,7 +195,7 @@ async def test_get_passage_text_directly():
 
 @pytest.mark.asyncio
 async def test_get_passage_text_with_greek():
-    """Test getting passage text in Greek (SBLGNT) - the preferred edition."""
+    """Test getting passage text in Greek (SBLGNT) - the preferred resource."""
 
     client = MCPClient(
         server_url="https://bible-resource-server-preview.labs.biblica.com/mcp"

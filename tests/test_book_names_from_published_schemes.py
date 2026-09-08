@@ -5,7 +5,7 @@ Three schemes name the books, and a citation may arrive in any of them:
 - **USFM** codes are this table's keys.
 - **OSIS** ids, transcribed from CrossWire's `OSIS_Book_Abbreviations`.
 - **SBL** abbreviations, transcribed from SBL Press, *The SBL Handbook of Style*, Second
-  Edition (Atlanta: SBL Press, 2014), 124-125, §§8.3.1-8.3.2. Rows the Handbook writes as
+  Resource (Atlanta: SBL Press, 2014), 124-125, §§8.3.1-8.3.2. Rows the Handbook writes as
   "1-2 X" are expanded here into the two abbreviations a citation actually uses.
 
 Both lists are transcribed from a source rather than recalled, because a wrong abbreviation in

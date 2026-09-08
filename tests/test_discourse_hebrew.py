@@ -1,6 +1,6 @@
 """Loading a Hebrew discourse corpus — HOTDF-LS alongside LGNTDF.
 
-`include: [discourse]` promises to read the discourse source an edition declares. It could read
+`include: [discourse]` promises to read the discourse source a resource declares. It could read
 only one corpus: LGNTDF, whose files have a `<feature>` root, whose references are written in
 OSIS book names, and which sits in one flat directory.
 

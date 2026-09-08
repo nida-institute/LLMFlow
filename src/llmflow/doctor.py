@@ -267,7 +267,7 @@ def _repair_group(
 
 
 def _migrate_resources_dir(sp_home: Path) -> Optional[Check]:
-    """Carry `~/.sp/editions/` across to `~/.sp/registrations/` (#217).
+    """Carry `~/.sp/resources/` across to `~/.sp/registrations/` (#217).
 
     Not to `~/.sp/resources/`: that name is taken, and it holds the corpora themselves. Reading
     one as the other would parse a library of texts as YAML, which `llmflow.resources` warns

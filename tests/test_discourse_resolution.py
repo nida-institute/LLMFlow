@@ -123,7 +123,7 @@ def test_an_unambiguous_quote_decides_and_the_index_is_still_reported():
     says which features behave that way, so the engine reports both rather than guessing:
     `word_id` from the quote, `index` unchanged, `quote_found_at` saying where it landed.
 
-    Against it: wherever two editions count words differently the index names the neighbour, which
+    Against it: wherever two resources count words differently the index names the neighbour, which
     was 86 of 124 disagreements across six Hebrew passages. The engine cannot tell those apart, so
     it states what each source said and leaves the choice to whoever knows the feature.
     """

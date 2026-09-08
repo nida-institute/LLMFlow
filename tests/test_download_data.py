@@ -39,7 +39,10 @@ def test_download_data_is_gone():
         (["resource", "list"], {"resource_command": "list"}),
         (["resource", "add", "WLC"], {"id": "WLC", "no_download": False}),
         (["resource", "add", "WLC", "--no-download"], {"no_download": True}),
-        (["resource", "download", "acai"], {"id": "acai"}),
+        # Fetching is a dataset operation: `acai` is a body of data, not a readable text. This
+        # case read `resource download acai` while the one above reads `resource add WLC`, which
+        # is the conflation the two nouns exist to remove.
+        (["dataset", "download", "acai"], {"id": "acai"}),
     ],
 )
 def test_the_resource_surface_parses(argv, expected):

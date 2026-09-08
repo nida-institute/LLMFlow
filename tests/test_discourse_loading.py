@@ -138,7 +138,7 @@ def test_a_disagreement_reports_the_quote_and_says_where_it_was_found(corpus):
 
     Previously the index was never moved, and the id named the word at the index while
     `quote_found_at` named the other. That kept the citation's own address at the cost of an id
-    pointing at the neighbour wherever two editions count words differently — measured across six
+    pointing at the neighbour wherever two resources count words differently — measured across six
     Hebrew passages, 86 of 124 disagreements.
 
     `outcome` is what a consumer reads to decide: `disagrees` means the two sources named
@@ -178,9 +178,9 @@ def test_every_feature_name_is_carried():
 
 @real_data
 def test_discourse_attaches_at_word_ids_through_an_edition():
-    from llmflow.utils.scripture import edition_text
+    from llmflow.utils.scripture import resource_text
 
-    editions = {
+    resources = {
         "SBLGNT": {
             "kind": "tsv",
             "path": "/Users/jonathan/github/Clear/macula-greek/SBLGNT/tsv/macula-greek-SBLGNT.tsv",
@@ -188,8 +188,8 @@ def test_discourse_attaches_at_word_ids_through_an_edition():
             "discourse_path": str(LGNTDF),
         }
     }
-    usj = edition_text(
-        "SBLGNT", "MRK 1:14", fmt="usj", editions=editions, include=["ids", "discourse"]
+    usj = resource_text(
+        "SBLGNT", "MRK 1:14", fmt="usj", resources=resources, include=["ids", "discourse"]
     )
     items = usj["scripture_pipelines"]["discourse"]
     assert items, "no discourse items attached"
@@ -213,16 +213,16 @@ def test_a_main_clause_disagrees_by_design_and_says_so():
     `index` instead. Measured blast radius of the change: 8 of 626 citations across MRK 1-2,
     1JN 1 and PHM 1, five of them `Main clauses`.
     """
-    from llmflow.utils.scripture import edition_text
+    from llmflow.utils.scripture import resource_text
 
-    editions = {
+    resources = {
         "SBLGNT": {
             "kind": "tsv",
             "path": "/Users/jonathan/github/Clear/macula-greek/SBLGNT/tsv/macula-greek-SBLGNT.tsv",
             "discourse_path": str(LGNTDF),
         }
     }
-    usj = edition_text("SBLGNT", "MRK 1:14", fmt="usj", editions=editions, include=["discourse"])
+    usj = resource_text("SBLGNT", "MRK 1:14", fmt="usj", resources=resources, include=["discourse"])
     onset = [
         i for i in usj["scripture_pipelines"]["discourse"]
         if i["feature"] == "Main clauses" and i["index"] == 1
@@ -234,17 +234,17 @@ def test_a_main_clause_disagrees_by_design_and_says_so():
 
 
 def test_an_edition_with_no_discourse_source_warns_rather_than_failing(tmp_path, caplog):
-    """§4: a requested family the edition names no source for warns rather than failing."""
-    from llmflow.utils.scripture import edition_text
+    """§4: a requested family the resource names no source for warns rather than failing."""
+    from llmflow.utils.scripture import resource_text
 
     tsv = tmp_path / "hebrew.tsv"
     tsv.write_text("ref\ttext\tafter\nGEN 1:1!1\tבְּרֵאשִׁית\t \n", encoding="utf-8")
-    editions = {"WLC": {"kind": "tsv", "path": str(tsv)}}
+    resources = {"WLC": {"kind": "tsv", "path": str(tsv)}}
 
     with caplog.at_level("WARNING"):
-        usj = edition_text("WLC", "GEN 1:1", fmt="usj", editions=editions, include=["discourse"])
+        usj = resource_text("WLC", "GEN 1:1", fmt="usj", resources=resources, include=["discourse"])
     assert "discourse" in caplog.text.lower()
-    # `null`, not omitted: the family was requested and the edition cannot supply it, which is
+    # `null`, not omitted: the family was requested and the resource cannot supply it, which is
     # a different fact from nobody having asked. The warning does not travel with the payload,
     # so the payload states it. Rule `say-which-kind-of-nothing`.
     assert usj["scripture_pipelines"]["discourse"] is None

@@ -77,11 +77,11 @@ def default_mappings_dir() -> Path:
 
 
 def packaged_mappings_dir() -> Path:
-    """The schemes bundled in the wheel, reachable without a store or an edition.
+    """The schemes bundled in the wheel, reachable without a store or a resource.
 
-    `parse_bible_reference` has no edition and must still resolve an extent, so it reads these
-    rather than `$SP_HOME`: a custom versification is edition-scoped, so a caller with no
-    edition only ever needs the shipped standard schemes.
+    `parse_bible_reference` has no resource and must still resolve an extent, so it reads these
+    rather than `$SP_HOME`: a custom versification is resource-scoped, so a caller with no
+    resource only ever needs the shipped standard schemes.
     """
     import llmflow
 
