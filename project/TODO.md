@@ -30,6 +30,64 @@
 - [ ] Decide the home, then rewrite the rule so that a named exception obliges the AI to ask
       first rather than proceed
 
+### 🔗 An edition cannot name its discourse or syntax source portably
+
+> Reported by `discourse-flow`; every checkable claim verified against the code. Thread and reply:
+> `collab/discourse-flow/2026-09-07-an-edition-cannot-name-its-discourse-source-portably.md`.
+>
+> `load_registry_editions` resolves **only** `path` through `resources.resolve_path()`
+> (`utils/scripture.py:879-885`). `discourse_path` and `lowfat_path` reach `Path()` raw, so a
+> dataset-relative value is resolved against the process working directory and absolute is the
+> only form that works. A registration therefore carries two kinds of reference at once, under a
+> header that promises the file "means the same thing on every machine" — and
+> `docs/llmflow-language.md:985` documents the absolute form, so this is the documented outcome.
+> Our own `tests/test_discourse_loading.py:15` makes the same assumption via `Path.home()`, in the
+> one place a reader would look for guidance.
+>
+> **Against the Captain's standing rule:** *"never, ever write absolute paths, they will not work
+> on another machine."* They can satisfy it everywhere except this file and these two keys.
+- [ ] **Ruling needed:** do the two keys accept a **dataset id**, resolved through
+      `~/.sp/datasets/` (their preference, and the mechanism already exists); or get resolved the
+      way `path` is; or is absolute deliberate, in which case say so in the language reference and
+      annotate that test's constant as intended rather than convenient?
+- [ ] `sp resource list` shows **3 of 70** catalog entries — only those with a `provides` block —
+      under a legend reading *"absent = not downloaded yet"*, which reads as a full inventory. No
+      command lists the whole catalog. An AI session was misled into proposing a hand-written
+      absolute path into the store; the Captain stopped it
+- [ ] Nothing writes `discourse_path` / `lowfat_path`: `sp resource add` does not set them, so the
+      only route is hand-editing a file whose first line says `sp resource add` wrote it
+- [ ] A 404 on an archive URL surfaces as a bare `HTTPError` traceback rather than naming the
+      branch as the likely cause
+
+### 🔼 Two fixes belong upstream in `awesome-biblical-data`, not here
+
+> `data/resources.json` is **vendored** and currently identical to upstream, so editing it here is
+> reverted by the next sync.
+- [ ] `levinsohn-lgntdf` has no `branch`, and that repository's default branch is `master`, so
+      `sp resource download levinsohn-lgntdf` 404s. `download_data.py:49` already honours
+      `branch`, so the fix is one field — upstream. Worth sweeping the other 69 entries
+- [ ] This is the second thread now waiting on that repository; BaseX #38 is recorded as blocked
+      on `awesome-biblical-data#5`
+
+### 📄 Whitelist design documents by declared status, rather than blacklisting
+
+> **The Captain's proposal, verbatim:** *"how about whitelisting design documents rather than
+> blacklisting? Only rely on design documents with status=[implementing, implemented], and ask
+> about any design document marked [implementing] if it is more than 3 days old?"*
+>
+> This is `declared-not-inferred` applied to plan documents: rely on a declared status rather than
+> inferring from prose whether a design is current. Two things it needs that do not exist yet.
+> **The status is free prose today** — `project/plans/` carries "proposal, awaiting the Captain.
+> Nothing is built.", "Implemented — historical record", "Proposed" and now "implemented", so a
+> whitelist needs an enum before it can be a whitelist. **Nothing records when a status changed**,
+> so the three-day question cannot be asked; a `since:` date beside the status would answer it.
+>
+> Unlike most rules in `data/ai-rules.yaml` this one is **guardable**: `project/plans/README.md`
+> is already generated from the documents, so a test can refuse an unknown status and flag a stale
+> `implementing`.
+- [ ] **Ruling needed:** the status enum, and whether `since:` is a separate field or part of it
+- [ ] Then the guard, and the generator reading it
+
 ### 🔍 `sp lint` checks the prompt contract in one direction only
 
 > **Targets this release.** The Captain's words, verbatim: *"sp lint checks one direction only —
