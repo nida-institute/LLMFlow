@@ -45,9 +45,12 @@ the AI implements (executes and provides analysis).
 
 ### Shell commands
 
-- **Never `cd /path && command`** — specify the path as an argument instead: `git -C /path`, `grep -r pattern /path/`, `find /path/`, `pytest /path/`. The `cd` form triggers approval prompts.
-- **No piping bash commands** — use the Read, Edit, Write, and Grep tools instead. They never require approval.
-- **Bash inline Python** — use `hatch run python << 'EOF'` heredoc; never `-c "..."` with multiline content.
+The rules live in `docs/ai-context/sp/rules.md`, which `sp` keeps current — read them
+there rather than from a copy that can drift. In brief: read and edit with the file
+tools rather than the shell; issue one command at a time, passing paths as arguments
+instead of using `cd`; write inline code as a heredoc, never `-c`; never pipe git
+output. **When the sanctioned tool genuinely cannot do the job, ask before doing
+something else** — a permission prompt names a command, not a reason.
 
 ### Pipeline CLI
 

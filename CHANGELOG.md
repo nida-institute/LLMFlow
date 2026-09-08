@@ -4,6 +4,40 @@
 
 ### Added
 
+- **The shell and file-tool rules are in the rules file, and asking for an exception is one of
+  them.** They had never been in `data/ai-rules.yaml` — the file whose first line calls itself the
+  only place the rules are written — so they carried no `enforcement` classification, nothing
+  rendered them into the shipped rules document, and they existed as three prose copies that had
+  drifted apart.
+
+  The three disagreed about what the machine does. One said the shell readers "require approval";
+  another said a hook refuses them — the hook refuses them. The shipped block that `sp init`
+  upserts into every project's `CLAUDE.md` was the furthest adrift and the widest-reaching: it
+  directed the reader to a `Grep` tool that some installations do not have, conflated piping with
+  reading, and omitted the hook, one-command-at-a-time, and git piping entirely.
+
+  Five rules now carry it. `file-tools-for-reading` and `one-command-at-a-time` are `gated`,
+  because the harness stops the act rather than a test catching it afterwards;
+  `inline-code-uses-a-heredoc`, `git-output-is-not-piped` and `ask-for-the-exception` are
+  judgment.
+
+  **`ask-for-the-exception` is new.** The rules were written as prohibitions with no sanctioned
+  exception, so an agent with a genuine reason — the file tools have no operation for what is
+  needed, a candidate script must be run from a file because that is what is being tested — had
+  two moves, and both were bad: fail the task, or proceed and meet a permission prompt. A
+  permission prompt names a command, not a reason, so it asks the human to decode an act instead
+  of judging a case, and a permission granted to clear one prompt outlives the case it was granted
+  for. The rule requires asking first, and says to take a legal alternative silently where one
+  exists.
+
+  The shipped `CLAUDE.md` block now points at the rendered rules instead of restating them. The
+  discipline shared with Human at the Helm keeps its own prose by ruling, since that project has
+  no rules file of its own, and gains the exception rule in the same wording.
+
+  One repair in passing: the rules file's own header documented four `enforcement` values and
+  three `scope` values, predating `gated`, `harness` and the `gate:` field its own entries already
+  used.
+
 - **A Paratext project's own `custom.vrs` is read, and its numbering wins where it speaks
   (Issue #222).** The engine detected such a file, warned that it would not read it, and used the
   numbered scheme anyway — so references into a project whose overlay moved verses landed on the

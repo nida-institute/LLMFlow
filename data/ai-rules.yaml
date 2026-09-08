@@ -29,7 +29,10 @@
 #   note   provenance or detail that would otherwise compete with the imperative.
 #          Rendered beneath its rule, never inside the sentence.
 #   enforcement
-#          whether a test can catch a breach of this rule. One of:
+#          what holds this rule. One of:
+#            gated      the harness stops the act — refused, or put in front of a human
+#                       before it happens. The strongest, and the only one a lapse of
+#                       attention cannot breach. Requires `gate:` and `scope: harness`.
 #            guarded    a test fails today if the rule is broken
 #            partial    a test covers instances of the rule, not the rule
 #            guardable  no test exists and one is straightforward
@@ -46,6 +49,10 @@
 #          sentence leans on this field to say where its enforcement lives, so a pointer at
 #          a renamed or deleted test would quietly downgrade the rule while reading as an
 #          improvement.
+#   gate   how the harness stops the act, in words. Required wherever enforcement is
+#          `gated`, and paired with `scope: harness`. The gate lives in the operator's
+#          environment rather than in this repository, so on a machine configured without
+#          it the rule holds as judgment like any other.
 #   scope  *who* may enforce it, which is a different question from whether a check is
 #          possible. One of:
 #            language  a property of the pipeline language. The engine may enforce it for
@@ -53,9 +60,12 @@
 #            project   only a repository may, over its own files and its own code. The
 #                      engine must not impose it, because it holds in this domain and not
 #                      in every domain the language serves.
+#            harness   the operator's permission gates and hooks, which stop an act before
+#                      it happens. Pairs with `enforcement: gated`, each requiring the other.
 #            none      nothing can check it; it holds only while held in attention.
 #          `scope: none` and `enforcement: judgment` say the same thing from two directions
-#          and must agree; `tests/test_ai_rules_classification.py` fails when they do not.
+#          and must agree; `tests/test_ai_rules_classification.py` fails when they do not,
+#          and likewise for `gated` and `harness`.
 #
 #          Why this axis exists. Twice in one session an AI proposed putting a rule of this
 #          domain into the engine's linter: that every `type: llm` step name its source text,
@@ -535,3 +545,70 @@ rules:
     omitting a family the edition could not supply, leaving a log warning as the only explanation,
     and a warning does not travel with the payload; `handle_step_outputs` binding a declared output
     the step never produced is a third and is not yet fixed.'
+- id: file-tools-for-reading
+  enforcement: gated
+  scope: harness
+  gate: 'a `PreToolUse` hook refusing `cat`, `head`, `tail`, `sed -n` and `less`'
+  rule: '**Read and edit files with the file tools, not the shell.** `Read`, `Edit` and `Write`
+    need no approval; the shell readers spend the human''s attention on a confirmation that buys
+    nothing, and where the hook is configured they are refused outright. `Read` takes `offset`
+    and `limit`, so part of a large file needs no piping.'
+  note: 'The gate is the operator''s, not this repository''s: on a machine without the hook this
+    holds as judgment. Moved into this file 2026-09-07, when the shell and file-tool rules were
+    found to be absent from it entirely — they lived only as prose in
+    `~/.sp/disciplines/workflow.md` and, in a second and drifted wording, in a project''s
+    `CLAUDE.md`. The two disagreed on the mechanism: the discipline said the shell readers
+    "require approval", the project file said a hook refuses them. The hook refuses them.'
+- id: one-command-at-a-time
+  enforcement: gated
+  scope: harness
+  gate: 'permission rules match a command''s opening token, so anything else prompts'
+  rule: '**Issue one command at a time, and pass paths as arguments.** A permission rule like
+    `Bash(grep:*)` matches a command that *begins* with `grep`, so chaining with `;` or `&&`, or
+    prefixing with `cd`, matches nothing and prompts. Most tools take a path directly —
+    `git -C /path`, `grep -r pattern /path/`, `find /path/`, `pytest /path/`. Where a tool
+    genuinely has no path argument, a subshell `(cd /path && command)` does not change the
+    shell''s directory and does not trip the gate. Where `Grep` and `Glob` are present, use them;
+    where they are not, and some installations lack them, `grep` and `find` through the shell are
+    correct rather than a workaround.'
+  note: 'Two commands that each run cleanly cost less than one that needs an approval. Moved into
+    this file 2026-09-07 from `~/.sp/disciplines/workflow.md`, which carries a fuller list of
+    per-tool examples.'
+- id: inline-code-uses-a-heredoc
+  enforcement: judgment
+  scope: none
+  rule: '**Write inline code as a heredoc, never as `-c` or `-e`.** Use
+    `hatch run python << ''EOF''` for Python and `node --input-type=module << ''EOF''` for Node;
+    a multiline `-c "..."` trips the approval hook and quotes badly. Prefer `jq` for a JSON query
+    over a script that reimplements one.'
+  note: 'Moved into this file 2026-09-07 from `~/.sp/disciplines/workflow.md`.'
+- id: git-output-is-not-piped
+  enforcement: judgment
+  scope: none
+  rule: '**Never pipe git output into another command.** Run the git command alone and read the
+    result, or filter it with a search tool. A pager suppressor — `git log | cat` — is fine,
+    because it reads no file.'
+  note: 'Moved into this file 2026-09-07 from `~/.sp/disciplines/workflow.md`.'
+- id: ask-for-the-exception
+  enforcement: judgment
+  scope: none
+  rule: '**When the sanctioned tool cannot do the job, ask before doing something else.** These
+    rules name the tool that normally does a job — the file tools for reading and editing, a
+    heredoc for inline code, a path argument rather than `cd`. Where the named tool genuinely
+    cannot reach, say so and ask for the exception before running anything else: name the
+    operation, why the sanctioned route does not reach it, and what you propose instead. One
+    sentence is enough. Where a legal alternative exists, take it and say nothing — `od -N3 file`
+    reads the first bytes `head -c 3` would. **A permission prompt is not a request for
+    permission**: it names a command, not a reason, so proceeding and letting the prompt do the
+    asking spends the human''s attention on decoding a command instead of judging a case.'
+  note: 'Added 2026-09-07 at the Captain''s direction: "The File Commands part of the ai context
+    has no teeth. I want to change it so that LLMs ask permission when there is a good reason to
+    do something else, e.g. File Tools does not support this operation, it''s testing candidate
+    Python code from a file (not a heredoc), etc." On the cost of the alternative: "otherwise, I
+    have to give it permission on the command line to violate each rule, then interrupt and ask
+    why it did it, and it requires my attention, which I want to focus elsewhere." The shell and
+    file-tool rules were stated as prohibitions with no sanctioned exception, so an agent with a
+    genuine reason had two moves — fail the task, or proceed and meet a permission prompt — and
+    both spend the attention the rules exist to protect. Classified judgment because whether a
+    reason was genuine, and whether asking came before acting, live in the conversation rather
+    than in any artifact a test can read.'

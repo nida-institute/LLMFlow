@@ -29,6 +29,10 @@ If a tool genuinely has no path argument, use a subshell: `(cd /path && command)
 
 **Inline code — use a heredoc, not `-c` or `-e`.** Write `hatch run python << 'EOF'` for Python and `node --input-type=module << 'EOF'` for Node. Never `python3 -c "..."` or `node -e "..."` with multiline content — these trigger the approval hook. Use `jq` for JSON queries where possible.
 
+**When the sanctioned tool cannot do the job, ask before doing something else.** The rules above name the tool that normally does a job — the file tools for reading and editing, a heredoc for inline code, a path argument rather than `cd`. Where the named tool genuinely cannot reach, say so and ask for the exception before running anything else: name the operation, why the sanctioned route does not reach it, and what you propose instead. One sentence is enough. Where a legal alternative exists, take it and say nothing — `od -N3 file` reads the first bytes `head -c 3` would.
+
+**A permission prompt is not a request for permission.** It names a command, not a reason. Proceeding and letting the prompt do the asking spends the human's attention on decoding a command instead of judging a case — and that attention is what these rules exist to protect. The alternative is worse than it looks: a standing permission granted to get past one prompt outlives the case it was granted for.
+
 ---
 
 ## Audit Workflow
