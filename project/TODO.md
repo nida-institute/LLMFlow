@@ -30,6 +30,25 @@
 - [ ] Decide the home, then rewrite the rule so that a named exception obliges the AI to ask
       first rather than proceed
 
+### 📓 A pipeline needs a defect log → #232
+
+> Somewhere a step can record what it noticed but did not fail on — a discrepancy in the data, a
+> unit needing checking, an assumption it had to make — reaching the end of the run intact and
+> attached to the output. `discourse-flow` built `plugins/defects.py` for this, and it is a
+> module-level list with a lock, which `context-is-the-only-channel` forbids. They had to break
+> the rule because the engine offers no sanctioned channel.
+>
+> **The engine is already writing these records as unqueryable prose**: `partialVerses` not
+> interpreted, a mapping entry skipped as naming no join, `versification_guessed`. So this is not
+> a plugin feature — the engine is one of its writers.
+>
+> Four routes are compared in the issue comment. The suggestion is a **reserved key in a step's
+> output** as the channel, which reaches every step type and needs no exemption from
+> `context-is-the-only-channel`; a **stdlib `logging` handler** as the Python convenience, since
+> `Logger` is already `logging.getLogger('llmflow')`; and a declarative `check:` later.
+- [ ] **Ruling needed:** which channels, and whether the sink is a declared output, an automatic
+      file under `intermediate_file_directory`, or part of the end-of-run summary
+
 ### 🔗 An edition cannot name its discourse or syntax source portably
 
 > Reported by `discourse-flow`; every checkable claim verified against the code. Thread and reply:
@@ -46,14 +65,24 @@
 >
 > **Against the Captain's standing rule:** *"never, ever write absolute paths, they will not work
 > on another machine."* They can satisfy it everywhere except this file and these two keys.
-- [ ] **Ruling needed:** do the two keys accept a **dataset id**, resolved through
-      `~/.sp/datasets/` (their preference, and the mechanism already exists); or get resolved the
-      way `path` is; or is absolute deliberate, in which case say so in the language reference and
-      annotate that test's constant as intended rather than convenient?
-- [ ] `sp resource list` shows **3 of 70** catalog entries — only those with a `provides` block —
-      under a legend reading *"absent = not downloaded yet"*, which reads as a full inventory. No
-      command lists the whole catalog. An AI session was misled into proposing a hand-written
-      absolute path into the store; the Captain stopped it
+- [x] **Ruled and built.** The Captain: *"they cannot proceed using hard coded paths, I forbid
+      that, they need this to work."* Both keys now accept a dataset-relative value **and** a
+      registered dataset id with an optional subpath — the subpath is required in practice,
+      because neither corpus sits at a repository root. `resources.resolve_annotation_path`,
+      20 tests, documented in the language reference.
+  - [ ] **Greek discourse still cannot be named portably**, and not for want of the feature:
+        `levinsohn-lgntdf` is absent from `~/.sp/datasets/`, so `levinsohn-lgntdf/LGNTDF` falls
+        through to dataset-relative and lands nowhere. Registering it needs
+        `sp resource download levinsohn-lgntdf`, which needs the upstream `branch` field. Syntax
+        works today: `SBLGNT/lowfat` resolves inside the store copy
+  - [ ] `tests/test_discourse_loading.py:15` still hardcodes `Path.home()`. It is now the only
+        place in the repository modelling the shape we have just replaced
+- [x] **`sp resource search` ships.** `sp resource list` showed 3 of 70 entries under a legend
+      reading as a full inventory, and nothing listed the rest — which misled a session into
+      proposing a hand-written absolute path into the store. A bare word is a keyword; anything
+      else is a real XPath predicate evaluated by `lxml` over the catalog as a tree, with
+      `lower-case()` and `matches()` supplied at their XPath 2.0 meanings. The `list` legend now
+      names `search`.
 - [ ] Nothing writes `discourse_path` / `lowfat_path`: `sp resource add` does not set them, so the
       only route is hand-editing a file whose first line says `sp resource add` wrote it
 - [ ] A 404 on an archive URL surfaces as a bare `HTTPError` traceback rather than naming the
