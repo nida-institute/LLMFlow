@@ -1,24 +1,28 @@
-# HANDOFF — 2026-09-07
+# HANDOFF — 2026-09-09
 
 ## ▶ NEXT ACTION
 
-**Nothing is uncommitted and nothing is half-built. Pick a thread; here they are ranked.**
+**Commit the working tree. Six of seven groups are still uncommitted.**
+The Captain committed group 1 himself as `ce37401`. The remaining groups are listed below with
+their subjects; the full messages were composed in the session that ended and are *not* in this
+file, so recompose the bodies from the diffs rather than guessing at them. Then, in order:
 
-`dev` is at `f061917`, pushed, in sync with `origin/dev`. Working tree clean. Suite green.
+1. **Write the CHANGELOG entries first.** `## Unreleased` carries nothing from this session, and
+   `rule plans-are-temporary` makes the CHANGELOG the durable home for a ruling. Four rulings
+   landed today and none is recorded there: the defect-log channels, the unused-`requires:`
+   verdict, `plans-are-temporary` itself, and the two new registration commands.
+   **Verify:** `grep -n "defect" CHANGELOG.md` returns nothing today.
+2. **Commit the seven groups.**
+3. **Thread 4 — BaseX #38.** Unstarted, and still the last of the order the Captain set (2, 3, 4).
+   His words: *"I don't know if there are still BaseX blockers. If so, I do not know what they
+   are."* So the work is **not** to build: read `project/plans/design-basex-collections.md` §8
+   item 0, check `gh issue view 5 --repo nida-institute/awesome-biblical-data` is still open, and
+   **explain the blocker to him in his vocabulary before proposing anything**
+   (`rule transfer-the-expertise`). Do not trust the recorded blocker — see the false-records
+   table below.
 
-1. **Workshop readiness** — `TODO.md:188` calls it the *"main next goal"* and names three concrete
-   blockers in `cli_utils.py` (below). **Verify the timing before acting**: the previous handoff
-   said mentoring was the week of 2026-09-08, but that date appears nowhere in `TODO.md` and this
-   session could not source it. Ask the Captain rather than assume it has passed or is imminent.
-2. **`discourse-flow` asked for lint to check `function` step inputs** —
-   `collab/discourse-flow/2026-09-07-lint-does-not-check-function-step-inputs.md`, arrived today,
-   **unanswered**. Small, static, and the machinery exists: `steps/function.py:30` already calls
-   `inspect.signature` at runtime; `utils/linter.py:298` restricts contract checking to `type: llm`.
-   It also bears on work just shipped — `verse_ranges.select` is called through a `function` step,
-   so a wrong input name passes lint today.
-3. **Paratext #222** — design complete, no decisions left, **nothing built**. Four ordinary pieces
-   in `design-paratext-versification.md` §7.
-4. **BaseX #38** — **blocked upstream** on `nida-institute/awesome-biblical-data#5`. Do not start.
+**Second, and cheap:** `sil-translator-notes` does not lint. Two of its prompts still declare the
+retired `optional:` key (#228). Their repo, their commit.
 
 ---
 
@@ -26,175 +30,190 @@
 
 | | |
 |---|---|
-| `dev` | `f061917`, pushed, in sync. **9 commits ahead of `main`**; all x.27 work is here, unreleased |
-| `main` | `5822104`, pushed |
-| tag | `v0.2.1.26` on `0edb6d1`; PyPI at `0.2.1.26` |
-| `pyproject.toml` | `0.2.1.26` — stays at the released version during development, by ruling |
-| suite | **4986 passed, 25 skipped, 26 deselected**, exit 0 |
-| `ruff check src/` | clean |
+| `dev` | `ce37401`, **1 ahead of `origin/dev` — unpushed**. 18 commits ahead of `main` |
+| working tree | **DIRTY — 14 modified, 8 untracked.** Six of the seven groups below |
+| `pyproject.toml` | `0.2.1.26`. x.27 is unreleased |
+| suite | **5289 passed, 25 skipped, 28 deselected**, exit 0 |
+| `ruff check src/` | clean. `ruff check tests/` has 444 pre-existing findings — not this session's |
 
-**Verify:** `git status --short --branch`, `hatch run pytest -q -m "not integration"`,
+**Verify:** `git status --short --branch`, `hatch run pytest -q -p no:randomly -m "not integration"`,
 `ruff check src/`.
+
+### The seven commits — one made, six to make
+
+| # | subject | files |
+|---|---|---|
+| 1 | `feat(defects): a run records what it noticed without failing` | **DONE — `ce37401`.** It also swept in `docs/index.json` |
+| 2 | `feat(prompts): warn when a prompt's example is the passage under test` | `utils/prompt_hygiene.py`, `utils/versification.py`, `steps/llm.py`, `tests/test_example_contamination.py` |
+| 3 | `feat(lint): warn on unused requires, and stop lint from poisoning sys.modules` | `utils/linter.py`, `tests/test_unused_requires.py`, `tests/test_lint_function_signatures.py` |
+| 4 | `feat(cli): sp dataset add and sp resource set` | `cli.py`, `resources.py`, `tests/test_registration_commands.py` |
+| 5 | `test(guard): a test that calls a live model is marked integration` | `tests/test_paid_calls_are_marked_integration.py`, `tests/test_schema_file.py` |
+| 6 | `docs(rules): a working document has a death; a ruling does not` | `data/ai-rules.yaml`, `docs/ai-context/sp/rules.md`, `templates/sp/disciplines/workflow.md`, `data/helm-sync.yaml`, `tests/test_ticked_boxes_carry_evidence.py`, `tests/test_shell_rules_stay_in_step.py`, `project/plans/design-one-working-document.md`, `project/plans/README.md` |
+| 7 | `docs(project): handoff for 2026-09-09` | `project/HANDOFF.md`, `project/TODO.md` |
+
+Group 3 carries two subjects because both changes live in `linter.py` and separating them needs
+`git add -p`. Split it only if the Captain asks.
 
 ---
 
-## x.27 — five of six shipped
+## What was built this session
+
+Only the defect log is committed; the rest is in the working tree.
+
+| thread | state | verify |
+|---|---|---|
+| Defect log (#232) | **built and committed (`ce37401`).** Reserved `defects` key + a handler on the `llmflow` logger; written to `defects.json` under `intermediate_file_directory` | `hatch run pytest tests/test_defect_log.py` — 26 tests |
+| Example contamination | **built.** Warns when a prompt's example overlaps the passage under test | `hatch run pytest tests/test_example_contamination.py` — 16 tests |
+| Unused `requires:` | **built**, as a warning | `hatch run pytest tests/test_unused_requires.py` — 9 tests |
+| `sp dataset add` / `sp resource set` | **built** | `hatch run pytest tests/test_registration_commands.py` — 12 tests |
+| Paid calls in the ordinary run | **fixed and guarded.** Was making 6 API calls per `-m "not integration"` run | `hatch run pytest tests/test_paid_calls_are_marked_integration.py` — 3 tests |
+| `plans-are-temporary` | **ruled and written** into `data/ai-rules.yaml` | `hatch run pytest tests/test_ticked_boxes_carry_evidence.py` — 4 tests |
+| BaseX #38 | **not started** — the NEXT ACTION | — |
+
+### Three faults the defect log's end-to-end test found
+
+Worth knowing, because each was invisible to unit tests and each made the log silently empty:
+
+- The handler was attached **above** the block that calls `Logger.reset()`, and that reset clears
+  every handler on `llmflow`. It runs under exactly the condition that makes the log worth
+  keeping — a declared `intermediate_file_directory`. So the runs that write `defects.json` were
+  the runs whose log was empty. The reset is `runner.py:651`; the attach moved below it, to
+  `runner.py:670`.
+- Teardown named `llmflow.defects` where the attach named `llmflow`. Every run leaked its handler.
+- Nothing removed the handler when a run **failed**, so the next run's warnings would be filed
+  into the dead run's log. Now a `finally`.
+
+---
+
+## x.27 — what is done, and what is left
 
 | # | Feature | Issue | State |
 |---|---|---|---|
-| 1 | Hebrew resolves in `include: [discourse]` | #230 | **SHIPPED** |
-| 2 | Copy forcing | #230 | **SHIPPED** — `src/llmflow/field_roles.py` |
-| 3 | Paratext via `type: scripture` | #222 | **designed, unbuilt** — see NEXT ACTION 3 |
-| 4 | Comparing verse references | #169 | **SHIPPED** — `src/llmflow/utils/verse_ranges.py` |
-| 5 | `include: [syntax]` | #227 | **SHIPPED**, plus the constituent attributes. **GitHub issue still open — closing it is the Captain's** |
-| 6 | BaseX | #38 | **blocked upstream** |
+| 1 | Hebrew in `include: [discourse]` | #230 | SHIPPED |
+| 2 | Copy forcing | #230 | SHIPPED |
+| 3 | Paratext `custom.vrs` | #222 | SHIPPED — `8e8b1e1` |
+| 4 | Comparing verse references | #169 | SHIPPED |
+| 5 | `include: [syntax]` | #227 | SHIPPED; issue closes at the `dev` → `main` merge |
+| 6 | BaseX | #38 | **blocked, unverified** — the NEXT ACTION |
 
-**Not in x.27, by ruling:** ACAI entity data (the largest gap), Lowfat beyond #227, lexicons and
-semantic domains.
+**Added to x.27 this session, none of it previously planned:** the defect log (#232), the
+contamination guard, the unused-`requires:` warning, `sp dataset add`, `sp resource set`, the
+integration-marker guard, and `rule plans-are-temporary`.
 
-### Also outstanding, not features
-
-- **Guard refactor** — move the shared/engine-only/rewritten classification into
-  `data/helm-sync.yaml`; `EXPECTED_DISCIPLINES` and `SHARED_WITH_HELM`/`ENGINE_ONLY`/`REWRITTEN`
-  read it; generate `disciplines/README.md`. Adding one discipline costs five edits across four
-  files. **The Captain gave the word; never started.**
-- **`github-authority.md`** — add the "show the body before running the command" rule. Home
-  undecided: shared discipline (reaches every project and Human at the Helm, costs a
-  `helm-sync.yaml` hash update and a twin commit) or a narrower `CLAUDE.md` line.
-- **`RELEASE_CHECKLIST.md` §12 is wrong** and fails four guards. Unclaimed.
-- **`#204`'s recorded cause is false** and `TODO.md:201` says so — *"needs correcting before
-  anything is built against it."* Unclaimed, and it sits under the workshop goal.
-- **`sp lint` checks the prompt contract in one direction only** — added to `TODO.md` by the
-  Captain's direction. `validate_gpt_body_declares_all_vars` computes `body_vars - declared`
-  (`linter.py:214`) and never the reverse, so a `requires:` entry the body never uses passes
-  silently, while every calling step is still obliged to supply it. Error or warning is unruled.
-- **The shell/file-tool rules have no teeth** — also added to `TODO.md` this session. The rule
-  offers no ask-first path, so an agent with a genuine reason either fails the task or violates
-  silently; the cost lands on the Captain's attention. Which file owns the change is undecided.
-- **`query_macula_hebrew` / `query_macula_greek`** — both broken, both uncalled. Fix or delete.
-- **`load_db.py` has four defects**, all recorded in `design-basex-collections.md` §6 and none
-  fixed: no `INTPARSE` (so loading `macula-greek/SBLGNT/lowfat` **fails on Luke**, element depth
-  101), no `XINCLUDE`, no `DIACRITICS` (the full-text index folds τίς and τις together), and
-  `f"CREATE DB {db_name} {source}"` interpolates unquoted so **no path with a space can load** —
-  including `Paratext 9 Projects/`.
+**Left for the release itself:** bump `pyproject.toml` to `0.2.1.27`, rename the CHANGELOG's
+`## Unreleased` heading (guards require the literal word until then —
+`test_changelog_is_not_a_transcript.py:72` and `test_changelog_covers_the_version.py`), and open
+the `dev` → `main` PR (closes #222, #227).
 
 ---
 
-## ⚠️ Before trusting any record in this repository
+## In flight elsewhere — verified 2026-09-09
 
-**Records asserting false state is this repository's dominant defect class.** Verify against code,
-tests and CI. Found false this session alone:
+Each is that repository's own commit to make. **No `edition:` key remains in any consumer's
+pipelines** — checked with `grep -rn "^\s*edition:" pipelines/` in both, which returns nothing.
+
+| repo | uncommitted | what |
+|---|---|---|
+| `discourse-flow` | `collab/sp/2026-09-08-old-documents-are-deleted-not-sifted.md` (modified). The three `pipelines/` files are **already committed** with `resource:` | the report on deleting old working documents; they have edited our report in place |
+| `ears-to-hear` | `collab/` is **entirely untracked** — the directory has never been committed there | the same report; it will be invisible to them until they add it |
+| `sil-translator-notes` | `pipelines/translators-notes.yaml`, `HANDOFF.md` | the `resource:` rename, done but uncommitted |
+| `human-at-the-helm` | `disciplines/workflow.md` | `ask-for-the-exception` **and** the new "Completion Is Claimed With Evidence" section. `data/helm-sync.yaml` here records the hash that expects both |
+
+`discourse-flow` carries 76 uncommitted files in total and `ears-to-hear` 35 — most of it theirs,
+and most of it the document pile the eight-day rule addresses.
+
+**Verify:** `git -C ~/github/nida-institute/discourse-flow status --short`.
+
+---
+
+## Decisions awaiting the Captain
+
+Three of the five the previous handoff listed are now ruled and built. What remains:
+
+1. **Where the contamination prohibition lives as a *principle*.** The guard is built here. The
+   general rule — *an LLM must not use the data under test as a prompt example* — was proposed for
+   Human at the Helm, since it is not specific to this engine. Unruled.
+2. **`CLAUDE.md`'s local copy of the shell rules** — whether it stays as it is now that
+   `data/ai-rules.yaml` is authoritative. His file; his call.
+3. **D3: remove `project/audits/`.** Measured at **21 files** — a catalog entry, a shipped
+   template, `sp/audits-pattern.md` and its mirror, two audit skills, three disciplines (one
+   Helm-shared, so a twin commit), the `file-organisation` rule, two tests, four docs. Not started.
+4. **`project/rolling/` and `project/scratchpad/`** — the directory split the Captain proposed so
+   accumulating and rolling documents are distinguishable by location rather than by an
+   unwritten rule. Designed in `design-one-working-document.md`; not built.
+
+## Settled — do not reopen
+
+- **Defect-log channels (2026-09-08).** The reserved `defects` key as the channel, so the record
+  is ordinary step output and every step type can write one; a handler on the `llmflow` logger as
+  the Python convenience; automatic file under `intermediate_file_directory` plus an end-of-run
+  summary. `[]` and absence differ — an empty log means the run looked.
+- **An unused `requires:` entry is a warning, not an error.** The run it produces is correct.
+- **A working document dies at eight days; a ruling is permanent until overruled.** *"after a work
+  week, it is usually either implemented or obsolete"*, *"rulings are permanent until overruled"*,
+  and *"but ask the Captain before deleting"* — the deletion is never the AI's to make.
+- **`resource`, not `edition`.** A **dataset** is an obtainable body of data; a **resource** is a
+  readable text inside one.
+- **`~/.sp` is never edited by hand.** *"you may never edit ~/.sp. period."* The template tree at
+  `src/llmflow/templates/sp/` is the source; `sp` copies from it.
+- **A push is its own act, requested every time**, naming remote and branch.
+
+---
+
+## ⚠️ Records that were false — still the dominant defect class
+
+Nothing new was found false this session, because nothing was taken on trust. The standing list:
 
 | record | claimed | actual |
 |---|---|---|
-| previous `HANDOFF.md` | mentoring is the week of 2026-09-08 | **unsourced.** Not in `TODO.md`; inherited from an earlier handoff and nearly propagated a third time |
-| `design-verse-range-operations.md` §§182–204 | the verse-count table blocks `adjacent`/`verse_count` | false since versification shipped — 95 books, six schemes |
-| `data/book-names.json` | `pss` is an alias of Psalms | it is **also** the USFM code for Psalms of Solomon. Fixed |
-| `include-families.json` | `syntax` "Not implemented" | it had shipped. Fixed |
-| `#204` | `sp init` creates no `CLAUDE.md` | false — `cli_utils.py:756-761` |
-| `#38` | closed as completed 2026-08-26 | never implemented; reopened |
-
-`test_record_closure_claims.py` cannot catch this class — it scans for "closed by `<sha>`", and a
-claim made in prose never takes that form.
-
----
-
-## Settled this session — do not reopen
-
-**Verse ranges (#169)** — books are distinct documents, so ordinals are book-local and the schemes
-disagreeing on book inventory stops mattering; `overlaps` means the colloquial thing (shares at
-least one verse, containment and equality included) and Allen's strict case is deliberately
-unnamed, which is what keeps the relation partition internal; `touches` not `meets`; both `select`
-and the predicates, because YAML has no comprehension and **filter was the one missing combinator**
-(`for-each`+`append_to` is map, `append_to` is fold, `if` is the conditional); module
-`verse_ranges` not `verse_algebra`; bare predicate names; point-set operations out. Full reasoning
-in `design-verse-regions.md`.
-
-**`syntax` attributes** — groups carry `class, role, articular, head, type, clauseType, junction,
-predication`; leaves carry `class, role, junction, discontinuous`. `rule` and `nodeId` are the
-parser's bookkeeping, not facts about the constituent. `clauseType` is **the one field name that is
-not the source's verbatim** (Greek `clauseType`, Hebrew `clausetype`). Absence is the negative for
-`articular`, `discontinuous`, `head`.
-
-**Participant reference** — `referent` is Greek-only, `participantref` Hebrew-only, and they are
-**not** unified: declaring two independently-produced corpora equivalent is an editorial judgment
-about someone else's data. Values are **declared, not repaired** — the rule lives in
-`notes.participant_ids`.
-
-**Versification merges** — a run of verses may be one verse in another scheme, and both directions
-occur, so `to_hub` holds a **list** per verse. Five of seven previously-skipped shipped entries now
-resolve; `rso`'s five-to-six and `vul`'s backwards range stay refused, because neither says where a
-verse went.
-
-**Paratext** — the project identifies its own versification; the container reports the **project
-id** meaning *the versification the project specified*, whether standard or custom; **no generated
-scheme file**, because `custom.vrs` is the declaration and a derived `.json` beside it is the second
-source the template machinery exists to prevent.
-
-**BaseX** — names come from the catalog, not a scheme the engine constructs; only declared subtrees
-load; one identifier per repository with its corpora as `provides` entries; the registry carries a
-SHA and a load date, in fields that **already exist** and that `sp doctor` already reports as
-unknown.
+| `TODO.md` #204 | `templates/` missing three files | all present under `templates/sp/` |
+| `design-paratext-versification.md` §2 | three `custom.vrs` constructs | **four** — `partialVerses` was absent |
+| the same, §2 | five files read | 66 exist |
+| a previous `HANDOFF.md` | `RELEASE_CHECKLIST.md` §12 "fails four guards" | **unverified** — no test references `RELEASE_CHECKLIST`, and the suite is green |
+| `discourse-flow`'s lint thread | a signature is reachable "without executing anything" | false; the import is three lines above the line they cited |
 
 ---
 
 ## Landmines
 
-- **Never write to `docs/ai-context/` by hand.** Files there are `policy: generated`. Edit the
-  template in `src/llmflow/templates/` and sync. `sp doctor` is the sanctioned sync **and is banned
-  in this repo** until #210/#211, so the practical route is a byte copy —
-  `test_template_layout.py:106` holds them identical.
-- **`data/ai-rules.yaml`, `CLAUDE.md`, `~/.sp` and `~/.claude` are the Captain's.** `~/.sp` is
-  read-only by design; never unlock it.
-- **`data/resources.json` is vendored** from `nida-institute/awesome-biblical-data`. Editing it here
-  edits a copy. It is currently identical to upstream — keep it that way.
-- **Both consumer repos install this working tree editable**, so `dev` *is* their engine with no
-  pull. Keep the tree consistent between *commits*, not between edits.
-- **Two pytest runs collide** on `tmp/pytest/` and produce an `INTERNALERROR`. One at a time — and
-  **do not edit `CHANGELOG.md`, `HANDOFF.md`, `TODO.md` or `project/plans/` while a run is in
-  flight**; guards read them at test time and this session raced itself three times.
-- **`ruff check src/ --fix` deleted `llmflow.runner`'s re-export surface** twice, breaking the suite
-  at *import* time. Now in `__all__`, guarded by `tests/test_runner_reexports.py`.
-- **The GUI has two copies.** `build_gui.py` copies `gui/backend/{server,executor}.py` over
-  `src/llmflow/gui/`.
-- **Never run `sp run`** (costs money) or **`sp doctor`** (unsafe here until #210/#211).
-- **Prose is guarded.** `test_product_name_in_prose.py` forbids the deprecated product name in
-  `.md`; a docstring guard forbids dates, hashes and "the Captain" in source; the CHANGELOG guard
-  forbids commit hashes. All three fired on this session's drafts.
-- **Use BaseX/XQuery for XML and `jq` for JSON**, not throwaway Python — the Captain's direction,
-  and heredoc Python is sanctioned as a *form*, not as a reason to reach for it. A verification
-  worth doing is worth doing as a test.
-- **Shell:** one command per call, no `cd`, no chaining with `;` or `&&` — anything else matches no
-  permission rule and prompts.
-
----
-
-## Consumer threads
-
-**`discourse-flow`** — three threads, one **unanswered** (NEXT ACTION 2). The other two are
-answered in full: `2026-09-06-syntax-payload-and-registration.md` (the constituent attributes,
-where `discontinuous` turned out to be our own gap — 6,038 Greek words in 4,404 of 8,010 sentences,
-the source's own marking of the phenomenon `syntax` is standoff *for*) and
-`2026-09-06-participant-reference.md`.
-
-**`ears-to-hear`** — **three defects reported to nobody yet.** `division_lookup.py` discards the
-book (so `Mark 1:1-5` and `John 1:1-5` compare as overlapping), returns on first match (so a
-passage spanning two divisions silently gets one), and catches `ValueError` to return `False` (so an
-unreadable reference reports as overlapping nothing). All three are in `design-verse-regions.md`
-§1.1. **Telling them is unclaimed.**
-
-**C-level** — `collab/clevel/2026-09-04-what-the-engine-work-can-and-cannot-tell-you.md`.
+- **Do not evict a module from `sys.modules` on a "lives outside the working directory" test.**
+  A first cut of the lint import fix treated any package not at `./name` as foreign, which makes
+  **`llmflow` itself** foreign — it loads from `src/llmflow`. Evicting it mid-suite broke **84
+  tests**, and the symptom is misleading: mocks report `Called 0 times` because every later import
+  gets a fresh module object no patch knows about. `_is_sibling_of` in `linter.py` is deliberately
+  exact; keep it that way.
+- **`Logger.reset()` clears every handler on the `llmflow` logger** (`modules/logger.py:35`).
+  Anything attached before `runner.py:651` is silently gone. This is what made the defect log
+  empty.
+- **The blanket rename is still the standing hazard.** A search-and-replace across the suite
+  destroyed the one test whose subject was the retired word, rewrote a mapping's string literal
+  into a tautology, and rewrote a **generated** file. Protect string literals and generated
+  artifacts; never rename a file whose subject is the old name.
+- **A wrapped multi-line paste breaks in the Captain's terminal.** A `git add` with backslash
+  continuations ran its continuation lines as commands; an indented heredoc never terminated
+  (Ctrl-C exits). **Give one short single-line command at a time.**
+- **`output.txt` appeared untracked in the repo root** with the contents `Test content`, and was
+  deleted 2026-09-09 at the Captain's direction. A full suite run does **not** recreate it, and no
+  test was found that writes a bare relative `output.txt` — `steps/save.py` defaults to that name
+  when a save step declares no path, so the likeliest source is a manual invocation. If it returns,
+  that default is where to look.
+- **Never run `sp run`** (costs money) or **`sp doctor`** (unsafe until #210/#211).
+- **Two pytest runs collide** on `tmp/pytest/`. One at a time.
+- **`tmp/` is scanned by `test_install_instructions.py`.** Scratch files there fail the suite.
+- **`project/` keeps the word "edition"** in ~197 places deliberately — records of decisions made
+  when that was the word.
 
 ---
 
 ## Key files
 
-- `project/plans/design-verse-regions.md` — #169 as built; **§10 is what contact with the code
-  changed**
-- `project/plans/design-paratext-versification.md` — #222; §7 has no open decisions
-- `project/plans/design-basex-collections.md` — #38/#52/#49; **§8 item 0 is the upstream blocker**;
-  §6 lists the four `load_db.py` defects
-- `src/llmflow/utils/verse_ranges.py`, `syntax.py`, `discourse.py`, `versification.py`
-- `data/include-families.json` — the seven families, and `notes.participant_ids`
-- `data/ai-rules.yaml` — 38 rules, each with `enforcement` and `scope`
-- `project/TODO.md:188` — workshop readiness, with the false `#204` cause called out at :201
+- `src/llmflow/defects.py` — `DefectLog`, `defect_logging_handler`; `__deepcopy__` returns `self`
+  so a `for-each` iteration writes into the one log
+- `src/llmflow/utils/prompt_hygiene.py` — `contaminating_references`, `warn_about_contamination`
+- `src/llmflow/utils/linter.py` — `_cwd_importable`, `_is_sibling_of`, `_drop_foreign_package`,
+  `unused_requires_warnings`
+- `project/plans/design-one-working-document.md` — the eight-day rule, and the
+  `rolling`/`scratchpad` split that is designed but unbuilt
+- `project/plans/design-basex-collections.md` — **§8 item 0 is the NEXT ACTION's blocker**
+- `project/TODO.md` — the open rulings
+- `CHANGELOG.md` — **`## Unreleased` is missing this session's four rulings**

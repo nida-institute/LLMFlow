@@ -46,8 +46,17 @@
 > output** as the channel, which reaches every step type and needs no exemption from
 > `context-is-the-only-channel`; a **stdlib `logging` handler** as the Python convenience, since
 > `Logger` is already `logging.getLogger('llmflow')`; and a declarative `check:` later.
-- [ ] **Ruling needed:** which channels, and whether the sink is a declared output, an automatic
-      file under `intermediate_file_directory`, or part of the end-of-run summary
+- [x] **Ruled 2026-09-08.** The Captain took the recommendation: **C as the channel** — a step
+      returns a reserved `defects` key alongside its data, so the record travels as ordinary step
+      output and needs no exemption from `context-is-the-only-channel`, and every step type can
+      write one, not only Python. **B as the Python convenience** — a handler on the `llmflow`
+      logger, since `Logger` is already `logging.getLogger('llmflow')`, so plugin authors keep
+      writing `logger.warning(..., extra={...})` and need no new import. The sink is **written
+      automatically under `intermediate_file_directory`** and **summarised at the end of the run**.
+- [ ] Build it. `[]` and absence must differ, per `say-which-kind-of-nothing`: an empty log means
+      the run looked and found nothing
+- [ ] `for-each` with `parallel:` means concurrent writes — their lock exists because of a real
+      race in `subdivide_candidates`
 
 ### 🔗 An edition cannot name its discourse or syntax source portably
 
