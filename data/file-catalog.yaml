@@ -255,6 +255,21 @@ files:
     purpose: >-
       How audit findings are recorded for this project.
 
+  # Where designs and plans live. `project/audits/README.md` has always been catalogued and this
+  # was not, so `plans-are-temporary`, the `authorize` skill and the project-tracking discipline
+  # all directed work into a directory `sp init` never created. Unlike the `docs/audits/`
+  # checklists withdrawn under #210, this is sp's own convention rather than one project's
+  # document: the eight-day rule and the status field are the engine's, not a project's invention.
+  - path: project/plans/README.md
+    scope: project
+    policy: create-once
+    source: template
+    template: project/project/plans/README.md
+    committed: true
+    purpose: >-
+      Where designs and plans live, the status they must declare, and why they are deleted after
+      about eight days.
+
   # The session cache, edited constantly. Written only when absent, never overwritten.
   - path: project/TODO.md
     scope: project
