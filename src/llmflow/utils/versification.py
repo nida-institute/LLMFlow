@@ -173,6 +173,44 @@ def parse_passage_ref(passage: str) -> PassageRef:
     return PassageRef(code, c1, v1, c2, v2, p1, p2 or p1)
 
 
+#: A candidate reference in running prose: a book token, then the numeric tail. Deliberately
+#: permissive — every match is handed to `parse_passage_ref`, which is the authority on whether
+#: it is a reference. A pattern that decided for itself would be a second, weaker parser.
+_IN_TEXT = re.compile(
+    r"(?<![\w{])((?:[1-4]\s*)?[A-Za-z][A-Za-z]+\.?|[A-Z1-9][A-Z0-9]{2})"
+    r"\s+(\d+(?::\d+[a-z]?)?(?:\s*-\s*(?:\d+:)?\d+[a-z]?)?)(?![\w}])"
+)
+
+
+def references_in(text: str) -> list:
+    """Every passage reference *text* names, in the order they appear, without repeats.
+
+    For finding what a prompt cites. `{{...}}` placeholders are skipped: that is where a value
+    arrives, so a reference inside one is data rather than an example.
+
+    A candidate is only a reference if `parse_passage_ref` says so, which keeps one parser rather
+    than a looser second one that would disagree with it at the edges.
+    """
+    body = re.sub(r"\{\{.*?\}\}", " ", str(text or ""), flags=re.DOTALL)
+    found: list = []
+    for match in _IN_TEXT.finditer(body):
+        candidate = f"{match.group(1).strip()} {match.group(2).strip()}"
+        try:
+            ref = parse_passage_ref(candidate)
+        except ValueError:
+            continue
+        if ref.start_chapter is None:
+            continue
+        written = format_reference(ref.book, ref.start_chapter, ref.start_verse or 0)
+        if ref.start_verse is None:
+            written = f"{ref.book} {ref.start_chapter}"
+        elif (ref.end_verse or ref.start_verse) != ref.start_verse:
+            written = f"{ref.book} {ref.start_chapter}:{ref.start_verse}-{ref.end_verse}"
+        if written not in found:
+            found.append(written)
+    return found
+
+
 def _split_tail(text: str):
     """`("Mark", <1:40-2:12>)`. The tail is the last token when it has the numeric shape.
 
