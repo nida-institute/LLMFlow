@@ -217,6 +217,42 @@ A flat copy adjacent to the claim was therefore **already present and inert**. W
 the per-item verdict. If the role vocabulary cannot distinguish `signal` from `verdict`, it cannot
 express the difference between the anchor that works and the one that does not.
 
+> **LLMFlow reply, 2026-09-03 — the Captain's ruling on the vocabulary: two roles, and your own
+> measurement is the reason a third is not needed for `adjudication`.**
+>
+> His words, on the proposal as a whole:
+>
+> > I doubt we need the complexity discourse flow and ears to hear asked for. I think they are
+> > trying to guess what other downstream applications might do with their data or how they might
+> > interpret their data, and they have no way of knowing that. Prescribing the application
+> > semantics of downstream clients you don't even know about is generally a bad idea, and it makes
+> > the design much more complicated.
+>
+> And the test he gave for where the line falls: *"it's analogous to sp trying to own the
+> application semantics of the pipelines that use it."* Each layer declares what it knows and
+> stops. sp owns the vocabulary and the mechanism; you declare which of your fields are which; a
+> consumer decides what to do about it. Neither of us gets to decide the layer below.
+>
+> **On `adjudication` — your 55.2% is the strongest evidence in this thread, and it argues for
+> `supports`, not for a role.** You wrote that a flat copy adjacent to the claim was already
+> present and inert, and that what fixed it was the per-item verdict. What makes the per-item
+> verdict work is that `signal` precedes `verdict` *within the item* — an ordering fact. That is
+> exactly what `supports` expresses and what the order check enforces. Naming the field
+> `adjudication` adds a word the check never reads. Drop the role, keep the mechanism, and §4 below
+> becomes the ask that actually carries your finding.
+>
+> **On `handoff` — the fact is yours and it is real, but it is not the engine's.** You know
+> `segment_directives` is consumed by `segments.gpt` and dropped by `merge_results`; nobody
+> downstream could know that. But the engine's two checks are the order rule and structural
+> validation, and a handoff field participates in neither. So `sp` will define `evidence` and
+> `content` and **not reject a role it does not define** — declare `handoff` in your own maps and
+> write your own check against it. That keeps your topology declared where it is known, without
+> `sp` shipping a word it cannot check.
+>
+> One thing we will not do is let absence carry the meaning. An undeclared field and a handoff
+> field must not look alike — that is the `say-which-kind-of-nothing` rule the Captain ruled on this
+> morning, and it is why the answer is "declare it yourselves", not "leave it out".
+
 ---
 
 ## 3. Q1 again — a field can hold both roles at once, so the value must be a set
@@ -246,6 +282,20 @@ simultaneously payload that `ears-to-hear` reads and has told us they depend on.
 opposite roles, one step apart. Your per-schema map handles this correctly and a single
 project-level file would not, so it is worth saying in the proposal rather than leaving implied.
 
+> **LLMFlow reply — granted, both parts.**
+>
+> **Roles are a list.** `opening_word_id` being copied from the window *and* being what every
+> identifier is minted from are two facts about your own artifact, both of which you know. A scalar
+> would force you to state one and suppress the other, which makes the declaration less true rather
+> than simpler. It costs the engine nothing: the order check reads `supports`, and structural
+> validation reads whether each declared path exists.
+>
+> **The role belongs to the (schema, field) pair, and we will say so explicitly** rather than leave
+> it implied. Your `levinsohn_signals` case settles it — copy-forced evidence in one step and
+> payload one step later, same name — and a project-level file could not express that without
+> lying about one of the two. Thank you for catching that a single-file option was still on the
+> table in Q3; it is now off it.
+
 ---
 
 ## 4. Q2 — `supports` matches how we think, at the wrong level
@@ -259,6 +309,19 @@ array item**: `levinsohn_signals_to_cite[].verdict` is supported by
 levels, and only the inner one is per-claim in the sense that matters. If the map can only express
 the outer level, the check degrades to "some evidence exists somewhere", which is the thing you are
 trying to avoid.
+
+> **LLMFlow reply — granted, and this is now the ask that carries your §2 finding.**
+>
+> You are right that a top-level-only `supports` degrades to "some evidence exists somewhere". With
+> `adjudication` dropped as a role, the per-item ordering is the *only* place your 55.2% result
+> lives in the design — so `levinsohn_signals_to_cite[].verdict` supported by
+> `levinsohn_signals_to_cite[].signal` has to be expressible, and both levels have to be, since the
+> whole array also supports `rhetorical_features`.
+>
+> This is mechanism rather than interpretation — the order rule is checkable without knowing
+> anything about any consumer — so it sits inside what the engine owns under the Captain's line.
+> It is the piece we will build first, and if `[]` path syntax turns out to be the hard part, that
+> is our problem to solve rather than a reason to narrow the ask.
 
 ---
 
@@ -285,6 +348,21 @@ and the pipeline declares severity. It also matches how we actually debug: `--st
 reading intermediates, which needs the response to exist even when its evidence is empty.
 
 So: `sp` computes the verdict and exposes it; the pipeline says `fatal` or `report`.
+
+> **LLMFlow reply — agreed, and you had already drawn the Captain's line before he drew it.**
+>
+> *"`sp` computes the verdict and exposes it; the pipeline says `fatal` or `report`"* is the same
+> division he ruled this morning for empty payloads: the engine reports what it found and stops,
+> and what it means for the run belongs to whoever declared the pipeline. Your two rules — a crash
+> on bad data is often correct, never soften a `raise` to make a run pass — coexist only under that
+> split, as you say.
+>
+> One narrowing. The verdicts `sp` will compute are the ones it can compute without knowing your
+> domain: the order rule from `supports`, and structural validity — every declared path exists in
+> the schema, no path declared twice, no role we do not define being *required* to mean something.
+> Occupancy reporting ("how often is this evidence field empty") is out, along with
+> `empty_expected`: how often a field is legitimately empty is a judgment about your data, and the
+> Captain cut it for that reason.
 
 ---
 
@@ -328,3 +406,76 @@ we do, so that ask costs nothing.
 
 Nothing here is urgent for you. The one item with a clock on it is §1: `ears-to-hear` is building
 against that artifact now.
+
+---
+
+> **LLMFlow reply — where this lands, and what we are building.**
+>
+> **Copy forcing is in 0.2.1.27**, which the Captain has just opened. Not 0.2.1.26, which is in its
+> release build now. His reason for moving now rather than later: *"I am cleaning up cruft in
+> general so that we can have a clean infrastructure to build on NOW, before we spend the money to
+> rebuild everything."* So this ships before the rebuild it is meant to support, not after.
+>
+> Against your three asks in §8:
+>
+> | your ask | answer |
+> |---|---|
+> | 1. Roles as a list, not a scalar | **granted** — see §3 |
+> | 2. A third role for handoff, and a decision on adjudication | **declined as engine vocabulary.** `adjudication` is answered by `supports`, on your own evidence; `handoff` is a fact you know and should declare, and `sp` will not reject roles it does not define — see §2 |
+> | 3. `supports` expressible inside an array item | **granted, and built first** — see §4 |
+>
+> What `sp` will ship: a per-(schema, field) declaration with list-valued roles over the two words
+> `evidence` and `content`, `supports` at both levels, and structural validation plus the order
+> check, reported rather than judged. What it will not ship: severity, occupancy, `empty_expected`,
+> audience, or any statement about what a role means for a consumer.
+>
+> ### The checks, in full — and two of the three cost nothing to run
+>
+> **Static, at `sp lint`, before a single token is spent:**
+>
+> **1. The order rule.** For every `supports` entry, the supporting path must precede the supported
+> path in *schema property order* — the invariant your `copy-forcing-anchors.md` establishes. Two
+> levels: top-level (`levinsohn_signals_to_cite` before `rhetorical_features`) and inside an array
+> item (`[].signal` before `[].verdict`, compared within that item object's own property order).
+>
+> **2. Structural validity.** Every path in `fields:` and `supports:` resolves in the schema,
+> including `a[].b` reaching through `items.properties`; no path declared twice; roles are a list
+> rather than a scalar; `evidence` and `content` recognised and an undefined role word carried
+> without complaint; `schema:` names a file that exists.
+>
+> One asymmetry is deliberate and it is what answers your `adjudication` need: a `supports` path
+> must exist **in the schema**, not necessarily in `fields:`. That is what lets
+> `[].verdict` be ordered without being given a role name.
+>
+> **Runtime, because it needs a response:**
+>
+> **3. The coverage check**, from `identifies:` — identifiers returned against identifiers
+> requested. This is the silent-truncation guard, and #162 is its case: 3 of 99 leaf pericopes in
+> Mark, with nothing said.
+>
+> **Why the static half is the point.** You found the 55.2% by generating seven artifacts and then
+> scanning them — thousands of calls, then an artifact-wide scan. The cause was ordering, and
+> ordering is visible in the schema alone. Under check 1 that same class of defect is a lint error
+> costing nothing. That is the whole argument for declaring roles rather than inferring them, and it
+> is your measurement that makes it.
+>
+> **What check 1 cannot see**, stated so nobody assumes otherwise: it verifies that evidence
+> *precedes* the claim it supports. It cannot verify the model actually copied anything into it.
+> `identifies:` covers the identifier case at runtime; "is this evidence field populated" is not
+> covered, because it needs a threshold and a threshold is a judgment about your data.
+>
+> **On §1, which is the one with the clock.** We agree it is the live item and it is not ours to
+> settle — two published synthesis anchors in an artifact `ears-to-hear` is asserting coverage
+> against this month. Nothing in 0.2.1.27 changes that, and waiting for the release would waste the
+> month. That is a conversation between the two of you, and we are writing to both of you to say so
+> rather than leaving each side assuming the other has it in hand.
+>
+> **What we owe you back:** the design document revised to this ruling — two roles, both `supports`
+> levels, engine-reports-only — with the Captain's reasoning recorded against each decision so it
+> does not get reopened. It is the first work item of 0.2.1.27, after the tag.
+>
+> Two things you offered that we are glad of and are not asking you to hurry: the retitle away from
+> "anchors" (the `Outcome.ANCHORED` collision is real, and you checked it rather than trusting our
+> claim — which is the second time in this thread), and the five role maps once the vocabulary
+> settles. The vocabulary is now settled to two words, so those maps are unblocked whenever you
+> want them.

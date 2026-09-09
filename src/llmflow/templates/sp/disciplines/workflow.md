@@ -29,6 +29,10 @@ If a tool genuinely has no path argument, use a subshell: `(cd /path && command)
 
 **Inline code — use a heredoc, not `-c` or `-e`.** Write `hatch run python << 'EOF'` for Python and `node --input-type=module << 'EOF'` for Node. Never `python3 -c "..."` or `node -e "..."` with multiline content — these trigger the approval hook. Use `jq` for JSON queries where possible.
 
+**When the sanctioned tool cannot do the job, ask before doing something else.** The rules above name the tool that normally does a job — the file tools for reading and editing, a heredoc for inline code, a path argument rather than `cd`. Where the named tool genuinely cannot reach, say so and ask for the exception before running anything else: name the operation, why the sanctioned route does not reach it, and what you propose instead. One sentence is enough. Where a legal alternative exists, take it and say nothing — `od -N3 file` reads the first bytes `head -c 3` would.
+
+**A permission prompt is not a request for permission.** It names a command, not a reason. Proceeding and letting the prompt do the asking spends the human's attention on decoding a command instead of judging a case — and that attention is what these rules exist to protect. The alternative is worse than it looks: a standing permission granted to get past one prompt outlives the case it was granted for.
+
 ---
 
 ## Audit Workflow
@@ -46,6 +50,25 @@ If a tool genuinely has no path argument, use a subshell: `(cd /path && command)
 **Checklists state what to do, not what to avoid.** Positive framing only. Every "no X, no Y" exception list is a positive rule that already excludes everything failing it — write the positive rule and delete the list.
 
 ---
+
+## Completion Is Claimed With Evidence
+
+**A report of completion is a factual claim.** Making it without having verified it is a false statement, not optimism. The common failure is not deceit — it is finishing three quarters of something, losing track of the rest, and reporting the whole.
+
+**Write the checklist before the work, and tick a box only with its evidence beside it.** Not *done* — *how you know*: a test id, a file and line, a command and its result, a count, a date.
+
+```markdown
+- [x] lint rejects the old key — tests/test_key_migration.py::test_the_old_key_is_refused
+- [x] downstream callers migrated — 5 sites across 2 repos, all green (2026-09-08)
+- [x] docs updated — docs/language.md, docs/architecture.md §3.1
+- [ ] changelog entry
+```
+
+That turns a claim into something the human checks in one step instead of taking on trust.
+
+**A checklist matters most where no test can reach.** A suite catches an unfinished change to the code it covers. It cannot catch documentation not updated, another repository not migrated, or a reply owed to another project and never sent — and those are exactly the items that get lost, because nothing goes red when they are skipped.
+
+**Report what was actually run.** "These three test files pass" rather than "tests pass"; "the happy path works" rather than "it works". Where part of the work was skipped or deferred, say which part, in the same breath as the part that was done.
 
 ## Files the Human Controls
 

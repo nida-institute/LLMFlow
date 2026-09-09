@@ -147,7 +147,7 @@ def test_shipped_templates_carry_no_machine_specific_content():
 
     github-authority.md was promoted from ~/.sp/user-context/ and named a specific bot
     account; shipping that would have put one person's email on every user's machine.
-    The same class of defect made ~/.sp/editions/*.yaml non-portable (#204).
+    The same class of defect made ~/.sp/resources/*.yaml non-portable (#204).
     """
     import llmflow
 

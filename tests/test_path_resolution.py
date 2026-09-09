@@ -1,10 +1,10 @@
 from pathlib import Path
 
 
-def test_pipeline_path_resolution():
+def test_pipeline_path_resolution(sample_pipeline):
     """Test that pipeline path resolution works correctly"""
     # Update the pipeline to use the correct prompts directory path
-    pipeline_path = "pipelines/storyflow-test.yaml"
+    pipeline_path = str(sample_pipeline)
 
     # Check if pipeline exists and has correct prompts_dir variable
     with open(pipeline_path, "r") as f:

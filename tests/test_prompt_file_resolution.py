@@ -4,14 +4,14 @@ from pathlib import Path
 import yaml
 
 
-def test_prompt_file_resolution():
+def test_prompt_file_resolution(sample_pipeline):
     """Test that the linter can resolve prompt file paths correctly"""
 
     # Update to use existing pipeline file
-    pipeline_path = "pipelines/storyflow-test.yaml"
+    pipeline_path = str(sample_pipeline)
 
     # Check if the actual pipeline file exists and has correct structure
-    pipeline_path = Path("pipelines/storyflow-test.yaml")
+    pipeline_path = Path(str(sample_pipeline))
     assert pipeline_path.exists(), f"Pipeline file not found: {pipeline_path}"
 
     # Load the pipeline
@@ -128,10 +128,10 @@ def test_variable_resolution_in_context():
     os.unlink(temp_pipeline_path)
 
 
-def test_debug_linter_path_resolution():
+def test_debug_linter_path_resolution(sample_pipeline):
     """Debug the exact linter path resolution logic"""
 
-    pipeline_path = "pipelines/storyflow-test.yaml"
+    pipeline_path = str(sample_pipeline)
 
     try:
         # First, let's see what's actually in the linter module
@@ -202,13 +202,13 @@ def test_debug_linter_path_resolution():
         traceback.print_exc()
 
 
-def test_simple_file_check():
+def test_simple_file_check(sample_pipeline):
     """Simple test to verify the files actually exist"""
 
     print(f"Current working directory: {os.getcwd()}")
 
     # Check basic file structure
-    pipeline_file = Path("pipelines/storyflow-test.yaml")
+    pipeline_file = Path(str(sample_pipeline))
     prompts_dir = Path("prompts/storyflow")
 
     print(f"Pipeline file exists: {pipeline_file.exists()}")

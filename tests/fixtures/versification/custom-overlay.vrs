@@ -1,0 +1,24 @@
+# Versification for a fixture project
+# custom modifications to eng.vrs
+#
+# Maximum Verses per Chapter
+3JN 1:15
+JOL 1:20 2:32 3:21 END
+   PSA 47:10 48:15
+1Sa 1:28 2:36
+PSS 1:8
+# Excluded Verses
+-MAT 17:21
+-MRK 9:44
+# Verse Segments (aka Partial Verses)
+*PSA 3:1,-,a,b
+*S3Y 1:1,a,b,c
+# Verse Mappings
+REV 13:1 = REV 12:18
+REV 13:1 = REV 13:1
+NEH 7:68-73 = NEH 7:67-72
+PSA 3:1a = PSA 3:2
+PSA 13:1-6=PSA 13:2-7
+PS2 1:1 = PS2 1:1
+1Sa 1:1 = 1SA 1:1
+JOL 2:1 = JOL 2:1-2          # a division, one verse to a run

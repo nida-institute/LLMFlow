@@ -28,7 +28,38 @@ See Section 8.
 
 ## Pre-Release Validation
 
-### 1. The PR build is green
+**The sections are in the order you do them.** §1–3 happen on `dev`, before there is a PR. §4–5
+read a `build.yml` run, and that run does not exist until the PR is opened in §6 — so on a first
+read-through they will look unsatisfiable, and they are, until then. Open the PR, let the build
+finish, then come back and tick them before merging.
+
+### 1. Version & Changelog
+- [ ] `CHANGELOG.md` has a section for this version (date, categorized changes, issue refs,
+      breaking changes marked)
+- [ ] Version bumped in `pyproject.toml` — **bump the 4th component** (e.g. 0.2.1.19 → 0.2.1.20)
+      unless explicitly doing a minor/major
+- [ ] The version-bump commit is part of the PR (so the tag lands on code with the right version)
+
+### 2. Documentation sync
+- [ ] Main docs reflect new features (`docs/*.md`, e.g. `docs/llmflow-language.md`)
+- [ ] `INSTALL.md` / `README.md` examples still accurate
+- [ ] Tutorial matches current CLI behavior
+- [ ] **A breaking change is a doc sweep, not a doc note.** Grep the retired spelling across
+      `docs/`, `README.md`, `INSTALL.md`, `pipelines/` and `src/llmflow/templates/` — a shipped
+      example still using it teaches the old syntax to every new user
+- [ ] (Propose updates to `docs/ai-context/` to the Captain if the workflow changed — do not
+      edit those directly)
+
+### 3. Code quality
+- [ ] No stray debug prints / commented-out blocks that should go
+- [ ] `sp lint` passes on **every** example pipeline — loop, do not spot-check:
+  ```bash
+  for f in pipelines/*.yaml; do printf "%s: " "$f"; \
+    hatch run sp lint --pipeline "$f" >/dev/null 2>&1 && echo OK || echo FAIL; done
+  ```
+- [ ] No consumer-specific coupling introduced into the core engine
+
+### 4. The PR build is green — **after §6 opens the PR**
 - [ ] The release PR (dev → main) has a passing **`build.yml`** run on its head commit
 - [ ] All three platforms succeeded — verify explicitly:
   ```bash
@@ -37,10 +68,10 @@ See Section 8.
   ```
 - [ ] Tests job green (integration tests are deselected in CI via `-m "not integration"`)
 
-**Note:** the build already happened here, on the PR — not at tag time. If this is red, fix
-it before merging; do not tag hoping the release build will differ.
+**Note:** the build happens on the PR, not at tag time. If this is red, fix it before merging; do
+not tag hoping the release build will differ.
 
-### 2. Blessed artifacts exist and are fresh
+### 5. Blessed artifacts exist and are fresh — **after §6 opens the PR**
 - [ ] The PR build uploaded `sp-linux`, `sp-macos`, `sp-windows.exe`:
   ```bash
   gh api repos/nida-institute/LLMFlow/actions/runs/<run-id>/artifacts \
@@ -49,31 +80,22 @@ it before merging; do not tag hoping the release build will differ.
 - [ ] Expiry is in the future (7-day retention) — you must tag before then
 - [ ] Binary sizes reasonable (~95–145 MB each)
 
-### 3. Version & Changelog
-- [ ] `CHANGELOG.md` has a section for this version (date, categorized changes, issue refs,
-      breaking changes marked)
-- [ ] Version bumped in `pyproject.toml` — **bump the 4th component** (e.g. 0.2.1.19 → 0.2.1.20)
-      unless explicitly doing a minor/major
-- [ ] The version-bump commit is part of the PR (so the tag lands on code with the right version)
-
-### 4. Documentation sync
-- [ ] Main docs reflect new features (`docs/*.md`, e.g. `docs/llmflow-language.md`)
-- [ ] `INSTALL.md` / `README.md` examples still accurate
-- [ ] Tutorial matches current CLI behavior
-- [ ] (Propose updates to `docs/ai-context/` to the Captain if the workflow changed — do not
-      edit those directly)
-
-### 5. Code quality
-- [ ] No stray debug prints / commented-out blocks that should go
-- [ ] `sp lint` passes on example pipelines
-- [ ] No consumer-specific coupling introduced into the core engine
-      (see `project/audits/` cruft audit)
-
 ---
 
 ## Release Process
 
-### 6. Merge the PR — **must be a merge commit**
+### 6. Open the PR, then merge it — **must be a merge commit**
+
+Opening the PR is what starts `build.yml`, so **§4 and §5 are checked between the two halves of
+this section**, not before it. The step was never written down, which is what made those two
+sections look unsatisfiable to anyone reading top-down.
+
+- [ ] Push `dev`, then open the release PR:
+  ```bash
+  gh pr create --repo nida-institute/LLMFlow --base main --head dev \
+    --title "Release 0.2.1.NN" --body "Closes #NNN"
+  ```
+- [ ] **Now go back and complete §4 and §5** against the run this PR started
 - [ ] The PR is up to date with `main` (no divergence)
 - [ ] Merge with a **merge commit** so `release.yml` can resolve `HEAD^2`:
   ```bash

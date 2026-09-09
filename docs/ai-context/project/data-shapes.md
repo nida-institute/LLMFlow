@@ -78,7 +78,7 @@ scheme's `maxVerses`, so `Psalm 3` ends at verse 8 in `eng` and verse 9 in `org`
 | field | what it says |
 |---|---|
 | `requested_versification` | the scheme the reference was read in. Defaults to `eng`, because a person who names none is almost always thinking in English numbering. This is the **request** side |
-| `source_versification` | the scheme an edition's text is numbered in, echoed from the argument. Recorded and **never resolved against** — this function has no edition, and the source side has no default anywhere in the engine |
+| `source_versification` | the scheme a resource's text is numbered in, echoed from the argument. Recorded and **never resolved against** — this function has no resource, and the source side has no default anywhere in the engine |
 | `extent_versification` | which scheme `end_verse` actually came from, or `null` where no extent was resolved. Usually equal to `requested_versification`; different when that scheme does not define the book and exactly one other does |
 | `book_in_versification` | `false` when the named scheme does not define the book. `lxx` does not define `NEH`, `EST` or `DAN`; `vul` does not define `EST` |
 

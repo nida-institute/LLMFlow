@@ -10,6 +10,7 @@ from llmflow.utils.versification import (
     load_scheme,
     map_candidates,
     map_reference,
+    packaged_mappings_dir,
 )
 
 COPENHAGEN = (
@@ -200,8 +201,139 @@ def test_an_entry_whose_sides_disagree_is_skipped_and_reported(tmp_path, caplog)
         scheme = load_scheme("wonky", mappings_dir=directory)
 
     assert "DAG 3:52-23" in caplog.text
-    assert scheme.to_hub["PSA 1:1"] == "PSA 1:2"
+    # `to_hub` holds a list per verse, since a verse may name several — see the merge tests below.
+    assert scheme.to_hub["PSA 1:1"] == ["PSA 1:2"]
     assert not any(key.startswith("DAG 3:5") for key in scheme.to_hub)
+
+
+# --- merges and splits ----------------------------------------------------------------
+#
+# A mapping entry whose two sides cover different numbers of verses was skipped, on the reasoning
+# that guessing would put a reference where the data does not. But the commonest such entry is not
+# a guess: it states that a run of verses in one scheme is **one verse** in another, or the reverse.
+# Seven entries across `rsc`, `rso` and `vul` were being dropped, and a reference inside one of them
+# then passed through unchanged — silently the wrong verse, despite an honest warning at load.
+#
+# `map_candidates` was always documented to return "more than one where the target scheme divides
+# what the source joins". The design anticipated this; `to_hub` holding a single string did not.
+
+
+def test_verses_that_combine_into_one_all_reach_it(tmp_path):
+    """Two verses of this scheme are one verse of the hub, which is what `PSA 89:0-1 => PSA 90:0`
+    says in the shipped `rsc`."""
+    directory = tmp_path / "versification"
+    write_scheme(directory, HUB_SCHEME, mappedVerses={})
+    write_scheme(
+        directory,
+        "merging",
+        maxVerses={"PSA": ["6", "6"]},
+        mappedVerses={"PSA 1:1-2": "PSA 2:1"},
+    )
+    scheme = load_scheme("merging", mappings_dir=directory)
+
+    assert scheme.to_hub["PSA 1:1"] == ["PSA 2:1"]
+    assert scheme.to_hub["PSA 1:2"] == ["PSA 2:1"]
+    assert map_candidates("PSA 1:1", "merging", HUB_SCHEME, directory) == ["PSA 2:1"]
+    assert map_candidates("PSA 1:2", "merging", HUB_SCHEME, directory) == ["PSA 2:1"]
+
+
+def test_a_verse_that_divides_reaches_both(tmp_path):
+    """One verse here is two of the hub — `PSA 141:0 => PSA 142:0-1` in the shipped `rsc`.
+
+    Both are returned, in the file's order. `map_reference` still refuses, because a caller
+    wanting one answer must choose deliberately; the point is that the candidates now exist to
+    choose from, where before the reference passed through unchanged.
+    """
+    directory = tmp_path / "versification"
+    write_scheme(directory, HUB_SCHEME, mappedVerses={})
+    write_scheme(
+        directory,
+        "dividing",
+        maxVerses={"PSA": ["6", "6"]},
+        mappedVerses={"PSA 1:1": "PSA 2:1-2"},
+    )
+    scheme = load_scheme("dividing", mappings_dir=directory)
+
+    assert scheme.to_hub["PSA 1:1"] == ["PSA 2:1", "PSA 2:2"]
+    assert map_candidates("PSA 1:1", "dividing", HUB_SCHEME, directory) == ["PSA 2:1", "PSA 2:2"]
+
+    with pytest.raises(UnmappableReference, match="2 verses"):
+        map_reference("PSA 1:1", "dividing", HUB_SCHEME, directory)
+
+
+def test_the_reverse_of_a_merge_names_every_verse_that_joined(tmp_path):
+    """Coming back the other way, one hub verse is two of this scheme, and both are named."""
+    directory = tmp_path / "versification"
+    write_scheme(directory, HUB_SCHEME, mappedVerses={})
+    write_scheme(
+        directory,
+        "merging",
+        maxVerses={"PSA": ["6", "6"]},
+        mappedVerses={"PSA 1:1-2": "PSA 2:1"},
+    )
+    scheme = load_scheme("merging", mappings_dir=directory)
+
+    assert scheme.from_hub["PSA 2:1"] == ["PSA 1:1", "PSA 1:2"]
+    assert map_candidates("PSA 2:1", HUB_SCHEME, "merging", directory) == ["PSA 1:1", "PSA 1:2"]
+
+
+def test_sides_that_disagree_by_more_than_a_join_are_still_skipped(tmp_path, caplog):
+    """Five verses to six is not a merge or a division: it does not say which verse gained.
+
+    `rso` has exactly this — `PSA 89:2-6 => PSA 90:1-6` — and it stays refused. Supporting merges
+    is not the same as guessing, and the distinction is the whole reason the skip existed.
+    """
+    directory = tmp_path / "versification"
+    write_scheme(directory, HUB_SCHEME, mappedVerses={})
+    write_scheme(
+        directory,
+        "lopsided",
+        maxVerses={"PSA": ["9", "9"]},
+        mappedVerses={"PSA 1:2-6": "PSA 2:1-6"},
+    )
+    with caplog.at_level("WARNING"):
+        scheme = load_scheme("lopsided", mappings_dir=directory)
+
+    assert "PSA 1:2-6" in caplog.text
+    assert not any(key.startswith("PSA 1:") for key in scheme.to_hub)
+
+
+def test_the_shipped_schemes_stop_dropping_their_merges():
+    """Five of the seven skipped entries are merges or divisions and now resolve; two are not.
+
+    `rso`'s `PSA 89:2-6 => PSA 90:1-6` is five verses to six, and `vul`'s `DAG 3:52-23` names a
+    range running backwards. Both stay refused, which is the correct outcome and not a regression.
+    """
+    rsc = load_scheme("rsc", packaged_mappings_dir())
+
+    assert rsc.to_hub["PSA 89:0"] == ["PSA 90:0"], "two verses joining into one"
+    assert rsc.to_hub["PSA 89:1"] == ["PSA 90:0"]
+    assert rsc.to_hub["PSA 141:0"] == ["PSA 142:0", "PSA 142:1"], "one verse dividing into two"
+
+    vul = load_scheme("vul", packaged_mappings_dir())
+    assert vul.to_hub["DAG 13:1"] == ["SUS 1:63"], "63 verses of Daniel are one verse of Susanna"
+
+
+def test_a_shipped_scheme_whose_entries_all_resolve_loads_without_complaint(caplog):
+    """`rsc`'s two skipped entries were a join and a division, so it now loads clean.
+
+    The warning is the observable half of the defect: it fired on every scheme load in this
+    repository, and the references it named passed through unchanged afterwards.
+    """
+    with caplog.at_level("WARNING"):
+        load_scheme("rsc", packaged_mappings_dir())
+
+    assert "skipped" not in caplog.text, caplog.text
+
+
+@pytest.mark.parametrize("scheme, remaining", [("rso", "PSA 89:2-6"), ("vul", "DAG 3:52-23")])
+def test_the_two_entries_that_name_no_join_are_still_reported(scheme, remaining, caplog):
+    """Five verses to six, and a range running backwards. Neither says where a verse went, so both
+    stay refused — supporting joins is not the same as guessing."""
+    with caplog.at_level("WARNING"):
+        load_scheme(scheme, packaged_mappings_dir())
+
+    assert remaining in caplog.text
 
 
 # --- against the real Copenhagen data -----------------------------------------------

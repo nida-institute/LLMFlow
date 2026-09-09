@@ -46,12 +46,12 @@ files:
   sha256: fe85ae4728b8c2affdb65f42b79408b919fcee2d16765b1e6c34eacbd518f61d
   status: identical
 - set: disciplines
-  name: working-for-a-person.md
-  sha256: 0b75dc0c42aef8adcdfb9829dfe0e8b5923c7a46494adfe8d71c364a1f0ba2c5
+  name: workflow.md
+  sha256: 7c2c8213e954a10346c475c0174eec7ddb64408bf7a159dd0eb0e3ae72317555
   status: identical
 - set: disciplines
-  name: workflow.md
-  sha256: 5765afd8e474ccfc349aa5f579550f194242e947cafaeaeff913fe95f9128ba9
+  name: working-for-a-person.md
+  sha256: 0b75dc0c42aef8adcdfb9829dfe0e8b5923c7a46494adfe8d71c364a1f0ba2c5
   status: identical
 - set: root
   name: drift-patterns.md

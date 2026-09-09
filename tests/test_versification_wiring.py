@@ -1,4 +1,4 @@
-"""An edition declares its scheme, and a passage is mapped before the text is fetched."""
+"""A resource declares its scheme, and a passage is mapped before the text is fetched."""
 import json
 from pathlib import Path
 
@@ -7,11 +7,16 @@ import pytest
 from llmflow.utils.scripture import (
     ASSUMED_SCHEME,
     SCHEME_KEY,
-    edition_scheme,
-    edition_text,
+    resource_scheme,
+    resource_text,
     resolve_passage,
 )
-from llmflow.utils.versification import HUB_SCHEME, UnmappableReference, load_scheme
+from llmflow.utils.versification import (
+    HUB_SCHEME,
+    UnmappableReference,
+    load_scheme,
+    scheme_name,
+)
 
 #: Two verses of a fictional book in two schemes, so a mapping is visible in the text itself.
 ROWS = "\n".join(
@@ -39,38 +44,38 @@ def store(tmp_path):
     return {"dir": directory, "tsv": str(tsv)}
 
 
-def editions(store, **overrides):
+def resources(store, **overrides):
     definition = {"kind": "tsv", "path": store["tsv"], "versification_scheme": HUB_SCHEME}
     definition.update(overrides)
     return {"HUB": definition}
 
 
-# --- an edition declares its scheme --------------------------------------------------
+# --- a resource declares its scheme --------------------------------------------------
 
 
 def test_an_edition_declaring_a_scheme_reports_it(store):
-    assert edition_scheme(editions(store)["HUB"]) == HUB_SCHEME
+    assert resource_scheme(resources(store)["HUB"]) == HUB_SCHEME
 
 
 def test_an_edition_declaring_nothing_has_an_unknown_scheme():
     """There is no global default: a Byzantine text and a critical text differ."""
-    assert edition_scheme({"kind": "tsv", "path": "x.tsv"}) is None
+    assert resource_scheme({"kind": "tsv", "path": "x.tsv"}) is None
 
 
 def test_a_bare_path_definition_has_an_unknown_scheme():
     """The shorthand form is a path string with nowhere to put a scheme."""
-    assert edition_scheme("/some/where.tsv") is None
+    assert resource_scheme("/some/where.tsv") is None
 
 
 @pytest.mark.parametrize(
     "name, expected", [("SBLGNT", "org"), ("sblgnt", "org"), ("WLC", "org"), ("BSB", "eng")]
 )
 def test_an_edition_we_construct_is_known_by_name(name, expected):
-    assert edition_scheme({"kind": "tsv", "path": "x.tsv"}, name) == expected
+    assert resource_scheme({"kind": "tsv", "path": "x.tsv"}, name) == expected
 
 
 def test_a_declared_scheme_beats_the_table():
-    assert edition_scheme({"kind": "tsv", SCHEME_KEY: "lxx"}, "SBLGNT") == "lxx"
+    assert resource_scheme({"kind": "tsv", SCHEME_KEY: "lxx"}, "SBLGNT") == "lxx"
 
 
 def test_a_paratext_project_scheme_comes_from_its_settings(tmp_path):
@@ -80,7 +85,7 @@ def test_a_paratext_project_scheme_comes_from_its_settings(tmp_path):
         "<ScriptureText><Versification>4</Versification></ScriptureText>", encoding="utf-8"
     )
     definition = {"kind": "usfm", "base_dir": str(tmp_path), "project": "PROJ"}
-    assert edition_scheme(definition) == "eng"
+    assert resource_scheme(definition) == "eng"
 
 
 def test_a_paratext_project_with_no_versification_is_unknown(tmp_path):
@@ -88,10 +93,16 @@ def test_a_paratext_project_with_no_versification_is_unknown(tmp_path):
     project.mkdir()
     (project / "Settings.xml").write_text("<ScriptureText/>", encoding="utf-8")
     definition = {"kind": "usfm", "base_dir": str(tmp_path), "project": "PROJ"}
-    assert edition_scheme(definition) is None
+    assert resource_scheme(definition) is None
 
 
-def test_a_paratext_custom_vrs_is_reported_as_unread(tmp_path, caplog):
+def test_a_paratext_custom_vrs_stating_nothing_leaves_the_base_in_force(tmp_path, caplog):
+    """An overlay of comments only is not a numbering, so the base's name is still the answer.
+
+    This test previously required the opposite of what the engine now does: it asserted that a
+    `custom.vrs` was detected, warned about as unread, and ignored. That was the defect, and
+    reading the file is the fix. What survives from it is the base-in-force case.
+    """
     project = tmp_path / "PROJ"
     project.mkdir()
     (project / "Settings.xml").write_text(
@@ -100,12 +111,25 @@ def test_a_paratext_custom_vrs_is_reported_as_unread(tmp_path, caplog):
     (project / "custom.vrs").write_text("# overlay\n", encoding="utf-8")
     definition = {"kind": "usfm", "base_dir": str(tmp_path), "project": "PROJ"}
     with caplog.at_level("WARNING"):
-        assert edition_scheme(definition) == "org"
-    assert "custom.vrs" in caplog.text
+        assert resource_scheme(definition) == "org"
+    assert "does not read" not in caplog.text
+
+
+def test_a_paratext_custom_vrs_that_states_something_names_the_project(tmp_path):
+    project = tmp_path / "PROJ"
+    project.mkdir()
+    (project / "Settings.xml").write_text(
+        "<ScriptureText><Versification>1</Versification></ScriptureText>", encoding="utf-8"
+    )
+    (project / "custom.vrs").write_text("3JN 1:14\n", encoding="utf-8")
+    definition = {"kind": "usfm", "base_dir": str(tmp_path), "project": "PROJ"}
+    scheme = resource_scheme(definition)
+    assert scheme_name(scheme) == "PROJ"
+    assert int(scheme.max_verses["3JN"][0]) == 14
 
 
 def test_mapping_without_a_known_edition_scheme_assumes_english_and_warns(store, caplog):
-    """An edition that declares no scheme is read as English, loudly.
+    """A resource that declares no scheme is read as English, loudly.
 
     This test previously required a refusal, on the reasoning that mapping without a declared
     source scheme has to guess. The guess is now made, because much of the translation world
@@ -116,8 +140,8 @@ def test_mapping_without_a_known_edition_scheme_assumes_english_and_warns(store,
     """
     definition = {"kind": "tsv", "path": store["tsv"]}
     with caplog.at_level("WARNING"):
-        edition_text(
-            "MYSTERY", "TST 1:1", fmt="plain", editions={"MYSTERY": definition},
+        resource_text(
+            "MYSTERY", "TST 1:1", fmt="plain", resources={"MYSTERY": definition},
             versification=ASSUMED_SCHEME, mappings_dir=store["dir"],
         )
     assert SCHEME_KEY in caplog.text, "the warning must name the field to add"
@@ -126,7 +150,7 @@ def test_mapping_without_a_known_edition_scheme_assumes_english_and_warns(store,
 def test_an_unknown_edition_scheme_is_fine_when_nothing_is_mapped(store):
     """No `versification:` means no mapping, so the scheme is never needed."""
     definition = {"kind": "tsv", "path": store["tsv"]}
-    got = edition_text("MYSTERY", "TST 1:1", fmt="plain", editions={"MYSTERY": definition})
+    got = resource_text("MYSTERY", "TST 1:1", fmt="plain", resources={"MYSTERY": definition})
     assert got == "verse1"
 
 
@@ -143,7 +167,7 @@ def test_the_same_scheme_leaves_the_passage_alone(store):
 
 
 def test_a_single_verse_is_mapped_into_the_edition_scheme(store):
-    """The caller asks in `shifted`; the edition is the hub, so the verse moves by two."""
+    """The caller asks in `shifted`; the resource is the hub, so the verse moves by two."""
     got = resolve_passage("TST 1:1", HUB_SCHEME, "shifted", mappings_dir=store["dir"])
     assert got == "TST 1:3"
 
@@ -194,24 +218,24 @@ def test_an_ambiguous_endpoint_is_reported_rather_than_chosen(store):
         resolve_passage("TST 1:4", "split", HUB_SCHEME, mappings_dir=store["dir"])
 
 
-# --- end to end through edition_text --------------------------------------------------
+# --- end to end through resource_text --------------------------------------------------
 
 
 def test_asking_in_another_scheme_returns_the_mapped_verse(store):
     """`versification="shifted"` means "I am naming verses the way `shifted` does"."""
-    plain = edition_text(
-        "HUB", "TST 1:1", fmt="plain", editions=editions(store),
+    plain = resource_text(
+        "HUB", "TST 1:1", fmt="plain", resources=resources(store),
         versification="shifted", mappings_dir=store["dir"],
     )
     assert plain == "verse3"
 
 
 def test_without_a_versification_key_the_edition_scheme_governs(store):
-    plain = edition_text("HUB", "TST 1:1", fmt="plain", editions=editions(store))
+    plain = resource_text("HUB", "TST 1:1", fmt="plain", resources=resources(store))
     assert plain == "verse1"
 
 
-# --- the shipped schemes, and the editions they describe ------------------------------
+# --- the shipped schemes, and the resources they describe ------------------------------
 
 SHIPPED = Path(__file__).resolve().parent.parent / "src/llmflow/templates/sp/versification"
 
@@ -295,7 +319,7 @@ def test_the_shipped_schemes_carry_their_licence():
 
 @pytest.mark.skipif(not MACULA_GREEK.is_file(), reason="Macula Greek is not on this machine")
 def test_macula_greek_is_numbered_as_the_hub_scheme_says():
-    """The default scheme for an edition is the hub, so this is what that default asserts.
+    """The default scheme for a resource is the hub, so this is what that default asserts.
 
     `org` and `eng` map no New Testament verse differently, but their bounds differ: 2 Cor 13
     has 13 verses in one and 14 in the other, and 3 John 15 exists in one only.
@@ -319,8 +343,8 @@ def test_macula_hebrew_is_numbered_as_the_hub_scheme_says():
 
 def test_an_unknown_requested_scheme_names_what_is_available(store):
     with pytest.raises(UnmappableReference, match="shifted"):
-        edition_text(
-            "HUB", "TST 1:1", fmt="plain", editions=editions(store),
+        resource_text(
+            "HUB", "TST 1:1", fmt="plain", resources=resources(store),
             versification="klingon", mappings_dir=store["dir"],
         )
 

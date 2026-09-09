@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any, Dict, List
 
+from llmflow.defects import DEFECT_LOG_KEY, RESERVED_KEY
 from llmflow.modules.logger import Logger
 from llmflow.utils.context import resolve
 from llmflow.utils.file_io import _record_written_file, save_content_to_file
@@ -11,10 +12,29 @@ from llmflow.utils.get_prefix_directory import get_prefix_directory
 logger = Logger()
 
 
-def handle_step_outputs(step: Dict[str, Any], result: Any, context: Dict[str, Any], base_dir: str = ".") -> None:
-    """Store step result in context and handle saveas."""
+def handle_step_outputs(
+    step: Dict[str, Any],
+    result: Any,
+    context: Dict[str, Any],
+    base_dir: str = ".",
+    defects: Any = None,
+) -> None:
+    """Store step result in context and handle saveas.
+
+    Every step handler passes through here, which is why the defect log is drained here: a step
+    of any type — function, basex, duckdb, llm under a schema — reports a defect by returning it
+    under `defects`, and needs to know nothing about the log to do so.
+    """
     context.pop("_last_saved_files", None)
     saved_paths: List[str] = []
+
+    # The log travels in the context, which is the channel every step already has — passing it
+    # down every handler signature would be the side channel this feature exists to avoid.
+    log = defects if defects is not None else context.get(DEFECT_LOG_KEY)
+    # Copied out, never removed: a step's output is its own, and a `saveas` should write what the
+    # step actually returned.
+    if log is not None and isinstance(result, dict) and RESERVED_KEY in result:
+        log.extend(str(step.get("name", "unnamed")), result[RESERVED_KEY])
 
     outputs = step.get("output")
     if outputs is not None:

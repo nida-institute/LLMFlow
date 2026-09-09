@@ -16,7 +16,7 @@ four-entry catalog beside the public one, which drifted.
 sp resource list                     # what the catalog knows, and what this machine has
 sp resource add WLC                  # fetch if needed, then register
 sp resource add WLC --no-download    # register now, fetch later
-sp resource download acai            # fetch something no reader can yet open
+sp dataset download acai            # fetch something no reader can yet open
 ```
 
 Something of your own goes by path — `--path ~/paratext/MYPROJ` (a Paratext project identifies
@@ -38,7 +38,7 @@ working against their own clone needs. `sp doctor` warns when one points at noth
 `data/resources.json`. It carries **shape, never state** — which file holds a text, which
 backend reads it, its versification and canon. What changes as a maintainer works stays in that
 resource's own repository. A `provides` block means the engine can open it; without one (ACAI,
-CNTR) `sp resource download` fetches it for direct use.
+CNTR) `sp dataset download` fetches it for direct use.
 
 | Provides | From | License | |
 |---|---|---|---|
@@ -97,7 +97,7 @@ registered resource, so a pipeline names it and never carries a path:
 ```yaml
 - name: load_passage
   type: scripture
-  edition: BSB
+  resource: BSB
   passage: "${passage}"
   format: milestones
   output: english_text

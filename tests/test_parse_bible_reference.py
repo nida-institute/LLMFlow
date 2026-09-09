@@ -637,7 +637,7 @@ class TestVersificationResolution:
     """`end_verse` for a whole chapter comes from a named scheme's `maxVerses` (#218).
 
     The scheme is the one the *request* is written in — a fact about the person who typed it,
-    defaulting to `eng`. The scheme the *text* is numbered in is a property of an edition, which
+    defaulting to `eng`. The scheme the *text* is numbered in is a property of a resource, which
     this function never has, so it is recorded and never resolved against.
     """
 
@@ -660,7 +660,7 @@ class TestVersificationResolution:
         assert parse_bible_reference("Psalm 3", versification="org")["end_verse"] == 9
 
     def test_the_source_scheme_is_recorded_and_never_resolved_against(self):
-        """This function has no edition, so a source scheme is an echo for the reader."""
+        """This function has no resource, so a source scheme is an echo for the reader."""
         result = parse_bible_reference("Psalm 3", source_versification="org")
         assert result["source_versification"] == "org"
         assert result["requested_versification"] == "eng"

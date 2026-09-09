@@ -2,6 +2,774 @@
 
 ## Unreleased
 
+## 0.2.1.27 — 2026-09-09
+
+### Added
+
+- **A run records what it noticed without failing (#232).** A step that finds a discrepancy in the
+  data — a citation that did not resolve, a unit needing review, an assumption it had to make — had
+  nowhere to put it. The workaround downstream was a module-level list with a lock, invisible to
+  `sp lint`, to `--dry-run`, to `--rewind-to` and to telemetry, which is what
+  `context-is-the-only-channel` forbids.
+
+  **Two channels.** A step of any type returns a reserved `defects` key alongside its data, so the
+  record travels as ordinary step output — an XQuery, a SQL query, an LLM under a schema and a
+  function can all write one. Python code writes to the `llmflow` logger at `WARNING` or above and
+  is captured there, so a plugin author needs no new import.
+
+  The engine's own warnings arrive through the same channel, because they are the same category of
+  finding: a `partialVerses` line left uninterpreted, a mapping skipped as naming no join, a
+  versification assumed. Those were prose in `llmflow.log` that nothing could count.
+
+  **Where it lands.** `defects.json` under `intermediate_file_directory`, written whether or not
+  anything was found, and summarised at the end of the run. `[]` and absence differ, per
+  `say-which-kind-of-nothing`: an empty file is the run saying it looked and found nothing.
+
+  The log rides the context and refuses to be deep-copied, returning itself instead. A `for-each`
+  iteration deep-copies its context, so a copyable log would gather an iteration's findings into an
+  object that is then discarded — the silent loss the feature exists to end.
+
+- **A prompt whose example is the passage under test is reported.** Where the example in a prompt
+  *is* the passage being run, a model can reproduce the example instead of performing the task. The
+  run looks like a success, measures nothing, and nothing in the output says otherwise.
+
+  The check reads the **template**, never the rendered prompt. A `.gpt` file holds the examples
+  while the data arrives through `{{var}}`, so the passage under test always appears in a rendered
+  prompt and its presence there means nothing at all; in the template it means contamination. It
+  runs after mixins expand and before any value is injected — the template as authored.
+
+  Overlap rather than equality, because a template citing `MRK 1:1-8` contaminates a run on
+  `MRK 1:5`. `llmflow.utils.verse_ranges` already answers that, and `references_in` hands every
+  candidate to `parse_passage_ref`, so there is one parser rather than a looser second one that
+  would disagree with it at the edges.
+
+  Reported as a defect rather than raised: the run still produces the output a reader needs in
+  order to judge the finding, and many prompts cite a passage for another reason. What it cannot
+  catch is an example that paraphrases the passage without citing it — no pattern finds "the
+  wilderness preacher in camel hair". It makes the careless case loud, which is where this failure
+  actually lives.
+
+- **`sp lint` warns about a `requires:` entry the prompt body never uses.** The contract was checked
+  in one direction only: every name the body used had to be declared, but a declared name the body
+  ignored passed in silence, obliging every calling step to supply an input for nothing. Both sets
+  were already computed; only the subtraction was missing.
+
+  A warning rather than an error, because the run it produces is correct and a working pipeline
+  should not stop working over an untidy prompt. It stays silent where another check owns the
+  problem — an unparseable header, a withdrawn `optional:` key, a dotted name — since saying the
+  same thing twice trains a reader to skim.
+
+- **`sp dataset add` and `sp resource set`.** `sp dataset add` records where a body of data lives on
+  this machine. That absolute path belongs in a dataset entry rather than in a registration, which
+  is what lets a registration mean the same thing on every machine. It refuses a path that does not
+  exist, so a dataset pointing nowhere fails at registration rather than in the middle of a run,
+  in a message about the resource that named it.
+
+  `sp resource set` writes named fields and leaves every other key alone. It is not `add` re-running
+  and merging: a command named for creating should not silently rewrite a curated file, which is how
+  a header comment claiming `sp resource add` wrote it stopped being true. Both resolve before they
+  write, and `set` prints where each value landed — a typo in a dataset id is otherwise invisible
+  until a run reports the family as `null`.
+
+  Between them, these are the commands that make hand-editing `~/.sp` unnecessary — which the
+  store's read-only lock has always intended and never quite provided.
+
+- **New rule `plans-are-temporary`.** A working document has a death; a ruling does not. Plans,
+  designs, audits and decision lists are scratch: they exist to get a piece of work done, and after
+  **eight days** a document is either implemented or obsolete, so the file goes, unread. A ruling is
+  different in kind — permanent until overruled — and lives in `CHANGELOG.md`, or in the rules file
+  where it binds future work.
+
+  Do not sift. Where a document still holds something valuable, neither a person nor a model can
+  reliably tell it from the rest, so the attempt costs the effort and returns an answer that is then
+  trusted. Git keeps every deleted file. The CHANGELOG is the durable home because it is the only
+  one whose update is a side effect of the very work that would otherwise invalidate it.
+
+  The rule covers documents that **accumulate**, not documents that **roll**. A file overwritten in
+  place — a task list, a handoff, a checklist, a generated index — is current by construction, and
+  its stale *entries* are pruned instead. Deleting is never automatic: an agent lists what is past
+  eight days and asks before removing anything.
+
+  Measured before the rule was written: one consumer repository carries 76 such documents and
+  another 14, every one of them over sixty days old; this engine had 51, with roughly forty distinct
+  `Status:` wordings among them, because that single field was carrying four independent questions —
+  approved, built, questions open, still binding.
+
+- **BREAKING: a dataset provides resources. `edition` is retired from the language and the API.**
+  `edition` claimed a distinction the data does not make: `SBLGNT` is a TSV inside
+  `Clear-Bible/macula-greek`, not a critical edition of the Greek New Testament, and the same
+  edition could be registered twice in two encodings. Captain: *"these are not, for instance,
+  NA26 vs. NA27, so that vocabulary is confusing."*
+
+  Two layers, two words. A **dataset** is an obtainable body of data — a repository or a
+  download. A **resource** is a readable text inside one, carrying a reader and a versification.
+  A resource is more than a path, and the excess is what matters: a wrong path fails loudly, a
+  wrong versification returns the wrong verses in silence.
+
+  **The pipeline key changes**: `edition:` becomes `resource:` on a `type: scripture` step. One
+  syntax, no aliases — the old key fails lint naming its replacement, as the `for`/`in` migration
+  established. The rename is driven from `pipeline_schema.py`, where the language is declared, so
+  the object model's attributes followed without being edited.
+
+  **The CLI splits in two.** `sp resource` covers readable texts (`list`, `add`); `sp dataset`
+  covers bodies of data (`list`, `search`, `download`). One noun covered both, and its own help
+  text called `WLC` and `acai` alike "Catalog id" — the conflation that led a downstream session
+  to conclude the catalog did not know Levinsohn's corpus and to propose hand-writing an absolute
+  path into a version-controlled store.
+
+  This completes a migration begun and abandoned: the error type was already
+  `ResourceNotRegistered`, and #217 had already moved `~/.sp/editions/` → `~/.sp/registrations/`,
+  so both vocabularies were live at once.
+
+  **What a consumer must change:** `edition:` → `resource:` in any `type: scripture` step.
+  Measured on one machine, that is four files — three in `discourse-flow`, one in
+  `sil-translator-notes`. Both install this engine as an editable dependency, so the old key stops
+  working when this reaches `dev`, not when a release ships.
+
+  **What deliberately did not change.** `data/resources.json` is vendored from
+  `awesome-biblical-data`. `project/` keeps its 197 occurrences: those are plans, handoffs and
+  audits recording decisions made when the word was "edition", and the record is corrected by
+  adding alongside rather than rewording. `data/versification-editions.json` keeps its name — a
+  rename there was proposed for consistency and withdrawn, because the file's only live content
+  is Paratext's versification numbers and its `known_editions` key is an empty husk kept alive by
+  a guard asserting it stays empty. That is its own change, not this one.
+
+  Design and the measured surface: `project/plans/design-resource-vocabulary.md`.
+
+- **`sp dataset search` queries the whole catalog, in XPath.** `sp resource list` shows only
+  entries carrying a `provides` block — **3 of 70** — beneath a legend reading *"absent = not
+  downloaded yet"*, which reads as a complete inventory with a status column. Nothing listed the
+  other 67, and an absent resource is exactly what a reader running that command is looking for.
+  The cost was not hypothetical: a downstream session read that output, concluded the engine did
+  not know Levinsohn's corpus, and proposed hand-writing an absolute path to a manual clone into
+  a version-controlled store.
+
+  A bare word is a keyword — free text across id, name, category, description, notes, licence and
+  formats, case-insensitively. Anything else is a **real XPath predicate**: the catalog is JSON,
+  but it is built into a tree and evaluated by `lxml`, so the query language is XPath itself
+  rather than an imitation, and there is nothing of ours to document or let drift.
+  `contains(., "…")` is free text because XPath concatenates a node's descendant text.
+
+  `lower-case()` and `matches()` are registered as extension functions, since lxml implements
+  XPath 1.0. Both keep their XPath 2.0 meanings — `matches()` is a **regular expression with a
+  flags argument**, not a containment test, because a standard function that means something
+  else in one tool is worse than no function at all. They are scoped to the query rather than
+  registered globally, so they cannot leak into the XPath and XSLT plugins.
+
+  Three attributes describe an entry rather than its content: `@readable`, `@registered` and
+  `@fetch`. The `list` legend now says what it shows and names `search` for the rest.
+
+- **`path` resolves a registered dataset id too, so a machine whose corpora are clones can stop
+  keeping a duplicate download alive.** `path` accepted a dataset-relative value or an absolute
+  one, and dataset-relative resolves inside the store — so an edition's *text* had to come from a
+  store download even where that download is a redundant copy of a clone the machine already has,
+  and deleting the duplicate broke the registration. `path`, `discourse_path` and `lowfat_path`
+  now resolve identically: absolute, a registered dataset id with an optional subpath, or
+  dataset-relative.
+
+  One resolver serves all three rather than two that agree until they do not. The
+  annotation-specific function added earlier in this release is gone rather than left beside its
+  replacement.
+
+  **The choice between the forms is the author's and no check can make it.** A dataset-relative
+  value resolves inside the store's copy; a dataset id resolves wherever that dataset was
+  registered, possibly a different clone of the same corpus. Text and annotations join on word
+  ids, so mixing the forms across keys can draw them from two copies — silently. On this machine
+  `macula-greek` exists twice, so this is a live hazard rather than a theoretical one, and the
+  language reference now says to choose one form per registration and stay in it.
+
+- **An edition can name its discourse and syntax sources without an absolute path.** `path` has
+  always resolved against the store, so a registration means the same thing on every machine.
+  `discourse_path` and `lowfat_path` reached `Path()` raw, so absolute was the only form that
+  worked — and a registration therefore contradicted its own header comment. Reported by
+  `discourse-flow`, who could satisfy the rule against hard-coded paths everywhere except this
+  one file.
+
+  Both keys now accept what `path` accepts — a **dataset-relative** value — and additionally a
+  **registered dataset id with an optional subpath**, `levinsohn-lgntdf/LGNTDF`. The second form
+  is what reaches a corpus living outside the edition's own dataset, as Levinsohn's Greek features
+  do, and the subpath is not a convenience: the data rarely sits at a repository root. The id
+  resolves through `~/.sp/datasets/`, which `sp` writes and a project never does, so the one
+  machine-specific path per dataset stays in the file whose job that is. Absolute paths still
+  work, for a maintainer against their own clone.
+
+  Two rules where the forms could collide. A first segment that is both a registered id and a
+  directory inside the edition's dataset resolves as the **id** — a declaration beats a
+  coincidence of naming. A subpath that would leave its dataset is **refused**, so naming a
+  dataset cannot become a route to an arbitrary file.
+
+  The datasets store is read **without ever creating it**: it is write-protected by design and
+  absent on a fresh machine, so a reader that made the directory would fail where it should have
+  answered "nothing registered".
+
+  Verified against the real store rather than fixtures. `SBLGNT/lowfat` and
+  `macula-greek-lowfat/SBLGNT/lowfat` both resolve to directories that exist;
+  `levinsohn-lgntdf/LGNTDF` does not, because that dataset is not registered on this machine —
+  which is the correct answer and shows what the Greek discourse case still waits on.
+
+  **Worth knowing when choosing a form:** a dataset-relative value resolves inside the same copy
+  of the corpus the text came from, while a dataset id resolves wherever that dataset was
+  registered — possibly a different clone. Text and annotations join on word ids, so two copies
+  is a silent mismatch rather than an error. On this machine `macula-greek` exists twice, so the
+  hazard is present rather than hypothetical.
+
+- **The shell and file-tool rules are in the rules file, and asking for an exception is one of
+  them.** They had never been in `data/ai-rules.yaml` — the file whose first line calls itself the
+  only place the rules are written — so they carried no `enforcement` classification, nothing
+  rendered them into the shipped rules document, and they existed as three prose copies that had
+  drifted apart.
+
+  The three disagreed about what the machine does. One said the shell readers "require approval";
+  another said a hook refuses them — the hook refuses them. The shipped block that `sp init`
+  upserts into every project's `CLAUDE.md` was the furthest adrift and the widest-reaching: it
+  directed the reader to a `Grep` tool that some installations do not have, conflated piping with
+  reading, and omitted the hook, one-command-at-a-time, and git piping entirely.
+
+  Five rules now carry it. `file-tools-for-reading` and `one-command-at-a-time` are `gated`,
+  because the harness stops the act rather than a test catching it afterwards;
+  `inline-code-uses-a-heredoc`, `git-output-is-not-piped` and `ask-for-the-exception` are
+  judgment.
+
+  **`ask-for-the-exception` is new.** The rules were written as prohibitions with no sanctioned
+  exception, so an agent with a genuine reason — the file tools have no operation for what is
+  needed, a candidate script must be run from a file because that is what is being tested — had
+  two moves, and both were bad: fail the task, or proceed and meet a permission prompt. A
+  permission prompt names a command, not a reason, so it asks the human to decode an act instead
+  of judging a case, and a permission granted to clear one prompt outlives the case it was granted
+  for. The rule requires asking first, and says to take a legal alternative silently where one
+  exists.
+
+  The shipped `CLAUDE.md` block now points at the rendered rules instead of restating them. The
+  discipline shared with Human at the Helm keeps its own prose by ruling, since that project has
+  no rules file of its own, and gains the exception rule in the same wording.
+
+  One repair in passing: the rules file's own header documented four `enforcement` values and
+  three `scope` values, predating `gated`, `harness` and the `gate:` field its own entries already
+  used.
+
+- **A Paratext project's own `custom.vrs` is read, and its numbering wins where it speaks
+  (Issue #222).** The engine detected such a file, warned that it would not read it, and used the
+  numbered scheme anyway — so references into a project whose overlay moved verses landed on the
+  wrong ones, with an honest warning as the only sign. The warning is gone because the file is
+  read.
+
+  **The format's grammar had one more construct than the design recorded.** That design read five
+  files and reported three constructs. Measured across all 66 `custom.vrs` files on this machine
+  and checked against `json2vrs.py` in the Copenhagen specification — which writes this format
+  from the JSON scheme, and is therefore a declaration of it rather than a reading — there are
+  **four**: `maxVerses`, `excludedVerses`, `partialVerses` and `mappedVerses`. `partialVerses`
+  was absent from the design entirely. It is parsed and reported through the existing
+  unread-fields warning, which already names it as a field this engine does not interpret.
+
+  Five lexical facts came with it, none of them optional: a mapping's left side may carry a
+  segment letter (`PSA 3:1a = PSA 3:2`, 200 such lines), `=` is not reliably surrounded by
+  spaces, a book code may hold a digit or mixed case (`S3Y`, `PS2`, `1Sa`), 11 files open with a
+  byte order mark, and `END` terminates a chapter-length line rather than naming a chapter. A
+  line matching none of the four constructs is refused with its file and line number, because a
+  construct silently read as nothing is a project's numbering silently ignored.
+
+  Chapter lengths are held per chapter rather than as a list per book: of 313 chapter-length
+  lines, 103 do not begin at chapter 1 and 27 name chapters that do not run consecutively —
+  `NUM 6:26 25:18` states two chapters of thirty-six. A list could not say which chapters went
+  unmentioned, and folding onto the base's already-resolved lengths makes each override one
+  assignment instead of a restatement of the book.
+
+  **What the container reports now answers which numbering is in force.** A project using a
+  standard scheme reports that scheme's name, exactly as before. A project using a standard
+  scheme *with its own overlay on top* is not using that scheme any more, so it reports the
+  project's name — the only name that numbering has. An overlay stating nothing leaves the base
+  in force and reports the base's name; one shipped project's `custom.vrs` is comments only.
+
+  A registry `versification_scheme` chooses **which base** the overlay is folded onto, and no
+  longer suppresses the project's own file. `map_candidates` and `map_reference` accept a scheme
+  object as well as a name, since a project's numbering has no file to be named by.
+
+  Verified against real data rather than fixtures: all 66 files parse with none refused, and all
+  93 Paratext projects resolve — 65 reporting their own name, 28 a standard scheme. The design's
+  worked example holds: `spaNVIv3` reports `spaNVIv3`, its Revelation 12 has seventeen verses
+  where `eng` has eighteen, and its `REV 13:1` names both `REV 12:18` and `REV 13:1` — the merge
+  the engine could not represent at all before verse-run mappings shipped.
+
+- **`sp lint` checks a function step against the signature of the function it names.** An `llm`
+  step's contract is its prompt's `requires:` header, and the linter has always enforced it. A
+  `function` step has a contract of the same kind — the callable's signature — and nothing
+  compared the two, so a pipeline could be unrunnable while lint reported success.
+
+  Reported by `discourse-flow`, from their own case: a plugin's parameter was renamed
+  `morphology` → `content` and three calling steps were not updated. `sp lint` printed four
+  green checks and their 1,232-test suite was green, because neither looks at the wiring. The
+  run would have died at the first call with `TypeError`, after two earlier steps had already
+  done their work. The cost of missing it scales with where the step sits: theirs was step 6 of
+  28, but the same mistake late in a book-length pipeline surfaces an hour and many dollars in.
+
+  Three mismatches are errors: an input the function does not accept, a parameter with no
+  default the step does not supply, and a `function:` path that does not import or does not name
+  something callable.
+
+  **It is not type checking, and it fails open.** Only names and arity are compared, because
+  lint holds no values. A `**kwargs` signature accepts any input name, `*args` lifts the
+  positional limit, and a callable whose signature cannot be introspected is skipped — the check
+  stays silent wherever it cannot be certain. `context` is excluded throughout, since the runner
+  supplies it when the signature asks for it. A list-form `inputs:` is positional, so only the
+  count is checked.
+
+  Reading a signature means importing the module, and lint previously never did: `run_pipeline`
+  puts the working directory on `sys.path` and lint does not, so a project's `plugins.*` module
+  imported at run time and not at lint time. The check adds that entry for its own duration and
+  removes it afterwards.
+
+  **This rejects pipelines that lint previously accepted, which is the point.** Six such steps
+  were already in this repository's own test fixtures — two passing no arguments to
+  `identity(value)`, three passing `value` to a function taking `data`, one passing nothing to
+  `mock_function(a, p)` — every one of them a pipeline that could never have run, in a suite
+  that was green.
+
+- **`include: [syntax]` carries the attributes Macula states on a constituent.** Nodes now carry
+  `articular`, `head`, `type`, `clauseType`, `junction` and `predication` beside `class` and `role`;
+  leaves carry `junction` and `discontinuous`.
+
+  Each is a property of a **constituent** with no route through the TSV, which is one row per word.
+  `articular` is the clearest: in `τῇ κατ᾽ οἶκόν σου ἐκκλησίᾳ` the article governs a phrase
+  containing a prepositional phrase, not the word beside it, so articularity cannot ride in a
+  per-word family however the families are arranged — it is `syntax` or nowhere. Asked for by
+  `discourse-flow`, who need it for Levinsohn's test distinguishing topic-like from focus-like
+  constituents, together with `referents.referent` and `referents.subjref`, which already shipped.
+
+  **`discontinuous` was the engine's own gap.** This family is standoff *because* text order and
+  tree order cannot be reconciled, and Macula marks which words are discontinuous — 6,038 of them,
+  in 4,404 of the Greek corpus's 8,010 sentences, on leaves only and never on a group. The source's
+  own marking of the phenomenon the design is built around was being dropped.
+
+  Nothing else on a leaf is carried: `lemma`, `strong`, `morph`, `gloss`, the parsing fields,
+  `frame`, `subjref` and `referent` are TSV columns delivered by the per-word families, and a
+  second encoding here could disagree with the first. `rule` and `nodeId` are not carried either —
+  they name how the parser derived a node rather than a fact about the constituent, and `rule`
+  comes in two conventions, a capitalised `Rule` paired with `nodeId` running through all 27 Greek
+  books.
+
+  Three consequences for a consumer. **Absence is the negative** for `articular`, `discontinuous`
+  and `head`, which the source writes only when true. **The two languages differ** — `head` is
+  Hebrew-only, the other four Greek-only — as a family emits whichever of its fields the edition
+  has. And **`clauseType` is the one field name that is not the source's verbatim**: Greek writes
+  `clauseType`, Hebrew `clausetype`, and the payload states it once under the Greek spelling rather
+  than presenting an inconsistency between sources as a distinction in the grammar.
+
+  Guarded by a test asserting no field outside the ruled set reaches a payload, so a corpus gaining
+  an attribute cannot quietly widen it, and by real-corpus tests over Philemon, Mark and Ruth.
+
+- **Versification merges are representable, and seven shipped mapping entries stop being dropped.**
+  A mapping whose two sides covered different numbers of verses was skipped, on the reasoning that
+  guessing would put a reference where the data does not. But the commonest such entry is not a
+  guess: it states that a run of verses in one scheme is **one verse** in another, or the reverse.
+
+  `rsc` carries `PSA 89:0-1 => PSA 90:0` and `PSA 141:0 => PSA 142:0-1`; `vul` folds all 63 verses
+  of Greek Daniel 13 into `SUS 1:63`. Seven such entries across `rsc`, `rso` and `vul` were being
+  dropped at load — and a reference inside a dropped range then **passed through unchanged**,
+  landing on the wrong verse despite an honest warning. That warning fired on every scheme load.
+
+  `to_hub` now holds a list per verse, since both directions occur: a join repeats one target
+  across several keys, a division holds several targets under one. `_pairs` recognises equal runs,
+  a run joining into one verse, and one verse dividing into a run. `map_candidates` accumulates
+  across both hops in the mapping file's order, which is what its documentation always promised —
+  *"more than one where the target scheme divides what the source joins."*
+
+  **Two entries stay refused, and should.** `rso`'s `PSA 89:2-6 => PSA 90:1-6` is five verses to
+  six and does not say which gained one; `vul`'s `DAG 3:52-23` names a range running backwards.
+  Supporting joins is not the same as guessing, and that distinction was the whole reason for the
+  original skip.
+
+  Found while designing Paratext support (#222): a real `custom.vrs` states `REV 13:1 = REV 12:18`
+  and `REV 13:1 = REV 13:1`, which an earlier reading took for an ambiguity to refuse. It is a
+  merge — NIV-like numbering puts the content of org's REV 12:18 in REV 13:1 — and the engine could
+  not express it. Fixing that first means Paratext needs no special case for it.
+
+- **Hebrew participant ids do not join onto Hebrew ids, and now the declaration says so.** Every
+  Greek `referent` value — all 18,213 — begins with `n`, matching the ids beside it. Every Hebrew
+  `participantref` value — all 59,227 — is digits only, while every Hebrew id carries a leading
+  `o`. Of 50 sampled, 50 resolve when prefixed and 0 as written, so a participant chain built by
+  joining the column onto the ids returns nothing at all and does not raise. `frame` and `subjref`
+  carry the same bare ids.
+
+  **Declared rather than repaired.** Repairing `frame` would mean parsing its `A0:`/`A1:`
+  structure, which is the consumer's by ruling, so only `participantref` could be repaired — fixing
+  one column, leaving two, and teaching a rule that then fails silently on the others. The rule now
+  lives in `notes.participant_ids` in `data/include-families.json`, which is the file consumers read
+  instead of the code, with a test asserting it names all three columns.
+
+  The note also records that `referent` is Greek-only and `participantref` Hebrew-only — one concept
+  under two names, not unified, because the corpora were produced independently and declaring the
+  equivalence would be an editorial judgment about someone else's data.
+
+  Raised by `discourse-flow`, whose actual question — whether a Hebrew pronominal suffix carries its
+  own participant — is answered yes: 45,336 of 47,442 suffix morphemes do, and of 200 that do not,
+  one had a same-word morpheme that did. Nothing merges morphemes, so no suffixed reference is lost.
+
+- **`include-families.json` said `syntax` was not implemented.** The family is built and listed in
+  `IMPLEMENTED_FAMILIES`, but the `purpose` string in the table that declares *"What each `include:`
+  family delivers"* still read `"Syntactic structure. Not implemented."` — and that file is what
+  consumers read instead of the code. Reported by `discourse-flow`.
+
+- **`Pss` named two books, and returned the wrong one.** The SBL Handbook gives `Pss` for Psalms
+  (plural); USFM gives `PSS` for Psalms of Solomon, which the shipped schemes carry as a book of
+  its own — 18 chapters in `org` and `lxx`. `_index()` adds `other_codes` with `setdefault`, so
+  the alias got there first and a pipeline asking for Psalms of Solomon silently received Psalms.
+
+  Both claims are sourced and neither can be dropped, so the token is now **refused** — which is
+  what `ambiguous` is for, and what the declaration already said: *"choosing one silently is how
+  the wrong text gets read."* `Ps`, `Psa`, `Psalm` and `Psalms` are untouched.
+
+  Found by the verse-range sweep below: `PSS`'s verse counts did not match the book it returned.
+  The guard that should have caught it, `test_no_alias_points_at_two_books`, compared aliases only
+  against each other and never against `other_codes`; it has been widened, so the next such
+  collision fails rather than resolving.
+
+  **Psalms of Solomon is now unreachable rather than wrong.** It has no display name — `other_codes`
+  deliberately invents none — so the refusal's advice to write the book out cannot be followed for
+  it. Refusing beats returning the wrong text; naming it is separate work.
+
+- **`llmflow.utils.verse_ranges` — comparing verse ranges (#169).** Designed in
+  `design-verse-regions.md`, which supersedes two earlier documents.
+
+  The issue reports duplicated overlap logic across four plugins. Reading them, the duplication is
+  worse and lower down: **five reference parsers** between the four files, three incompatible
+  return types, two of them with identical signatures in one file — and **not one returns the
+  book**. That is why `division_lookup.py:31` compares `Mark 1:1-5` against `John 1:1-5` as
+  overlapping: the parsed type has nowhere to put a book, so no care in the comparison code could
+  have caught it. The deliverable is therefore a type built once at the boundary, not a library of
+  predicates over strings.
+
+  **No third parser was added.** `parse_passage_ref` already gives the syntax; a scheme turns that
+  into concrete verses. Only the comparison layer was missing. A differential test now pins the
+  engine's two existing parsers together — they are layered rather than duplicated, but each
+  carries its own pattern set and nothing held them in agreement.
+
+  **Books are distinct documents**, so no range spans books and ordinals are **book-local**: canon
+  order never arises, and the schemes disagreeing on book inventory — 95 books in `org` against 66
+  in `rsc` — stops mattering. Chapter-boundary adjacency, which the superseded design called the
+  hardest case and grounds for deferring the operation, becomes `a.end + 1 == b.start`.
+
+  `overlaps` means **shares at least one verse**, containment and equality included. Interval
+  algebra reserves the word for the strictly partial case; every one of the four plugins, and any
+  pipeline author, means the other. The strict case is handled and deliberately not named, so no
+  word means two things — which is what let the relation partition stay internal, and consumers
+  never meet interval-algebra vocabulary.
+
+  Exported: `Range.parse`, `overlaps`, `contains`, `touches`, `equals`, `verse_count`, `select`.
+  `touches` is adjacency — no gap and no shared verse — and is named for the reader rather than
+  after Allen's `meets`.
+
+  **`select` is the filter the pipeline language lacks.** Python has a comprehension; YAML has
+  neither, which is why four plugins wrote the loop by hand and one takes the first match, so a
+  passage spanning two divisions silently gets whichever comes first. `select` returns every match,
+  and an empty list rather than `None` where nothing matched. It costs no engine surface: the
+  existing `function` step reaches it with no new step type. `ref` is required and resolved the way
+  every other path in the engine is, so `meta.range` works.
+
+  Verified against real data: every book and chapter of all six packaged schemes — 95 books, 1,584
+  chapters in `org` alone — checked for verse counts, whole-book containment, and consecutive
+  chapters touching without overlapping. Kept as a test, since laws over the real corpus are the
+  closest thing available to generated input without adding `hypothesis`.
+
+- **`include: [syntax]` — the constituency tree, standoff (#227).** Ruled 2026-08-31, built now.
+  Every declared `include:` family is implemented; nothing is named-but-missing.
+
+  Text and tree are two orders that cannot be reconciled — a constituent whose words are
+  interrupted by words from elsewhere is discontinuous, and 276 of Mark's 726 sentences carry an
+  inversion somewhere in traversal — so each is stated once in the order native to it. The reading
+  text stays in the USJ document; the tree sits in the container carrying no text.
+
+  **A list, one entry per sentence.** That makes "which subtree is a sentence" structural rather
+  than a class the engine invents, which is what `discourse-flow` needed: a point of departure is
+  defined as sentence-initial, and Mark has 726 sentences against 4,021 clause groups, so
+  answering that against clauses would be wrong roughly five times in six.
+
+  Nodes and leaves both carry `class` — the syntactic category — and `role`, the role with respect
+  to the governing verb. A leaf also carries a word-level `token`, and nothing further: no text,
+  because the text is in the document, and no `ref`, because a word's book, chapter and verse
+  follow from where it sits there. `rule` is not carried; it names the parser's derivation rather
+  than a fact about the constituent.
+
+  **Hebrew is morpheme-based and stays that way.** A word written in several pieces appears as
+  several leaves naming the same word and differing in `class` or `role` — 171 of Ruth 1's 172
+  multi-morpheme words differ in one or the other, `וַ` a conjunction against `יְהִ֗י` a verb.
+  Collapsing them would have destroyed the analysis. `<c>` compound words are carried as nodes
+  because they span two *words* rather than two morphemes of one; every one in Ruth 1 is
+  `בֵּית לֶחֶם`, the same compound that makes a discourse citation's index run one behind the
+  edition's.
+
+  **`syntax` requires `ids`** and raises without it — a stronger condition than the per-word
+  families have, because a tree is *over* words rather than an annotation *on* one. Its leaves are
+  word ids, which reach the document as `srcloc` through `ids`; without them the payload names
+  words the document does not identify.
+
+  An edition points at its trees with `lowfat_path`, beside `discourse_path`. Files are matched by
+  the `ref` each declares rather than by filename, since the Greek corpus names files `02-mark.xml`
+  and the Hebrew one `08-Rut-001-lowfat.xml` and neither declares a convention — 0.33s to identify
+  all 930 Hebrew files. A sentence meeting the passage is carried whole, so some tokens may name
+  words outside the rows returned: the constituency of half a sentence is not a fact about the
+  text.
+
+  It is the largest family by a wide margin — `MRK 1:1-8` is 127 words and about 9,500 characters.
+
+  `frame` is **not** part of it, and its move to `referents` is what let the name mean one thing.
+
+- **A rule can now say a gate stops the act, which two rules were already relying on and could not
+  express (#230).** `enforcement` had four values, all describing *detection*: a test that fails
+  today, one that could, one that could not. The strongest mechanism in use here is neither — a
+  `PreToolUse` hook or an `ask` entry in the operator's permissions refuses the act or puts it in
+  front of a human **before it happens**. Rules held that way were recorded as `judgment`, the
+  weakest value, because the vocabulary had no word for them.
+
+  `enforcement: gated` and `scope: harness` are that word, and the generated rules document leads
+  with them — prevention above detection, judgment last.
+
+  | rule | was | gated by |
+  |---|---|---|
+  | `issues-need-approval` | `judgment` | `Bash(gh issue create:*)` |
+  | `commit-authority` | `guardable` | `Bash(git push:*)`, `Bash(gh pr merge:*)` |
+
+  **A gate is not verifiable from this repository**, and the value says so rather than hiding it:
+  it lives in the operator's environment, so on an unconfigured machine those rules are `judgment`
+  like any other. `guard:` names a file the tests open; `gate:` names something they take on trust,
+  which is why a `gated` rule must name it — a reader can then check their own configuration.
+
+- **New rule `declared-not-inferred`.** Rely on a published format, on a declaration this project
+  maintains, or on a measurement anyone can re-derive; not on the file tree, a directory layout, a
+  naming convention, how often a value occurs, or a mechanism that merely sounds plausible. A
+  hand-kept list is not a declaration — it is an inference about one, and it drifts.
+
+  The general form of three separate rulings, with the worked cases in
+  `project/plans/design-what-the-engine-may-rely-on.md`, including the four inferences that
+  produced wrong answers in two days: the file tree read as a specification, a plausible mechanism
+  that measurement refused, a frequency described as a failure rate before that was established,
+  and assuming what a value means to whoever receives it.
+
+### Fixed
+
+- **`pytest -m "not integration"` no longer calls a live model.** Two tests in
+  `tests/test_schema_file.py` were gated on `OPENAI_API_KEY` and named "Integration" in their class
+  and their docstring, but carried no marker — so the ordinary run, the one a contributor types and
+  the one the release checklist verifies against, made **six paid API calls**: one, and five more in
+  a loop. It surfaced when a truncated response made one of them fail, which is to say by luck
+  rather than by any check.
+
+  Both are marked, and a guard reads the signal that matters: a test skipped for want of an API key
+  is a test that spends money when the key is present. A class name is not a marker, and a docstring
+  saying "Integration" is not one either.
+
+- **`reference-data-is-json` said no test held it while its test was passing.** Classified
+  `guardable` — "a test is possible and nobody has written it" — with
+  `tests/test_reference_data_is_json.py` in the repository and a CHANGELOG entry saying the rule was
+  enforced. So the file told every session the rule depended on attention.
+
+  The classification checks had run one direction only: a rule *claiming* a guard must name one
+  that exists. Nothing asked the reverse. `test_a_rule_whose_test_exists_is_not_still_called_guardable`
+  now derives the correspondence — a rule id maps to `tests/test_<id>.py` with dashes as
+  underscores — so writing the obvious test and forgetting to reclassify is a red test. It is a
+  floor rather than a ceiling: `lxml-for-xml` is guarded by `test_lxml_not_elementtree.py`, which
+  the pattern cannot see.
+
+### Added
+
+- **Copy forcing: a field's role is declared, and two checks read it (#230).** A role map sits
+  beside its schema — `X.roles.yaml` next to `X.json` — and says which fields are `evidence`,
+  copied from the input so the model attends to it before deciding, and which are `content`, the
+  thing the pipeline exists to produce. `supports` states which evidence backs which claim.
+
+  ```yaml
+  fields:
+    verse:                               [evidence]
+    opening_word_id:                     [evidence, content]
+    levinsohn_signals_to_cite[].signal:  [evidence]
+    is_boundary:                         [content]
+
+  supports:
+    levinsohn_signals_to_cite[].verdict: ["levinsohn_signals_to_cite[].signal"]
+    is_boundary:                         [verse, greek_quoted]
+  ```
+
+  Two role words, list-valued because a field can honestly be both. The role belongs to the
+  (schema, field) pair rather than to the field name: the same name is copy-forced evidence in one
+  step and payload in the next, so a project-level file could only lie about one of them.
+
+  **`sp lint` runs two checks, and neither needs a model call.**
+
+  1. **The order rule** — a supporting path must precede what it supports in schema property
+     order, because that is the order the model generates in. Checked at the top level *and*
+     inside an array item, comparing two paths at the first segment where they diverge. Evidence
+     written after its claim cannot have forced it.
+  2. **Structural validity** — every declared path exists in the schema, including `a[].b` through
+     `items.properties`; no path declared twice; roles list-valued.
+
+  This is why declaring beats inferring: `discourse-flow` found the failure the order rule catches
+  by generating seven artifacts and scanning them, and the cause was ordering — visible in the
+  schema alone. `ears-to-hear` measured the same class of defect in one of their own schemas.
+
+  **Reported, never judged.** Findings are warnings; a pipeline decides what is fatal.
+  `discourse-flow`, reconciling two of their own rules: *"`sp` computes the verdict and exposes it;
+  the pipeline says `fatal` or `report`."*
+
+  A role word the engine does not define is carried without complaint — a project may declare a
+  role of its own for a field a later step consumes and no reader sees, and these checks do not
+  touch it. A `supports` path need not appear in `fields`: what the engine needs about a field it
+  orders is its position, not a name for it.
+
+  **Not included, by ruling:** severity, occupancy reporting, `empty_expected`, audience. Each
+  needs a judgment about somebody else's data. The declaration is machine-readable and complete,
+  so a project computing any of those reads the same file.
+
+  Verified against the five role maps `discourse-flow` had already written — 92 fields, 21
+  `supports` entries, no findings — and against inverting one of their real entries, which
+  produces one. A check that reports nothing on sound input and something on unsound input is the
+  only kind worth shipping.
+
+  Unbuilt from the design: `identifies` and the coverage check, which compares identifiers
+  returned against identifiers requested and so needs a response rather than a schema.
+
+- **`frame` is carried by `include: [referents]`.** It holds the predicate's semantic roles as
+  participant ids — `A0:190230010031; A1:190230010022` — populated on about a fifth of words in
+  both corpora, and it belonged to no family, so no pipeline could ask for it.
+
+  `data/include-families.json` had listed it under `not_carried` as *"syntactic frame, belongs with
+  `syntax`"*. That was filed before `include: [syntax]` was ruled standoff: the `syntax` payload is
+  the constituency tree with leaves carrying only references, so a per-word attribute cannot ride
+  in it. In Lowfat terms `syntax` is the `wg` node tree while `frame` is an `m` leaf attribute, and
+  the families are organised by form.
+
+  `referents` is the right home because `frame` is the semantic-role counterpart to `subjref`'s
+  grammatical one, and the two come apart where a discourse boundary criterion bites: a passive
+  whose subject is the undergoer reads to `subjref` as "same participant, still the subject", and
+  the role reversal is invisible. Reported by `discourse-flow`, who found it correcting a Psalm 23
+  division — `A0` and `A1` reverse between vv. 2–3 and v4, and v6 introduces a participant absent
+  from the earlier cast.
+
+### Fixed
+
+- **`--resume` produced an empty accumulator and reported success.** A resumed step is skipped and
+  its saved artifact loaded into its declared `output`. `_load_resume_output` never mentioned
+  `append_to`, so a step that also accumulates gained nothing: the output was set, the list stayed
+  empty, and every later step ran on nothing while the run reported success.
+
+  `--rewind-to` has refused such a step since it was written, behind a deliberate guard at
+  `utils/rewind.py:77`. `--resume` now refuses the same way, naming the accumulator that would
+  have been left empty and pointing at `--stop-after`. Nothing is written to the context before it
+  raises, so a refusal cannot leave a half-applied resume behind.
+
+  Reported by `discourse-flow`, who lost a full Mark run — 17 windows, 57 subdivisions, 128
+  pericope analyses and a synthesis — to a crash on a later step, and then found neither salvage
+  path usable. Their framing decided it: *"a resume that produces an empty accumulator is worse
+  than one that refuses, because the run appears to succeed."*
+
+- **A citation's index and its quote now resolve by a stated order, and a quote found nowhere says
+  so (#230).** Three steps: the quote matches at the index, so `verified`; it matches in exactly
+  one other place, so the id is **that** word, reported as `disagrees` with `index` unchanged and
+  `resolved_index` saying where it landed; it matches nowhere, so **both facts are reported** — the
+  id is the index's word, because it is the only address there is, and the outcome is `not_found`,
+  because nothing in the verse supports it.
+
+  The third step corrects a real dishonesty. Those citations previously reported `disagrees` and
+  handed back the index's word as though it were resolved — **39 across nine passages**, presenting
+  an unverified word as a settled one.
+
+  The second reverses a previous ruling that a usable index is never moved. An index is an address
+  in a text this engine does not hold: Levinsohn numbered words in NA27 and BHS under his own
+  grammatical analysis, Macula numbers its own text under its own, and `מִבֵּ֧ית לֶ֣חֶם` is one
+  place name to the first and two space-separated words to the second. From that word on, the two
+  numberings differ by one — which is exactly where `RUT 1:1`'s failures begin. The quote is the
+  text this engine does hold, so where it is unambiguous it decides. **100% agreement between two
+  independently produced editions was never available**, in either language, which is also why
+  Greek sits at 94–100%.
+
+  **What this costs, stated rather than buried.** `Main clauses` index where a clause begins,
+  conjunction included, while quoting the clause's first substantive word — so there the index is
+  the word to trust, and a consumer who moved boundaries on the quote once relocated 84 of them.
+  Under the chain those ids move to the constituent: **8 of 626 citations across MRK 1–3, 1JN 1 and
+  PHM 1, five of them `Main clauses`**. Nothing is lost, since `index`, `resolved_index`,
+  `quote_found_at` and `outcome` are all in the payload, but the default changed.
+
+  Detecting that case in the engine was attempted and abandoned: the obvious discriminator, the
+  word at the index being a conjunction, separates nothing — in Hebrew it is a preposition, a noun
+  or a conjunction. The corpus declares `type` empty in all 33 files, and `level` is nesting depth.
+  Hardcoding feature names would assert a convention the corpus does not state.
+
+- **A maqqef in a quote stopped it matching the text it named (#230).** Hebrew joins words with a
+  maqqef, and Macula holds the mark in `after`, not in the word's `text` — the WLC registration
+  states it: *"`after` carries the space, maqqef and sof pasuq, so word joining is data rather than
+  logic."* A citation writes it attached, `בֶן־ אֲמִתַּ֖י`, so comparing `בן־` against Macula's
+  `בן` failed on every maqqef-joined word.
+
+  Splitting the quote at the maqqef reads the edition's own model. **Jonah 1 went from 96% to
+  100%** — every one of its unresolved citations was this.
+
+- **A Hebrew discourse citation resolved against the wrong word, and 85–99% of them failed
+  (#230).** `resolve_citation` matched Levinsohn's 1-based index against *row position*. That is
+  right for Macula Greek, which has exactly one row per word, and wrong for Macula Hebrew, where a
+  word written with a prefix or suffix occupies several rows: Ruth 1:1 is 33 rows over 19 words, so
+  word 4 begins at row 6. Reported by `discourse-flow` while migrating to `include: [discourse]`,
+  and confirmed here before anything changed.
+
+  | | rows per word | `verified` before | after |
+  |---|---:|---:|---:|
+  | Greek `MRK 1`, `1JN 1`, `PHM 1` | 1.00 | 94–100% | unchanged |
+  | Hebrew `JON 1` | 1.62 | 1% | **96%** |
+  | Hebrew `RUT 1` | 1.58 | 2% | **85%** |
+  | Hebrew `OBA 1` | 1.51 | 5% | **91%** |
+  | Hebrew `HAG 1` | 1.53 | 7% | **87%** |
+  | Hebrew `PSA 51` | 1.66 | 10% | **87%** |
+
+  The `ref` column already carries the word index in both corpora — `RUT 1:1!4` *is* word 4 — so
+  the fix reads what the edition declares instead of inferring it from how the file is laid out. No
+  new configuration, no per-edition flag, and no knowledge of morphology.
+
+  **The word id now addresses the word.** Macula ids are `BBCCCVVVWWWP` in Hebrew and
+  `BBCCCVVVWWW` in Greek, per *MACULA Hebrew Treebank for OSHB* §2.1, where `WWW` is the word
+  index and `P` the word part. The payload had been reporting a morpheme id, so a consumer
+  highlighting it showed `הַ` rather than `הַשֹּׁפְטִ֔ים`. Dropping `P` yields the same shape Greek
+  already uses, so one format serves both languages.
+
+  A second instance of the same defect was in `resolve_verse`, which carried its own row-indexing
+  for notes: a note at index 4 anchored to the second morpheme of word 2.
+
+  **What this does not fix**, stated so it is not assumed: 79 of 521 citations in `RUT 1` still
+  report `disagrees`, and the offsets scatter — +1, +2 and −1 — with 28 having no single found
+  position. There is no further systematic cause. A maqqef hypothesis was measured and refused:
+  `RUT 1:1` has a failure at index 11 with no maqqef in the verse. `Reported Speech` at 1 verified
+  against 7 disagreeing is the one outlier worth a look.
+
+- **A citation's span was discarded, for a quarter of the corpus (#230).** `OSIS_REF` had no
+  end-capture, so `Mark.1.2!9-Mark.1.2!15` matched, consumed `Mark.1.2!9`, and dropped `!15`;
+  `Citation` carried one index and no end. Every spanning citation therefore loaded with its
+  opening word and its Greek intact, and its extent gone.
+
+  `discourse-flow` reported it for quotations — 47 in Mark carrying 0 spans, their issue #92, a
+  loss they had assumed was their own. Measured against LGNTDF, it is far wider: **13,096 of
+  52,257 citations name a span**, led by `Focus+` (2,750), `Referential PoD` (2,065),
+  `Reported Speech` (1,491) and `Situational PoD` (1,474), with `OT quotes` sixth at 644.
+
+  `Citation` now carries the closing end as a reference in its own right — book, chapter, verse,
+  word — because **657 spans close in a later verse** and some cross three
+  (`Acts.26.16!14-Acts.26.18!71`). The payload reports `end_index`, `end_verse` and, where it
+  differs, `end_chapter`; and `id_end` where this verse holds the closing word. A span closing
+  elsewhere is reported without an id rather than dropped, and rather than given an id from the
+  wrong verse's rows.
+
+  The end is stated in full whether or not it falls in the opening verse, so `None` means "no
+  span" and nothing reads a missing verse as "the same one". A `Citation` built by hand with only
+  `end_index` fills the rest from its opening, so a bare closing index cannot silently become a
+  span that closes in no verse at all.
+
+  **Breaking:** `parse_osis_ref` returns five values instead of four, the fifth being the closing
+  reference or `None`.
+
+### Changed
+
+- **The role-map example in `design-declaring-field-roles.md` §7 parses.** It did not: a path used
+  as a value inside a flow sequence opens a nested sequence, so
+  `a[].v: [a[].s]` fails with `ParserError`. `discourse-flow` copied the published example and four
+  of their five maps failed. Paths used as values are quoted now, with the parse table and the
+  block-style alternative beside them. A second broken block, which they had not hit, was found by
+  parsing every block in the document rather than only the one reported.
+
 ## 0.2.1.26 — 2026-09-03
 
 ### Added

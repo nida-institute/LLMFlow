@@ -133,12 +133,24 @@ def test_a_note_whose_index_is_impossible_is_reported_not_dropped(corpus):
     assert resolved[0]["outcome"] != Outcome.VERIFIED.value
 
 
-def test_a_disagreement_keeps_the_index_and_says_where_the_quote_is(corpus):
+def test_a_disagreement_reports_the_quote_and_says_where_it_was_found(corpus):
+    """The index gives way to an unambiguous quote, and the disagreement stays visible.
+
+    Previously the index was never moved, and the id named the word at the index while
+    `quote_found_at` named the other. That kept the citation's own address at the cost of an id
+    pointing at the neighbour wherever two resources count words differently — measured across six
+    Hebrew passages, 86 of 124 disagreements.
+
+    `outcome` is what a consumer reads to decide: `disagrees` means the two sources named
+    different words and the quote decided. Where the index is the one to trust — see
+    `test_a_main_clause_disagrees_by_design` — the index is still reported, in `index`.
+    """
     verse = rows("Καὶ", "μετὰ", "τὸ")
     citations = [c for c in load_citations(corpus)["MRK 1:14"] if c.text == "μετὰ"]
     resolved = resolve_verse(citations, verse)
     assert resolved[0]["outcome"] == Outcome.DISAGREES.value
-    assert resolved[0]["id"] == "n001", "a usable index is never moved"
+    assert resolved[0]["id"] == "n002", "the word the quote names"
+    assert resolved[0]["index"] == 1, "and the index the citation gave, unchanged"
     assert resolved[0]["quote_found_at"] == 2
 
 
@@ -166,9 +178,9 @@ def test_every_feature_name_is_carried():
 
 @real_data
 def test_discourse_attaches_at_word_ids_through_an_edition():
-    from llmflow.utils.scripture import edition_text
+    from llmflow.utils.scripture import resource_text
 
-    editions = {
+    resources = {
         "SBLGNT": {
             "kind": "tsv",
             "path": "/Users/jonathan/github/Clear/macula-greek/SBLGNT/tsv/macula-greek-SBLGNT.tsv",
@@ -176,8 +188,8 @@ def test_discourse_attaches_at_word_ids_through_an_edition():
             "discourse_path": str(LGNTDF),
         }
     }
-    usj = edition_text(
-        "SBLGNT", "MRK 1:14", fmt="usj", editions=editions, include=["ids", "discourse"]
+    usj = resource_text(
+        "SBLGNT", "MRK 1:14", fmt="usj", resources=resources, include=["ids", "discourse"]
     )
     items = usj["scripture_pipelines"]["discourse"]
     assert items, "no discourse items attached"
@@ -187,40 +199,52 @@ def test_discourse_attaches_at_word_ids_through_an_edition():
 
 
 @real_data
-def test_the_documented_trap_keeps_its_index():
-    """Mark 1:14 indexes the clause onset and quotes the constituent; the index must not move."""
-    from llmflow.utils.scripture import edition_text
+def test_a_main_clause_disagrees_by_design_and_says_so():
+    """Mark 1:14 indexes the clause onset and quotes a constituent inside the clause.
 
-    editions = {
+    This is the case where the *index* is the one to trust: `Main clauses` cite where a clause
+    begins and quote something within it, so the quote naming a different word is expected rather
+    than a defect. A consumer that moved the boundary on that basis relocated 84 clause boundaries
+    in a corrected pass.
+
+    Nothing in the corpus declares which features work that way, so the engine does not guess: it
+    reports the quote's word as `id`, the citation's own `index` unchanged, `quote_found_at`, and
+    an outcome of `disagrees` — and a consumer that knows `Main clauses` behaves like this reads
+    `index` instead. Measured blast radius of the change: 8 of 626 citations across MRK 1-2,
+    1JN 1 and PHM 1, five of them `Main clauses`.
+    """
+    from llmflow.utils.scripture import resource_text
+
+    resources = {
         "SBLGNT": {
             "kind": "tsv",
             "path": "/Users/jonathan/github/Clear/macula-greek/SBLGNT/tsv/macula-greek-SBLGNT.tsv",
             "discourse_path": str(LGNTDF),
         }
     }
-    usj = edition_text("SBLGNT", "MRK 1:14", fmt="usj", editions=editions, include=["discourse"])
+    usj = resource_text("SBLGNT", "MRK 1:14", fmt="usj", resources=resources, include=["discourse"])
     onset = [
         i for i in usj["scripture_pipelines"]["discourse"]
         if i["feature"] == "Main clauses" and i["index"] == 1
     ]
     assert onset, "the Main clauses citation at index 1 is missing"
     assert onset[0]["outcome"] == "disagrees"
-    assert onset[0]["id"] == "n41001014001"
-    assert onset[0]["quote_found_at"] == 2
+    assert onset[0]["index"] == 1, "the clause onset, which is the word to trust here"
+    assert onset[0]["quote_found_at"] == 2, "and where the quoted constituent begins"
 
 
 def test_an_edition_with_no_discourse_source_warns_rather_than_failing(tmp_path, caplog):
-    """§4: a requested family the edition names no source for warns rather than failing."""
-    from llmflow.utils.scripture import edition_text
+    """§4: a requested family the resource names no source for warns rather than failing."""
+    from llmflow.utils.scripture import resource_text
 
     tsv = tmp_path / "hebrew.tsv"
     tsv.write_text("ref\ttext\tafter\nGEN 1:1!1\tבְּרֵאשִׁית\t \n", encoding="utf-8")
-    editions = {"WLC": {"kind": "tsv", "path": str(tsv)}}
+    resources = {"WLC": {"kind": "tsv", "path": str(tsv)}}
 
     with caplog.at_level("WARNING"):
-        usj = edition_text("WLC", "GEN 1:1", fmt="usj", editions=editions, include=["discourse"])
+        usj = resource_text("WLC", "GEN 1:1", fmt="usj", resources=resources, include=["discourse"])
     assert "discourse" in caplog.text.lower()
-    # `null`, not omitted: the family was requested and the edition cannot supply it, which is
+    # `null`, not omitted: the family was requested and the resource cannot supply it, which is
     # a different fact from nobody having asked. The warning does not travel with the payload,
     # so the payload states it. Rule `say-which-kind-of-nothing`.
     assert usj["scripture_pipelines"]["discourse"] is None

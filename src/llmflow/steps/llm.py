@@ -45,6 +45,11 @@ def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, 
 
     rendered_prompt = expand_mixins(rendered_prompt, full_prompt_path)
 
+    # The template as authored, mixins included, before any value is injected. Contamination is
+    # only visible here: after injection the passage under test appears because it *is* the data.
+    from llmflow.utils.prompt_hygiene import warn_about_contamination
+    warn_about_contamination(rendered_prompt, full_prompt_path, context)
+
     # `${...}` and `{...}` in the *template* are resolved here, before any value is injected.
     # Running the resolver afterwards expanded the injected values themselves — data carrying
     # braces became a template against the pipeline context, silently. A placeholder is

@@ -245,9 +245,11 @@ _STEP_TYPE_PROPERTIES = [
     (
         ("scripture",),
         {
-            # A named edition, resolved through the registry — never a path here. See
-            # project/plans/design-scripture-editions.md (LLMFlow#200).
-            "edition": {"type": "string"},
+            # A named resource, resolved through the registry — never a path here. A resource is
+            # a readable text inside a dataset, carrying a reader and a versification; it is not
+            # a resource in the NA26/NA27 sense, and the same resource may be registered twice in
+            # two encodings. See project/plans/design-resource-vocabulary.md.
+            "resource": {"type": "string"},
             "passage": {"type": "string"},
             # The enum is the implemented set, read from the one place that defines it, so a
             # format cannot be accepted by lint before it exists or outlive its removal.

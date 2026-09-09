@@ -7,7 +7,7 @@ from llmflow.utils.scripture import (
     CONTAINER_KEY,
     INCLUDE_FAMILIES,
     MILESTONE_TEMPLATE,
-    edition_text,
+    resource_text,
 )
 
 MACULA = Path("/Users/jonathan/github/Clear/macula-greek/SBLGNT")
@@ -83,26 +83,26 @@ def test_the_seven_families_are_declared():
 @real_data
 def test_no_include_means_no_container():
     """A payload nobody asked for is a payload nobody checked."""
-    usj = edition_text("SBLGNT", "MRK 1:1", fmt="usj", editions=EDITIONS)
+    usj = resource_text("SBLGNT", "MRK 1:1", fmt="usj", resources=EDITIONS)
     assert CONTAINER_KEY not in usj
 
 
 @real_data
 def test_an_empty_include_means_no_container():
-    usj = edition_text("SBLGNT", "MRK 1:1", fmt="usj", editions=EDITIONS, include=[])
+    usj = resource_text("SBLGNT", "MRK 1:1", fmt="usj", resources=EDITIONS, include=[])
     assert CONTAINER_KEY not in usj
 
 
 @real_data
 def test_the_container_carries_the_versification_scheme():
-    usj = edition_text("SBLGNT", "MRK 1:1", fmt="usj", editions=EDITIONS, include=["ids"])
+    usj = resource_text("SBLGNT", "MRK 1:1", fmt="usj", resources=EDITIONS, include=["ids"])
     assert usj[CONTAINER_KEY]["versification"] == "org"
 
 
 @real_data
 def test_an_unknown_edition_scheme_is_reported_rather_than_invented(caplog):
     with caplog.at_level("WARNING"):
-        usj = edition_text("NO-SCHEME", "MRK 1:1", fmt="usj", editions=EDITIONS, include=["ids"])
+        usj = resource_text("NO-SCHEME", "MRK 1:1", fmt="usj", resources=EDITIONS, include=["ids"])
     # Stated as `null` rather than omitted: the warning does not travel with the payload, so a
     # later reader could not tell an undeclared scheme from a key nobody asked for. Still not
     # invented, which is what this test is for. Rule `say-which-kind-of-nothing`.
@@ -113,7 +113,7 @@ def test_an_unknown_edition_scheme_is_reported_rather_than_invented(caplog):
 @real_data
 def test_nothing_is_added_outside_the_container():
     """An extension anywhere else is an extension nobody can find or strip."""
-    usj = edition_text("SBLGNT", "MRK 1:1", fmt="usj", editions=EDITIONS, include=["ids"])
+    usj = resource_text("SBLGNT", "MRK 1:1", fmt="usj", resources=EDITIONS, include=["ids"])
     assert set(usj) == {"type", "version", "content", CONTAINER_KEY}
     stripped = {k: v for k, v in usj.items() if k != CONTAINER_KEY}
     assert set(stripped) == {"type", "version", "content"}
@@ -125,7 +125,7 @@ def test_nothing_is_added_outside_the_container():
 @real_data
 def test_ids_arrive_as_srcloc_on_each_word():
     """`ids` is spec-defined, so it belongs on the word, not in the container."""
-    usj = edition_text("SBLGNT", "MRK 1:1", fmt="usj", editions=EDITIONS, include=["ids"])
+    usj = resource_text("SBLGNT", "MRK 1:1", fmt="usj", resources=EDITIONS, include=["ids"])
     first = words(usj)[0]
     assert first["type"] == "char" and first["marker"] == "w"
     assert first["srcloc"] == "n41001001001"
@@ -134,7 +134,7 @@ def test_ids_arrive_as_srcloc_on_each_word():
 
 @real_data
 def test_every_word_carries_an_id():
-    usj = edition_text("SBLGNT", "MRK 1", fmt="usj", editions=EDITIONS, include=["ids"])
+    usj = resource_text("SBLGNT", "MRK 1", fmt="usj", resources=EDITIONS, include=["ids"])
     got = words(usj)
     assert got, "no word nodes emitted"
     assert all(w.get("srcloc") for w in got)
@@ -143,14 +143,14 @@ def test_every_word_carries_an_id():
 @real_data
 def test_without_ids_words_stay_plain_text():
     """The cheap form stays cheap: no per-word node when nothing consumes one."""
-    usj = edition_text("SBLGNT", "MRK 1:1", fmt="usj", editions=EDITIONS)
+    usj = resource_text("SBLGNT", "MRK 1:1", fmt="usj", resources=EDITIONS)
     assert words(usj) == []
 
 
 @real_data
-@pytest.mark.parametrize("edition", ["SBLGNT", "SBLGNT-TEI"])
-def test_both_backends_give_the_same_ids(edition):
-    usj = edition_text(edition, "MRK 1:1", fmt="usj", editions=EDITIONS, include=["ids"])
+@pytest.mark.parametrize("resource", ["SBLGNT", "SBLGNT-TEI"])
+def test_both_backends_give_the_same_ids(resource):
+    usj = resource_text(resource, "MRK 1:1", fmt="usj", resources=EDITIONS, include=["ids"])
     assert [w["srcloc"] for w in words(usj)][:3] == [
         "n41001001001",
         "n41001001002",
@@ -164,8 +164,8 @@ def test_both_backends_give_the_same_ids(edition):
 @real_data
 @pytest.mark.parametrize("passage", ["MRK 1:1", "MRK 1:1-3", "MRK 1", "MRK 1:45-2:3"])
 def test_flattening_still_reproduces_milestones_with_ids(passage):
-    usj = edition_text("SBLGNT", passage, fmt="usj", editions=EDITIONS, include=["ids"])
-    assert flatten(usj) == edition_text("SBLGNT", passage, fmt="milestones", editions=EDITIONS)
+    usj = resource_text("SBLGNT", passage, fmt="usj", resources=EDITIONS, include=["ids"])
+    assert flatten(usj) == resource_text("SBLGNT", passage, fmt="milestones", resources=EDITIONS)
 
 
 # --- lint rules, as errors at the call ------------------------------------------------
@@ -176,22 +176,46 @@ def test_flattening_still_reproduces_milestones_with_ids(passage):
 def test_include_without_usj_is_an_error(fmt):
     """Nowhere to put a payload — §4."""
     with pytest.raises(ValueError, match="include"):
-        edition_text("SBLGNT", "MRK 1:1", fmt=fmt, editions=EDITIONS, include=["ids"])
+        resource_text("SBLGNT", "MRK 1:1", fmt=fmt, resources=EDITIONS, include=["ids"])
 
 
 @real_data
 def test_an_unknown_family_names_the_known_ones():
     with pytest.raises(ValueError, match="morphology"):
-        edition_text("SBLGNT", "MRK 1:1", fmt="usj", editions=EDITIONS, include=["parsing"])
+        resource_text("SBLGNT", "MRK 1:1", fmt="usj", resources=EDITIONS, include=["parsing"])
 
 
 @real_data
-def test_a_family_that_is_not_built_yet_says_so_rather_than_returning_nothing():
-    with pytest.raises(NotImplementedError, match="syntax"):
-        edition_text("SBLGNT", "MRK 1:1", fmt="usj", editions=EDITIONS, include=["syntax"])
+def test_a_family_that_is_not_built_yet_says_so_rather_than_returning_nothing(monkeypatch):
+    """Every declared family is built today, so the guard is exercised against a simulated one.
+
+    It used `syntax` as its subject until `syntax` shipped. Deleting the test then would have
+    removed the check that an unbuilt family raises rather than returning a document with the
+    payload quietly missing — which is the behaviour, not an artefact of one family being
+    incomplete. `monkeypatch` keeps it exercised without waiting for the next unbuilt name.
+    """
+    from llmflow.utils import scripture
+
+    monkeypatch.setattr(
+        scripture, "IMPLEMENTED_FAMILIES", scripture.IMPLEMENTED_FAMILIES - {"senses"}
+    )
+
+    with pytest.raises(NotImplementedError, match="senses"):
+        resource_text("SBLGNT", "MRK 1:1", fmt="usj", resources=EDITIONS, include=["senses"])
+
+
+def test_every_declared_family_is_built():
+    """The state the test above had to simulate: nothing is named-but-missing right now.
+
+    Recorded so that adding a name to `INCLUDE_FAMILIES` without an implementation is a decision
+    someone takes deliberately, rather than a gap the suite stays quiet about.
+    """
+    from llmflow.utils.scripture import IMPLEMENTED_FAMILIES, INCLUDE_FAMILIES
+
+    assert set(INCLUDE_FAMILIES) == set(IMPLEMENTED_FAMILIES)
 
 
 @real_data
 def test_include_must_be_a_list_not_a_word():
     with pytest.raises(ValueError, match="list"):
-        edition_text("SBLGNT", "MRK 1:1", fmt="usj", editions=EDITIONS, include="ids")
+        resource_text("SBLGNT", "MRK 1:1", fmt="usj", resources=EDITIONS, include="ids")

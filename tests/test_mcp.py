@@ -79,14 +79,14 @@ class TestMCPClient:
         async with MCPClient(MCP_SERVER_URL, ['get_textual_edition_abbreviations']) as client:
             result = await client._async_call_tool('get_textual_edition_abbreviations', {})
 
-            # Should return list of editions
+            # Should return list of resources
             assert result is not None
             assert len(result) > 0
 
-            # Should contain expected editions
+            # Should contain expected resources
             assert 'SBLGNT' in result or 'BSB' in result, f"Expected SBLGNT or BSB in: {result}"
 
-            print(f"✅ Available editions: {result}")
+            print(f"✅ Available resources: {result}")
 
     @pytest.mark.asyncio
     async def test_get_passage_text(self):
@@ -186,12 +186,12 @@ class TestMCPIntegration:
 
     @pytest.mark.asyncio
     async def test_full_bible_lookup_workflow(self):
-        """Test complete workflow: list editions → fetch passage → verify content."""
+        """Test complete workflow: list resources → fetch passage → verify content."""
         async with MCPClient(MCP_SERVER_URL) as client:
-            # Step 1: Get available editions
+            # Step 1: Get available resources
             editions_result = await client._async_call_tool('get_textual_edition_abbreviations', {})
-            assert 'SBLGNT' in editions_result, f"Expected SBLGNT in editions: {editions_result}"
-            print(f"   Step 1: Found editions: {editions_result}")
+            assert 'SBLGNT' in editions_result, f"Expected SBLGNT in resources: {editions_result}"
+            print(f"   Step 1: Found resources: {editions_result}")
 
             # Step 2: Fetch passage in SBLGNT
             passage_result = await client._async_call_tool('get_passage_text', {
@@ -258,12 +258,12 @@ if __name__ == '__main__':
             traceback.print_exc()
             return False
 
-        # Test 3: Get editions
+        # Test 3: Get resources
         print("\n📝 Test 3: Get Textual Editions")
         try:
             async with MCPClient(MCP_SERVER_URL) as client:
                 result = await client._async_call_tool('get_textual_edition_abbreviations', {})
-                print(f"✅ Available editions:")
+                print(f"✅ Available resources:")
                 print(f"   {result}")
         except Exception as e:
             print(f"❌ Failed: {e}")

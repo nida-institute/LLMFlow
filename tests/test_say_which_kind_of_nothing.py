@@ -9,8 +9,8 @@ Three states, and the third is the ambiguous one:
 
 The scripture container got the first right already: a requested family with no data yields an
 empty map, which `test_scripture_families.py` covers. It got the third wrong in two places — a
-family the edition could not supply was omitted, leaving a log warning as the only explanation,
-and a log line does not travel with the data. A consumer could not tell "this edition has no
+family the resource could not supply was omitted, leaving a log warning as the only explanation,
+and a log line does not travel with the data. A consumer could not tell "this resource has no
 Levinsohn source" from "discourse was never requested".
 
 Convention: rule `say-which-kind-of-nothing`. The pattern to copy is
@@ -37,11 +37,11 @@ def _container(include, **kwargs) -> dict:
 
 
 def test_a_requested_family_the_edition_cannot_supply_is_null_not_absent():
-    """`discourse` requested, but the edition names no discourse source."""
+    """`discourse` requested, but the resource names no discourse source."""
     container = _container(["ids", "discourse"], discourse=None)
 
     assert "discourse" in container, (
-        "a requested family was omitted, so a reader cannot tell an edition with no discourse "
+        "a requested family was omitted, so a reader cannot tell a resource with no discourse "
         "source from a passage where discourse was never asked for"
     )
     assert container["discourse"] is None
@@ -61,7 +61,7 @@ def test_an_unrequested_family_stays_absent():
 
 
 def test_an_undeclared_versification_is_null_not_absent():
-    """The edition does not say which versification its references are in.
+    """The resource does not say which versification its references are in.
 
     That was a log warning and an absent key. The warning does not reach whoever reads the
     payload later, so the payload has to say it.

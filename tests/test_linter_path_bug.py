@@ -3,10 +3,10 @@ import os
 from pathlib import Path
 
 
-def test_linter_path_resolution_bug():
+def test_linter_path_resolution_bug(sample_pipeline):
     """Test to isolate the linter path resolution issue"""
 
-    pipeline_path = "pipelines/storyflow-test.yaml"
+    pipeline_path = str(sample_pipeline)
 
     try:
         # Use the correct function name from the available list
@@ -85,11 +85,11 @@ def test_linter_path_resolution_bug():
         print(f"Could not import lint_pipeline_full: {e}")
 
 
-def test_manual_contract_validation():
+def test_manual_contract_validation(sample_pipeline):
     """Manually test what the contract validation is doing"""
 
     # Let's manually check how the linter validates contracts
-    pipeline_path = "pipelines/storyflow-test.yaml"
+    pipeline_path = str(sample_pipeline)
 
     import yaml
 
@@ -127,13 +127,13 @@ def test_manual_contract_validation():
             print(f"  Alt path exists: {alt_path.exists()}")
 
 
-def test_direct_linter_call():
+def test_direct_linter_call(sample_pipeline):
     """Test calling the linter functions directly to see exact error"""
 
     try:
         from llmflow.utils.linter import validate_all_step_contracts
 
-        pipeline_path = "pipelines/storyflow-test.yaml"
+        pipeline_path = str(sample_pipeline)
 
         import yaml
 
@@ -242,14 +242,14 @@ def test_direct_linter_call():
             print(f"Could not explore linter module: {explore_error}")
 
 
-def test_find_actual_validation_error():
+def test_find_actual_validation_error(sample_pipeline):
     """Try to trigger the exact same error that the CLI is showing"""
 
     try:
         # Let's try to replicate the exact same call that the CLI makes
         from llmflow.utils.linter import lint_pipeline_contracts
 
-        pipeline_path = "pipelines/storyflow-test.yaml"
+        pipeline_path = str(sample_pipeline)
 
         print("Testing lint_pipeline_contracts (the function CLI probably uses)...")
 
@@ -283,7 +283,7 @@ def test_find_actual_validation_error():
             print(f"This is probably the real issue: {full_error}")
 
 
-def test_debug_validate_step_prompt_contract():
+def test_debug_validate_step_prompt_contract(sample_pipeline):
     """Debug exactly what validate_step_prompt_contract is doing"""
 
     try:
@@ -305,7 +305,7 @@ def test_debug_validate_step_prompt_contract():
             print("Could not get source code")
 
         # Now let's test it manually with correct parameters
-        pipeline_path = "pipelines/storyflow-test.yaml"
+        pipeline_path = str(sample_pipeline)
 
         import yaml
 
@@ -361,11 +361,11 @@ def test_debug_validate_step_prompt_contract():
         print(f"Could not import validate_step_prompt_contract: {e}")
 
 
-def test_trace_exact_path_resolution():
+def test_trace_exact_path_resolution(sample_pipeline):
     """Trace exactly how the linter resolves prompt file paths"""
 
     # Let's manually walk through what the linter should be doing
-    pipeline_path = "pipelines/storyflow-test.yaml"
+    pipeline_path = str(sample_pipeline)
 
     import yaml
 

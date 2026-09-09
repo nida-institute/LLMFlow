@@ -5,7 +5,7 @@ import pytest
 
 from llmflow.utils.scripture import (
     MILESTONE_TEMPLATE,
-    edition_text,
+    resource_text,
     rows_to_usj,
     usj_to_text,
 )
@@ -118,18 +118,18 @@ def test_no_rows_yields_a_document_with_no_chapters():
 @pytest.mark.parametrize(
     "passage", ["MRK 1:1", "MRK 1:1-3", "MRK 1", "MRK 8:35", "MRK 1:45-2:3", "MRK 16"]
 )
-@pytest.mark.parametrize("edition", ["SBLGNT-TSV", "SBLGNT-TEI"])
-def test_flattening_usj_reproduces_milestones(edition, passage):
-    usj = edition_text(edition, passage, fmt="usj", editions=EDITIONS)
-    milestones = edition_text(edition, passage, fmt="milestones", editions=EDITIONS)
+@pytest.mark.parametrize("resource", ["SBLGNT-TSV", "SBLGNT-TEI"])
+def test_flattening_usj_reproduces_milestones(resource, passage):
+    usj = resource_text(resource, passage, fmt="usj", resources=EDITIONS)
+    milestones = resource_text(resource, passage, fmt="milestones", resources=EDITIONS)
     assert flatten(usj) == milestones
 
 
 @hebrew_data
 @pytest.mark.parametrize("passage", ["GEN 1:1", "GEN 1:1-2", "GEN 1"])
 def test_flattening_usj_reproduces_milestones_in_hebrew(passage):
-    usj = edition_text("WLC", passage, fmt="usj", editions=EDITIONS)
-    assert flatten(usj) == edition_text("WLC", passage, fmt="milestones", editions=EDITIONS)
+    usj = resource_text("WLC", passage, fmt="usj", resources=EDITIONS)
+    assert flatten(usj) == resource_text("WLC", passage, fmt="milestones", resources=EDITIONS)
 
 
 # --- through the step contract -------------------------------------------------------
@@ -137,25 +137,25 @@ def test_flattening_usj_reproduces_milestones_in_hebrew(passage):
 
 @real_data
 def test_the_edition_returns_a_dict_not_a_string_for_usj():
-    assert isinstance(edition_text("SBLGNT-TSV", "MRK 1:1", fmt="usj", editions=EDITIONS), dict)
+    assert isinstance(resource_text("SBLGNT-TSV", "MRK 1:1", fmt="usj", resources=EDITIONS), dict)
 
 
 @real_data
 def test_the_book_code_comes_from_the_passage():
-    usj = edition_text("SBLGNT-TSV", "MRK 1:1", fmt="usj", editions=EDITIONS)
+    usj = resource_text("SBLGNT-TSV", "MRK 1:1", fmt="usj", resources=EDITIONS)
     assert usj["content"][0]["code"] == "MRK"
 
 
 @real_data
 def test_a_cross_chapter_range_carries_both_chapters():
-    usj = edition_text("SBLGNT-TSV", "MRK 1:45-2:3", fmt="usj", editions=EDITIONS)
+    usj = resource_text("SBLGNT-TSV", "MRK 1:45-2:3", fmt="usj", resources=EDITIONS)
     numbers = [n["number"] for n in usj["content"] if n["type"] == "chapter"]
     assert numbers == ["1", "2"]
 
 
 def test_an_unknown_format_is_rejected():
     with pytest.raises(ValueError, match="unknown format"):
-        edition_text("SBLGNT-TSV", "MRK 1:1", fmt="parquet", editions=EDITIONS)
+        resource_text("SBLGNT-TSV", "MRK 1:1", fmt="parquet", resources=EDITIONS)
 
 
 # --- verse and chapter milestones ---------------------------------------------------

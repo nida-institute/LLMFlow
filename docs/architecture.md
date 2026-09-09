@@ -33,10 +33,12 @@ Argument parsing and command dispatch. Entry point for `sp run`, `sp lint`,
 `sp init`, `sp list`, `sp registry`, `sp resource`, `sp doctor` and `sp clean`.
 Delegates immediately to `runner.py` or `cli_utils.py`; contains no pipeline logic.
 
-`sp resource` is the single surface for everything the resource catalog describes —
-`list`, `add` (registering a text so a pipeline can name it) and `download` (fetching
-something no reader can yet open, such as ACAI). It replaced `sp download-data` in
-#217, which carried its own four-entry catalog beside the public one.
+**Two nouns for two layers.** `sp resource` covers readable texts a pipeline can name — `list`
+and `add`. `sp dataset` covers the bodies of data the catalog describes — `list`, `search` and
+`download` (fetching something no reader can yet open, such as ACAI). One noun covered both
+until its own help text was found calling `WLC` and `acai` alike "Catalog id", having sent a
+reader looking for the wrong thing. Together they replaced `sp download-data` in #217, which
+carried its own four-entry catalog beside the public one.
 
 ### 3.2 Runner — `runner.py`
 
@@ -73,7 +75,7 @@ file defines exactly what one step type means when it executes. Reading
 | `steps/json_step.py` | `json` | JSON file loading |
 | `steps/load.py` | `load` | Structured data loading (YAML, JSON, TSV, XML) |
 | `steps/save.py` | `save` | Filesystem write with path resolution |
-| `steps/scripture.py` | `scripture` | Named-edition resolution, reference mapping, serialization dispatch, annotation payload |
+| `steps/scripture.py` | `scripture` | Named-resource resolution, reference mapping, serialization dispatch, annotation payload |
 
 A new step type means a new file in `steps/`. The dispatch table in `runner.py`
 gets one line.
@@ -84,25 +86,25 @@ Worth spelling out because four separate resolutions happen before any text is r
 has a failure mode that used to be silent.
 
 ```
-edition: SBLGNT          →  ~/.sp/registrations/SBLGNT.yaml   which source, and which backend
+resource: SBLGNT          →  ~/.sp/registrations/SBLGNT.yaml   which source, and which backend
 versification: eng       →  ~/.sp/versification/*.json        which verse the reference names
 passage: "MRK 1:1-8"     →  PassageRef                        what range is wanted
 format: / include:       →  rows_to_output                    what shape comes back
 ```
 
-**1. The edition is a name, not a path.** `resolve_edition` reads `~/.sp/registrations/*.yaml`, one
-file per edition, so a source is configuration rather than something written into a pipeline. An
+**1. The resource is a name, not a path.** `resolve_resource` reads `~/.sp/registrations/*.yaml`, one
+file per resource, so a source is configuration rather than something written into a pipeline. An
 unregistered name raises with the registered names listed, because a bare `KeyError` sends the
 reader to the source instead of to their own configuration.
 
 **2. The reference is mapped before the read, not after.** A reference is not a location until a
-scheme is named: `PSA 51:1` is `PSA 51:3` in the original. The edition's own scheme comes from its
+scheme is named: `PSA 51:1` is `PSA 51:3` in the original. The resource's own scheme comes from its
 registry entry, a Paratext project's `Settings.xml`, or `data/versification-editions.json` — and
 there is no global default, because a Byzantine text and a critical text are numbered differently
 and a guess would be wrong exactly where it mattered. Mapping *after* fetching would fetch the
 wrong verses first.
 
-**3. The backend is chosen by the edition's `kind`**, and all three produce the same row shape —
+**3. The backend is chosen by the resource's `kind`**, and all three produce the same row shape —
 `ref`, `text`, `after`, `xml:id` — so one text-assembly path serves them:
 
 | `kind` | reads | notes |
@@ -123,7 +125,7 @@ wanting standard USJ strips that key. Spec-defined fields stay where the spec pu
 becomes `srcloc` on a `\w` node rather than container content.
 
 Two of these resolve against `~/.sp`, so the step depends on machine state that `sp doctor`
-reports: an unregistered edition and an absent versification scheme are both configuration
+reports: an unregistered resource and an absent versification scheme are both configuration
 problems with named remedies, not code faults.
 
 ### 3.4 Recursive Handlers and Dependency Injection
@@ -193,6 +195,25 @@ prompt:
 The linter validates that all `requires` entries are present in `prompt.inputs`
 before execution. This is the boundary where the pipeline's runtime contract
 meets the prompt author's declared intent.
+
+### 5.1 Function Step Contract
+
+A `function` step has a contract of the same kind, and it is the signature of the callable
+`function:` names. `check_function_step_signatures` in `utils/linter.py` imports the module,
+reads the signature with `inspect.signature`, and compares it against the step's `inputs:`.
+Three mismatches are errors: an input the function does not accept, a parameter with no
+default the step does not supply, and a path that does not import or is not callable.
+
+The comparison is name- and arity-level only, because lint holds no values — a `**kwargs`
+signature accepts any name, `*args` lifts the positional limit, and an uninspectable callable
+is skipped, so the check fails open rather than rejecting a pipeline that would run. `context`
+is excluded throughout: `steps/function.py` supplies it when the signature asks for it, so no
+step declares it as an input.
+
+Reading the signature requires importing the module, which `run_pipeline` does with the working
+directory on `sys.path`. Lint has no such setup, so the check adds that entry for its own
+duration and removes it afterwards — otherwise a project's `plugins.*` module would import at
+run time and not at lint time.
 
 ## 6. Context
 

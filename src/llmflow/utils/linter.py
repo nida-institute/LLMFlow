@@ -1,5 +1,10 @@
 import ast
+import importlib
+import inspect
+import os
 import re
+import sys
+from contextlib import contextmanager
 from dataclasses import dataclass
 from difflib import unified_diff
 from pathlib import Path
@@ -70,6 +75,10 @@ COMMON_TYPOS = {
     # was wired up (LLMFlow#189). BaseX drops bindings for variables a query never
     # declares — exit 0, no warning — so a stale `db` would fail silently forever.
     "db": "database",
+    # A dataset provides resources. `edition` claimed the NA26/NA27 distinction, which these do
+    # not make: the same edition may be registered twice in two encodings. See
+    # project/plans/design-resource-vocabulary.md.
+    "edition": "resource",
 }
 
 from llmflow.modules.logger import Logger
@@ -212,6 +221,48 @@ def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
         for var in sorted(undeclared)
     )
     return errors
+
+
+def unused_requires_warnings(prompt_path: str) -> List[str]:
+    """Names a prompt declares in `requires:` and never uses in its body.
+
+    The other direction of the contract `validate_gpt_body_declares_all_vars` checks. Both sets
+    were already computed there; only this subtraction was missing, so a prompt could oblige
+    every calling step to supply an input it then ignored.
+
+    A **warning**: the run it produces is correct, and a pipeline that works should not stop
+    working because a prompt is untidy. The cost is real but is plumbing — a step passing a value
+    nothing reads, and a reader believing the prompt uses it.
+
+    Silent where another check owns the problem: an unparseable header, a withdrawn `optional:`
+    key and a dotted name are each reported by the check that owns them, and saying so twice
+    trains a reader to skim.
+    """
+    header = parse_prompt_header(prompt_path)
+    if header is None or "optional" in header:
+        return []
+
+    requires = header.get("requires") or []
+    if not isinstance(requires, list):
+        return []
+    declared = {str(name) for name in requires if "." not in str(name)}
+    if not declared:
+        return []
+
+    text = Path(prompt_path).read_text(encoding="utf-8")
+    frontmatter = re.search(r"^---[ \t]*\n.*?\n---[ \t]*\n?", text, re.DOTALL | re.MULTILINE)
+    body = text[frontmatter.end():] if frontmatter else text
+
+    unused = sorted(declared - extract_template_variables(body))
+    if not unused:
+        return []
+    return [
+        f"{prompt_path}: declares {unused} in `requires:` but the body never uses "
+        f"{'them' if len(unused) > 1 else 'it'}. Every calling step must supply "
+        f"{'these' if len(unused) > 1 else 'this'} for nothing — delete the "
+        f"{'entries' if len(unused) > 1 else 'entry'}, or use "
+        f"{'them' if len(unused) > 1 else 'it'}."
+    ]
 
 
 def format_diff_box(step, file, declared, passed):
@@ -735,6 +786,40 @@ def validate_model_parameters(all_steps, pipeline_config):
     return errors
 
 
+def _check_role_map(schema_path, schema, step_name, warnings) -> None:
+    """Run the role-map checks where a map sits beside the schema, and report what they find.
+
+    The map is `X.roles.yaml` beside `X.json`, which is where it has to live: the role belongs to
+    the (schema, field) pair, not to the field name. The same name is copy-forced evidence in one
+    step and payload in the next, so a single project-level file could only lie about one of them.
+
+    Silence where no map exists. Most schemas declare no anchors, and a missing map is not a
+    finding — it is the common case.
+
+    Findings are warnings. The order rule is the engine's to compute and the pipeline's to price:
+    an inverted anchor is inert rather than invalid, and whether that stops a run is not something
+    this can know.
+    """
+    if schema_path.suffix != ".json":
+        return
+    map_path = schema_path.with_suffix("").with_suffix(".roles.yaml")
+    if not map_path.is_file():
+        map_path = schema_path.with_name(f"{schema_path.stem}.roles.yaml")
+    if not map_path.is_file():
+        return
+
+    from llmflow.field_roles import check_order, load_role_map, validate_structure
+
+    try:
+        roles = load_role_map(map_path)
+    except ValueError as error:
+        warnings.append(f"⚠️  Step '{step_name}': {error}")
+        return
+
+    for finding in validate_structure(roles, schema) + check_order(roles, schema):
+        warnings.append(f"⚠️  Step '{step_name}': role map {map_path.name}: {finding}")
+
+
 def validate_structured_output_schemas(all_steps, pipeline_config, warnings):
     """Check `response_format` schemas against OpenAI's strict subset (LLMFlow#196).
 
@@ -809,6 +894,9 @@ def validate_structured_output_schemas(all_steps, pipeline_config, warnings):
                 f"neither 'schema' nor 'schema_file'"
             )
             continue
+
+        if schema_file:
+            _check_role_map(_Path(schema_file), schema, step_name, warnings)
 
         strict = json_schema.get("strict") is True
         findings = check_strict_schema(schema)
@@ -1027,6 +1115,253 @@ def check_function_step_no_internal_paths(all_steps: list) -> list[str]:
     return warnings
 
 
+# The runner passes `context` itself, so no step ever supplies it as an input.
+_RUNNER_INJECTED = "context"
+
+
+@contextmanager
+def _cwd_importable():
+    """Put the working directory on `sys.path` for the duration of the block.
+
+    `run_pipeline` does this before importing plugins; lint runs without it, so a
+    `plugins.*` module is importable at run time and not at lint time. Any entry
+    added here is removed on the way out.
+
+    So is anything the block imported from the working directory. Lint inspects; it must not
+    leave the process holding *this* project's `plugins` package, because the conventional name
+    is shared and whoever imports it first answers for it afterwards. Modules from anywhere else
+    — the engine, site-packages — are left alone: they were not this block's doing.
+    """
+    cwd = os.getcwd()
+    already_on_path = cwd in sys.path
+    before = set(sys.modules)
+    if not already_on_path:
+        sys.path.insert(0, cwd)
+    try:
+        yield
+    finally:
+        if not already_on_path:
+            try:
+                sys.path.remove(cwd)
+            except ValueError:
+                pass
+        root = Path(cwd).resolve()
+        added = {name.split(".")[0] for name in set(sys.modules) - before}
+        for top in added:
+            if not _is_sibling_of(sys.modules.get(top), top, root):
+                continue
+            for name in [n for n in sys.modules if n == top or n.startswith(top + ".")]:
+                del sys.modules[name]
+
+
+def _is_sibling_of(module, name: str, root: Path) -> bool:
+    """Is this module the `root/name` package or `root/name.py`, and nothing else?
+
+    Deliberately exact rather than "somewhere under root". A project is usually linted from its
+    own repository, so *most* of what is imported lives under the working directory — including
+    the engine itself, from `src/llmflow`. Only what a bare `import name` picks up because the
+    working directory is on `sys.path` was this block's doing.
+    """
+    if module is None:
+        return False
+    candidates = {root / name, root / f"{name}.py"}
+    locations = []
+    origin = getattr(getattr(module, "__spec__", None), "origin", None)
+    if origin:
+        locations.append(Path(origin))
+    for entry in getattr(module, "__path__", []) or []:
+        locations.append(Path(str(entry)))
+    for location in locations:
+        try:
+            resolved = location.resolve()
+        except (OSError, ValueError):
+            continue
+        if resolved in candidates or resolved.parent in candidates:
+            return True
+    return False
+
+
+def _drop_foreign_package(module_dotted: str) -> None:
+    """Forget an already-imported top-level package that lives outside the working directory.
+
+    `plugins` is the conventional name, so more than one project has one. A regular package — the
+    kind with an `__init__.py` — fixes its `__path__` at import, so whichever was imported first
+    answers every later `plugins.*` import and the pipeline's own module is reported missing.
+    (A namespace package recomputes `__path__` from `sys.path` and needs none of this.)
+
+    The pipeline being linted owns the name, so its package replaces the stranger's. Only packages
+    outside the working directory are dropped: an engine module such as `llmflow.utils.io` stays.
+    """
+    top = module_dotted.split(".")[0]
+    existing = sys.modules.get(top)
+    if existing is None:
+        return
+
+    # Only when the working directory offers a `top` of its own. Without this the engine's own
+    # modules qualify as "foreign" — `llmflow` is imported from `src/llmflow`, which is not
+    # `./llmflow` — and dropping those from `sys.modules` replaces every module object the caller
+    # is holding.
+    root = Path(os.getcwd()).resolve()
+    if not (root / top).is_dir() and not (root / f"{top}.py").is_file():
+        return
+    if _is_sibling_of(existing, top, root):
+        return
+
+    for name in [n for n in sys.modules if n == top or n.startswith(top + ".")]:
+        del sys.modules[name]
+    importlib.invalidate_caches()
+
+
+def _resolve_step_function(func_ref: str):
+    """Import `func_ref` and return `(callable, failure)`, exactly one of which is None."""
+    module_dotted, func_name = func_ref.rsplit(".", 1)
+    _drop_foreign_package(module_dotted)
+
+    try:
+        module = importlib.import_module(module_dotted)
+    except Exception as exc:
+        return None, f"cannot import '{module_dotted}' ({type(exc).__name__}: {exc})"
+
+    if not hasattr(module, func_name):
+        return None, f"'{module_dotted}' defines no '{func_name}'"
+
+    func = getattr(module, func_name)
+    if not callable(func):
+        return None, f"'{func_ref}' is not callable"
+
+    return func, None
+
+
+def _has_kind(sig, kind) -> bool:
+    return any(param.kind is kind for param in sig.parameters.values())
+
+
+def _bindable_by_name(sig) -> set:
+    """Parameter names an `inputs:` mapping can bind."""
+    kinds = (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+    return {
+        name
+        for name, param in sig.parameters.items()
+        if param.kind in kinds and name != _RUNNER_INJECTED
+    }
+
+
+def _positional_slots(sig) -> list:
+    """Parameter names an `inputs:` list can fill, in order."""
+    kinds = (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+    return [
+        name
+        for name, param in sig.parameters.items()
+        if param.kind in kinds and name != _RUNNER_INJECTED
+    ]
+
+
+def _required_params(sig) -> list:
+    """Parameter names with no default, which the step must therefore supply."""
+    kinds = (
+        inspect.Parameter.POSITIONAL_ONLY,
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        inspect.Parameter.KEYWORD_ONLY,
+    )
+    return [
+        name
+        for name, param in sig.parameters.items()
+        if param.default is inspect.Parameter.empty
+        and param.kind in kinds
+        and name != _RUNNER_INJECTED
+    ]
+
+
+def _input_binding_errors(inputs, sig, func_ref: str) -> list:
+    """Every way `inputs` fails to bind to `sig`, at name and arity level only."""
+    messages = []
+    required = _required_params(sig)
+
+    if isinstance(inputs, dict):
+        supplied = set(inputs.keys())
+        if not _has_kind(sig, inspect.Parameter.VAR_KEYWORD):
+            accepted = _bindable_by_name(sig)
+            unknown = sorted(supplied - accepted)
+            if unknown:
+                messages.append(
+                    f"{func_ref} does not accept {unknown} — it accepts {sorted(accepted)}"
+                )
+        missing = [name for name in required if name not in supplied]
+        if missing:
+            messages.append(f"{func_ref} requires {missing}, which this step does not supply")
+        return messages
+
+    if isinstance(inputs, list):
+        slots = _positional_slots(sig)
+        given = len(inputs)
+
+        if not _has_kind(sig, inspect.Parameter.VAR_POSITIONAL) and given > len(slots):
+            messages.append(
+                f"{func_ref} takes at most {len(slots)} positional argument(s), "
+                f"and this step passes {given}"
+            )
+
+        required_slots = [
+            name for name in slots if sig.parameters[name].default is inspect.Parameter.empty
+        ]
+        if given < len(required_slots):
+            messages.append(
+                f"{func_ref} requires {len(required_slots)} positional argument(s) "
+                f"{required_slots}, and this step passes {given}"
+            )
+
+        keyword_only = [
+            name
+            for name, param in sig.parameters.items()
+            if param.kind is inspect.Parameter.KEYWORD_ONLY
+            and param.default is inspect.Parameter.empty
+            and name != _RUNNER_INJECTED
+        ]
+        if keyword_only:
+            messages.append(
+                f"{func_ref} requires {keyword_only} by name, which a list of inputs "
+                f"cannot supply"
+            )
+        return messages
+
+    if required:
+        messages.append(f"{func_ref} requires {required}, and this step declares no inputs")
+    return messages
+
+
+def check_function_step_signatures(all_steps: list) -> list[str]:
+    """Report function steps whose inputs the named callable cannot receive.
+
+    Three static mismatches are reported: an input the function does not accept, a
+    required parameter the step does not supply, and a `function:` path that does not
+    import or names something uncallable. Only names and arity are compared — no value
+    is inspected, so this is not type checking.
+    """
+    errors: list[str] = []
+
+    with _cwd_importable():
+        for step in all_steps:
+            func_ref = step.get("function")
+            if not isinstance(func_ref, str) or "." not in func_ref or "${" in func_ref:
+                continue
+
+            step_name = step.get("name", "unnamed")
+            func, failure = _resolve_step_function(func_ref)
+            if func is None:
+                errors.append(f"❌ Step '{step_name}': {failure}")
+                continue
+
+            try:
+                sig = inspect.signature(func)
+            except (TypeError, ValueError):
+                continue
+
+            for message in _input_binding_errors(step.get("inputs"), sig, func_ref):
+                errors.append(f"❌ Step '{step_name}': {message}")
+
+    return errors
+
+
 def lint_pipeline_full(
     pipeline_path,
     *,
@@ -1121,6 +1456,9 @@ def lint_pipeline_full(
         try:
             resolved = resolve_prompt_path(prompt_file, prompts_dir_for_decl)
             gpt_decl_errors.extend(validate_gpt_body_declares_all_vars(str(resolved)))
+            # The other direction of the same contract, and a warning rather than an error: the
+            # run it produces is correct, so a working pipeline must not stop working over it.
+            all_warnings.extend(unused_requires_warnings(str(resolved)))
         except FileNotFoundError:
             pass  # Already reported by contract validation above
     if gpt_decl_errors:
@@ -1181,14 +1519,25 @@ def lint_pipeline_full(
             logger.error(error)
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
 
+    # 5) Function step signature validation
+    logger.info("🔍 Validating function step signatures...")
+    signature_errors = check_function_step_signatures(all_steps)
+    if signature_errors:
+        all_errors.extend(signature_errors)
+        logger.error(f"\n❌ Function signature validation failed with {len(signature_errors)} errors:")
+        for error in signature_errors:
+            logger.error(f"  {error}")
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
+    logger.info("✅ All function step inputs match their function's signature")
+
     if all_errors:
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
 
-    # 5) Function step internal path check (GH #165)
+    # 6) Function step internal path check (GH #165)
     func_io_warnings = check_function_step_no_internal_paths(all_steps)
     all_warnings.extend(func_io_warnings)
 
-    # 6) Saveas directory declaration warnings
+    # 7) Saveas directory declaration warnings
     _intermediate_raw = pipeline_config.get("intermediate_file_directory")
     _output_raw = pipeline_config.get("output_file_directory")
     if _intermediate_raw or _output_raw:

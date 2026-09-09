@@ -47,7 +47,7 @@
     },
     "referents": {
       "purpose": "Participant reference, the strongest cohesion signal above the clause.",
-      "columns": ["referent", "participantref", "subjref"],
+      "columns": ["referent", "participantref", "subjref", "frame"],
       "per_word": true
     },
     "discourse": {
@@ -56,7 +56,7 @@
       "per_word": false
     },
     "syntax": {
-      "purpose": "Syntactic structure. Not implemented.",
+      "purpose": "The constituency tree, standoff: a list with one entry per sentence. Requires `ids`.",
       "columns": [],
       "per_word": false
     }
@@ -65,6 +65,8 @@
   "notes": {
     "lang": "Hebrew only, and not strictly morphology — it distinguishes Hebrew from Aramaic, which selects a different paradigm, so it travels with the analysis that depends on it.",
     "usx_attributes": "`lemma` and `strong` are attributes USX already defines on a `char` element with marker `w`, so they go there rather than into the container. The list gives the source columns that fill each, in order of preference: Greek names its Strong's column `strong`, Hebrew names it `strongnumberx`. These two are the only renames anywhere in this file, and they exist because the destination is spec-defined.",
-    "not_carried": "`morph` (packed duplicate), `normalized` and `transliteration` (alternative forms of `text`), `frame` (syntactic frame, belongs with `syntax`), `greek` and `greekstrong` (Hebrew-to-Greek alignment, not a property of the Hebrew word), `stronglemma` (a lemma spelling of the Strong's entry), `mandarin` is carried under `glosses` alongside `english`."
+    "not_carried": "`morph` (packed duplicate), `normalized` and `transliteration` (alternative forms of `text`), `greek` and `greekstrong` (Hebrew-to-Greek alignment, not a property of the Hebrew word), `stronglemma` (a lemma spelling of the Strong's entry), `mandarin` is carried under `glosses` alongside `english`.",
+    "participant_ids": "The two corpora name participant reference differently and neither has the other's column: Greek states `referent` (14,542 words, none in Hebrew), Hebrew states `participantref` (51,755 morphemes, none in Greek). They are one concept under two names — both hold the id of the word referred to, and both may name several, space-separated. `referents` declares the union and emits whichever the edition has, so language-neutral code reads both keys. **Hebrew participant ids are written bare and do not join onto Hebrew ids as they stand:** every Greek value begins with `n`, matching the ids beside it, while every Hebrew value is digits only and every Hebrew id carries a leading `o` — prefix `o` to resolve one. This holds for `participantref`, `frame` and `subjref` alike. The values are carried verbatim rather than repaired, because repairing `frame` would mean parsing its `A0:`/`A1:` structure, which is the consumer's business; fixing one column and leaving two would teach a rule that then fails silently. Hebrew values are also morpheme-level, carrying the trailing word-part digit, so they join onto `referents` keys but not onto `include: [syntax]` tokens, which are word-level.",
+    "frame": "Carried under `referents`. It was listed as not carried, on the grounds that a syntactic frame belongs with `syntax` — filed before `include: [syntax]` was ruled standoff. The `syntax` payload is the constituency tree with leaves carrying only references, so a per-word attribute cannot ride in it: in Lowfat terms `syntax` is the `wg` tree and `frame` is an `m` leaf attribute. Families are organised by form, and `frame` is the semantic-role counterpart to `subjref`'s grammatical one — they come apart at a passive whose subject is the undergoer, where `subjref` reads no change and `A0` against `A1` states one. Present in both corpora."
   }
 }

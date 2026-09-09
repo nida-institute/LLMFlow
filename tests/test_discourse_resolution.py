@@ -75,12 +75,23 @@ def test_an_unknown_osis_book_is_reported():
 
 
 def test_a_citation_reference_is_split_into_its_parts():
-    assert parse_osis_ref("Mark.1.14!3") == ("MRK", 1, 14, 3)
+    """A single-word reference has no closing index, and reports None rather than its opening."""
+    assert parse_osis_ref("Mark.1.14!3") == ("MRK", 1, 14, 3, None)
 
 
-def test_a_range_reference_takes_its_opening():
-    """Only the opening is cited, so the closing half is not a second citation."""
-    assert parse_osis_ref("Matt.6.9!5-Matt.6.13!61") == ("MAT", 6, 9, 5)
+def test_a_span_within_one_verse_keeps_both_ends():
+    """A quarter of LGNTDF's citations name a span, and the extent is part of the citation."""
+    assert parse_osis_ref("Mark.1.2!9-Mark.1.2!15") == ("MRK", 1, 2, 9, ("MRK", 1, 2, 15))
+
+
+def test_a_span_across_verses_keeps_both_ends_too():
+    """`Matt.6.9!5-Matt.6.13!61` is the Lord's Prayer, opening in 6:9 and closing in 6:13.
+
+    The closing end is a reference in its own right, not an index into the opening verse. That
+    the resolver holds one verse's rows and so cannot address a word in another is a limit on
+    what it can give an id for — not a reason for the citation to forget where it ends.
+    """
+    assert parse_osis_ref("Matt.6.9!5-Matt.6.13!61") == ("MAT", 6, 9, 5, ("MAT", 6, 13, 61))
 
 
 def test_a_malformed_reference_is_rejected():
@@ -104,16 +115,23 @@ def test_a_multi_word_quote_verifies_across_words():
     assert got.word_id == "n002"
 
 
-def test_a_usable_index_is_kept_even_when_the_quote_points_elsewhere():
-    """The trap: Main clauses index the clause onset and quote the constituent.
+def test_an_unambiguous_quote_decides_and_the_index_is_still_reported():
+    """Step 2 of the chain: the index did not match, the quote matched once, so the quote decides.
 
-    Mark 1:14 indexes `Καὶ` and quotes `μετὰ`. Moving the index on that basis relocated 84
-    clause boundaries in a consumer's corrected pass.
+    Mark 1:14 is the case that argues both ways. `Main clauses` index the clause onset and quote a
+    constituent inside it, so there the index is the word to trust — and nothing in the corpus
+    says which features behave that way, so the engine reports both rather than guessing:
+    `word_id` from the quote, `index` unchanged, `quote_found_at` saying where it landed.
+
+    Against it: wherever two resources count words differently the index names the neighbour, which
+    was 86 of 124 disagreements across six Hebrew passages. The engine cannot tell those apart, so
+    it states what each source said and leaves the choice to whoever knows the feature.
     """
     got = resolve_citation(rows("Καὶ", "μετὰ", "τὸ"), 1, "μετὰ")
     assert got.outcome is Outcome.DISAGREES
-    assert got.word_id == "n001", "the index must not move"
-    assert got.index == 1
+    assert got.word_id == "n002", "the word the quote names"
+    assert got.index == 1, "the citation's own index, unchanged"
+    assert got.resolved_index == 2
     assert got.quote_found_at == 2, "where the quote is, as information"
 
 

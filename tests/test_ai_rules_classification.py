@@ -2,9 +2,21 @@
 
 Two fields, answering two different questions:
 
-- `enforcement` — whether a breach is catchable: guarded, partial, guardable, judgment.
+- `enforcement` — what holds it: guarded, partial, guardable, gated, judgment.
 - `scope` — who may do the catching: `language` (the engine, for every user), `project` (a
-  repository, over its own files), or `none`.
+  repository, over its own files), `harness` (the operator's permission gates and hooks), or
+  `none`.
+
+`gated` is the strongest of the five and the one the first four values could not express. A test
+catches a breach before it ships; a **gate stops the act happening at all** — a `PreToolUse` hook,
+or an `ask` entry in the operator's settings that puts the command in front of a human. Rules held
+that way were being recorded as `judgment`, the weakest value, because the vocabulary had no word
+for them.
+
+**A gate is not verifiable from this repository**, which is the cost of the value and is stated
+rather than hidden: it lives in the operator's environment, so a fresh clone on another machine has
+the rule as `judgment` until that machine is configured. `guard:` names a file these tests can
+open; `gate:` names a mechanism they can only take on trust.
 
 The second exists because the first invites a mistake. A rule can be perfectly checkable and
 still not be the engine's business: `sp` serves pipelines that publish, that process scripture
@@ -26,8 +38,8 @@ import pytest
 
 from llmflow import ai_rules
 
-ENFORCEMENT_VALUES = {"guarded", "partial", "guardable", "judgment"}
-SCOPE_VALUES = {"language", "project", "none"}
+ENFORCEMENT_VALUES = {"guarded", "partial", "guardable", "gated", "judgment"}
+SCOPE_VALUES = {"language", "project", "harness", "none"}
 
 
 def test_the_data_declares_rules():
@@ -75,6 +87,16 @@ def test_unenforceable_rules_agree_on_both_axes(entry):
             f"rule `{entry['id']}` is enforcement: judgment but scope: {entry['scope']}. "
             f"Naming an enforcer for a rule no test can catch is a contradiction."
         )
+    if entry["enforcement"] == "gated":
+        assert entry["scope"] == "harness", (
+            f"rule `{entry['id']}` is enforcement: gated but scope: {entry['scope']}. A gate is "
+            f"held by the operator's permission layer, not by the engine or by a repository."
+        )
+    if entry["scope"] == "harness":
+        assert entry["enforcement"] == "gated", (
+            f"rule `{entry['id']}` is scope: harness but enforcement: {entry['enforcement']}. "
+            f"The harness enforces by gating an act, which is what `gated` names."
+        )
 
 
 @pytest.mark.parametrize("entry", ai_rules.entries(), ids=lambda e: e["id"])
@@ -107,6 +129,53 @@ def test_every_named_guard_exists(entry):
             f"rule `{entry['id']}` names {named!r} as its guard, and that file does not "
             f"exist. Point at a real test, or drop the claim to be guarded."
         )
+
+
+@pytest.mark.parametrize("entry", ai_rules.entries(), ids=lambda e: e["id"])
+def test_a_gated_rule_names_its_gate(entry):
+    """`gated` claims an act is stopped before it happens, so it must say by what.
+
+    These tests cannot open the operator's settings to confirm it, which is exactly why the claim
+    has to be legible: a reader can check `gate:` against their own configuration and find out
+    whether the rule is gated *for them*. Naming nothing would leave them unable to.
+    """
+    if entry["enforcement"] != "gated":
+        return
+    gate = (entry.get("gate") or "").strip()
+    assert gate, (
+        f"rule `{entry['id']}` is gated but names no `gate:`. Say which hook or permission entry "
+        f"stops the act, since this repository cannot verify it and the reader must."
+    )
+
+
+@pytest.mark.parametrize("entry", ai_rules.entries(), ids=lambda e: e["id"])
+def test_a_rule_whose_test_exists_is_not_still_called_guardable(entry):
+    """The other direction of `test_a_guarded_rule_names_its_guard`, which is where it drifted.
+
+    That test asks whether a rule claiming a guard has one. Nothing asked the reverse — whether a
+    rule *has* a guard while still claiming none — so the classification could go stale the moment
+    someone wrote the test and forgot the field. It did: `reference-data-is-json` sat at
+    `guardable` — "a test is possible and nobody has written it" — while
+    `tests/test_reference_data_is_json.py` was in the repository and passing, and a CHANGELOG
+    entry said the rule was enforced.
+
+    The correspondence is derived, not listed: a rule id maps to `tests/test_<id>.py` with dashes
+    as underscores. That is a floor rather than a ceiling — `lxml-for-xml` is guarded by
+    `test_lxml_not_elementtree.py` and this cannot see it — but it catches the case where someone
+    writes the obvious test and leaves the rule saying nobody has.
+    """
+    if entry["enforcement"] not in ("guardable", "judgment"):
+        return
+
+    repo_root = Path(__file__).resolve().parent.parent
+    obvious = repo_root / "tests" / f"test_{entry['id'].replace('-', '_')}.py"
+
+    assert not obvious.is_file(), (
+        f"rule `{entry['id']}` is classified `{entry['enforcement']}`, but "
+        f"{obvious.relative_to(repo_root)} exists. Either that test holds the rule — in which "
+        f"case classify it `guarded` or `partial` and name it in `guard:` — or it does not, in "
+        f"which case the test is named after a rule it does not check."
+    )
 
 
 def test_the_engine_does_not_claim_domain_rules():

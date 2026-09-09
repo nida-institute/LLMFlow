@@ -7,6 +7,192 @@
 
 ## 🔥 Active
 
+### 🦷 The shell/file-tool rules have no teeth — the AI must ask, not just violate
+
+> **Targets this release.** The Captain's words, verbatim: *"The File Commands part of the ai
+> context has no teeth. I want to change it so that LLMs ask permission when there is a good
+> reason to do something else, e.g. File Tools does not support this operation, it's testing
+> candidate Python code from a file (not a heredoc), etc."* And: *"otherwise, I have to give it
+> permission on the command line to violate each rule, then interrupt and ask why it did it, and
+> it requires my attention, which I want to focus elsewhere."*
+>
+> The rule is written as a prohibition with no sanctioned exception, so an agent with a genuine
+> reason has two moves: obey and fail the task, or violate silently and get caught at the
+> permission prompt. **Asking first is not a path the text offers.** The cost lands on the
+> Captain's attention, which is the thing the rule was supposed to protect.
+>
+> **Where the text lives is undecided and is the Captain's call.** `docs/ai-context/` has no
+> "File Commands" section. The rules are in `CLAUDE.md` "Shell Commands" (this repo only) and
+> `~/.sp/disciplines/workflow.md` "Shell Commands" (every project on this machine, and shared
+> with Human at the Helm, so a change there costs a `helm-sync.yaml` hash update and a twin
+> commit). A third home is `data/ai-rules.yaml`, the enforced single source, where each rule
+> already declares `enforcement:` and `scope:`.
+- [ ] Decide the home, then rewrite the rule so that a named exception obliges the AI to ask
+      first rather than proceed
+
+### 📓 A pipeline needs a defect log → #232
+
+> Somewhere a step can record what it noticed but did not fail on — a discrepancy in the data, a
+> unit needing checking, an assumption it had to make — reaching the end of the run intact and
+> attached to the output. `discourse-flow` built `plugins/defects.py` for this, and it is a
+> module-level list with a lock, which `context-is-the-only-channel` forbids. They had to break
+> the rule because the engine offers no sanctioned channel.
+>
+> **The engine is already writing these records as unqueryable prose**: `partialVerses` not
+> interpreted, a mapping entry skipped as naming no join, `versification_guessed`. So this is not
+> a plugin feature — the engine is one of its writers.
+>
+> Four routes are compared in the issue comment. The suggestion is a **reserved key in a step's
+> output** as the channel, which reaches every step type and needs no exemption from
+> `context-is-the-only-channel`; a **stdlib `logging` handler** as the Python convenience, since
+> `Logger` is already `logging.getLogger('llmflow')`; and a declarative `check:` later.
+- [x] **Ruled 2026-09-08.** The Captain took the recommendation: **C as the channel** — a step
+      returns a reserved `defects` key alongside its data, so the record travels as ordinary step
+      output and needs no exemption from `context-is-the-only-channel`, and every step type can
+      write one, not only Python. **B as the Python convenience** — a handler on the `llmflow`
+      logger, since `Logger` is already `logging.getLogger('llmflow')`, so plugin authors keep
+      writing `logger.warning(..., extra={...})` and need no new import. The sink is **written
+      automatically under `intermediate_file_directory`** and **summarised at the end of the run**.
+- [ ] Build it. `[]` and absence must differ, per `say-which-kind-of-nothing`: an empty log means
+      the run looked and found nothing
+- [ ] `for-each` with `parallel:` means concurrent writes — their lock exists because of a real
+      race in `subdivide_candidates`
+
+### 🔗 An edition cannot name its discourse or syntax source portably
+
+> Reported by `discourse-flow`; every checkable claim verified against the code. Thread and reply:
+> `collab/discourse-flow/2026-09-07-an-edition-cannot-name-its-discourse-source-portably.md`.
+>
+> `load_registry_editions` resolves **only** `path` through `resources.resolve_path()`
+> (`utils/scripture.py:879-885`). `discourse_path` and `lowfat_path` reach `Path()` raw, so a
+> dataset-relative value is resolved against the process working directory and absolute is the
+> only form that works. A registration therefore carries two kinds of reference at once, under a
+> header that promises the file "means the same thing on every machine" — and
+> `docs/llmflow-language.md:985` documents the absolute form, so this is the documented outcome.
+> Our own `tests/test_discourse_loading.py:15` makes the same assumption via `Path.home()`, in the
+> one place a reader would look for guidance.
+>
+> **Against the Captain's standing rule:** *"never, ever write absolute paths, they will not work
+> on another machine."* They can satisfy it everywhere except this file and these two keys.
+- [x] **Ruled and built.** The Captain: *"they cannot proceed using hard coded paths, I forbid
+      that, they need this to work."* Both keys now accept a dataset-relative value **and** a
+      registered dataset id with an optional subpath — the subpath is required in practice,
+      because neither corpus sits at a repository root. `resources.resolve_annotation_path`,
+      20 tests, documented in the language reference.
+  - [ ] **Greek discourse still cannot be named portably**, and not for want of the feature:
+        `levinsohn-lgntdf` is absent from `~/.sp/datasets/`, so `levinsohn-lgntdf/LGNTDF` falls
+        through to dataset-relative and lands nowhere. Registering it needs
+        `sp resource download levinsohn-lgntdf`, which needs the upstream `branch` field. Syntax
+        works today: `SBLGNT/lowfat` resolves inside the store copy
+  - [ ] `tests/test_discourse_loading.py:15` still hardcodes `Path.home()`. It is now the only
+        place in the repository modelling the shape we have just replaced
+- [x] **`sp resource search` ships.** `sp resource list` showed 3 of 70 entries under a legend
+      reading as a full inventory, and nothing listed the rest — which misled a session into
+      proposing a hand-written absolute path into the store. A bare word is a keyword; anything
+      else is a real XPath predicate evaluated by `lxml` over the catalog as a tree, with
+      `lower-case()` and `matches()` supplied at their XPath 2.0 meanings. The `list` legend now
+      names `search`.
+- [ ] Nothing writes `discourse_path` / `lowfat_path`: `sp resource add` does not set them, so the
+      only route is hand-editing a file whose first line says `sp resource add` wrote it
+- [ ] A 404 on an archive URL surfaces as a bare `HTTPError` traceback rather than naming the
+      branch as the likely cause
+
+### 🔼 Two fixes belong upstream in `awesome-biblical-data`, not here
+
+> `data/resources.json` is **vendored** and currently identical to upstream, so editing it here is
+> reverted by the next sync.
+- [ ] `levinsohn-lgntdf` has no `branch`, and that repository's default branch is `master`, so
+      `sp resource download levinsohn-lgntdf` 404s. `download_data.py:49` already honours
+      `branch`, so the fix is one field — upstream. Worth sweeping the other 69 entries
+- [ ] This is the second thread now waiting on that repository; BaseX #38 is blocked on
+      `awesome-biblical-data#5` — see the BaseX section below
+
+### 🗄️ BaseX collections — **scheduled for 0.2.1.28**, moved out of x.27
+
+> **Moved 2026-09-09.** Nothing in 0.2.1.27 depends on it, and its critical path starts in another
+> repository, so holding the release for it would keep two consumers living with an unreleased
+> breaking change (`edition:` → `resource:`) for no gain.
+
+**What ships already, and what does not.** The half that works is the half that was never blocked:
+
+| piece | issue | state |
+|---|---|---|
+| `type: basex` — query an existing database | #49 | **CLOSED, shipping.** `src/llmflow/steps/basex.py`, three test files |
+| `sp setup-db` — load a corpus under a canonical name | #52 | **OPEN, no code.** `grep -n "setup-db" src/llmflow/cli.py` returns nothing |
+| collection naming taken from the catalog | #38 | **OPEN, no code.** `design-basex-collections.md` reads `Status: proposal … Nothing is built` |
+| `provides` able to describe a treebank or a lexicon | `awesome-biblical-data#5` | **OPEN, zero comments**, untouched since raised 2026-09-07 |
+
+**Why the upstream issue is the whole thing, not a formality.** `provides` requires
+`versification`, `canon` and `language` of every entry, so only a scripture text can be declared.
+The catalog bears it out: **3 of 70** entries carry a `provides` block and all three are Bibles —
+`WLC`, `SBLGNT`, `BSB`. The feature exists to load treebanks and lexicons, and the catalog cannot
+name one. Since the first design ruling is *"names come from the catalog"*, there is no input to
+build against.
+
+**Verify:** `python3 -c "import json;d=json.load(open('data/resources.json'));print(len(d), sum(1 for e in d if e.get('provides')))"` → `70 3`.
+
+- [ ] **Upstream first:** `awesome-biblical-data#5` — the schema change that lets `provides`
+      describe a non-scripture subtree. Not designed here or there yet
+- [ ] **Then the catalog content**, which is editorial rather than code: up to 67 entries need a
+      `provides` block, and deciding what a meaningful name is needs the maintainer's judgment
+- [ ] **Seven decisions in §8** of `design-basex-collections.md` remain unruled even once the
+      blocker clears — `LANG` per subtree, `FTINDEX` by default or declared, whether a raw BaseX
+      name in `database:` keeps working, the local root for a non-git source, and three more
+- [ ] **Then build `sp setup-db`** (#52)
+- [ ] **The `done` label on #38 is false and invites a wrong close.** It reads "Ready to be closed -
+      implementation complete", which is true of #49 and not of #38's own subject. Changing a label
+      is the Captain's act
+
+### 📄 Whitelist design documents by declared status, rather than blacklisting
+
+> ⚠️ **Probably superseded 2026-09-08 by `rule plans-are-temporary`.** That rule deletes a working
+> document at eight days rather than classifying it, which was chosen over this proposal on the
+> grounds that the valuable content cannot be reliably told from the rest. If it is superseded,
+> this section and its two items should go; that is the Captain's call, not an agent's.
+
+> **The Captain's proposal, verbatim:** *"how about whitelisting design documents rather than
+> blacklisting? Only rely on design documents with status=[implementing, implemented], and ask
+> about any design document marked [implementing] if it is more than 3 days old?"*
+>
+> This is `declared-not-inferred` applied to plan documents: rely on a declared status rather than
+> inferring from prose whether a design is current. Two things it needs that do not exist yet.
+> **The status is free prose today** — `project/plans/` carries "proposal, awaiting the Captain.
+> Nothing is built.", "Implemented — historical record", "Proposed" and now "implemented", so a
+> whitelist needs an enum before it can be a whitelist. **Nothing records when a status changed**,
+> so the three-day question cannot be asked; a `since:` date beside the status would answer it.
+>
+> Unlike most rules in `data/ai-rules.yaml` this one is **guardable**: `project/plans/README.md`
+> is already generated from the documents, so a test can refuse an unknown status and flag a stale
+> `implementing`.
+- [ ] **Ruling needed:** the status enum, and whether `since:` is a separate field or part of it
+- [ ] Then the guard, and the generator reading it
+
+### 🔍 `sp lint` checks the prompt contract in one direction only
+
+> **Targets this release.** The Captain's words, verbatim: *"sp lint checks one direction only —
+> linter.py:1326, 'every {{var}} must be in requires:'. There is no reverse check. Its own message
+> for a withdrawn key even says 'delete it if the body does not use it', which is advice to a
+> human, not an enforced rule."*
+>
+> `validate_gpt_body_declares_all_vars` computes `undeclared = body_vars - declared`
+> (`linter.py:214`) and stops. The reverse set — a name in `requires:` that the body never uses —
+> is never computed. So a prompt can declare an input, `validate_all_step_contracts` can oblige
+> every calling step to supply it, and the body can ignore it, with nothing said anywhere. The
+> remedy the withdrawn-`optional:` message advises at `linter.py:161` *is* this check, unenforced.
+> **The `audit-prompts` skill has the same blind spot.** Its nine steps check convention
+> structure, grounding of *output* fields, example diversity, guardrail integrity, AI-written
+> examples, JSON formatting and structured outputs. None compares a prompt's `requires:` list
+> against the `{{var}}` names its body uses, so a declared-but-unused input passes the audit
+> exactly as it passes lint. The Captain: *"ALSO should catch this error."*
+>
+> **Two surfaces, one defect, but not one fix.** The linter is ours. The skill lives in
+> `~/.sp/skills/audit-prompts/SKILL.md`, which is the Captain's store — and per #204 most of
+> `~/.sp` is not in the package, so a check added there reaches this machine and no other until
+> that is fixed.
+- [ ] **Ruling needed first:** is an unused `requires:` entry an error or a warning? Then add the
+      reverse check to `validate_gpt_body_declares_all_vars`
+- [ ] Add the same check to the `audit-prompts` skill — **the Captain's store, needs his approval**
+
 ### 🐛 `sp init`'s write paths — three defects, found migrating discourse-flow → #215
 > Filed together because they share a cause: `sp init` writes through paths `sp doctor` has
 > already hardened, and reports failure inconsistently.

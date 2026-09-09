@@ -1,6 +1,6 @@
 """Loading a Hebrew discourse corpus — HOTDF-LS alongside LGNTDF.
 
-`include: [discourse]` promises to read the discourse source an edition declares. It could read
+`include: [discourse]` promises to read the discourse source a resource declares. It could read
 only one corpus: LGNTDF, whose files have a `<feature>` root, whose references are written in
 OSIS book names, and which sits in one flat directory.
 
@@ -72,14 +72,14 @@ def hebrew_corpus(tmp_path) -> Path:
 
 def test_a_usfm_reference_parses_without_a_translation_table():
     """`LEV` is already the USFM code; `books.resolve` accepts it and OSIS's `Lev` alike."""
-    assert parse_osis_ref("LEV.1.14!8") == ("LEV", 1, 14, 8)
-    assert parse_osis_ref("1SA.2.15!14") == ("1SA", 2, 15, 14)
+    assert parse_osis_ref("LEV.1.14!8") == ("LEV", 1, 14, 8, None)
+    assert parse_osis_ref("1SA.2.15!14") == ("1SA", 2, 15, 14, None)
 
 
 def test_an_osis_reference_still_parses():
     """The Greek corpus is unaffected — that spelling must keep working."""
-    assert parse_osis_ref("Mark.1.14!3") == ("MRK", 1, 14, 3)
-    assert parse_osis_ref("1Sam.2.15!14") == ("1SA", 2, 15, 14)
+    assert parse_osis_ref("Mark.1.14!3") == ("MRK", 1, 14, 3, None)
+    assert parse_osis_ref("1Sam.2.15!14") == ("1SA", 2, 15, 14, None)
 
 
 def test_an_unknown_book_still_raises():

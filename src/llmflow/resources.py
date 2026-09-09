@@ -39,6 +39,12 @@ CATALOG_FILENAME = "resources.json"
 #: hand-editable, and yours: which texts *this machine* has been told it may read.
 RESOURCES_DIRNAME = "registrations"
 
+#: One file per dataset somebody has downloaded or cloned, naming where it landed on this
+#: machine. Written by `sp`, never by a project — which is what makes it the right home for the
+#: one absolute path a machine needs, and why an annotation key may name a dataset instead of a
+#: path. `registry.DatasetRegistry` writes the same directory.
+DATASETS_DIRNAME = "datasets"
+
 #: Where the corpora themselves go — hundreds of megabytes, and deliberately **not** hidden.
 #: Configuration belongs in a dotfile; a library of texts does not, and a store nobody can see
 #: is a store nobody notices duplicating itself.
@@ -46,11 +52,11 @@ DATA_DIRNAME = "resources"
 
 #: The directory registrations lived in before #217, so `sp doctor` can carry them across.
 #:
-#: Deliberately only `editions`. An intermediate rename to `resources` existed for part of one
+#: Deliberately only `resources`. An intermediate rename to `resources` existed for part of one
 #: day and never shipped, and listing it here would collide head-on with `DATA_DIRNAME`: under
 #: `$SP_HOME` the corpora now live at `resources/`, and a fallback reading that as a
 #: registrations directory would try to parse a library of texts as YAML.
-LEGACY_REGISTRATION_DIRNAMES = ("editions",)
+LEGACY_REGISTRATION_DIRNAMES = ("resources",)
 LEGACY_DATA_DIRNAME = "data"
 
 #: The catalog block listing what an entry can be read as. Named for what it describes rather
@@ -58,7 +64,7 @@ LEGACY_DATA_DIRNAME = "data"
 PROVIDES_KEY = "provides"
 
 #: The directory this store used before #217. Read for migration, never written.
-LEGACY_RESOURCES_DIRNAME = "editions"
+LEGACY_RESOURCES_DIRNAME = "resources"
 
 
 def catalog_path() -> Path:
@@ -126,6 +132,102 @@ def dataset_dir(entry: Mapping[str, Any]) -> str:
     return _safe(identifier) if identifier else ""
 
 
+#: Catalog fields rendered as elements, and therefore searchable. `contains(., "…")` is free text
+#: across all of them, because XPath concatenates the text of a node's descendants.
+SEARCHABLE_FIELDS = ("id", "name", "category", "description", "notes", "license", "formats")
+
+#: A query of only these characters is a keyword rather than an XPath predicate. Precise rather
+#: than a guess: no predicate is spelled without a bracket, a quote, an operator or a colon.
+_KEYWORD = re.compile(r"[\w][\w.-]*\Z")
+
+
+def _xpath_text(value: Any) -> str:
+    """An XPath argument as a string, whether it arrived as a node set or a literal."""
+    if isinstance(value, list):
+        return " ".join(
+            item if isinstance(item, str) else "".join(item.itertext()) for item in value
+        )
+    return "" if value is None else str(value)
+
+
+def _lower_case(context, value) -> str:
+    """XPath 2.0 `lower-case()`, which lxml's XPath 1.0 does not provide."""
+    return _xpath_text(value).lower()
+
+
+def _matches(context, value, pattern, flags="") -> bool:
+    """XPath 2.0 `matches()`: a regular expression, not a containment test.
+
+    Implemented with its real semantics rather than redefined as `contains`, because a standard
+    function that means something else in one tool is worse than no function at all.
+    """
+    options = re.IGNORECASE if "i" in _xpath_text(flags) else 0
+    try:
+        return re.search(_xpath_text(pattern), _xpath_text(value), options) is not None
+    except re.error:
+        return False
+
+
+def _catalog_tree():
+    """The catalog as an XML tree, so a search is real XPath rather than a language of ours."""
+    from lxml import etree  # type: ignore[attr-defined]
+
+    registered = set(load_registered())
+    root = etree.Element("catalog")
+    for entry in catalog():
+        node = etree.SubElement(root, "resource")
+        for field in SEARCHABLE_FIELDS:
+            value = entry.get(field)
+            if isinstance(value, (list, tuple)):
+                value = " ".join(str(item) for item in value)
+            child = etree.SubElement(node, field)
+            child.text = "" if value is None else str(value)
+        node.set("readable", "true" if entry.get(PROVIDES_KEY) else "false")
+        node.set("registered", "true" if entry.get("id") in registered else "false")
+        node.set(
+            "fetch",
+            "download" if entry.get("download") else "git" if entry.get("github") else "manual",
+        )
+    return root
+
+
+def search(query: str) -> list:
+    """Catalog entries matching *query*, which is an XPath predicate over a `resource`.
+
+    The whole catalog is searched, not the readable subset that `sp resource list` shows — which
+    is the point, since a resource nobody can open yet is exactly what a reader is looking for.
+
+    A query of bare word characters is a keyword: `discourse` means
+    `contains(lower-case(.), "discourse")`, free text across every searchable field and
+    case-insensitive. Anything else is evaluated as written, so the full language is available —
+    `contains(category, "Treebank")`, `starts-with(id, "morphgnt")`, `@readable = "true"`, and
+    boolean combinations of them. `lower-case()` and `matches()` are supplied as extension
+    functions with their XPath 2.0 semantics, scoped to the query so they cannot leak into the
+    XPath and XSLT plugins.
+    """
+    from lxml import etree  # type: ignore[attr-defined]
+
+    text = str(query or "").strip()
+    if not text:
+        raise ValueError("a resource search needs a keyword or an XPath predicate.")
+
+    predicate = (
+        f'contains(lower-case(.), "{text.lower()}")' if _KEYWORD.match(text) else text
+    )
+
+    try:
+        evaluate = etree.XPath(
+            f"//resource[{predicate}]",
+            extensions={(None, "lower-case"): _lower_case, (None, "matches"): _matches},
+        )
+        hits = evaluate(_catalog_tree())
+    except etree.XPathError as error:
+        raise ValueError(f"{query!r} is not a valid search: {error}")
+
+    found = {node.findtext("id") for node in hits}
+    return [entry for entry in catalog() if entry.get("id") in found]
+
+
 def readable() -> dict:
     """`{id: item}` for everything the catalog says can be opened.
 
@@ -184,21 +286,91 @@ def legacy_data_dir() -> Path:
 
 
 def resolve_path(definition: Mapping[str, Any]) -> Path:
-    """The file a definition points at.
-
-    A dataset-relative path is resolved against the store, so the registration is the same on
-    every machine. An absolute path is honoured unchanged and wins over any `dataset`: a
-    maintainer works against their own clone, and that is the whole reason absolute paths stay
-    supported.
-    """
+    """The file a definition's `path` points at."""
     raw = str(definition.get("path") or "")
     if not raw:
         raise ValueError(
             f"resource definition {definition.get('id') or '(unnamed)'!r} has no `path`."
         )
+    return resolve_declared_path(raw, definition)
+
+
+def dataset_registration(identifier: str) -> Optional[dict]:
+    """The datasets-store entry for *identifier*, or None when nothing is registered under it.
+
+    Read-only by design: a lookup never creates the store directory. The store is write-protected
+    and a missing directory is the normal case on a fresh machine, so a reader that made one would
+    fail exactly where it should have answered "nothing registered".
+
+    A value carrying a path separator is never an id, so an id can address only a file inside the
+    datasets directory.
+    """
+    import yaml
+
+    name = str(identifier or "")
+    if not name or "/" in name or "\\" in name or name in (".", ".."):
+        return None
+
+    path = _paths.sp_home() / DATASETS_DIRNAME / f"{name}.yaml"
+    if not path.is_file():
+        return None
+    try:
+        loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (yaml.YAMLError, OSError):
+        # One bad hand-edit should not make every annotation source unresolvable.
+        return None
+    return dict(loaded) if isinstance(loaded, Mapping) else None
+
+
+def resolve_declared_path(value: Any, definition: Mapping[str, Any]) -> Path:
+    """Where a path declared in a registration points. One resolver for every such key.
+
+    Three forms, in this order:
+
+    - **absolute** — honoured unchanged, because a maintainer works against their own clone.
+    - **a registered dataset id, optionally with a subpath** — `levinsohn-lgntdf/LGNTDF`
+      resolves under that dataset's own path, which is where the one absolute path per machine
+      belongs. This is the only form that reaches a corpus outside the resource's own dataset,
+      and the subpath is not a convenience: the data rarely sits at a repository root.
+    - **anything else** — dataset-relative, resolved against the store.
+
+    So nothing a person authors carries an absolute path. Where a first segment is both a
+    registered id and a directory inside the resource's dataset, the id wins: a declaration beats
+    a coincidence of naming.
+
+    The dataset-relative form resolves inside whichever copy of the corpus the store holds,
+    while a dataset id resolves wherever that dataset was registered — possibly a different
+    clone of the same corpus. Text and annotations join on word ids, so a caller mixing the two
+    forms across keys can draw them from two copies, which is a silent mismatch rather than an
+    error. The engine cannot tell the difference; the choice belongs to whoever writes the
+    registration.
+    """
+    raw = str(value or "")
+    if not raw:
+        raise ValueError(
+            f"resource definition {definition.get('id') or '(unnamed)'!r} declares an empty path."
+        )
+
     path = Path(raw).expanduser()
     if path.is_absolute():
         return path
+
+    head, _, tail = raw.partition("/")
+    registered = dataset_registration(head)
+    if registered and registered.get("path"):
+        root = Path(str(registered["path"])).expanduser()
+        if not tail:
+            return root
+        resolved = (root / tail).resolve()
+        # A subpath names a place inside the dataset. Refusing the escape keeps a registration
+        # from reaching an arbitrary file through a dataset it merely names.
+        if root.resolve() not in resolved.parents and resolved != root.resolve():
+            raise ValueError(
+                f"resource definition {definition.get('id') or '(unnamed)'!r} declares "
+                f"{raw!r}, which leaves dataset {head!r} at {root}."
+            )
+        return resolved
+
     dataset = definition.get("dataset")
     if dataset:
         return data_dir() / str(dataset) / raw
@@ -277,7 +449,7 @@ def register(identifier: str, download: bool = True) -> Path:
         if item.get(field):
             entry[field] = item[field]
     if item.get("versification"):
-        # The registry's own name for it — what `edition_scheme()` reads first.
+        # The registry's own name for it — what `resource_scheme()` reads first.
         entry["versification_scheme"] = item["versification"]
 
     target = _write_registration(
@@ -350,6 +522,83 @@ def _write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> 
         if was_locked and target.parent.exists():
             _lock_sp_dir(target.parent)
     return target
+
+
+#: The registration keys naming an annotation source. Both resolve the same three ways as
+#: `path`, so both are validated before anything is written.
+ANNOTATION_KEYS = ("discourse_path", "lowfat_path")
+
+
+def register_dataset(identifier: str, path: Any, name: Optional[str] = None,
+                     fmt: Optional[str] = None) -> Path:
+    """Record where a dataset lives on this machine, so a registration can name it.
+
+    The one absolute path a machine needs belongs here rather than in a registration, which is
+    what lets a registration mean the same thing everywhere. Refuses a path that does not exist:
+    a dataset entry pointing nowhere fails later, in the middle of a run, with a message about
+    the resource that named it rather than about this file.
+    """
+    target_path = Path(str(path)).expanduser().resolve()
+    if not target_path.exists():
+        raise ValueError(f"Nothing at {target_path} — a dataset must name a directory that exists.")
+
+    entry = {
+        "id": identifier,
+        "name": name or identifier,
+        "path": str(target_path),
+        "format": fmt or "unknown",
+    }
+    target = _paths.sp_home() / DATASETS_DIRNAME / f"{identifier}.yaml"
+    return _write_registration(target, "", entry)
+
+
+def resolved_fields(identifier: str, **fields: Any) -> dict:
+    """What each field would resolve to for resource *identifier*, without writing anything.
+
+    Separated from the write so a caller can show the reader where a value lands before it is
+    committed to the store — a typo in a dataset id is otherwise invisible until a run reports
+    the family as `null`.
+    """
+    registered = load_registered()
+    if identifier not in registered:
+        known = ", ".join(sorted(registered)) or "(none registered)"
+        raise ValueError(f"No resource is registered as {identifier!r}. Registered: {known}")
+
+    definition = dict(registered[identifier])
+    resolved: dict = {}
+    for key, value in fields.items():
+        if value is None:
+            continue
+        where = resolve_declared_path(value, definition) if key in ANNOTATION_KEYS else Path(str(value))
+        if key in ANNOTATION_KEYS and not where.exists():
+            raise ValueError(
+                f"{value!r} resolves to {where}, which does not exist. "
+                f"No dataset is registered as {str(value).partition('/')[0]!r}."
+            )
+        resolved[key] = where
+    return resolved
+
+
+def set_resource_fields(identifier: str, **fields: Any) -> Path:
+    """Set named fields on a registration, leaving every other key as it was.
+
+    Not `add` re-running and merging: a command named for creating should not silently rewrite a
+    file someone has curated, which is how a header comment claiming `sp resource add` wrote it
+    stopped being true. Every value is resolved first, so nothing is written when one is wrong.
+    """
+    import yaml
+
+    resolved_fields(identifier, **fields)  # raises before anything is written
+
+    target = default_resources_dir() / f"{identifier}.yaml"
+    if not target.is_file():
+        raise ValueError(f"No registration file for {identifier!r} at {target}.")
+
+    text = target.read_text(encoding="utf-8")
+    banner = "".join(line for line in text.splitlines(keepends=True) if line.startswith("#"))
+    entry = yaml.safe_load(text) or {}
+    entry.update({key: value for key, value in fields.items() if value is not None})
+    return _write_registration(target, banner, entry)
 
 
 def register_local(

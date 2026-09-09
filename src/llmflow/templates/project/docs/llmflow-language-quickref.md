@@ -272,14 +272,14 @@ or all items if fewer than 10 have accumulated so far.
 
 ### type: `scripture`
 
-Fetch one passage from one **named** edition. The name resolves through
+Fetch one passage from one **named** resource. The name resolves through
 `~/.sp/registrations/*.yaml`, so no path appears in a pipeline and the same
 pipeline runs on any machine.
 
 ```yaml
 - name: fetch_source
   type: scripture
-  edition: SBLGNT             # a registered edition
+  resource: SBLGNT             # a registered resource
   passage: "${passage}"       # MRK · MRK 1 · MRK 1:1 · MRK 1:1-8 · MRK 1:40-2:12
   format: milestones          # plain | milestones | usj  (default: milestones)
   versification: eng          # optional — the scheme `passage` is written in
@@ -296,7 +296,7 @@ do not restructure the text into a list or dict keyed by verse.
 **Versification.** A reference is not a location until a scheme is named:
 `PSA 51:1` is `PSA 51:3` in the original and `PSA 50:3` in the Vulgate.
 `versification:` names the scheme *your* `passage` is written in; the engine
-maps it before reading any text. An edition's own scheme comes from its
+maps it before reading any text. A resource's own scheme comes from its
 registry entry, a Paratext project's settings, or the shipped table — there is
 no global default, and asking to cross schemes without one is an error.
 

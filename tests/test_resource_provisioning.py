@@ -181,7 +181,7 @@ def test_registrations_and_corpora_live_apart(store):
 
 def test_an_unmigrated_machine_still_reads_its_registrations(store, caplog):
     """Renaming the directory must not fail every pipeline on the machines that upgrade."""
-    legacy = store / "editions"
+    legacy = store / "resources"
     legacy.mkdir(parents=True)
     (legacy / "WLC.yaml").write_text("id: WLC\nkind: tsv\npath: /tmp/wlc.tsv\n")
     assert "WLC" in R.load_registered()
@@ -189,7 +189,7 @@ def test_an_unmigrated_machine_still_reads_its_registrations(store, caplog):
 
 
 def test_the_new_directory_wins_when_both_exist(store):
-    for name, path in (("editions", "/tmp/old.tsv"), ("registrations", "/tmp/new.tsv")):
+    for name, path in (("resources", "/tmp/old.tsv"), ("registrations", "/tmp/new.tsv")):
         directory = store / name
         directory.mkdir(parents=True)
         (directory / "WLC.yaml").write_text(f"id: WLC\nkind: tsv\npath: {path}\n")
@@ -277,27 +277,27 @@ def test_a_usfm_registration_becomes_base_dir_and_project(store):
     The catalog can only state one relative path — the project directory inside the download —
     because it describes where things are, not what one reader's signature happens to be.
     """
-    from llmflow.utils.scripture import load_registry_editions
+    from llmflow.utils.scripture import load_registry_resources
 
     directory = store / "registrations"
     directory.mkdir(parents=True)
     (directory / "BSB.yaml").write_text(
         "id: BSB\nkind: usfm\ndataset: https-bereanbible.com/bsb_usfm\npath: bsb_usfm\n"
     )
-    definition = load_registry_editions()["BSB"]
+    definition = load_registry_resources()["BSB"]
     assert definition["project"] == "bsb_usfm"
     assert definition["base_dir"] == str(store / "resources" / "https-bereanbible.com" / "bsb_usfm")
 
 
 def test_a_usfm_registration_that_already_says_both_is_left_alone(store):
-    from llmflow.utils.scripture import load_registry_editions
+    from llmflow.utils.scripture import load_registry_resources
 
     directory = store / "registrations"
     directory.mkdir(parents=True)
     (directory / "OWN.yaml").write_text(
         "id: OWN\nkind: usfm\nbase_dir: /Users/someone/paratext\nproject: MYPROJ\n"
     )
-    definition = load_registry_editions()["OWN"]
+    definition = load_registry_resources()["OWN"]
     assert definition["base_dir"] == "/Users/someone/paratext"
     assert definition["project"] == "MYPROJ"
 
@@ -353,10 +353,10 @@ def test_registering_a_path_that_is_not_there_is_refused(store, tmp_path):
 
 def test_the_refusal_names_a_command_that_exists():
     """The old message said `sp registry`, which had no subcommand that could register."""
-    from llmflow.utils.scripture import ResourceNotRegistered, resolve_edition
+    from llmflow.utils.scripture import ResourceNotRegistered, resolve_resource
 
     with pytest.raises(ResourceNotRegistered) as raised:
-        resolve_edition("NO_SUCH", registry_editions={"WLC": "/tmp/wlc.tsv"})
+        resolve_resource("NO_SUCH", registry_resources={"WLC": "/tmp/wlc.tsv"})
     message = str(raised.value)
     assert "NO_SUCH" in message
     assert "WLC" in message, "the reader is told what is registered"
@@ -365,10 +365,10 @@ def test_the_refusal_names_a_command_that_exists():
 
 def test_the_refusal_says_when_the_catalog_knows_the_resource():
     """`available` and `absent` are different problems and want different remedies."""
-    from llmflow.utils.scripture import ResourceNotRegistered, resolve_edition
+    from llmflow.utils.scripture import ResourceNotRegistered, resolve_resource
 
     with pytest.raises(ResourceNotRegistered) as raised:
-        resolve_edition("SBLGNT", registry_editions={})
+        resolve_resource("SBLGNT", registry_resources={})
     assert "sp resource add SBLGNT" in str(raised.value)
 
 

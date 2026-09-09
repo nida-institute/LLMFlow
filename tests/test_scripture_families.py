@@ -1,7 +1,7 @@
 """`include:` families, and why the same declaration serves two languages.
 
 Greek and Hebrew are different languages and their analyses differ. A family therefore emits
-whichever of its declared columns the edition actually has, and nothing merges the two systems: a
+whichever of its declared columns the resource actually has, and nothing merges the two systems: a
 Greek verb has `tense`, `voice` and `mood`; a Hebrew verb has `stem` and `state`. A Greek sense is
 a Louw-Nida number in `domain`/`ln`; a Hebrew sense is an SDBH domain in `lexdomain` and its
 neighbours.

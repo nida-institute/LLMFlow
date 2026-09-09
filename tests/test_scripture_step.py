@@ -1,6 +1,6 @@
-"""`type: scripture` — a named edition and a passage, in a pipeline (LLMFlow#200).
+"""`type: scripture` — a named resource and a passage, in a pipeline (LLMFlow#200).
 
-The point of the step, rather than a `type: function` call, is that an edition is *named* and
+The point of the step, rather than a `type: function` call, is that a resource is *named* and
 the engine resolves where it lives. Absolute paths written into pipeline YAML are why
 `ears-to-hear` and `discourse-flow` only run on one laptop, and why an assistant ends up
 choosing a text source — a decision that belongs to the Captain, expressed as configuration.
@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 from llmflow import load_pipeline
-from llmflow.utils.scripture import load_registry_editions
+from llmflow.utils.scripture import load_registry_resources
 
 MACULA = Path("/Users/jonathan/github/Clear/macula-greek/SBLGNT/tsv/macula-greek-SBLGNT.tsv")
 SHIPPED_SCHEMES = Path(__file__).resolve().parent.parent / "src/llmflow/templates/sp/versification"
@@ -38,20 +38,20 @@ HEBREW_TSV = (
 
 @pytest.fixture
 def store(tmp_path, monkeypatch) -> Path:
-    """A throwaway `$SP_HOME` holding registered editions and the shipped schemes."""
+    """A throwaway `$SP_HOME` holding registered resources and the shipped schemes."""
     home = tmp_path / "sp"
-    editions = home / "editions"
-    editions.mkdir(parents=True)
+    resources = home / "resources"
+    resources.mkdir(parents=True)
 
     tsv = tmp_path / "wlc.tsv"
     tsv.write_text(HEBREW_TSV, encoding="utf-8")
-    (editions / "WLC.yaml").write_text(
+    (resources / "WLC.yaml").write_text(
         f"id: WLC\nname: Westminster Leningrad Codex\nkind: tsv\npath: {tsv}\n"
         f"versification_scheme: org\n",
         encoding="utf-8",
     )
     if MACULA.is_file():
-        (editions / "SBLGNT.yaml").write_text(
+        (resources / "SBLGNT.yaml").write_text(
             f"id: SBLGNT\nname: SBL Greek New Testament\nkind: tsv\npath: {MACULA}\n"
             f"versification_scheme: org\n",
             encoding="utf-8",
@@ -89,7 +89,7 @@ def test_the_api_exposes_every_scripture_key(tmp_path, store):
         tmp_path,
         "  - name: fetch\n"
         "    type: scripture\n"
-        "    edition: WLC\n"
+        "    resource: WLC\n"
         '    passage: "GEN 1:1"\n'
         "    format: usj\n"
         "    versification: org\n"
@@ -97,7 +97,7 @@ def test_the_api_exposes_every_scripture_key(tmp_path, store):
         "    output: source\n",
     )
     step = load_pipeline(path).steps[0]
-    assert step.edition == "WLC"
+    assert step.resource == "WLC"
     assert step.passage == "GEN 1:1"
     assert step.format == "usj"
     assert step.versification == "org"
@@ -110,7 +110,7 @@ def test_the_api_exposes_every_scripture_key(tmp_path, store):
 def test_an_unknown_format_is_rejected_by_lint(tmp_path, store):
     path = pipeline_file(
         tmp_path,
-        "  - name: fetch\n    type: scripture\n    edition: WLC\n"
+        "  - name: fetch\n    type: scripture\n    resource: WLC\n"
         '    passage: "GEN 1:1"\n    format: parquet\n    output: t\n',
     )
     result = load_pipeline(path).lint()
@@ -120,7 +120,7 @@ def test_an_unknown_format_is_rejected_by_lint(tmp_path, store):
 def test_an_unknown_include_family_is_rejected_by_lint(tmp_path, store):
     path = pipeline_file(
         tmp_path,
-        "  - name: fetch\n    type: scripture\n    edition: WLC\n"
+        "  - name: fetch\n    type: scripture\n    resource: WLC\n"
         '    passage: "GEN 1:1"\n    format: usj\n    include: [parsing]\n    output: t\n',
     )
     result = load_pipeline(path).lint()
@@ -133,7 +133,7 @@ def test_an_unknown_include_family_is_rejected_by_lint(tmp_path, store):
 def test_a_passage_reaches_the_output_variable(tmp_path, store):
     path = pipeline_file(
         tmp_path,
-        "  - name: fetch\n    type: scripture\n    edition: WLC\n"
+        "  - name: fetch\n    type: scripture\n    resource: WLC\n"
         '    passage: "GEN 1:1"\n    format: plain\n    output: source\n',
     )
     assert run(path)["source"] == "בְּרֵאשִׁית בָּרָא"
@@ -142,7 +142,7 @@ def test_a_passage_reaches_the_output_variable(tmp_path, store):
 def test_milestones_is_the_default_format(tmp_path, store):
     path = pipeline_file(
         tmp_path,
-        "  - name: fetch\n    type: scripture\n    edition: WLC\n"
+        "  - name: fetch\n    type: scripture\n    resource: WLC\n"
         '    passage: "GEN 1:1"\n    output: source\n',
     )
     assert run(path)["source"].startswith("⌊1:1⌋")
@@ -152,7 +152,7 @@ def test_milestones_is_the_default_format(tmp_path, store):
 def test_usj_with_ids_arrives_as_a_document_with_srcloc(tmp_path, store):
     path = pipeline_file(
         tmp_path,
-        "  - name: fetch\n    type: scripture\n    edition: SBLGNT\n"
+        "  - name: fetch\n    type: scripture\n    resource: SBLGNT\n"
         '    passage: "MRK 1:1"\n    format: usj\n    include: [ids]\n    output: source\n',
     )
     usj = run(path)["source"]
@@ -177,7 +177,7 @@ def test_versification_maps_before_fetching(tmp_path, store):
     """
     path = pipeline_file(
         tmp_path,
-        "  - name: fetch\n    type: scripture\n    edition: SBLGNT\n"
+        "  - name: fetch\n    type: scripture\n    resource: SBLGNT\n"
         '    passage: "MRK 1:1"\n    versification: eng\n    format: plain\n    output: source\n',
     )
     # `eng` and `org` agree throughout the New Testament, so the text is unchanged — what is
@@ -188,12 +188,12 @@ def test_versification_maps_before_fetching(tmp_path, store):
 def test_a_missing_edition_names_what_is_registered(tmp_path, store):
     path = pipeline_file(
         tmp_path,
-        "  - name: fetch\n    type: scripture\n    edition: NOPE\n"
+        "  - name: fetch\n    type: scripture\n    resource: NOPE\n"
         '    passage: "GEN 1:1"\n    output: t\n',
     )
     with pytest.raises(Exception) as caught:
         load_pipeline(path).run(log_file=str(tmp_path / "llmflow.log"))
-    assert "WLC" in str(caught.value), "the error should list the registered editions"
+    assert "WLC" in str(caught.value), "the error should list the registered resources"
 
 
 # --- the payload survives serialisation, which is how a consumer receives it ----------
@@ -203,7 +203,7 @@ def test_a_missing_edition_names_what_is_registered(tmp_path, store):
 def test_the_usj_payload_is_json_serialisable(tmp_path, store):
     path = pipeline_file(
         tmp_path,
-        "  - name: fetch\n    type: scripture\n    edition: SBLGNT\n"
+        "  - name: fetch\n    type: scripture\n    resource: SBLGNT\n"
         '    passage: "MRK 1:1"\n    format: usj\n    include: [ids]\n    output: source\n',
     )
     payload = json.dumps(run(path)["source"], ensure_ascii=False)
@@ -214,7 +214,7 @@ def test_passage_resolves_a_pipeline_variable(tmp_path, store):
     """`${ref}` must be resolved before the fetch, not passed through as a literal."""
     path = pipeline_file(
         tmp_path,
-        "  - name: fetch\n    type: scripture\n    edition: WLC\n"
+        "  - name: fetch\n    type: scripture\n    resource: WLC\n"
         '    passage: "${ref}"\n    format: plain\n    output: source\n',
     )
     pipeline = load_pipeline(path)
@@ -227,7 +227,7 @@ def test_a_passage_the_edition_does_not_cover_errors_rather_than_returning_empty
     """Silently empty source text is the failure mode that reaches a model unnoticed."""
     path = pipeline_file(
         tmp_path,
-        "  - name: fetch\n    type: scripture\n    edition: WLC\n"
+        "  - name: fetch\n    type: scripture\n    resource: WLC\n"
         '    passage: "MRK 1:1"\n    output: source\n',
     )
     with pytest.raises(ValueError, match="No text found"):
@@ -239,11 +239,11 @@ def test_a_passage_the_edition_does_not_cover_errors_rather_than_returning_empty
 # =====================================================================================
 
 @pytest.fixture
-def editions_dir(tmp_path):
-    """A registry editions directory with one TSV edition registered."""
+def resources_dir(tmp_path):
+    """A registry resources directory with one TSV resource registered."""
     tsv = tmp_path / "wlc.tsv"
     tsv.write_text(HEBREW_TSV, encoding="utf-8")
-    d = tmp_path / "editions"
+    d = tmp_path / "resources"
     d.mkdir()
     (d / "WLC.yaml").write_text(
         f'id: WLC\nname: Westminster Leningrad Codex\nkind: tsv\npath: "{tsv}"\n',
@@ -253,20 +253,20 @@ def editions_dir(tmp_path):
 
 
 class TestEditionsComeFromTheRegistry:
-    def test_editions_are_read_from_yaml_files(self, editions_dir):
-        eds = load_registry_editions(editions_dir)
+    def test_editions_are_read_from_yaml_files(self, resources_dir):
+        eds = load_registry_resources(resources_dir)
         assert "WLC" in eds
         assert eds["WLC"]["kind"] == "tsv"
 
     def test_a_missing_directory_is_not_an_error(self, tmp_path):
-        """A fresh machine has no editions registered; that is a clear error at use time,
+        """A fresh machine has no resources registered; that is a clear error at use time,
         not an exception at import time."""
-        assert load_registry_editions(tmp_path / "nope") == {}
+        assert load_registry_resources(tmp_path / "nope") == {}
 
-    def test_a_malformed_edition_file_does_not_hide_the_others(self, editions_dir):
-        (editions_dir / "BROKEN.yaml").write_text("this: [is: not: valid", encoding="utf-8")
-        eds = load_registry_editions(editions_dir)
-        assert "WLC" in eds, "one bad file must not make every edition unreadable"
+    def test_a_malformed_edition_file_does_not_hide_the_others(self, resources_dir):
+        (resources_dir / "BROKEN.yaml").write_text("this: [is: not: valid", encoding="utf-8")
+        eds = load_registry_resources(resources_dir)
+        assert "WLC" in eds, "one bad file must not make every resource unreadable"
 
 
 class TestSchemaAndLinter:
@@ -278,7 +278,7 @@ class TestSchemaAndLinter:
         from llmflow.pipeline_schema import allowed_step_keys
         keys = allowed_step_keys("scripture")
         assert keys is not None
-        for k in ("edition", "passage", "format"):
+        for k in ("resource", "passage", "format"):
             assert k in keys, f"{k} missing from the scripture branch"
 
     def test_a_typo_in_a_scripture_key_is_rejected(self, tmp_path):
@@ -288,7 +288,7 @@ class TestSchemaAndLinter:
         p = tmp_path / "p.yaml"
         p.write_text(json.dumps({
             "name": "p",
-            "steps": [{"name": "s", "type": "scripture", "edition": "WLC",
+            "steps": [{"name": "s", "type": "scripture", "resource": "WLC",
                        "passage": "GEN 1:1", "translation": "oops", "output": "t"}],
         }), encoding="utf-8")
         result = lint_pipeline_full(str(p))

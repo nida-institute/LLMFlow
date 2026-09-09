@@ -47,6 +47,44 @@ def test_no_alias_points_at_two_books():
             seen[key] = code
 
 
+def test_no_alias_collides_with_a_code_from_another_canon():
+    """The check above compares aliases only against each other, so it never saw `other_codes`.
+
+    `_index()` adds those with `setdefault`, which means an alias silently wins and the code
+    resolves to the wrong book. `pss` did exactly that: the SBL Handbook gives it for Psalms
+    (plural), USFM gives it for Psalms of Solomon, and the alias got there first — so a scheme
+    carrying Psalms of Solomon returned Psalms with no symptom.
+
+    A token claimed by both belongs in `ambiguous`, which is what the declaration says it is for.
+    """
+    aliases = {
+        books.normalise(alias): code
+        for code, entry in books.table().items()
+        for alias in entry["aliases"]
+    }
+    ambiguous = {books.normalise(token) for token in books._document().get("ambiguous", {})}
+
+    collisions = [
+        f"{code} collides with an alias of {aliases[books.normalise(code)]}"
+        for code in books._document().get("other_codes", ())
+        if books.normalise(code) in aliases and books.normalise(code) not in ambiguous
+    ]
+    assert not collisions, "; ".join(collisions)
+
+
+def test_a_token_two_canons_both_claim_is_refused():
+    """`Pss` is Psalms in the SBL Handbook and Psalms of Solomon in USFM — two published standards,
+    both of which this engine reads. Neither claim can be dropped, so the token names more than one
+    book and is refused. Returning either silently is how the wrong text gets read.
+    """
+    with pytest.raises(books.AmbiguousBook) as raised:
+        books.resolve("PSS")
+    assert "Psalms of Solomon" in str(raised.value)
+
+    for unaffected in ("Psalms", "Psalm", "Ps", "PSA"):
+        assert books.resolve(unaffected) == "PSA", f"{unaffected} should be unharmed"
+
+
 # --- resolving ----------------------------------------------------------------------
 
 

@@ -40,23 +40,63 @@ working step and an error — check it before designing a step around a family.
 | family | status | what it carries |
 |---|---|---|
 | `ids` | built | the word's source id, as `srcloc` on the `w` node |
-| `morphology` | built | the edition's own grammatical categories, plus `lemma` and `strong` as USX attributes |
-| `senses` | built | the edition's own sense system: Louw-Nida in `domain`/`ln` on Greek, SDBH in `lexdomain` and its neighbours on Hebrew |
-| `glosses` | built | the edition's gloss columns |
-| `referents` | built | the edition's referent columns |
+| `morphology` | built | the resource's own grammatical categories, plus `lemma` and `strong` as USX attributes |
+| `senses` | built | the resource's own sense system: Louw-Nida in `domain`/`ln` on Greek, SDBH in `lexdomain` and its neighbours on Hebrew |
+| `glosses` | built | the resource's gloss columns |
+| `referents` | built | the resource's referent columns |
 | `discourse` | built | Levinsohn's features, each with the `outcome` field described below |
-| `syntax` | not built | held deliberately — see below |
+| `syntax` | built | the constituency tree, standoff — one entry per sentence |
 
-A family emits whichever of its declared columns the edition actually has, and nothing merges
+A family emits whichever of its declared columns the resource actually has, and nothing merges
 the two systems: a Greek verb has `tense`, `voice` and `mood`; a Hebrew verb has `stem` and
 `state`. Field names are the source's column names verbatim, so any field traces back to a
 column.
 
-**Why `syntax` is held.** The cheap half of it — `frame`, one line per word — is populated on
-under a fifth of words. The other half is a nested tree roughly ten times the payload of
-everything else combined. Shipping the cheap half under the name `syntax` and adding the tree
-later would multiply every consumer's payload without their pipeline changing a character, so
-the name stays unbuilt until it means the whole thing.
+**`syntax` is the tree, and only the tree.** It was held while the name might have meant two
+things: a nested constituency tree, and `frame` — the predicate's semantic roles, one line per
+word. Shipping the cheap half under the name and adding the tree later would have multiplied every
+consumer's payload without their pipeline changing a character. `frame` now rides with
+`referents`, where it belongs — it is the semantic-role counterpart to `subjref`'s grammatical one
+— so the name means the whole thing and nothing else.
+
+**What it costs.** The tree is the largest family by a wide margin: `MRK 1:1-8` is 127 words and
+about 9,500 characters of payload. Ask for it when something downstream reads constituency, not
+by default.
+
+**`syntax` requires `ids`**, and asking for it alone raises. Its leaves are word ids, which reach
+the document as `srcloc` through `ids`; without them the payload names words the document does not
+identify, which is unusable rather than merely thinner. This is a stronger condition than the
+per-word families have, because a tree is *over* words rather than an annotation *on* one.
+
+**The payload is a list, one entry per sentence**, in the order the source states them. So "which
+subtree is a sentence" is answered by the structure rather than by a class the engine invents —
+which matters because a point of departure is defined as sentence-initial, and Mark has 726
+sentences against 4,021 clause groups.
+
+Nodes and leaves both carry `class`, the syntactic category, and `role`, the role with respect to
+the governing verb. A leaf also carries a word-level `token`. Hebrew is morpheme-based, so a word
+written in several pieces appears as several leaves naming the same word and differing in `class`
+or `role` — an article and a noun, a conjunction and a verb.
+
+**What else a node carries**, where the source states it: `articular`, `head`, `type`, `clauseType`,
+`junction`, `predication`. A leaf may also carry `junction` and `discontinuous`.
+
+Those are here because each is a property of a **constituent** and none has a route through the
+TSV, which is one row per word. `articular` is the clearest case: in `τῇ κατ᾽ οἶκόν σου ἐκκλησίᾳ`
+the article governs a phrase containing a prepositional phrase, not the word beside it, so
+articularity cannot ride in a per-word family however the families are arranged. `discontinuous`
+earns its place because this family is standoff *for* the mismatch between text order and tree
+order, and it is the source's own marking of exactly that.
+
+Three things to expect. **Absence is the negative** for `articular`, `discontinuous` and `head` —
+the source writes them only when true. **The two languages differ**: `head` is Hebrew-only,
+`articular`, `type`, `junction` and `predication` are Greek-only, and a family emits whichever of
+its fields the resource actually has. And **`clauseType` is the one field name that is not the
+source's verbatim** — Greek writes `clauseType`, Hebrew `clausetype`, and the payload states it
+once under the Greek spelling rather than making a reader know which corpus they have.
+
+`rule` and `nodeId` are not carried. They name how the parser derived a node rather than a fact
+about the constituent, and nothing downstream can check them against the text.
 
 ## The annotation container
 
@@ -82,7 +122,7 @@ The engine reports which of these it produced, and stops there. What either one 
 work is application semantics, and belongs in your pipeline's own documentation.
 
 For example, with `include: [discourse]`: `"discourse": {}` says the discourse source was
-consulted and had nothing to return, and `"discourse": null` says this edition's registry entry
+consulted and had nothing to return, and `"discourse": null` says this resource's registry entry
 names no discourse source at all. A pipeline counting how often a feature occurs would document
 the first as a real zero and the second as something it cannot count; one checking coverage might
 document the second as a reason to stop the run. The engine does not choose between those
@@ -90,7 +130,7 @@ readings — your pipeline states which one it means. Rule `say-which-kind-of-no
 
 ## `include: [discourse]` — read the outcome, not just the id
 
-Levinsohn's word indices are NA28-family; the text is SBLGNT. Where the editions differ his index
+Levinsohn's word indices are NA28-family; the text is SBLGNT. Where the resources differ his index
 names a **different word**, and it does not fail. Each item therefore reports what reconciling the
 index against the Greek he quotes established:
 
@@ -113,6 +153,15 @@ A reference is not a location until a scheme is named. `versification:` states t
 `passage` is written in, and the engine maps before reading. There is no global default — a
 Byzantine text and a critical text are numbered differently — so an unknown scheme plus a
 cross-scheme request is an error naming the field to add, never a guess.
+
+**The container's `versification` answers which numbering is in force, and that is not always a
+standard scheme's name.** A Paratext project may carry a `custom.vrs` stating its own chapter
+lengths, missing verses, verse segments and mappings; the engine reads it and folds it onto the
+scheme the project declares. Such a project is not using the standard scheme any more, so the
+value is the **project's name** — `spaNVIv3`, not `eng`. That name does not resolve outside that
+Paratext installation, which is the point: calling it `eng` when its Revelation 12 has seventeen
+verses rather than eighteen would be false. An overlay stating nothing leaves the base in force,
+and the base's name is reported as before.
 
 ## Where the detail is
 

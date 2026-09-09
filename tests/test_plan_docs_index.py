@@ -4,7 +4,7 @@ Why this exists: `project/plans/` holds 25+ documents at different stages — so
 authoritative, some implemented-and-historical, some proposed and never built. A reader
 (or an LLM) facing an undifferentiated directory cannot tell which is which, and a
 document whose issue is never named can be stranded without anyone noticing. That
-happened to `design-scripture-editions.md`, which existed only on a local tag while
+happened to `design-scripture-resources.md`, which existed only on a local tag while
 `project/TODO.md` pointed at it.
 
 Three checks:
