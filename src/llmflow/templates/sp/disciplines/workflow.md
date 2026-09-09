@@ -51,6 +51,25 @@ If a tool genuinely has no path argument, use a subshell: `(cd /path && command)
 
 ---
 
+## Completion Is Claimed With Evidence
+
+**A report of completion is a factual claim.** Making it without having verified it is a false statement, not optimism. The common failure is not deceit — it is finishing three quarters of something, losing track of the rest, and reporting the whole.
+
+**Write the checklist before the work, and tick a box only with its evidence beside it.** Not *done* — *how you know*: a test id, a file and line, a command and its result, a count, a date.
+
+```markdown
+- [x] lint rejects the old key — tests/test_key_migration.py::test_the_old_key_is_refused
+- [x] downstream callers migrated — 5 sites across 2 repos, all green (2026-09-08)
+- [x] docs updated — docs/language.md, docs/architecture.md §3.1
+- [ ] changelog entry
+```
+
+That turns a claim into something the human checks in one step instead of taking on trust.
+
+**A checklist matters most where no test can reach.** A suite catches an unfinished change to the code it covers. It cannot catch documentation not updated, another repository not migrated, or a reply owed to another project and never sent — and those are exactly the items that get lost, because nothing goes red when they are skipped.
+
+**Report what was actually run.** "These three test files pass" rather than "tests pass"; "the happy path works" rather than "it works". Where part of the work was skipped or deferred, say which part, in the same breath as the part that was done.
+
 ## Files the Human Controls
 
 **Never modify `docs/ai-context/` without explicit approval.** These are design documents. Report findings and propose changes in conversation; do not write unilaterally.
