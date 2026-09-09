@@ -317,6 +317,7 @@
         "llmflow.utils.rewind",
         "llmflow.utils.step_outputs",
         "llmflow.yaml_loader",
+        "logging",
         "os",
         "pathlib",
         "re",
@@ -655,6 +656,74 @@
           "name": "original_language",
           "signature": "original_language(code: str) -> Optional[str]",
           "doc": "The language the book was written in, as declared."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.defects",
+      "imports": [
+        "__future__",
+        "json",
+        "logging",
+        "pathlib",
+        "threading",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "defect_logging_handler",
+          "signature": "defect_logging_handler(log: DefectLog) -> logging.Handler",
+          "doc": "A handler that files `llmflow.defects` records into *log*."
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, pipeline: str = '') -> None",
+          "doc": ""
+        },
+        {
+          "name": "__deepcopy__",
+          "signature": "__deepcopy__(self, memo: dict) -> 'DefectLog'",
+          "doc": "A copied context shares the one log, rather than getting a copy of it."
+        },
+        {
+          "name": "record",
+          "signature": "record(self, step: str, message: str, severity: str = 'warning', location: Optional[str] = None, **detail) -> None",
+          "doc": "Record and return; the caller carries on with a flagged unit."
+        },
+        {
+          "name": "extend",
+          "signature": "extend(self, step: str, payload: Any) -> None",
+          "doc": "Drain what a step returned under `defects`."
+        },
+        {
+          "name": "entries",
+          "signature": "entries(self) -> list[dict]",
+          "doc": ""
+        },
+        {
+          "name": "counts",
+          "signature": "counts(self) -> dict",
+          "doc": ""
+        },
+        {
+          "name": "summary",
+          "signature": "summary(self) -> str",
+          "doc": "One line for the end of a run. Says so when there is nothing, rather than nothing."
+        },
+        {
+          "name": "write",
+          "signature": "write(self, path: Any) -> Path",
+          "doc": "Write the log, entries and counts together."
+        },
+        {
+          "name": "__init__",
+          "signature": "__init__(self, log: DefectLog) -> None",
+          "doc": ""
+        },
+        {
+          "name": "emit",
+          "signature": "emit(self, record: logging.LogRecord) -> None",
+          "doc": ""
         }
       ]
     },
@@ -1261,6 +1330,21 @@
           "name": "_write_registration",
           "signature": "_write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> Path",
           "doc": "Write one registration, unlocking the store around it."
+        },
+        {
+          "name": "register_dataset",
+          "signature": "register_dataset(identifier: str, path: Any, name: Optional[str] = None, fmt: Optional[str] = None) -> Path",
+          "doc": "Record where a dataset lives on this machine, so a registration can name it."
+        },
+        {
+          "name": "resolved_fields",
+          "signature": "resolved_fields(identifier: str, **fields) -> dict",
+          "doc": "What each field would resolve to for resource *identifier*, without writing anything."
+        },
+        {
+          "name": "set_resource_fields",
+          "signature": "set_resource_fields(identifier: str, **fields) -> Path",
+          "doc": "Set named fields on a registration, leaving every other key as it was."
         },
         {
           "name": "register_local",
@@ -1958,6 +2042,11 @@
           "doc": "Parse ``\"MRK 1:1-8\"`` and friends."
         },
         {
+          "name": "references_in",
+          "signature": "references_in(text: str) -> list",
+          "doc": "Every passage reference *text* names, in the order they appear, without repeats."
+        },
+        {
           "name": "_split_tail",
           "signature": "_split_tail(text: str)",
           "doc": "`(\"Mark\", <1:40-2:12>)`. The tail is the last token when it has the numeric shape."
@@ -2090,6 +2179,29 @@
           "name": "get_prefix_directory",
           "signature": "get_prefix_directory(filename: str, prefix_length: int | None = 2, prefix_delimiter: str | None = None) -> str",
           "doc": "Derive grouping directory name from filename (without extension)."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.prompt_hygiene",
+      "imports": [
+        "__future__",
+        "llmflow.defects",
+        "llmflow.utils",
+        "llmflow.utils.scripture",
+        "llmflow.utils.versification",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "contaminating_references",
+          "signature": "contaminating_references(template: str, passage: Any, scheme: str = ASSUMED_SCHEME) -> list",
+          "doc": "References in *template* that overlap *passage*."
+        },
+        {
+          "name": "warn_about_contamination",
+          "signature": "warn_about_contamination(template: str, prompt_path: Any, context: Mapping[str, Any]) -> None",
+          "doc": "Record contamination as a defect, and carry on."
         }
       ]
     },
@@ -3094,6 +3206,7 @@
     {
       "module": "llmflow.utils.step_outputs",
       "imports": [
+        "llmflow.defects",
         "llmflow.modules.logger",
         "llmflow.utils.context",
         "llmflow.utils.file_io",
@@ -3104,7 +3217,7 @@
       "functions": [
         {
           "name": "handle_step_outputs",
-          "signature": "handle_step_outputs(step: Dict[str, Any], result: Any, context: Dict[str, Any], base_dir: str = '.') -> None",
+          "signature": "handle_step_outputs(step: Dict[str, Any], result: Any, context: Dict[str, Any], base_dir: str = '.', defects: Any = None) -> None",
           "doc": "Store step result in context and handle saveas."
         },
         {
@@ -3248,6 +3361,11 @@
           "doc": "Check that every {{var}} used in a .gpt body is flat and declared in requires:."
         },
         {
+          "name": "unused_requires_warnings",
+          "signature": "unused_requires_warnings(prompt_path: str) -> List[str]",
+          "doc": "Names a prompt declares in `requires:` and never uses in its body."
+        },
+        {
           "name": "format_diff_box",
           "signature": "format_diff_box(step, file, declared, passed)",
           "doc": ""
@@ -3366,6 +3484,16 @@
           "name": "_cwd_importable",
           "signature": "_cwd_importable()",
           "doc": "Put the working directory on `sys.path` for the duration of the block."
+        },
+        {
+          "name": "_is_sibling_of",
+          "signature": "_is_sibling_of(module, name: str, root: Path) -> bool",
+          "doc": "Is this module the `root/name` package or `root/name.py`, and nothing else?"
+        },
+        {
+          "name": "_drop_foreign_package",
+          "signature": "_drop_foreign_package(module_dotted: str) -> None",
+          "doc": "Forget an already-imported top-level package that lives outside the working directory."
         },
         {
           "name": "_resolve_step_function",
@@ -5052,7 +5180,7 @@
     }
   ],
   "summary": {
-    "total_modules": 85,
-    "total_functions": 801
+    "total_modules": 87,
+    "total_functions": 821
   }
 }

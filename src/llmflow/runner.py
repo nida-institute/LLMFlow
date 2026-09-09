@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import sys
@@ -612,6 +613,15 @@ def run_pipeline(
     context = build_run_context(pipeline_config, vars)
     logger.debug(f"Variables: {vars}")
 
+    # What the run notices but does not fail on. It rides the context because that is the channel
+    # every step already has; a step reports by returning `defects`, and Python code by writing to
+    # the `llmflow.defects` logger.
+    from llmflow.defects import DEFECT_LOG_KEY, DefectLog, defect_logging_handler
+    defect_log = DefectLog(pipeline=str(pipeline_name))
+    context[DEFECT_LOG_KEY] = defect_log
+    # The handler is attached further down, after the block that may call `Logger.reset()` — a
+    # reset clears every handler on `llmflow`, and would silently empty the log.
+
     # Name this run by the variables that distinguish it, so a second run does not write
     # over the first one's audit trail (LLMFlow#198). Stored on pipeline_config because the
     # step handlers reach the debug directory from there.
@@ -645,6 +655,19 @@ def run_pipeline(
             logger.set_level("DEBUG")
         if verbose:
             logger.set_level("DEBUG")
+
+    # Attached to `llmflow` rather than to a `defects` child, because the engine's own warnings
+    # are the same category of finding: `partialVerses` uninterpreted, a mapping skipped as naming
+    # no join, a versification assumed. Those were prose in `llmflow.log` that nothing could count.
+    # A child logger's records propagate here, so a plugin author's `logger.warning(...)` is
+    # captured by the same handler.
+    #
+    # Attached *here*, below the reset above, and not where the log is created: `Logger.reset()`
+    # clears every handler on `llmflow`, and it runs under exactly the condition that makes the
+    # defect log worth keeping — a declared `intermediate_file_directory`.
+    _defect_handler = defect_logging_handler(defect_log)
+    _defect_handler.setLevel(logging.WARNING)
+    logging.getLogger("llmflow").addHandler(_defect_handler)
 
     # Get steps to execute
     steps = pipeline_root.get("steps", [])
@@ -702,9 +725,26 @@ def run_pipeline(
         logger.info("\n⚠️  Execution interrupted by user (Ctrl+C)")
         logger.info("   Pipeline stopped. Partial results may be available.")
         raise  # Re-raise to be caught by CLI handler
+    finally:
+        # A failed run is the likeliest one to be re-run, so its handler must not outlive it: it
+        # hangs on the module-level `llmflow` logger, and a leaked one would file the next run's
+        # warnings into this run's log.
+        logging.getLogger("llmflow").removeHandler(_defect_handler)
 
     logger.info("Pipeline complete.")
     telemetry.complete_pipeline()
+
+    # The defect log, written whether or not anything was found: `[]` is the run saying it looked,
+    # which a reader cannot infer from a missing file. Removed from the context first so a caller
+    # inspecting the result does not meet an engine object among its variables.
+    context.pop(DEFECT_LOG_KEY, None)
+    logger.info(defect_log.summary())
+    intermediate = pipeline_config.get("intermediate_file_directory")
+    if intermediate and not dry_run:
+        written = defect_log.write(
+            Path(str(resolve(str(intermediate), context))) / "defects.json"
+        )
+        logger.info(f"   {written}")
 
     # Generate and log telemetry summary
     summary = telemetry.generate_summary()
