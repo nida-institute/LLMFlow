@@ -276,6 +276,11 @@
           "doc": "Register the project and its ai-context files in ~/.sp/ (Issue #132)."
         },
         {
+          "name": "_index_ai_context",
+          "signature": "_index_ai_context(registry, ai_context_dir: Path, project_name: str) -> None",
+          "doc": "Record each of a project's ai-context documents in the machine-wide index."
+        },
+        {
           "name": "list_pipelines",
           "signature": "list_pipelines(directory: str) -> list[str]",
           "doc": "List all YAML pipeline files in a directory."
@@ -5181,6 +5186,6 @@
   ],
   "summary": {
     "total_modules": 87,
-    "total_functions": 821
+    "total_functions": 822
   }
 }

@@ -56,7 +56,7 @@ Enforce prompt contracts at runtime (Issue #96)
 
 Implements runtime validation to prevent undeclared variables in
 prompt bodies. Variables used in {{brackets}} must be declared in
-the prompt header's 'requires' or 'optional' lists.
+the prompt header's 'requires' list.
 
 Key changes:
 - src/llmflow/runner.py: Enhanced render_prompt() with contract enforcement
@@ -108,7 +108,7 @@ Every version in `CHANGELOG.md` documents completed issues:
 ### New Features
 
 - **Runtime prompt contract enforcement** — Variables used in {{brackets}}
-  must be declared in prompt header's 'requires' or 'optional' lists.
+  must be declared in the prompt header's 'requires' list.
   Prevents undeclared variable expansion from context. (Issue #96)
 
 ### Test Coverage

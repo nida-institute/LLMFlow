@@ -82,9 +82,9 @@ Both `sp lint` and `sp run` refuse a dotted name in a prompt body rather than se
 an unfilled placeholder.
 
 Prompt files usually include a small contract (often in a comment
-block) that documents which inputs they expect ("requires" / "optional").
-Make sure every required value is provided by the pipeline step
-via `prompt.inputs`.
+block) that documents which inputs they expect (`requires`). Every
+one of them is required — see "There is no `optional:` key" below —
+so make sure the pipeline step provides each via `prompt.inputs`.
 
 ## 3. Common step types
 
