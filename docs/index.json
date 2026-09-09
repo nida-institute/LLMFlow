@@ -1439,6 +1439,11 @@
       ],
       "functions": [
         {
+          "name": "provider_models",
+          "signature": "provider_models() -> dict",
+          "doc": "Model names grouped by provider, read from `data/models.json`."
+        },
+        {
           "name": "_load_keys",
           "signature": "_load_keys(keys_path)",
           "doc": ""
@@ -5186,6 +5191,6 @@
   ],
   "summary": {
     "total_modules": 87,
-    "total_functions": 822
+    "total_functions": 823
   }
 }
