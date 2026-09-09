@@ -942,8 +942,8 @@ A successful audit:
 
 ## Related Documents
 
-- `docs/prompt-organization-convention.md` — The convention definition
-- `docs/safe-llm-change-workflow.md` — Process for modifying prompts safely
+- `~/.sp/disciplines/llmflow-prompt-organization.md` — the convention definition, installed on
+  every machine. A project may override it with its own `docs/prompt-organization-convention.md`
 - `.github/copilot-instructions.md` — General codebase guidelines
 
 ## Notes

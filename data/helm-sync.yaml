@@ -63,7 +63,7 @@ files:
   status: identical
 - set: skills
   name: commit-ready
-  sha256: 8d653e8fef9a739ac916cf535752b73c3d9da843087dcfb1bb4084542cd22b56
+  sha256: 2cc26ff288e372825f02c60e4c4e39a2f4c80fe6899d074bde1155770211777e
   status: differs
   ruling: 'Captain, 2026-08-20: "strip it out of [Human at the Helm]''s commit-ready". This repository''s
     copy names gui/frontend, pytest.ini and the Logger singleton rule — furniture no other project
@@ -98,7 +98,7 @@ files:
     difference is the Captain''s to say.'
 - set: skills
   name: stand-down
-  sha256: 0e6412267b719b98a410b6f4539fa09161872fdf358b0dc8823450642e2d0d64
+  sha256: be01ff5f74e195b9a43660d4b80aaf203745a5c7c84e111cb6a34dd660128056
   status: identical
 helm_only:
 - path: skills/helm-check
