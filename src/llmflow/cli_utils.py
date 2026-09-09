@@ -756,47 +756,56 @@ def _register_in_global_registry(base_dir: Path) -> None:
         # Index docs/ai-context/*.md files
         ai_context_dir = base_dir / "docs" / "ai-context"
         if ai_context_dir.exists():
+            # Unlocked for the write, exactly as the project registration above is. The store is
+            # read-only so that only `sp` changes it — which means `sp` must use its own key
+            # rather than reporting that the lock stopped it. Without this the whole block raised
+            # `Permission denied` on the first file and was swallowed as a warning, so a project's
+            # context went unindexed and nothing said so plainly.
             # rglob, not glob: the context is two directories deep since the sp/ and project/
             # split, and a flat glob silently indexed nothing.
-            for md_file in sorted(ai_context_dir.rglob("*.md")):
-                # Key by the relative path, flattened. Since the sp/ and project/ split there
-                # are two `index.md` files and two `overview.md` files, so a bare filename
-                # registers one and silently drops the other. The separator is flattened to a
-                # hyphen because the registry stores each entry as `<key>.yaml`, and a slash in
-                # the key would need a subdirectory that is never created — which failed
-                # silently and indexed nothing at all.
-                file_key = md_file.relative_to(ai_context_dir).as_posix().replace("/", "-")
-                if registry.ai_context.get(file_key) is not None:
-                    continue  # already indexed
-
-                # Extract description from first ATX heading in the file
-                description = f"AI context: {md_file.stem}"
-                try:
-                    content = md_file.read_text(encoding="utf-8")
-                    for line in content.splitlines():
-                        stripped = line.strip()
-                        if stripped.startswith("#"):
-                            description = re.sub(r"^#+\s*", "", stripped)
-                            break
-                except OSError:
-                    pass
-
-                # Derive topics from filename parts
-                topics = [p for p in re.split(r"[-_./]", file_key.removesuffix(".md")) if p]
-                topics.append("ai-context")
-
-                registry.ai_context.register(
-                    file=file_key,
-                    project=project_name,
-                    description=description,
-                    topics=topics,
-                    path=str(md_file.resolve()),
-                )
-                logger.info(f"Indexed {file_key} in ~/.sp/ai-context/")
+            with _sp_dir_writable(registry_dir / "ai-context"):
+                _index_ai_context(registry, ai_context_dir, project_name)
 
     except Exception as e:
-        logger.warning(f"Could not register in global registry: {e}")
-        logger.warning("This is not critical - registry can be updated manually.")
+        logger.warning(f"Could not index this project in ~/.sp: {e}")
+        # Deliberately not "update it manually": `~/.sp` is written by `sp` and by nothing else.
+        logger.warning("Run `sp init` again once the cause is fixed; nothing else is affected.")
+
+
+def _index_ai_context(registry, ai_context_dir: Path, project_name: str) -> None:
+    """Record each of a project's ai-context documents in the machine-wide index."""
+    for md_file in sorted(ai_context_dir.rglob("*.md")):
+        # Key by the relative path, flattened. Since the sp/ and project/ split there are two
+        # `index.md` files and two `overview.md` files, so a bare filename registers one and
+        # silently drops the other. The separator is flattened to a hyphen because the registry
+        # stores each entry as `<key>.yaml`, and a slash in the key would need a subdirectory
+        # that is never created — which failed silently and indexed nothing at all.
+        file_key = md_file.relative_to(ai_context_dir).as_posix().replace("/", "-")
+        if registry.ai_context.get(file_key) is not None:
+            continue  # already indexed
+
+        # The first ATX heading describes the file better than its name does.
+        description = f"AI context: {md_file.stem}"
+        try:
+            for line in md_file.read_text(encoding="utf-8").splitlines():
+                stripped = line.strip()
+                if stripped.startswith("#"):
+                    description = re.sub(r"^#+\s*", "", stripped)
+                    break
+        except OSError:
+            pass
+
+        topics = [p for p in re.split(r"[-_./]", file_key.removesuffix(".md")) if p]
+        topics.append("ai-context")
+
+        registry.ai_context.register(
+            file=file_key,
+            project=project_name,
+            description=description,
+            topics=topics,
+            path=str(md_file.resolve()),
+        )
+        logger.info(f"Indexed {file_key} in ~/.sp/ai-context/")
 
 
 def list_pipelines(directory: str) -> list[str]:
