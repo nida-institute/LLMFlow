@@ -1,7 +1,13 @@
 name: "Test Storyflow Pipeline"
 description: |
-  Minimal Storyflow harness used by the automated tests. Run from repo root:
-    llmflow run pipelines/storyflow-test.yaml
+  A one-step pipeline that runs without an API key, used as a fixture by the linter and
+  prompt-resolution tests. Run from the repo root:
+    sp run --pipeline pipelines/storyflow-test.yaml
+
+  The step calls an engine function rather than a mock, so `sp lint` on this file exercises the
+  same resolution a real pipeline gets. It used to name `tests.test_storyflow_pipeline`, a module
+  that has never existed — nothing caught it, because every test that reads this file reads it as
+  YAML and none runs the step.
 
 llm_config:
   model: "gpt-4o"
@@ -15,8 +21,8 @@ variables:
 steps:
   - name: "test_step"
     type: "function"
-    function: "tests.test_storyflow_pipeline.mock_identity"
+    function: "llmflow.utils.data.parse_bible_reference"
     inputs:
-      value: "${psalm_reference}"
+      passage: "${psalm_reference}"
     output:
-      - psalm_text
+      - parsed_reference

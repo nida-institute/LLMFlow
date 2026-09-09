@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.1.27 — 2026-09-09
+
 ### Added
 
 - **A run records what it noticed without failing (#232).** A step that finds a discrepancy in the
