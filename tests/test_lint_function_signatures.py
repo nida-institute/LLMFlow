@@ -284,6 +284,65 @@ class TestImportFailures:
             _step("llmflow.utils.io.load_json", {"file_path": "x.json"})
         ]) == []
 
+    def test_lint_leaves_no_project_module_behind(self, tmp_path, monkeypatch):
+        """Lint inspects. A run in the same process must import the project's plugins itself."""
+        monkeypatch.chdir(tmp_path)
+        _make_plugin(tmp_path, "derive", "def run(content):\n    return content\n")
+        check_function_step_signatures([_step("plugins.derive.run", {"content": "x"})])
+        assert "plugins.derive" not in sys.modules
+        assert PKG not in sys.modules
+
+    def test_it_leaves_engine_modules_alone(self, tmp_path, monkeypatch):
+        """Only what came from the working directory is dropped; the engine is not this block's."""
+        monkeypatch.chdir(tmp_path)
+        check_function_step_signatures([
+            _step("llmflow.utils.io.load_json", {"file_path": "x.json"})
+        ])
+        assert "llmflow.utils.io" in sys.modules
+
+    def test_the_engine_module_object_is_the_same_one_afterwards(self, monkeypatch):
+        """Evicting `llmflow` would hand the next import a fresh module object.
+
+        Every reference the caller already holds — a patched name, the logger singleton — would
+        then belong to a module nothing else is using. Linting from the engine's own repository is
+        the ordinary case, so this is not a corner.
+        """
+        import llmflow.utils.io as io_module
+
+        check_function_step_signatures([
+            _step("llmflow.utils.io.load_json", {"file_path": "x.json"})
+        ])
+        assert sys.modules["llmflow.utils.io"] is io_module
+
+    def test_a_stale_package_of_the_same_name_does_not_shadow_this_one(self, tmp_path,
+                                                                       monkeypatch):
+        """`plugins` is the conventional name, so several projects have one.
+
+        Whichever was imported first stays in `sys.modules`, bound to its own directory, and every
+        later `plugins.*` import resolves against it — so a lint of the second pipeline reports
+        that its own plugin does not exist. The pipeline being linted owns the name.
+
+        The first one here carries an `__init__.py` and the second does not, which is the case
+        that bites: a regular package fixes `__path__` at import, where a namespace package
+        recomputes it from `sys.path` and re-resolves on its own.
+        """
+        elsewhere = tmp_path / "elsewhere"
+        _make_plugin(elsewhere, "other", "def run(content):\n    return content\n")
+        (elsewhere / PKG / "__init__.py").write_text("")
+        importlib.invalidate_caches()
+        here = tmp_path / "here"
+        _make_plugin(here, "derive", "def run(content):\n    return content\n")
+
+        monkeypatch.chdir(elsewhere)
+        assert check_function_step_signatures([
+            _step("plugins.other.run", {"content": "x"})
+        ]) == []
+
+        monkeypatch.chdir(here)
+        assert check_function_step_signatures([
+            _step("plugins.derive.run", {"content": "x"})
+        ]) == []
+
 
 # ---------------------------------------------------------------------------
 # List-form inputs are positional, so only arity is checkable

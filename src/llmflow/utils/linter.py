@@ -223,6 +223,48 @@ def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
     return errors
 
 
+def unused_requires_warnings(prompt_path: str) -> List[str]:
+    """Names a prompt declares in `requires:` and never uses in its body.
+
+    The other direction of the contract `validate_gpt_body_declares_all_vars` checks. Both sets
+    were already computed there; only this subtraction was missing, so a prompt could oblige
+    every calling step to supply an input it then ignored.
+
+    A **warning**: the run it produces is correct, and a pipeline that works should not stop
+    working because a prompt is untidy. The cost is real but is plumbing — a step passing a value
+    nothing reads, and a reader believing the prompt uses it.
+
+    Silent where another check owns the problem: an unparseable header, a withdrawn `optional:`
+    key and a dotted name are each reported by the check that owns them, and saying so twice
+    trains a reader to skim.
+    """
+    header = parse_prompt_header(prompt_path)
+    if header is None or "optional" in header:
+        return []
+
+    requires = header.get("requires") or []
+    if not isinstance(requires, list):
+        return []
+    declared = {str(name) for name in requires if "." not in str(name)}
+    if not declared:
+        return []
+
+    text = Path(prompt_path).read_text(encoding="utf-8")
+    frontmatter = re.search(r"^---[ \t]*\n.*?\n---[ \t]*\n?", text, re.DOTALL | re.MULTILINE)
+    body = text[frontmatter.end():] if frontmatter else text
+
+    unused = sorted(declared - extract_template_variables(body))
+    if not unused:
+        return []
+    return [
+        f"{prompt_path}: declares {unused} in `requires:` but the body never uses "
+        f"{'them' if len(unused) > 1 else 'it'}. Every calling step must supply "
+        f"{'these' if len(unused) > 1 else 'this'} for nothing — delete the "
+        f"{'entries' if len(unused) > 1 else 'entry'}, or use "
+        f"{'them' if len(unused) > 1 else 'it'}."
+    ]
+
+
 def format_diff_box(step, file, declared, passed):
     declared_sorted = sorted(declared)
     passed_sorted = sorted(passed)
@@ -1084,24 +1126,96 @@ def _cwd_importable():
     `run_pipeline` does this before importing plugins; lint runs without it, so a
     `plugins.*` module is importable at run time and not at lint time. Any entry
     added here is removed on the way out.
+
+    So is anything the block imported from the working directory. Lint inspects; it must not
+    leave the process holding *this* project's `plugins` package, because the conventional name
+    is shared and whoever imports it first answers for it afterwards. Modules from anywhere else
+    — the engine, site-packages — are left alone: they were not this block's doing.
     """
     cwd = os.getcwd()
-    if cwd in sys.path:
-        yield
-        return
-    sys.path.insert(0, cwd)
+    already_on_path = cwd in sys.path
+    before = set(sys.modules)
+    if not already_on_path:
+        sys.path.insert(0, cwd)
     try:
         yield
     finally:
+        if not already_on_path:
+            try:
+                sys.path.remove(cwd)
+            except ValueError:
+                pass
+        root = Path(cwd).resolve()
+        added = {name.split(".")[0] for name in set(sys.modules) - before}
+        for top in added:
+            if not _is_sibling_of(sys.modules.get(top), top, root):
+                continue
+            for name in [n for n in sys.modules if n == top or n.startswith(top + ".")]:
+                del sys.modules[name]
+
+
+def _is_sibling_of(module, name: str, root: Path) -> bool:
+    """Is this module the `root/name` package or `root/name.py`, and nothing else?
+
+    Deliberately exact rather than "somewhere under root". A project is usually linted from its
+    own repository, so *most* of what is imported lives under the working directory — including
+    the engine itself, from `src/llmflow`. Only what a bare `import name` picks up because the
+    working directory is on `sys.path` was this block's doing.
+    """
+    if module is None:
+        return False
+    candidates = {root / name, root / f"{name}.py"}
+    locations = []
+    origin = getattr(getattr(module, "__spec__", None), "origin", None)
+    if origin:
+        locations.append(Path(origin))
+    for entry in getattr(module, "__path__", []) or []:
+        locations.append(Path(str(entry)))
+    for location in locations:
         try:
-            sys.path.remove(cwd)
-        except ValueError:
-            pass
+            resolved = location.resolve()
+        except (OSError, ValueError):
+            continue
+        if resolved in candidates or resolved.parent in candidates:
+            return True
+    return False
+
+
+def _drop_foreign_package(module_dotted: str) -> None:
+    """Forget an already-imported top-level package that lives outside the working directory.
+
+    `plugins` is the conventional name, so more than one project has one. A regular package — the
+    kind with an `__init__.py` — fixes its `__path__` at import, so whichever was imported first
+    answers every later `plugins.*` import and the pipeline's own module is reported missing.
+    (A namespace package recomputes `__path__` from `sys.path` and needs none of this.)
+
+    The pipeline being linted owns the name, so its package replaces the stranger's. Only packages
+    outside the working directory are dropped: an engine module such as `llmflow.utils.io` stays.
+    """
+    top = module_dotted.split(".")[0]
+    existing = sys.modules.get(top)
+    if existing is None:
+        return
+
+    # Only when the working directory offers a `top` of its own. Without this the engine's own
+    # modules qualify as "foreign" — `llmflow` is imported from `src/llmflow`, which is not
+    # `./llmflow` — and dropping those from `sys.modules` replaces every module object the caller
+    # is holding.
+    root = Path(os.getcwd()).resolve()
+    if not (root / top).is_dir() and not (root / f"{top}.py").is_file():
+        return
+    if _is_sibling_of(existing, top, root):
+        return
+
+    for name in [n for n in sys.modules if n == top or n.startswith(top + ".")]:
+        del sys.modules[name]
+    importlib.invalidate_caches()
 
 
 def _resolve_step_function(func_ref: str):
     """Import `func_ref` and return `(callable, failure)`, exactly one of which is None."""
     module_dotted, func_name = func_ref.rsplit(".", 1)
+    _drop_foreign_package(module_dotted)
 
     try:
         module = importlib.import_module(module_dotted)
@@ -1342,6 +1456,9 @@ def lint_pipeline_full(
         try:
             resolved = resolve_prompt_path(prompt_file, prompts_dir_for_decl)
             gpt_decl_errors.extend(validate_gpt_body_declares_all_vars(str(resolved)))
+            # The other direction of the same contract, and a warning rather than an error: the
+            # run it produces is correct, so a working pipeline must not stop working over it.
+            all_warnings.extend(unused_requires_warnings(str(resolved)))
         except FileNotFoundError:
             pass  # Already reported by contract validation above
     if gpt_decl_errors:
