@@ -126,6 +126,7 @@ class TestResponseFormatExpansion:
 class TestSchemaFileIntegration:
     """Integration tests with call_llm (requires OPENAI_API_KEY)."""
 
+    @pytest.mark.integration
     @pytest.mark.skipif(
         not os.getenv("OPENAI_API_KEY"),
         reason="OPENAI_API_KEY not set"
@@ -169,6 +170,7 @@ class TestSchemaFileIntegration:
         assert result["usage"]["prompt_tokens"] > 0
         assert result["usage"]["completion_tokens"] > 0
 
+    @pytest.mark.integration
     @pytest.mark.skipif(
         not os.getenv("OPENAI_API_KEY"),
         reason="OPENAI_API_KEY not set"
