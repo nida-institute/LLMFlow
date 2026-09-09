@@ -100,6 +100,41 @@ def temp_prompt_file(tmp_path):
     return str(prompts_dir)
 
 
+@pytest.fixture
+def sample_pipeline(tmp_path, monkeypatch):
+    """A minimal pipeline on disk, with a prompt beside it, for tests that need *a* path.
+
+    These tests used to name `pipelines/storyflow-test.yaml` — a leftover from when the client
+    applications lived in this repository alongside the engine. Being a real tracked file, it
+    invited a test to write to it, and one did. A fixture cannot be edited by accident, and it
+    says what the test depends on instead of leaving it to be discovered.
+
+    The working directory moves to the fixture, because the callers pass a relative path.
+    """
+    (tmp_path / "prompts").mkdir()
+    (tmp_path / "prompts" / "greeting.gpt").write_text(
+        "<!--\nprompt:\n  requires:\n    - passage\n-->\nSummarise {{passage}}.\n"
+    )
+    pipeline = tmp_path / "pipelines" / "sample.yaml"
+    pipeline.parent.mkdir()
+    pipeline.write_text(
+        "name: sample\n"
+        "variables:\n"
+        "  passage: 'Psalm 1:1-3'\n"
+        "  prompts_dir: prompts\n"
+        "steps:\n"
+        "  - name: summarise\n"
+        "    type: llm\n"
+        "    prompt:\n"
+        "      file: greeting.gpt\n"
+        "      inputs:\n"
+        "        passage: '${passage}'\n"
+        "    output: summary\n"
+    )
+    monkeypatch.chdir(tmp_path)
+    return pipeline
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _tidy_debug_dirs_left_by_tests():
     """Remove the `outputs/debug/tmp*` directories the suite creates in the repo.
