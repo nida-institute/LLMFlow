@@ -524,6 +524,83 @@ def _write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> 
     return target
 
 
+#: The registration keys naming an annotation source. Both resolve the same three ways as
+#: `path`, so both are validated before anything is written.
+ANNOTATION_KEYS = ("discourse_path", "lowfat_path")
+
+
+def register_dataset(identifier: str, path: Any, name: Optional[str] = None,
+                     fmt: Optional[str] = None) -> Path:
+    """Record where a dataset lives on this machine, so a registration can name it.
+
+    The one absolute path a machine needs belongs here rather than in a registration, which is
+    what lets a registration mean the same thing everywhere. Refuses a path that does not exist:
+    a dataset entry pointing nowhere fails later, in the middle of a run, with a message about
+    the resource that named it rather than about this file.
+    """
+    target_path = Path(str(path)).expanduser().resolve()
+    if not target_path.exists():
+        raise ValueError(f"Nothing at {target_path} — a dataset must name a directory that exists.")
+
+    entry = {
+        "id": identifier,
+        "name": name or identifier,
+        "path": str(target_path),
+        "format": fmt or "unknown",
+    }
+    target = _paths.sp_home() / DATASETS_DIRNAME / f"{identifier}.yaml"
+    return _write_registration(target, "", entry)
+
+
+def resolved_fields(identifier: str, **fields: Any) -> dict:
+    """What each field would resolve to for resource *identifier*, without writing anything.
+
+    Separated from the write so a caller can show the reader where a value lands before it is
+    committed to the store — a typo in a dataset id is otherwise invisible until a run reports
+    the family as `null`.
+    """
+    registered = load_registered()
+    if identifier not in registered:
+        known = ", ".join(sorted(registered)) or "(none registered)"
+        raise ValueError(f"No resource is registered as {identifier!r}. Registered: {known}")
+
+    definition = dict(registered[identifier])
+    resolved: dict = {}
+    for key, value in fields.items():
+        if value is None:
+            continue
+        where = resolve_declared_path(value, definition) if key in ANNOTATION_KEYS else Path(str(value))
+        if key in ANNOTATION_KEYS and not where.exists():
+            raise ValueError(
+                f"{value!r} resolves to {where}, which does not exist. "
+                f"No dataset is registered as {str(value).partition('/')[0]!r}."
+            )
+        resolved[key] = where
+    return resolved
+
+
+def set_resource_fields(identifier: str, **fields: Any) -> Path:
+    """Set named fields on a registration, leaving every other key as it was.
+
+    Not `add` re-running and merging: a command named for creating should not silently rewrite a
+    file someone has curated, which is how a header comment claiming `sp resource add` wrote it
+    stopped being true. Every value is resolved first, so nothing is written when one is wrong.
+    """
+    import yaml
+
+    resolved_fields(identifier, **fields)  # raises before anything is written
+
+    target = default_resources_dir() / f"{identifier}.yaml"
+    if not target.is_file():
+        raise ValueError(f"No registration file for {identifier!r} at {target}.")
+
+    text = target.read_text(encoding="utf-8")
+    banner = "".join(line for line in text.splitlines(keepends=True) if line.startswith("#"))
+    entry = yaml.safe_load(text) or {}
+    entry.update({key: value for key, value in fields.items() if value is not None})
+    return _write_registration(target, banner, entry)
+
+
 def register_local(
     identifier: str,
     path: Any,

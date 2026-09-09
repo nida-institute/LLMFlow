@@ -193,10 +193,25 @@ def build_parser():
     res_add.add_argument("--no-download", action="store_true", dest="no_download",
                          help="Register without fetching the data yet")
 
+    res_set = res_sub.add_parser(
+        "set", help="Set fields on a registration, leaving the rest alone"
+    )
+    res_set.add_argument("id", help="A registered resource id (e.g. SBLGNT)")
+    res_set.add_argument("--discourse-path", default=None, dest="discourse_path",
+                         help="Dataset-relative, or a dataset id with a subpath")
+    res_set.add_argument("--lowfat-path", default=None, dest="lowfat_path",
+                         help="Dataset-relative, or a dataset id with a subpath")
+
     ds_p = subparsers.add_parser("dataset", help="Bodies of data the catalog describes")
     ds_sub = ds_p.add_subparsers(dest="dataset_command", help="Dataset commands")
 
     ds_sub.add_parser("list", help="Datasets registered on this machine")
+
+    ds_add = ds_sub.add_parser("add", help="Record where a dataset lives on this machine")
+    ds_add.add_argument("id", help="A dataset id (e.g. levinsohn-lgntdf)")
+    ds_add.add_argument("--path", required=True, help="Where it lives on this machine")
+    ds_add.add_argument("--name", default=None, help="Human-readable name (default: the id)")
+    ds_add.add_argument("--format", default=None, dest="fmt", help="xml, tsv, json, …")
 
     ds_search = ds_sub.add_parser(
         "search", help="Search the whole catalog, not only what is readable"
@@ -605,6 +620,28 @@ def main(argv=None):
             print(f"✅ Registered '{args.id}' — {written}")
             return
 
+        if args.resource_command == "set":
+            fields = {
+                "discourse_path": args.discourse_path,
+                "lowfat_path": args.lowfat_path,
+            }
+            if not any(fields.values()):
+                print("❌ Nothing to set. Name at least one field, e.g. --discourse-path.")
+                sys.exit(1)
+            try:
+                # Resolve first and show where each value lands: a typo in a dataset id is
+                # otherwise invisible until a run reports the family as `null`.
+                resolved = resources.resolved_fields(args.id, **fields)
+                written = resources.set_resource_fields(args.id, **fields)
+            except ValueError as error:
+                print(f"❌ {error}")
+                sys.exit(1)
+            print(f"✅ Updated registration '{args.id}'")
+            for key, where in resolved.items():
+                print(f"   {key:<15} {fields[key]}  ->  {where}")
+            print(f"   wrote  {written}")
+            return
+
         parser.parse_args([args.command, "--help"])
         return
 
@@ -650,6 +687,19 @@ def main(argv=None):
                     f"  {str(entry.get('id', '')):<34} {str(entry.get('format', '')):<8} "
                     f"{entry.get('path', '')}"
                 )
+            return
+
+        if args.dataset_command == "add":
+            try:
+                written = resources.register_dataset(
+                    args.id, args.path, name=args.name, fmt=args.fmt
+                )
+            except (ValueError, OSError) as error:
+                print(f"❌ Could not register dataset '{args.id}': {error}")
+                sys.exit(1)
+            print(f"✅ Registered dataset '{args.id}'")
+            print(f"   path   {Path(args.path).expanduser().resolve()}")
+            print(f"   wrote  {written}")
             return
 
         if args.dataset_command == "download":
