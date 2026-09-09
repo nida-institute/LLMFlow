@@ -509,7 +509,27 @@ def _write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> 
 
     from llmflow.cli_utils import _lock_sp_dir, _unlock_sp_dir
 
-    target.parent.mkdir(parents=True, exist_ok=True)
+    # Creating the directory is itself a write *into the store*, so the store has to be unlocked
+    # for it — not just the directory afterwards. `~/.sp/registrations` does not exist until the
+    # first registration needs it, so on a machine where `~/.sp` was set up and nothing has been
+    # registered yet, this `mkdir` ran inside a locked store and raised EACCES naming the
+    # directory it was trying to create. The download had already succeeded, so the data was on
+    # disk with nothing recording it.
+    #
+    # It bites exactly once, on a fresh setup: a machine with no `~/.sp` is unaffected because the
+    # store is created writable, and a machine that has registered anything before is unaffected
+    # because the directory already exists.
+    store = target.parent.parent
+    if not target.parent.exists():
+        store_locked = store.exists() and not os.access(store, os.W_OK)
+        if store_locked:
+            _unlock_sp_dir(store)
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+        finally:
+            if store_locked and store.exists():
+                _lock_sp_dir(store)
+
     was_locked = not os.access(target.parent, os.W_OK)
     if was_locked:
         _unlock_sp_dir(target.parent)
