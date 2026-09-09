@@ -878,6 +878,33 @@ too, which is what a maintainer working against their own clone needs. The corpo
 go to `~/sp/resources/<owner>/<repo>/` — visible rather than hidden, because a library of texts
 is not configuration and a hidden one duplicates itself unnoticed.
 
+**A dataset that is already on this machine** — a clone you maintain, a corpus the catalog does
+not know — is recorded once, and named from then on:
+
+```bash
+sp dataset add levinsohn-lgntdf --path ~/github/levinsohn/lgntdf --format xml
+```
+
+That is the one absolute path a machine needs, and keeping it in a dataset entry rather than in a
+registration is what lets a registration mean the same thing everywhere. A path that does not
+exist is refused here, rather than failing mid-run in a message about the resource that named it.
+
+**Changing one field of an existing registration** uses `set`, which leaves every other key alone:
+
+```bash
+sp resource set SBLGNT --discourse-path levinsohn-lgntdf/xml
+sp resource set SBLGNT --lowfat-path ~/github/Clear-Bible/macula-greek/SBLGNT/lowfat
+```
+
+Use `set` rather than re-running `add`: a command named for creating should not silently rewrite a
+file someone has curated by hand. Both values resolve before anything is written, and `set` prints
+where each one landed — a typo in a dataset id is otherwise invisible until a run reports the
+annotation family as `null`.
+
+Between them, `dataset add` and `resource set` are how the store is changed. `~/.sp` is kept
+read-only and is unlocked only by `sp` itself, so editing a registration by hand is neither
+necessary nor supported.
+
 `sp doctor` reports what is registered, warns when a registration points at something no longer
 there, and warns when `SP_HOME` or `LLMFLOW_DATA_DIR` redirects the store: those exist for test
 runs and containers, and on a working machine they are how two projects come to hold different
@@ -1488,6 +1515,47 @@ append_to: all_results   # creates context["all_results"] as a growing list
 - If the list variable doesn't exist yet, it is created automatically.
 - Can be combined with `outputs:` — the named output is appended to the list.
 - State is rolled back if a `retry` attempt fails.
+
+### `defects` — recording what a step noticed without failing
+
+A step that finds a discrepancy in the data — a citation that did not resolve, a unit needing
+review, an assumption it had to make — returns it under the reserved key `defects`, alongside its
+ordinary result:
+
+```python
+def check_citations(passage, context=None):
+    return {
+        "verses": verses,
+        "defects": [
+            {"message": "no match for MRK 1:1", "location": "MRK 1:1", "severity": "warning"},
+            "a bare string is accepted as the message",
+        ],
+    }
+```
+
+- `message` is the only field required; `severity` is `warning` (the default) or `error`.
+- `location` and any other key are kept verbatim, so a step may record whatever a reader will need.
+- The step name is filled in automatically when a defect omits it.
+- The key is drained into the run's log **and left in the step's own output**, so a `saveas` writes
+  exactly what the step returned.
+
+Any step type can write one — an XQuery, a SQL query, an LLM under a schema, a function — because
+this is ordinary step output rather than a side channel. Python code may instead write to the
+`llmflow` logger at `WARNING` or above, which is captured into the same log:
+
+```python
+logger.warning("citation did not resolve", extra={"location": "MRK 1:1"})
+```
+
+The engine's own warnings arrive the same way, so a `partialVerses` line left uninterpreted or a
+versification that had to be assumed is recorded beside a pipeline's own findings.
+
+**Where it lands.** When the pipeline declares `intermediate_file_directory`, the run writes
+`defects.json` there and logs a one-line summary at the end. The file is written whether or not
+anything was found: an empty list is the run saying it looked and found nothing, which a reader
+cannot infer from a missing file.
+
+A defect never fails the run. Where a condition should stop the pipeline, raise.
 
 ---
 

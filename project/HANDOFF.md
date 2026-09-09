@@ -2,26 +2,29 @@
 
 ## ▶ NEXT ACTION
 
-**Commit the working tree. Six of seven groups are still uncommitted.**
-The Captain committed group 1 himself as `ce37401`. The remaining groups are listed below with
-their subjects; the full messages were composed in the session that ended and are *not* in this
-file, so recompose the bodies from the diffs rather than guessing at them. Then, in order:
+**Release 0.2.1.27.** All the feature work is committed and pushed; what is left is the release
+itself, in this order:
 
-1. **Write the CHANGELOG entries first.** `## Unreleased` carries nothing from this session, and
-   `rule plans-are-temporary` makes the CHANGELOG the durable home for a ruling. Four rulings
-   landed today and none is recorded there: the defect-log channels, the unused-`requires:`
-   verdict, `plans-are-temporary` itself, and the two new registration commands.
-   **Verify:** `grep -n "defect" CHANGELOG.md` returns nothing today.
-2. **Commit the seven groups.**
-3. **Thread 4 — BaseX #38.** Unstarted, and still the last of the order the Captain set (2, 3, 4).
-   His words: *"I don't know if there are still BaseX blockers. If so, I do not know what they
-   are."* So the work is **not** to build: read `project/plans/design-basex-collections.md` §8
-   item 0, check `gh issue view 5 --repo nida-institute/awesome-biblical-data` is still open, and
-   **explain the blocker to him in his vocabulary before proposing anything**
-   (`rule transfer-the-expertise`). Do not trust the recorded blocker — see the false-records
-   table below.
+1. **Bump `pyproject.toml`** — it still reads `0.2.1.26`.
+2. **Rename the CHANGELOG heading** `## Unreleased` → `## 0.2.1.27 — <date>`. Do this *after* the
+   bump, because guards require the literal word `Unreleased` until then
+   (`test_changelog_is_not_a_transcript.py:72`, `test_changelog_covers_the_version.py`).
+3. **Open the `dev` → `main` PR.** None is open; `dev` is 24 commits ahead. It closes #222 and
+   #227. `project/RELEASE_CHECKLIST.md` §6 opens it; §4–5 are then checked against the build that
+   opening it started; §7–9 tag the *merge* commit and watch all five `release.yml` jobs.
 
-**Second, and cheap:** `sil-translator-notes` does not lint. Two of its prompts still declare the
+**Before the PR, two records need correcting — both are false as they stand:**
+
+- **`#38` carries a `done` label** reading *"Ready to be closed - implementation complete."* The
+  query half is complete (#49, closed, `steps/basex.py`); the naming scheme the issue is actually
+  about has no implementation, and `sp setup-db` (#52) does not exist in `cli.py`. As labelled,
+  the issue invites someone to close it and ship a scheme that was never built. Changing a label
+  is the Captain's act, not an agent's.
+- **BaseX is scheduled for 0.2.1.28**, not carried in x.27 as "blocked" (moved 2026-09-09).
+  Nothing in this release depends on it. `project/TODO.md` holds the ordered work list; see
+  "BaseX, measured" below for why it is much further from done than the label suggests.
+
+**Third, and cheap:** `sil-translator-notes` does not lint. Two of its prompts still declare the
 retired `optional:` key (#228). Their repo, their commit.
 
 ---
@@ -30,35 +33,35 @@ retired `optional:` key (#228). Their repo, their commit.
 
 | | |
 |---|---|
-| `dev` | `ce37401`, **1 ahead of `origin/dev` — unpushed**. 18 commits ahead of `main` |
-| working tree | **DIRTY — 14 modified, 8 untracked.** Six of the seven groups below |
-| `pyproject.toml` | `0.2.1.26`. x.27 is unreleased |
+| `dev` | in sync with `origin/dev`. **24 commits ahead of `main`** |
+| working tree | the CHANGELOG entries and the doc sync for the release; nothing else outstanding |
+| `pyproject.toml` | `0.2.1.26` — **not yet bumped**. x.27 is unreleased |
 | suite | **5289 passed, 25 skipped, 28 deselected**, exit 0 |
-| `ruff check src/` | clean. `ruff check tests/` has 444 pre-existing findings — not this session's |
+| `ruff check src/` | clean. `ruff check tests/` has 444 pre-existing findings — not from this work |
 
 **Verify:** `git status --short --branch`, `hatch run pytest -q -p no:randomly -m "not integration"`,
 `ruff check src/`.
 
-### The seven commits — one made, six to make
+### The seven commits, all pushed
 
-| # | subject | files |
-|---|---|---|
-| 1 | `feat(defects): a run records what it noticed without failing` | **DONE — `ce37401`.** It also swept in `docs/index.json` |
-| 2 | `feat(prompts): warn when a prompt's example is the passage under test` | `utils/prompt_hygiene.py`, `utils/versification.py`, `steps/llm.py`, `tests/test_example_contamination.py` |
-| 3 | `feat(lint): warn on unused requires, and stop lint from poisoning sys.modules` | `utils/linter.py`, `tests/test_unused_requires.py`, `tests/test_lint_function_signatures.py` |
-| 4 | `feat(cli): sp dataset add and sp resource set` | `cli.py`, `resources.py`, `tests/test_registration_commands.py` |
-| 5 | `test(guard): a test that calls a live model is marked integration` | `tests/test_paid_calls_are_marked_integration.py`, `tests/test_schema_file.py` |
-| 6 | `docs(rules): a working document has a death; a ruling does not` | `data/ai-rules.yaml`, `docs/ai-context/sp/rules.md`, `templates/sp/disciplines/workflow.md`, `data/helm-sync.yaml`, `tests/test_ticked_boxes_carry_evidence.py`, `tests/test_shell_rules_stay_in_step.py`, `project/plans/design-one-working-document.md`, `project/plans/README.md` |
-| 7 | `docs(project): handoff for 2026-09-09` | `project/HANDOFF.md`, `project/TODO.md` |
+```
+9c1d53b docs(project): handoff for 2026-09-08
+f90a926 docs(rules): a working document has a death; a ruling does not
+bbbe060 test(guard): a test that calls a live model is marked integration
+e8f2e21 feat(cli): sp dataset add and sp resource set
+570e33d feat(lint): warn on unused requires, and stop lint from poisoning sys.modules
+d319c52 feat(prompts): warn when a prompt's example is the passage under test
+ce37401 feat(defects): a run records what it noticed without failing
+```
 
-Group 3 carries two subjects because both changes live in `linter.py` and separating them needs
-`git add -p`. Split it only if the Captain asks.
+Five of the six subjects carry two leading spaces, a paste artifact. They are pushed, so removing
+them means a force-push to a shared branch — deliberately left alone.
 
 ---
 
-## What was built this session
+## What was built
 
-Only the defect log is committed; the rest is in the working tree.
+All committed and pushed.
 
 | thread | state | verify |
 |---|---|---|
@@ -68,7 +71,8 @@ Only the defect log is committed; the rest is in the working tree.
 | `sp dataset add` / `sp resource set` | **built** | `hatch run pytest tests/test_registration_commands.py` — 12 tests |
 | Paid calls in the ordinary run | **fixed and guarded.** Was making 6 API calls per `-m "not integration"` run | `hatch run pytest tests/test_paid_calls_are_marked_integration.py` — 3 tests |
 | `plans-are-temporary` | **ruled and written** into `data/ai-rules.yaml` | `hatch run pytest tests/test_ticked_boxes_carry_evidence.py` — 4 tests |
-| BaseX #38 | **not started** — the NEXT ACTION | — |
+| CHANGELOG + doc sync | **written**, uncommitted at the time this file was last saved | `grep -n "defects" docs/llmflow-language.md` |
+| BaseX #38 | **not release work.** See below | — |
 
 ### Three faults the defect log's end-to-end test found
 
@@ -94,16 +98,43 @@ Worth knowing, because each was invisible to unit tests and each made the log si
 | 3 | Paratext `custom.vrs` | #222 | SHIPPED — `8e8b1e1` |
 | 4 | Comparing verse references | #169 | SHIPPED |
 | 5 | `include: [syntax]` | #227 | SHIPPED; issue closes at the `dev` → `main` merge |
-| 6 | BaseX | #38 | **blocked, unverified** — the NEXT ACTION |
+| 6 | BaseX | #38 | **moved to 0.2.1.28** (2026-09-09). Blocked upstream; nothing in x.27 depends on it |
 
-**Added to x.27 this session, none of it previously planned:** the defect log (#232), the
-contamination guard, the unused-`requires:` warning, `sp dataset add`, `sp resource set`, the
-integration-marker guard, and `rule plans-are-temporary`.
+**Added to x.27 unplanned:** the defect log (#232), the contamination guard, the
+unused-`requires:` warning, `sp dataset add`, `sp resource set`, the integration-marker guard, and
+`rule plans-are-temporary`.
 
-**Left for the release itself:** bump `pyproject.toml` to `0.2.1.27`, rename the CHANGELOG's
-`## Unreleased` heading (guards require the literal word until then —
-`test_changelog_is_not_a_transcript.py:72` and `test_changelog_covers_the_version.py`), and open
-the `dev` → `main` PR (closes #222, #227).
+### BaseX, measured — now 0.2.1.28
+
+Scheduled out of x.27 on 2026-09-09. The full breakdown and the ordered work list live in
+`project/TODO.md` under *🗄️ BaseX collections*; this is the short form.
+
+The ratio is the point: the half that ships is the half that was never blocked.
+
+| piece | issue | state |
+|---|---|---|
+| `type: basex` — run XQuery against an existing database | #49 | **CLOSED, shipping.** `src/llmflow/steps/basex.py`, three test files |
+| `sp setup-db` — load a corpus into BaseX under a canonical name | #52 | **OPEN, no code.** `grep -n "setup-db" src/llmflow/cli.py` returns nothing |
+| collection naming from the catalog | #38 | **OPEN, no code.** Design is `Status: proposal … Nothing is built` |
+| `provides` can describe a treebank or a lexicon | `awesome-biblical-data#5` | **OPEN, zero comments**, untouched since it was raised 2026-09-07 |
+
+The upstream issue is not a formality. `provides` requires `versification`, `canon` and `language`
+of every entry, so **only a scripture text can be declared** — and the catalog bears that out:
+3 of 70 entries carry a `provides` block, and all three are Bibles (`WLC`, `SBLGNT`, `BSB`). The
+feature exists to load treebanks and lexicons, and the catalog cannot currently name one. Since the
+first design ruling is *"names come from the catalog"*, there is no input to build against.
+
+**Verify:** `python3 -c "import json;d=json.load(open('data/resources.json'));print(len(d), sum(1 for e in d if e.get('provides')))"` → `70 3`.
+
+So the remaining work is, in order: a schema change in another repository; editorial catalog work
+across up to 67 entries, which is the maintainer's judgment and not code; seven unruled decisions
+in §8 of the design (LANG, FTINDEX, a raw database name, the local root, and three more); and only
+then `sp setup-db`. That is not a tail to finish before a release, which is why it is x.28.
+
+**Left for the release itself:** the three steps in NEXT ACTION. The CHANGELOG and the prose docs
+are done — `## Unreleased` now carries all five of this cycle's late additions, and
+`docs/llmflow-language.md` documents both the reserved `defects` key and the two new registration
+commands.
 
 ---
 
@@ -141,6 +172,8 @@ Three of the five the previous handoff listed are now ruled and built. What rema
 4. **`project/rolling/` and `project/scratchpad/`** — the directory split the Captain proposed so
    accumulating and rolling documents are distinguishable by location rather than by an
    unwritten rule. Designed in `design-one-working-document.md`; not built.
+5. **The `done` label on #38.** It reads "implementation complete" over an issue whose subject has
+   no implementation. Removing or re-wording a label on an issue is his act, not an agent's.
 
 ## Settled — do not reopen
 
@@ -162,10 +195,13 @@ Three of the five the previous handoff listed are now ruled and built. What rema
 
 ## ⚠️ Records that were false — still the dominant defect class
 
-Nothing new was found false this session, because nothing was taken on trust. The standing list:
+One new, and it is the first found on **GitHub** rather than in a design file — which matters,
+because the issue tracker is the record a release is planned from.
 
 | record | claimed | actual |
 |---|---|---|
+| **`#38`'s `done` label** | "Ready to be closed - implementation complete" | the issue's subject — collection naming — has no implementation, and `sp setup-db` does not exist. Only #49, a different issue, is complete |
+| a previous `HANDOFF.md` | BaseX is "blocked, unverified" | the blocker is real and verified; but the query half ships, so "blocked" alone misdescribes it in the other direction |
 | `TODO.md` #204 | `templates/` missing three files | all present under `templates/sp/` |
 | `design-paratext-versification.md` §2 | three `custom.vrs` constructs | **four** — `partialVerses` was absent |
 | the same, §2 | five files read | 66 exist |
@@ -214,6 +250,11 @@ Nothing new was found false this session, because nothing was taken on trust. Th
   `unused_requires_warnings`
 - `project/plans/design-one-working-document.md` — the eight-day rule, and the
   `rolling`/`scratchpad` split that is designed but unbuilt
-- `project/plans/design-basex-collections.md` — **§8 item 0 is the NEXT ACTION's blocker**
+- `project/plans/design-basex-collections.md` — §8 item 0 is the upstream blocker; §8 items 1–7
+  are the decisions that would still be open even if it cleared
+- `project/RELEASE_CHECKLIST.md` — reordered 2026-09-09 so the sections run in the order they are
+  done. §1–3 are pre-PR; §6 opens the PR; §4–5 read the build that opening it started; §7–9 tag
+  and watch
 - `project/TODO.md` — the open rulings
-- `CHANGELOG.md` — **`## Unreleased` is missing this session's four rulings**
+- `docs/llmflow-language.md` — the reserved `defects` key under *Saving Outputs*; `sp dataset add`
+  and `sp resource set` under *Registering the text a pipeline names*

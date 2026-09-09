@@ -4,6 +4,95 @@
 
 ### Added
 
+- **A run records what it noticed without failing (#232).** A step that finds a discrepancy in the
+  data — a citation that did not resolve, a unit needing review, an assumption it had to make — had
+  nowhere to put it. The workaround downstream was a module-level list with a lock, invisible to
+  `sp lint`, to `--dry-run`, to `--rewind-to` and to telemetry, which is what
+  `context-is-the-only-channel` forbids.
+
+  **Two channels.** A step of any type returns a reserved `defects` key alongside its data, so the
+  record travels as ordinary step output — an XQuery, a SQL query, an LLM under a schema and a
+  function can all write one. Python code writes to the `llmflow` logger at `WARNING` or above and
+  is captured there, so a plugin author needs no new import.
+
+  The engine's own warnings arrive through the same channel, because they are the same category of
+  finding: a `partialVerses` line left uninterpreted, a mapping skipped as naming no join, a
+  versification assumed. Those were prose in `llmflow.log` that nothing could count.
+
+  **Where it lands.** `defects.json` under `intermediate_file_directory`, written whether or not
+  anything was found, and summarised at the end of the run. `[]` and absence differ, per
+  `say-which-kind-of-nothing`: an empty file is the run saying it looked and found nothing.
+
+  The log rides the context and refuses to be deep-copied, returning itself instead. A `for-each`
+  iteration deep-copies its context, so a copyable log would gather an iteration's findings into an
+  object that is then discarded — the silent loss the feature exists to end.
+
+- **A prompt whose example is the passage under test is reported.** Where the example in a prompt
+  *is* the passage being run, a model can reproduce the example instead of performing the task. The
+  run looks like a success, measures nothing, and nothing in the output says otherwise.
+
+  The check reads the **template**, never the rendered prompt. A `.gpt` file holds the examples
+  while the data arrives through `{{var}}`, so the passage under test always appears in a rendered
+  prompt and its presence there means nothing at all; in the template it means contamination. It
+  runs after mixins expand and before any value is injected — the template as authored.
+
+  Overlap rather than equality, because a template citing `MRK 1:1-8` contaminates a run on
+  `MRK 1:5`. `llmflow.utils.verse_ranges` already answers that, and `references_in` hands every
+  candidate to `parse_passage_ref`, so there is one parser rather than a looser second one that
+  would disagree with it at the edges.
+
+  Reported as a defect rather than raised: the run still produces the output a reader needs in
+  order to judge the finding, and many prompts cite a passage for another reason. What it cannot
+  catch is an example that paraphrases the passage without citing it — no pattern finds "the
+  wilderness preacher in camel hair". It makes the careless case loud, which is where this failure
+  actually lives.
+
+- **`sp lint` warns about a `requires:` entry the prompt body never uses.** The contract was checked
+  in one direction only: every name the body used had to be declared, but a declared name the body
+  ignored passed in silence, obliging every calling step to supply an input for nothing. Both sets
+  were already computed; only the subtraction was missing.
+
+  A warning rather than an error, because the run it produces is correct and a working pipeline
+  should not stop working over an untidy prompt. It stays silent where another check owns the
+  problem — an unparseable header, a withdrawn `optional:` key, a dotted name — since saying the
+  same thing twice trains a reader to skim.
+
+- **`sp dataset add` and `sp resource set`.** `sp dataset add` records where a body of data lives on
+  this machine. That absolute path belongs in a dataset entry rather than in a registration, which
+  is what lets a registration mean the same thing on every machine. It refuses a path that does not
+  exist, so a dataset pointing nowhere fails at registration rather than in the middle of a run,
+  in a message about the resource that named it.
+
+  `sp resource set` writes named fields and leaves every other key alone. It is not `add` re-running
+  and merging: a command named for creating should not silently rewrite a curated file, which is how
+  a header comment claiming `sp resource add` wrote it stopped being true. Both resolve before they
+  write, and `set` prints where each value landed — a typo in a dataset id is otherwise invisible
+  until a run reports the family as `null`.
+
+  Between them, these are the commands that make hand-editing `~/.sp` unnecessary — which the
+  store's read-only lock has always intended and never quite provided.
+
+- **New rule `plans-are-temporary`.** A working document has a death; a ruling does not. Plans,
+  designs, audits and decision lists are scratch: they exist to get a piece of work done, and after
+  **eight days** a document is either implemented or obsolete, so the file goes, unread. A ruling is
+  different in kind — permanent until overruled — and lives in `CHANGELOG.md`, or in the rules file
+  where it binds future work.
+
+  Do not sift. Where a document still holds something valuable, neither a person nor a model can
+  reliably tell it from the rest, so the attempt costs the effort and returns an answer that is then
+  trusted. Git keeps every deleted file. The CHANGELOG is the durable home because it is the only
+  one whose update is a side effect of the very work that would otherwise invalidate it.
+
+  The rule covers documents that **accumulate**, not documents that **roll**. A file overwritten in
+  place — a task list, a handoff, a checklist, a generated index — is current by construction, and
+  its stale *entries* are pruned instead. Deleting is never automatic: an agent lists what is past
+  eight days and asks before removing anything.
+
+  Measured before the rule was written: one consumer repository carries 76 such documents and
+  another 14, every one of them over sixty days old; this engine had 51, with roughly forty distinct
+  `Status:` wordings among them, because that single field was carrying four independent questions —
+  approved, built, questions open, still binding.
+
 - **BREAKING: a dataset provides resources. `edition` is retired from the language and the API.**
   `edition` claimed a distinction the data does not make: `SBLGNT` is a TSV inside
   `Clear-Bible/macula-greek`, not a critical edition of the Greek New Testament, and the same
@@ -454,6 +543,17 @@
   and assuming what a value means to whoever receives it.
 
 ### Fixed
+
+- **`pytest -m "not integration"` no longer calls a live model.** Two tests in
+  `tests/test_schema_file.py` were gated on `OPENAI_API_KEY` and named "Integration" in their class
+  and their docstring, but carried no marker — so the ordinary run, the one a contributor types and
+  the one the release checklist verifies against, made **six paid API calls**: one, and five more in
+  a loop. It surfaced when a truncated response made one of them fail, which is to say by luck
+  rather than by any check.
+
+  Both are marked, and a guard reads the signal that matters: a test skipped for want of an API key
+  is a test that spends money when the key is present. A class name is not a marker, and a docstring
+  saying "Integration" is not one either.
 
 - **`reference-data-is-json` said no test held it while its test was passing.** Classified
   `guardable` — "a test is possible and nobody has written it" — with

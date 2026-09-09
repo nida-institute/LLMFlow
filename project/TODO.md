@@ -104,10 +104,51 @@
 - [ ] `levinsohn-lgntdf` has no `branch`, and that repository's default branch is `master`, so
       `sp resource download levinsohn-lgntdf` 404s. `download_data.py:49` already honours
       `branch`, so the fix is one field — upstream. Worth sweeping the other 69 entries
-- [ ] This is the second thread now waiting on that repository; BaseX #38 is recorded as blocked
-      on `awesome-biblical-data#5`
+- [ ] This is the second thread now waiting on that repository; BaseX #38 is blocked on
+      `awesome-biblical-data#5` — see the BaseX section below
+
+### 🗄️ BaseX collections — **scheduled for 0.2.1.28**, moved out of x.27
+
+> **Moved 2026-09-09.** Nothing in 0.2.1.27 depends on it, and its critical path starts in another
+> repository, so holding the release for it would keep two consumers living with an unreleased
+> breaking change (`edition:` → `resource:`) for no gain.
+
+**What ships already, and what does not.** The half that works is the half that was never blocked:
+
+| piece | issue | state |
+|---|---|---|
+| `type: basex` — query an existing database | #49 | **CLOSED, shipping.** `src/llmflow/steps/basex.py`, three test files |
+| `sp setup-db` — load a corpus under a canonical name | #52 | **OPEN, no code.** `grep -n "setup-db" src/llmflow/cli.py` returns nothing |
+| collection naming taken from the catalog | #38 | **OPEN, no code.** `design-basex-collections.md` reads `Status: proposal … Nothing is built` |
+| `provides` able to describe a treebank or a lexicon | `awesome-biblical-data#5` | **OPEN, zero comments**, untouched since raised 2026-09-07 |
+
+**Why the upstream issue is the whole thing, not a formality.** `provides` requires
+`versification`, `canon` and `language` of every entry, so only a scripture text can be declared.
+The catalog bears it out: **3 of 70** entries carry a `provides` block and all three are Bibles —
+`WLC`, `SBLGNT`, `BSB`. The feature exists to load treebanks and lexicons, and the catalog cannot
+name one. Since the first design ruling is *"names come from the catalog"*, there is no input to
+build against.
+
+**Verify:** `python3 -c "import json;d=json.load(open('data/resources.json'));print(len(d), sum(1 for e in d if e.get('provides')))"` → `70 3`.
+
+- [ ] **Upstream first:** `awesome-biblical-data#5` — the schema change that lets `provides`
+      describe a non-scripture subtree. Not designed here or there yet
+- [ ] **Then the catalog content**, which is editorial rather than code: up to 67 entries need a
+      `provides` block, and deciding what a meaningful name is needs the maintainer's judgment
+- [ ] **Seven decisions in §8** of `design-basex-collections.md` remain unruled even once the
+      blocker clears — `LANG` per subtree, `FTINDEX` by default or declared, whether a raw BaseX
+      name in `database:` keeps working, the local root for a non-git source, and three more
+- [ ] **Then build `sp setup-db`** (#52)
+- [ ] **The `done` label on #38 is false and invites a wrong close.** It reads "Ready to be closed -
+      implementation complete", which is true of #49 and not of #38's own subject. Changing a label
+      is the Captain's act
 
 ### 📄 Whitelist design documents by declared status, rather than blacklisting
+
+> ⚠️ **Probably superseded 2026-09-08 by `rule plans-are-temporary`.** That rule deletes a working
+> document at eight days rather than classifying it, which was chosen over this proposal on the
+> grounds that the valuable content cannot be reliably told from the rest. If it is superseded,
+> this section and its two items should go; that is the Captain's call, not an agent's.
 
 > **The Captain's proposal, verbatim:** *"how about whitelisting design documents rather than
 > blacklisting? Only rely on design documents with status=[implementing, implemented], and ask
