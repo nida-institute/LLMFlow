@@ -615,9 +615,9 @@ rules:
 - id: plans-are-temporary
   enforcement: judgment
   scope: none
-  rule: '**A working document has a death; a ruling does not.** Plans, designs, audits and
-    decision lists are scratch: they exist to get a piece of work done and are deleted when it is
-    over. A **ruling** is different in kind — it is permanent until overruled — and it lives in
+  rule: '**A working document has a death; a ruling does not.** Plans, designs, audits, decision
+    lists and collab notes are scratch: they exist to get a piece of work done and are deleted
+    when it is over. A **ruling** is different in kind — it is permanent until overruled — and it lives in
     the CHANGELOG, or in this file when it binds future work. Keep them apart, because they have
     opposite lifecycles and mixing them in one document is what makes a pile unsiftable: the
     durable part cannot be found and the rotting part cannot be discarded.
@@ -631,13 +631,25 @@ rules:
     file. A decision list is scratch like the rest: the decisions in it become rulings and move to
     the CHANGELOG, and the list itself goes with the plan that raised it.
 
+    **Age is measured from the later of two dates: the `Status:` date the document declares, and
+    the last commit that changed the file.** Never the filesystem timestamp — a clone rewrites
+    every mtime, so on a fresh checkout nothing would ever be old enough to delete, and a copy or
+    a bulk sweep refreshes it without anyone having read the content.
+
+    **A collab note is a message, not an archive.** It exists to put a question or a finding in
+    front of another project, and it dies when that is answered: the ruling it produced is in the
+    CHANGELOG, the work it produced is in the code, and a note that produced neither had nothing
+    to carry. So it is written **once, into the recipient''s tree** — the sender keeps no second
+    copy to drift — and its durable trace is the issue or CHANGELOG entry it caused, never the
+    file. Track it, because tracking is what makes deleting it safe.
+
     **This applies to documents that accumulate, not to documents that roll.** A file that is
     updated or overwritten in place — a task list, a handoff, a checklist, a generated index — is
     current by construction, and its age is a reason to update it rather than to delete it. Prune
     its stale *entries* instead: a task list item from three weeks ago rots exactly like a whole
     document does. What rots as a pile is the set that grows by one file each time — plans,
-    designs, dated audit records, decision lists — because nobody re-reads a growing set, so each
-    reader reads a different subset and they disagree.
+    designs, dated audit records, decision lists, collab notes — because nobody re-reads a growing
+    set, so each reader reads a different subset and they disagree.
 
     **The deletion is the Captain''s, every time.** An AI lists what is past eight days and asks;
     it never deletes unasked, and never treats this rule as standing authorization. The rule says
@@ -658,4 +670,20 @@ rules:
     durable home because it is the only one whose update is a side effect of the very work that
     would otherwise invalidate it, which was checked on the day this rule was written: all seven
     rulings of a 190-line design document were already present in the CHANGELOG entry for the same
-    change.'
+    change.
+
+    Extended 2026-09-10 to name collab notes, at the Captain''s direction: *"do we really want to
+    check these in? they probably need a lifetime for the same reason as plans and design
+    documents."* Measured the same day: 29 notes across `LLMFlow/collab/` and
+    `discourse-flow/collab/`, the oldest from August, none ever pruned — the same pile in a
+    different directory. The "written once, into the recipient''s tree" clause settles a second
+    question from the same conversation: both repositories were keeping partial copies of one
+    exchange — 13 inbound and 6 outbound in a single directory, and a reply living in the
+    sender''s tree rather than the recipient''s — with no README saying who owned a thread.
+    Tracking is retained rather than dropped because this rule''s own safety argument is that git
+    keeps every deleted file; an untracked note would leave the recipient''s copy as the only
+    evidence of what was said, and `git show <commit>^:<path>` was verified against a real
+    deletion the same day. The age clause was added because the three candidate dates disagree in
+    practice — one collab note reads 2026-09-01 in its filename, 09-02 in git and 09-04 as mtime.
+    The general form of this rule belongs in the shared discipline rather than here; recorded in
+    `project/TODO.md` and not yet done.'
