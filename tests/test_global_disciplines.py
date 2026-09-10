@@ -48,6 +48,7 @@ EXPECTED_SP_ROOT_FILES = {"drift-patterns.md"}
 
 EXPECTED_SKILLS = {
     "audit-code",
+    "health-check",
     "audit-output",
     "audit-pipeline",
     "audit-prompts",

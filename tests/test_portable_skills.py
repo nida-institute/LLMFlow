@@ -50,7 +50,9 @@ import pytest
 # 6 to replace it with Helm's shipped manifest; ruling D7-C is why it stays. `helm-sync.yaml`
 # is checked *against* this classification, so sourcing the classification *from* the record
 # would make the check circular — and Helm's manifest globs directories no CI runner can see.
-SHARED_WITH_HELM = ("authorize", "stand-down", "handoff", "load-context", "commit-ready")
+SHARED_WITH_HELM = (
+    "authorize", "stand-down", "handoff", "load-context", "commit-ready", "health-check",
+)
 
 FORKED = ("audit-code",)
 ENGINE_ONLY = ("audit-pipeline", "audit-output", "audit-prompts", "release")
