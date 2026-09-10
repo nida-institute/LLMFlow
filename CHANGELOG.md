@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Changed
+
+- **`/handoff` scoped its pointer rule to a single line of the file.** The skill required the
+  NEXT ACTION to point at `project/TODO.md` rather than restate it, and said nothing about the
+  rest of the file — so a handoff whose next action was a correct pointer still carried a
+  paragraph of a queued goal's substance, which the task list then moved past. The rule now
+  covers the whole file: it points at the task list and never summarises it.
+
+  The adequacy checklist gains the check that catches a breach — with the tree clean the file
+  reads in thirty seconds and is almost entirely pointers, so a paragraph saying what a queued
+  item *is*, rather than where it lives, is absorbed queue material. Shared with Human at the
+  Helm; both copies stay byte-identical.
+
 ## 0.2.1.28 — 2026-09-09
 
 A bug-fix release, cut deliberately small and soon. Every fix below was found by one person
