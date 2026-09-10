@@ -42,6 +42,26 @@
 
 ### Fixed
 
+- **`usj_to_text` lost the chapter and detached punctuation from its word.** Both bite exactly
+  where a consumer needs the function most: on a document sliced out of a book, with
+  `include: [ids]` asked for.
+
+  A slice keeps its verses and drops the `chapter` element they sat under, so tracking the
+  chapter from `chapter` elements alone produced `⌊?:1⌋` — while each verse node's `sid` said
+  `PHM 1:1` all along. The chapter now falls back to the `sid`.
+
+  And with `ids`, every word is a `char` node and the spacing and punctuation are the bare
+  strings between them. Stripping each string and re-inserting a separator turned
+  `ἐκκλησίᾳ· ` into `ἐκκλησίᾳ ·`. A bare string now keeps its own leading and trailing space,
+  with runs of whitespace collapsed to one so a document broken across lines does not carry
+  newlines into the text.
+
+  **Why it survived:** the oracle that asserts flattening reproduces `milestones` only ran over
+  documents without `ids`, where a verse's text is a single bare string and any split-and-rejoin
+  reproduces it. The oracle itself dropped every word when given an anchored document. It now
+  reads `char` nodes, and the invariant is asserted over the anchored form too — on Philemon
+  1:1–7 both paths return the same 665 characters.
+
 - **The shipped context document promised a `format: print` that has never existed.**
   `FORMATS = ("plain", "milestones", "usj")`, and `resource_text(..., fmt="print")` answers
   `unknown format 'print'`. The row is struck from

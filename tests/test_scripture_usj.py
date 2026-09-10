@@ -35,11 +35,23 @@ GREEK_ROWS = [
 ]
 
 
+def _char_text(node: dict) -> str:
+    """A `char` node's own text, including a `char` nested inside one."""
+    out = []
+    for item in node.get("content") or []:
+        out.append(item if isinstance(item, str) else _char_text(item))
+    return "".join(out)
+
+
 def flatten(usj: dict) -> str:
     """A verse node becomes its milestone; text nodes follow. The oracle for `milestones`.
 
     The chapter comes from the preceding `chapter` node, which is where USJ puts it — a
     consumer reads it the same way, and nothing outside the document is needed.
+
+    `char` nodes carry the words once `include: [ids]` is asked for, and the spacing and
+    punctuation between them stay as bare strings. A flattener that reads only the bare strings
+    returns the punctuation and none of the text.
     """
     parts: list[str] = []
     chapter = None
@@ -50,6 +62,8 @@ def flatten(usj: dict) -> str:
             for item in node["content"]:
                 if isinstance(item, str):
                     parts.append(item)
+                elif item["type"] == "char":
+                    parts.append(_char_text(item))
                 elif item["type"] == "verse":
                     parts.append(
                         MILESTONE_TEMPLATE.format(chapter=chapter, verse=item["number"]) + " "
@@ -122,6 +136,21 @@ def test_no_rows_yields_a_document_with_no_chapters():
 def test_flattening_usj_reproduces_milestones(resource, passage):
     usj = resource_text(resource, passage, fmt="usj", resources=EDITIONS)
     milestones = resource_text(resource, passage, fmt="milestones", resources=EDITIONS)
+    assert flatten(usj) == milestones
+
+
+@real_data
+@pytest.mark.parametrize("passage", ["MRK 1:1", "MRK 1:1-3", "MRK 1:45-2:3"])
+def test_flattening_an_anchored_document_reproduces_milestones(passage):
+    """The same oracle over `include: [ids]`, which is a different document shape.
+
+    Without `ids` a verse's text is one bare string, so any flattener that splits and rejoins on
+    whitespace reproduces it. With `ids` every word is a `char` node and the spacing and
+    punctuation are the bare strings between them — which is where detaching a mark from its
+    word becomes possible, and why the case above did not catch it.
+    """
+    usj = resource_text("SBLGNT-TSV", passage, fmt="usj", resources=EDITIONS, include=["ids"])
+    milestones = resource_text("SBLGNT-TSV", passage, fmt="milestones", resources=EDITIONS)
     assert flatten(usj) == milestones
 
 
@@ -205,3 +234,53 @@ def test_flattening_tolerates_an_end_milestone_from_elsewhere():
     para["content"].append({"type": "verse", "marker": "v", "eid": "MRK 1:2"})
     assert "⌊1:?⌋" not in usj_to_text(usj)
     assert usj_to_text(usj).startswith("⌊1:1⌋ Ἀρχὴ")
+
+
+def test_the_chapter_comes_from_the_verse_sid_when_no_chapter_node_survives():
+    """A sliced document carries verses without the chapter element they sat under.
+
+    A consumer that cuts a pericope out of a book keeps the `para` and its verses and drops the
+    `chapter`, so tracking chapter from `chapter` elements alone yields `⌊?:1⌋`. The verse's own
+    `sid` says `MRK 1:1`, so the chapter is present in the document and need not be guessed.
+    """
+    usj = rows_to_usj(GREEK_ROWS, book="MRK")
+    usj["content"] = [node for node in usj["content"] if node.get("type") != "chapter"]
+
+    text = usj_to_text(usj)
+
+    assert "⌊?:" not in text
+    assert text.startswith("⌊1:1⌋ Ἀρχὴ")
+
+
+def test_punctuation_stays_attached_to_the_word_before_it():
+    """Word nodes and their punctuation are separate nodes; the spacing is in the document.
+
+    `include: [ids]` turns each word into a `char` node and leaves the punctuation as bare
+    strings that carry their own spacing — `", "`, `"· "`. Stripping each string and re-inserting
+    a separator detaches the mark, producing `ἐκκλησίᾳ ·` where the source says `ἐκκλησίᾳ· `.
+    """
+    usj = {
+        "type": "USJ",
+        "version": "3.1",
+        "content": [
+            {
+                "type": "para",
+                "marker": "p",
+                "content": [
+                    {"type": "verse", "marker": "v", "number": "2", "sid": "PHM 1:2"},
+                    {"type": "char", "marker": "w", "content": ["οἴκόν"]},
+                    " ",
+                    {"type": "char", "marker": "w", "content": ["σου"]},
+                    " ",
+                    {"type": "char", "marker": "w", "content": ["ἐκκλησίᾳ"]},
+                    "· ",
+                ],
+            }
+        ],
+    }
+
+    text = usj_to_text(usj)
+
+    assert "ἐκκλησίᾳ·" in text
+    assert "ἐκκλησίᾳ ·" not in text
+    assert "οἴκόν σου ἐκκλησίᾳ" in text

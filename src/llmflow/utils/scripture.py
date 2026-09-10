@@ -699,6 +699,21 @@ def resolve_resource(
     )
 
 
+#: Punctuation that belongs to the word before it, so no separator is inserted in front of it.
+#: Greek ano teleia and apostrophe are here beside the Latin marks; the Hebrew sof pasuq and
+#: maqqef are attached in the source text rather than written as separate strings.
+_ATTACHES_LEFT = re.compile(r"^[,.;:!?·’'\"\)\]}»”׃]")
+
+
+def _chapter_of(sid: Any) -> Optional[str]:
+    """The chapter in a verse `sid` — `"MRK 1:1"` -> `"1"` — or None if it says nothing."""
+    if not isinstance(sid, str) or ":" not in sid:
+        return None
+    reference = sid.rsplit(" ", 1)[-1]
+    chapter = reference.split(":", 1)[0]
+    return chapter or None
+
+
 def usj_to_text(usj: Mapping[str, Any], fmt: str = "milestones") -> str:
     """Flatten a USJ document into running text.
 
@@ -707,8 +722,14 @@ def usj_to_text(usj: Mapping[str, Any], fmt: str = "milestones") -> str:
     rather than a column on a row — but the output contract is identical: running text, verse
     positions marked, never a per-verse container.
 
-    Chapter number is tracked from ``chapter`` elements, because a ``verse`` element carries
-    only its own number.
+    Chapter number is tracked from ``chapter`` elements, falling back to the chapter in a
+    ``verse`` element's ``sid`` — a sliced document keeps its verses and loses the ``chapter``
+    they sat under.
+
+    A bare string keeps its own leading and trailing space, because in a document whose words
+    are ``char`` nodes the spacing and the punctuation live in those strings; runs of
+    whitespace collapse to one, so a document broken across lines does not carry its newlines
+    into the text.
     """
     if fmt not in FORMATS:
         raise ValueError(f"unknown format {fmt!r}; expected one of {', '.join(FORMATS)}")
@@ -718,10 +739,15 @@ def usj_to_text(usj: Mapping[str, Any], fmt: str = "milestones") -> str:
 
     def walk(node: Any) -> None:
         if isinstance(node, str):
-            text = node.strip()
-            if not text:
+            text = re.sub(r"\s+", " ", node)
+            if not text.strip():
                 return
-            if parts and not parts[-1][-1:].isspace():
+            if (
+                parts
+                and not parts[-1][-1:].isspace()
+                and not text[:1].isspace()
+                and not _ATTACHES_LEFT.match(text)
+            ):
                 parts.append(" ")
             parts.append(text)
             return
@@ -747,7 +773,8 @@ def usj_to_text(usj: Mapping[str, Any], fmt: str = "milestones") -> str:
                     parts.append(" ")
                 parts.append(
                     MILESTONE_TEMPLATE.format(
-                        chapter=chapter["n"] or "?", verse=node.get("number", "?")
+                        chapter=chapter["n"] or _chapter_of(node.get("sid")) or "?",
+                        verse=node.get("number", "?"),
                     )
                 )
                 parts.append(" ")

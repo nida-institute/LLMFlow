@@ -3777,6 +3777,11 @@
           "doc": "Return the definition for a named resource: a TSV path string, or a mapping carrying a"
         },
         {
+          "name": "_chapter_of",
+          "signature": "_chapter_of(sid: Any) -> Optional[str]",
+          "doc": "The chapter in a verse `sid` — `\"MRK 1:1\"` -> `\"1\"` — or None if it says nothing."
+        },
+        {
           "name": "usj_to_text",
           "signature": "usj_to_text(usj: Mapping[str, Any], fmt: str = 'milestones') -> str",
           "doc": "Flatten a USJ document into running text."
@@ -5187,6 +5192,6 @@
   ],
   "summary": {
     "total_modules": 87,
-    "total_functions": 822
+    "total_functions": 823
   }
 }
