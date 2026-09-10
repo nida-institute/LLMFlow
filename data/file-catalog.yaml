@@ -129,7 +129,7 @@ files:
     template: project/docs/ai-context/sp/scripture-representations.md
     committed: true
     purpose: >-
-      Choosing between `plain`, `milestones`, `usj` and `print`, what each costs with the
+      Choosing between `plain`, `milestones` and `usj`, what each costs with the
       unit stated, and how to read a discourse item's `outcome`.
 
   - path: docs/ai-context/sp/passage-references.md

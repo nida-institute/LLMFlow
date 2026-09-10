@@ -443,6 +443,7 @@
       "imports": [
         "datetime",
         "llmflow",
+        "llmflow.utils.file_io",
         "os",
         "pathlib",
         "typing",
@@ -3172,9 +3173,9 @@
           "doc": "JSON, re-parsing a string that already holds JSON so it is not double-encoded."
         },
         {
-          "name": "_as_yaml",
-          "signature": "_as_yaml(content: Any) -> str",
-          "doc": ""
+          "name": "dump_yaml",
+          "signature": "dump_yaml(content: Any) -> str",
+          "doc": "The engine's only YAML serialiser."
         },
         {
           "name": "_as_text",
@@ -4058,11 +4059,6 @@
           "name": "load_yaml",
           "signature": "load_yaml(file_path)",
           "doc": "Load YAML data from file with error handling and logging"
-        },
-        {
-          "name": "save_yaml",
-          "signature": "save_yaml(data, file_path)",
-          "doc": "Save data as YAML file with error handling and logging"
         },
         {
           "name": "merge_dicts",
@@ -5191,6 +5187,6 @@
   ],
   "summary": {
     "total_modules": 87,
-    "total_functions": 823
+    "total_functions": 822
   }
 }
