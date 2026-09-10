@@ -2,98 +2,91 @@
 
 ## ▶ NEXT ACTION
 
-**Commit the design document, then read the two unread collab reports.** Everything else this
-session produced is already committed and pushed.
+**Commit and push, in four places. Nothing from this session is committed anywhere.** The work
+itself is in `project/TODO.md` → 🎯 **THE GOAL**; this file does not restate it.
 
-```
-git -C ~/github/nida-institute/LLMFlow status --short
-```
+Order matters only for the third row — the note in it is a live defect another team hits on
+their next run.
 
-Five untracked or modified files. Two are the Captain's and stay untouched; the rest need a
-decision each — see *In flight* below.
+| repo | what is uncommitted |
+|---|---|
+| this repository (the engine) | 10 modified, 9 untracked — see below |
+| `discourse-flow` | `collab/sp/2026-09-10-pericopes-hold-segments-and-segments-hold-text.md` |
+| `ears-to-hear` | `scriptorium/collab/sp/2026-09-10-source-text-is-punctuation.md` |
+| `~/.claude` | `CLAUDE.md`, `settings.json` — `cgit status --short` |
 
-Then the work itself is in **`project/TODO.md` → 📐 THE GOAL THIS CYCLE**, which carries the
-scripture-representation goal and the state of release 0.2.1.28. This file does not restate it,
-because a queue item written here goes stale the moment somebody does it.
+**Verify:** `git -C ~/github/nida-institute/LLMFlow status --short --branch` → `## dev...origin/dev`,
+head `4e35890`.
 
----
+## In flight — branch `dev`, in sync with `origin/dev`, head `4e35890`
 
-## In flight — uncommitted in this repository, branch `dev`, in sync with `origin/dev`
+**Modified here:** `data/ai-rules.yaml` (the `plans-are-temporary` extension),
+`data/file-catalog.yaml` + `src/llmflow/templates/project/docs/ai-context/sp/scripture-representations.md`
+(the `print` removal), the three regenerated `docs/ai-context/sp/*` copies, `project/TODO.md`,
+`project/plans/README.md`, and `data/models.json` (**still deliberately held back** — one line,
+and committing it restarts a 2h17m Windows build).
 
-| file | state | what to do |
-|---|---|---|
-| `project/plans/design-annotation-without-anchors.md` | **untracked**, written this session, `Status: proposed` | commit it — it is the cycle's design and exists nowhere else |
-| `project/TODO.md`, `project/HANDOFF.md` | modified this session | commit with it |
-| `data/models.json` | modified — one line, `last_updated` re-verified | **deliberately held back.** Committing restarts a 2h17m Windows build for a re-verification. Belongs to the cycle after 0.2.1.28 |
-| `collab/discourse-flow/*.md` — 4 files | untracked, written by *other* sessions | not mine to commit; two are unread, see below |
-| `project/0x28.md` | untracked | the Captain's |
+**Untracked here:** three new plan documents (`design-pericope-segments-and-text.md`,
+`design-representation-workbench.md`, `plan-scripture-documentation.md`), five collab notes
+including their reply of today, `project/0x28.md` (yours), and `.cursorrules` / `.windsurfrules`
+— written by an `sp init --update` run at 12:09 that predates this session's work.
 
-**Verify:** `git -C ~/github/nida-institute/LLMFlow log --oneline -1` → `80d864c`, and
-`git status --short --branch` → `## dev...origin/dev` with no ahead/behind.
+**Verify the suite:** `hatch run pytest tests -q -m "not integration"` → **5,445 passed, 25
+skipped, 1 failed**. The one failure is `test_product_name_in_prose`, pre-existing all session,
+on the untracked collab report `2026-09-09-replay-cannot-read-a-schema-the-pipeline-declares.md`,
+whose line 95 uses the deprecated product name in prose. It is not from this work — and note
+that describing the offending token in *this* file reproduces the failure, which is why the
+file names the report rather than quoting it.
 
-## Two collab reports nobody here has read
+**Also uncommitted, not mine:** `human-at-the-helm` is **ahead 1** with three modified files from
+yesterday's syncs.
 
-Both arrived from other sessions during this one, and neither has been assessed:
+## Two things I got wrong that are now fixed — do not re-do them
 
-- **`2026-09-09-replay-cannot-read-a-schema-the-pipeline-declares.md`** — *"`sp tools replay`
-  refuses every prompt we have, because the pipeline declares the schema"*. It claims `sp lint`
-  validates an arrangement replay declines to read. If true that is a real defect; unexamined.
-- **`2026-09-09-what-we-still-compute-that-other-projects-will-need.md`** — an inventory of what
-  a consumer computes in plugins that the engine might absorb. **Bears directly on this cycle's
-  goal** and is listed as a task in `TODO.md`.
-
-The third, `2026-09-09-adapting-a-rolling-audit-to-the-document-lifecycle.md`, came from a
-session in *this* repository.
-
-## Elsewhere — each that repository's own commit, none of it mine to make
-
-| repo | uncommitted | why it exists |
-|---|---|---|
-| `human-at-the-helm` | `disciplines/workflow.md`, `skills/stand-down/SKILL.md`, `skills/load-context/SKILL.md` | yesterday's syncs. The `load-context` change guards two `~/.sp` reads so a machine without that store does not open a session with errors |
-| `discourse-flow` | `collab/sp/2026-09-09-audits-roll-they-do-not-accumulate.md` | tells them their six dated audit records followed a README **we** shipped, contradicting the pattern we also shipped |
-
-**Verify:** `git -C ~/github/nida-institute/human-at-the-helm status --short`.
-
----
+- **The ears-to-hear note was delivered to a dead directory.** `ears-to-hear/collab/` has **0
+  tracked files**; the live channel is `scriptorium/collab/sp/` (14 tracked). Moved. **An earlier
+  session's note is still stranded there** — `collab/sp/2026-09-08-old-documents-are-deleted-not-sifted.md`,
+  two days undelivered. Not mine to move; ask.
+- **The indentation in their artifact is ours, not theirs.** `utils/io.py:409` hardcodes
+  `indent=2` in `save_json`. Their tree has no `json.dump` at all. **Corrected in their tree:**
+  a dated banner at the top of the original note (left standing, not reworded — they had
+  already answered it) plus
+  `collab/sp/2026-09-10-pericopes-hold-segments-and-segments-hold-text-reply.md`, which concedes
+  both their corrections and asks which replacement for `indent=2` they would rather live with.
+  Now a work item in `TODO.md`.
 
 ## Settled this session — do not reopen
 
-- **Anchors are load-bearing only because the payload is opaque.** A per-word entry is keyed by
-  word id and carries no surface form or reference, so the id cannot be resolved without finding
-  `srcloc` in the document. Established by fetching `WLC Ruth 1:1`, not by reading comments — and
-  it is the fact the whole design turns on.
-- **`docs/audits/` is not shipped, and its absence is a decision** (#210): those checklists were
-  one project's documents installed into everyone's repository. `audits-pattern.md` was corrected
-  to stop referencing it, rather than the directory being re-added. A proposal to re-add it was
-  approved and then withdrawn when the prior ruling surfaced.
-- **`project/plans/README.md` ships**, matching `project/audits/README.md`. That absence *was* an
-  oversight rather than a decision, which is why it went the other way.
-- **A shared skill names no engine vocabulary.** A `stand-down` fix mentioning `sp doctor` was
-  refused by `test_shared_skill_carries_no_engine_vocabulary`; rewording it neutrally made it
-  true on both sides, so the divergence and the ruling permitting it both became unnecessary.
-  A `differs` entry exempts a whole file from comparison indefinitely — identical copies are
-  stronger.
+- **`plans-are-temporary` now covers collab notes**, with age measured from the later of the
+  declared date and the last commit — **never mtime**, because a clone rewrites every mtime and
+  nothing would ever be old enough to delete. Written once into the recipient's tree, no sender
+  copy; our two duplicates were deleted for that reason.
+- **Tracked, then deleted** is the shape, not untracked: this rule's own safety argument is that
+  git keeps every deleted file. Verified live —
+  `git show 52e45c9^:docs/ai-context/sp/json-reliability.md` returns a document deleted in August.
+- **`print` never existed.** `FORMATS = ("plain", "milestones", "usj")`; the shipped context
+  document had promised a fourth format for months. The code was always right — `pipeline_schema.py:256`
+  builds the enum from `FORMATS`, so `sp lint` would always have rejected it.
+- **`~/.sp` is no longer treated as version-controlled.** Hook and global `CLAUDE.md` both scoped
+  to `~/.claude`.
 
 ## Landmines
 
-- **Measure against `origin/main`, never a local `main`.** A local ref 27 commits stale put a
-  false "35 commits" into a PR description this session.
-- **A `cd` in one Bash call persists into the next.** One did, a test run started from the wrong
-  directory, and five phantom failures were reported before it was caught. Pass absolute paths.
-- **`gh run watch --exit-status` returned 0 on a *failed* run.** Read `.conclusion` and the
-  per-job list.
-- **`Logger.reset()` clears every handler on the `llmflow` logger** (`modules/logger.py:35`).
-- **A killed pytest run leaves `tmp/pytest/` read-only** — `chmod -R u+w tmp/pytest` before
-  removing. Two runs also collide there; one at a time.
-- **Never run `sp run`** (costs money) or **`sp doctor`** in this repo (unsafe until #210/#211).
-- **`paratext-copilot` is out of scope** by the Captain's instruction. Its work is committed and
-  pushed; three issues (#229–#231) are open there. Do not pick it up from here.
+- **`~/.sp/user-context/` now has no backup** — the one part of that store `sp init` cannot
+  regenerate, and where `sp-workflow.md` says your machine GitHub account lives.
+- **Running `sp init --update` flips `docs/ai-context/sp/rules.md` and turns the suite red** —
+  two generators, different wrappers. That is issue **#237**; the remedy is
+  `hatch run python tools/update_ai_context.py`.
+- **Never run `sp run`** (costs money) or **`sp doctor`** here (unsafe until #210/#211).
+- **Measure against `origin/main`, never a local `main`.**
+- **A killed pytest run leaves `tmp/pytest/` read-only** — `chmod -R u+w tmp/pytest` first.
+- `tmp/representation-grid/` holds 27 generated payloads and a script; regenerate with
+  `hatch run python tmp/representation-grid/generate.py`, no network and no model.
 
 ## Key files
 
-- `project/TODO.md` — **the queue, and the goal.** Read before this file's next action
-- `project/plans/design-annotation-without-anchors.md` — the design, `proposed`, five decisions
-  in §6 and the measurement to take first in §7
-- `src/llmflow/utils/scripture.py` — `check_include:453`, `rows_to_output:495`, `rows_to_usj:519`
-- `docs/ai-context/sp/scripture-representations.md` — the four forms and their measured costs
-- `project/RELEASE_CHECKLIST.md` — reordered so its sections run in the order they are done
+- `project/TODO.md` — **the queue and the goal.** Read before this file's next action
+- `project/plans/design-pericope-segments-and-text.md` — the ruled design, §10 Q1–Q10
+- `collab/discourse-flow/2026-09-10-a-pericope-does-not-need-the-text-if-its-segments-have-it.md`
+  — their reply, containing three rulings and two corrections
+- Issue **#237** — the `rules.md` two-generator defect, opened today
