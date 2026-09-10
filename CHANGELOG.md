@@ -15,6 +15,43 @@
   item *is*, rather than where it lives, is absorbed queue material. Shared with Human at the
   Helm; both copies stay byte-identical.
 
+- **One YAML serialiser, where there were four.** `registry.py` sorted keys, `resources.py`
+  preserved them, and `utils/data.py::save_yaml` used the non-safe `yaml.dump` and had no
+  callers at all. All now go through `utils/file_io.dump_yaml` — safe dumper, `allow_unicode`
+  so Greek and Hebrew are written as themselves, `sort_keys=False`, block style. `save_yaml` is
+  deleted.
+
+  **One behaviour change:** a registration file's keys were written in alphabetical order and
+  are now written in the order given. It shows the next time one is rewritten.
+
+  `tests/test_yaml_normalization.py` states the nine properties the output must have, including
+  that `"1:1"` survives as a string rather than the integer 61 — the coercion
+  `reference-data-is-json` exists for, asserted on the writing side — and refuses a second
+  `yaml.dump`/`yaml.safe_dump` anywhere in `src/`, because a second call site is a second set of
+  defaults.
+
+- **`plans-are-temporary` now covers collab notes**, which accumulate exactly as plans do — 29
+  of them across two repositories, oldest from August, none ever pruned. A note is written once,
+  into the recipient's tree, so no second copy can drift; its durable trace is the CHANGELOG
+  entry or issue it caused, never the file.
+
+  It also states what "eight days" is measured from, which it never did: **the later of the
+  document's declared `Status:` date and the last commit that changed it — never the filesystem
+  timestamp**, because a clone rewrites every mtime and nothing would ever be old enough to
+  delete.
+
+### Fixed
+
+- **The shipped context document promised a `format: print` that has never existed.**
+  `FORMATS = ("plain", "milestones", "usj")`, and `resource_text(..., fmt="print")` answers
+  `unknown format 'print'`. The row is struck from
+  `docs/ai-context/sp/scripture-representations.md` and from the file catalog's `purpose:` for
+  it, and the document now states the three forms positively.
+
+  The code was never wrong: `pipeline_schema.py:256` builds the format enum from `FORMATS`, so
+  `sp lint` would always have rejected `print`. Only the documentation claimed it — which is why
+  this is a documentation fix and not a code one.
+
 ## 0.2.1.28 — 2026-09-09
 
 A bug-fix release, cut deliberately small and soon. Every fix below was found by one person

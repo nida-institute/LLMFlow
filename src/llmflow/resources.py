@@ -505,9 +505,8 @@ def _write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> 
     """
     import os
 
-    import yaml
-
     from llmflow.cli_utils import _lock_sp_dir, _unlock_sp_dir
+    from llmflow.utils.file_io import dump_yaml
 
     # Creating the directory is itself a write *into the store*, so the store has to be unlocked
     # for it — not just the directory afterwards. `~/.sp/registrations` does not exist until the
@@ -535,7 +534,7 @@ def _write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> 
         _unlock_sp_dir(target.parent)
     try:
         target.write_text(
-            banner + yaml.safe_dump(dict(entry), sort_keys=False, allow_unicode=True),
+            banner + dump_yaml(dict(entry)),
             encoding="utf-8",
         )
     finally:

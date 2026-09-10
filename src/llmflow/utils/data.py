@@ -499,20 +499,6 @@ def load_yaml(file_path):
         raise
 
 
-def save_yaml(data, file_path):
-    """Save data as YAML file with error handling and logging"""
-    logger.debug(f"💾 Saving YAML to: {file_path}")
-
-    try:
-        # Ensure directory exists
-        Path(file_path).parent.mkdir(parents=True, exist_ok=True)
-
-        with open(file_path, "w", encoding="utf-8") as f:
-            yaml.dump(data, f, default_flow_style=False, allow_unicode=True, indent=2)
-        logger.debug("✅ Successfully saved YAML")
-    except Exception as e:
-        logger.error(f"❌ Error saving YAML to {file_path}: {e}")
-        raise
 
 
 def merge_dicts(dict1, dict2, deep=True):
