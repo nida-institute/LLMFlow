@@ -57,13 +57,29 @@ the working set no longer fits.
 
 ### 3. What is the correction rate, and is it rising?
 
-Count the times in this session you stated something and then had to correct it — a wrong file
-count, an unverified claim, a misdiagnosis.
+**List them. Do not characterise them.** One line each, in the order they happened, saying what
+you claimed and what was true:
 
-**How to know:** you will remember the recent ones. That is the point — recency is what matters.
+```
+- asserted "35 commits" in a PR body from a stale local `main` — actual: 8
+- put three unverified claims in issue #230, one of them false
+- said the corrupt config broke the styling — it did not; nothing uses that class
+- reported a directory as empty when `head -20` had truncated the listing
+- said "38 curly quotes" when it was 162 — `grep -c` counts lines, not occurrences
+```
 
-**What it implies:** everyone makes these. **A rising density is degradation showing**, and it is
-the signal humans notice last, because each correction individually looks like diligence.
+The list is the whole point of this signal, and a summary destroys it. *"A few small
+corrections"* is unfalsifiable and always sounds acceptable; five dated lines with the true
+value beside each is checkable, and the human can see for themselves whether they cluster.
+
+**How to know:** you will remember the recent ones, and recency is what matters. Where the
+conversation is still in front of you, scan it rather than recalling — an assessment of your own
+reliability is exactly the claim least worth taking on trust.
+
+**What it implies:** everyone makes these, so a count alone means little. **Look at the
+distribution.** Several in the last stretch, after a quiet earlier one, is degradation showing —
+and it is the signal humans notice last, because each correction individually looks like
+diligence rather than decline.
 
 ### 4. How much is uncommitted?
 
@@ -114,11 +130,59 @@ next instance more than continuing costs you.**
 
 ## Then answer, in this shape
 
-1. **A recommendation**, in one line: continue, finish-then-exit, or exit now.
-2. **The evidence**, as the five observations above — so the human can disagree with your
-   reasoning rather than only with your conclusion.
-3. **What would be lost** if the session ended right now without a handoff.
-4. **The one thing to do first**, if the recommendation is anything but "continue".
+**People read the first line and the last line before they read anything else.** Whatever sits
+there is what they will act on; the middle is what they consult if they doubt it. So put the
+answer at both ends and the evidence between them — the opening states what is true, the closing
+states what to do. Anything important that appears only in the middle has been published in the
+least-read part of the page.
+
+**Open with the verdict, in two words.** The human asked a yes/no question and is entitled to the
+answer before the reasoning. Burying it under five paragraphs of evidence is its own kind of
+overwhelm — they cannot act on an assessment they have to extract.
+
+```
+**Handoff: yes. Exit: yes.** — compacted once, eight corrections with four in the last
+ninety minutes, eleven files uncommitted, and the next action needs your ruling.
+```
+
+`/handoff` and `/exit` are separate answers and often differ. **Handoff yes, exit no** is the
+common case mid-session: capture the state, keep working. **Handoff no, exit no** means carry on
+and ask again later. **Handoff no, exit yes** is rare and only right when the tree is clean and
+the record already current.
+
+Then, below it:
+
+1. **The five observations** — enumerated, never summarised, with the corrections listed
+   individually. This is so the human can disagree with your reasoning rather than only with
+   your conclusion.
+2. **What would be lost** if the session ended right now without a handoff. Name the files.
+3. **The one thing to do first**, unless the answer was no to both.
+
+**The detail earns its place — do not trim it to be brief.** The enumerated corrections and the
+named files are what make the assessment checkable, and an assessment nobody can check is worth
+nothing. What must be short is the *verdict*, at each end. A reader who wants only the answer
+gets it in two words; a reader who wants to test it has everything they need in between.
+
+**Close with a conclusion that rhymes with the opening** — the same judgement, arrived at rather
+than announced, said as an instruction and carrying the reasons with it:
+
+```
+**Finish, then exit.** Commit what is in flight and stop; do not start the design discussion
+here. Compaction, a correction rate that has doubled in the last hour, and a next action that
+needs your ruling — none of which improve by carrying on.
+```
+
+Three things it must do, and the third is the one usually missed:
+
+- **Say what to do**, concretely. The opening says what is true; the closing says what to do
+  about it.
+- **Name the specific thing not to start.** The temptation at the end of a long session is to
+  begin one more piece of work, and the line that names which work to leave alone is the part
+  most likely to be obeyed.
+- **Name the categories that drove the verdict** — which two or three of the five actually
+  decided it. A conclusion that repeats the recommendation without its reasons asks to be taken
+  on trust, and by this point in the report the reader has the evidence in hand and can check
+  whether those categories really carry the weight you are putting on them.
 
 **The decision is the human's.** This skill produces an assessment, not a verdict — say what you
 observe and what you would do, then let them choose. They can see things you cannot: what they
