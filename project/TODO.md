@@ -7,6 +7,44 @@
 
 ## 🔥 Active
 
+### 📐 THE GOAL THIS CYCLE — scripture text representation
+
+> Set by the Captain 2026-09-10. Everything else in this list yields to it.
+
+`include:` is refused unless `format: usj`, so a pipeline that needs annotation cannot have
+milestone-cost text. Measured downstream on Philemon 1:1–7: **622 characters of Greek delivered
+as 14,045 of JSON, 22.6×**; across the book 334 words carry an anchor and **228 are referenced
+by nothing**.
+
+The design is drafted and unreviewed: **`project/plans/design-annotation-without-anchors.md`**,
+status `proposed`. It was raised by
+`collab/discourse-flow/2026-09-09-include-forces-the-most-expensive-text-form.md`.
+
+- [ ] **Ruling needed on five decisions** — design §6. In short: is the payload made
+      self-describing (option C, recommended), is the cost simply accepted (A), or are anchors
+      thinned (B, which makes the text vary with the `include` list)
+- [ ] **Measure before ruling** — design §7. Philemon 1:1–7 under today's `usj` + families
+      against `milestones` + a self-describing payload. If C is not decisively cheaper its main
+      argument goes, and this may settle the question without a discussion
+- [ ] Read `collab/discourse-flow/2026-09-09-what-we-still-compute-that-other-projects-will-need.md`
+      — an inventory of what a consumer computes in plugins that the engine might absorb. Bears
+      directly on this
+- [ ] Then implement whatever is ruled
+
+**The one fact worth carrying:** a per-word payload is keyed by an opaque word id and carries
+only the annotation — no surface form, no reference. That is the *whole* reason anchors are
+load-bearing, and it was established by fetching `WLC Ruth 1:1`, not by reading comments.
+
+### 🚢 0.2.1.28 — merged? tagged? released?
+
+- [ ] **PR #236** — `dev` → `main`, 8 commits, `MERGEABLE`, build `34409536310` green on all four
+      jobs. Merge with a **merge commit**, tag the merge commit, watch all five `release.yml` jobs
+- [ ] Artifacts **expire 16–17 September**. After that the build re-runs, and Windows takes 2h17m
+- [ ] `data/models.json` is held back deliberately — one line, and committing it restarts a
+      two-hour build. It belongs to the cycle after
+
+BaseX is **not** in this release; see below.
+
 ### 🦷 The shell/file-tool rules have no teeth — the AI must ask, not just violate
 
 > **Targets this release.** The Captain's words, verbatim: *"The File Commands part of the ai
@@ -107,11 +145,14 @@
 - [ ] This is the second thread now waiting on that repository; BaseX #38 is blocked on
       `awesome-biblical-data#5` — see the BaseX section below
 
-### 🗄️ BaseX collections — **scheduled for 0.2.1.28**, moved out of x.27
+### 🗄️ BaseX collections — **not scheduled**, and not in 0.2.1.28
 
-> **Moved 2026-09-09.** Nothing in 0.2.1.27 depends on it, and its critical path starts in another
-> repository, so holding the release for it would keep two consumers living with an unreleased
-> breaking change (`edition:` → `resource:`) for no gain.
+> **Moved out of x.27 on 2026-09-09, and out of x.28 on the same grounds.** x.28 became a
+> bug-fix release cut small and fast for a new contributor's blockers, and BaseX was not in it —
+> the CHANGELOG entry says so plainly rather than letting the version number imply progress.
+>
+> It has no target release. Its critical path still starts in another repository, so scheduling
+> it here would be scheduling something this repository cannot finish.
 
 **What ships already, and what does not.** The half that works is the half that was never blocked:
 

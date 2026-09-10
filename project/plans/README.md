@@ -9,6 +9,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | --- | --- | --- |
 | [design-ai-context-layout.md](design-ai-context-layout.md) | In progress, 2026-08-25. Eleven rulings recorded from the Captain (§2). | #204 #210 #211 |
 | [design-ai-drift-control.md](design-ai-drift-control.md) | Draft — awaiting Captain review | — |
+| [design-annotation-without-anchors.md](design-annotation-without-anchors.md) | proposed (2026-09-09). Nothing is built. proposed is not authorization to build — | #200 |
 | [design-basex-collections.md](design-basex-collections.md) | proposal, awaiting the Captain on §8. Nothing is built. | #38 #49 #52 |
 | [design-biblical-text-conventions.md](design-biblical-text-conventions.md) | proposed — not authorization to build. Four decisions remain marked => and are the | #226 |
 | [design-clean-command.md](design-clean-command.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
@@ -57,4 +58,4 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-window-semantics.md](plan-window-semantics.md) | complete, 2026-08-21. Items 1 and 3 landed; item 2's two decisions were ruled and | #175 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-49 documents.
+50 documents.
