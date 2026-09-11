@@ -425,6 +425,56 @@ def test_repair_never_touches_files_the_project_owns(tmp_path: Path, project: Pa
     )
 
 
+def test_ai_context_in_subdirectories_is_not_reported_empty(tmp_path: Path, project: Path):
+    """The documents live in `sp/` and `project/`, one level down, and have since the split.
+
+    A non-recursive glob finds nothing at the top level and calls a fully-populated tree empty,
+    then recommends `sp init` — a command that would change nothing, because nothing is missing.
+    Measured on a real project carrying seven of these files.
+    """
+    from llmflow.cli_utils import install_global_disciplines, install_global_skills
+
+    sp_home = tmp_path / ".sp"
+    install_global_disciplines(sp_home=sp_home)
+    install_global_skills(sp_home=sp_home)
+
+    for half, name in (("sp", "rules.md"), ("sp", "index.md"), ("project", "overview.md")):
+        target = project / "docs" / "ai-context" / half / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(f"# {half}/{name}\n", encoding="utf-8")
+
+    report = run_doctor(sp_home=sp_home, project_dir=project)
+    check = next(c for c in report.checks if c.id == "ai_context")
+
+    assert "empty" not in check.title, f"a populated tree reported as empty: {check.title}"
+    assert check.severity is Severity.OK
+    assert "3" in check.title, f"expected all three files counted: {check.title}"
+
+
+def test_ai_context_names_the_half_each_document_belongs_to(tmp_path: Path, project: Path):
+    """`sp/index.md` and `project/index.md` are different documents sharing a filename.
+
+    Listing bare names prints `index.md` twice and tells the reader nothing about which is
+    which — the same ambiguity #210 exists to remove.
+    """
+    from llmflow.cli_utils import install_global_disciplines, install_global_skills
+
+    sp_home = tmp_path / ".sp"
+    install_global_disciplines(sp_home=sp_home)
+    install_global_skills(sp_home=sp_home)
+
+    for half in ("sp", "project"):
+        target = project / "docs" / "ai-context" / half / "index.md"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(f"# {half}\n", encoding="utf-8")
+
+    report = run_doctor(sp_home=sp_home, project_dir=project)
+    check = next(c for c in report.checks if c.id == "ai_context")
+
+    assert "sp/index.md" in (check.detail or ""), check.detail
+    assert "project/index.md" in (check.detail or ""), check.detail
+
+
 def test_repair_survives_the_read_only_lock(tmp_path: Path, project: Path):
     """`install_global_disciplines` locks its directory on exit (`cli_utils.py:1644-1654`).
 

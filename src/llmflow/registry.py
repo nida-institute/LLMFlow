@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from llmflow import paths as _paths
+from llmflow.utils.file_io import dump_yaml
 
 
 class ProjectRegistry:
@@ -57,7 +58,7 @@ class ProjectRegistry:
         # Write to YAML file
         yaml_file = self.path / f"{name}.yaml"
         with open(yaml_file, "w", encoding="utf-8") as f:
-            yaml.safe_dump(project_data, f, default_flow_style=False, allow_unicode=True)
+            f.write(dump_yaml(project_data))
 
     def get(self, name: str) -> Optional[Dict[str, Any]]:
         """Get project by name."""
@@ -131,7 +132,7 @@ class DatasetRegistry:
         # Write to YAML file
         yaml_file = self.path / f"{id}.yaml"
         with open(yaml_file, "w", encoding="utf-8") as f:
-            yaml.safe_dump(dataset_data, f, default_flow_style=False, allow_unicode=True)
+            f.write(dump_yaml(dataset_data))
 
     def get(self, id: str) -> Optional[Dict[str, Any]]:
         """Get dataset by ID."""
@@ -204,7 +205,7 @@ class DatabaseRegistry:
     def _save(self, data: Dict[str, Any]) -> None:
         """Save databases to YAML file."""
         with open(self.yaml_file, "w", encoding="utf-8") as f:
-            yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True)
+            f.write(dump_yaml(data))
 
     def register(
         self,
@@ -331,7 +332,7 @@ class AIContextRegistry:
         # Write to YAML file (name is filename with .yaml extension)
         yaml_file = self.path / f"{file}.yaml"
         with open(yaml_file, "w", encoding="utf-8") as f:
-            yaml.safe_dump(context_data, f, default_flow_style=False, allow_unicode=True)
+            f.write(dump_yaml(context_data))
 
     def get(self, file: str) -> Optional[Dict[str, Any]]:
         """Get AI context file metadata by filename."""

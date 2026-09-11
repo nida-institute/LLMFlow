@@ -24,7 +24,10 @@ every decision downstream.
 | `milestones` | **1.072×** | **the default.** A verse reference is all the addressing needed, and the cost over bare text is under a tenth |
 | `usj`, no `include` | 2.56× codepoints, **6.74×** as escaped JSON | structure is needed, annotation is not |
 | `usj` + families | to **11.78×** as one consumer ships it | only the families a step actually reads |
-| `print` | paragraphs, no annotation | the editorial shape, for a reader rather than a model |
+
+**Three forms, and that is the whole list.** `format:` accepts `plain`, `milestones` and `usj`;
+anything else raises, naming the three. A form for the editorial shape — paragraphs and
+headings for a reader rather than a model — is not built.
 
 Two consequences worth holding onto. **`milestones` is almost always right** — it is the default
 because the alternative costs six times as much for structure most prompts never use. And

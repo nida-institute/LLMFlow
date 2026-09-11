@@ -693,7 +693,14 @@ def run_doctor(
     # --- project-side AI context -------------------------------------------
     ai_context = project_dir / "docs" / "ai-context"
     if ai_context.is_dir():
-        names = sorted(p.name for p in ai_context.glob("*.md"))
+        # Recursive, and named by their path within the tree. The documents live in `sp/` and
+        # `project/` rather than at the top level, so a non-recursive glob called a full tree
+        # empty and recommended `sp init` — a command that would have changed nothing. The path
+        # matters too: `sp/index.md` and `project/index.md` are different documents, and listing
+        # bare filenames printed `index.md` twice with no way to tell which was which.
+        names = sorted(
+            str(p.relative_to(ai_context)) for p in ai_context.rglob("*.md")
+        )
         if names:
             add(
                 Check(

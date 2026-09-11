@@ -67,7 +67,11 @@ likely to recur — not just in this session, but in future sessions.
 
 Candidates:
 
-- Add a rule to `docs/ai-context/rules.md` that encodes the constraint that was violated
+- Add a rule that encodes the constraint that was violated, to the project's **own** rules file:
+  `docs/ai-context/rules.md`, or `docs/ai-context/project/rules.md` where the context is split
+  into a project half and a tooling half. Never add one to a file that is generated from
+  elsewhere — the next time the generator runs it restores that file, and the rule disappears
+  without a word
 - Add a pitfall to `CLAUDE.md` that names the pattern to avoid
 - Update the topic index if the drift was caused by the AI guessing at something
   it should have looked up

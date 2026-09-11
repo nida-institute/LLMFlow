@@ -263,6 +263,26 @@ _STEP_TYPE_PROPERTIES = [
                 "type": "array",
                 "items": {"type": "string", "enum": list(SCRIPTURE_INCLUDE_FAMILIES)},
             },
+            # Cuts the fetched passage into units named by word id, one result per span in the
+            # order given. A unit of analysis does not always start where a verse does — in
+            # Hebrew versification a psalm's superscription is part of verse 1 — so a boundary
+            # names a word rather than a verse. `passage:` still says what to fetch.
+            "spans": {
+                "oneOf": [
+                    {"type": "string"},  # `${var}` naming a list the pipeline computed
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "from": {"type": "string"},
+                                "to": {"type": "string"},
+                            },
+                            "required": ["from", "to"],
+                        },
+                    },
+                ]
+            },
         },
     ),
     (

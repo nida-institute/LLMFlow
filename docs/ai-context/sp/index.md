@@ -19,13 +19,14 @@ references there, or in documents it points to.
 | `docs/ai-context/sp/overview.md` | What Scripture Pipelines is, and where the rest of its documentation lives. |
 | `docs/ai-context/sp/passage-references.md` | Writing a passage reference: the forms that parse, book names and USFM codes, ranges that may cross a chapter but not a book, and the request-side and source-side versifications. |
 | `docs/ai-context/sp/rules.md` | The rules every AI session in this project is held to. Authoritative. |
-| `docs/ai-context/sp/scripture-representations.md` | Choosing between `plain`, `milestones`, `usj` and `print`, what each costs with the unit stated, and how to read a discourse item's `outcome`. |
+| `docs/ai-context/sp/scripture-representations.md` | Choosing between `plain`, `milestones` and `usj`, what each costs with the unit stated, and how to read a discourse item's `outcome`. |
 | `docs/llmflow-language-quickref.md` | The pipeline YAML reference — step types, variables, window and for-each. |
 | `docs/tutorial.md` | Step-by-step walkthrough: variables, saveas, and a two-step pipeline. |
 | `docs/vscode.md` | VS Code setup for editing pipelines and prompts. |
 | `pipelines/hello.yaml` | Smallest runnable pipeline — one llm step. |
 | `project/TODO.md` | Active work, what is in flight, and what not to touch. Read before anything else. |
 | `project/audits/README.md` | How audit findings are recorded for this project. |
+| `project/plans/README.md` | Where designs and plans live, the status they must declare, and why they are deleted after about eight days. |
 | `prompts/hello.gpt` | Starter prompt for the hello-world example. |
 ## Scripture Pipelines documentation
 

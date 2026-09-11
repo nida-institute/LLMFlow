@@ -32,8 +32,8 @@ Gate 7 (merge + cleanup) comes last.
   ```bash
   gh issue view <N>
   ```
-- [ ] For non-trivial work: a design doc or audit doc exists in `docs/design/`,
-  `docs/audits/`, or `tmp/` (to be moved before close)
+- [ ] For non-trivial work: a design doc exists in `project/plans/` or a finding in
+  `project/audits/` (or `tmp/`, to be moved before close)
 - [ ] The design/audit doc (or a summary of key decisions) has been posted as a
   comment on the issue — so the full trajectory is preserved in the issue thread
 - [ ] If the work required an audit first, confirm the relevant audit skill was run and
@@ -138,7 +138,7 @@ grep "^## " CHANGELOG.md | head -5    # recent versions
 
 ## Gate 5: Commit Message & Push
 
-Follow the format from `docs/ai-context/github-workflow.md`:
+Follow the format from `docs/ai-context/sp/github-workflow.md`:
 
 **Subject line:**
 ```

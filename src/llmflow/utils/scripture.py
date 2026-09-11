@@ -461,11 +461,6 @@ def check_include(include: Any, fmt: str) -> tuple:
         )
     families = tuple(include)
 
-    if fmt != "usj":
-        raise ValueError(
-            f"include {list(families)} needs `format: usj`; `{fmt}` has nowhere to put a "
-            f"payload."
-        )
     unknown = [f for f in families if f not in INCLUDE_FAMILIES]
     if unknown:
         raise ValueError(
@@ -492,6 +487,201 @@ def check_include(include: Any, fmt: str) -> tuple:
     return families
 
 
+#: A Hebrew word id ends in a part digit — `o` + book + chapter + verse + word + part — so it is
+#: one character longer than a Greek one, which has no part. Dropping the part gives the
+#: orthographic word, which is what a boundary names.
+_HEBREW_ID_LENGTH = 13
+
+
+def _word_and_part(identifier: str) -> tuple[str, Optional[int]]:
+    """Split a word id into the orthographic word and its part, where the source has parts."""
+    if len(identifier) == _HEBREW_ID_LENGTH and identifier[-1:].isdigit():
+        return identifier[:-1], int(identifier[-1])
+    return identifier, None
+
+
+def rows_in_span(
+    rows: Sequence[Mapping[str, Any]], first: str, last: str
+) -> list[dict]:
+    """The rows from word *first* to word *last*, inclusive, in document order.
+
+    Both name an orthographic word, and every morpheme of the words at the edges is taken —
+    a boundary falls between words, never inside one.
+
+    A word the passage does not contain raises rather than yielding a shorter span: a silently
+    truncated text reads as a complete one, and whatever is analysed from it is wrong in a way
+    nothing downstream can see.
+    """
+    wanted = (str(first), str(last))
+    ordered = [(str(row.get("xml:id") or ""), row) for row in rows]
+    missing = [
+        edge
+        for edge in wanted
+        if not any(identifier and _word_and_part(identifier)[0] == edge for identifier, _ in ordered)
+    ]
+    if missing:
+        raise ValueError(
+            f"span names {'a word' if len(missing) == 1 else 'words'} the passage does not "
+            f"contain: {', '.join(missing)}. A span is cut from the rows fetched, so both "
+            f"edges must be inside the passage asked for."
+        )
+
+    out: list[dict] = []
+    started = False
+    for identifier, row in ordered:
+        word_id = _word_and_part(identifier)[0] if identifier else ""
+        if word_id == wanted[0]:
+            started = True
+        if started:
+            out.append(dict(row))
+        if started and word_id == wanted[1] and not _continues(ordered, identifier, wanted[1]):
+            break
+    return out
+
+
+def _continues(ordered: Sequence[tuple], identifier: str, last: str) -> bool:
+    """Whether a later row still belongs to the closing word — its next morpheme."""
+    index = next(i for i, (found, _) in enumerate(ordered) if found == identifier)
+    following = ordered[index + 1 :]
+    return bool(following) and _word_and_part(following[0][0])[0] == last
+
+
+def text_for_spans(
+    rows: Sequence[Mapping[str, Any]],
+    spans: Sequence[Mapping[str, Any]],
+    fmt: str,
+    book: str,
+    include: Sequence[str] = (),
+    versification: Optional[str] = None,
+    discourse: Optional[list] = None,
+    syntax: Optional[list] = None,
+) -> list[dict]:
+    """One result per span, in the order asked, each carrying its own text and annotation.
+
+    Cutting happens over rows already fetched, so a book is read once however many spans are
+    named. Each result repeats the span it answers, because a caller holding a list of units
+    should not have to match results back by position.
+    """
+    results: list[dict] = []
+    for span in spans:
+        first, last = str(span.get("from") or ""), str(span.get("to") or "")
+        cut = rows_in_span(rows, first, last)
+        ids = {str(row.get("xml:id") or "") for row in cut}
+        produced = rows_to_output(
+            cut,
+            fmt=fmt,
+            book=book,
+            include=include,
+            versification=versification,
+            discourse=[item for item in discourse or [] if str(item.get("id") or "") in ids]
+            if discourse is not None
+            else None,
+            syntax=syntax,
+        )
+        result = {"from": first, "to": last}
+        if isinstance(produced, str):
+            result["text"] = produced
+        else:
+            result.update(produced)
+        results.append(result)
+    return results
+
+
+def per_word_annotation(rows: Sequence[Mapping[str, Any]], families: Sequence[str]) -> dict:
+    """`{family: {word id: {column: value}}}`, skipping the columns a word leaves empty."""
+    annotation: dict = {family: {} for family in families}
+    for row in rows:
+        identifier = row.get("xml:id")
+        if not identifier:
+            continue
+        for family in families:
+            fields = {
+                column: str(row[column])
+                for column in family_columns(family)
+                if str(row.get(column) or "").strip()
+            }
+            if fields:
+                annotation[family][str(identifier)] = fields
+    return annotation
+
+
+def annotation_container(
+    rows: Sequence[Mapping[str, Any]],
+    book: str,
+    include: Sequence[str],
+    versification: Optional[str] = None,
+    discourse: Optional[list] = None,
+    syntax: Optional[list] = None,
+    with_words: bool = True,
+) -> dict:
+    """The `scripture_pipelines` container, identical whatever form the text took.
+
+    A requested family always has a key: an empty collection means the lookup ran and found
+    nothing, `null` means there was nothing to look in. A family nobody requested stays absent,
+    because `include:` declares why. Rule `say-which-kind-of-nothing`.
+
+    `with_words` is false for a USJ document, where `ids` means the `srcloc` attribute USX
+    already defines rather than a map beside the text. Asking for word addressing gets one form
+    or the other, never both.
+    """
+    container: dict = {"versification": versification or None}
+    if not versification:
+        container["versification_guessed"] = ASSUMED_SCHEME
+        logger.warning(
+            f"{book}: the resource does not say which versification its references are in, "
+            f"so `{ASSUMED_SCHEME}` is assumed; the {CONTAINER_KEY} container states "
+            f"`versification: null` with `versification_guessed: {ASSUMED_SCHEME}` beside "
+            f"it. Add `{SCHEME_KEY}: <scheme>` to the resource's registry entry to declare "
+            f"it properly."
+        )
+    if "ids" in include and with_words:
+        container["ids"] = words_by_id(rows)
+    if "discourse" in include:
+        container["discourse"] = discourse
+    if "syntax" in include:
+        container["syntax"] = syntax
+    container.update(per_word_annotation(rows, [f for f in include if family_is_per_word(f)]))
+    return container
+
+
+def words_by_id(rows: Sequence[Mapping[str, Any]]) -> dict:
+    """Every word of *rows*, keyed by the id that annotation and boundaries name it with.
+
+    A word written as one morpheme is its text; a word written in several is the list of them,
+    in order. A word number the text does not render is `null` — the source reserves those
+    slots, so keeping them keeps every id derivable and lets a boundary name one.
+
+    Keyed rather than positional because an id counts words within its verse while the rendered
+    text runs on: resolving a position would mean knowing where each verse starts and, in
+    Hebrew, telling a morpheme index from a word index. Psalm 23:1 is the case — the
+    superscription is words 1-2 and the psalm opens at word 3, which is the fourth morpheme.
+    """
+    verses: dict = {}
+    for row in rows:
+        identifier = str(row.get("xml:id") or "")
+        if not identifier:
+            continue
+        word_id, part = _word_and_part(identifier)
+        verses.setdefault(word_id[:-3], {}).setdefault(word_id, []).append(
+            (part or 1, str(row.get("text") or ""))
+        )
+
+    out: dict = {}
+    for prefix, found in verses.items():
+        numbers = [int(word_id[-3:]) for word_id in found]
+        # From the first word present, not from word 1: a span cut starts mid-verse, and
+        # filling back to the start would report words outside it as reserved slots.
+        for number in range(min(numbers), max(numbers) + 1):
+            word_id = f"{prefix}{number:03d}"
+            morphemes = found.get(word_id)
+            if morphemes is None:
+                out[word_id] = None  # reserved by the source, not rendered here
+                continue
+            texts = [text for _, text in sorted(morphemes)]
+            out[word_id] = texts[0] if len(texts) == 1 else texts
+    return out
+
+
 def rows_to_output(
     rows: Sequence[Mapping[str, Any]],
     fmt: str,
@@ -513,7 +703,26 @@ def rows_to_output(
             discourse=discourse,
             syntax=syntax,
         )
-    return rows_to_text(rows, fmt=fmt)
+
+    text = rows_to_text(rows, fmt=fmt)
+    if not include:
+        return text
+
+    # Annotation is standoff, so it travels beside the text rather than inside it, and the text
+    # is the same text a caller gets without asking. The dict appears only because `include:`
+    # asked for something; `include: []` still returns a bare string, which is what every
+    # pipeline written before this change receives.
+    return {
+        "text": text,
+        CONTAINER_KEY: annotation_container(
+            rows,
+            book=book,
+            include=include,
+            versification=versification,
+            discourse=discourse,
+            syntax=syntax,
+        ),
+    }
 
 
 def rows_to_usj(
@@ -545,22 +754,6 @@ def rows_to_usj(
         for field, columns in family_usx_attributes(family).items():
             attributes.setdefault(field, tuple(columns))
 
-    annotation: dict = {family: {} for family in per_word}
-
-    def annotate(row: Mapping[str, Any]) -> None:
-        """Collect a word's declared columns, verbatim, skipping the ones it leaves empty."""
-        identifier = row.get("xml:id")
-        if not identifier:
-            return
-        for family in per_word:
-            fields = {
-                column: str(row[column])
-                for column in family_columns(family)
-                if str(row.get(column) or "").strip()
-            }
-            if fields:
-                annotation[family][str(identifier)] = fields
-
     content: list = [{"type": "book", "marker": "id", "code": book}]
     chapter_open: Optional[int] = None
     para: Optional[dict] = None
@@ -591,7 +784,6 @@ def rows_to_usj(
                     if value:
                         node[field] = value
                 target.append(node)
-            annotate(row)
             # What follows the word — a space, a joining mark, punctuation and the space the
             # engine adds after it — is text. Dropping it would make the document
             # unflattenable back to running text.
@@ -649,22 +841,15 @@ def rows_to_usj(
         # and does not relabel the result. Reporting the request made the container assert
         # labels the document did not have, off by exactly the difference between the schemes,
         # and a consumer had nothing else to check it against.
-        container: dict = {"versification": versification or None}
-        if not versification:
-            container["versification_guessed"] = ASSUMED_SCHEME
-            logger.warning(
-                f"{book}: the resource does not say which versification its references are in, "
-                f"so `{ASSUMED_SCHEME}` is assumed; the {CONTAINER_KEY} container states "
-                f"`versification: null` with `versification_guessed: {ASSUMED_SCHEME}` beside "
-                f"it. Add `{SCHEME_KEY}: <scheme>` to the resource's registry entry to declare "
-                f"it properly."
-            )
-        if "discourse" in include:
-            container["discourse"] = discourse
-        if "syntax" in include:
-            container["syntax"] = syntax
-        container.update(annotation)
-        document[CONTAINER_KEY] = container
+        document[CONTAINER_KEY] = annotation_container(
+            rows,
+            book=book,
+            include=include,
+            versification=versification,
+            discourse=discourse,
+            syntax=syntax,
+            with_words=False,
+        )
     return document
 
 
@@ -699,6 +884,21 @@ def resolve_resource(
     )
 
 
+#: Punctuation that belongs to the word before it, so no separator is inserted in front of it.
+#: Greek ano teleia and apostrophe are here beside the Latin marks; the Hebrew sof pasuq and
+#: maqqef are attached in the source text rather than written as separate strings.
+_ATTACHES_LEFT = re.compile(r"^[,.;:!?·’'\"\)\]}»”׃]")
+
+
+def _chapter_of(sid: Any) -> Optional[str]:
+    """The chapter in a verse `sid` — `"MRK 1:1"` -> `"1"` — or None if it says nothing."""
+    if not isinstance(sid, str) or ":" not in sid:
+        return None
+    reference = sid.rsplit(" ", 1)[-1]
+    chapter = reference.split(":", 1)[0]
+    return chapter or None
+
+
 def usj_to_text(usj: Mapping[str, Any], fmt: str = "milestones") -> str:
     """Flatten a USJ document into running text.
 
@@ -707,8 +907,14 @@ def usj_to_text(usj: Mapping[str, Any], fmt: str = "milestones") -> str:
     rather than a column on a row — but the output contract is identical: running text, verse
     positions marked, never a per-verse container.
 
-    Chapter number is tracked from ``chapter`` elements, because a ``verse`` element carries
-    only its own number.
+    Chapter number is tracked from ``chapter`` elements, falling back to the chapter in a
+    ``verse`` element's ``sid`` — a sliced document keeps its verses and loses the ``chapter``
+    they sat under.
+
+    A bare string keeps its own leading and trailing space, because in a document whose words
+    are ``char`` nodes the spacing and the punctuation live in those strings; runs of
+    whitespace collapse to one, so a document broken across lines does not carry its newlines
+    into the text.
     """
     if fmt not in FORMATS:
         raise ValueError(f"unknown format {fmt!r}; expected one of {', '.join(FORMATS)}")
@@ -718,10 +924,15 @@ def usj_to_text(usj: Mapping[str, Any], fmt: str = "milestones") -> str:
 
     def walk(node: Any) -> None:
         if isinstance(node, str):
-            text = node.strip()
-            if not text:
+            text = re.sub(r"\s+", " ", node)
+            if not text.strip():
                 return
-            if parts and not parts[-1][-1:].isspace():
+            if (
+                parts
+                and not parts[-1][-1:].isspace()
+                and not text[:1].isspace()
+                and not _ATTACHES_LEFT.match(text)
+            ):
                 parts.append(" ")
             parts.append(text)
             return
@@ -747,7 +958,8 @@ def usj_to_text(usj: Mapping[str, Any], fmt: str = "milestones") -> str:
                     parts.append(" ")
                 parts.append(
                     MILESTONE_TEMPLATE.format(
-                        chapter=chapter["n"] or "?", verse=node.get("number", "?")
+                        chapter=chapter["n"] or _chapter_of(node.get("sid")) or "?",
+                        verse=node.get("number", "?"),
                     )
                 )
                 parts.append(" ")
@@ -932,7 +1144,8 @@ def _tei_passage_text(
     resource: str,
     include: Sequence[str] = (),
     versification: Optional[str] = None,
-) -> str | dict:
+    spans: Optional[Sequence[Mapping[str, Any]]] = None,
+) -> str | dict | list:
     """Running text for *passage* from a directory of per-book TEI files."""
     tei_dir = definition.get("path")
     if not tei_dir:
@@ -943,16 +1156,50 @@ def _tei_passage_text(
     rows = read_tei_rows(book_file, ref) if book_file else []
     if not rows:
         raise ValueError(_no_text_found(passage, resource))
-    return rows_to_output(
+    return _emit(
         rows,
         fmt=fmt,
         book=ref.book,
         include=include,
         versification=versification,
-        discourse=(
-            discourse_payload(definition, rows, resource) if "discourse" in include else None
-        ),
-        syntax=(syntax_payload(definition, rows, resource) if "syntax" in include else None),
+        definition=definition,
+        resource=resource,
+        spans=spans,
+    )
+
+
+def _emit(
+    rows: Sequence[Mapping[str, Any]],
+    fmt: str,
+    book: str,
+    include: Sequence[str],
+    versification: Optional[str],
+    definition: Mapping[str, Any],
+    resource: str,
+    spans: Optional[Sequence[Mapping[str, Any]]] = None,
+) -> str | dict | list:
+    """What a backend returns once it has rows: the whole passage, or one result per span."""
+    discourse = discourse_payload(definition, rows, resource) if "discourse" in include else None
+    syntax = syntax_payload(definition, rows, resource) if "syntax" in include else None
+    if spans:
+        return text_for_spans(
+            rows,
+            spans=spans,
+            fmt=fmt,
+            book=book,
+            include=include,
+            versification=versification,
+            discourse=discourse,
+            syntax=syntax,
+        )
+    return rows_to_output(
+        rows,
+        fmt=fmt,
+        book=book,
+        include=include,
+        versification=versification,
+        discourse=discourse,
+        syntax=syntax,
     )
 
 
@@ -964,8 +1211,13 @@ def resource_text(
     versification: Optional[str] = None,
     mappings_dir: Optional[Path] = None,
     include: Any = (),
-) -> str | dict:
+    spans: Optional[Sequence[Mapping[str, Any]]] = None,
+) -> str | dict | list:
     """Running text for *passage* in *resource*, dispatched on the resource's `kind`.
+
+    *spans* cuts the fetched passage into units named by word id, returning one result per
+    span in the order given rather than one result for the passage. The passage is read once
+    however many spans are named.
 
     *versification* names the scheme *passage* is written in. When it differs from the
     resource's own, the reference is mapped before any text is read — a reference is not a
@@ -995,9 +1247,17 @@ def resource_text(
     # written in, and was wrongly used here as though it described the result.
     result_scheme = _versification.scheme_name(scheme) if scheme else None
     if kind == "usfm":
+        if spans:
+            raise ValueError(
+                f"resource {resource!r} is USFM, which carries no word ids, so a span cannot "
+                f"name a boundary in it. Ask for a verse range with `passage:` instead, or use "
+                f"a resource whose words are identified."
+            )
         return _usfm_passage_text(definition, passage, fmt)
     if kind == "tei":
-        return _tei_passage_text(definition, passage, fmt, resource, families, result_scheme)
+        return _tei_passage_text(
+            definition, passage, fmt, resource, families, result_scheme, spans
+        )
     if kind not in ("tsv",):
         raise ValueError(
             f"Resource {resource!r} has unknown kind {kind!r}; expected 'tsv', 'tei' or 'usfm'."
@@ -1010,16 +1270,15 @@ def resource_text(
     rows = filter_rows(read_rows(path), ref)
     if not rows:
         raise ValueError(_no_text_found(passage, resource))
-    return rows_to_output(
+    return _emit(
         rows,
         fmt=fmt,
         book=ref.book,
         include=families,
         versification=result_scheme,
-        discourse=(
-            discourse_payload(definition, rows, resource) if "discourse" in families else None
-        ),
-        syntax=(syntax_payload(definition, rows, resource) if "syntax" in families else None),
+        definition=definition,
+        resource=resource,
+        spans=spans,
     )
 
 

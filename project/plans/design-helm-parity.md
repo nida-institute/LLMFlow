@@ -139,6 +139,7 @@ call is not obvious.
 | `load-context` | **transfers** | Helm already has it; Scripture Pipelines's is 79% larger. Generalize away the `~/.sp` reads and the `sp`/pipeline vocabulary. |
 | `commit-ready` | **transfers** | The *shape* is general — a definition of done. Its content names `pytest`, `CHANGELOG`, version bumps and issue refs; those are conventions of this project, not of Scripture. Needs the specifics parameterized. |
 | `audit-code` | **transfers, with surgery** | Framed as *"Audit Python plugins… verifying plugins are deterministic… local plugins don't silently reimplement LLMFlow core utilities."* The plugin framing is `sp`; "audit Python code for structural correctness and determinism" is general. The largest editing job of the six. |
+| `health-check` | **transfers** | Added 2026-09-10. Assesses whether a session is still working well and whether to hand off — compaction, re-derivation, correction rate, uncommitted volume, blocked-on-human. None of that is engine-specific; a mentee with no `sp` install has exactly the same failure mode. Written portable from the start rather than generalized afterwards. |
 | `audit-pipeline` | **stays** | *"Audit LLMFlow pipeline contracts… response_format… additionalProperties:false."* Entirely engine. |
 | `audit-output` | **stays** | *"Audit pipeline output files against docs/audits/ checklist."* Entirely engine. |
 | `audit-prompts` | **stays** | *"Audit LLMFlow prompt files (.gpt) AND pipeline files (.yaml)."* Entirely engine. |

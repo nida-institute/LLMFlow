@@ -85,7 +85,9 @@ Read the prompt organization convention to understand the standard organization 
 Use global convention by default; use local version if project has customized standards.
 
 **Task-focused structure (for transformation prompts):**
-1. **YAML Frontmatter** — requires, optional, format, description
+1. **YAML Frontmatter** — requires, format, description. There is no `optional:` key;
+   every parameter a prompt declares is required, and a header still carrying one is
+   refused by both `sp lint` and `sp run`
 2. **# WHAT THIS PROMPT PRODUCES** — purpose, philosophy, model explanation
 3. **# OUTPUT FORMAT** — JSON schema with wording guidelines
 4. **# [TASK 1 NAME]** — First major task (e.g., NOTICE QUESTIONS, ANALYSIS, etc.)
@@ -940,8 +942,8 @@ A successful audit:
 
 ## Related Documents
 
-- `docs/prompt-organization-convention.md` — The convention definition
-- `docs/safe-llm-change-workflow.md` — Process for modifying prompts safely
+- `~/.sp/disciplines/llmflow-prompt-organization.md` — the convention definition, installed on
+  every machine. A project may override it with its own `docs/prompt-organization-convention.md`
 - `.github/copilot-instructions.md` — General codebase guidelines
 
 ## Notes

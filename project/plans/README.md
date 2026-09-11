@@ -9,6 +9,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | --- | --- | --- |
 | [design-ai-context-layout.md](design-ai-context-layout.md) | In progress, 2026-08-25. Eleven rulings recorded from the Captain (§2). | #204 #210 #211 |
 | [design-ai-drift-control.md](design-ai-drift-control.md) | Draft — awaiting Captain review | — |
+| [design-annotation-without-anchors.md](design-annotation-without-anchors.md) | proposed (2026-09-09). Nothing is built. proposed is not authorization to build — | #200 |
 | [design-basex-collections.md](design-basex-collections.md) | proposal, awaiting the Captain on §8. Nothing is built. | #38 #49 #52 |
 | [design-biblical-text-conventions.md](design-biblical-text-conventions.md) | proposed — not authorization to build. Four decisions remain marked => and are the | #226 |
 | [design-clean-command.md](design-clean-command.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
@@ -27,11 +28,13 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-one-source-for-shipped-files.md](design-one-source-for-shipped-files.md) | Proposed, 2026-08-25. Nothing built. Four questions in §4 await a ruling. | #211 |
 | [design-one-working-document.md](design-one-working-document.md) | proposed (2026-09-08) | #229 #232 |
 | [design-paratext-versification.md](design-paratext-versification.md) | implemented. | #222 |
+| [design-pericope-segments-and-text.md](design-pericope-segments-and-text.md) | ruled (2026-09-10) on §10 Q1–Q10; nothing is built. §7–§9 remain proposals except | #200 |
 | [design-pipeline-schema.md](design-pipeline-schema.md) | Decisions implemented — historical record, and the decision log is still binding. | — |
 | [design-pr-build-promote.md](design-pr-build-promote.md) | Proposed — awaiting Captain review | #173 |
 | [design-prompt-mixins.md](design-prompt-mixins.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
 | [design-python-api.md](design-python-api.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | #175 #186 #187 |
 | [design-reference-resolution.md](design-reference-resolution.md) | draft frame, 2026-08-27. Not authorization to build, and the answers are not here. | #218 |
+| [design-representation-workbench.md](design-representation-workbench.md) | proposed (2026-09-10). This document rules nothing. It exists so the decisions in | #200 |
 | [design-resource-provisioning.md](design-resource-provisioning.md) | proposed, 2026-08-27. Not authorization to build. Nine decisions are marked => | #212 #216 |
 | [design-resource-vocabulary.md](design-resource-vocabulary.md) | proposal, awaiting the Captain. Nothing is built. | #217 |
 | [design-schema-single-source.md](design-schema-single-source.md) | Approved 2026-08-12 — (1) hybrid (per-type schema + per-type linter, generic-flat | #187 |
@@ -50,6 +53,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-memory-recovery.md](plan-memory-recovery.md) | transfer record. The audit is complete as of 2026-08-24 — all 81 files across 12 | #16 #64 #163 #200 #209 |
 | [plan-migrate-pipeline-directories.md](plan-migrate-pipeline-directories.md) | Rule corrected and executed 2026-08-17 — see the survey section at the foot for what was done, … | — |
 | [plan-release-0-2-1-26.md](plan-release-0-2-1-26.md) | approved in conversation 2026-09-01 — scope ruled, not yet started. #230 #217 #201 | #153 #169 #201 #212 #217 #218 #225 #226 #227 #228 #230 |
+| [plan-scripture-documentation.md](plan-scripture-documentation.md) | proposed (2026-09-10) — drafts for review, nothing installed. Part A is a new | #200 |
 | [plan-scripture-pipelines-articles.md](plan-scripture-pipelines-articles.md) | Proposed — not built. A documentation plan; no articles from it have been written. | — |
 | [plan-scripture-step.md](plan-scripture-step.md) | Proposed, 2026-08-26. Targeted at the next release (ruled 2026-08-26). Nothing | #109 #110 #200 #203 #212 |
 | [plan-skills-convention-json.md](plan-skills-convention-json.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | #163 #164 |
@@ -57,4 +61,4 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-window-semantics.md](plan-window-semantics.md) | complete, 2026-08-21. Items 1 and 3 landed; item 2's two decisions were ruled and | #175 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-49 documents.
+53 documents.

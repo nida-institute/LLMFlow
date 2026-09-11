@@ -2,6 +2,209 @@
 
 ## Unreleased
 
+### Changed
+
+- **`/handoff` scoped its pointer rule to a single line of the file.** The skill required the
+  NEXT ACTION to point at `project/TODO.md` rather than restate it, and said nothing about the
+  rest of the file — so a handoff whose next action was a correct pointer still carried a
+  paragraph of a queued goal's substance, which the task list then moved past. The rule now
+  covers the whole file: it points at the task list and never summarises it.
+
+  The adequacy checklist gains the check that catches a breach — with the tree clean the file
+  reads in thirty seconds and is almost entirely pointers, so a paragraph saying what a queued
+  item *is*, rather than where it lives, is absorbed queue material. Shared with Human at the
+  Helm; both copies stay byte-identical.
+
+- **One YAML serialiser, where there were four.** `registry.py` sorted keys, `resources.py`
+  preserved them, and `utils/data.py::save_yaml` used the non-safe `yaml.dump` and had no
+  callers at all. All now go through `utils/file_io.dump_yaml` — safe dumper, `allow_unicode`
+  so Greek and Hebrew are written as themselves, `sort_keys=False`, block style. `save_yaml` is
+  deleted.
+
+  **One behaviour change:** a registration file's keys were written in alphabetical order and
+  are now written in the order given. It shows the next time one is rewritten.
+
+  `tests/test_yaml_normalization.py` states the nine properties the output must have, including
+  that `"1:1"` survives as a string rather than the integer 61 — the coercion
+  `reference-data-is-json` exists for, asserted on the writing side — and refuses a second
+  `yaml.dump`/`yaml.safe_dump` anywhere in `src/`, because a second call site is a second set of
+  defaults.
+
+- **`plans-are-temporary` now covers collab notes**, which accumulate exactly as plans do — 29
+  of them across two repositories, oldest from August, none ever pruned. A note is written once,
+  into the recipient's tree, so no second copy can drift; its durable trace is the CHANGELOG
+  entry or issue it caused, never the file.
+
+  It also states what "eight days" is measured from, which it never did: **the later of the
+  document's declared `Status:` date and the last commit that changed it — never the filesystem
+  timestamp**, because a clone rewrites every mtime and nothing would ever be old enough to
+  delete.
+
+### Added
+
+- **`include:` works with every format, so choosing annotation no longer chooses a text form.**
+  A pipeline reading Levinsohn features is no longer committed to a word-object document: with
+  `format: milestones` and a non-empty `include:`, the step returns `{text, scripture_pipelines}`
+  — the same text it would return without asking, and the payload beside it. `include: []` still
+  returns a bare string, so nothing written before this changes.
+
+  **Word addressing follows the form.** In a USJ document `ids` remains `srcloc`, where USX
+  defines it. Beside running text it is a map from word id to the word — `{"o19023001002":
+  ["לְ", "דָוִ֑ד"]}` — keyed rather than positional, because an id counts words within its verse
+  while the text runs on, and in Hebrew a word may be written in several morphemes, so a
+  position would have to be derived from where each verse starts. A word number the text does
+  not render is `null`: the source reserves those slots.
+
+- **`spans:` cuts a fetched passage into units named by word id**, returning one result per span
+  in the order asked, each with its own text and its own annotation. The passage is read once
+  however many spans are named.
+
+  A boundary names a word rather than a verse because a unit of analysis does not always start
+  where a verse does — in Hebrew versification a psalm's superscription is part of verse 1, so
+  a unit beginning at the psalm proper (`יְהוָ֥ה רֹ֝עִ֗י`, Psalm 23:1 word 3) begins mid-verse,
+  and no verse range expresses that. Every morpheme of the words at the edges is taken; a span naming a word the passage does
+  not contain raises rather than returning a shorter text that reads as a complete one; and a
+  USFM resource, having no word ids, says so instead of guessing.
+
+### Fixed
+
+- **`usj_to_text` lost the chapter and detached punctuation from its word.** Both bite exactly
+  where a consumer needs the function most: on a document sliced out of a book, with
+  `include: [ids]` asked for.
+
+  A slice keeps its verses and drops the `chapter` element they sat under, so tracking the
+  chapter from `chapter` elements alone produced `⌊?:1⌋` — while each verse node's `sid` said
+  `PHM 1:1` all along. The chapter now falls back to the `sid`.
+
+  And with `ids`, every word is a `char` node and the spacing and punctuation are the bare
+  strings between them. Stripping each string and re-inserting a separator turned
+  `ἐκκλησίᾳ· ` into `ἐκκλησίᾳ ·`. A bare string now keeps its own leading and trailing space,
+  with runs of whitespace collapsed to one so a document broken across lines does not carry
+  newlines into the text.
+
+  **Why it survived:** the oracle that asserts flattening reproduces `milestones` only ran over
+  documents without `ids`, where a verse's text is a single bare string and any split-and-rejoin
+  reproduces it. The oracle itself dropped every word when given an anchored document. It now
+  reads `char` nodes, and the invariant is asserted over the anchored form too — on Philemon
+  1:1–7 both paths return the same 665 characters.
+
+- **The shipped context document promised a `format: print` that has never existed.**
+  `FORMATS = ("plain", "milestones", "usj")`, and `resource_text(..., fmt="print")` answers
+  `unknown format 'print'`. The row is struck from
+  `docs/ai-context/sp/scripture-representations.md` and from the file catalog's `purpose:` for
+  it, and the document now states the three forms positively.
+
+  The code was never wrong: `pipeline_schema.py:256` builds the format enum from `FORMATS`, so
+  `sp lint` would always have rejected `print`. Only the documentation claimed it — which is why
+  this is a documentation fix and not a code one.
+
+## 0.2.1.28 — 2026-09-09
+
+A bug-fix release, cut deliberately small and soon. Every fix below was found by one person
+setting up a machine for the first time, and each one bites on a fresh setup and then never
+again — which is why they survived so long. The machines they were tested on had all already
+passed through the state that hides them.
+
+**BaseX (#38) is not in this release.** It remains blocked on `awesome-biblical-data#5`: the
+catalog cannot describe a treebank or a lexicon at all, so there is no input to build against.
+Three of its seventy entries carry a `provides` block and all three are Bibles. The `type: basex`
+step continues to work as it has since #49; what is missing is the loading half.
+
+### Fixed
+
+- **The first `sp resource add` on a set-up machine failed after downloading.**
+
+      Downloaded to ~/sp/resources/Clear-Bible/macula-greek
+      Could not register 'SBLGNT': [Errno 13] Permission denied: '~/.sp/registrations'
+
+  `~/.sp/registrations` does not exist until the first registration needs it, and `sp` creates it
+  inside a store it deliberately keeps read-only. The write unlocked the directory; the `mkdir`
+  that creates that directory ran first and unlocked nothing.
+
+  The division is what made it costly rather than merely annoying: the download succeeded and the
+  registration did not, so the data sat on disk with nothing recording it, and the obvious retry
+  fetched it all again. Fixed where directories are created, not one directory at a time — the
+  same defect had been patched once before for `~/.sp/versification`.
+
+- **`sp init` reported that it could not write to the store, and advised hand-editing it.** The
+  project registration unlocked correctly; the ai-context indexing beside it did not, so it hit
+  `Permission denied` on the first file and the whole block was swallowed as a warning. A
+  project's context went unindexed and the run said only that something "was not critical". The
+  remedy it printed — "registry can be updated manually" — recommended the one act the lock exists
+  to prevent.
+
+- **`sp doctor` called a populated `docs/ai-context/` tree empty** and recommended `sp init`, a
+  command that would have changed nothing. The check globbed non-recursively, and no `.md` files
+  have lived at that level since the `sp/` and `project/` split. It now names each document by its
+  path within the tree, because `sp/index.md` and `project/index.md` are different documents and
+  bare filenames printed `index.md` twice.
+
+- **`sp models` showed a roster three generations out of date, from a second hardcoded list.**
+  `data/models.json` was current — `gpt-5`, `claude-4-*`, `gemini-2.5-*` — while the command
+  printed a literal dict whose newest entry was `gpt-4o`, and which named two models the data file
+  has never contained. It now derives from the catalogue. Provider labels lose their generation
+  names, since "Anthropic (Claude 3.5, ...)" is a claim about what is current.
+
+- **Three strings told the reader to run `llmflow setup`,** a command this CLI has never had, one
+  of them printed to anyone without a Gemini key. `sp init --update`'s help also named the
+  generated-file marker as `<!-- Generated by llmflow init -->` when the marker written is
+  `sp init`, so grepping for what the help described found nothing.
+
+- **Shipped skills pointed at paths that do not exist in any project.** `stand-down` said to add a
+  project rule to `docs/ai-context/rules.md` — a pre-split path whose nearest survivor is
+  *generated*, so a rule written there is reverted by the next `sp doctor` without a word.
+  `commit-ready` cited `docs/ai-context/github-workflow.md` and looked for designs in
+  `docs/design/`. `audit-prompts` referenced a workflow document that exists nowhere.
+
+- **Shipped documentation still taught `optional:`,** the prompt-header key withdrawn in 0.2.1.26,
+  so `sp init` and `sp doctor` reinstated it in every consumer. One document contradicted itself
+  348 lines apart.
+
+- **Two shipped documents contradicted each other about how to name an audit record, and consumers
+  followed the wrong one.** `project/audits/README.md` suggested
+  `YYYY-MM-DD_<scope>_<pipeline>.md`, while `audits-pattern.md` says dates must never appear in a
+  filename because a dated filename produces a new file per run and a growing set is one nobody
+  re-reads. A consumer repository had accumulated six such records, three of them the same
+  pipeline on the same book at different times — by following the README sitting in the directory
+  they were writing into, which is the reasonable choice. The README now teaches rolling records,
+  and says that a record carries no verdict.
+
+  It is `create-once`, so existing projects keep their copy and must replace it by hand. That
+  policy is deliberate — sp must not overwrite a project's adaptations — but it does mean a
+  correction to a `create-once` document reaches only new projects.
+
+- **`audits-pattern.md` routed every session to `docs/audits/INDEX.md`, which `sp init` deliberately
+  does not create.** The checklists that once shipped there were one project's documents installed
+  into everyone's repository, withdrawn under #210 — but the references outlived the removal, so
+  that half of the pattern pointed nowhere in every project. The pattern now sends a session to
+  `docs/ai-context/project/index.md`, the map a project owns, and says a checklist is the
+  project's to write and to place.
+
+  The procedure-versus-record distinction is kept but narrowed: keep findings out of a procedure,
+  and a record that states the criteria it was judged against is correct rather than a category
+  error. The former wording implied otherwise, and would have had a consumer strip the criteria
+  that make their findings interpretable.
+
+### Added
+
+- **`project/plans/README.md`.** `project/audits/` has always had a shipped README and this did
+  not, so `plans-are-temporary`, the `authorize` skill and the project-tracking discipline all
+  directed work into a directory `sp init` never created. It carries the status convention —
+  `proposed` is never authorization to build — the eight-day rule, the distinction between
+  documents that accumulate and documents that roll, and that deleting is never automatic.
+
+### Test Coverage
+
+- Every model `sp models` displays must exist in `data/models.json`, and every provider in the
+  data must display something — the guard the two drifted lists never had.
+- No source file may tell a user to run `llmflow <subcommand>`.
+- Every repo path a shipped skill or discipline names must be one the file catalog creates.
+  Exemptions are listed individually with reasons rather than pattern-matched, including an
+  explicit set for questions awaiting a ruling, so an open question stays visible instead of being
+  quietly tolerated. Two are recorded there: `docs/audits/`, which `audits-pattern.md` routes every
+  session to and which no project receives, and `project/plans/`, which several shipped documents
+  direct designs into and which `sp init` does not create.
+
 ## 0.2.1.27 — 2026-09-09
 
 ### Added

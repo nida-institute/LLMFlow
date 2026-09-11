@@ -7,6 +7,139 @@
 
 ## 🔥 Active
 
+### 🎯 THE GOAL — give discourse-flow what they need to implement segment-level text
+
+> Set by the Captain 2026-09-10, superseding the representation goal below. **Everything else in
+> this list comes after this.**
+>
+> They have answered our collab and their side is specified and ready:
+> `collab/discourse-flow/2026-09-10-a-pericope-does-not-need-the-text-if-its-segments-have-it.md`.
+> Their closing line — *"your engine change lands first"* — is the whole of what blocks them.
+
+**What they need from us, in the order it unblocks them:**
+
+- [x] **E3 — `usj_to_text` keeps the chapter and the punctuation.** Chapter falls back to the
+      verse `sid`; a bare string keeps its own spacing. Both paths now return the same 665
+      characters for Philemon 1:1–7 — `tests/test_scripture_usj.py`, 35 passing
+- [x] **E1 — `include:` valid with every format.** `{text, scripture_pipelines}` when `include:`
+      is non-empty, bare string when it is not; container built once and shared with the USJ
+      path — `tests/test_scripture_include.py`, 30 passing
+- [x] **The word addressing as ruled** — a map keyed by word id, `null` for a slot the text does
+      not render, a list for a word written in several morphemes. Keyed rather than positional
+      on the Psalm 23:1 evidence
+- [x] **E2 — `spans:` cuts a passage into units named by word id**, one result per span, read
+      once — `tests/test_scripture_spans.py` plus an end-to-end step test through `load_pipeline`
+- [ ] **Tell them it has landed** — the reply promised "we will tell you when the first of those
+      lands", and all three have
+- [x] **`save_json`'s `indent=2` is ruled and stays** — see the section below
+
+**Their three answers, all the Captain's, so they are rulings and not opinions:**
+
+1. **Segment-level text is right, in our exact shape** — `text` and `translation` as plain
+   strings per segment, and the pericope-level `source_text` goes.
+2. **Do not ask who reads the USJ.** His decree: *"downstream consumers are a black box to us. I
+   decree that we do not need the text at pericope level if we have it at segment level."* Do
+   not design around a consumer census, and do not wait for one.
+3. **The Hebrew cases.** A morpheme with no surface form is `null` **in the morpheme slot** —
+   `[null, "בָּ…"]` — not an empty string and not omitted, so `null` reads the same at both
+   levels and index alignment survives, which is what keeps the ids derivable. **Compounds must
+   be identifiable and the representation is ours to choose**, under one constraint: the index
+   stays the address, so בֵּית and לֶחֶם may not collapse into one slot. Detection is `unicode`,
+   not `lemma` — our own measurement, 53 of 53 against 11 of 53.
+
+**Two corrections they made to our note, both accepted:**
+
+- **The indentation is ours.** `utils/io.py:409` — `json.dump(..., indent=2)`, hardcoded in
+  `save_json`, so every `saveas` JSON artifact in every pipeline is indented. Their tree has no
+  `json.dump` at all; verified. Our note told them to fix it with `separators=(",",":")`, a fix
+  that does not exist on their side. **`genre_markers` in that same row genuinely is theirs** and
+  that half stands.
+- **Calling prompt payload a "focus question rather than a cost one" was wrong.** A prompt
+  payload is tokens, and the object reaches a prompt once per pericope per book. It is both, and
+  the analysis-quality half is the expensive one because a degraded run is re-run and re-reviewed
+  on the Captain's time. Accepted; the design document's §4 framing needs the same correction.
+
+### ✅ `save_json` indents every artifact — ruled, and deliberately unchanged
+
+> Found 2026-09-10 by discourse-flow, correcting our own note: `utils/io.py:409`,
+> `json.dump(content, f, ensure_ascii=False, indent=2)`, which is 47.7% of
+> `57-PHM-discourse.json` and cannot be declined by a pipeline.
+- [x] **Ruled by the Captain, 2026-09-10, and the item closes.** *"we normalize spaces by pretty
+      printing … the number of spaces doesn't matter, 2, is fine, what matters is validity.
+      adding complexity to the interface is the wrong move."* No `indent` knob, no
+      output-versus-intermediate rule. It is consistent with the standing ordering — readability
+      outranks size — and the bytes are the third-ranked consideration, not the first.
+- [x] Told to discourse-flow in the reply, so they do not plan around a compact-output option
+
+### 📐 The representation design — ruled, feeding the goal above
+
+> Set by the Captain 2026-09-10 and now serving the goal above rather than standing alone.
+
+`include:` is refused unless `format: usj`, so a pipeline that needs annotation cannot have
+milestone-cost text. Measured downstream on Philemon 1:1–7: **622 characters of Greek delivered
+as 14,045 of JSON, 22.6×**; across the book 334 words carry an anchor and **228 are referenced
+by nothing**.
+
+The design is drafted and unreviewed: **`project/plans/design-annotation-without-anchors.md`**,
+status `proposed`. It was raised by
+`collab/discourse-flow/2026-09-09-include-forces-the-most-expensive-text-form.md`.
+
+- [x] **Measured** — `project/plans/design-representation-workbench.md`, 72 cells, regenerate
+      with `hatch run python tmp/representation-grid/generate.py`
+- [x] **Inventory collab read** and folded into the design
+- [x] **Ruled 2026-09-10, Q1–Q10** in `project/plans/design-pericope-segments-and-text.md` §10:
+      segments hold text; `include` works with any format; word array replaces anchors, `null`
+      for gaps, two-level arrays for morphemes; engine supplies text-by-span; `usx`/`usfm` added;
+      `lexical` family provisional
+- [x] **Q6 and Q9 answered by discourse-flow's reply**, both by the Captain: the elided article
+      is `null` in the morpheme slot; compounds must be identifiable, detected by `unicode`, with
+      the representation ours so long as the index stays the address
+- [ ] **Four carve-outs awaiting a yes or no**, each an empty `=>` in §10: E3 shipping ahead of
+      the E1–E4 bundle, the collab sharing mechanics, striking `print` *(done)*, Q9
+- [ ] **Build E1–E6.** Nothing is implemented. E3 (`usj_to_text` loses the chapter, detaches
+      punctuation) should go first — another team's live fix depends on it
+- [ ] **Shipped documentation drafted, not installed** —
+      `project/plans/plan-scripture-documentation.md`. Ships **with** the code, never before
+
+**The one fact worth carrying:** a per-word payload is keyed by an opaque word id and carries
+only the annotation — no surface form, no reference. That is the *whole* reason anchors are
+load-bearing, and it was established by fetching `WLC Ruth 1:1`, not by reading comments.
+
+### 🤝 The working-document lifetime belongs in Human at the Helm too
+
+> **Sequenced deliberately, 2026-09-10: the sp-local half is done, this half is not.**
+> `plans-are-temporary` now names collab notes, states that age is measured from the later of
+> the declared date and the last commit (never mtime), and rules that a collab is written once
+> into the recipient's tree. The Captain: *"this is valuable, and belongs in helm as well."*
+>
+> The general principle is engine-neutral and Helm needs it: documents that accumulate have a
+> death; commit them so deleting is safe; move the ruling to the CHANGELOG first, because that
+> entry is the index into the graveyard; recover with
+> `git log --diff-filter=D` then `git show <commit>^:<path>` — verified against a real deletion.
+>
+> **The draft text is written** — see the conversation of 2026-09-10, or re-derive it from the
+> rule. `disciplines/project-tracking.md` is the natural home: it already carries the *rolling*
+> half (*"Git history is the audit trail. Do not accumulate dated copies"*) and lacks the half
+> about documents that accumulate anyway. It is a **shared** file, so this costs a
+> `helm-sync.yaml` hash refresh and a twin commit.
+- [ ] **Decide the home first:** extend `disciplines/project-tracking.md`, or a new shared
+      discipline
+- [ ] **Then decide whether `data/ai-rules.yaml` keeps the full text or points at the
+      discipline.** Two statements of one idea is the drift this repository has been burned by
+      twice; the `github-workflow.md` precedent is *"Not restated here"*
+- [ ] Parity handling: `hatch run python tools/sync_helm.py --apply`, and the shared copy must
+      carry no engine vocabulary — the guard refuses it
+
+### 🚢 0.2.1.28 — merged? tagged? released?
+
+- [ ] **PR #236** — `dev` → `main`, 8 commits, `MERGEABLE`, build `34409536310` green on all four
+      jobs. Merge with a **merge commit**, tag the merge commit, watch all five `release.yml` jobs
+- [ ] Artifacts **expire 16–17 September**. After that the build re-runs, and Windows takes 2h17m
+- [ ] `data/models.json` is held back deliberately — one line, and committing it restarts a
+      two-hour build. It belongs to the cycle after
+
+BaseX is **not** in this release; see below.
+
 ### 🦷 The shell/file-tool rules have no teeth — the AI must ask, not just violate
 
 > **Targets this release.** The Captain's words, verbatim: *"The File Commands part of the ai
@@ -107,11 +240,14 @@
 - [ ] This is the second thread now waiting on that repository; BaseX #38 is blocked on
       `awesome-biblical-data#5` — see the BaseX section below
 
-### 🗄️ BaseX collections — **scheduled for 0.2.1.28**, moved out of x.27
+### 🗄️ BaseX collections — **not scheduled**, and not in 0.2.1.28
 
-> **Moved 2026-09-09.** Nothing in 0.2.1.27 depends on it, and its critical path starts in another
-> repository, so holding the release for it would keep two consumers living with an unreleased
-> breaking change (`edition:` → `resource:`) for no gain.
+> **Moved out of x.27 on 2026-09-09, and out of x.28 on the same grounds.** x.28 became a
+> bug-fix release cut small and fast for a new contributor's blockers, and BaseX was not in it —
+> the CHANGELOG entry says so plainly rather than letting the version number imply progress.
+>
+> It has no target release. Its critical path still starts in another repository, so scheduling
+> it here would be scheduling something this repository cannot finish.
 
 **What ships already, and what does not.** The half that works is the half that was never blocked:
 

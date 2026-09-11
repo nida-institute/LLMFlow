@@ -1,7 +1,7 @@
 # Audits Pattern for AI Assistants
 
-> **Use this file for:** which audit to run and how, the `docs/audits` vs `project/audits`
-> split, the checklist format, and how to test a fix cheaply before proposing it.
+> **Use this file for:** which audit to run and how, where a checklist and a record each live,
+> the checklist format, and how to test a fix cheaply before proposing it.
 
 An audit is diagnostic, not a gate (rule `audits-are-diagnostic`). It is how you find out what
 needs to change, and it often produces the plan or the issues that then authorize the work. Findings are reported;
@@ -21,7 +21,7 @@ against criteria a project writes for itself.
 | `.gpt` prompts and pipeline YAML — grounding, sprawl, examples, missing `response_format` | `/audit-prompts` | yes |
 | Pipeline contracts — identifier lifecycle, field names, schema coverage, structured-output enforcement | `/audit-pipeline` | yes |
 | Python plugins — determinism, identifier normalization, reimplementation of `sp` core utilities | `/audit-code` | yes |
-| One artifact against this project's own criteria | the checklist in `docs/audits/` | yes |
+| One artifact against this project's own criteria | a checklist this project wrote | yes |
 
 Pick by what you are looking at, not by what you suspect. The two pipeline-facing skills divide
 cleanly: `/audit-pipeline` is contracts *between* steps, `/audit-code` is what happens *inside* a
@@ -48,10 +48,6 @@ plugin.
 ## Directory structure
 
 ```
-docs/audits/           ← Procedures: how to audit. Version-controlled, reusable.
-  INDEX.md             ← Dispatch table: artifact type → trigger phrase → checklist file
-  audit-passage.md     ← A 20–60 line checkbox-only procedure
-
 project/audits/        ← Records: what you found.
   audit-<ARTIFACT>.md       ← Per-artifact, one file per output audited; retained
   audit-<pipeline>.md       ← Per-pipeline, one rolling file; updated in place
@@ -60,8 +56,17 @@ project/plans/         ← What will be done.
   <pipeline>-plan.md        ← Tasks, checked off and removed when done
 ```
 
-**The distinction that matters:** `docs/audits/` is *how to audit* and is stable across runs;
-`project/audits/` is *what you found* on one run. Never write findings into `docs/audits/`.
+**`sp` does not create a checklists directory, and that is deliberate.** It used to ship one —
+`docs/audits/`, carrying procedures written for one project's artifacts — and installing those
+into every repository was ruled a mistake (#210). A checklist encodes what *your* artifacts must
+look like, so it is yours to write and yours to place. Name it in
+`docs/ai-context/project/index.md` and any session will find it.
+
+**The distinction that still matters** is between a procedure and a record. A procedure is *how to
+audit* and is stable across runs; a record is *what you found* on one run. Keep findings out of a
+procedure. Where a record states the criteria it was judged against — as it should, when those
+criteria are what make the findings interpretable — that is not a violation; the rule is about not
+letting one run's results accumulate inside a document meant to be reused.
 
 Records come in two shapes. A **per-artifact** record is one file per passage or output and is
 kept as a record. A **per-pipeline** record is one rolling file, updated in place, with items
@@ -76,8 +81,10 @@ See `~/.sp/disciplines/project-tracking.md` for the full rolling-file convention
 
 When the user says *"audit this per the checklist"*, or names an artifact type:
 
-1. **Open `docs/audits/INDEX.md`** and find the matching trigger phrase.
-2. **Open the checklist it names** and read all of it before evaluating anything.
+1. **Find the project's checklist** for that artifact type — `docs/ai-context/project/index.md`
+   is the map that names it. A project with several may keep a dispatch table; a project with one
+   simply names it.
+2. **Open the checklist** and read all of it before evaluating anything.
 3. **Execute each checkbox in order.** Mark pass or fail.
 4. **Write findings** to `project/audits/audit-<identifier>.md`, with the date, what passed and
    failed, and specific evidence.
@@ -312,7 +319,8 @@ locations, and — where you have one — a proposed fix. It does not carry a ve
 
 ## Adding a procedure
 
-1. Write `docs/audits/audit-<artifact-type>.md` in the format above.
-2. Add a row to the `docs/audits/INDEX.md` dispatch table.
+1. Write `audit-<artifact-type>.md` in the format above, wherever this project keeps its own
+   documents — `sp` has no opinion, because the checklist is yours rather than the engine's.
+2. Name it in `docs/ai-context/project/index.md` so a session can find it without being told.
 3. Test it by asking an assistant to audit that artifact by its trigger phrase.
 4. If the assistant paraphrases instead of opening the file, the trigger phrase needs sharpening.

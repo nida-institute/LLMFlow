@@ -69,13 +69,18 @@ are not, and the line between them is what keeps either one true:
 - **`project/TODO.md` carries everything that survives** — the queue, its order, the rulings
   still awaited. It is about the project, not the session, and it outlives both.
 
-So **the NEXT ACTION points at the task list rather than restating it**, unless the next action
-genuinely is "finish the uncommitted thing" — which, at the end of a session, it usually is.
+So **this file points at the task list and never summarises it** — not in the NEXT ACTION, and
+not anywhere else. Name the section and stop. A sentence of a queued item's substance is not a
+convenience that saves the next instance a click; it is a second copy, and the task list moves
+on without it. The shorter copy wins, because it is the one already open.
 
-**The failure this prevents:** a queue item written into the handoff as the next action goes
-stale the moment somebody does it, and then misdirects every session afterwards. It reads as
-current because the file is short and confident. Merging a pull request, cutting a release,
-starting the next feature — all queue items. None of them belong here.
+Where the next action genuinely is "finish the uncommitted thing" — which, at the end of a
+session, it usually is — that is session residue and belongs here in full.
+
+**The failure this prevents:** a queue item written into the handoff goes stale the moment
+somebody does it, and then misdirects every session afterwards. It reads as current because the
+file is short and confident. Merging a pull request, cutting a release, starting the next
+feature — all queue items. None of them belong here.
 
 ## Rules
 
@@ -107,6 +112,9 @@ the **outcome**, so a section filled with vague text does not pass:
 - [ ] The NEXT ACTION is **session residue, not a queue item** — it names something that stops
       being true once this session's work is committed. If it would still be the next action a
       week from now, it belongs in the task list and this file should point at it.
+- [ ] **It reads in thirty seconds with the tree clean.** Once everything is committed and
+      pushed, what remains is almost entirely pointers. A paragraph explaining what a queued item
+      *is*, rather than naming where it lives, is absorbed queue material — cut it to a pointer.
 
 Then tell the Captain the path and offer to `/exit`.
 

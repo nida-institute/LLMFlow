@@ -1,4 +1,4 @@
-"""llmflow setup — interactive provider configuration."""
+"""`sp setup` — interactive provider configuration."""
 import getpass
 import json
 import sys
@@ -7,36 +7,48 @@ from llmflow.modules.logger import Logger
 
 logger = Logger()
 
-PROVIDER_MODELS = {
-    "openai": [
-        "gpt-4o",
-        "gpt-4o-mini",
-        "o3-mini",
-        "o3",
-    ],
-    "anthropic": [
-        "claude-3-5-sonnet-20241022",
-        "claude-3-5-haiku-20241022",
-        "claude-3-opus-20240229",
-    ],
-    "gemini": [
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-pro",
-    ],
-}
 
+def provider_models() -> dict:
+    """Model names grouped by provider, read from `data/models.json`.
+
+    Derived rather than listed, because the listed version drifted badly: `data/models.json` was
+    kept current while a literal dict here still offered `gpt-4o` as the newest OpenAI model and
+    named two models the data file has never contained. A reader picking from `sp models` was
+    being steered to a two-generation-old model.
+
+    The provider keys come from the data too. The hardcoded set said `gemini` where the data says
+    `google`, which is exactly the mismatch that turns a derived list into a silently empty one.
+    """
+    from llmflow.modules.telemetry import _load_models_data
+
+    grouped: dict = {}
+    for name, entry in (_load_models_data().get("models") or {}).items():
+        grouped.setdefault(entry.get("provider", "other"), []).append(name)
+    return {provider: sorted(names) for provider, names in sorted(grouped.items())}
+
+#: Providers this command can store a key for.
+#:
+#: Two names, deliberately, because two systems name the same provider differently and neither
+#: is ours to change. `key` is the `llm` keystore's identity and the same mapping the resolver
+#: uses (`PROVIDER_ENV_VARS`, asserted equal in `test_api_key_resolution.py`) — Google's is
+#: `gemini` there. `catalog` is the `provider` field in `data/models.json`, where it is `google`.
+#: Collapsing them into one field looks tidy and silently empties a provider's model list.
+#:
+#: Names carry no generation: "Anthropic (Claude 3.5, ...)" is a claim about what is current,
+#: and it was three generations stale before anyone noticed.
 PROVIDERS = [
     {
-        "name": "OpenAI (GPT-4o, o3, ...)",
+        "name": "OpenAI",
         "key": "openai",
+        "catalog": "openai",
         "env": "OPENAI_API_KEY",
         "prompt": "OpenAI API key",
         "url": "https://platform.openai.com/api-keys",
     },
     {
-        "name": "Anthropic (Claude 3.5, ...)",
+        "name": "Anthropic",
         "key": "anthropic",
+        "catalog": "anthropic",
         "env": "ANTHROPIC_API_KEY",
         "prompt": "Anthropic API key",
         "url": "https://console.anthropic.com/settings/keys",
@@ -44,6 +56,7 @@ PROVIDERS = [
     {
         "name": "Google Gemini",
         "key": "gemini",
+        "catalog": "google",
         "env": "GEMINI_API_KEY",
         "prompt": "Gemini API key",
         "url": "https://aistudio.google.com/app/apikey",
@@ -112,7 +125,7 @@ def run_setup(update=False):
     keys_path = llm.user_dir() / "keys.json"
     data = _load_keys(keys_path)
 
-    print("\nllmflow setup — Configure your AI provider\n")
+    print("\nsp setup — Configure your AI provider\n")
     print("Choose a provider to configure (Ctrl-C to exit):\n")
 
     for i, p in enumerate(PROVIDERS, 1):
@@ -182,13 +195,14 @@ def run_models():
     keys_path = llm.user_dir() / "keys.json"
     data = _load_keys(keys_path)
 
+    roster = provider_models()
     print("\nAvailable models by provider\n")
 
     for provider in PROVIDERS:
         key = provider["key"]
-        models = PROVIDER_MODELS.get(key, [])
+        models = roster.get(provider.get("catalog", key), [])
         has_key = bool(data.get(key))
-        status = "✅" if has_key else "(no key — run `llmflow setup`)"
+        status = "✅" if has_key else "(no key — run `sp setup`)"
         print(f"{provider['name']}  {status}")
         for model in models:
             print(f"  {model}")
