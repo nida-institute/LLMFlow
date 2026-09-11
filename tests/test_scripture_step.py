@@ -35,6 +35,20 @@ HEBREW_TSV = (
     "GEN 1:2!1\tוְהָאָרֶץ\t\n"
 )
 
+#: Psalm 23:1 with word ids, because a span names a word. Word 2 is written as two morphemes,
+#: so a boundary at word 3 does not fall on a morpheme index — the case a positional cut misses.
+PSALM_TSV = (
+    "ref\ttext\tafter\txml:id\n"
+    "PSA 23:1!1\tמִזְמ֥וֹר\t \to190230010011\n"
+    "PSA 23:1!2\tלְ\t\to190230010021\n"
+    "PSA 23:1!2\tדָוִ֑ד\t \to190230010022\n"
+    "PSA 23:1!3\tיְהוָ֥ה\t \to190230010031\n"
+    "PSA 23:1!4\tרֹ֝עִ֗\t\to190230010041\n"
+    "PSA 23:1!4\tי\t \to190230010042\n"
+    "PSA 23:1!5\tלֹ֣א\t \to190230010051\n"
+    "PSA 23:1!6\tאֶחְסָֽר\t׃\to190230010061\n"
+)
+
 
 @pytest.fixture
 def store(tmp_path, monkeypatch) -> Path:
@@ -47,6 +61,14 @@ def store(tmp_path, monkeypatch) -> Path:
     tsv.write_text(HEBREW_TSV, encoding="utf-8")
     (resources / "WLC.yaml").write_text(
         f"id: WLC\nname: Westminster Leningrad Codex\nkind: tsv\npath: {tsv}\n"
+        f"versification_scheme: org\n",
+        encoding="utf-8",
+    )
+
+    psalms = tmp_path / "psalms.tsv"
+    psalms.write_text(PSALM_TSV, encoding="utf-8")
+    (resources / "PSALMS.yaml").write_text(
+        f"id: PSALMS\nname: Psalm 23 with word ids\nkind: tsv\npath: {psalms}\n"
         f"versification_scheme: org\n",
         encoding="utf-8",
     )
@@ -339,3 +361,39 @@ class TestApparatusIsNotText:
             ]},
         ]}
         assert usj_to_text(usj, fmt="plain") == "The LORD is my shepherd."
+
+
+def test_spans_cut_the_passage_into_units_named_by_word_id(store, tmp_path):
+    """Through the pipeline, because `spans:` is a step key and the object model is the surface.
+
+    The passage is fetched once; each span is answered from those rows, in the order asked.
+    """
+    path = pipeline_file(
+        tmp_path,
+        """  - name: units
+    type: scripture
+    resource: PSALMS
+    passage: "PSA 23:1"
+    format: milestones
+    include: [ids]
+    spans:
+      - from: o19023001001
+        to: o19023001002
+      - from: o19023001003
+        to: o19023001006
+    output: units
+""",
+    )
+
+    context = run(path)
+    units = context["units"]
+
+    assert [unit["from"] for unit in units] == ["o19023001001", "o19023001003"]
+    assert units[0]["text"] == "⌊23:1⌋ מִזְמ֥וֹר לְדָוִ֑ד"
+    assert units[1]["text"].startswith("⌊23:1⌋ יְהוָ֥ה")
+    assert set(units[1]["scripture_pipelines"]["ids"]) == {
+        "o19023001003",
+        "o19023001004",
+        "o19023001005",
+        "o19023001006",
+    }

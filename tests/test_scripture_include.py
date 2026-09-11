@@ -8,6 +8,7 @@ from llmflow.utils.scripture import (
     INCLUDE_FAMILIES,
     MILESTONE_TEMPLATE,
     resource_text,
+    words_by_id,
 )
 
 MACULA = Path("/Users/jonathan/github/Clear/macula-greek/SBLGNT")
@@ -25,10 +26,15 @@ EDITIONS = {
     "NO-SCHEME": {"kind": "tsv", "path": str(MACULA / "tsv/macula-greek-SBLGNT.tsv")},
 }
 
+WLC = Path("/Users/jonathan/github/Clear/macula-hebrew/WLC/tsv/macula-hebrew.tsv")
+EDITIONS["WLC"] = {"kind": "tsv", "path": str(WLC), "versification_scheme": "org"}
+
 real_data = pytest.mark.skipif(
     not (MACULA / "tsv/macula-greek-SBLGNT.tsv").is_file(),
     reason="Macula Greek is not on this machine",
 )
+
+hebrew_data = pytest.mark.skipif(not WLC.is_file(), reason="Macula Hebrew is not on this machine")
 
 
 def words(usj: dict) -> list:
@@ -171,12 +177,124 @@ def test_flattening_still_reproduces_milestones_with_ids(passage):
 # --- lint rules, as errors at the call ------------------------------------------------
 
 
+# --- annotation travels beside the text, whatever form the text takes ------------------
+
+
 @real_data
 @pytest.mark.parametrize("fmt", ["plain", "milestones"])
-def test_include_without_usj_is_an_error(fmt):
-    """Nowhere to put a payload — §4."""
-    with pytest.raises(ValueError, match="include"):
-        resource_text("SBLGNT", "MRK 1:1", fmt=fmt, resources=EDITIONS, include=["ids"])
+def test_include_with_any_format_returns_the_text_beside_the_container(fmt):
+    """Choosing annotation no longer chooses a text form.
+
+    The payload is standoff — it needs nothing from the shape of the text — so a step that
+    reads Levinsohn features is not thereby committed to a word-object document.
+    """
+    result = resource_text("SBLGNT", "MRK 1:1", fmt=fmt, resources=EDITIONS, include=["ids"])
+
+    assert isinstance(result, dict)
+    assert isinstance(result["text"], str)
+    assert CONTAINER_KEY in result
+
+
+@real_data
+@pytest.mark.parametrize("fmt", ["plain", "milestones"])
+def test_asking_for_annotation_does_not_change_the_text(fmt):
+    """The text is the same text; the container is beside it, not inside it."""
+    plain = resource_text("SBLGNT", "MRK 1:1-3", fmt=fmt, resources=EDITIONS)
+    annotated = resource_text(
+        "SBLGNT", "MRK 1:1-3", fmt=fmt, resources=EDITIONS, include=["ids"]
+    )
+
+    assert annotated["text"] == plain
+
+
+@real_data
+@pytest.mark.parametrize("fmt", ["plain", "milestones"])
+def test_no_include_still_returns_a_bare_string(fmt):
+    """The dict appears because annotation was asked for. Nothing that exists today changes."""
+    assert isinstance(resource_text("SBLGNT", "MRK 1:1", fmt=fmt, resources=EDITIONS), str)
+
+
+@real_data
+def test_the_words_arrive_keyed_by_the_id_that_names_them():
+    """`ids` has nowhere to write `srcloc` without a document, so it returns the words keyed.
+
+    Keyed rather than positional: an id counts words within its verse while the text runs on,
+    so a position would have to be derived from where each verse starts.
+    """
+    result = resource_text(
+        "SBLGNT", "MRK 1:1", fmt="milestones", resources=EDITIONS, include=["ids"]
+    )
+    words = result[CONTAINER_KEY]["ids"]
+
+    assert words["n41001001001"] == "Ἀρχὴ"
+    assert all(word in result["text"] for word in words.values())
+
+
+#: Psalm 23:1 as Macula Hebrew has it, copied from the corpus so the test needs no clone.
+#: Re-derive with:
+#:     resource_text("WLC", "PSA 23:1", fmt="usj", resources=..., include=["ids"])
+#: In Hebrew versification the superscription is part of verse 1, and word 2 is written as two
+#: morphemes — which is the property under test. Whether a superscription is its own unit is a
+#: discourse-analysis judgement belonging to the analysts, and nothing here asserts it.
+PSALM_23_1_ROWS = [
+    {"xml:id": "o190230010011", "text": "מִזְמ֥וֹר", "after": " "},
+    {"xml:id": "o190230010021", "text": "לְ", "after": ""},
+    {"xml:id": "o190230010022", "text": "דָוִ֑ד", "after": " "},
+    {"xml:id": "o190230010031", "text": "יְהוָ֥ה", "after": " "},
+    {"xml:id": "o190230010041", "text": "רֹ֝עִ֗", "after": ""},
+    {"xml:id": "o190230010042", "text": "י", "after": " "},
+    {"xml:id": "o190230010051", "text": "לֹ֣א", "after": " "},
+    {"xml:id": "o190230010061", "text": "אֶחְסָֽר", "after": "׃"},
+]
+
+
+def test_a_word_id_resolves_by_lookup_because_word_index_is_not_morpheme_index():
+    """Why the map is keyed rather than positional, on a verse where the two differ.
+
+    Word 2 of this verse is written as two morphemes, so word 3 is the *fourth* entry in
+    morpheme order. Anything that resolved an id by counting would have to know that, and know
+    where the verse began. Keyed, `o19023001003` is a lookup.
+    """
+    words = words_by_id(PSALM_23_1_ROWS)
+
+    assert words["o19023001001"] == "מִזְמ֥וֹר"
+    assert words["o19023001002"] == ["לְ", "דָוִ֑ד"]
+    assert words["o19023001003"] == "יְהוָ֥ה"
+    assert words["o19023001004"] == ["רֹ֝עִ֗", "י"]
+    assert list(words) == [f"o19023001{n:03d}" for n in range(1, 7)]
+
+
+def test_a_word_number_the_text_does_not_render_is_null():
+    """The source reserves a slot; keeping it keeps every later id derivable."""
+    rows = [row for row in PSALM_23_1_ROWS if not row["xml:id"].startswith("o19023001003")]
+
+    words = words_by_id(rows)
+
+    assert words["o19023001003"] is None
+    assert words["o19023001004"] == ["רֹ֝עִ֗", "י"]
+
+
+@hebrew_data
+def test_the_fixture_above_still_matches_the_corpus():
+    """The synthetic rows are a copy, so something must notice when the copy goes stale."""
+    result = resource_text("WLC", "PSA 23:1", fmt="milestones", resources=EDITIONS, include=["ids"])
+
+    assert result[CONTAINER_KEY]["ids"] == words_by_id(PSALM_23_1_ROWS)
+
+
+@real_data
+def test_a_requested_family_the_resource_cannot_supply_is_null_here_too():
+    """The mirror of the usj guard in test_say_which_kind_of_nothing.py.
+
+    A reader must be able to tell "this resource names no discourse source" from "discourse was
+    never requested", in whichever form the text came back.
+    """
+    result = resource_text(
+        "SBLGNT", "MRK 1:1", fmt="milestones", resources=EDITIONS, include=["ids", "discourse"]
+    )
+
+    assert "discourse" in result[CONTAINER_KEY]
+    assert result[CONTAINER_KEY]["discourse"] is None
 
 
 @real_data

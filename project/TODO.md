@@ -18,16 +18,19 @@
 
 **What they need from us, in the order it unblocks them:**
 
-- [ ] **E1 — `include:` valid with `milestones` and `plain`.** Without it a segment cannot carry
-      both milestone text and Levinsohn features, which is the entire shape they have authorized
-- [ ] **E2 — text by span.** Their segments already carry `opening_word_id`/`closing_word_id`
-      (12 typed segment nodes in Philemon, verified on their side); `text` is the only missing
-      field and is derivable in one pass from ids they already hold
-- [ ] **E3 — fix `usj_to_text`** — loses the chapter on a sliced document (`⌊?:1⌋` although the
-      verse `sid` carries it), detaches punctuation. **Ships first**: ears-to-hear's live fix
-      depends on it
-- [ ] **The word array** as ruled — `null` at both levels, two-level arrays for morphemes,
-      compounds identifiable. See the two answers they gave, recorded below
+- [x] **E3 — `usj_to_text` keeps the chapter and the punctuation.** Chapter falls back to the
+      verse `sid`; a bare string keeps its own spacing. Both paths now return the same 665
+      characters for Philemon 1:1–7 — `tests/test_scripture_usj.py`, 35 passing
+- [x] **E1 — `include:` valid with every format.** `{text, scripture_pipelines}` when `include:`
+      is non-empty, bare string when it is not; container built once and shared with the USJ
+      path — `tests/test_scripture_include.py`, 30 passing
+- [x] **The word addressing as ruled** — a map keyed by word id, `null` for a slot the text does
+      not render, a list for a word written in several morphemes. Keyed rather than positional
+      on the Psalm 23:1 evidence
+- [x] **E2 — `spans:` cuts a passage into units named by word id**, one result per span, read
+      once — `tests/test_scripture_spans.py` plus an end-to-end step test through `load_pipeline`
+- [ ] **Tell them it has landed** — the reply promised "we will tell you when the first of those
+      lands", and all three have
 - [x] **`save_json`'s `indent=2` is ruled and stays** — see the section below
 
 **Their three answers, all the Captain's, so they are rulings and not opinions:**

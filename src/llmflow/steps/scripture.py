@@ -44,18 +44,28 @@ def run_scripture_step(
     if isinstance(include, (list, tuple)):
         include = [str(resolve(member, context)) for member in include]
 
+    # A list of `{from, to}` word ids, or a `${var}` naming one the pipeline computed.
+    spans = resolve(step.get("spans"), context) if step.get("spans") else None
+
     # The registrations directory is overridable so tests need not write to a real ~/.sp.
     registrations_dir = (pipeline_config or {}).get("_resources_dir")
     resources = load_registry_resources(registrations_dir)
 
     result = resource_text(
-        resource, passage, fmt=fmt, resources=resources, versification=scheme, include=include
+        resource,
+        passage,
+        fmt=fmt,
+        resources=resources,
+        versification=scheme,
+        include=include,
+        spans=spans,
     )
-    size = (
-        f"{len(result.get('content') or [])} nodes"
-        if isinstance(result, dict)
-        else f"{len(result)} chars"
-    )
+    if isinstance(result, list):
+        size = f"{len(result)} spans"
+    elif isinstance(result, dict):
+        size = f"{len(result.get('content') or [])} nodes" if "content" in result else "text + annotation"
+    else:
+        size = f"{len(result)} chars"
     logger.debug(f"   {resource} {passage}: {size} ({fmt})")
 
     handle_step_outputs(step, result, context)

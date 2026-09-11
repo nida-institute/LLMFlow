@@ -40,6 +40,32 @@
   timestamp**, because a clone rewrites every mtime and nothing would ever be old enough to
   delete.
 
+### Added
+
+- **`include:` works with every format, so choosing annotation no longer chooses a text form.**
+  A pipeline reading Levinsohn features is no longer committed to a word-object document: with
+  `format: milestones` and a non-empty `include:`, the step returns `{text, scripture_pipelines}`
+  — the same text it would return without asking, and the payload beside it. `include: []` still
+  returns a bare string, so nothing written before this changes.
+
+  **Word addressing follows the form.** In a USJ document `ids` remains `srcloc`, where USX
+  defines it. Beside running text it is a map from word id to the word — `{"o19023001002":
+  ["לְ", "דָוִ֑ד"]}` — keyed rather than positional, because an id counts words within its verse
+  while the text runs on, and in Hebrew a word may be written in several morphemes, so a
+  position would have to be derived from where each verse starts. A word number the text does
+  not render is `null`: the source reserves those slots.
+
+- **`spans:` cuts a fetched passage into units named by word id**, returning one result per span
+  in the order asked, each with its own text and its own annotation. The passage is read once
+  however many spans are named.
+
+  A boundary names a word rather than a verse because a unit of analysis does not always start
+  where a verse does — in Hebrew versification a psalm's superscription is part of verse 1, so
+  a unit beginning at the psalm proper (`יְהוָ֥ה רֹ֝עִ֗י`, Psalm 23:1 word 3) begins mid-verse,
+  and no verse range expresses that. Every morpheme of the words at the edges is taken; a span naming a word the passage does
+  not contain raises rather than returning a shorter text that reads as a complete one; and a
+  USFM resource, having no word ids, says so instead of guessing.
+
 ### Fixed
 
 - **`usj_to_text` lost the chapter and detached punctuation from its word.** Both bite exactly

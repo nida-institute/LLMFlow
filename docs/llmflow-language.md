@@ -1177,6 +1177,42 @@ If none of the three answers and you ask for a cross-scheme mapping, that is an 
 the field to add. Without `versification:` no mapping happens, so a resource with an unknown
 scheme keeps working for everything else.
 
+### Cutting a passage into units — `spans:`
+
+`passage:` says what to fetch. `spans:` cuts it into the units your analysis works in, each
+named by the word its boundary falls on:
+
+```yaml
+- name: segment_texts
+  type: scripture
+  resource: WLC
+  passage: "PSA 23:1"
+  format: milestones
+  include: [ids]
+  spans: "${segment_boundaries}"   # or a literal list of {from, to}
+  output: segments
+```
+
+The result is **a list, one entry per span, in the order asked**, each carrying `from`, `to`,
+its own `text`, and — when `include:` is non-empty — its own annotation for its own words.
+The passage is read once however many spans are named.
+
+**A boundary names a word, not a verse, because a unit of analysis does not always start where
+a verse does.** In Hebrew versification a psalm's superscription is part of verse 1: Psalm 23:1
+is `מִזְמ֥וֹר לְדָוִ֑ד יְהוָ֥ה רֹ֝עִ֗י לֹ֣א אֶחְסָֽר׃`, so any unit that begins at "the LORD is
+my shepherd" begins in the middle of the verse. A verse range cannot express that boundary.
+
+Two behaviours are deliberate:
+
+- **Every morpheme of the words at the edges is taken.** A boundary falls between words, never
+  inside one — which matters in Hebrew, where a word is often written in several morphemes.
+- **A span naming a word the passage does not contain raises**, listing it. Returning a shorter
+  text would read as a complete one, and whatever was analysed from it would be wrong in a way
+  nothing downstream could see.
+
+A USFM resource has no word ids, so `spans:` on one raises and says so. Ask it for a verse
+range instead.
+
 `versification:` on the step names the scheme **your `passage` is written in**. When it differs
 from the resource's, the reference is mapped *before* any text is read:
 

@@ -3762,6 +3762,41 @@
           "doc": "Validate `include` against `fmt` and return it as a tuple. See §4's lint rules."
         },
         {
+          "name": "_word_and_part",
+          "signature": "_word_and_part(identifier: str) -> tuple[str, Optional[int]]",
+          "doc": "Split a word id into the orthographic word and its part, where the source has parts."
+        },
+        {
+          "name": "rows_in_span",
+          "signature": "rows_in_span(rows: Sequence[Mapping[str, Any]], first: str, last: str) -> list[dict]",
+          "doc": "The rows from word *first* to word *last*, inclusive, in document order."
+        },
+        {
+          "name": "_continues",
+          "signature": "_continues(ordered: Sequence[tuple], identifier: str, last: str) -> bool",
+          "doc": "Whether a later row still belongs to the closing word — its next morpheme."
+        },
+        {
+          "name": "text_for_spans",
+          "signature": "text_for_spans(rows: Sequence[Mapping[str, Any]], spans: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None) -> list[dict]",
+          "doc": "One result per span, in the order asked, each carrying its own text and annotation."
+        },
+        {
+          "name": "per_word_annotation",
+          "signature": "per_word_annotation(rows: Sequence[Mapping[str, Any]], families: Sequence[str]) -> dict",
+          "doc": "`{family: {word id: {column: value}}}`, skipping the columns a word leaves empty."
+        },
+        {
+          "name": "annotation_container",
+          "signature": "annotation_container(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str], versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None, with_words: bool = True) -> dict",
+          "doc": "The `scripture_pipelines` container, identical whatever form the text took."
+        },
+        {
+          "name": "words_by_id",
+          "signature": "words_by_id(rows: Sequence[Mapping[str, Any]]) -> dict",
+          "doc": "Every word of *rows*, keyed by the id that annotation and boundaries name it with."
+        },
+        {
           "name": "rows_to_output",
           "signature": "rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None) -> str | dict",
           "doc": "The requested representation of *rows*: a string, or a USJ document for ``fmt=\"usj\"``."
@@ -3833,12 +3868,17 @@
         },
         {
           "name": "_tei_passage_text",
-          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, resource: str, include: Sequence[str] = (), versification: Optional[str] = None) -> str | dict",
+          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, resource: str, include: Sequence[str] = (), versification: Optional[str] = None, spans: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
           "doc": "Running text for *passage* from a directory of per-book TEI files."
         },
         {
+          "name": "_emit",
+          "signature": "_emit(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str], versification: Optional[str], definition: Mapping[str, Any], resource: str, spans: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
+          "doc": "What a backend returns once it has rows: the whole passage, or one result per span."
+        },
+        {
           "name": "resource_text",
-          "signature": "resource_text(resource: str, passage: str, fmt: str = 'milestones', resources: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None, include: Any = ()) -> str | dict",
+          "signature": "resource_text(resource: str, passage: str, fmt: str = 'milestones', resources: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None, include: Any = (), spans: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
           "doc": "Running text for *passage* in *resource*, dispatched on the resource's `kind`."
         },
         {
@@ -3855,11 +3895,6 @@
           "name": "moved",
           "signature": "moved(chapter: Optional[int], verse: Optional[int]) -> tuple[int, int]",
           "doc": ""
-        },
-        {
-          "name": "annotate",
-          "signature": "annotate(row: Mapping[str, Any]) -> None",
-          "doc": "Collect a word's declared columns, verbatim, skipping the ones it leaves empty."
         },
         {
           "name": "emit",
@@ -5192,6 +5227,6 @@
   ],
   "summary": {
     "total_modules": 87,
-    "total_functions": 823
+    "total_functions": 830
   }
 }
