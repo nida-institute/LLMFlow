@@ -85,6 +85,7 @@ packages = ["src/llmflow"]
 "data/include-families.json" = "llmflow/data/include-families.json"
 "data/resources.json" = "llmflow/data/resources.json"
 "data/book-names.json" = "llmflow/data/book-names.json"
+"data/alignment-pairs.json" = "llmflow/data/alignment-pairs.json"
 
 [project.scripts]
 sp = "llmflow.cli:main"

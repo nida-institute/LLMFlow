@@ -1,0 +1,38 @@
+{
+  "_comment": [
+    "The alignment pairs Scripture Pipelines supports, per R2 in",
+    "project/plans/design-scripture-alignments.md (LLMFlow#238). This file is the declaration;",
+    "Clear/Alignments/data/catalog.tsv is not read, because it does not describe that",
+    "repository's own tree and arrives as a Git LFS pointer on a fresh clone.",
+    "",
+    "Each pair is validated at read time against the alignment file's declared `documents` and",
+    "`roles`. That check is what catches a file whose name contradicts its contents, so a row",
+    "here is a claim the engine verifies rather than trusts.",
+    "",
+    "Two pairs, not the twenty R13 names. Portuguese and the rest wait on D9: JFA11 writes",
+    "source ids without the `n` prefix every other file carries, so 0 of 99,258 join, silently.",
+    "These two join at 100% and are the pairs discourse-flow needs."
+  ],
+  "pairs": [
+    {
+      "source": "SBLGNT",
+      "target": "BSB",
+      "language": "eng",
+      "scope": "NT",
+      "process": "manual",
+      "alignment_file": "data/eng/alignments/BSB/SBLGNT-BSB-manual.json",
+      "source_file": "data/sources/SBLGNT.tsv",
+      "target_file": "data/eng/targets/BSB/nt_BSB.tsv"
+    },
+    {
+      "source": "WLCM",
+      "target": "BSB",
+      "language": "eng",
+      "scope": "OT",
+      "process": "manual",
+      "alignment_file": "data/eng/alignments/BSB/WLCM-BSB-manual.json",
+      "source_file": "data/sources/WLCM.tsv",
+      "target_file": "data/eng/targets/BSB/ot_BSB.tsv"
+    }
+  ]
+}

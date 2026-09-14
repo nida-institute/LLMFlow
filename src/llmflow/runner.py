@@ -27,6 +27,7 @@ from llmflow.steps.llm import render_prompt, run_llm_step
 from llmflow.steps.load import run_load_step
 from llmflow.steps.plugin import run_plugin_step
 from llmflow.steps.save import run_save_step
+from llmflow.steps.alignment import run_alignment_step
 from llmflow.steps.scripture import run_scripture_step
 from llmflow.steps.window import run_window_advance_step, run_window_step
 from llmflow.utils.context import _MISSING, get_from_context, resolve
@@ -354,6 +355,9 @@ def run_step(
                 local_after_action = run_if_step(step, context, pipeline_config, run_step)
             elif step_type == "scripture":
                 run_scripture_step(step, context, pipeline_config)
+
+            elif step_type == "alignment":
+                run_alignment_step(step, context, pipeline_config)
 
             elif step_type == "basex":
                 run_basex_step(step, context, pipeline_config)

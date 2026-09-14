@@ -301,6 +301,7 @@
         "llmflow.modules.telemetry",
         "llmflow.plugins",
         "llmflow.plugins.loader",
+        "llmflow.steps.alignment",
         "llmflow.steps.basex",
         "llmflow.steps.duckdb",
         "llmflow.steps.for_each",
@@ -2326,6 +2327,62 @@
       ]
     },
     {
+      "module": "llmflow.utils.alignment",
+      "imports": [
+        "__future__",
+        "json",
+        "pathlib",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "word_key",
+          "signature": "word_key(source_id: str) -> str",
+          "doc": ""
+        },
+        {
+          "name": "verse_key",
+          "signature": "verse_key(token_or_source_id: str) -> str",
+          "doc": "`BBCCCVVV`, with any leading `n`/`o` removed so source and target keys compare."
+        },
+        {
+          "name": "validate_pair",
+          "signature": "validate_pair(document: Dict[str, Any], source_docid: str, target_docid: str) -> None",
+          "doc": "Refuse a pair the alignment file does not itself declare (R2)."
+        },
+        {
+          "name": "read_tsv",
+          "signature": "read_tsv(path: Any) -> List[Dict[str, str]]",
+          "doc": ""
+        },
+        {
+          "name": "load_pair",
+          "signature": "load_pair(definition: Dict[str, Any]) -> Dict[str, Any]",
+          "doc": "Open the three files a pair needs, and check the alignment declares the pair (R2)."
+        },
+        {
+          "name": "_owner_of_each_target_token",
+          "signature": "_owner_of_each_target_token(records: Sequence[Dict], target_ids: Sequence[str]) -> Dict",
+          "doc": "Which source units each target token aligns to, and which unaligned token belongs where."
+        },
+        {
+          "name": "_join",
+          "signature": "_join(tokens: Sequence[str], text_of: Dict[str, Dict], order_of: Dict[str, int]) -> str",
+          "doc": "Assemble target text, writing the gap where the tokens are not a contiguous run (R15)."
+        },
+        {
+          "name": "_source_phrase",
+          "signature": "_source_phrase(ids: Sequence[str], text_of: Dict[str, Dict]) -> str",
+          "doc": "Join source surface forms, writing the gap where the unit's words are not adjacent (R15)."
+        },
+        {
+          "name": "aligned_text_for_spans",
+          "signature": "aligned_text_for_spans(spans: Iterable[Dict[str, str]], document: Dict[str, Any], source_rows: Sequence[Dict[str, str]], target_rows: Sequence[Dict[str, str]], order: Sequence[str] = ('target',), returns: Sequence[str] = ('text',)) -> List[Dict[str, Any]]",
+          "doc": "One result per span, in the order asked."
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.io",
       "imports": [
         "ast",
@@ -2707,12 +2764,12 @@
         {
           "name": "__init__",
           "signature": "__init__(self, base_path: Optional[str] = None)",
-          "doc": "Initialize registry with base path to BibleAquifer repos."
+          "doc": "Where datasets live on *this* machine."
         },
         {
           "name": "get_path",
           "signature": "get_path(self, resource_id: str) -> Optional[Path]",
-          "doc": "Get filesystem path to a data source."
+          "doc": "Where *resource_id* lives, from the dataset store, or None if it is not registered."
         },
         {
           "name": "get_format",
@@ -4402,6 +4459,28 @@
       ]
     },
     {
+      "module": "llmflow.steps.alignment",
+      "imports": [
+        "llmflow.modules.logger",
+        "llmflow.utils.alignment",
+        "llmflow.utils.context",
+        "llmflow.utils.step_outputs",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "_registered_pair",
+          "signature": "_registered_pair(source_docid: str, target_docid: str) -> Dict[str, Any]",
+          "doc": "The registration for this pair, or a loud error naming what is registered."
+        },
+        {
+          "name": "run_alignment_step",
+          "signature": "run_alignment_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> None",
+          "doc": ""
+        }
+      ]
+    },
+    {
       "module": "llmflow.steps.json_step",
       "imports": [
         "llmflow.modules.logger",
@@ -5226,7 +5305,7 @@
     }
   ],
   "summary": {
-    "total_modules": 87,
-    "total_functions": 830
+    "total_modules": 89,
+    "total_functions": 841
   }
 }

@@ -786,6 +786,62 @@ Writes content directly to a file. No LLM call, no Python function — just a wr
 
 ---
 
+### type: `alignment`
+
+The translation's text for a span named by **source** word ids — the other side of `spans:` on
+`type: scripture`. Where a unit of analysis opens or closes inside a verse, a consumer has ids for
+the Greek or Hebrew and no handle at all on the English; this gives it one.
+
+```yaml
+- name: english-for-segments
+  type: alignment
+  source: SBLGNT                 # the text the ids in `spans` belong to
+  target: BSB                    # the translation to return
+  spans: "${segment_bounds}"     # [{from: n57001018001, to: n57001019017}, ...]
+  returns: [text]                # text | alignments   (default: [text])
+  order: [target]                # target | source     (default: [target])
+  output: segment_english
+```
+
+**Required:** `source`, `target`, `spans`. An alignment is **directional** and neither side is
+inferred — not from the other, not from a filename. Both are checked against the alignment file's
+own `documents` and `roles`, and a mismatch is a loud error rather than a warning.
+
+One result per span, in the order asked, so a `for-each` can join this to the `type: scripture`
+result for the same spans without matching on anything.
+
+**What a result carries**
+
+| field | when |
+|---|---|
+| `text` | the assembled translation, in the translation's own word order |
+| `text_in_source_order` | when `order` includes `source` |
+| `contiguous` | always — false where another source unit's words fall inside this span's stretch |
+| `records` and `units` | when `returns` includes `alignments` |
+
+**`order` and `returns` take a set, not a choice.** Ask for one, the other, or both. Target order
+is the default because it is what nearly every reader wants; **source order does not read as
+English and is not meant to** — it puts the translation's words in the sequence of the text they
+translate, which is what a reader comparing the two side by side wants and what a fluent rendering
+destroys. The two differ in 81% of spans and always cover the same tokens: asking for source order
+changes the sequence, never the content.
+
+**Discontinuous units are written with ` … `.** A record may group source words that are not
+adjacent — Greek does this routinely, 22% of multi-word records — and the gap is written rather
+than closed up, on whichever side it falls:
+
+```
+ἐκ … τοῦ  ↔  by          # τῆς sits between them and belongs elsewhere
+```
+
+**Two kinds of nothing.** An empty collection means the span's words are in the alignment and align
+to no target token. `null` means the ids are not in the alignment file at all.
+
+**Supported pairs** are declared in `data/alignment-pairs.json`, not read from the alignment
+corpus's own catalog. Each is verified against the file's declared documents when it is opened.
+
+---
+
 ### type: `scripture`
 
 Fetches one passage from one **named** resource. The resource is a name resolved through the
@@ -799,7 +855,7 @@ machine where the sources live somewhere else.
   passage: "${passage}"       # MRK · MRK 1 · MRK 1:1 · MRK 1:1-8 · MRK 1:40-2:12
   format: milestones          # plain | milestones | usj   (default: milestones)
   versification: eng          # optional; the scheme `passage` is written in
-  include: [ids]              # optional; valid only with format: usj
+  include: [ids]              # optional; valid with every format
   output: source_text
 ```
 
@@ -958,9 +1014,19 @@ joining with a space — otherwise every comma gains a space in front of it.
 
 #### Annotation — the `include` families
 
-`include` names what the payload carries. It is valid **only** with `format: usj`; with `plain`
-or `milestones` there is nowhere to put it, and asking is an error rather than a silent no-op.
-It defaults to empty, because a payload nobody asked for is a payload nobody checked.
+`include` names what the payload carries, and is valid with **every** format. The payload is
+standoff — it needs nothing from the shape of the text — so choosing annotation no longer chooses a
+text form. It defaults to empty, because a payload nobody asked for is a payload nobody checked.
+
+Where `include` is non-empty the result is a dict: the text under `text`, unchanged from what the
+same request would return without `include`, and the annotation beside it in its own container —
+not inside the text. Where `include` is empty the result is the bare text for that format.
+
+*Corrected 2026-09-14. This paragraph and the comment in the example above both said `include` was
+valid only with `format: usj`; `3ca7139` made that false and it was reported by a consumer that
+had read the document and stopped. Asserted by
+`tests/test_scripture_include.py::test_include_with_any_format_returns_the_text_beside_the_container`
+and `::test_asking_for_annotation_does_not_change_the_text`.*
 
 Seven families: `ids`, `morphology`, `senses`, `glosses`, `referents`, `discourse`, `syntax`.
 **`ids` and `discourse` are implemented; the other five raise `NotImplementedError` naming

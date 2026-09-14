@@ -2,7 +2,43 @@
 
 ## Unreleased
 
+### Added
+
+- **`type: alignment` — the translation's text for a span named by source word ids** (#238). The
+  other side of `spans:` on `type: scripture`: where a unit of analysis opens or closes inside a
+  verse, a consumer has ids for the Greek or Hebrew and no handle on the English. Requested by
+  `discourse-flow`, for whom it was the only known blocker.
+
+  The step names a pair — `source:` and `target:`, both required and neither inferred — and
+  returns one result per span in the order asked. `returns:` and `order:` each take a **set**, not
+  a choice: the aligned text, the Scripture Burrito records, or both; target order, source order,
+  or both. Target order is the default because it is what nearly every reader wants; source order
+  does not read as English and is not meant to, but is what a reader comparing the two texts side
+  by side needs. The two differ in **81%** of spans and always cover the same tokens.
+
+  Three properties of the data drove the design, each measured rather than assumed. The alignment
+  is **filed per verse** — 80 of 115,008 records cross one — but a span is a clause or a sentence
+  and crosses verses whenever the language does, so the step reads past verse scope. A record may
+  group source words that are **not adjacent**: Greek does this routinely, in 22% of multi-word
+  records, and the gap is written ` … ` rather than closed up, on whichever side it falls. And
+  **unaligned tokens inside a span are kept** — 98% punctuation, but the 2% that are words are the
+  ones whose absence starts a sentence mid-clause.
+
+  Pairs are declared in `data/alignment-pairs.json` and each is verified at read time against the
+  alignment file's own `documents` and `roles`. That check is not ceremony: one file in the
+  published corpus is byte-identical to its sibling and declares a different source text, so
+  resolving a pair by filename serves Greek for a Hebrew request. Two pairs ship, `SBLGNT→BSB` and
+  `WLCM→BSB`; the rest wait on a source-identifier inconsistency recorded in the design document.
+
+  Rulings, measurements and the commands to re-derive them:
+  `project/plans/design-scripture-alignments.md`.
+
 ### Changed
+
+- **`include:` is valid with every format, and the language reference now says so.** Two passages
+  still stated it was valid only with `format: usj` — the comment at line 802 and the paragraph
+  under "Annotation". `3ca7139` made both false, and a consumer reading the document stopped
+  because of them. Asserted by `test_include_with_any_format_returns_the_text_beside_the_container`.
 
 - **`/handoff` scoped its pointer rule to a single line of the file.** The skill required the
   NEXT ACTION to point at `project/TODO.md` rather than restate it, and said nothing about the

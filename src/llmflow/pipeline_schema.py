@@ -286,6 +286,48 @@ _STEP_TYPE_PROPERTIES = [
         },
     ),
     (
+        ("alignment",),
+        {
+            # A registered alignment pair. Both are named and neither is inferred (R4): the
+            # Hausa file proves a filename can contradict its own contents, so the pair is
+            # checked against the alignment document's `documents` and `roles` at read time.
+            # Named `source`/`target` after Scripture Burrito's own `roles`, and because `from`
+            # is a Python keyword that `Step` cannot expose as an attribute.
+            "source": {"type": "string"},
+            "target": {"type": "string"},
+            # The same `{from, to}` pairs `type: scripture` takes, so a for-each can join the
+            # two results without matching on anything.
+            "spans": {
+                "oneOf": [
+                    {"type": "string"},
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "from": {"type": "string"},
+                                "to": {"type": "string"},
+                            },
+                            "required": ["from", "to"],
+                        },
+                    },
+                ]
+            },
+            # R16 — a set, not a choice: the aligned text, the Scripture Burrito records, or
+            # both. Defaults to the text alone.
+            "returns": {
+                "type": "array",
+                "items": {"type": "string", "enum": ["text", "alignments"]},
+            },
+            # R5 — target order is what nearly every reader wants and is the default; source
+            # order is for reading the two texts side by side. Either, or both.
+            "order": {
+                "type": "array",
+                "items": {"type": "string", "enum": ["target", "source"]},
+            },
+        },
+    ),
+    (
         ("basex",),
         {
             "database": {"type": "string"},
