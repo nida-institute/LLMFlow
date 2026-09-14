@@ -1,8 +1,11 @@
 """`type: alignment` — the translation's text for a span named by source word ids.
 
-The step resolves a registered pair, reads its three files, and returns one result per span in
-the order asked. Rulings are in `project/plans/design-scripture-alignments.md`.
+The step resolves a declared pair, reads its three files, and returns one result per span in
+the order asked. Design: `project/plans/design-scripture-alignments.md`.
 """
+import importlib.resources
+import json
+from pathlib import Path
 from typing import Any, Dict
 
 from llmflow.modules.logger import Logger
@@ -12,31 +15,65 @@ from llmflow.utils.step_outputs import handle_step_outputs
 
 logger = Logger()
 
+PATH_KEYS = ("alignment_file", "source_file", "target_file")
 
-def _registered_pair(source_docid: str, target_docid: str) -> Dict[str, Any]:
-    """The registration for this pair, or a loud error naming what is registered.
 
-    Pairs resolve through the same store `type: scripture` uses, so a pipeline names a pair and
-    the engine decides where it lives — the reason the scripture step exists rather than a path
-    written into YAML.
+def pairs_path() -> Path:
+    """Locate `data/alignment-pairs.json`, installed wheel or dev checkout."""
+    try:
+        ref = importlib.resources.files("llmflow").joinpath("data/alignment-pairs.json")
+        path = Path(str(ref))
+        if path.exists():
+            return path
+    except Exception:
+        pass
+    return Path(__file__).parent.parent.parent.parent / "data" / "alignment-pairs.json"
+
+
+def declared_pairs() -> Dict[str, Any]:
+    """The supported alignments, and the dataset their paths are relative to."""
+    path = pairs_path()
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"alignment pairs not declared at {path}. The file states which alignments are "
+            "supported and where each one's three files sit inside the alignment corpus."
+        )
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def resolve_pair(source_docid: str, target_docid: str) -> Dict[str, Any]:
+    """The declared pair, with its three paths resolved under the registered dataset.
+
+    A path in the declaration is relative to one repository, and the datasets store says where
+    that repository is on this machine, so neither half carries a path the other's machine
+    cannot use.
     """
-    from llmflow.utils.scripture import load_registry_resources
+    from llmflow import resources
 
-    registered = load_registry_resources()
-    for definition in registered.values():
-        if str(definition.get("kind", "")).lower() != "alignment":
-            continue
-        if definition.get("source") == source_docid and definition.get("target") == target_docid:
-            return definition
+    declaration = declared_pairs()
+    dataset = declaration["dataset"]
 
-    available = sorted(
-        f"{d.get('source')}->{d.get('target')}"
-        for d in registered.values()
-        if str(d.get("kind", "")).lower() == "alignment"
-    )
+    registration = resources.dataset_registration(dataset)
+    if not registration or not registration.get("path"):
+        raise ValueError(
+            f"alignment pairs are declared relative to dataset {dataset!r}, which is not "
+            f"registered on this machine, so {source_docid!r} -> {target_docid!r} cannot be "
+            f"located. Register the alignment corpus under that id."
+        )
+
+    for row in declaration["pairs"]:
+        if row.get("source") == source_docid and row.get("target") == target_docid:
+            resolved = dict(row)
+            for key in PATH_KEYS:
+                resolved[key] = resources.resolve_declared_path(
+                    f"{dataset}/{row[key]}", {"id": f"{source_docid}->{target_docid}"}
+                )
+            return resolved
+
+    available = sorted(f"{p.get('source')}->{p.get('target')}" for p in declaration["pairs"])
     raise ValueError(
-        f"no registered alignment for {source_docid!r} -> {target_docid!r}. "
-        f"Registered: {', '.join(available) if available else 'none'}"
+        f"no declared alignment for {source_docid!r} -> {target_docid!r}. "
+        f"Declared: {', '.join(available) if available else 'none'}"
     )
 
 
@@ -60,7 +97,7 @@ def run_alignment_step(
     if not spans:
         raise ValueError(f"alignment step '{name}' requires 'spans'")
 
-    pair = load_pair(_registered_pair(source_docid, target_docid))
+    pair = load_pair(resolve_pair(source_docid, target_docid))
     results = aligned_text_for_spans(
         spans,
         pair["document"],

@@ -9,7 +9,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | --- | --- | --- |
 | [design-ai-context-layout.md](design-ai-context-layout.md) | In progress, 2026-08-25. Eleven rulings recorded from the Captain (§2). | #204 #210 #211 |
 | [design-ai-drift-control.md](design-ai-drift-control.md) | Draft — awaiting Captain review | — |
-| [design-alignment-regeneration.md](design-alignment-regeneration.md) | proposed (2026-09-13). Nothing here is built. Every => is the Captain's. | — |
+| [design-alignment-regeneration.md](design-alignment-regeneration.md) | proposed (2026-09-13) → #238. Nothing here is built. Every => is the Captain's. | #238 |
 | [design-annotation-without-anchors.md](design-annotation-without-anchors.md) | proposed (2026-09-09). Nothing is built. proposed is not authorization to build — | #200 |
 | [design-basex-collections.md](design-basex-collections.md) | proposal, awaiting the Captain on §8. Nothing is built. | #38 #49 #52 |
 | [design-biblical-text-conventions.md](design-biblical-text-conventions.md) | proposed — not authorization to build. Four decisions remain marked => and are the | #226 |
@@ -56,7 +56,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-memory-recovery.md](plan-memory-recovery.md) | transfer record. The audit is complete as of 2026-08-24 — all 81 files across 12 | #16 #64 #163 #200 #209 |
 | [plan-migrate-pipeline-directories.md](plan-migrate-pipeline-directories.md) | Rule corrected and executed 2026-08-17 — see the survey section at the foot for what was done, … | — |
 | [plan-release-0-2-1-26.md](plan-release-0-2-1-26.md) | approved in conversation 2026-09-01 — scope ruled, not yet started. #230 #217 #201 | #153 #169 #201 #212 #217 #218 #225 #226 #227 #228 #230 |
-| [plan-scripture-burrito-alignment.md](plan-scripture-burrito-alignment.md) | ruled (2026-09-11) | — |
+| [plan-scripture-burrito-alignment.md](plan-scripture-burrito-alignment.md) | ruled (2026-09-11) → #238 | #238 |
 | [plan-scripture-documentation.md](plan-scripture-documentation.md) | proposed (2026-09-10) — drafts for review, nothing installed. Part A is a new | #200 |
 | [plan-scripture-pipelines-articles.md](plan-scripture-pipelines-articles.md) | Proposed — not built. A documentation plan; no articles from it have been written. | — |
 | [plan-scripture-step.md](plan-scripture-step.md) | Proposed, 2026-08-26. Targeted at the next release (ruled 2026-08-26). Nothing | #109 #110 #200 #203 #212 |

@@ -2,37 +2,145 @@
   "_comment": [
     "The alignment pairs Scripture Pipelines supports, per R2 in",
     "project/plans/design-scripture-alignments.md (LLMFlow#238). This file is the declaration;",
-    "Clear/Alignments/data/catalog.tsv is not read, because it does not describe that",
-    "repository's own tree and arrives as a Git LFS pointer on a fresh clone.",
+    "Clear/Alignments/data/catalog.tsv is not read, because it describes a different tree",
+    "(19 rows, one of which names a file that still exists) and arrives as a Git LFS pointer",
+    "on a fresh clone.",
+    "",
+    "`dataset` names the registered dataset every path below is relative to. The declaration",
+    "says which files serve a pair; the datasets store says where the corpus lives on this",
+    "machine. Neither half carries a path that is wrong on someone else's machine.",
     "",
     "Each pair is validated at read time against the alignment file's declared `documents` and",
     "`roles`. That check is what catches a file whose name contradicts its contents, so a row",
     "here is a claim the engine verifies rather than trusts.",
     "",
-    "Two pairs, not the twenty R13 names. Portuguese and the rest wait on D9: JFA11 writes",
-    "source ids without the `n` prefix every other file carries, so 0 of 99,258 join, silently.",
-    "These two join at 100% and are the pairs discourse-flow needs."
+    "Eighteen pairs. The corpus holds twenty-one alignment files, and the three that are not",
+    "named here are omitted because their identifiers do not join, which a declaration cannot",
+    "repair. Each was measured, not guessed:",
+    "",
+    "  hau WLCM-OHCB  declares the pair its SBLGNT sibling declares and is byte-identical to",
+    "                 it, so there is no Hausa Old Testament alignment to name (Clear#12).",
+    "  eng BGNT-BSB   target ids are 12 characters where nt_BSB.tsv has 11, so 0 of 172,736",
+    "                 join. Dropping the trailing character reaches 99.86%, but 240 ids then",
+    "                 name rows nt_BSB.tsv does not have. SBLGNT-BSB covers Greek to BSB.",
+    "  fra WLCM-LSG   ot_LSG.tsv is 66 bytes, a header row and no data, so the French Old",
+    "                 Testament target text is absent and 0 of 203,597 join.",
+    "",
+    "A pair named here is one whose identifiers were verified to join on both sides. Omitting",
+    "the others means a request for one is refused by name rather than answered with silence.",
+    "",
+    "`process` records how the alignment was produced. Seventeen are hand aligned; por/JFA11 is",
+    "machine-transferred, which is a difference a consumer weighing an alignment may want."
   ],
+  "dataset": "clear-alignments",
   "pairs": [
     {
-      "source": "SBLGNT",
-      "target": "BSB",
-      "language": "eng",
-      "scope": "NT",
-      "process": "manual",
+      "source": "SBLGNT", "target": "AVD", "language": "arb", "scope": "NT", "process": "manual",
+      "alignment_file": "data/arb/alignments/AVD/SBLGNT-AVD-manual.json",
+      "source_file": "data/sources/SBLGNT.tsv",
+      "target_file": "data/arb/targets/AVD/nt_AVD.tsv"
+    },
+    {
+      "source": "WLCM", "target": "AVD", "language": "arb", "scope": "OT", "process": "manual",
+      "alignment_file": "data/arb/alignments/AVD/WLCM-AVD-manual.json",
+      "source_file": "data/sources/WLCM.tsv",
+      "target_file": "data/arb/targets/AVD/ot_AVD.tsv"
+    },
+    {
+      "source": "SBLGNT", "target": "ONAV", "language": "arb", "scope": "NT", "process": "manual",
+      "alignment_file": "data/arb/alignments/ONAV/SBLGNT-ONAV-manual.json",
+      "source_file": "data/sources/SBLGNT.tsv",
+      "target_file": "data/arb/targets/ONAV/nt_ONAV.tsv"
+    },
+    {
+      "source": "SBLGNT", "target": "IRVAsm", "language": "asm", "scope": "NT", "process": "manual",
+      "alignment_file": "data/asm/alignments/IRVAsm/SBLGNT-IRVAsm-manual.json",
+      "source_file": "data/sources/SBLGNT.tsv",
+      "target_file": "data/asm/targets/IRVAsm/nt_IRVAsm.tsv"
+    },
+    {
+      "source": "SBLGNT", "target": "IRVBen", "language": "ben", "scope": "NT", "process": "manual",
+      "alignment_file": "data/ben/alignments/IRVBen/SBLGNT-IRVBen-manual.json",
+      "source_file": "data/sources/SBLGNT.tsv",
+      "target_file": "data/ben/targets/IRVBen/nt_IRVBen.tsv"
+    },
+    {
+      "source": "SBLGNT", "target": "BSB", "language": "eng", "scope": "NT", "process": "manual",
       "alignment_file": "data/eng/alignments/BSB/SBLGNT-BSB-manual.json",
       "source_file": "data/sources/SBLGNT.tsv",
       "target_file": "data/eng/targets/BSB/nt_BSB.tsv"
     },
     {
-      "source": "WLCM",
-      "target": "BSB",
-      "language": "eng",
-      "scope": "OT",
-      "process": "manual",
+      "source": "WLCM", "target": "BSB", "language": "eng", "scope": "OT", "process": "manual",
       "alignment_file": "data/eng/alignments/BSB/WLCM-BSB-manual.json",
       "source_file": "data/sources/WLCM.tsv",
       "target_file": "data/eng/targets/BSB/ot_BSB.tsv"
+    },
+    {
+      "source": "SBLGNT", "target": "YLT", "language": "eng", "scope": "NT", "process": "manual",
+      "alignment_file": "data/eng/alignments/YLT/SBLGNT-YLT-manual.json",
+      "source_file": "data/sources/SBLGNT.tsv",
+      "target_file": "data/eng/targets/YLT/nt_YLT.tsv"
+    },
+    {
+      "source": "WLC", "target": "YLT", "language": "eng", "scope": "OT", "process": "manual",
+      "alignment_file": "data/eng/alignments/YLT/WLC-YLT-manual.json",
+      "source_file": "data/sources/WLC.tsv",
+      "target_file": "data/eng/targets/YLT/ot_YLT.tsv"
+    },
+    {
+      "source": "SBLGNT", "target": "LSG", "language": "fra", "scope": "NT", "process": "manual",
+      "alignment_file": "data/fra/alignments/LSG/SBLGNT-LSG-manual.json",
+      "source_file": "data/sources/SBLGNT.tsv",
+      "target_file": "data/fra/targets/LSG/nt_LSG.tsv"
+    },
+    {
+      "source": "SBLGNT", "target": "OHCB", "language": "hau", "scope": "NT", "process": "manual",
+      "alignment_file": "data/hau/alignments/OHCB/SBLGNT-OHCB-manual.json",
+      "source_file": "data/sources/SBLGNT.tsv",
+      "target_file": "data/hau/targets/OHCB/nt_OHCB.tsv"
+    },
+    {
+      "source": "SBLGNT", "target": "IRVHin", "language": "hin", "scope": "NT", "process": "manual",
+      "alignment_file": "data/hin/alignments/IRVHin/SBLGNT-IRVHin-manual.json",
+      "source_file": "data/sources/SBLGNT.tsv",
+      "target_file": "data/hin/targets/IRVHin/nt_IRVHin.tsv"
+    },
+    {
+      "source": "WLCM", "target": "IRVHin", "language": "hin", "scope": "OT", "process": "manual",
+      "alignment_file": "data/hin/alignments/IRVHin/WLCM-IRVHin-manual.json",
+      "source_file": "data/sources/WLCM.tsv",
+      "target_file": "data/hin/targets/IRVHin/ot_IRVHin.tsv"
+    },
+    {
+      "source": "SBLGNT", "target": "JFA11", "language": "por", "scope": "NT", "process": "transfer",
+      "alignment_file": "data/por/alignments/JFA11/SBLGNT-JFA11-transfer.json",
+      "source_file": "data/sources/SBLGNT.tsv",
+      "target_file": "data/por/targets/JFA11/nt_JFA11.tsv"
+    },
+    {
+      "source": "SBLGNT", "target": "RUSSYN", "language": "rus", "scope": "NT", "process": "manual",
+      "alignment_file": "data/rus/alignments/RUSSYN/SBLGNT-RUSSYN-manual.json",
+      "source_file": "data/sources/SBLGNT.tsv",
+      "target_file": "data/rus/targets/RUSSYN/nt_RUSSYN.tsv"
+    },
+    {
+      "source": "WLCM", "target": "RUSSYN", "language": "rus", "scope": "OT", "process": "manual",
+      "alignment_file": "data/rus/alignments/RUSSYN/WLCM-RUSSYN-manual.json",
+      "source_file": "data/sources/WLCM.tsv",
+      "target_file": "data/rus/targets/RUSSYN/ot_RUSSYN.tsv"
+    },
+    {
+      "source": "SBLGNT", "target": "RV09", "language": "spa", "scope": "NT", "process": "manual",
+      "alignment_file": "data/spa/alignments/RV09/SBLGNT-RV09-manual.json",
+      "source_file": "data/sources/SBLGNT.tsv",
+      "target_file": "data/spa/targets/RV09/nt_RV09.tsv"
+    },
+    {
+      "source": "WLCM", "target": "RV09", "language": "spa", "scope": "OT", "process": "manual",
+      "alignment_file": "data/spa/alignments/RV09/WLCM-RV09-manual.json",
+      "source_file": "data/sources/WLCM.tsv",
+      "target_file": "data/spa/targets/RV09/ot_RV09.tsv"
     }
   ]
 }

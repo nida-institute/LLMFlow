@@ -27,8 +27,15 @@
   Pairs are declared in `data/alignment-pairs.json` and each is verified at read time against the
   alignment file's own `documents` and `roles`. That check is not ceremony: one file in the
   published corpus is byte-identical to its sibling and declares a different source text, so
-  resolving a pair by filename serves Greek for a Hebrew request. Two pairs ship, `SBLGNT→BSB` and
-  `WLCM→BSB`; the rest wait on a source-identifier inconsistency recorded in the design document.
+  resolving a pair by filename serves Greek for a Hebrew request.
+
+  **Eighteen pairs ship**, across ten languages. The declaration names the files; the datasets
+  store says where the corpus is, so neither half carries a path that is wrong on another
+  machine. Three of the corpus's twenty-one alignment files are left out, each for a measured
+  reason the declaration records: one is byte-identical to its sibling and declares that
+  sibling's pair, one has target identifiers that join none of its target text, and one names a
+  target text that is an empty file. `scripts/check_alignment_pairs.py` re-derives every join
+  figure against the corpus and exits non-zero if any declared pair is unusable.
 
   Rulings, measurements and the commands to re-derive them:
   `project/plans/design-scripture-alignments.md`.
@@ -37,8 +44,8 @@
 
 - **`include:` is valid with every format, and the language reference now says so.** Two passages
   still stated it was valid only with `format: usj` — the comment at line 802 and the paragraph
-  under "Annotation". `3ca7139` made both false, and a consumer reading the document stopped
-  because of them. Asserted by `test_include_with_any_format_returns_the_text_beside_the_container`.
+  under "Annotation". Making `include:` valid with every format made both false, and a consumer
+  reading the document stopped because of them. Asserted by `test_include_with_any_format_returns_the_text_beside_the_container`.
 
 - **`/handoff` scoped its pointer rule to a single line of the file.** The skill required the
   NEXT ACTION to point at `project/TODO.md` rather than restate it, and said nothing about the

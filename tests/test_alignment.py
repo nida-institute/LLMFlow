@@ -12,6 +12,10 @@ token file. It is synthetic: the real corpus lives outside the repository, so a 
 would pass on one machine only, which is the defect `project/TODO.md` records against
 `test_discourse_loading.py`.
 
+The three files are written at the paths `data/alignment-pairs.json` declares for SBLGNT->BSB,
+under a throwaway root registered as the `clear-alignments` dataset. A typo in that declaration
+therefore fails these tests rather than passing them.
+
 Each test names the ruling it protects. Every one is a *silent* failure: the step returns text
 either way, and only the content says whether it is right. Rulings are in
 `project/plans/design-scripture-alignments.md`.
@@ -22,7 +26,13 @@ from pathlib import Path
 import pytest
 
 from llmflow import load_pipeline
+from llmflow.steps.alignment import declared_pairs
 from llmflow.utils.alignment import validate_pair
+
+#: The pair the fixture stands in for. Any declared pair would do; this is the one
+#: discourse-flow asked for.
+SOURCE_DOCID = "SBLGNT"
+TARGET_DOCID = "BSB"
 
 
 def _s(verse, word):
@@ -75,8 +85,8 @@ TARGET_TSV = (
 
 ALIGNMENT = {
     "documents": [
-        {"docid": "SRC", "scheme": "BCVWP"},
-        {"docid": "TGT", "scheme": "BCVW"},
+        {"docid": SOURCE_DOCID, "scheme": "BCVWP"},
+        {"docid": TARGET_DOCID, "scheme": "BCVW"},
     ],
     "meta": {"conformsTo": "0.3", "creator": "test"},
     "roles": ["source", "target"],
@@ -97,26 +107,27 @@ ALIGNMENT = {
 
 @pytest.fixture
 def store(tmp_path, monkeypatch) -> Path:
-    """A throwaway `$SP_HOME` with one registered alignment pair over synthetic files."""
+    """A throwaway `$SP_HOME` and corpus, laid out where the shipped declaration says."""
     home = tmp_path / "sp"
-    resources = home / "resources"
-    resources.mkdir(parents=True)
+    (home / "datasets").mkdir(parents=True)
+    root = tmp_path / "corpus"
 
-    alignment = tmp_path / "SRC-TGT-manual.json"
-    alignment.write_text(json.dumps(ALIGNMENT), encoding="utf-8")
-    source = tmp_path / "src.tsv"
-    source.write_text(SOURCE_TSV, encoding="utf-8")
-    target = tmp_path / "tgt.tsv"
-    target.write_text(TARGET_TSV, encoding="utf-8")
+    row = next(
+        pair
+        for pair in declared_pairs()["pairs"]
+        if (pair["source"], pair["target"]) == (SOURCE_DOCID, TARGET_DOCID)
+    )
+    for key, content in (
+        ("alignment_file", json.dumps(ALIGNMENT)),
+        ("source_file", SOURCE_TSV),
+        ("target_file", TARGET_TSV),
+    ):
+        path = root / row[key]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
 
-    (resources / "SRC-TGT.yaml").write_text(
-        "id: SRC-TGT\n"
-        "kind: alignment\n"
-        "source: SRC\n"
-        "target: TGT\n"
-        f"alignment_file: {alignment}\n"
-        f"source_file: {source}\n"
-        f"target_file: {target}\n",
+    (home / "datasets" / "clear-alignments.yaml").write_text(
+        f"id: clear-alignments\nname: clear-alignments\npath: {root}\nformat: json\n",
         encoding="utf-8",
     )
     monkeypatch.setenv("SP_HOME", str(home))
@@ -134,8 +145,8 @@ def step_yaml(spans, extra: str = "") -> str:
     return (
         "  - name: english\n"
         "    type: alignment\n"
-        "    source: SRC\n"
-        "    target: TGT\n"
+        f"    source: {SOURCE_DOCID}\n"
+        f"    target: {TARGET_DOCID}\n"
         f"    spans: [{rendered}]\n"
         f"{extra}"
         "    output: english\n"
@@ -163,8 +174,8 @@ def test_the_api_exposes_every_alignment_key(tmp_path, store):
         step_yaml([(_s(1, 1), _s(1, 2))], "    returns: [text]\n    order: [target]\n"),
     )
     step = load_pipeline(path).steps[0]
-    assert step.source == "SRC"
-    assert step.target == "TGT"
+    assert step.source == SOURCE_DOCID
+    assert step.target == TARGET_DOCID
     assert step.returns == ["text"]
     assert step.order == ["target"]
     assert step.spans == [{"from": _s(1, 1), "to": _s(1, 2)}]

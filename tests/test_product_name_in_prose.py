@@ -43,6 +43,10 @@ EXEMPT = {
     # engine by its repository name. The cost is that our own prose in this file goes unpoliced;
     # the better fix is to check authorship rather than the file, which is not built.
     "collab/ears-to-hear/2026-09-03-declaring-evidence-and-content.md",
+    # Correspondence from another project, for the same reason: its header says "From: an AI
+    # session in nida-institute/discourse-flow", and it names this engine by its repository
+    # in a cross-repository issue reference.
+    "collab/discourse-flow/2026-09-09-replay-cannot-read-a-schema-the-pipeline-declares.md",
 }
 
 #: A line quoting someone. `*"` is this project's house style for quoting the Captain.

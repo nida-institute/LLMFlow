@@ -1,6 +1,6 @@
 # Decisions — regenerating the alignment corpus in burrito form
 
-Status: proposed (2026-09-13). Nothing here is built. Every `=>` is the Captain's.
+Status: proposed (2026-09-13) → #238. Nothing here is built. Every `=>` is the Captain's.
 
 Rulings already made are in `plan-scripture-burrito-alignment.md` (R1–R18) and are **not**
 re-opened here. This document holds only what is still open, and only decisions large enough

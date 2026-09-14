@@ -2348,7 +2348,7 @@
         {
           "name": "validate_pair",
           "signature": "validate_pair(document: Dict[str, Any], source_docid: str, target_docid: str) -> None",
-          "doc": "Refuse a pair the alignment file does not itself declare (R2)."
+          "doc": "Refuse a pair the alignment file does not itself declare."
         },
         {
           "name": "read_tsv",
@@ -2358,22 +2358,22 @@
         {
           "name": "load_pair",
           "signature": "load_pair(definition: Dict[str, Any]) -> Dict[str, Any]",
-          "doc": "Open the three files a pair needs, and check the alignment declares the pair (R2)."
+          "doc": "Open the three files a pair needs, and check the alignment declares the pair."
         },
         {
           "name": "_owner_of_each_target_token",
-          "signature": "_owner_of_each_target_token(records: Sequence[Dict], target_ids: Sequence[str]) -> Dict",
+          "signature": "_owner_of_each_target_token(records: Sequence[Dict], target_ids: Sequence[str]) -> tuple[Dict[str, set], Dict[str, Optional[str]]]",
           "doc": "Which source units each target token aligns to, and which unaligned token belongs where."
         },
         {
           "name": "_join",
           "signature": "_join(tokens: Sequence[str], text_of: Dict[str, Dict], order_of: Dict[str, int]) -> str",
-          "doc": "Assemble target text, writing the gap where the tokens are not a contiguous run (R15)."
+          "doc": "Assemble target text, writing `GAP` where the tokens are not a contiguous run."
         },
         {
           "name": "_source_phrase",
           "signature": "_source_phrase(ids: Sequence[str], text_of: Dict[str, Dict]) -> str",
-          "doc": "Join source surface forms, writing the gap where the unit's words are not adjacent (R15)."
+          "doc": "Join source surface forms, writing `GAP` where the unit's words are not adjacent."
         },
         {
           "name": "aligned_text_for_spans",
@@ -2764,12 +2764,12 @@
         {
           "name": "__init__",
           "signature": "__init__(self, base_path: Optional[str] = None)",
-          "doc": "Where datasets live on *this* machine."
+          "doc": "Initialize registry with base path to BibleAquifer repos."
         },
         {
           "name": "get_path",
           "signature": "get_path(self, resource_id: str) -> Optional[Path]",
-          "doc": "Where *resource_id* lives, from the dataset store, or None if it is not registered."
+          "doc": "Get filesystem path to a data source."
         },
         {
           "name": "get_format",
@@ -4461,17 +4461,30 @@
     {
       "module": "llmflow.steps.alignment",
       "imports": [
+        "importlib.resources",
+        "json",
         "llmflow.modules.logger",
         "llmflow.utils.alignment",
         "llmflow.utils.context",
         "llmflow.utils.step_outputs",
+        "pathlib",
         "typing"
       ],
       "functions": [
         {
-          "name": "_registered_pair",
-          "signature": "_registered_pair(source_docid: str, target_docid: str) -> Dict[str, Any]",
-          "doc": "The registration for this pair, or a loud error naming what is registered."
+          "name": "pairs_path",
+          "signature": "pairs_path() -> Path",
+          "doc": "Locate `data/alignment-pairs.json`, installed wheel or dev checkout."
+        },
+        {
+          "name": "declared_pairs",
+          "signature": "declared_pairs() -> Dict[str, Any]",
+          "doc": "The supported alignments, and the dataset their paths are relative to."
+        },
+        {
+          "name": "resolve_pair",
+          "signature": "resolve_pair(source_docid: str, target_docid: str) -> Dict[str, Any]",
+          "doc": "The declared pair, with its three paths resolved under the registered dataset."
         },
         {
           "name": "run_alignment_step",
@@ -5306,6 +5319,6 @@
   ],
   "summary": {
     "total_modules": 89,
-    "total_functions": 841
+    "total_functions": 843
   }
 }

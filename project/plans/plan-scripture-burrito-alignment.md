@@ -1,6 +1,6 @@
 # Plan — Scripture Burrito alignment conformance
 
-Status: ruled (2026-09-11)
+Status: ruled (2026-09-11) → #238
 
 The Captain's rulings, recorded so they are not re-asked. Where a line quotes him, the quote
 is the ruling and is not to be reworded.
