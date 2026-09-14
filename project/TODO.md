@@ -59,6 +59,173 @@
   the analysis-quality half is the expensive one because a degraded run is re-run and re-reviewed
   on the Captain's time. Accepted; the design document's §4 framing needs the same correction.
 
+### 🎯 Alignment — **the only known blocker for discourse-flow**
+
+> Captain, 2026-09-13: *"alignment is the only known blocker for discourse flow at this point."*
+> E1, E2 and E3 all landed, so the segment-text goal above is done except for telling them.
+> This is what replaces it.
+>
+> Design: **`project/plans/design-scripture-alignments.md`**, status `proposed`. Read it rather
+> than re-deriving — it carries the rulings and the measurements with the commands to re-run them.
+
+**Ruled 2026-09-13 and 2026-09-14, all the Captain's:**
+
+1. **R1** — a span returns its aligned tokens **plus** the unaligned tokens between them. A target
+   token aligning to *nothing* is included; one aligning to a *different* source word is not.
+2. **R2** — the engine reads **our own** declaration of supported pairs, not
+   `Clear/Alignments/data/catalog.tsv`. Validated at read time against each alignment file's own
+   `documents` block.
+3. **R3** — the corrected catalog omits the bogus Hausa OT pair only; `SBLGNT-OHCB` is genuine.
+4. **R4** — *"alignments are directional. both `from` and `to` must be specified."*
+5. **R5** — of the two readings of reordering, **target order is correct**: the aligned tokens are
+   put back into the translation's own reading order, so the English reads as English.
+   **Extended 2026-09-14:** *"I would like an option for source order vs. target order, default =
+   target order."* Both orderings ship; target is the default. R5 governs **sequence** only —
+   membership is R8's, settled by target order in both modes. Source order does not read as
+   English and is not meant to; it is for comparing the two texts side by side. **Who each serves:**
+   *"most people will prefer target order, period. the few people who know Greek or Hebrew want
+   both orders."* So target order is the default because nearly every reader wants it. **The
+   request takes a set, not a choice** — *"you should be able to ask for one or the other or
+   both."* Three legal requests: target alone, source alone, both; default target alone. Where
+   both are asked for they cover the **same token set** — R8 fixes membership, so the two differ
+   in order only. Open sub-question: which source position places a token that aligns to several
+   source words.
+
+6. **R6** — **the alignment is filed per verse; our units are not.** Captain, 2026-09-14,
+   correcting an earlier heading that called the verse "the unit of work": *"The alignment format
+   does one record per verse, but we do our work in linguistic units - clauses, phrases,
+   sentences. So we have to read past the verse scope."* The verse is a lookup key, never a unit
+   of analysis — `verses-are-milestones`. Gather every verse a span draws from and assemble
+   across them; never treating the whole span as one stretch of the target.
+7. **R7** — a Psalm title is offered as a **target-side convention, never as a correspondence**.
+   Where a span covers the source verse holding the superscription and the target happens to carry
+   a verse `000`, it is offered as a separately labelled field, positional and saying so. Verse 000
+   is **not** a general mechanism: BSB carries it for 116 of 150 psalms, YLT for 11, the Hebrew
+   source never, and no verse-000 token is aligned anywhere.
+8. **R8** — a shared target word: **no token appears in two spans' text, but the constituent list
+   shows it in both.** Captain,
+   first *"both spans get it"*, then refining: *"the target word order tells us what span to put it
+   in — or at least, the end user cannot see which span we drew it from"* and *"but a constituent
+   list should show it both places."* So the **span text** gives the word to whichever span's target
+   stretch contains it and to that one only — adjacent spans concatenate exactly, with no repeat —
+   while the **constituent list** and the opt-in correspondence map show it in **both**, because
+   that is what the alignment says.
+9. **R9** — the correspondence map is **opt-in**. Captain: *"by default, no, but provide an option
+   that does for debugging and transparency."*
+
+**Measured, against `SBLGNT-BSB` (115,008 records) and `SBLGNT-YLT`:**
+
+- alignment is **not monotonic** — 17% of adjacent source-order steps run backward in target order
+- **81%** of spans have source order disagreeing with target order; **35%** have two or more source
+  words sharing an identical target set. Word correspondence is a many-to-many graph and cannot be
+  recovered by position
+- **the alignment is filed per verse — that is the data's shape, not our unit of analysis.** Only
+  **80 of 115,008** records (0.070%) have source and target outside one verse, so the verse is a
+  reliable lookup key. A span is a clause, phrase or sentence and crosses verses whenever the
+  language does, so the operation **reads past verse scope**. Where a span happens to cover whole
+  verses its tokens are contiguous (**7,933 / 7,934**); a token belonging to a different source
+  unit can fall inside what a span covers only where a span opens or closes
+  *inside* a verse — which discourse-flow measured at 4 of 390 units in Mark, **1%**, and which is
+  the whole reason the step was asked for
+- **An earlier "49% of spans are interleaved" figure is withdrawn.** It came from arbitrary
+  word tiling, which nobody does; it was a property of the test harness, not of the data
+- word order is **locally coherent**: consecutive source words move `+1` in target position 34% of
+  the time and `+1/+2/+3` 62%, while large backward jumps (≤ −6) are 2.1%. A verse breaks into a
+  median of **3 ascending runs** — consistent with the Captain's model of phrase-coherent blocks
+  whose internal order is largely kept and whose relative order sometimes is not. **Not yet checked
+  against syntax**; Macula Lowfat would settle whether a run is a phrase
+- **A BSB-versus-YLT comparison was run and is void** — do not repeat it or cite its numbers. It
+  was framed on the AI's assumption that YLT is the more literal translation; the Captain corrected
+  that on 2026-09-13, and the comparison is confounded regardless: YLT's alignment has **0.6%**
+  multi-source records against BSB's **4.9%**, and 21% unaligned tokens against 15%. It measures
+  how the two alignment files were built, not the translations
+- target ids join the target TSV **100% directly**; no identifier reshaping needed
+
+10. **R10** — a span **reaches outward over unaligned tokens and stops at a neighbour**. Within
+    each verse the bounds move out from the first and last aligned token over runs of unaligned
+    tokens, halting where a token belonging to a different source unit begins. Reaching outward is
+    what keeps verse-final punctuation and verse-initial words — without it the text reads
+    `wordTherefore` and Ephesians 1:11 loses its opening *"In Him"*. Of the 29,964 tokens that
+    align to nothing, **98% are punctuation and 2% are words**; the 2% are the ones whose absence
+    breaks a sentence.
+11. **R11** — **two kinds of nothing, told apart**, per `say-which-kind-of-nothing`: an empty
+    collection (asked, nothing aligned) and `null` (the source ids are not in the alignment file).
+    A third "kind" the AI had listed was R7's Psalm title — a *populated* field, not a nothing —
+    and was removed 2026-09-14 when the Captain checked R11 against the rule. Where the title is
+    absent it is **`null` and present**, never omitted, because no request list governs it;
+    `alignments` and `correspondence` may be omitted precisely because `returns:` is a request
+    list, which is the rule's stated exemption.
+
+12. **R12** — a span carries **one boolean** saying whether its tokens are contiguous in every
+    verse it draws from. True for ~99% of units; false exactly at the boundaries this step exists
+    to serve. A list of the offending tokens was considered and not taken.
+13. **R13** — **all twenty pairs ship**, across ten languages. Reframed around cost: R2 already
+    validates each pair against the file's declared `documents` at read time, which is what catches
+    a file misdescribing itself, so a pair costs one row and a bad file fails loudly. **Flagged, not
+    resolved:** `por/JFA11` is `-transfer`, not `-manual` — machine-transferred rather than hand
+    aligned, and whether the declaration records provenance is undecided.
+
+**Tracked as → #238. Built and committed 2026-09-14** — `1501da1` (step, reader, 21 tests,
+declaration, bundling, docs), `4b3640e` (the design documents). Design status `ruled (2026-09-14)`,
+R1–R16, D1–D8 answered. **Not pushed.**
+
+**Verify:** `hatch run pytest tests/test_alignment.py -q` → 21 passed.
+
+**Worked examples**: `tmp/alignment-worked-examples.md` — Luke 1:1–4, Ephesians 1:3–14,
+Psalm 23:1–4 and Ruth 1:1–4, Greek and Hebrew, regenerable with
+`hatch run python tmp/gen_alignment_demo.py`. In all four, the tokens are contiguous in every verse.
+
+**What is left before discourse-flow can use it:**
+- [ ] **Strip the ruling citations from the alignment docstrings** — `rule
+      docstrings-say-what-not-why`. Committed with the violation in `1501da1`; every occurrence is
+      tabled in `project/HANDOFF.md`
+- [ ] **Wire `data/alignment-pairs.json`.** It is declared, shipped and read by nothing; the step
+      resolves through the registered-resource store. This is where D9's normalisation belongs
+- [ ] **Run it against the real corpus.** The tests are synthetic so they pass on a fresh clone,
+      which means `SBLGNT-BSB` has never been through this code
+- [ ] **D9 is open** and is why two pairs ship rather than R13's twenty: `JFA11` writes source ids
+      without the `n` prefix, so Portuguese joins 0 of 99,258 — silently
+- [ ] **Tell discourse-flow**, closing the reply promised above
+- [ ] The unbuilt `union`/`intersect` in `verse_ranges` bear on this; see Pipeline data operations
+
+### 🅿️ Parked 2026-09-14 — three issues raised to defer, not to work
+
+> Raised while designing #238's step syntax, then deliberately set aside. **None blocks #238**,
+> which ships on flags. Design: `project/plans/design-operations-in-the-pipeline-language.md`.
+- [ ] **#241 — how the language expresses one domain with many operations.** Ruled: one design;
+      alignment on flags; XPath/XQuery generally the right direction. Open: whether standalone pure
+      operations (verse algebra, list transformation, filtering) are **expressions** or **step
+      methods** — §7 of the design doc has both written out with syntax
+- [ ] **#240 — normalise names to hyphens**, with a carve-out: a key forwarded to a provider keeps
+      the provider's spelling. Ruled but **not scheduled** — *"not worth the churn right now"*
+- [ ] **#239 — the `${...}` resolver is regex substitution, not a parser.** A kludge, off the
+      critical path. #241 governs it: modest fix under step methods, precondition under expressions
+- [ ] **#125 is open although the feature is built** — `group_by`/`order_by` ship at
+      `steps/for_each.py:283` with `tests/test_group_by.py`. Close or re-scope it
+
+### 🐞 Three defects filed against `Clear-Bible/Alignments`, 2026-09-13
+
+> Found while surveying the alignment data. All three are Clear's to fix, not ours; they are
+> recorded here because R2 and R3 exist because of them.
+- [ ] **#12** — `hau/alignments/OHCB/WLCM-OHCB-manual.json` is byte-identical to its SBLGNT
+      sibling while its filename and TOML claim Hebrew/OT. 1 of 21 alignment files; the only
+      duplicate. **Never resolve a pair by filename** — this is why R4 validates against `documents`
+- [ ] **#13** — `data/catalog.tsv` is an orphaned Git LFS pointer with no `.gitattributes`
+      anywhere. The only LFS-tracked file in the repo; a fresh clone gets three lines of pointer
+- [ ] **#14** — that catalog's contents do not describe the tree: 19 listed, 21 present, **one**
+      name in common
+- [ ] Fixing the catalog on the local `dev` branch in `Clear/Alignments` is a contribution to
+      offer upstream, **not** something the engine reads — R2 settles that. That branch has no
+      upstream today
+
+### 📄 `docs/llmflow-language.md` contradicts shipped behaviour
+
+> Reported by discourse-flow in their 2026-09-11 note, §7, and confirmed. `3ca7139` made
+> `include:` valid with every format and our own tests assert it, but the document still says
+> otherwise in two places — and it is the sentence that would stop a reader adopting the feature.
+- [ ] Line **802** — `include: [ids]  # optional; valid only with format: usj`
+- [ ] Line **961** — *"It is valid **only** with `format: usj`"*
+
 ### ✅ `save_json` indents every artifact — ruled, and deliberately unchanged
 
 > Found 2026-09-10 by discourse-flow, correcting our own note: `utils/io.py:409`,
@@ -615,9 +782,32 @@ What actually blocks the acceptance criterion:
 - [ ] Checkpointing support → #8
 
 ### 🗂 Pipeline data operations
-- [ ] Verse range operations (`overlaps`, `contains`, `intersection`, `union`) → #169
-  - Design document: `project/plans/design-verse-range-operations.md`
-  - 6 decisions needed before implementation (see design doc / issue comment)
+
+#### ⚠️ Verse range operations → #169 — **partly built, and the plan says otherwise**
+> **Corrected 2026-09-13.** This entry said "6 decisions needed before implementation". The
+> module is built: `src/llmflow/utils/verse_ranges.py`, with `tests/test_verse_ranges.py` at
+> 371 lines. What is stale is the plan beside it.
+>
+> `project/plans/plan-verse-range-set-ops.md` declares *"Approved 2026-08-17 — authoritative for
+> the implementation (names, signatures, files)"* and *"No code yet"*. Both are now false, and
+> the code took a different shape:
+>
+> | | plan says | code does |
+> |---|---|---|
+> | naming | `verse_range_overlaps`, … | `overlaps`, `contains`, … |
+> | representation | 8-char sort key `BBCCCVVV` | `Range` dataclass, **book-local ordinals** |
+> | adjacency | `adjacent` | `touches` |
+> | also present | — | `equals`, `select`, `RELATIONS` |
+> | **not built** | `union`, `intersect` | — |
+>
+> This is a `one-design` breach: two documents and one implementation, disagreeing. Reconciling
+> them is a ruling, not a cleanup — the Captain's.
+- [ ] **Ruling needed:** does the shipped `Range`/`overlaps` shape stand and the plan get
+      rewritten to match, or does the code move to the approved `verse_range_*` spec?
+- [ ] `union` and `intersect` are unbuilt. They are the operations an alignment mapping would
+      compose with, so this blocks the idea in the alignment section above
+- [ ] Design document: `project/plans/design-verse-range-operations.md` (data model);
+      `plan-verse-range-set-ops.md` (spec and work order)
 - [ ] List transformation: flatten, project, slice as framework primitives → #167
 - [ ] Predicate filtering: filter lists by value / cross-list membership → #168
 - [ ] Accumulator initialization in `variables:` block → #170
