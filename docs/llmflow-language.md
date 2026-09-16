@@ -881,7 +881,7 @@ pointing at data that is not there fails later, in the middle of a run, after th
 linted clean.
 
 **`list` shows only what sp can open as text** — three entries of seventy. The rest are
-annotation corpora, lexicons and treebanks that a pipeline reaches through a resource rather than
+analysis corpora, lexicons and treebanks that a pipeline reaches through a resource rather than
 by name, and `search` is how you find them.
 
 #### `sp dataset search` — the catalog, queried in XPath
@@ -955,7 +955,7 @@ sp resource set SBLGNT --lowfat-path ~/github/Clear-Bible/macula-greek/SBLGNT/lo
 Use `set` rather than re-running `add`: a command named for creating should not silently rewrite a
 file someone has curated by hand. Both values resolve before anything is written, and `set` prints
 where each one landed — a typo in a dataset id is otherwise invisible until a run reports the
-annotation family as `null`.
+analysis family as `null`.
 
 Between them, `dataset add` and `resource set` are how the store is changed. `~/.sp` is kept
 read-only and is unlocked only by `sp` itself, so editing a registration by hand is neither
@@ -971,7 +971,7 @@ stale copy can be recognised rather than guessed at.
 **Optional Fields:**
 - `format`: The shape of the result (see below). Default `milestones`.
 - `versification`: The scheme `passage` is written in. See *Versification*.
-- `include`: Annotation families. A **list**, never a single word. See *Annotation*.
+- `include`: Analysis families. A **list**, never a single word. See *Analyses*.
 - `saveas`, `append_to`: as for any step.
 
 #### Choosing a format
@@ -1012,21 +1012,21 @@ drop them again. A verse ends where the next `sid` begins, or where the chapter 
 **Text nodes carry their own spacing.** Rebuild running text by **concatenating** them, not by
 joining with a space — otherwise every comma gains a space in front of it.
 
-#### Annotation — the `include` families
+#### Analyses — the `include` families
 
 `include` names what the payload carries, and is valid with **every** format. The payload is
-standoff — it needs nothing from the shape of the text — so choosing annotation no longer chooses a
+standoff — it needs nothing from the shape of the text — so choosing analyses no longer chooses a
 text form. It defaults to empty, because a payload nobody asked for is a payload nobody checked.
 
 Where `include` is non-empty the result is a dict: the text under `text`, unchanged from what the
-same request would return without `include`, and the annotation beside it in its own container —
+same request would return without `include`, and the analyses beside it in their own container —
 not inside the text. Where `include` is empty the result is the bare text for that format.
 
 *Corrected 2026-09-14. This paragraph and the comment in the example above both said `include` was
 valid only with `format: usj`; `3ca7139` made that false and it was reported by a consumer that
 had read the document and stopped. Asserted by
 `tests/test_scripture_include.py::test_include_with_any_format_returns_the_text_beside_the_container`
-and `::test_asking_for_annotation_does_not_change_the_text`.*
+and `::test_asking_for_analyses_does_not_change_the_text`.*
 
 Seven families: `ids`, `morphology`, `senses`, `glosses`, `referents`, `discourse`, `syntax`.
 **`ids` and `discourse` are implemented; the other five raise `NotImplementedError` naming
@@ -1136,7 +1136,7 @@ dataset is refused rather than followed.
 
 **Choose one form per registration and stay in it.** A dataset-relative value resolves inside
 whichever copy of the corpus the store holds; a dataset id resolves wherever that dataset was
-registered, which may be a different clone of the same corpus. Text and annotations join on word
+registered, which may be a different clone of the same corpus. Text and analyses join on word
 ids, so mixing the forms across keys can draw them from two copies — a silent mismatch rather than
 an error, which no check can catch for you. Where a machine's corpora are working clones rather
 than store downloads, naming the dataset throughout is the consistent choice, and it lets the
@@ -1155,6 +1155,15 @@ duplicate download be deleted.
 A resource naming no `discourse_path` **warns and attaches nothing** — Levinsohn's corpus covers
 the Greek NT only, so a Hebrew resource asking for it is a configuration mismatch rather than a
 failure.
+
+**Discourse comes from the resource's own `discourse_path` and from nowhere else.** Which corpus
+applies follows from the resource, not from its language and not from any other text it can be
+related to. A translation has no discourse of its own to give: Levinsohn analysed Greek, and his
+features are claims about Greek words. An English word aligned to a Greek point of departure is
+not a point of departure, because the translation was never analysed — so an alignment must never
+be the route by which a source analysis arrives on a target. If discourse is offered on the
+target side of `type: alignment` or anywhere else, it comes from a `discourse_path` registered for
+the target resource, or it does not come.
 
 **Why "reconciled" and not "attached".** Levinsohn's word indices are NA28-family; the text is
 SBLGNT. Where SBL made a different editorial choice his index names a *different word* — and it
@@ -1206,7 +1215,7 @@ mis-costs every decision downstream.
 |---|---|---|
 | `plain` | baseline | a whole-book step that cannot window — one consumer reads 32 KB where the annotated form is 1.3 MB, a 43× difference |
 | `milestones` | **1.072×** bare text | the default, and enough whenever a verse reference is all the addressing needed |
-| `usj`, no `include` | 2.56× codepoints, **6.74× as escaped JSON** | structure is needed but annotation is not |
+| `usj`, no `include` | 2.56× codepoints, **6.74× as escaped JSON** | structure is needed but analyses are not |
 | `usj` + families | to **11.78×** as one consumer ships it | only the families a step actually reads |
 
 #### Versification
@@ -1260,7 +1269,7 @@ named by the word its boundary falls on:
 ```
 
 The result is **a list, one entry per span, in the order asked**, each carrying `from`, `to`,
-its own `text`, and — when `include:` is non-empty — its own annotation for its own words.
+its own `text`, and — when `include:` is non-empty — its own analyses for its own words.
 The passage is read once however many spans are named.
 
 **A boundary names a word, not a verse, because a unit of analysis does not always start where

@@ -415,7 +415,7 @@ def test_syntax_needs_ids_beside_it():
     """§4.5: the leaves are `xml:id` values, which reach the document as `srcloc` through `ids`.
 
     A stronger condition than `check_include` enforces for the per-word families, and deliberately
-    so: `syntax` is a tree *over* words rather than an annotation *on* one, so `per_word: true`
+    so: `syntax` is a tree *over* words rather than an analysis *of* one, so `per_word: true`
     would be the wrong way to arrive at the same requirement. Without `ids` the payload names
     words the document does not identify — unusable rather than merely thinner.
     """

@@ -63,7 +63,7 @@ def run_scripture_step(
     if isinstance(result, list):
         size = f"{len(result)} spans"
     elif isinstance(result, dict):
-        size = f"{len(result.get('content') or [])} nodes" if "content" in result else "text + annotation"
+        size = f"{len(result.get('content') or [])} nodes" if "content" in result else "text + analyses"
     else:
         size = f"{len(result)} chars"
     logger.debug(f"   {resource} {passage}: {size} ({fmt})")

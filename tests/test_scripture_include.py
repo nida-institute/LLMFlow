@@ -177,13 +177,13 @@ def test_flattening_still_reproduces_milestones_with_ids(passage):
 # --- lint rules, as errors at the call ------------------------------------------------
 
 
-# --- annotation travels beside the text, whatever form the text takes ------------------
+# --- analyses travel beside the text, whatever form the text takes ---------------------
 
 
 @real_data
 @pytest.mark.parametrize("fmt", ["plain", "milestones"])
 def test_include_with_any_format_returns_the_text_beside_the_container(fmt):
-    """Choosing annotation no longer chooses a text form.
+    """Choosing analyses no longer chooses a text form.
 
     The payload is standoff — it needs nothing from the shape of the text — so a step that
     reads Levinsohn features is not thereby committed to a word-object document.
@@ -197,7 +197,7 @@ def test_include_with_any_format_returns_the_text_beside_the_container(fmt):
 
 @real_data
 @pytest.mark.parametrize("fmt", ["plain", "milestones"])
-def test_asking_for_annotation_does_not_change_the_text(fmt):
+def test_asking_for_analyses_does_not_change_the_text(fmt):
     """The text is the same text; the container is beside it, not inside it."""
     plain = resource_text("SBLGNT", "MRK 1:1-3", fmt=fmt, resources=EDITIONS)
     annotated = resource_text(
@@ -210,7 +210,7 @@ def test_asking_for_annotation_does_not_change_the_text(fmt):
 @real_data
 @pytest.mark.parametrize("fmt", ["plain", "milestones"])
 def test_no_include_still_returns_a_bare_string(fmt):
-    """The dict appears because annotation was asked for. Nothing that exists today changes."""
+    """The dict appears because analyses were asked for. Nothing that exists today changes."""
     assert isinstance(resource_text("SBLGNT", "MRK 1:1", fmt=fmt, resources=EDITIONS), str)
 
 

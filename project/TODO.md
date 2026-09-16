@@ -7,6 +7,42 @@
 
 ## 🔥 Active
 
+### 🚨 HIGH — there is no type checking, and the suite does not say so
+
+> **Flagged 2026-09-16.** `tests/test_types.py` fails, and it is easy to read as one more known
+> red line among four. It is not. Its output is:
+>
+> ```
+> PYRIGHT TYPE ERRORS:
+> ================================================================================
+> (nothing)
+> ```
+>
+> **Pyright is not starting.** `npx` itself is broken — `MODULE_NOT_FOUND` in `npx-cli.js`,
+> most likely a casualty of deleting `gui/frontend/node_modules` for disk space. So the test
+> fails on a non-zero exit code with an empty error list: it is not reporting that the code is
+> clean, and it is not reporting that the code is dirty. **It is reporting nothing, and the
+> whole type check is absent.**
+>
+> This is the failure shape `check-the-source-not-the-rendering` exists to name — a guard
+> reduced to nothing while still appearing present in a triage. It was catching a real defect
+> the day before: `_owner_of_each_target_token` annotated `-> Dict` while returning a tuple.
+>
+> **Until `npx` works, nobody should read a passing suite as type-checked**, and no change to
+> `src/` has been type-checked since it broke.
+- [ ] Fix `npx` — reinstall via volta, or restore/regenerate `gui/frontend/node_modules`
+- [ ] **Then re-run `hatch run pytest tests/test_types.py`** and see what accumulated while the
+      check was off
+- [ ] **Ruling wanted:** should this test *fail loudly as a broken check* rather than as an
+      ordinary type error? A guard that cannot run and a guard that found a problem currently
+      look identical in the summary line, which is what let this sit
+
+> **Related, and not the same thing:** `gui/frontend/node_modules` is **tracked in git** — 7,997
+> files, 1,787,308 lines — so deleting it from disk frees the working copy but not the
+> repository, and `git status` reports 7,997 deletions until it is restored or deliberately
+> untracked. Any `git add -A` would commit that deletion. Untracking it with a `.gitignore`
+> entry is the change that actually saves the space; it is a decision, not a side effect.
+
 ### 🎯 THE GOAL — give discourse-flow what they need to implement segment-level text
 
 > Set by the Captain 2026-09-10, superseding the representation goal below. **Everything else in
@@ -169,24 +205,52 @@
 declaration, bundling, docs), `4b3640e` (the design documents). Design status `ruled (2026-09-14)`,
 R1–R16, D1–D8 answered. **Not pushed.**
 
-**Verify:** `hatch run pytest tests/test_alignment.py -q` → 21 passed.
+> ⚠️ **"Built" does not cover every ruling above it. Two are ruled and not built**, and this
+> entry read as though they were:
+> - **R7 — Psalm titles.** No field, no code, no test. Measured 2026-09-16 against Hebrew→BSB:
+>   1,303 target tokens sit at verse `000` across 116 of the 150 psalms and **not one is aligned
+>   to anything**, while the Hebrew source has no verse-`000` ids at all. So a span over Psalm 23
+>   returns the psalm and **silently drops "A Psalm of David"**. Undecided before it can be
+>   built: what the field is called, and whether `returns:` gains a member for it.
+> - **R9 — the opt-in correspondence map.** `correspondence` appears nowhere in `src/` or
+>   `tests/`; the schema's `returns` enum is `["text", "alignments"]`. This one fails loudly —
+>   `returns: [correspondence]` is refused at lint — so it is the less dangerous of the two.
+
+**Verify:** `hatch run pytest tests/test_alignment.py -q` → 22 passed.
 
 **Worked examples**: `tmp/alignment-worked-examples.md` — Luke 1:1–4, Ephesians 1:3–14,
 Psalm 23:1–4 and Ruth 1:1–4, Greek and Hebrew, regenerable with
 `hatch run python tmp/gen_alignment_demo.py`. In all four, the tokens are contiguous in every verse.
 
-**What is left before discourse-flow can use it:**
-- [ ] **Strip the ruling citations from the alignment docstrings** — `rule
-      docstrings-say-what-not-why`. Committed with the violation in `1501da1`; every occurrence is
-      tabled in `project/HANDOFF.md`
-- [ ] **Wire `data/alignment-pairs.json`.** It is declared, shipped and read by nothing; the step
-      resolves through the registered-resource store. This is where D9's normalisation belongs
-- [ ] **Run it against the real corpus.** The tests are synthetic so they pass on a fresh clone,
-      which means `SBLGNT-BSB` has never been through this code
-- [ ] **D9 is open** and is why two pairs ship rather than R13's twenty: `JFA11` writes source ids
-      without the `n` prefix, so Portuguese joins 0 of 99,258 — silently
-- [ ] **Tell discourse-flow**, closing the reply promised above
+**What is left before discourse-flow can use it — all but one done 2026-09-16:**
+- [x] **Ruling citations stripped from the alignment docstrings** — `rule
+      docstrings-say-what-not-why`. `utils/alignment.py` and `steps/alignment.py`, docstrings and
+      comments only; the module-level pointers to the design document stay, which the rule asks
+      for. **The guard does not catch this** — it forbids a date, a commit hash and the word
+      "Captain", not `(R15)` — so it was judgment, and nothing goes red if it regresses
+- [x] **`data/alignment-pairs.json` is wired** — `steps/alignment.py` `resolve_pair()` reads the
+      declaration and resolves each row under the `clear-alignments` dataset. The per-machine
+      `kind: alignment` route is gone rather than kept beside it.
+      `tests/test_alignment_declaration.py`, 10 tests
+- [x] **Run against the real corpus** — `scripts/check_alignment_pairs.py`, an audit script
+      rather than a test because a fresh clone has no corpus. **18 pairs, 0 unusable**;
+      `SBLGNT→BSB` joins **100% on both sides** across 115,008 records
+- [x] **D9's Portuguese half is fixed** — `JFA11` source ids now carry the `n` prefix, 99,258 of
+      99,258 join. Fixed in `Clear/Alignments`, **committed on `fix/portuguese-source-id-prefix`
+      and not merged upstream**, so it holds on this machine only
+- [x] **discourse-flow told** — `collab/sp/2026-09-14-alignment-has-landed.md` in their tree, and
+      `2026-09-16-document-order-is-in.md` answering their reply
 - [ ] The unbuilt `union`/`intersect` in `verse_ranges` bear on this; see Pipeline data operations
+
+**Three pairs are declared out, each measured, not guessed** — `scripts/check_alignment_pairs.py`
+re-derives all of it. `hau WLCM-OHCB` is byte-identical to its SBLGNT sibling and declares that
+sibling's pair (Clear#12); `eng BGNT-BSB` has 12-character target ids where `nt_BSB.tsv` has 11,
+so 0 of 172,736 join, and dropping the trailing character still leaves 240 ids naming rows that
+do not exist; `fra WLCM-LSG` names `ot_LSG.tsv`, which is 66 bytes — a header row and no data.
+**Two further defects were found and fixed** in `Clear/Alignments` and are likewise unmerged:
+`hin WLCM-IRVHin` declared no `roles`, and `spa WLCM-RV09` declared its source as lowercase
+`wlcm`; both made our own `validate_pair` refuse a real pair. Five issue drafts and two pull
+request bodies sit unfiled in `tmp/`.
 
 ### 🅿️ Parked 2026-09-14 — three issues raised to defer, not to work
 
@@ -377,8 +441,10 @@ BaseX is **not** in this release; see below.
 - [x] **Ruled and built.** The Captain: *"they cannot proceed using hard coded paths, I forbid
       that, they need this to work."* Both keys now accept a dataset-relative value **and** a
       registered dataset id with an optional subpath — the subpath is required in practice,
-      because neither corpus sits at a repository root. `resources.resolve_annotation_path`,
-      20 tests, documented in the language reference.
+      because neither corpus sits at a repository root. `resources.resolve_declared_path`,
+      20 tests in `tests/test_analysis_path_resolution.py`, documented in the language reference.
+      *(Corrected 2026-09-16: this line named `resolve_annotation_path`, which has never
+      existed.)*
   - [ ] **Greek discourse still cannot be named portably**, and not for want of the feature:
         `levinsohn-lgntdf` is absent from `~/.sp/datasets/`, so `levinsohn-lgntdf/LGNTDF` falls
         through to dataset-relative and lands nowhere. Registering it needs
@@ -397,10 +463,12 @@ BaseX is **not** in this release; see below.
 - [ ] A 404 on an archive URL surfaces as a bare `HTTPError` traceback rather than naming the
       branch as the likely cause
 
-### 🔼 Two fixes belong upstream in `awesome-biblical-data`, not here
+### 🔼 Two fixes belong in our catalog repo `awesome-biblical-data`, not in the vendored copy here
 
-> `data/resources.json` is **vendored** and currently identical to upstream, so editing it here is
-> reverted by the next sync.
+> **`nida-institute/awesome-biblical-data` is ours**, so these are ours to schedule, not another
+> party's to answer. `data/resources.json` here is **vendored** and currently identical to it, so
+> editing it here is reverted by the next sync. Edit `resources.json` there; `README.md` is
+> generated after `scripts/validate_resources.py` passes.
 - [ ] `levinsohn-lgntdf` has no `branch`, and that repository's default branch is `master`, so
       `sp resource download levinsohn-lgntdf` 404s. `download_data.py:49` already honours
       `branch`, so the fix is one field — upstream. Worth sweeping the other 69 entries

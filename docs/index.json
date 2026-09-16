@@ -3836,22 +3836,22 @@
         {
           "name": "text_for_spans",
           "signature": "text_for_spans(rows: Sequence[Mapping[str, Any]], spans: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None) -> list[dict]",
-          "doc": "One result per span, in the order asked, each carrying its own text and annotation."
+          "doc": "One result per span, in the order asked, each carrying its own text and analyses."
         },
         {
-          "name": "per_word_annotation",
-          "signature": "per_word_annotation(rows: Sequence[Mapping[str, Any]], families: Sequence[str]) -> dict",
+          "name": "per_word_analysis",
+          "signature": "per_word_analysis(rows: Sequence[Mapping[str, Any]], families: Sequence[str]) -> dict",
           "doc": "`{family: {word id: {column: value}}}`, skipping the columns a word leaves empty."
         },
         {
-          "name": "annotation_container",
-          "signature": "annotation_container(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str], versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None, with_words: bool = True) -> dict",
+          "name": "analysis_container",
+          "signature": "analysis_container(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str], versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None, with_words: bool = True) -> dict",
           "doc": "The `scripture_pipelines` container, identical whatever form the text took."
         },
         {
           "name": "words_by_id",
           "signature": "words_by_id(rows: Sequence[Mapping[str, Any]]) -> dict",
-          "doc": "Every word of *rows*, keyed by the id that annotation and boundaries name it with."
+          "doc": "Every word of *rows*, keyed by the id that an analysis and a boundary name it with."
         },
         {
           "name": "rows_to_output",

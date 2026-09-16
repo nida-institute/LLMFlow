@@ -72,7 +72,7 @@ def test_text_for_spans_returns_one_result_per_span_in_the_order_asked():
     assert results[0]["from"] == "o19023001001"
 
 
-def test_a_span_carries_the_annotation_of_its_own_words_only():
+def test_a_span_carries_the_analyses_of_its_own_words_only():
     results = text_for_spans(
         ROWS,
         spans=[{"from": "o19023001003", "to": "o19023001004"}],
@@ -83,6 +83,73 @@ def test_a_span_carries_the_annotation_of_its_own_words_only():
     words = results[0]["scripture_pipelines"]["ids"]
 
     assert set(words) == {"o19023001003", "o19023001004"}
+
+
+#: Levinsohn's features as LGNTDF states them: one feature file at a time, so a verse's
+#: citations arrive grouped by feature rather than by word. Reported by `discourse-flow`,
+#: whose Philemon run got `Main clauses` for words 1 and 8 before `Referential PoD` for word 3.
+DISCOURSE = [
+    {"id": "o190230010011", "feature": "Main clauses"},
+    {"id": "o190230010051", "feature": "Main clauses"},
+    {"id": "o190230010031", "feature": "Referential PoD"},
+    {"id": "o190230010041", "feature": "Topical Genitive"},
+    {"id": "o190230020021", "feature": "Main clauses"},
+]
+
+
+def test_a_span_carries_the_discourse_of_its_own_words_only():
+    results = text_for_spans(
+        ROWS,
+        spans=[{"from": "o19023001003", "to": "o19023001004"}],
+        fmt="milestones",
+        book="PSA",
+        include=["discourse"],
+        discourse=DISCOURSE,
+    )
+
+    assert [item["id"] for item in results[0]["scripture_pipelines"]["discourse"]] == [
+        "o190230010031",
+        "o190230010041",
+    ]
+
+
+def test_discourse_comes_back_in_document_order():
+    """A consumer asks for a span because it has a stretch of text in mind."""
+    results = text_for_spans(
+        ROWS,
+        spans=[{"from": "o19023001001", "to": "o19023001006"}],
+        fmt="milestones",
+        book="PSA",
+        include=["discourse"],
+        discourse=DISCOURSE,
+    )
+    ids = [item["id"] for item in results[0]["scripture_pipelines"]["discourse"]]
+
+    assert ids == sorted(ids), f"not in document order: {ids}"
+
+
+def test_two_features_on_one_word_keep_the_sources_order():
+    """The sort is stable, so document order does not reorder what the source stated."""
+    both = [
+        {"id": "o190230010031", "feature": "Referential PoD"},
+        {"id": "o190230010011", "feature": "Main clauses"},
+        {"id": "o190230010031", "feature": "Topical Genitive"},
+    ]
+    results = text_for_spans(
+        ROWS,
+        spans=[{"from": "o19023001001", "to": "o19023001006"}],
+        fmt="milestones",
+        book="PSA",
+        include=["discourse"],
+        discourse=both,
+    )
+    items = results[0]["scripture_pipelines"]["discourse"]
+
+    assert [item["feature"] for item in items] == [
+        "Main clauses",
+        "Referential PoD",
+        "Topical Genitive",
+    ]
 
 
 def test_a_span_naming_a_word_that_is_not_there_says_so():

@@ -257,7 +257,7 @@ _STEP_TYPE_PROPERTIES = [
             # The scheme `passage` is written in. Not an enum: a Paratext project brings its
             # own, and a custom mapping is a file the human puts in the store.
             "versification": {"type": "string"},
-            # The annotation families, read from the one place that names them. A list
+            # The analysis families, read from the one place that names them. A list
             # always — a bare string is rejected with the corrected form.
             "include": {
                 "type": "array",

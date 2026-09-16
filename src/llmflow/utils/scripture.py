@@ -85,7 +85,7 @@ def family_usx_attributes(name: str) -> Mapping[str, Sequence[str]]:
     return _family(name).get("usx_attributes", {})
 
 
-#: The annotation families `include` can ask for. See §3.0a of plan-scripture-step.md.
+#: The analysis families `include` can ask for. See §3.0a of plan-scripture-step.md.
 INCLUDE_FAMILIES = ("ids", "morphology", "senses", "glosses", "referents", "discourse", "syntax")
 
 #: Families with a working implementation. The rest are named vocabulary, and asking for one
@@ -95,7 +95,7 @@ IMPLEMENTED_FAMILIES = frozenset(
 )
 
 #: Families whose payload references words by id and so cannot be read without them. Stronger
-#: than the per-word rule: `syntax` is a tree *over* words rather than an annotation *on* one, so
+#: than the per-word rule: `syntax` is a tree *over* words rather than an analysis *of* one, so
 #: `per_word: true` would be the wrong way to reach the same requirement (§4.5). Without `ids`
 #: nothing in the document carries the `srcloc` its leaves point at, and the payload is unusable
 #: rather than merely thinner.
@@ -556,7 +556,7 @@ def text_for_spans(
     discourse: Optional[list] = None,
     syntax: Optional[list] = None,
 ) -> list[dict]:
-    """One result per span, in the order asked, each carrying its own text and annotation.
+    """One result per span, in the order asked, each carrying its own text and analyses.
 
     Cutting happens over rows already fetched, so a book is read once however many spans are
     named. Each result repeats the span it answers, because a caller holding a list of units
@@ -573,7 +573,13 @@ def text_for_spans(
             book=book,
             include=include,
             versification=versification,
-            discourse=[item for item in discourse or [] if str(item.get("id") or "") in ids]
+            # Document order. The source emits one feature file at a time, so its own order is
+            # grouped by feature within a verse. The sort is stable, so two features on one word
+            # keep the order the source stated them in.
+            discourse=sorted(
+                (item for item in discourse or [] if str(item.get("id") or "") in ids),
+                key=lambda item: str(item.get("id") or ""),
+            )
             if discourse is not None
             else None,
             syntax=syntax,
@@ -587,25 +593,48 @@ def text_for_spans(
     return results
 
 
-def per_word_annotation(rows: Sequence[Mapping[str, Any]], families: Sequence[str]) -> dict:
-    """`{family: {word id: {column: value}}}`, skipping the columns a word leaves empty."""
-    annotation: dict = {family: {} for family in families}
+def per_word_analysis(rows: Sequence[Mapping[str, Any]], families: Sequence[str]) -> dict:
+    """`{family: {word id: {column: value}}}`, skipping the columns a word leaves empty.
+
+    A family whose columns the text does not carry is `None` and warns: there was nothing to
+    look in, as against a lookup that ran over every word and found none. An empty collection
+    asserts the second, and a reader cannot tell them apart once they are the same value.
+    """
+    available: set = set()
+    for row in rows:
+        available.update(row.keys())
+
+    analysis: dict = {}
+    for family in families:
+        columns = family_columns(family)
+        if any(column in available for column in columns):
+            analysis[family] = {}
+            continue
+        analysis[family] = None
+        logger.warning(
+            f"include: [{family}] was requested but this text carries none of its columns "
+            f"({', '.join(columns) or 'none declared'}), so no {family} are attached and the "
+            f"{CONTAINER_KEY} container states `{family}: null`."
+        )
+
     for row in rows:
         identifier = row.get("xml:id")
         if not identifier:
             continue
         for family in families:
+            if analysis[family] is None:
+                continue
             fields = {
                 column: str(row[column])
                 for column in family_columns(family)
                 if str(row.get(column) or "").strip()
             }
             if fields:
-                annotation[family][str(identifier)] = fields
-    return annotation
+                analysis[family][str(identifier)] = fields
+    return analysis
 
 
-def annotation_container(
+def analysis_container(
     rows: Sequence[Mapping[str, Any]],
     book: str,
     include: Sequence[str],
@@ -640,12 +669,12 @@ def annotation_container(
         container["discourse"] = discourse
     if "syntax" in include:
         container["syntax"] = syntax
-    container.update(per_word_annotation(rows, [f for f in include if family_is_per_word(f)]))
+    container.update(per_word_analysis(rows, [f for f in include if family_is_per_word(f)]))
     return container
 
 
 def words_by_id(rows: Sequence[Mapping[str, Any]]) -> dict:
-    """Every word of *rows*, keyed by the id that annotation and boundaries name it with.
+    """Every word of *rows*, keyed by the id that an analysis and a boundary name it with.
 
     A word written as one morpheme is its text; a word written in several is the list of them,
     in order. A word number the text does not render is `null` — the source reserves those
@@ -708,13 +737,13 @@ def rows_to_output(
     if not include:
         return text
 
-    # Annotation is standoff, so it travels beside the text rather than inside it, and the text
+    # An analysis is standoff, so it travels beside the text rather than inside it, and the text
     # is the same text a caller gets without asking. The dict appears only because `include:`
     # asked for something; `include: []` still returns a bare string, which is what every
     # pipeline written before this change receives.
     return {
         "text": text,
-        CONTAINER_KEY: annotation_container(
+        CONTAINER_KEY: analysis_container(
             rows,
             book=book,
             include=include,
@@ -841,7 +870,7 @@ def rows_to_usj(
         # and does not relabel the result. Reporting the request made the container assert
         # labels the document did not have, off by exactly the difference between the schemes,
         # and a consumer had nothing else to check it against.
-        document[CONTAINER_KEY] = annotation_container(
+        document[CONTAINER_KEY] = analysis_container(
             rows,
             book=book,
             include=include,
@@ -1102,7 +1131,7 @@ def load_registry_resources(resources_dir: Any = None) -> dict:
                 entry["base_dir"] = str(resolved.parent)
                 entry["project"] = resolved.name
 
-        # The annotation sources resolve the same way, so a registration can name them without
+        # The analysis sources resolve the same way, so a registration can name them without
         # an absolute path. They are not `path`: one may live outside the resource's dataset, so
         # a registered dataset id is accepted as well as a dataset-relative value.
         for key in (DISCOURSE_KEY, LOWFAT_KEY):

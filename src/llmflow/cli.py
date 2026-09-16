@@ -596,7 +596,7 @@ def main(argv=None):
             print("\n  registered = usable now · available = downloaded, run `sp resource add`")
             print("  absent     = not downloaded yet; `sp resource add <ID>` fetches it")
             print(
-                "\n  This lists the texts sp can open. The catalog describes more — annotation "
+                "\n  This lists the texts sp can open. The catalog describes more — analysis "
                 "corpora,\n  lexicons, treebanks — which `sp dataset search <keyword>` finds."
             )
             return

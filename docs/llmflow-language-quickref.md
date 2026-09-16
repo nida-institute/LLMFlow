@@ -300,7 +300,7 @@ maps it before reading any text. A resource's own scheme comes from its
 registry entry, a Paratext project's settings, or the shipped table — there is
 no global default, and asking to cross schemes without one is an error.
 
-**`include`** delivers annotation under one key, `scripture_pipelines`, which a
+**`include`** delivers analyses under one key, `scripture_pipelines`, which a
 consumer can strip to get standard USJ. Seven families are named; `ids` and
 `discourse` work and the rest raise. `ids` becomes `srcloc` on each word.
 `discourse` attaches Levinsohn's features at word ids, each carrying an

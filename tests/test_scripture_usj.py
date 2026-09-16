@@ -1,4 +1,4 @@
-"""`format: usj` — the text in USJ structure, with no annotation."""
+"""`format: usj` — the text in USJ structure, with no analyses."""
 from pathlib import Path
 
 import pytest
@@ -114,7 +114,7 @@ def test_every_verse_in_the_rows_appears_once():
     assert verses == ["1", "2", "1"]
 
 
-def test_no_annotation_is_added():
+def test_no_analyses_are_added():
     """`include` is not implemented yet, and an empty payload must be an absent key."""
     usj = rows_to_usj(GREEK_ROWS, book="MRK")
     assert "scripture_pipelines" not in usj

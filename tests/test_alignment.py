@@ -290,6 +290,26 @@ def test_one_result_per_span_in_the_order_asked(tmp_path, store):
     assert [r["text"] for r in got["english"]] == ["D E", "A,"]
 
 
+def test_the_step_cannot_carry_an_analysis_onto_the_target():
+    """An alignment relates words, not analyses.
+
+    A target word aligned to an analysed source word has not itself been analysed, so offering
+    the source's analysis against it would be a false answer carrying the authority of the
+    corpus it was taken from. The step declares no `include:`, which is the only route by which
+    that could happen.
+    """
+    from llmflow.pipeline_schema import allowed_step_keys
+
+    keys = allowed_step_keys("alignment")
+
+    assert keys, "the alignment step declares no keys at all — the check found nothing to check"
+    assert "include" not in keys, (
+        "the alignment step now takes `include:`, which lets a source analysis be requested "
+        "against a target that was never analysed. An analysis comes from the target "
+        "resource's own declared source or not at all."
+    )
+
+
 # --- R2: the pair is checked against the file's own documents ----------------------------------
 # These take a document rather than a step, so they are called directly: routing a pure helper
 # through a pipeline would test the pipeline instead, which `docs/ai-context/project/rules.md`

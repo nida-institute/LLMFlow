@@ -687,3 +687,34 @@ rules:
     practice — one collab note reads 2026-09-01 in its filename, 09-02 in git and 09-04 as mtime.
     The general form of this rule belongs in the shared discipline rather than here; recorded in
     `project/TODO.md` and not yet done.'
+
+- id: analysis-belongs-to-its-text
+  enforcement: guarded
+  scope: project
+  guard: tests/test_alignment.py, tests/test_one_word_for_an_analysis.py
+  rule: '**An analysis belongs to the text it was made about, and travels to no other.** A
+    resource names its own analysis sources, and a family is served from those or from nowhere.
+    Never derive an analysis for one text out of another text''s, however closely the two are
+    related. An alignment relates *words*, not analyses: a target word aligned to an analysed
+    source word has not itself been analysed, so offering the source''s analysis against it is
+    not a thinner answer but a false one, carrying the authority of the corpus it came from.
+    Where a resource names no source for a requested family, that is `null` and a warning — the
+    question could not be asked. **Say "analysis", not "annotation."** The second names how a
+    claim is delivered rather than what it is, and a term naming the representation is one every
+    reader has to translate before they can use it.'
+  note: 'Added 2026-09-16 at the Captain''s direction, after `nida-institute/discourse-flow`
+    asked that the contract state this rather than rest on it being currently impossible — which
+    it was, by three separate accidents any feature could have removed. Their framing of why it
+    is a rule: the temptation "is specific and will arrive with a feature rather than a bug",
+    because an alignment is exactly the machinery that could carry a source analysis across to a
+    target, one word id to another, and it would look like a convenience.
+
+    The vocabulary half is the Captain''s: *"our terms convey the semantic intent rather than the
+    internal representation"*, and then, of carrying both words, *"do we really need both terms?"*
+    "Annotation" described delivery; "analysis" says what the thing is and carries its own
+    provenance — an analysis implies an analyst and a subject, which is the whole of the rule
+    above. 30 uses were renamed across the engine, its shipped templates and the language
+    reference in one pass. The word still appears where it belongs to somebody else — Levinsohn''s
+    `annotations` element, which means free-text notes; a lexicon output key; a vendored catalog''s
+    descriptions of other people''s datasets — and `tests/test_one_word_for_an_analysis.py` holds
+    that boundary with the reason beside each entry, because nobody will remember where it runs.'

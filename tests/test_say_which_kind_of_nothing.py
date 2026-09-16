@@ -19,7 +19,7 @@ returning an empty value for all of them.
 """
 from __future__ import annotations
 
-from llmflow.utils.scripture import CONTAINER_KEY, rows_to_usj
+from llmflow.utils.scripture import CONTAINER_KEY, family_columns, rows_to_usj
 
 GREEK_ROWS = [
     {
@@ -58,6 +58,28 @@ def test_an_unrequested_family_stays_absent():
     container = _container(["ids"])
 
     assert "discourse" not in container
+
+
+def test_a_per_word_family_the_text_carries_no_columns_for_is_null_not_empty():
+    """The same distinction, for the families read off the word rows rather than a declared path.
+
+    These rows have no gloss columns at all, so there was nothing to look in. An empty collection
+    would assert the opposite — that every word was checked and none had a gloss.
+    """
+    container = _container(["ids", "glosses"])
+
+    assert container["glosses"] is None, (
+        "a text with no gloss columns reported an empty collection, which says the lookup ran "
+        "and found nothing"
+    )
+
+
+def test_a_per_word_family_whose_columns_are_present_but_unfilled_is_an_empty_collection():
+    """Here the lookup did run: the columns exist and no word in range fills one."""
+    rows = [dict(GREEK_ROWS[0], **{column: "" for column in family_columns("glosses")})]
+    container = rows_to_usj(rows, "PHM", include=["ids", "glosses"])[CONTAINER_KEY]
+
+    assert container["glosses"] == {}
 
 
 def test_an_undeclared_versification_is_null_not_absent():
