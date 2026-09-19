@@ -180,7 +180,7 @@ from that file, the model supplied it.
 
 ## The prescribed prompt structure is not optional
 
-`~/.sp/disciplines/llmflow-prompt-organization.md` gives the eight-section structure. Following it
+`~/.sp/disciplines/llmflow-prompt-organization.md` gives the established order. Following it
 is required, and the reason is measured — same clause units, same book, only the prompt differing
 (`discourse-flow/project/audits/audit-relation-runs.md`):
 

@@ -4,6 +4,27 @@
 
 ### Fixed
 
+- **The prompt section order is declared once, in `data/prompt-structure.yaml`.** Seven documents
+  stated it and most disagreed with the ruling. The worst was the `/audit-prompts` skill, which is
+  the document a session is pointed at: an agent drafted a prompt to its structure — `# OUTPUT
+  FORMAT`, `# CRITICAL REMINDERS`, `## Rules Specific to This Output Type`, none of them
+  admitted by the grammar — then ran `/audit-prompts`, which checked the prompt against the same
+  wrong text and passed it. The enforcement path certified what the ruling refuses. Reported by
+  `nida-institute/discourse-flow`, and every claim in that report verified against the files.
+
+  The declaration carries the eleven positions with their heading alternatives, which are required
+  and which are conditional on a named side condition, the four subsections every task section
+  carries, C1–C5, and the headings that get written by mistake with what each should be instead.
+  `llmflow.prompt_structure` renders the one block the discipline carries verbatim. The skill,
+  the disciplines README and `audits-pattern.md` name the declaration instead of restating it.
+  `CORE PRINCIPLES` is gone from the standard, `WHAT THIS STEP PRODUCES` is required, and
+  `## Guardrails` is the fourth required task subsection.
+
+  `tests/test_prompt_structure_single_source.py` fails if a skill copy names a refused heading,
+  if the two copies diverge, if the discipline stops carrying the rendered block, or if any
+  shipped document names a section count — which is how an eleven-position list came to be
+  headed "The 8-Section Pattern". `sp lint` is to read the same declaration (#242).
+
 - **`sp doctor` reports and restores a project file that is absent, skills included.** A skill
   added to Scripture Pipelines after a project was set up never reached that project, and doctor
   called it green. Two projects were in that state; `health-check` was missing from both.

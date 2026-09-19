@@ -735,6 +735,54 @@
       ]
     },
     {
+      "module": "llmflow.prompt_structure",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "importlib.resources",
+        "pathlib",
+        "typing",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "declaration_path",
+          "signature": "declaration_path() -> Path",
+          "doc": "Locate prompt-structure.yaml from an installed wheel or a dev checkout."
+        },
+        {
+          "name": "_load",
+          "signature": "_load() -> dict[str, Any]",
+          "doc": ""
+        },
+        {
+          "name": "positions",
+          "signature": "positions() -> tuple[Position, ...]",
+          "doc": "Every position, in order."
+        },
+        {
+          "name": "task_subsections",
+          "signature": "task_subsections() -> tuple[str, ...]",
+          "doc": "The four subsections required in every task section."
+        },
+        {
+          "name": "conditions",
+          "signature": "conditions() -> dict[str, str]",
+          "doc": "C1-C5 — what the grammar cannot express, each checkable."
+        },
+        {
+          "name": "refused",
+          "signature": "refused() -> dict[str, str]",
+          "doc": "Headings the grammar does not admit, each with what to write instead."
+        },
+        {
+          "name": "render_markdown",
+          "signature": "render_markdown() -> str",
+          "doc": "The block every shipped document carries verbatim."
+        }
+      ]
+    },
+    {
       "module": "llmflow.gui_launcher",
       "imports": [
         "sys"
@@ -5323,7 +5371,7 @@
     }
   ],
   "summary": {
-    "total_modules": 89,
-    "total_functions": 844
+    "total_modules": 90,
+    "total_functions": 851
   }
 }

@@ -84,22 +84,25 @@ Read the prompt organization convention to understand the standard organization 
 
 Use global convention by default; use local version if project has customized standards.
 
-**Task-focused structure (for transformation prompts):**
-1. **YAML Frontmatter** — requires, format, description. There is no `optional:` key;
-   every parameter a prompt declares is required, and a header still carrying one is
-   refused by both `sp lint` and `sp run`
-2. **# WHAT THIS PROMPT PRODUCES** — purpose, philosophy, model explanation
-3. **# OUTPUT FORMAT** — JSON schema with wording guidelines
-4. **# [TASK 1 NAME]** — First major task (e.g., NOTICE QUESTIONS, ANALYSIS, etc.)
-   - ## Input: Where to Find the Data
-   - ## Transformation Rules (with ✅/❌ examples)
-   - ## Examples: Input → Transformation → Output (with TODOs for manual writing)
-   - ## Rules Specific to This Output Type
-5. **# [TASK 2 NAME]** — Second major task (if applicable)
-   - (same subsection pattern)
-6. **# COVERAGE & QUALITY CHECKLIST** — pre-submission verification
-7. **# INPUT DATA** — template variables ({{scenes}}, {{verses}}, etc.)
-8. **# CRITICAL REMINDERS** — final guardrails
+**The order is not restated here.** It is declared once, in
+`data/prompt-structure.yaml`, and rendered into the discipline named above. Read it there
+and audit against it.
+
+Restating it here is what this section used to do, and the three statements disagreed. This
+one was the worst of them, because it is the document a session is pointed at: an agent
+drafted a prompt to it, then ran `/audit-prompts`, which checked the prompt against the same
+wrong text and passed it. The enforcement path certified what the ruling refuses. Reported by
+`nida-institute/discourse-flow`, 2026-09-19.
+
+What to carry while auditing, rather than a rival list:
+
+- **Every position is required or conditional. None is discretionary.** A section is never
+  absent because writing it was work, so "short prompt" is not a reason to accept an absence.
+- **Group by task.** Each task section carries its input, its transformation rules, its
+  examples and its own `## Guardrails`. A guardrail naming one task sitting in the terminal
+  quality-controls section is a finding.
+- **Every task's examples carry at least one ❌ counterexample.** Examples showing only the
+  right answer teach the shape without the boundary.
 
 **Key principle:** Everything about a task is co-located in that task's section (data sources, rules, examples). Don't scatter rules across the file.
 
@@ -148,20 +151,27 @@ head -15 [prompt].gpt | grep "^---"
 
 ### Step 3: Check Convention Compliance
 
-Compare against standard structure:
-1. ✅ Has YAML frontmatter?
-2. ✅ Has "WHAT THIS PROMPT PRODUCES" section?
-3. ✅ Has "OUTPUT FORMAT" with wording guidelines?
-4. ✅ Major tasks organized with:
-   - Input: Where to Find the Data
-   - Transformation Rules (with examples)
-   - Examples: Input → Transformation → Output
-   - Rules specific to this output type
-5. ✅ Has "COVERAGE & QUALITY CHECKLIST"?
-6. ✅ Has "INPUT DATA" section with template variables?
-7. ✅ Has "CRITICAL REMINDERS" final guardrails?
-8. ✅ Heading hierarchy consistent? (# for major tasks, ## for subsections)
-9. ✅ Data sources, rules, and examples co-located within each task section? (not scattered)
+Check against the table rendered into the discipline, which comes from
+`data/prompt-structure.yaml`. Do not check against a list kept here — that is what made this
+skill pass prompts the ruling refuses.
+
+For each declared position, in order:
+1. ✅ Present, or its side condition explains the absence? **No position is discretionary**,
+   so "the prompt is short" is not a reason to accept an absence
+2. ✅ Heading exactly one of the declared alternatives? A near miss is a finding, not a
+   variant. The declaration's `refused` table names the headings that get written by mistake
+   and what each should be instead
+3. ✅ In the declared order?
+
+For each task section in the band:
+4. ✅ All four subsections present — `## Input: Where to Find the Data`,
+   `## Transformation Rules`, `## Examples`, `## Guardrails`?
+5. ✅ At least one ❌ counterexample in its `## Examples`? (C3)
+6. ✅ No guardrail naming this task sitting in the terminal quality-controls section? (C4)
+
+Across the prompt:
+7. ✅ Heading hierarchy consistent? (`#` for positions and task headings, `##` for subsections)
+8. ✅ Data sources, rules and examples co-located within each task section, not scattered?
 
 ### Step 4: Identify Sprawl Indicators
 
@@ -248,7 +258,8 @@ grep -n "John [0-9]" [prompt].gpt
 **Purpose:** Detect removed or weakened guardrails — the silent failure mode where a critical constraint disappears without touching the examples.
 
 **What counts as a guardrail:**
-- Sections titled GUARDRAILS, CRITICAL REMINDERS, Critical Blockers
+- The terminal quality-controls section, under any of its declared headings
+- A task section's own `## Guardrails`
 - Any paragraph containing: MANDATORY, MUST, REQUIRED, "Do not", "Never", "FORBIDDEN"
 - Coverage rules like "every scene must have at least N questions"
 - Output requirements list items with mandatory language
@@ -275,10 +286,10 @@ grep -n "John [0-9]" [prompt].gpt
    awk '/^# GUARDRAILS/,/^# [A-Z]/' /tmp/last-committed.gpt > /tmp/committed-guardrail-section.txt
    diff /tmp/committed-guardrail-section.txt /tmp/current-guardrail-section.txt
 
-   # Same for CRITICAL REMINDERS
-   awk '/^# CRITICAL REMINDERS/,/^# [A-Z]/' [prompt].gpt > /tmp/current-reminders.txt
-   awk '/^# CRITICAL REMINDERS/,/^# [A-Z]/' /tmp/last-committed.gpt > /tmp/committed-reminders.txt
-   diff /tmp/committed-reminders.txt /tmp/current-reminders.txt
+   # Same for each task's own Guardrails, where a task-specific constraint belongs
+   awk '/^## Guardrails/,/^#/' [prompt].gpt > /tmp/current-task-guardrails.txt
+   awk '/^## Guardrails/,/^#/' /tmp/last-committed.gpt > /tmp/committed-task-guardrails.txt
+   diff /tmp/committed-task-guardrails.txt /tmp/current-task-guardrails.txt
    ```
 
 4. **Flag any removal or softening:**
@@ -292,7 +303,7 @@ grep -n "John [0-9]" [prompt].gpt
 ## 🚨 GUARDRAIL INTEGRITY CHECK
 
 **GUARDRAILS section:** [Unchanged | Changed — see below]
-**CRITICAL REMINDERS section:** [Unchanged | Changed — see below]
+**Task `## Guardrails` sections:** [Unchanged | Changed — see below]
 
 ### Removed guardrails:
 🚨 **Line 47 (committed) — REMOVED in current version:**
@@ -744,7 +755,7 @@ Provide:
    - IMAGINE QUESTIONS (line 346) ✅ has Input/Transformation/Examples subsections
 ✅ Has COVERAGE & QUALITY CHECKLIST (line 516)
 ✅ Has INPUT DATA (line 553)
-✅ Has CRITICAL REMINDERS (line 572)
+✅ Has GUARDRAILS (line 572)
 ⚠️  Task sections could consolidate rules better (some rules scattered in examples)
 ✅ Heading hierarchy consistent: # for major sections, ## for subsections
 

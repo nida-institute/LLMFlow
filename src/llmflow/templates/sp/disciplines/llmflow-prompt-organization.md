@@ -30,9 +30,59 @@ Use this structure for prompts that transform structured JSON input into structu
 
 ---
 
-## The 8-Section Pattern
+## The established order
 
-### 1. YAML Frontmatter
+<!-- Rendered from data/prompt-structure.yaml. Do not hand-edit: the declaration is
+     the order, and an edit here is lost the next time it is rendered. -->
+
+| # | section | heading | required |
+| --- | --- | --- | --- |
+| 1 | `frontmatter` | _YAML frontmatter_ | required |
+| 2 | `produces` | `# WHAT THIS STEP PRODUCES` or `# WHAT THIS PROMPT PRODUCES` | required |
+| 3 | `variables` | `# VARIABLES` | conditional — C1 |
+| 4 | `system-role` | `# SYSTEM ROLE` | required |
+| 5 | `examples` | `# EXAMPLES` | conditional — C2 |
+| 6 | `data-sources` | `# DATA SOURCES` | required |
+| 7 | `input-data` | `# INPUT DATA` | required |
+| 8 | `output-schema` | `# OUTPUT SCHEMA` | required |
+| 9 | `band` | _one or more task sections — C5_ | required |
+| 10 | `quality-controls` | `# GUARDRAILS` or `# EVIDENCE DOCUMENTATION REQUIREMENTS` or `# VALIDATION RULES` or `# OUTPUT CONSTRAINTS` or `# COMPLIANCE REQUIREMENTS` | required |
+| 11 | `checklist` | `# COVERAGE & QUALITY CHECKLIST` or `# FINAL VALIDATION CHECKLIST` | required |
+
+**Conditional is not discretionary.** A position is omitted only when its side
+condition forbids writing it, never because writing it was work.
+
+Every task section at position 9 carries all four of these, in this order:
+
+- `## Input: Where to Find the Data`
+- `## Transformation Rules`
+- `## Examples`
+- `## Guardrails`
+
+| | side condition |
+| --- | --- |
+| C1 | `variables` present iff the prompt declares template variables |
+| C2 | `examples` present iff examples are cross-cutting rather than per-task |
+| C3 | every task `## Examples` contains at least one ❌ counterexample |
+| C4 | a guardrail naming one task appears in that task's `## Guardrails`, never in `quality-controls` |
+| C5 | a task heading is any `#` heading matching no other production |
+
+These headings are refused, with what to write instead:
+
+| heading | instead |
+| --- | --- |
+| `# CORE PRINCIPLES` | removed from the standard — 0 of 5 prompts ever carried one; cross-cutting principles belong in `# SYSTEM ROLE`, per-task ones in that task's `## Transformation Rules` |
+| `# CRITICAL REMINDERS` | not a `quality-controls` alternative; use one of its headings |
+| `# OUTPUT FORMAT` | the production is `# OUTPUT SCHEMA` |
+| `## Rules Specific to This Output Type` | the task subsection is `## Guardrails` |
+
+## What goes in each section
+
+Named, never numbered. The numbers belong to the table above, which is rendered from the
+declaration; a second numbered list here is how this document came to head eleven positions
+with a count of eight, and to carry a `CORE PRINCIPLES` no prompt had ever written.
+
+### Frontmatter
 ```yaml
 ---
 prompt:
@@ -53,7 +103,18 @@ Where a prompt genuinely renders differently with and without some context, that
 the pipeline, not a hidden condition in the prompt: use two prompts, or a `condition:` on the
 step.
 
-### 2. VARIABLES Section (if applicable)
+### WHAT THIS STEP PRODUCES
+
+```markdown
+# WHAT THIS STEP PRODUCES
+
+[What the step emits, and what a reader of the output can rely on]
+```
+
+`# WHAT THIS PROMPT PRODUCES` is the alternative heading. Required: all five prompts measured
+on 2026-09-16 already carried one, so nothing had to be written to promote it.
+
+### VARIABLES — conditional (C1)
 ```markdown
 # VARIABLES
 
@@ -61,7 +122,7 @@ step.
 - `{{var2}}` — description
 ```
 
-### 3. SYSTEM ROLE
+### SYSTEM ROLE
 ```markdown
 # SYSTEM ROLE
 
@@ -69,18 +130,11 @@ You are generating the [X] section of...
 [High-level purpose and philosophy]
 ```
 
-### 4. CORE PRINCIPLES
-```markdown
-# CORE PRINCIPLES
+Cross-cutting principles belong here. There is no `# CORE PRINCIPLES` section: it was removed
+from the standard on 2026-09-16, having been carried by none of the five prompts measured. A
+principle that governs one task belongs in that task's `## Transformation Rules`.
 
-## Principle 1: [Name]
-[Explanation with ✅/❌ examples if simple]
-
-## Principle 2: [Name]
-[Explanation]
-```
-
-### 5. EXAMPLES (Consolidated)
+### EXAMPLES — conditional (C2)
 ```markdown
 # EXAMPLES
 
@@ -100,7 +154,7 @@ You are generating the [X] section of...
 TODO sections for examples that need manual writing
 ```
 
-### 6. DATA SOURCES
+### DATA SOURCES
 ```markdown
 # DATA SOURCES
 
@@ -115,7 +169,7 @@ TODO sections for examples that need manual writing
 [Same pattern]
 ```
 
-### 7. INPUT DATA (Template Variables)
+### INPUT DATA
 ```markdown
 # INPUT DATA
 
@@ -130,7 +184,7 @@ TODO sections for examples that need manual writing
 \```
 ```
 
-### 8. OUTPUT SCHEMA
+### OUTPUT SCHEMA
 ```markdown
 # OUTPUT SCHEMA
 
@@ -161,23 +215,35 @@ enforced at the API boundary, so the fence caused no parse failures. The cost wa
 finding on every prompt, indefinitely. The "No markdown fences" instruction still belongs
 immediately before the example, and the Guardrails section should reinforce it.
 
-### 9. DOMAIN-SPECIFIC RULES
+### The task band
+
+One section per task, each carrying all four subsections in this order. A task heading is any
+`#` heading matching no other production (C5) — `# NOTICE QUESTIONS`, `# SEGMENTATION`.
+
 ```markdown
-# [DOMAIN] RULES
+# [TASK NAME]
 
-## Major Rule Category 1
-[Explanation with examples]
+## Input: Where to Find the Data
+[Which input, and which fields of it, this task reads]
 
-## Major Rule Category 2
-[Explanation with examples]
+## Transformation Rules
+[What to do]
+
+## Examples
+[At least one ❌ counterexample — C3]
+
+## Guardrails
+[What must not happen, for this task]
 ```
 
-For example:
-- "NOTICE VS. IMAGINE" (hearts/bodies)
-- "COVERAGE & QUALITY RULES"
-- "QUESTION STRUCTURE"
+**Group by task.** What to do, its examples and its boundary sit together, because that is the
+unit a model reads when performing one task. Pooling them measured worse: a task section whose
+examples show only the right answer teaches the shape without the boundary.
 
-### 10. QUALITY CONTROLS & CONSTRAINTS
+So a guardrail naming one task belongs in that task's `## Guardrails`, never in the terminal
+quality-controls section (C4), which narrows to what is genuinely cross-cutting.
+
+### QUALITY CONTROLS
 
 **Purpose:** Define what blocks LLM output from being valid. This section prevents common failure modes specific to your domain.
 
@@ -254,7 +320,7 @@ Every claim MUST quote Greek/Hebrew text:
 - Specific prohibitions (domain-specific escape hatches)
 - Citation format requirements (domain-appropriate verification)
 
-### 11. VALIDATION CHECKLIST (if needed)
+### CHECKLIST
 ```markdown
 # FINAL VALIDATION CHECKLIST
 

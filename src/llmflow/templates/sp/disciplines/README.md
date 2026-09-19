@@ -77,7 +77,7 @@ Standard organization pattern for Scripture Pipelines `.gpt` prompt files.
 **Source:** Originated in nida-institute/ears-to-hear repository
 
 **Key standards:**
-- 8-section structure (YAML → System Role → Principles → Examples → Data Sources → Input → Schema → Guardrails)
+- The section order, declared in `data/prompt-structure.yaml` and rendered into the discipline — not restated here, and not anywhere else
 - Input data grounding (every output field must document its input source)
 - No markdown fences in JSON output examples
 - Examples consolidated in one section (not scattered)
