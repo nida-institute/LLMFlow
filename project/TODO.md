@@ -564,6 +564,53 @@ build against.
       reverse check to `validate_gpt_body_declares_all_vars`
 - [ ] Add the same check to the `audit-prompts` skill — **the Captain's store, needs his approval**
 
+### 🐛 A skill added after a project was set up never reaches it, and `sp doctor` says all is well
+
+> **Found by the Captain 2026-09-19** in `nida-institute/discourse-flow`. `sp doctor` reports no
+> problems — *"✓ Skills in `~/.sp`: all 11 present and unchanged"* and *"✓ Skills are where Claude
+> Code reads them"* — while `ls .claude/skills` there returns **ten**. `health-check` is the missing
+> one. It was added 2026-09-10; that project predates it.
+>
+> **Not a catalogue problem, and an earlier diagnosis saying so was wrong.** `data/file-catalog.yaml`
+> names the *directory*, not its contents — `sp/skills/*` at lines 50–54 and 73–77, for `~/.sp` and
+> `.claude/skills/` respectively. Every skill is covered, and a fresh `sp init` today installs
+> `health-check` into both. The first diagnosis searched for the string `health-check`, did not find
+> it, and concluded it was uncatalogued; no skill name appears in that file.
+>
+> **The verified cause** is `doctor.py:651–664`, which asks whether Claude Code can see **any**
+> skills rather than all of them:
+>
+> ```python
+> if project_skills.is_dir() and any(
+>     (p / "SKILL.md").exists() for p in project_skills.iterdir() if p.is_dir()
+> ):
+>     found.append(".claude/skills (this project)")
+> ```
+>
+> One skill directory and the check is green. Its own comment says so, and
+> `tests/test_doctor.py:207–233` confirms the design by placing a single `load-context` skill and
+> asserting OK. **Nothing anywhere adds a newly-shipped skill to an already-initialised project, and
+> nothing reports its absence.**
+>
+> **Why no test caught it.** `tests/test_catalog.py:203`, `test_skills_derive_from_shipped_templates`,
+> is exactly the right comparison — shipped against catalogued — but line 208 restricts it to
+> `Scope.SP_HOME`. The project destination has only `test_claude_skills_are_catalogued` at line 105,
+> which ends at `assert skill_entries`: that *an* entry exists, not that it delivers everything.
+>
+> **Two projects, so not a local accident:** `paratext-copilot` lacks `health-check` too.
+- [ ] **File this as a GitHub issue** — the convention at the top of this file says bugs go there.
+      Not filed; creating issues needs the Captain
+- [ ] **Ruling needed first:** should `sp doctor` *report* a project missing a shipped skill, or
+      should `sp init --update` *install* it? Reporting is the smaller change and matches what
+      doctor is for; installing is what actually closes the gap
+- [ ] Extend `test_skills_derive_from_shipped_templates` to `Scope.PROJECT` — cheap, and it guards
+      a catalogue omission even though the catalogue is not what failed here
+- [ ] **Then the missing test:** `sp doctor` flags a project whose `.claude/skills/` lacks a skill
+      the package ships. It fails today, which is the point
+- [ ] **Unverified, establish before building:** whether the `Scope.PROJECT` check at
+      `doctor.py:635` (*"Project files sp owns: all 11 present"*) includes the project-skills
+      entries. If it does, that count ought to have caught this
+
 ### 🐛 `sp init`'s write paths — three defects, found migrating discourse-flow → #215
 > Filed together because they share a cause: `sp init` writes through paths `sp doctor` has
 > already hardened, and reports failure inconsistently.
