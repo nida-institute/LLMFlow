@@ -29,10 +29,16 @@ def _repo() -> Path:
 
 
 DISCIPLINE = "src/llmflow/templates/sp/disciplines/llmflow-prompt-organization.md"
-SKILLS = (
-    ".claude/skills/audit-prompts/SKILL.md",
-    "src/llmflow/templates/sp/skills/audit-prompts/SKILL.md",
-)
+
+#: The source of the skill. This is the copy under version control, so it is the one every
+#: check below must hold.
+SKILL = "src/llmflow/templates/sp/skills/audit-prompts/SKILL.md"
+
+#: The installed copy in this repository. `.claude/*` is gitignored here, so it is absent
+#: from a fresh clone: `sp init` writes it from the template. Checked when it happens to be
+#: present, never required — a test that reads it unconditionally passes locally and fails
+#: in CI on a file that was never meant to be committed.
+INSTALLED = ".claude/skills/audit-prompts/SKILL.md"
 
 #: Headings a prompt written to the old skill text would carry, each refused by the grammar.
 #: Named individually so a failure says which trap is still set (design §5).
@@ -55,32 +61,40 @@ def test_the_declaration_exists_and_states_the_order():
     assert prompt_structure.conditions(), "C1-C5 are what the grammar cannot express; none declared"
 
 
-@pytest.mark.parametrize("skill", SKILLS)
 @pytest.mark.parametrize("heading", sorted(REFUSED))
-def test_the_skill_states_no_refused_heading(skill: str, heading: str):
+def test_the_skill_states_no_refused_heading(heading: str):
     """The skill must not teach a structure the grammar rejects.
 
     Four failures came from one document, none of them the author's fault (design §5).
     """
-    text = (_repo() / skill).read_text(encoding="utf-8")
+    text = (_repo() / SKILL).read_text(encoding="utf-8")
     assert heading not in text, (
-        f"{skill} still names {heading!r} — {REFUSED[heading]}. A session drafting to this "
+        f"{SKILL} still names {heading!r} — {REFUSED[heading]}. A session drafting to this "
         "produces a prompt the ruling refuses, and /audit-prompts then passes it."
     )
 
 
-@pytest.mark.parametrize("skill", SKILLS)
-def test_the_skill_points_at_the_discipline_rather_than_restating_it(skill: str):
-    text = (_repo() / skill).read_text(encoding="utf-8")
+def test_the_skill_points_at_the_discipline_rather_than_restating_it():
+    text = (_repo() / SKILL).read_text(encoding="utf-8")
     assert "llmflow-prompt-organization.md" in text, (
-        f"{skill} must name the discipline as the authority for the order"
+        f"{SKILL} must name the discipline as the authority for the order"
     )
 
 
-def test_the_two_skill_copies_stay_byte_identical():
-    """`sp init` reinstalls the template over the working copy, so a fix to one alone is undone."""
-    first, second = (( _repo() / s).read_bytes() for s in SKILLS)
-    assert first == second, f"{SKILLS[0]} and {SKILLS[1]} have diverged"
+def test_an_installed_copy_has_not_drifted_from_the_template():
+    """Where this repository has the skill installed, it must match what ships.
+
+    Skipped rather than failed when absent: `.claude/*` is gitignored here, so a fresh clone
+    has none and `sp init` writes it. The check is worth keeping for a working tree, because a
+    stale installed copy is what a session in this repository actually reads.
+    """
+    installed = _repo() / INSTALLED
+    if not installed.is_file():
+        pytest.skip(f"{INSTALLED} is not installed in this working tree")
+    assert installed.read_bytes() == (_repo() / SKILL).read_bytes(), (
+        f"{INSTALLED} has drifted from {SKILL}. Run `sp init --update` or `sp doctor` to "
+        "refresh it; editing it in place is lost on the next run."
+    )
 
 
 def test_the_discipline_renders_the_declared_order_verbatim():
