@@ -39,7 +39,7 @@ files:
   status: identical
 - set: disciplines
   name: project-tracking.md
-  sha256: 7cde4cbd3cc52978a004b1f4df21af22f5ceadfcc3981106dd2db7f6a9e7e3ee
+  sha256: 92190e8e6a1262fdefbe61d5093c96a72c69cd9e6e49d2e25768f3764a56ac49
   status: identical
 - set: disciplines
   name: surface-decisions.md
