@@ -48,7 +48,7 @@ from pathlib import Path
 from typing import Optional
 
 from llmflow import paths as _paths
-from llmflow.file_catalog import Entry, Scope, Source, managed_by_doctor, shipped_content, shipped_path
+from llmflow.file_catalog import Entry, Scope, managed_by_doctor, shipped_content, shipped_path
 from llmflow.resources import RESOURCES_DIRNAME
 from llmflow.utils.versification import MAPPINGS_DIRNAME
 
@@ -234,27 +234,20 @@ def _diverged(entry: Entry, target: Path) -> bool:
         return True
 
 
-def _repair_group(
-    entries: list[Entry],
-    root: Path,
-    restore_when_absent: bool,
-) -> tuple[list[str], list[str], list[str]]:
+def _repair_group(entries: list[Entry], root: Path) -> tuple[list[str], list[str]]:
     """Restore the entries that need it.
 
-    Returns (restored, failed, still_missing) as lists of catalog paths.
+    Returns (restored, failed) as lists of catalog paths. Absence and divergence are the
+    same case: sp owns the file, so it is written either way. Captain, 2026-08-19, asked
+    whether the repair covered absence as well as drift — *"Warn, repair, and say you
+    repaired it."*
     """
     restored: list[str] = []
     failed: list[str] = []
-    still_missing: list[str] = []
 
     for entry in entries:
         target = root / entry.path
-        exists = target.exists()
-
-        if not exists and not restore_when_absent:
-            still_missing.append(entry.path)
-            continue
-        if exists and not _diverged(entry, target):
+        if target.exists() and not _diverged(entry, target):
             continue
 
         try:
@@ -263,7 +256,7 @@ def _repair_group(
         except Exception:
             failed.append(entry.path)
 
-    return restored, failed, still_missing
+    return restored, failed
 
 
 def _migrate_resources_dir(sp_home: Path) -> Optional[Check]:
@@ -413,6 +406,40 @@ def _store_location_check() -> Optional[Check]:
     )
 
 
+def _why_unresolved(definition) -> str:
+    """Name the cause when a registration's path does not exist, or "" when it is plain.
+
+    A path that named an unregistered dataset resolved to `~/.sp/data/<dataset>/<path>` and
+    was reported as that — a directory that does not exist on a machine whose corpora are
+    clones elsewhere. The reader is shown a symptom and has to work back through two files
+    to find that the dataset was never registered. Said plainly, it is one line to act on.
+
+    Derived, never guessed: the suggestion is offered only when a registered dataset really
+    does contain the file.
+    """
+    from llmflow import resources as _resources
+
+    raw = str(definition.get("path") or "")
+    head, _, tail = raw.partition("/")
+    if not tail or Path(raw).is_absolute():
+        return ""
+    if _resources.dataset_registration(head):
+        return ""
+
+    # Candidates come from the store directory, so a dataset registered later is considered
+    # without this function being edited.
+    store = _paths.sp_home() / _resources.DATASETS_DIRNAME
+    for declaration in sorted(store.glob("*.yaml")) if store.is_dir() else []:
+        entry = _resources.dataset_registration(declaration.stem)
+        root = str((entry or {}).get("path") or "")
+        if root and (Path(root).expanduser() / tail).exists():
+            return (
+                f" — no dataset is registered as {head!r}, but {declaration.stem!r} holds "
+                f"{tail}, so this wants to read {declaration.stem}/{tail}"
+            )
+    return f" — no dataset is registered as {head!r}"
+
+
 def _resources_check(sp_home: Path) -> Check:
     """Report what this machine has registered, and whether it still resolves."""
     from llmflow import resources as _resources
@@ -430,27 +457,40 @@ def _resources_check(sp_home: Path) -> Check:
 
     broken = []
     for identifier, definition in sorted(registered.items()):
-        raw = str(definition.get("path") or "")
-        if raw:
-            path = Path(raw)
-            if not path.is_absolute() and definition.get("dataset"):
-                path = sp_home / "data" / str(definition["dataset"]) / raw
+        # Resolved by the engine's own resolver, never by a copy of it here. Doctor used to
+        # reimplement only `resolve_declared_path`'s last branch — `~/.sp/data/<dataset>/<path>`
+        # — so it never consulted the datasets store and never understood a path whose first
+        # segment is a registered dataset id. That is the form the resolver documents and
+        # `sp resource set` writes, so a correctly configured resource was reported as pointing
+        # at nothing, sending the reader to repair what was already right.
+        if definition.get("path"):
+            try:
+                path = _resources.resolve_path(definition)
+            except ValueError as exc:
+                broken.append(f"{identifier} ({exc})")
+                continue
         elif definition.get("base_dir") and definition.get("project"):
             path = Path(str(definition["base_dir"])) / str(definition["project"])
         else:
             broken.append(f"{identifier} (names no path)")
             continue
         if not path.exists():
-            broken.append(f"{identifier} -> {path}")
-
-    from llmflow import resources as _resources_mod
+            broken.append(f"{identifier} -> {path}{_why_unresolved(definition)}")
 
     unknown_version = []
     for identifier, definition in sorted(registered.items()):
         dataset = definition.get("dataset")
         if not dataset:
             continue  # a path of the user's own; its version is theirs to know
-        if _resources_mod.installed_version(sp_home / "data" / str(dataset)) is None:
+        # Where the dataset actually is, by the same rule the resolver uses: a registered id
+        # names its own location, and only an unregistered one lives under the store. The old
+        # line looked solely in `~/.sp/data/<dataset>`, so a corpus registered as a clone
+        # elsewhere was reported as of unknown version wherever its version file sat.
+        entry = _resources.dataset_registration(str(dataset))
+        root = Path(str(entry["path"])).expanduser() if entry and entry.get("path") else (
+            sp_home / "data" / str(dataset)
+        )
+        if _resources.installed_version(root) is None:
             unknown_version.append(identifier)
 
     listed = ", ".join(sorted(registered))
@@ -491,7 +531,6 @@ def _group_check(
     entries: list[Entry],
     root: Path,
     total: int,
-    restore_when_absent: bool = True,
     remedy: str = "Run `sp init --update`.",
 ) -> Check:
     if not total:
@@ -503,7 +542,7 @@ def _group_check(
             remedy="Reinstall Scripture Pipelines.",
         )
 
-    restored, failed, missing = _repair_group(entries, root, restore_when_absent)
+    restored, failed = _repair_group(entries, root)
 
     if failed:
         return Check(
@@ -523,14 +562,6 @@ def _group_check(
                 + ", ".join(sorted(restored))
             ),
             repaired=True,
-        )
-    if missing:
-        return Check(
-            check_id,
-            f"{label}: {total - len(missing)}/{total} present",
-            Severity.WARNING,
-            detail="Missing: " + ", ".join(sorted(missing)),
-            remedy=remedy,
         )
     return Check(check_id, f"{label}: all {total} present and unchanged", Severity.OK)
 
@@ -623,72 +654,22 @@ def run_doctor(
     add(_resources_check(sp_home))
 
     # --- project files sp owns ----------------------------------------------
-    # Divergence only. A project file that is simply absent is sp init's business.
-    #
-    # Selected by what sp *owns* — `managed_by_doctor()` has already narrowed to `generated` —
-    # not by where the content comes from. This used to read `source is Source.CONSTANT`, which
-    # silently stopped repairing eighteen files the moment their content moved from a Python
-    # literal to a shipped template. Where the bytes live is not a fact about ownership.
-    project_entries = [
-        e
-        for e in catalog
-        if e.scope is Scope.PROJECT and e.source in (Source.CONSTANT, Source.TEMPLATE)
-    ]
-    present = [e for e in project_entries if (project_dir / e.path).exists()]
-    if present:
-        add(
-            _group_check(
-                "project_context",
-                "Project files sp owns",
-                present,
-                project_dir,
-                total=len(present),
-                restore_when_absent=False,
-                remedy="Run `sp init --update` in this project.",
-            )
+    # Ownership is decided once, in the catalog: `managed_by_doctor()` is `policy is
+    # GENERATED`, and `Policy.EXAMPLE` is what keeps the starter files out — they are
+    # `sp init`'s and nothing else's. Nothing is re-decided here. A second filter on
+    # `source` used to sit on this line, which is where the bytes travel from rather
+    # than a fact about ownership, and it excluded every project skill.
+    project_entries = [e for e in catalog if e.scope is Scope.PROJECT]
+    add(
+        _group_check(
+            "project_context",
+            "Project files sp owns",
+            project_entries,
+            project_dir,
+            total=len(project_entries),
+            remedy="Run `sp init --update` in this project.",
         )
-
-    # --- can Claude Code actually see any skills? ---------------------------
-    # ~/.sp/skills is NOT a location Claude Code reads. Skills only become invocable from
-    # ~/.claude/skills/ or <repo>/.claude/skills/ (plan D1).
-    project_skills = project_dir / ".claude" / "skills"
-    personal_skills = claude_home / "skills"
-    found: list[str] = []
-    if project_skills.is_dir() and any(
-        (p / "SKILL.md").exists() for p in project_skills.iterdir() if p.is_dir()
-    ):
-        found.append(".claude/skills (this project)")
-    if personal_skills.is_dir() and any(
-        (p / "SKILL.md").exists() for p in personal_skills.iterdir() if p.is_dir()
-    ):
-        found.append("~/.claude/skills (personal)")
-
-    if found:
-        add(
-            Check(
-                "skills_reachable",
-                "Skills are where Claude Code reads them",
-                Severity.OK,
-                detail="Found in: " + ", ".join(found),
-            )
-        )
-    else:
-        add(
-            Check(
-                "skills_reachable",
-                "No skills are where Claude Code can find them",
-                # WARNING, not ERROR: a project that has not had `sp init` run in it is
-                # exactly what the remedy addresses, and ERROR is reserved for what doctor
-                # cannot fix — a build shipping no templates, or a repair that fails to
-                # write. `ai_context` and `registered` report the same cause as warnings.
-                Severity.WARNING,
-                detail=(
-                    "~/.sp/skills is not a location Claude Code reads. Slash commands such as "
-                    "/load-context will not exist until skills are in .claude/skills."
-                ),
-                remedy="Run `sp init` in this project to copy them into .claude/skills/.",
-            )
-        )
+    )
 
     # --- project-side AI context -------------------------------------------
     ai_context = project_dir / "docs" / "ai-context"

@@ -663,7 +663,7 @@ def _write_catalogued_files(base_dir: Path, *, update: bool, no_examples: bool) 
         if current is None:
             target.write_text(content, encoding="utf-8")
             logger.info(f"Created {entry.path}")
-        elif update and entry.policy is fc.Policy.GENERATED:
+        elif update and entry.policy in (fc.Policy.GENERATED, fc.Policy.EXAMPLE):
             if current == content:
                 logger.debug(f"{entry.path} unchanged; left in place")
             else:

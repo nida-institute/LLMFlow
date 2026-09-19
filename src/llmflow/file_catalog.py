@@ -42,6 +42,16 @@ class Policy(enum.Enum):
     USER_OWNED = "user-owned"
     """sp never writes it."""
 
+    EXAMPLE = "example"
+    """A starter example. `sp init` creates it and `sp init --update` refreshes it when
+    present; `sp doctor` never touches it.
+
+    This is the whole difference between `sp doctor` and `sp init --update`, which are
+    otherwise the same act. Captain, 2026-09-19: *"the hello world examples are the only
+    difference between the two commands. only `sp init` installs them."* It is a property
+    of the row rather than a flag in code, so the difference is stated once, where a
+    reader of the catalog can see which files it applies to."""
+
 
 class Scope(enum.Enum):
     PROJECT = "project"
@@ -168,7 +178,7 @@ def _expand_group(spec: dict[str, Any]) -> list[Entry]:
             _entry_from(
                 spec,
                 path=spec["path"].format(name=match.name),
-                template=template if spec["source"] == Source.TEMPLATE.value else None,
+                template=template,
             )
         )
     return found
@@ -268,8 +278,13 @@ def shipped_path(entry: Entry) -> Optional[Path]:
 
     Skills are directories — the whole tree is the unit, not a single file — so this is
     the resolver that works for both.
+
+    Keyed on the template an entry declares, never on `source`. `source` says where a
+    copy travels from during an install; it is not a statement about whether the package
+    ships the bytes. Reading it as one left every `source: sp-home` entry — which is
+    every project skill — with no shipped path, so nothing could compare or restore one.
     """
-    if entry.source is Source.TEMPLATE and entry.template:
+    if entry.template:
         path = _templates_dir() / entry.template
         return path if path.exists() else None
     return None

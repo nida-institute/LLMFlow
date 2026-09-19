@@ -598,18 +598,26 @@ build against.
 > which ends at `assert skill_entries`: that *an* entry exists, not that it delivers everything.
 >
 > **Two projects, so not a local accident:** `paratext-copilot` lacks `health-check` too.
+- [x] **Fixed 2026-09-19, and the ruling it was waiting on dissolved.** Report-versus-install was
+      the wrong question: the Captain ruled that `sp doctor` and `sp init --update` are synonyms
+      and share code, so both restore. The starter examples are the only difference, and that is
+      now `policy: example` on four catalog rows rather than a flag in code.
+- [x] **Answered — the `Scope.PROJECT` check excluded project skills, twice over.** The filter at
+      `doctor.py:635` was `source in (CONSTANT, TEMPLATE)` and project skills are `source: sp-home`;
+      and the check took its expected count from the files that existed, so absence could not be
+      represented. Both deleted, with `skills_reachable` and `restore_when_absent`. Guarded by
+      `tests/test_doctor.py::test_a_project_missing_a_shipped_skill_is_not_reported_green`, which
+      runs through `main(["init"])` and `main(["doctor"])` rather than the Python API.
+- [x] **The CLI now has a specification** — `docs/ai-context/sp/command-line.md`, shipped to every
+      project, with `tests/test_cli_is_documented.py` failing in both directions when it and the
+      parser disagree. Nothing had described the commands at all.
+- [ ] **Still to do: `sp init --update` stops having its own code and calls doctor** (§4.2 of
+      `plan-init-doctor-unification.md`). They now *behave* the same; they are not yet one
+      implementation, which is what the Captain ruled on 2026-08-23 and again on 2026-09-19
+- [ ] **Still to do: replace the hello-world examples with scripture examples** (Captain,
+      2026-09-19). `policy: example` is the row that says which four files those are
 - [ ] **File this as a GitHub issue** — the convention at the top of this file says bugs go there.
       Not filed; creating issues needs the Captain
-- [ ] **Ruling needed first:** should `sp doctor` *report* a project missing a shipped skill, or
-      should `sp init --update` *install* it? Reporting is the smaller change and matches what
-      doctor is for; installing is what actually closes the gap
-- [ ] Extend `test_skills_derive_from_shipped_templates` to `Scope.PROJECT` — cheap, and it guards
-      a catalogue omission even though the catalogue is not what failed here
-- [ ] **Then the missing test:** `sp doctor` flags a project whose `.claude/skills/` lacks a skill
-      the package ships. It fails today, which is the point
-- [ ] **Unverified, establish before building:** whether the `Scope.PROJECT` check at
-      `doctor.py:635` (*"Project files sp owns: all 11 present"*) includes the project-skills
-      entries. If it does, that count ought to have caught this
 
 ### 🐛 `sp init`'s write paths — three defects, found migrating discourse-flow → #215
 > Filed together because they share a cause: `sp init` writes through paths `sp doctor` has

@@ -1529,7 +1529,7 @@
         },
         {
           "name": "_repair_group",
-          "signature": "_repair_group(entries: list[Entry], root: Path, restore_when_absent: bool) -> tuple[list[str], list[str], list[str]]",
+          "signature": "_repair_group(entries: list[Entry], root: Path) -> tuple[list[str], list[str]]",
           "doc": "Restore the entries that need it."
         },
         {
@@ -1548,13 +1548,18 @@
           "doc": "Warn about a redirected store or data directory (#217)."
         },
         {
+          "name": "_why_unresolved",
+          "signature": "_why_unresolved(definition) -> str",
+          "doc": "Name the cause when a registration's path does not exist, or \"\" when it is plain."
+        },
+        {
           "name": "_resources_check",
           "signature": "_resources_check(sp_home: Path) -> Check",
           "doc": "Report what this machine has registered, and whether it still resolves."
         },
         {
           "name": "_group_check",
-          "signature": "_group_check(check_id: str, label: str, entries: list[Entry], root: Path, total: int, restore_when_absent: bool = True, remedy: str = 'Run `sp init --update`.') -> Check",
+          "signature": "_group_check(check_id: str, label: str, entries: list[Entry], root: Path, total: int, remedy: str = 'Run `sp init --update`.') -> Check",
           "doc": ""
         },
         {
@@ -5319,6 +5324,6 @@
   ],
   "summary": {
     "total_modules": 89,
-    "total_functions": 843
+    "total_functions": 844
   }
 }

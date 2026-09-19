@@ -2,7 +2,59 @@
 
 ## Unreleased
 
+### Fixed
+
+- **`sp doctor` reports and restores a project file that is absent, skills included.** A skill
+  added to Scripture Pipelines after a project was set up never reached that project, and doctor
+  called it green. Two projects were in that state; `health-check` was missing from both.
+
+  Three separate things had to be wrong for it to be invisible, and each was a second place where
+  one fact was decided. Ownership was settled in the catalog as `policy: generated` and then
+  settled *again* in doctor by `source in (CONSTANT, TEMPLATE)` — `source` says where bytes travel
+  from during an install, which is not a statement about ownership, and it excluded every project
+  skill. The project check then built its expected set out of the files that already existed and
+  counted against that, so an absent file could not be represented. And a separate reachability
+  check asked whether Claude Code could see *any* skill rather than all of them.
+
+  All three are deleted rather than corrected. Ownership is read once, from the catalog.
+  `_repair_group` no longer distinguishes absence from drift — sp owns the file, so it is written
+  either way. The standard it now meets, set 2026-08-19: *"Warn, repair, and say you repaired
+  it."* The reachability check is gone; a project missing a skill is named in the report that
+  already exists for missing files.
+
+  `shipped_path` now resolves on the template an entry declares rather than on its `source`, and
+  `_expand_group` keeps the template it had already computed instead of discarding it for
+  `source: sp-home` rows. Those two lines are why a project skill had no shipped path and could
+  therefore be neither compared nor restored.
+
+- **`sp doctor` resolves a resource the way the engine does.** It reimplemented only the last
+  branch of `resolve_declared_path` — `~/.sp/data/<dataset>/<path>` — so it never consulted the
+  datasets store and never understood a path whose first segment is a registered dataset id.
+  That is the form the resolver documents and `sp resource set` writes, so a correctly configured
+  resource was reported as pointing at nothing while the engine read it without trouble. It now
+  calls `resolve_path`. The version check beside it looked in the same wrong place and now asks
+  where the dataset is actually registered.
+
+  When a path genuinely does not resolve, the report says why rather than printing where it gave
+  up: an unregistered dataset id is named as one, and where some registered dataset does hold the
+  file, that dataset is named. Offered only when the file is really there — a suggestion is
+  derived or it is not made.
+
 ### Added
+
+- **`Policy.EXAMPLE`, and a statement of what the three project commands do.** The starter
+  examples are the only difference between `sp init --update` and `sp doctor`, which are otherwise
+  the same act. Captain, 2026-09-19: *"the hello world examples are the only difference between the
+  two commands. only `sp init` installs them."* That is now a property of the four catalog rows
+  rather than a flag in code and a comment, so the files it covers are the files that carry it,
+  and `restore_when_absent` is deleted.
+
+  `docs/ai-context/sp/command-line.md` is new and ships to every project: every `sp` command, which
+  files sp owns and which are the project's, and the contract that **either `sp doctor` or
+  `sp init --update` leaves a project up to date**. Nothing had stated any of it, which is why a
+  ruling made on 2026-08-23 went unbuilt and a first diagnosis of this bug was wrong.
+  `tests/test_cli_is_documented.py` fails when the CLI gains or loses a command the reference does
+  not match, in both directions, so the list cannot fall behind the program.
 
 - **`type: alignment` — the translation's text for a span named by source word ids** (#238). The
   other side of `spans:` on `type: scripture`: where a unit of analysis opens or closes inside a

@@ -32,6 +32,7 @@ Design constraints these tests pin:
   are never touched.
 """
 
+import shutil
 from pathlib import Path
 
 import pytest
@@ -204,34 +205,48 @@ def test_filesystem_access_is_never_reported(empty_home: Path, project: Path):
     assert "filesystem-access" not in rendered
 
 
-def test_reports_where_claude_code_can_actually_find_skills(tmp_path: Path, project: Path):
-    """~/.sp/skills is not a location Claude Code reads (plan D1).
+def test_a_project_missing_a_shipped_skill_is_not_reported_green(
+    tmp_path: Path, monkeypatch, capsys
+):
+    """A skill shipped after a project was set up must be noticed and restored.
 
-    Skills must reach ~/.claude/skills/ or <repo>/.claude/skills/. A machine with a
-    populated ~/.sp/skills and neither of those has no working slash commands, which is
-    precisely the reported failure — so this must be surfaced, not passed over.
+    `nida-institute/discourse-flow` had ten of the eleven skills and `sp doctor` called
+    both skill checks green. Neither could have said otherwise: the project check built
+    its expected set from the files that already existed, so an absent one could not be
+    counted, and the reachability check asked whether *any* skill was present.
+
+    Covered by the ruling this module's docstring already records — *"Warn, repair, and
+    say you repaired it"* — which was given about absence as well as drift.
+
+    Run through `main([...])`, the surface a user has. The bug was reported from a real
+    `sp doctor` run, and a test calling `run_doctor` directly cannot see the printed
+    report or the exit code that run was judged by.
     """
-    from llmflow.cli_utils import install_global_disciplines, install_global_skills
+    from llmflow.cli import main
 
-    sp_home = tmp_path / ".sp"
-    install_global_disciplines(sp_home=sp_home)
-    install_global_skills(sp_home=sp_home)
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("SP_HOME", str(home / ".sp"))
+    proj = tmp_path / "project"
+    proj.mkdir()
+    monkeypatch.chdir(proj)
 
-    checks = _by_id(
-        run_doctor(sp_home=sp_home, project_dir=project, claude_home=tmp_path / "no-claude")
-    )
-    assert checks["skills_reachable"].severity is not Severity.OK
+    main(["init"])
+    capsys.readouterr()
 
-    # Now place a project-scoped skill; it must be recognised as reachable.
-    skill = project / ".claude" / "skills" / "load-context"
-    skill.mkdir(parents=True)
-    (skill / "SKILL.md").write_text("# load-context\n", encoding="utf-8")
+    installed = proj / ".claude" / "skills"
+    victim = sorted(p.name for p in installed.iterdir() if p.is_dir())[0]
+    shutil.rmtree(installed / victim)
 
-    checks = _by_id(
-        run_doctor(sp_home=sp_home, project_dir=project, claude_home=tmp_path / "no-claude")
-    )
-    assert checks["skills_reachable"].severity is Severity.OK
-    assert ".claude/skills" in checks["skills_reachable"].detail
+    with pytest.raises(SystemExit) as exited:
+        main(["doctor"])
+    out = capsys.readouterr().out
+
+    assert victim in out, f"the missing {victim} skill was not named:\n{out}"
+    assert "restored" in out, f"a missing skill was reported but not repaired:\n{out}"
+    assert (installed / victim / "SKILL.md").exists(), "named as missing but not restored"
+    assert exited.value.code == 0, f"a repaired project is not a machine fault:\n{out}"
 
 
 def test_a_freshly_initialised_project_has_nothing_to_repair(tmp_path: Path, monkeypatch):
@@ -448,7 +463,10 @@ def test_ai_context_in_subdirectories_is_not_reported_empty(tmp_path: Path, proj
 
     assert "empty" not in check.title, f"a populated tree reported as empty: {check.title}"
     assert check.severity is Severity.OK
-    assert "3" in check.title, f"expected all three files counted: {check.title}"
+    for planted in ("sp/rules.md", "sp/index.md", "project/overview.md"):
+        assert planted in check.detail, (
+            f"{planted} sits one level down and was not found: {check.detail}"
+        )
 
 
 def test_ai_context_names_the_half_each_document_belongs_to(tmp_path: Path, project: Path):
@@ -624,6 +642,96 @@ def test_a_redirected_data_directory_is_reported(tmp_path: Path, project: Path, 
     assert "elsewhere" in (check.detail or "")
     assert check.remedy, "and it says what to do about it"
     assert report.ok, "but not an error: a container setting it deliberately is not broken"
+
+
+def test_a_resource_resolving_through_a_registered_dataset_is_not_called_missing(
+    tmp_path: Path, project: Path, monkeypatch
+):
+    """Doctor must resolve a resource the way the engine does, not with its own copy.
+
+    `resolve_declared_path` takes the dataset id from the **first segment of the path**
+    and looks it up in the datasets store. Doctor reimplemented only that resolver's last
+    branch — `~/.sp/data/<dataset>/<path>` — so every registration written in the form the
+    resolver documents was reported as pointing at nothing, while `sp resource set`
+    resolved the identical value correctly two commands earlier.
+
+    A check that says a correctly configured machine is broken is worse than no check: it
+    sends someone to repair what is already right.
+    """
+    sp_home = tmp_path / ".sp"
+    monkeypatch.setenv("SP_HOME", str(sp_home))
+
+    corpus = tmp_path / "clone" / "macula-greek"
+    wanted = corpus / "SBLGNT" / "tsv" / "text.tsv"
+    wanted.parent.mkdir(parents=True)
+    wanted.write_text("word\n", encoding="utf-8")
+
+    datasets = sp_home / "datasets"
+    datasets.mkdir(parents=True)
+    (datasets / "macula-greek-lowfat.yaml").write_text(
+        f"id: macula-greek-lowfat\npath: {corpus}\n", encoding="utf-8"
+    )
+
+    registrations = sp_home / "registrations"
+    registrations.mkdir(parents=True, exist_ok=True)
+    (registrations / "SBLGNT.yaml").write_text(
+        "id: SBLGNT\n"
+        "dataset: macula-greek-lowfat\n"
+        "path: macula-greek-lowfat/SBLGNT/tsv/text.tsv\n",
+        encoding="utf-8",
+    )
+
+    check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["resources"]
+
+    assert "point at nothing" not in check.title, (
+        f"a resource that resolves to an existing file was called missing: {check.detail}"
+    )
+    assert check.severity is not Severity.WARNING, check.detail
+
+
+def test_an_unresolved_path_names_the_cause_and_the_dataset_that_holds_it(
+    tmp_path: Path, project: Path, monkeypatch
+):
+    """Say why a path does not resolve, not just where it ended up.
+
+    A path naming an unregistered dataset fell back to `~/.sp/data/<dataset>/<path>` and was
+    reported as that — a directory that does not exist on a machine whose corpora are clones
+    elsewhere. The reader sees a missing file and has to work back through two files to find
+    that the dataset was never registered.
+
+    The suggestion is derived, not guessed: it is offered only when a registered dataset
+    really does hold the file.
+    """
+    sp_home = tmp_path / ".sp"
+    monkeypatch.setenv("SP_HOME", str(sp_home))
+
+    corpus = tmp_path / "clone" / "macula-greek"
+    (corpus / "SBLGNT" / "tsv").mkdir(parents=True)
+    (corpus / "SBLGNT" / "tsv" / "text.tsv").write_text("word\n", encoding="utf-8")
+
+    datasets = sp_home / "datasets"
+    datasets.mkdir(parents=True)
+    (datasets / "macula-greek-lowfat.yaml").write_text(
+        f"id: macula-greek-lowfat\npath: {corpus}\n", encoding="utf-8"
+    )
+
+    registrations = sp_home / "registrations"
+    registrations.mkdir(parents=True, exist_ok=True)
+    (registrations / "SBLGNT.yaml").write_text(
+        "id: SBLGNT\n"
+        "dataset: Clear-Bible/macula-greek\n"
+        "path: Clear-Bible/SBLGNT/tsv/text.tsv\n",
+        encoding="utf-8",
+    )
+
+    check = _by_id(run_doctor(sp_home=sp_home, project_dir=project))["resources"]
+
+    assert "no dataset is registered as 'Clear-Bible'" in check.detail, (
+        f"the cause was not named: {check.detail}"
+    )
+    assert "macula-greek-lowfat" in check.detail, (
+        f"a registered dataset holds the file and was not offered: {check.detail}"
+    )
 
 
 def test_a_registration_pointing_nowhere_is_reported(tmp_path: Path, project: Path):
