@@ -128,6 +128,163 @@ def test_the_public_parser_accepts_both_styles(written):
     assert parse_bible_reference(written)["book_code"] == "MRK"
 
 
+@pytest.mark.parametrize(
+    "written,code",
+    [
+        ("Mark", "MRK"), ("MRK", "MRK"), ("1JN", "1JN"),
+        ("1 John", "1JN"), ("2 Timothy", "2TI"), ("Song of Songs", "SNG"),
+    ],
+)
+def test_a_book_named_alone_parses_however_many_words_its_name_has(written, code):
+    """A whole book is a legal reference, and a book's name is not always one word.
+
+    `books.resolve` handled every one of these already; the parser then discarded the answer
+    for any name containing a space, so a whole-book reference worked for `Mark` and not for
+    `1 John`. Whole-book is the form a book-level pipeline passes, so the failure surfaced only
+    when someone ran one on a numbered book.
+    """
+    reference = parse_passage_ref(written)
+    assert reference.book == code
+    assert reference.start_chapter is None, "naming a book alone means the whole book"
+
+
+@pytest.mark.parametrize(
+    "written",
+    ["Mark foo", "Mark and John", "The Gospel of Mark", "Song of", "of Songs", "notabook", "12"],
+)
+def test_a_string_that_names_no_book_is_still_refused(written):
+    """The permissive half must not become permissive about nonsense."""
+    with pytest.raises(ValueError):
+        parse_passage_ref(written)
+
+
+@pytest.mark.parametrize(
+    "written",
+    ["Mark 1:1-2:2", "Mark 1:1 - 2:2", "Mark 1:1 -2:2", "Mark 1:1- 2:2"],
+)
+def test_a_range_parses_however_it_is_spaced(written):
+    """The tail pattern allows spaces around the dash; the split must not make that unreachable.
+
+    Splitting the book from the tail on the last whitespace token contradicted the pattern:
+    `Mark 1:1 - 2:2` left `Mark 1:1 -` as the book name. Where the book ends is a question for
+    the declaration, not for whitespace.
+    """
+    reference = parse_passage_ref(written)
+    assert (reference.book, reference.start_chapter, reference.start_verse) == ("MRK", 1, 1)
+    assert (reference.end_chapter, reference.end_verse) == (2, 2)
+
+
+def test_a_numbered_book_takes_a_spaced_range_too():
+    reference = parse_passage_ref("1 John 1:1 - 2:2")
+    assert (reference.book, reference.start_chapter, reference.end_chapter) == ("1JN", 1, 2)
+
+
+@pytest.mark.parametrize(
+    "written,code,chapter,verse",
+    [
+        ("Psalm 119", "PSA", 119, None),
+        ("Song of Songs 2:1", "SNG", 2, 1),
+        ("1 John 1", "1JN", 1, None),
+        ("2 Timothy 3:16", "2TI", 3, 16),
+        ("MRK 1:1-8", "MRK", 1, 1),
+    ],
+)
+def test_the_declaration_decides_where_the_book_ends(written, code, chapter, verse):
+    reference = parse_passage_ref(written)
+    assert (reference.book, reference.start_chapter, reference.start_verse) == (code, chapter, verse)
+
+
+#: What `parse_bible_reference` returned before it was rewritten to read one parser. Captured
+#: from the shipped function and reviewed, so the rewrite is held to the contract consumers
+#: already depend on rather than to a fresh opinion about it.
+_CONTRACT = {
+    "Psalm 23": ("PSA", 23, 1, 6, 23, True, "19023001-19023006", "Psalms-23", "Psalms 23:1-6"),
+    "Luke 12:5-19": ("LUK", 12, 5, 19, 12, False, "42012005-42012019", "Luke-12-5-19", "Luke 12:5-19"),
+    "John 3:16": ("JHN", 3, 16, 16, 3, False, "43003016-43003016", "John-3-16", "John 3:16"),
+    "Genesis 1:1-2:3": ("GEN", 1, 1, 3, 2, False, "01001001-01002003", "Genesis-1-1-2-3", "Genesis 1:1-2:3"),
+    "MRK 3:14": ("MRK", 3, 14, 14, 3, False, "41003014-41003014", "Mark-3-14", "Mark 3:14"),
+}
+
+
+@pytest.mark.parametrize("written", sorted(_CONTRACT))
+def test_the_public_parser_keeps_its_contract(written):
+    d = parse_bible_reference(written)
+    actual = (
+        d["book_code"], d["chapter"], d["start_verse"], d["end_verse"], d["end_chapter"],
+        d["is_whole_chapter"], d["filename_prefix"], d["display_name"], d["canonical_reference"],
+    )
+    assert actual == _CONTRACT[written]
+
+
+@pytest.mark.parametrize("written,code", [("1 John", "1JN"), ("Romans", "ROM")])
+def test_a_whole_book_keeps_its_contract(written, code):
+    d = parse_bible_reference(written)
+    assert (d["book_code"], d["chapter"], d["is_whole_book"]) == (code, None, True)
+    assert d["filename_prefix"].endswith("_book")
+
+
+def test_an_en_dash_range_parses():
+    """The old patterns accepted `–`; one parser must not quietly drop that."""
+    assert parse_bible_reference("Luke 12:5–19")["end_verse"] == 19
+    assert parse_passage_ref("Luke 12:5–19").end_verse == 19
+
+
+@pytest.mark.parametrize("written", ["John 3:16 garbage", "Mark 1:1 and then some"])
+def test_trailing_text_is_refused_rather_than_silently_dropped(written):
+    """`re.match` let the old parser read `John 3:16` out of `John 3:16 garbage` and discard
+    the rest — a confident answer about an input nobody checked. Both parsers now refuse."""
+    with pytest.raises(ValueError):
+        parse_bible_reference(written)
+    with pytest.raises(ValueError):
+        parse_passage_ref(written)
+
+
+@pytest.mark.parametrize("written", ["1JHN", "notabook", "Mark foo"])
+def test_both_parsers_refuse_in_the_same_words(written):
+    """One source of truth includes the error. A reader met `Could not parse Bible reference`
+    from one and a message naming the accepted forms from the other, for the same input."""
+    with pytest.raises(ValueError) as public:
+        parse_bible_reference(written)
+    with pytest.raises(ValueError) as internal:
+        parse_passage_ref(written)
+    assert str(public.value) == str(internal.value)
+    assert "Expected forms" in str(public.value)
+
+
+def test_every_declared_spelling_parses_as_a_whole_book():
+    """Every name and alias the declaration holds, with no chapter and no verse.
+
+    Asked for by `nida-institute/discourse-flow` in the report that raised this: *"A test over
+    every book name the declaration holds, with no chapter and no verse, would have caught this
+    and would keep it caught."* A handful of examples would not have — `Mark` passed throughout.
+
+    The set is read from the declaration, so a book or alias added later is covered without
+    anyone remembering to add it here.
+    """
+    spellings = []
+    for code, entry in books.table().items():
+        spellings.append(code)
+        spellings.append(entry["name"])
+        spellings.extend(entry.get("aliases") or [])
+
+    assert len(spellings) > 200, "the declaration yielded too few spellings; this checks nothing"
+
+    refused = []
+    for written in spellings:
+        try:
+            parse_passage_ref(written)
+        except ValueError as error:
+            refused.append(f"{written!r}: {error}")
+    assert not refused, "a declared spelling is not accepted as a whole-book reference:\n  " + "\n  ".join(refused)
+
+
+def test_a_range_across_two_books_still_says_so():
+    """The two-book message reads the second half the same way, so it must survive the change."""
+    with pytest.raises(ValueError) as raised:
+        parse_passage_ref("Mark 1 - John 2")
+    assert "two books" in str(raised.value)
+
+
 def test_a_multi_word_name_still_parses_in_the_read_path():
     reference = parse_passage_ref("1 John 1:1")
     assert reference.book == "1JN"

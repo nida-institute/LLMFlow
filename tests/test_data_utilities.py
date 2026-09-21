@@ -270,12 +270,12 @@ class TestParseBibleReference:
 
     def test_invalid_book_raises(self):
         """Invalid book name should raise ValueError."""
-        with pytest.raises(ValueError, match="Unrecognized Bible book"):
+        with pytest.raises(ValueError, match="is not a passage reference"):
             parse_bible_reference("NotABook 1:1")
 
     def test_unparseable_format_raises(self):
         """Unparseable format should raise ValueError."""
-        with pytest.raises(ValueError, match="Could not parse"):
+        with pytest.raises(ValueError, match="is not a passage reference"):
             parse_bible_reference("something random")
 
     def test_ambiguous_abbreviation_raises(self):

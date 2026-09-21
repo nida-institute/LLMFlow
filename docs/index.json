@@ -776,6 +776,41 @@
           "doc": "Headings the grammar does not admit, each with what to write instead."
         },
         {
+          "name": "binds",
+          "signature": "binds() -> str",
+          "doc": "Which prompts the grammar binds, in the declaration's own words."
+        },
+        {
+          "name": "declares_a_header",
+          "signature": "declares_a_header(text: str) -> bool",
+          "doc": "Whether *text* opens with a header fence, which is what the grammar binds."
+        },
+        {
+          "name": "_top_level_headings",
+          "signature": "_top_level_headings(text: str) -> list[tuple[int, str]]",
+          "doc": ""
+        },
+        {
+          "name": "_heading_positions",
+          "signature": "_heading_positions() -> dict[str, Position]",
+          "doc": ""
+        },
+        {
+          "name": "check",
+          "signature": "check(text: str) -> Optional[Finding]",
+          "doc": "The first way *text* departs from the grammar, or None where it conforms."
+        },
+        {
+          "name": "_check_task_section",
+          "signature": "_check_task_section(text: str, start: int, heading: str) -> Optional[Finding]",
+          "doc": "A heading matching no other production is a task section (C5), and carries all four."
+        },
+        {
+          "name": "render_sequence",
+          "signature": "render_sequence() -> str",
+          "doc": "The required order, for a terminal."
+        },
+        {
           "name": "render_markdown",
           "signature": "render_markdown() -> str",
           "doc": "The block every shipped document carries verbatim."
@@ -2112,9 +2147,9 @@
           "doc": "Every passage reference *text* names, in the order they appear, without repeats."
         },
         {
-          "name": "_split_tail",
-          "signature": "_split_tail(text: str)",
-          "doc": "`(\"Mark\", <1:40-2:12>)`. The tail is the last token when it has the numeric shape."
+          "name": "_split_reference",
+          "signature": "_split_reference(text: str)",
+          "doc": "`(\"MRK\", <1:40-2:12>)` — the book's code, and the tail that follows it."
         },
         {
           "name": "_book_code",
@@ -3263,6 +3298,11 @@
       ],
       "functions": [
         {
+          "name": "reset_written_files",
+          "signature": "reset_written_files() -> None",
+          "doc": "Empty the written-file list at the start of a run."
+        },
+        {
           "name": "_record_written_file",
           "signature": "_record_written_file(path: str) -> None",
           "doc": ""
@@ -3495,6 +3535,11 @@
           "name": "collect_all_steps",
           "signature": "collect_all_steps(items)",
           "doc": "Recursively collect all steps, including nested for-each and substeps."
+        },
+        {
+          "name": "prompt_conformance_warnings",
+          "signature": "prompt_conformance_warnings(prompt_paths: List[str]) -> List[str]",
+          "doc": "Which prompts do not fit the grammar, the first finding in each, and the order once."
         },
         {
           "name": "validate_all_step_contracts",
@@ -5372,6 +5417,6 @@
   ],
   "summary": {
     "total_modules": 90,
-    "total_functions": 851
+    "total_functions": 860
   }
 }

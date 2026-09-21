@@ -202,7 +202,7 @@ class TestParseBibleReference:
         for passage in invalid_passages:
             with pytest.raises(
                 ValueError,
-                match="Unrecognized Bible book|Could not parse|cannot be empty",
+                match="is not a passage reference|cannot be empty",
             ):
                 parse_bible_reference(passage)
 
@@ -306,12 +306,12 @@ class TestParseBibleReference:
         with pytest.raises(ValueError, match="cannot be empty"):
             parse_bible_reference("   ")
 
-        # Test missing book - raises "Could not parse" error
-        with pytest.raises(ValueError, match="Could not parse"):
+        # Test missing book — one refusal vocabulary, shared with parse_passage_ref
+        with pytest.raises(ValueError, match="is not a passage reference"):
             parse_bible_reference("23")
 
         # Test invalid book
-        with pytest.raises(ValueError, match="Unrecognized Bible book"):
+        with pytest.raises(ValueError, match="is not a passage reference"):
             parse_bible_reference("NotABook 1:1")
 
         # Test "Psalm" with no chapter - treated as a whole-book reference
@@ -477,13 +477,13 @@ class TestParseBibleReference:
         # Test unrecognized book
         with pytest.raises(ValueError) as exc_info:
             parse_bible_reference("NotARealBook 1:1")
-        assert "Unrecognized Bible book" in str(exc_info.value)
-        assert "NotARealBook" in str(exc_info.value)
+        assert "NotARealBook" in str(exc_info.value), "the message must name what was rejected"
+        assert "Expected forms" in str(exc_info.value), "and say what would be accepted"
 
         # Test completely unparseable input
         with pytest.raises(ValueError) as exc_info:
             parse_bible_reference("This is not a Bible reference at all")
-        assert "Could not parse Bible reference" in str(exc_info.value)
+        assert "is not a passage reference" in str(exc_info.value)
 
     def test_ambiguous_abbreviation_handling(self):
         """An abbreviation naming two books is refused, and both are named.
@@ -504,7 +504,7 @@ class TestParseBibleReference:
         """"I do not know that book" and "say which one you mean" are different answers."""
         with pytest.raises(ValueError, match="Ambiguous"):
             parse_bible_reference("p 1:1")
-        with pytest.raises(ValueError, match="Unrecognized"):
+        with pytest.raises(ValueError, match="is not a passage reference"):
             parse_bible_reference("Notabook 1:1")
 
     def test_performance_with_long_inputs(self):

@@ -153,11 +153,17 @@ def parse_passage_ref(passage: str) -> PassageRef:
     Deliberately strict: an unrecognised string raises rather than being coerced into
     something plausible, because a silently wrong range yields analysis of the wrong text.
     """
-    text = " ".join((passage or "").split())
-    written, tail = _split_tail(text)
-    code = _book_code(written)
+    # An en- or em-dash is what a word processor makes of a typed hyphen, so a reference
+    # pasted from a document carries one. Normalised here, in the one parser, rather than in
+    # each pattern that might meet it.
+    text = " ".join((passage or "").replace("–", "-").replace("—", "-").split())
+    code, tail = _split_reference(text)
 
-    if code is None or (tail is None and " " in text and not _CODE.match(written)):
+    # Resolving the book *is* the test. An earlier version asked a second question on top —
+    # refusing a resolved book whenever its name held a space and no chapter followed, which is
+    # the shape of every multi-word book named alone, `1 John` and `Song of Songs` among them.
+    # It guarded nothing that this does not.
+    if code is None:
         _refuse(passage, text)
 
     if tail is None:
@@ -211,18 +217,36 @@ def references_in(text: str) -> list:
     return found
 
 
-def _split_tail(text: str):
-    """`("Mark", <1:40-2:12>)`. The tail is the last token when it has the numeric shape.
+def _split_reference(text: str):
+    """`("MRK", <1:40-2:12>)` — the book's code, and the tail that follows it.
 
-    Taking the *last* token is what makes `1 John 1:1` work: its book begins with a digit, so
-    scanning forwards for the first number finds the book, not the reference.
+    **The declaration decides where the book ends.** Take the longest run of leading words that
+    names a book, and whatever remains is the tail. Both halves are then answered by the thing
+    that owns them: `books.resolve` for the name, `_TAIL` for the numbers.
+
+    The previous split guessed instead, taking the last whitespace-delimited token when it had
+    a numeric shape. That contradicted `_TAIL`, which allows spaces around the dash: in
+    `Mark 1:1 - 2:2` the last token is `2:2`, leaving `Mark 1:1 -` as the book name, so a
+    spacing the pattern was written to accept could never reach it.
+
+    Returns `(None, None)` when no leading run names a book, which is the caller's signal to
+    refuse.
     """
-    if " " in text:
-        written, _, last = text.rpartition(" ")
-        match = _TAIL.match(last)
+    words = text.split()
+    for cut in range(len(words), 0, -1):
+        code = _book_code(" ".join(words[:cut]))
+        if code is None:
+            continue
+        rest = " ".join(words[cut:])
+        if not rest:
+            return code, None
+        match = _TAIL.match(rest)
         if match:
-            return written, match
-    return text, None
+            return code, match
+        # A book followed by something that is not a reference. A shorter name will not rescue
+        # it — `Mark foo` is not `Mar` plus `k foo` — so stop rather than hunt for a reading.
+        break
+    return None, None
 
 
 def _book_code(written: str):
@@ -241,8 +265,8 @@ def _refuse(passage: str, text: str) -> NoReturn:
 
     if "-" in text:
         after = text.rsplit("-", 1)[1].strip()
-        second, _ = _split_tail(after)
-        if _book_code(second):
+        second, _ = _split_reference(after)
+        if second:
             raise ValueError(
                 f"{passage!r} spans two books. A passage reference names one book; fetch each "
                 f"separately."
