@@ -30,7 +30,7 @@ from llmflow.yaml_loader import load_pipeline_config
 def _identifiers_in_expr(expr: str) -> Set[str]:
     """Return all variable names in a Python expression, excluding keywords and builtins."""
     try:
-        tree = ast.parse(expr, mode='eval')
+        tree = ast.parse(expr, mode="eval")
         return {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
     except SyntaxError:
         return set()
@@ -41,14 +41,15 @@ def extract_variable_references(text: str) -> Set[str]:
     variables = set()
 
     # Extract ${...} patterns
-    for match in re.finditer(r'\$\{([^\}]+)\}', text):
+    for match in re.finditer(r"\$\{([^\}]+)\}", text):
         variables.update(_identifiers_in_expr(match.group(1).strip()))
 
     # Extract {{...}} patterns
-    for match in re.finditer(r'\{\{([^\}]+)\}\}', text):
+    for match in re.finditer(r"\{\{([^\}]+)\}\}", text):
         variables.update(_identifiers_in_expr(match.group(1).strip()))
 
     return variables
+
 
 # Engine-internal keys the runner sets on a step dict; never written in YAML.
 _INTERNAL_STEP_KEYS = {"_tag"}
@@ -187,9 +188,7 @@ def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
     """
     header = parse_prompt_header(prompt_path)
     if header is None:
-        return [
-            f"❌ {prompt_path}: No parseable frontmatter — cannot validate template variables"
-        ]
+        return [f"❌ {prompt_path}: No parseable frontmatter — cannot validate template variables"]
 
     if "optional" in header:
         return [withdrawn_optional_error(prompt_path)]
@@ -201,10 +200,8 @@ def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
 
     # Extract body (everything after the closing --- of the frontmatter)
     text = Path(prompt_path).read_text(encoding="utf-8")
-    frontmatter_match = re.search(
-        r"^---[ \t]*\n.*?\n---[ \t]*\n?", text, re.DOTALL | re.MULTILINE
-    )
-    body = text[frontmatter_match.end():] if frontmatter_match else text
+    frontmatter_match = re.search(r"^---[ \t]*\n.*?\n---[ \t]*\n?", text, re.DOTALL | re.MULTILINE)
+    body = text[frontmatter_match.end() :] if frontmatter_match else text
 
     body_vars = extract_template_variables(body)
 
@@ -251,7 +248,7 @@ def unused_requires_warnings(prompt_path: str) -> List[str]:
 
     text = Path(prompt_path).read_text(encoding="utf-8")
     frontmatter = re.search(r"^---[ \t]*\n.*?\n---[ \t]*\n?", text, re.DOTALL | re.MULTILINE)
-    body = text[frontmatter.end():] if frontmatter else text
+    body = text[frontmatter.end() :] if frontmatter else text
 
     unused = sorted(declared - extract_template_variables(body))
     if not unused:
@@ -281,10 +278,9 @@ def format_diff_box(step, file, declared, passed):
         return ""
     border = "─" * 76
     lines = [
-        f"╭─🔍 Contract Mismatch: {file} ─{border[len(' Contract Mismatch: ─') - len(file):]}",
+        f"╭─🔍 Contract Mismatch: {file} ─{border[len(' Contract Mismatch: ─') - len(file) :]}",
         f"│ Step: {step}".ljust(78) + "│",
-        "│ ❌ Inputs passed to this step do not match the prompt contract.".ljust(78)
-        + "│",
+        "│ ❌ Inputs passed to this step do not match the prompt contract.".ljust(78) + "│",
         "│".ljust(78) + "│",
     ]
     lines += [f"│ {line}".ljust(78) + "│" for line in diff]
@@ -309,6 +305,37 @@ def collect_all_steps(items):
             all_steps.extend(collect_all_steps(nested_steps))
 
     return all_steps
+
+
+def prompt_conformance_warnings(prompt_paths: List[str]) -> List[str]:
+    """Which prompts do not fit the grammar, the first finding in each, and the order once.
+
+    A **warning**: a prompt whose sections are out of order still runs, so a pipeline that works
+    does not stop working over its shape. One finding per prompt, because the second is usually
+    the first one's consequence. The required sequence is appended to the first warning only, so
+    a reader who has just been told their prompt is wrong sees what right looks like without
+    opening a document.
+
+    What the grammar binds is the declaration's to say, not this function's — a prompt with no
+    top-level heading is a simple prompt and `prompt_structure.check` returns nothing for it.
+    """
+    from llmflow import prompt_structure
+
+    warnings: List[str] = []
+    for path in prompt_paths:
+        try:
+            finding = prompt_structure.check(Path(path).read_text(encoding="utf-8"))
+        except OSError:
+            continue  # Absence is reported by the check that owns it.
+        if finding is None:
+            continue
+        # No ⚠️ marker here: whoever prints the warning list adds one, and carrying a second
+        # printed it twice.
+        entry = f"{path}:{finding.line}: {finding.message}"
+        if not warnings:
+            entry += f"\n{prompt_structure.render_sequence()}"
+        warnings.append(entry)
+    return warnings
 
 
 def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
@@ -348,9 +375,7 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
 
         # Only validate contracts for LLM steps
         if step_type == "llm":
-            logger.debug(
-                f"🔍 Validating step '{step_name}' contract: {step.get('prompt', {}).get('file', 'NO_FILE')}"
-            )
+            logger.debug(f"🔍 Validating step '{step_name}' contract: {step.get('prompt', {}).get('file', 'NO_FILE')}")
 
             prompt_config = step.get("prompt", {})
             prompt_file = prompt_config.get("file")
@@ -367,12 +392,11 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
 
             # Resolve prompt path using shared utility (same logic as runner)
             from llmflow.utils.io import resolve_prompt_path
+
             try:
                 prompt_path = str(resolve_prompt_path(prompt_file, prompts_dir))
             except FileNotFoundError:
-                errors.append(
-                    f"❌ Step '{step_name}': Prompt file not found: {prompt_file}"
-                )
+                errors.append(f"❌ Step '{step_name}': Prompt file not found: {prompt_file}")
                 log_func(f"❌ Step '{step_name}' contract validation failed")
                 continue
 
@@ -380,9 +404,7 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
                 prompt_data = parse_prompt_header(prompt_path)
 
                 if not prompt_data:
-                    errors.append(
-                        f"❌ Step '{step_name}': Invalid prompt header in {prompt_path}"
-                    )
+                    errors.append(f"❌ Step '{step_name}': Invalid prompt header in {prompt_path}")
                     continue
 
                 # NEW: Handle both old and new header formats
@@ -399,22 +421,16 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
                     # Old format: explicit 'requires' list
                     required_inputs = prompt_data.get("requires", [])
 
-                missing_inputs = [
-                    inp for inp in required_inputs if inp not in step_inputs
-                ]
+                missing_inputs = [inp for inp in required_inputs if inp not in step_inputs]
                 if missing_inputs:
-                    errors.append(
-                        f"❌ Step '{step_name}': Missing required inputs: {missing_inputs}"
-                    )
+                    errors.append(f"❌ Step '{step_name}': Missing required inputs: {missing_inputs}")
                     log_func(f"❌ Step '{step_name}' contract validation failed")
                 else:
                     logger.debug(f"✅ Step '{step_name}' contract validation passed")
                     validated_count += 1
 
             except Exception as e:
-                errors.append(
-                    f"❌ Step '{step_name}': Error validating prompt {prompt_path}: {str(e)}"
-                )
+                errors.append(f"❌ Step '{step_name}': Error validating prompt {prompt_path}: {str(e)}")
                 log_func(f"❌ Step '{step_name}' contract validation failed")
 
     return errors, validated_count
@@ -462,9 +478,7 @@ def validate_template_step(step, errors, warnings):
         return  # Skip if no template_path
 
     if not Path(template_path).exists():
-        errors.append(
-            f"❌ Step '{step['name']}': Template file not found: {template_path}"
-        )
+        errors.append(f"❌ Step '{step['name']}': Template file not found: {template_path}")
         return
 
     try:
@@ -487,9 +501,7 @@ def validate_template_step(step, errors, warnings):
                 )
 
     except Exception as e:
-        errors.append(
-            f"❌ Step '{step['name']}': Error reading template {template_path}: {e}"
-        )
+        errors.append(f"❌ Step '{step['name']}': Error reading template {template_path}: {e}")
 
 
 def validate_pipeline(pipeline_config):
@@ -636,21 +648,23 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
         # working behaviour. Keep this list matching what the runtime actually sets; a name
         # here that the runtime does not provide is worse than the omission it replaced.
         if step_type == "window":
-            current_item_vars.update({
-                "window_num",
-                "_window_index",
-                "_window_first",
-                "_window_last",
-                "_window_cursor",
-                "_for_each_meta",
-                "_for_each_stack",
-            })
+            current_item_vars.update(
+                {
+                    "window_num",
+                    "_window_index",
+                    "_window_first",
+                    "_window_last",
+                    "_window_cursor",
+                    "_for_each_meta",
+                    "_for_each_stack",
+                }
+            )
 
         available = _build_available_context(
             pipeline_vars,
             declared_outputs,
             None,  # Don't pass item_var here
-            for_each_input
+            for_each_input,
         )
         # Add all parent and current item_vars
         available.update(current_item_vars)
@@ -681,11 +695,7 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
         if "steps" in step and isinstance(step["steps"], list):
             # Recursively validate nested steps with current context plus item_var
             _validate_variable_references_recursive(
-                step["steps"],
-                pipeline_vars,
-                declared_outputs,
-                errors,
-                current_item_vars
+                step["steps"], pipeline_vars, declared_outputs, errors, current_item_vars
             )
 
         # After processing step (including nested steps), add its outputs to declared_outputs
@@ -878,14 +888,10 @@ def validate_structured_output_schemas(all_steps, pipeline_config, warnings):
             try:
                 schema = _json.loads(_Path(schema_file).read_text(encoding="utf-8"))
             except FileNotFoundError:
-                errors.append(
-                    f"❌ Step '{step_name}': schema_file not found: {schema_file}"
-                )
+                errors.append(f"❌ Step '{step_name}': schema_file not found: {schema_file}")
                 continue
             except ValueError as exc:
-                errors.append(
-                    f"❌ Step '{step_name}': schema_file {schema_file} is not valid JSON: {exc}"
-                )
+                errors.append(f"❌ Step '{step_name}': schema_file {schema_file} is not valid JSON: {exc}")
                 continue
 
         if schema is None:
@@ -970,9 +976,7 @@ def _validate_rewind_requirements(
                 missing.append(candidate_path)
 
         if missing:
-            errors.append(
-                f"❌ Step '{step_name}': saved artifact missing for rewind ({missing[0]})"
-            )
+            errors.append(f"❌ Step '{step_name}': saved artifact missing for rewind ({missing[0]})")
 
     return errors
 
@@ -1029,9 +1033,7 @@ def _ensure_path_resolved_for_lint(resolved_value: Any, original: Any, step: dic
 
 def _build_module_func_map(module_ast: ast.Module) -> dict:
     return {
-        node.name: node
-        for node in ast.walk(module_ast)
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        node.name: node for node in ast.walk(module_ast) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
 
 
@@ -1239,21 +1241,13 @@ def _has_kind(sig, kind) -> bool:
 def _bindable_by_name(sig) -> set:
     """Parameter names an `inputs:` mapping can bind."""
     kinds = (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
-    return {
-        name
-        for name, param in sig.parameters.items()
-        if param.kind in kinds and name != _RUNNER_INJECTED
-    }
+    return {name for name, param in sig.parameters.items() if param.kind in kinds and name != _RUNNER_INJECTED}
 
 
 def _positional_slots(sig) -> list:
     """Parameter names an `inputs:` list can fill, in order."""
     kinds = (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
-    return [
-        name
-        for name, param in sig.parameters.items()
-        if param.kind in kinds and name != _RUNNER_INJECTED
-    ]
+    return [name for name, param in sig.parameters.items() if param.kind in kinds and name != _RUNNER_INJECTED]
 
 
 def _required_params(sig) -> list:
@@ -1266,9 +1260,7 @@ def _required_params(sig) -> list:
     return [
         name
         for name, param in sig.parameters.items()
-        if param.default is inspect.Parameter.empty
-        and param.kind in kinds
-        and name != _RUNNER_INJECTED
+        if param.default is inspect.Parameter.empty and param.kind in kinds and name != _RUNNER_INJECTED
     ]
 
 
@@ -1283,9 +1275,7 @@ def _input_binding_errors(inputs, sig, func_ref: str) -> list:
             accepted = _bindable_by_name(sig)
             unknown = sorted(supplied - accepted)
             if unknown:
-                messages.append(
-                    f"{func_ref} does not accept {unknown} — it accepts {sorted(accepted)}"
-                )
+                messages.append(f"{func_ref} does not accept {unknown} — it accepts {sorted(accepted)}")
         missing = [name for name in required if name not in supplied]
         if missing:
             messages.append(f"{func_ref} requires {missing}, which this step does not supply")
@@ -1297,13 +1287,10 @@ def _input_binding_errors(inputs, sig, func_ref: str) -> list:
 
         if not _has_kind(sig, inspect.Parameter.VAR_POSITIONAL) and given > len(slots):
             messages.append(
-                f"{func_ref} takes at most {len(slots)} positional argument(s), "
-                f"and this step passes {given}"
+                f"{func_ref} takes at most {len(slots)} positional argument(s), and this step passes {given}"
             )
 
-        required_slots = [
-            name for name in slots if sig.parameters[name].default is inspect.Parameter.empty
-        ]
+        required_slots = [name for name in slots if sig.parameters[name].default is inspect.Parameter.empty]
         if given < len(required_slots):
             messages.append(
                 f"{func_ref} requires {len(required_slots)} positional argument(s) "
@@ -1318,10 +1305,7 @@ def _input_binding_errors(inputs, sig, func_ref: str) -> list:
             and name != _RUNNER_INJECTED
         ]
         if keyword_only:
-            messages.append(
-                f"{func_ref} requires {keyword_only} by name, which a list of inputs "
-                f"cannot supply"
-            )
+            messages.append(f"{func_ref} requires {keyword_only} by name, which a list of inputs cannot supply")
         return messages
 
     if required:
@@ -1446,6 +1430,7 @@ def lint_pipeline_full(
     gpt_decl_errors: List[str] = []
     pipeline_vars_for_prompts = pipeline_config.get("variables", {})
     prompts_dir_for_decl = pipeline_vars_for_prompts.get("prompts_dir", "prompts")
+    linted_prompts: List[str] = []
     for step in all_steps:
         if step.get("type") != "llm":
             continue
@@ -1453,14 +1438,19 @@ def lint_pipeline_full(
         if not prompt_file:
             continue
         from llmflow.utils.io import resolve_prompt_path
+
         try:
             resolved = resolve_prompt_path(prompt_file, prompts_dir_for_decl)
             gpt_decl_errors.extend(validate_gpt_body_declares_all_vars(str(resolved)))
             # The other direction of the same contract, and a warning rather than an error: the
             # run it produces is correct, so a working pipeline must not stop working over it.
             all_warnings.extend(unused_requires_warnings(str(resolved)))
+            # One entry per prompt, however many steps call it: the finding is the prompt's.
+            if str(resolved) not in linted_prompts:
+                linted_prompts.append(str(resolved))
         except FileNotFoundError:
             pass  # Already reported by contract validation above
+    all_warnings.extend(prompt_conformance_warnings(linted_prompts))
     if gpt_decl_errors:
         all_errors.extend(gpt_decl_errors)
         for err in gpt_decl_errors:
@@ -1542,6 +1532,7 @@ def lint_pipeline_full(
     _output_raw = pipeline_config.get("output_file_directory")
     if _intermediate_raw or _output_raw:
         from llmflow.runner import resolve as _resolve
+
         _vars = pipeline_config.get("variables", {}) or {}
         _ctx = {**_vars, **cli_vars}
         _intermediate_dir = Path(str(_resolve(str(_intermediate_raw), _ctx))) if _intermediate_raw else None
@@ -1562,7 +1553,7 @@ def lint_pipeline_full(
             _saveas_str = str(_saveas_path)
             if "${" in _saveas_str:
                 # Path has unresolved runtime variables — check the resolved prefix only
-                _prefix = Path(_saveas_str[:_saveas_str.index("${")])
+                _prefix = Path(_saveas_str[: _saveas_str.index("${")])
                 if not str(_prefix):
                     continue  # Nothing resolved — cannot determine containment
                 _under_intermediate = _intermediate_dir and _prefix.is_relative_to(_intermediate_dir)
@@ -1572,7 +1563,7 @@ def lint_pipeline_full(
                 _under_output = _output_dir and _saveas_path.is_relative_to(_output_dir)
             if not _under_intermediate and not _under_output:
                 all_warnings.append(
-                    f"Step \"{_step.get('name', 'unnamed')}\" saveas path \"{_saveas_path}\" "
+                    f'Step "{_step.get("name", "unnamed")}" saveas path "{_saveas_path}" '
                     f"is not under intermediate_file_directory or output_file_directory."
                 )
 
@@ -1591,15 +1582,11 @@ def check_step_outputs(step):
 
     # Check if step has append_to but no output
     if "append_to" in step and "output" not in step:
-        warnings.append(
-            f"Step '{step.get('name', 'unnamed')}' has append_to but no output"
-        )
+        warnings.append(f"Step '{step.get('name', 'unnamed')}' has append_to but no output")
 
     # Check if LLM step has neither output nor append_to
     if step.get("type") == "llm" and "output" not in step and "append_to" not in step:
-        warnings.append(
-            f"LLM step '{step.get('name', 'unnamed')}' generates content but doesn't store it"
-        )
+        warnings.append(f"LLM step '{step.get('name', 'unnamed')}' generates content but doesn't store it")
 
     return warnings
 
@@ -1658,8 +1645,7 @@ def validate_step_prompt_contract(step, prompt_file, step_name):
     if unexpected_inputs:
         for unexpected in sorted(unexpected_inputs):
             errors.append(
-                f"⚠️  Step '{step_name}': Unexpected input '{unexpected}' "
-                f"for prompt '{prompt_file}' (not declared)"
+                f"⚠️  Step '{step_name}': Unexpected input '{unexpected}' for prompt '{prompt_file}' (not declared)"
             )
 
     return errors
@@ -1667,21 +1653,23 @@ def validate_step_prompt_contract(step, prompt_file, step_name):
 
 # Add to your linter (e.g. llmflow/utils/linter.py)
 
+
 def _lint_conditional_rules(step, errors, key: str):
     rules = step.get(key, [])
     if rules and not isinstance(rules, list):
-        errors.append(f"Step '{step.get('name','unnamed')}': '{key}' must be a list")
+        errors.append(f"Step '{step.get('name', 'unnamed')}': '{key}' must be a list")
         return
     for r in rules or []:
         if not isinstance(r, dict):
-            errors.append(f"Step '{step.get('name','unnamed')}': each '{key}' rule must be an object")
+            errors.append(f"Step '{step.get('name', 'unnamed')}': each '{key}' rule must be an object")
             continue
         if_val = r.get("if")
         if "if" not in r or not isinstance(if_val, str) or not if_val.strip():
-            errors.append(f"Step '{step.get('name','unnamed')}': '{key}' rule must include non-empty 'if' expression")
+            errors.append(f"Step '{step.get('name', 'unnamed')}': '{key}' rule must include non-empty 'if' expression")
         for k in r.keys():
             if k not in {"if", "message"}:
-                errors.append(f"Step '{step.get('name','unnamed')}': unknown '{key}' key '{k}'")
+                errors.append(f"Step '{step.get('name', 'unnamed')}': unknown '{key}' key '{k}'")
+
 
 def _warn_unverifiable(step_name: str, field: str, raw: object, warnings: list | None) -> None:
     """Say what lint checked and what it could not.
@@ -1721,9 +1709,7 @@ def _lint_window_step(step: dict, errors: list, warnings: list | None = None) ->
         return
 
     if mode_count > 1:
-        errors.append(
-            f"Window step '{name}': 'size', 'size_by_tokens', and 'start_when' are mutually exclusive"
-        )
+        errors.append(f"Window step '{name}': 'size', 'size_by_tokens', and 'start_when' are mutually exclusive")
         return
 
     if has_size:
@@ -1741,14 +1727,10 @@ def _lint_window_step(step: dict, errors: list, warnings: list | None = None) ->
                 errors.append(f"Window step '{name}': 'stride' must be a positive integer")
 
         if "end_when" in step:
-            errors.append(
-                f"Window step '{name}': 'end_when' is only valid with 'start_when', not 'size'"
-            )
+            errors.append(f"Window step '{name}': 'end_when' is only valid with 'start_when', not 'size'")
 
         if "stride_by_tokens" in step:
-            errors.append(
-                f"Window step '{name}': 'stride_by_tokens' is only valid with 'size_by_tokens'"
-            )
+            errors.append(f"Window step '{name}': 'stride_by_tokens' is only valid with 'size_by_tokens'")
 
     if has_size_by_tokens:
         sbt = step["size_by_tokens"]
@@ -1758,34 +1740,24 @@ def _lint_window_step(step: dict, errors: list, warnings: list | None = None) ->
         if "stride_by_tokens" in step:
             s = step["stride_by_tokens"]
             if not isinstance(s, int) or s < 0:
-                errors.append(
-                    f"Window step '{name}': 'stride_by_tokens' must be a non-negative integer"
-                )
+                errors.append(f"Window step '{name}': 'stride_by_tokens' must be a non-negative integer")
 
         if "stride" in step:
-            errors.append(
-                f"Window step '{name}': use 'stride_by_tokens' (not 'stride') with 'size_by_tokens'"
-            )
+            errors.append(f"Window step '{name}': use 'stride_by_tokens' (not 'stride') with 'size_by_tokens'")
 
         if "end_when" in step or "start_when" in step:
-            errors.append(
-                f"Window step '{name}': 'start_when'/'end_when' cannot be used with 'size_by_tokens'"
-            )
+            errors.append(f"Window step '{name}': 'start_when'/'end_when' cannot be used with 'size_by_tokens'")
 
     if has_start_when:
         if "stride" in step:
-            errors.append(
-                f"Window step '{name}': 'stride' is only valid with 'size', not 'start_when'"
-            )
+            errors.append(f"Window step '{name}': 'stride' is only valid with 'size', not 'start_when'")
         if "include_partial" in step:
             errors.append(
                 f"Window step '{name}': 'include_partial' is only valid with "
                 f"'size' or 'size_by_tokens', not 'start_when'"
             )
         if "stride_by_tokens" in step:
-            errors.append(
-                f"Window step '{name}': 'stride_by_tokens' is only valid with 'size_by_tokens'"
-            )
+            errors.append(f"Window step '{name}': 'stride_by_tokens' is only valid with 'size_by_tokens'")
 
     # Validate merge block
     if "merge" in step:
@@ -1881,15 +1853,17 @@ def _lint_for_each_group_by(step: dict, errors: list) -> None:
         valid = {"ascending", "descending"}
         for d in directions:
             if d not in valid:
-                errors.append(
-                    f"Step '{name}': order-by direction '{d}' is invalid — "
-                    f"use 'ascending' or 'descending'."
-                )
+                errors.append(f"Step '{name}': order-by direction '{d}' is invalid — use 'ascending' or 'descending'.")
 
 
 _LOADER_STEP_TYPES = {
-    "load_json", "load_yaml", "load_xml", "load_csv", "load_tsv",
-    "load_text", "load_directory",
+    "load_json",
+    "load_yaml",
+    "load_xml",
+    "load_csv",
+    "load_tsv",
+    "load_text",
+    "load_directory",
 }
 _LOADER_FORMATS = {"json", "yaml", "xml", "csv", "tsv", "text"}
 
@@ -1905,9 +1879,7 @@ def _lint_loader_step(step, errors):
     elif "${" not in str(step.get("path", "")):
         path = Path(step["path"])
         if not path.exists():
-            errors.append(
-                f"Step '{name}' (type: {step_type}): path not found: {step['path']}"
-            )
+            errors.append(f"Step '{name}' (type: {step_type}): path not found: {step['path']}")
     if step_type == "load_directory":
         if not step.get("pattern"):
             errors.append(f"Step '{name}' (type: load_directory) is missing required key 'pattern'")
@@ -1944,13 +1916,13 @@ def _lint_step_enums(step, errors):
             continue
         value = step[key]
         offending = [
-            v for v in (value if isinstance(value, (list, tuple)) else [value])
+            v
+            for v in (value if isinstance(value, (list, tuple)) else [value])
             if isinstance(v, str) and v not in allowed_values
         ]
         for bad in offending:
             errors.append(
-                f"Step '{step_name}' has {key}: {bad!r}, which is not one of "
-                f"{', '.join(map(str, allowed_values))}"
+                f"Step '{step_name}' has {key}: {bad!r}, which is not one of {', '.join(map(str, allowed_values))}"
             )
 
 
@@ -1972,10 +1944,7 @@ def _lint_step_keys(step, errors):
         # `saveaas:` on an xslt step is a mistake whatever the plugin accepts.
         for key in step.keys():
             if key in COMMON_TYPOS:
-                errors.append(
-                    f"Step '{step_name}' has unknown keyword '{key}' "
-                    f"(Did you mean '{COMMON_TYPOS[key]}'?)"
-                )
+                errors.append(f"Step '{step_name}' has unknown keyword '{key}' (Did you mean '{COMMON_TYPOS[key]}'?)")
         return
 
     _lint_step_enums(step, errors)

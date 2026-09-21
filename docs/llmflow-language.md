@@ -1909,10 +1909,42 @@ The `lint` command validates:
 - Template file existence
 - Prompt file existence
 - Variable references
+- Prompt section structure — a **warning**, never an error (below)
 
 ```bash
 sp lint pipelines/my-pipeline.yaml
 ```
+
+### Prompt section structure
+
+Every prompt a pipeline's `llm` steps use is checked against the section grammar declared in
+`data/prompt-structure.yaml`, which states the order once for the whole system. Lint names each
+prompt that does not conform, shows the **first** finding in it, and prints the required
+sequence once per run, beside the first finding:
+
+```
+⚠️  prompts/questions.gpt:34: '# OUTPUT FORMAT' is not in the grammar — the production is `# OUTPUT SCHEMA`
+The required order:
+   1. frontmatter      YAML frontmatter
+   2. produces         # WHAT THIS STEP PRODUCES | # WHAT THIS PROMPT PRODUCES
+   ...
+```
+
+**Which prompts are checked.** A prompt that declares a **header** is held to the grammar. Every
+prompt taking variables has one, since the header is where `requires:` is declared, so the
+trigger is the author's own declaration that the prompt takes input. A prompt with no header
+takes none and its structure is not checked.
+
+The trigger is a declaration rather than a formatting choice, so **any prompt may use `#`
+sections without being surprised by the grammar** — adding a heading never silently changes what
+a prompt is held to. The declaration states this and the reasoning behind it; it is not a
+property of the linter.
+
+**Why a warning and not an error.** A prompt whose sections are out of order still runs, so a
+pipeline that works does not stop working over its shape. Only what the grammar can decide is
+reported — a heading's name, the order, a required section's absence, and a task section's
+subsections. Conditions that turn on what a section *means* rather than what it says are left
+alone, because a warning that cannot be trusted teaches a reader to skip warnings.
 
 Configure linting behavior in your pipeline:
 

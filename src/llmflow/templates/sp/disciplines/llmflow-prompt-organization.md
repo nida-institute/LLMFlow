@@ -35,6 +35,8 @@ Use this structure for prompts that transform structured JSON input into structu
 <!-- Rendered from data/prompt-structure.yaml. Do not hand-edit: the declaration is
      the order, and an edit here is lost the next time it is rendered. -->
 
+**What the grammar binds.** The grammar binds a prompt whose **first line** is `---`, the header fence. The header is where a prompt declares what it takes, so the trigger is the author's own declaration that this is a prompt with a contract; a file without one is checked by nothing. Measured across four repositories, 40 of 41 prompts open this way and the one that does not has no header at all. The trigger is a declaration rather than a formatting choice, so **any prompt may use `#` sections without being surprised by the grammar** — adding a heading never silently changes what a prompt is held to. It is the fence alone and not `requires:` as well, because a prompt may legitimately have zero required variables and keying on `requires:` would build an escape hatch for exactly that case. And it is the *first* line rather than a fence anywhere, because an unanchored match reads a markdown horizontal rule as a header.
+
 | # | section | heading | required |
 | --- | --- | --- | --- |
 | 1 | `frontmatter` | _YAML frontmatter_ | required |
@@ -48,6 +50,7 @@ Use this structure for prompts that transform structured JSON input into structu
 | 9 | `band` | _one or more task sections — C5_ | required |
 | 10 | `quality-controls` | `# GUARDRAILS` or `# EVIDENCE DOCUMENTATION REQUIREMENTS` or `# VALIDATION RULES` or `# OUTPUT CONSTRAINTS` or `# COMPLIANCE REQUIREMENTS` | required |
 | 11 | `checklist` | `# COVERAGE & QUALITY CHECKLIST` or `# FINAL VALIDATION CHECKLIST` | required |
+| 12 | `reference` | `# REFERENCE` | conditional — C6 |
 
 **Conditional is not discretionary.** A position is omitted only when its side
 condition forbids writing it, never because writing it was work.
@@ -65,7 +68,8 @@ Every task section at position 9 carries all four of these, in this order:
 | C2 | `examples` present iff examples are cross-cutting rather than per-task |
 | C3 | every task `## Examples` contains at least one ❌ counterexample |
 | C4 | a guardrail naming one task appears in that task's `## Guardrails`, never in `quality-controls` |
-| C5 | a task heading is any `#` heading matching no other production |
+| C5 | a task heading is any `#` heading matching no other production, before `reference` |
+| C6 | `reference` holds material the tasks cite and introduces no obligation — every instruction lives in a task's `## Transformation Rules` or in `quality-controls` |
 
 These headings are refused, with what to write instead:
 

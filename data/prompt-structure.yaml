@@ -24,6 +24,24 @@
 # condition and by nothing else: a section is never omitted because writing it was work.
 # ---------------------------------------------------------------------------
 
+# Which prompts the grammar binds. Ruled by the Captain, 2026-09-20, answering the open
+# question in #242.
+#
+# Declared rather than written as an `if` in the linter, because it is a statement about the
+# grammar and not about one program that reads it: `sp lint`, the audit skill and any consumer's
+# own check must agree on which prompts are in scope, and they can only agree by reading it here.
+binds: >
+  The grammar binds a prompt whose **first line** is `---`, the header fence. The header is where
+  a prompt declares what it takes, so the trigger is the author's own declaration that this is a
+  prompt with a contract; a file without one is checked by nothing. Measured across four
+  repositories, 40 of 41 prompts open this way and the one that does not has no header at all.
+  The trigger is a declaration rather than a formatting choice, so **any prompt may use `#`
+  sections without being surprised by the grammar** — adding a heading never silently changes
+  what a prompt is held to. It is the fence alone and not `requires:` as well, because a prompt
+  may legitimately have zero required variables and keying on `requires:` would build an escape
+  hatch for exactly that case. And it is the *first* line rather than a fence anywhere, because
+  an unanchored match reads a markdown horizontal rule as a header.
+
 positions:
   - n: 1
     id: frontmatter
@@ -91,6 +109,27 @@ positions:
       - "# FINAL VALIDATION CHECKLIST"
     required: true
 
+  # The extension point. Ruled 2026-09-21: prompts need one, and the end is the place for it.
+  #
+  # Named `reference` and not `extensions` or `appendix`: a content word says what belongs here,
+  # where a mechanism word ("extends") or a position word ("at the end") says only how or where,
+  # and guides nobody. Someone about to paste the wrong thing under `# REFERENCE` notices the
+  # mismatch; `# EXTENSIONS` would have accepted it silently.
+  #
+  # **Design notes do not go here.** Everything in a `.gpt` file reaches the model — the whole
+  # file is sent, frontmatter included (#176) — so notes for maintainers would be tokens the
+  # model reads and may act on. They belong in `project/plans/` or the header's `description:`.
+  #
+  # One door, free-form behind it: a single `# REFERENCE`, its subsections unconstrained, and
+  # any further heading after it left unchecked. That is what makes it an extension point rather
+  # than another production. A refused heading is still refused there — unchecked for shape is
+  # not a hole where anything becomes legal.
+  - n: 12
+    id: reference
+    headings: ["# REFERENCE"]
+    required: false
+    condition: C6
+
 # Position 9 is one or more task sections. All four subsections are required in each.
 # Grouping what to do, its examples and its boundary in one place is the governing
 # principle — pooling them elsewhere measured worse.
@@ -105,7 +144,8 @@ conditions:
   C2: "`examples` present iff examples are cross-cutting rather than per-task"
   C3: "every task `## Examples` contains at least one ❌ counterexample"
   C4: "a guardrail naming one task appears in that task's `## Guardrails`, never in `quality-controls`"
-  C5: "a task heading is any `#` heading matching no other production"
+  C5: "a task heading is any `#` heading matching no other production, before `reference`"
+  C6: "`reference` holds material the tasks cite and introduces no obligation — every instruction lives in a task's `## Transformation Rules` or in `quality-controls`"
 
 # Headings a reader may expect and the grammar does not admit. Recorded so a rejection can
 # say what to write instead, rather than only that the heading is unknown.

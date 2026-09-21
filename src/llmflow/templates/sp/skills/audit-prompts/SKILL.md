@@ -747,20 +747,16 @@ Provide:
 - TODOs: 0
 
 **Convention Compliance:**
-✅ Has YAML frontmatter (lines 1-13)
-✅ Has WHAT THIS PROMPT PRODUCES (line 17-30)
-✅ Has OUTPUT FORMAT (line 32-107)
+✅ Sections present, correctly named and in the declared order
+   (authority: `~/.sp/disciplines/llmflow-prompt-organization.md` — cite it, never restate it)
 ✅ Major tasks organized:
-   - NOTICE QUESTIONS (line 111) ✅ has Input/Transformation/Examples subsections
-   - IMAGINE QUESTIONS (line 346) ✅ has Input/Transformation/Examples subsections
-✅ Has COVERAGE & QUALITY CHECKLIST (line 516)
-✅ Has INPUT DATA (line 553)
-✅ Has GUARDRAILS (line 572)
+   - NOTICE QUESTIONS (line 111) ✅ carries every required subsection
+   - IMAGINE QUESTIONS (line 346) ✅ carries every required subsection
 ⚠️  Task sections could consolidate rules better (some rules scattered in examples)
 ✅ Heading hierarchy consistent: # for major sections, ## for subsections
 
 **Input Data Grounding:**
-✅ OUTPUT SCHEMA fields mapped to DATA SOURCES
+✅ Every output field is mapped to a declared data source
    - `question` → generated from text evidence
    - `perspective_actor` → from perspectives input
    - `grounding_type` → from sensory_inventory.modality

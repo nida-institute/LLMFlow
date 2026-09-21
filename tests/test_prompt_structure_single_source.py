@@ -19,6 +19,7 @@ These tests are the reason that cannot recur. The order is data; the discipline 
 from it; the skill names neither.
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -40,14 +41,28 @@ SKILL = "src/llmflow/templates/sp/skills/audit-prompts/SKILL.md"
 #: in CI on a file that was never meant to be committed.
 INSTALLED = ".claude/skills/audit-prompts/SKILL.md"
 
+
+def _refused_names() -> dict[str, str]:
+    """The refused headings as bare names, read from the declaration.
+
+    The declaration keys them with their `#` prefix, because that is how a prompt carries
+    one. A document can *name* a refused heading without carrying it, and matching on the
+    prefix misses that: the worked example read `✅ Has OUTPUT FORMAT (line 32-107)` and this
+    guard stayed green. Naming one in an approving example is the more dangerous of the two,
+    because it models the verdict as well as the shape.
+
+    Read rather than restated. A hand-kept copy of this set had already drifted from
+    `data/prompt-structure.yaml` in a key and in a reason's wording within a week of being
+    written — the same defect this module exists to catch, one layer down.
+    """
+    from llmflow import prompt_structure
+
+    return {name.lstrip("#").strip(): why for name, why in prompt_structure.refused().items()}
+
+
 #: Headings a prompt written to the old skill text would carry, each refused by the grammar.
 #: Named individually so a failure says which trap is still set (design §5).
-REFUSED = {
-    "# OUTPUT FORMAT": "the production is `# OUTPUT SCHEMA`",
-    "# CRITICAL REMINDERS": "not one of the `quality-controls` alternatives",
-    "## Rules Specific to This Output Type": "the task subsection is `## Guardrails`",
-    "CORE PRINCIPLES": "removed from the standard — 0 of 5 prompts carried one",
-}
+REFUSED = _refused_names()
 
 
 def test_the_declaration_exists_and_states_the_order():
@@ -70,15 +85,102 @@ def test_the_skill_states_no_refused_heading(heading: str):
     text = (_repo() / SKILL).read_text(encoding="utf-8")
     assert heading not in text, (
         f"{SKILL} still names {heading!r} — {REFUSED[heading]}. A session drafting to this "
-        "produces a prompt the ruling refuses, and /audit-prompts then passes it."
+        "produces a prompt the ruling refuses, and /audit-prompts then passes it. This holds "
+        "for naming the heading as well as carrying it, so a report rejecting one says what "
+        "the grammar refuses rather than quoting it."
+    )
+
+
+def _fenced_blocks(text: str) -> list[tuple[int, list[str]]]:
+    """Every ``` fenced block, as (first line number, lines).
+
+    The worked examples are fenced, so this is what "check the examples" can read. It is the
+    one derivation step in this module, and `rule check-the-source-not-the-rendering` applies
+    to it: the caller asserts the result is non-empty, so the guard cannot quietly reduce to
+    nothing if the skill's formatting changes.
+    """
+    blocks: list[tuple[int, list[str]]] = []
+    current: list[str] | None = None
+    start = 0
+    for number, line in enumerate(text.splitlines(), start=1):
+        if line.startswith("```"):
+            if current is None:
+                current, start = [], number
+            else:
+                blocks.append((start, current))
+                current = None
+        elif current is not None:
+            current.append(line)
+    return blocks
+
+
+def _inside_a_longer_caps_phrase(line: str, match: re.Match[str]) -> bool:
+    """True where the match is one word of a longer capitalised phrase.
+
+    `AI-GENERATED EXAMPLES DETECTED` is a finding's label, not a reference to the `EXAMPLES`
+    section, and reading it as one made this guard report an order the example never stated.
+    A heading named in a report is followed and preceded by ordinary prose.
+    """
+    before = line[: match.start()].split()
+    after = line[match.end() :].split()
+    neighbours = ([before[-1]] if before else []) + ([after[0]] if after else [])
+    return any(len(word) > 1 and word.isupper() for word in neighbours)
+
+
+def _declared_order() -> dict[str, int]:
+    """Bare heading name -> declared position number, from the grammar."""
+    from llmflow import prompt_structure
+
+    return {
+        heading.lstrip("#").strip(): position.n
+        for position in prompt_structure.positions()
+        for heading in position.headings
+    }
+
+
+def test_an_example_never_exhibits_an_order_the_grammar_refuses():
+    """A worked example instantiates the order, so it states one whether it means to or not.
+
+    The example that prompted this ticked the sections of a compliant prompt in the
+    superseded order, with line numbers and a ✅ against each — so it modelled the verdict as
+    well as the shape, which is worse than prose restating the order. Checked against the
+    declaration rather than a copy of it: the expectations here are the grammar's.
+    """
+    text = (_repo() / SKILL).read_text(encoding="utf-8")
+    blocks = _fenced_blocks(text)
+    assert blocks, (
+        f"{SKILL} has no fenced blocks, so this guard checked nothing. The examples moved or "
+        "the fencing changed; fix the scan rather than deleting the check."
+    )
+
+    declared = _declared_order()
+    assert declared, "the grammar declares no headings; this guard would check nothing"
+
+    offences: list[str] = []
+    for start, lines in blocks:
+        seen: list[tuple[int, str, int]] = []
+        for offset, line in enumerate(lines):
+            found = [
+                (match.start(), name, position)
+                for name, position in declared.items()
+                for match in re.finditer(rf"\b{re.escape(name)}\b", line)
+                if not _inside_a_longer_caps_phrase(line, match)
+            ]
+            seen += [(start + offset + 1, name, position) for _, name, position in sorted(found)]
+        for (_, earlier, earlier_n), (number, later, later_n) in zip(seen, seen[1:]):
+            if later_n < earlier_n:
+                offences.append(
+                    f"{SKILL}:{number}: {later!r} (position {later_n}) follows {earlier!r} (position {earlier_n})"
+                )
+    assert not offences, (
+        "an example names the declared sections out of order, so a reader copying it drafts "
+        "what the grammar refuses:\n  " + "\n  ".join(offences)
     )
 
 
 def test_the_skill_points_at_the_discipline_rather_than_restating_it():
     text = (_repo() / SKILL).read_text(encoding="utf-8")
-    assert "llmflow-prompt-organization.md" in text, (
-        f"{SKILL} must name the discipline as the authority for the order"
-    )
+    assert "llmflow-prompt-organization.md" in text, f"{SKILL} must name the discipline as the authority for the order"
 
 
 def test_an_installed_copy_has_not_drifted_from_the_template():
