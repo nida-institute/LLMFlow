@@ -32,7 +32,7 @@ from llmflow.steps.scripture import run_scripture_step
 from llmflow.steps.window import run_window_advance_step, run_window_step
 from llmflow.utils.context import _MISSING, get_from_context, resolve
 from llmflow.utils.debug import _clear_debug_dir, _get_debug_dir
-from llmflow.utils.file_io import save_content_to_file
+from llmflow.utils.file_io import reset_written_files, save_content_to_file
 from llmflow.utils.guards import _safe_eval, build_eval_locals, build_step_eval_ctx, collect_warnings, enforce_require
 from llmflow.utils.io import validate_all_templates
 from llmflow.utils.linter import lint_pipeline_full
@@ -496,9 +496,9 @@ def run_pipeline(
 
     from llmflow.pipeline_schema import PipelineConfig  # FIX: Correct module name
 
-    # Reset per-run state
-    global WRITTEN_FILES
-    WRITTEN_FILES = []
+    # Reset per-run state. The list lives in file_io and is cleared there: rebinding a name
+    # here left that list untouched, so it accumulated across runs in one process.
+    reset_written_files()
 
     # Debug dir clear is deferred until after pipeline load so we can resolve
     # intermediate_file_directory. See _clear_debug_dir() call below.

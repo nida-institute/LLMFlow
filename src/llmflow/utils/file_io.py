@@ -63,6 +63,16 @@ EXTENSION_FORMATS = {
 _ACCEPTED = ", ".join(sorted(FORMAT_ALIASES))
 
 
+def reset_written_files() -> None:
+    """Empty the written-file list at the start of a run.
+
+    Cleared in place rather than rebound, because callers hold a reference to the list. The
+    runner previously did `global WRITTEN_FILES; WRITTEN_FILES = []` in its own module, which
+    bound a new name there and left this one untouched.
+    """
+    WRITTEN_FILES.clear()
+
+
 def _record_written_file(path: str) -> None:
     p = Path(path).resolve()
     pstr = str(p)
