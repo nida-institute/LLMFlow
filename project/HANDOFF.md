@@ -133,6 +133,31 @@ Two pre-existing `ruff check src/` errors, in `cli_utils.py` and `runner.py`, bo
 - `_book_code("Song of Solomon")` is `None` while `Song of Songs` resolves — an alias question
   discourse-flow raised, and a data question for the Captain rather than a bug.
 
+## Deletable under `plans-are-temporary` — the Captain's call, never an agent's
+
+**The two just tracked become deletable on 2026-09-24**, eight days from the `2026-09-16` they
+declare. They were untracked until this session, which is the one state the rule cannot protect:
+no commit date to be the later of the two, and nothing for `git show <commit>^:<path>` to
+recover. Tracking them is what makes deleting them safe — it was not a decision to keep them.
+
+- `project/plans/design-one-prompt-order.md` — the ruled grammar. **Three committed artifacts
+  cite it**, one of which ships in the wheel: `src/llmflow/prompt_structure.py:7`,
+  `tests/test_prompt_structure_single_source.py:3`, `data/prompt-structure.yaml:5`. Its rulings
+  are in the CHANGELOG under 0.2.1.28, so the rule's condition for deleting is met — but check
+  those three citations first, because deleting it leaves them pointing at nothing.
+- `project/plans/design-documentation-in-prompts.md` — proposed, unbuilt, awaiting the Captain.
+  Nothing cites it.
+
+**56 of the 60 documents in `project/plans/` are already past eight days**, the oldest at 70 —
+`design-pr-build-promote.md` and `design-foreach-syntax-migration.md`, both "Proposed — awaiting
+Captain review" from 2026-07-13. Many declare "Implemented — historical record", which by the
+rule means the CHANGELOG already carries their rulings and the file can go.
+
+Re-derive the table rather than trusting this paragraph: age is the later of the declared
+`Status:` date and `git log -1 --format=%ad -- <file>`, never the filesystem mtime. **Do not
+sweep.** The rule says an AI lists what is past and asks; it never deletes unasked, and this
+paragraph is not standing authorization.
+
 ## Key files & links
 
 - `project/TODO.md` — the queue and its order. **#245 is its first entry.**
