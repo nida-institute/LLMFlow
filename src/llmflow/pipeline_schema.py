@@ -78,6 +78,7 @@ class PipelineConfig(BaseModel):
     linter_config: Optional[Dict[str, Any]] = None
     intermediate_file_directory: Optional[str] = None
     output_file_directory: Optional[str] = None
+    clean_before_run: Optional[bool] = None
     steps: List[StepConfig]
     vars: Optional[Dict[str, Any]] = None
     prompts_dir: Optional[str] = None
@@ -440,6 +441,9 @@ PIPELINE_SCHEMA = {
         "linter_config": {"type": "object", "additionalProperties": True},
         "intermediate_file_directory": {"type": "string"},
         "output_file_directory": {"type": "string"},
+        # Whether a run removes what the same pipeline and `--var` values wrote last time.
+        # Absent means the documented default, true (LLMFlow#245).
+        "clean_before_run": {"type": "boolean"},
         "steps": {"type": "array", "items": _STEP_SCHEMA},
     },
     "required": ["name", "steps"],

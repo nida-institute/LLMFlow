@@ -162,6 +162,10 @@ class Pipeline(_PipelineView):
     def output_file_directory(self) -> Optional[str]:
         return self._root.get("output_file_directory")
 
+    @property
+    def clean_before_run(self) -> Optional[bool]:
+        return self._root.get("clean_before_run")
+
     def resolve(self, vars: Optional[Dict[str, Any]] = None) -> "ResolvedPipeline":
         """Return a resolved view: ``${...}`` expanded and *vars* (``--var``) applied.
 
@@ -201,6 +205,7 @@ class Pipeline(_PipelineView):
         verbose: bool = False,
         skip_lint: bool = False,
         log_file: str = "llmflow.log",
+        no_clean: bool = False,
     ):
         """Run the pipeline (delegates to the engine's ``run_pipeline``).
 
@@ -218,6 +223,7 @@ class Pipeline(_PipelineView):
             verbose=verbose,
             skip_lint=skip_lint,
             log_file=log_file,
+            no_clean=no_clean,
         )
 
     def schemas(self) -> Dict[str, Dict[str, str]]:

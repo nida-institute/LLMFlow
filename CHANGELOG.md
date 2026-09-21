@@ -2,6 +2,51 @@
 
 ## Unreleased
 
+### Changed
+
+- **⚠️ Behaviour change: a re-run now removes what that same run wrote last time → #245.**
+  Re-running a pipeline with the same parameters used to leave the previous run's intermediates
+  in place, so a later reader — `/audit-output` especially — saw two runs' files as one set and
+  reasoned about a mixture. Where a filename carries content rather than parameters, a re-run
+  that draws a boundary even slightly differently writes *new* names and the old ones stay, with
+  nothing saying which run a file came from.
+
+  **On by default, so `sp run` begins deleting files without being asked, in every consumer, on
+  upgrade.** A project relying on accumulated intermediates loses them on the next run and should
+  set `clean_before_run: false`. This is stated plainly rather than softened: the rails below make
+  it safe in principle, but the behaviour is new.
+
+  **A run records what it wrote.** Every `saveas` already resolves to a concrete path, so the
+  engine knows. Those paths go to `<intermediate_file_directory>/.sp-runs/<pipeline>/<run
+  key>.json`, keyed by the same run key #198 uses to keep a Ruth run's debug trail apart from a
+  Mark run's. A re-run whose pipeline and key match deletes exactly what that record lists, then
+  writes a fresh one. This is #198's principle — separation makes deletion safe — obtained
+  **without changing the directory tree**: no new path segment appears for any artifact, and a run
+  can only ever delete its own previous output. It is declared rather than inferred: the engine
+  removes what it recorded writing, never what matches a filename pattern it guessed at.
+
+  **Four rails, all load-bearing.** Only paths under the declared `intermediate_file_directory`
+  are removed, so a clean cannot reach the deliverable (`separate-output-from-intermediates`, and
+  it must stay true now that the clean is implicit). It is skipped entirely under `--rewind-to`,
+  which replays by reading the very files a clean would take. The run reports every file it
+  deleted — a silent deletion inside a run is how #145 and #198 each went wrong. And a listed file
+  already gone is not an error.
+
+  **`sp clean` before the run was the wrong fix and was not taken.** It empties the whole declared
+  `intermediate_file_directory`, which every parameterisation shares, so cleaning before a Mark run
+  deletes the 1 John intermediates — #198's bug moved from `debug/` into `intermediate/` — and it
+  breaks `--rewind-to`.
+
+  **Opting out.** `clean_before_run: true|false` on the pipeline, `true` being the documented
+  default, so an absent key is explained by the default and a written `true` records a decision
+  that survives the default ever changing. `--no-clean` overrides per invocation. The key is
+  declared in `PIPELINE_SCHEMA` and typed on `PipelineConfig`, so a non-boolean is refused before
+  a step runs. The manifest is written in a `finally`, so a run that fails or is interrupted still
+  records what it wrote rather than orphaning it.
+
+  Guarded by `tests/test_run_manifest.py`, whose first test is the `--rewind-to` regression:
+  replay still reads the artifacts a clean would remove.
+
 ## 0.2.1.28 — 2026-09-21
 
 ### Added

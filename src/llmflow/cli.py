@@ -89,6 +89,11 @@ def build_parser():
         action="store_true",
         help="Skip steps whose saveas files already exist (resume interrupted run)",
     )
+    run_p.add_argument(
+        "--no-clean",
+        action="store_true",
+        help="Keep the previous run's intermediates instead of removing them",
+    )
 
     # list command
     list_p = subparsers.add_parser("list", help="List available pipelines")
@@ -1038,6 +1043,7 @@ def main(argv=None):
                     stop_after=args.stop_after,
                     resume=args.resume,
                     skip_lint=True,
+                    no_clean=args.no_clean,
                 )
             except FileNotFoundError as e:
                 # Distinguish between a missing pipeline file and a missing

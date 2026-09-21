@@ -30,9 +30,10 @@ from llmflow.steps.save import run_save_step
 from llmflow.steps.alignment import run_alignment_step
 from llmflow.steps.scripture import run_scripture_step
 from llmflow.steps.window import run_window_advance_step, run_window_step
+from llmflow.utils import run_manifest
 from llmflow.utils.context import _MISSING, get_from_context, resolve
 from llmflow.utils.debug import _clear_debug_dir, _get_debug_dir
-from llmflow.utils.file_io import reset_written_files, save_content_to_file
+from llmflow.utils.file_io import WRITTEN_FILES, reset_written_files, save_content_to_file
 from llmflow.utils.guards import _safe_eval, build_eval_locals, build_step_eval_ctx, collect_warnings, enforce_require
 from llmflow.utils.io import validate_all_templates
 from llmflow.utils.linter import lint_pipeline_full
@@ -473,6 +474,7 @@ def run_pipeline(
     rewind_to: str | None = None,
     stop_after: str | None = None,
     resume: bool = False,
+    no_clean: bool = False,
 ):
     """
     Run a pipeline from a YAML file.
@@ -486,6 +488,7 @@ def run_pipeline(
         log_file: Path to log file (default: llmflow.log in cwd)
         rewind_to: Optional step name to replay from saved artifacts instead of executing
         stop_after: Optional step name after which to halt execution
+        no_clean: Keep the previous run's intermediates instead of removing them
     """
     # Plugins are needed only to execute a pipeline (LLMFlow#178).
     discover_plugins()
@@ -636,6 +639,19 @@ def run_pipeline(
     # Empty this run's own directory — and only this run's (LLMFlow#198)
     _clear_debug_dir(pipeline_config, context, dry_run, pipeline_name, run_key)
 
+    # Remove what this same run wrote last time, and nothing else (LLMFlow#245). Keyed by
+    # pipeline and run key, so a Mark run never reaches a Ruth run's files; the paths come
+    # from what the previous run recorded writing, never from a filename pattern.
+    _run_manifest: Path | None = None
+    _intermediate_raw = pipeline_config.get("intermediate_file_directory")
+    if _intermediate_raw and not dry_run:
+        _intermediate_dir = Path(str(resolve(str(_intermediate_raw), context)))
+        _run_manifest = run_manifest.manifest_path(_intermediate_dir, pipeline_name, run_key)
+        if run_manifest.is_enabled(
+            pipeline_config, no_clean=no_clean, dry_run=dry_run, rewind_to=rewind_to
+        ):
+            run_manifest.clean_previous_run(_run_manifest, _intermediate_dir)
+
     # One recorder per run, shared by every debug write site so they agree on the sequence
     # number and so the manifest describes the run as a whole (LLMFlow#198).
     from llmflow.utils.debug import DebugRecorder
@@ -734,6 +750,12 @@ def run_pipeline(
         # hangs on the module-level `llmflow` logger, and a leaked one would file the next run's
         # warnings into this run's log.
         logging.getLogger("llmflow").removeHandler(_defect_handler)
+
+        # Recorded here rather than after the loop so a run that fails or is interrupted still
+        # says what it wrote (LLMFlow#245). Without that the files it left behind are orphans
+        # no later run knows to remove.
+        if _run_manifest is not None:
+            run_manifest.write(_run_manifest, WRITTEN_FILES)
 
     logger.info("Pipeline complete.")
     telemetry.complete_pipeline()

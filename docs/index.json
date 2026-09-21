@@ -314,6 +314,7 @@
         "llmflow.steps.save",
         "llmflow.steps.scripture",
         "llmflow.steps.window",
+        "llmflow.utils",
         "llmflow.utils.context",
         "llmflow.utils.debug",
         "llmflow.utils.file_io",
@@ -380,7 +381,7 @@
         },
         {
           "name": "run_pipeline",
-          "signature": "run_pipeline(pipeline_file, vars = None, dry_run = False, verbose = False, skip_lint = False, log_file = 'llmflow.log', rewind_to: str | None = None, stop_after: str | None = None, resume: bool = False)",
+          "signature": "run_pipeline(pipeline_file, vars = None, dry_run = False, verbose = False, skip_lint = False, log_file = 'llmflow.log', rewind_to: str | None = None, stop_after: str | None = None, resume: bool = False, no_clean: bool = False)",
           "doc": "Run a pipeline from a YAML file."
         },
         {
@@ -1009,6 +1010,11 @@
           "doc": ""
         },
         {
+          "name": "clean_before_run",
+          "signature": "clean_before_run(self) -> Optional[bool]",
+          "doc": ""
+        },
+        {
           "name": "resolve",
           "signature": "resolve(self, vars: Optional[Dict[str, Any]] = None) -> 'ResolvedPipeline'",
           "doc": "Return a resolved view: ``${...}`` expanded and *vars* (``--var``) applied."
@@ -1020,7 +1026,7 @@
         },
         {
           "name": "run",
-          "signature": "run(self, vars: Optional[Dict[str, Any]] = None, dry_run: bool = False, rewind_to: Optional[str] = None, stop_after: Optional[str] = None, resume: bool = False, verbose: bool = False, skip_lint: bool = False, log_file: str = 'llmflow.log')",
+          "signature": "run(self, vars: Optional[Dict[str, Any]] = None, dry_run: bool = False, rewind_to: Optional[str] = None, stop_after: Optional[str] = None, resume: bool = False, verbose: bool = False, skip_lint: bool = False, log_file: str = 'llmflow.log', no_clean: bool = False)",
           "doc": "Run the pipeline (delegates to the engine's ``run_pipeline``)."
         },
         {
@@ -2260,6 +2266,48 @@
           "name": "states_nothing",
           "signature": "states_nothing(self) -> bool",
           "doc": "Whether the file declared no numbering — comments and blank lines only."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.run_manifest",
+      "imports": [
+        "__future__",
+        "json",
+        "llmflow.modules.logger",
+        "pathlib",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "manifest_path",
+          "signature": "manifest_path(intermediate_dir: Path, pipeline_name: str, run_key: str) -> Path",
+          "doc": "The manifest for one pipeline run under one set of `--var` values."
+        },
+        {
+          "name": "_under",
+          "signature": "_under(path: Path, directory: Path) -> bool",
+          "doc": "True when *path* is inside *directory*, both resolved."
+        },
+        {
+          "name": "read",
+          "signature": "read(path: Path) -> List[str]",
+          "doc": "The paths a previous run recorded, or [] when there is no readable record."
+        },
+        {
+          "name": "clean_previous_run",
+          "signature": "clean_previous_run(manifest: Path, intermediate_dir: Path) -> List[str]",
+          "doc": "Delete the files the previous matching run recorded writing. Returns what went."
+        },
+        {
+          "name": "write",
+          "signature": "write(manifest: Path, written: Iterable[str]) -> None",
+          "doc": "Record the paths this run wrote."
+        },
+        {
+          "name": "is_enabled",
+          "signature": "is_enabled(pipeline_config: dict, no_clean: bool, dry_run: bool, rewind_to: Optional[str]) -> bool",
+          "doc": "Whether this run cleans its own previous output."
         }
       ]
     },
@@ -5416,7 +5464,7 @@
     }
   ],
   "summary": {
-    "total_modules": 90,
-    "total_functions": 860
+    "total_modules": 91,
+    "total_functions": 867
   }
 }

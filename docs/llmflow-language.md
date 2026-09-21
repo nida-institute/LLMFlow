@@ -56,6 +56,36 @@ Controls pipeline validation:
 - `treat_warnings_as_errors`: Fail on warnings
 - `log_level`: Logging verbosity (`debug`, `info`, `warning`, `error`)
 
+### `clean_before_run:` (optional, default `true`)
+
+Whether a run removes what the *same* pipeline wrote under the *same* `--var` values last
+time, before writing anything new.
+
+```yaml
+name: discourse
+intermediate_file_directory: output/intermediate
+clean_before_run: true      # the default; state it to record the decision
+```
+
+A run records every path it writes in `<intermediate_file_directory>/.sp-runs/<pipeline>/<run
+key>.json`, where the run key comes from the `--var` values that distinguish one run from the
+next. A re-run deletes exactly the files that record lists, so:
+
+- **a run can only ever delete its own previous output** — a Mark run never touches a Ruth
+  run's files, because they have different run keys;
+- **nothing outside `intermediate_file_directory` is removed**, so the deliverable is never
+  reachable by a clean, however a path was recorded;
+- **the run reports every file it deleted**;
+- **a listed file that is already gone is not an error.**
+
+Set `false` to keep the previous run's intermediates. `--no-clean` does the same for a single
+invocation, and `--rewind-to` implies it: replay reads the very artifacts a clean would
+remove, so the two can never collide.
+
+Why this rather than `sp clean` before the run: `sp clean` empties the whole declared
+`intermediate_file_directory`, which every parameterisation shares, so it would delete other
+runs' files and break `--rewind-to`.
+
 ---
 
 ## 🔧 Types of Steps
@@ -1845,6 +1875,20 @@ sp run --pipeline pipelines/discourse-flow.yaml \
   --rewind-to enrich_passage \
   --stop-after generate_discourse_outline
 ```
+
+### Keep the previous run's intermediates
+
+By default a run removes what the same pipeline wrote under the same `--var` values last time
+— see `clean_before_run:` under Root-Level Configuration for what that covers and what it can
+never reach. `--no-clean` keeps them for one invocation:
+
+```bash
+sp run --pipeline pipelines/discourse-flow.yaml \
+  --var passage="Mark 11:12-25" \
+  --no-clean
+```
+
+`--rewind-to` already implies it, because replay reads the artifacts a clean would remove.
 
 ### Validate a pipeline
 ```bash
