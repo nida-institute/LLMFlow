@@ -2,7 +2,142 @@
 
 ## Unreleased
 
+## 0.2.1.28 — 2026-09-21
+
+### Added
+
+- **`sp lint` warns which prompts do not fit the section grammar → #242.** The declaration was
+  already the single statement of the order; nothing read it at lint time, so conformance still
+  depended on an assistant applying a document correctly. It now names each non-conforming
+  prompt, shows the **first** finding in it, and prints the required sequence once per run beside
+  that first finding. A finding says what to write instead — `'# OUTPUT FORMAT' is not in the
+  grammar — the production is `# OUTPUT SCHEMA`` — because the declaration's `refused:` map
+  carries the remedy alongside the refusal.
+
+  **A warning, never an error.** A prompt whose sections are out of order still runs, and a
+  pipeline that works must not stop working over its shape.
+
+  **What the grammar binds is declared, not coded.** A prompt whose **first line** is `---` is
+  held to the grammar; a file without that header fence is checked by nothing. Measured across
+  four repositories, 40 of 41 prompts open this way and the one that does not has no header at
+  all. Because the trigger is a declaration rather than a formatting choice, **any prompt may use
+  `#` sections without being surprised by the grammar** — adding a heading never silently changes
+  what a prompt is held to.
+
+  It is the fence alone and not `requires:` as well: a prompt may legitimately declare zero
+  required variables, and keying on `requires:` would build an escape hatch for exactly that
+  case. It is the *first* line rather than a fence anywhere, because an unanchored match reads a
+  markdown horizontal rule as a header — `prompts/sikkemese/typology-checking.gpt` has one — and
+  an unanchored HTML-comment form reads a body comment as a header, which three prompts in a
+  consumer repository carry.
+
+  A heading-based trigger was implemented first and replaced: it left the case most in need of
+  checking — a transformation prompt written with no headings at all — invisible. The rule lives
+  in `data/prompt-structure.yaml` so `sp lint`, the audit skill and any consumer's own check
+  agree on scope by reading one statement, and it renders into the shipped discipline.
+
+  **Consequence, stated rather than softened:** all six prompts in `prompts/` declare a header and
+  carry no sections, so each now draws a warning — `sp lint --pipeline pipelines/hello.yaml`
+  included. Replacing the hello-world examples with scripture examples is already queued.
+
+  Only what the grammar can decide is reported: a heading's name, the order, a required section's
+  absence, and a task section's subsections. C2 and C4 turn on what a section *means* rather than
+  what it says, and nothing reports them — a warning that cannot be trusted teaches a reader to
+  skip warnings.
+
+- **A twelfth position, `# REFERENCE`, is the declared extension point.** Prompts need somewhere
+  to put material the grammar does not name — a label set, a taxonomy, a table the tasks cite —
+  and until now there was nowhere: C5 read any unrecognised heading as a task section, so a table
+  of labels was reported as a task missing four subsections, which is a wrong diagnosis rather
+  than a strict one.
+
+  Named `reference` and not `extensions` or `appendix`: a content word says what belongs there,
+  where a mechanism word or a position word says only how or where. Someone about to paste the
+  wrong thing under `# REFERENCE` notices the mismatch; `# EXTENSIONS` would have accepted it
+  silently.
+
+  **Design notes are refused, on measurement.** The whole `.gpt` file reaches the model,
+  frontmatter included (#176), so notes for maintainers would be tokens the model reads and may
+  act on. They belong in `project/plans/` or the header's `description:`.
+
+  One door, free-form behind it: a single `# REFERENCE`, subsections unconstrained, any further
+  heading after it unchecked — and C6 constraining it to material the tasks cite, introducing no
+  obligation. A refused heading is still refused there; unchecked for shape is not a hole where
+  anything becomes legal.
+
 ### Fixed
+
+- **The per-run reset of the written-file list never ran** — groundwork for #245. `run_pipeline`
+  did `global WRITTEN_FILES; WRITTEN_FILES = []`, which bound a new name in `runner` and left
+  `file_io.WRITTEN_FILES` — the list every write records itself in — untouched, so it
+  accumulated across every run in a process. Invisible under the CLI, where one run is one
+  process; live for the Python API and the test suite. It matters now because #245 deletes a
+  re-run's own previous output from that list, and a stale entry is a file removed that this run
+  never wrote. `file_io.reset_written_files()` clears it in place, because callers hold a
+  reference to the list and rebinding is the defect being fixed.
+
+  **The test that guarded this was checking the wrong object.** It appended to
+  `runner.WRITTEN_FILES` and asserted against the same name — the rebound list no production
+  code reads — so it passed while the real list grew. It now reads `file_io`.
+
+- **A book whose name is more than one word could not be named alone.** `sp run --var
+  book="1 John"` was refused with *"'1 John' is not a passage reference"* — while the same
+  message listed `'MRK'`, a bare book, as an expected form. `2 Timothy` and `Song of Songs`
+  failed the same way; `Mark` worked, which is why a pipeline running single-word books never
+  met it. Reported from a book-level pipeline, where naming a whole book is the ordinary case.
+
+  The book had already resolved correctly. `books.resolve` returned `1JN`, and a second test
+  layered on top then threw that answer away, refusing any resolved book whose name contained a
+  space when no chapter followed. It guarded nothing: a string naming no book already fails
+  because `books.resolve` returns nothing for it.
+
+  **Where the book ends is now decided by the declaration, not by whitespace.** The split takes
+  the longest leading run of words that names a book and hands the remainder to the tail
+  pattern, so each half is answered by the thing that owns it. The previous split took the last
+  whitespace-delimited token with a numeric shape, which contradicted a tail pattern written to
+  allow spaces around the dash — so `Mark 1:1 - 2:2` left `Mark 1:1 -` as the book name and was
+  refused, a second bug the same change removes. Spacing no longer matters:
+  `Mark 1:1-2:2`, `Mark 1:1 - 2:2` and `1 John 1:1 - 2:2` all parse.
+
+  **Present in 0.2.1.25, .26 and .27**, verified by parsing `1 John` against a checkout of the
+  v0.2.1.27 tag. Not a regression in this release.
+
+- **One reference parser, and one refusal.** `parse_bible_reference` carried four regex patterns
+  of its own, duplicating what `parse_passage_ref` does. A pipeline met both — one in a
+  `function` step, the other in a `scripture` step — and they disagreed about inputs *and* about
+  errors: the same bad reference drew `Could not parse Bible reference '1JHN'` from one and a
+  message naming every accepted form from the other. A reader who met the first had nothing to
+  act on.
+
+  `parse_bible_reference` now reads `parse_passage_ref` and keeps its own return contract; its
+  168 lines of parsing are deleted rather than left beside the new path. Its full dictionary is
+  pinned by a characterisation test captured from the shipped function before the change, so the
+  contract consumers depend on is held to what it was rather than to a fresh opinion.
+
+  Two differences the old patterns had are settled rather than lost. An **en- or em-dash** in a
+  range now parses in the one parser, so `Luke 12:5–19` works everywhere instead of in one place.
+  And **trailing text is refused instead of ignored**: `re.match` let the old patterns read
+  `John 3:16` out of `John 3:16 garbage` and silently drop the rest, which is a confident answer
+  about an input nobody checked.
+
+  **Known asymmetry, deliberately not changed here:** the whole-book result carries
+  `is_whole_book` and the chapter results omit it, which `say-which-kind-of-nothing` would rather
+  they did not. Making the key always present is a contract change and belongs in its own.
+
+- **A worked example in the `/audit-prompts` skill approved the superseded shape, with ticks.**
+  Reported by `nida-institute/discourse-flow`, and verified: the example certified a prompt by
+  ticking `OUTPUT FORMAT`, which the grammar refuses, and listed the checklist before `INPUT DATA`
+  and `GUARDRAILS`, which the grammar puts last. It also showed three task subsections where four
+  are required. An example does not intend to state the order — it instantiates it — but a reader
+  copies it, and modelling the *verdict* alongside the shape made it worse than prose. It no
+  longer enumerates sections at all; it cites the authority.
+
+  The guard missed it because `REFUSED` was keyed on `# OUTPUT FORMAT` while the example read
+  `✅ Has OUTPUT FORMAT` — a document can name a refused heading without carrying one. That set is
+  no longer hand-kept: it is read from `prompt_structure.refused()` with the prefix stripped, the
+  hand-kept copy having already drifted from the declaration in a key and in a reason's wording.
+  A new guard checks the skill's fenced examples against the declared positions, so an example
+  that exhibits an order the grammar refuses now fails.
 
 - **The prompt section order is declared once, in `data/prompt-structure.yaml`.** Seven documents
   stated it and most disagreed with the ruling. The worst was the `/audit-prompts` skill, which is
@@ -214,19 +349,16 @@
   `sp lint` would always have rejected `print`. Only the documentation claimed it — which is why
   this is a documentation fix and not a code one.
 
-## 0.2.1.28 — 2026-09-09
+### Fixed — the bugs a first setup hits
 
-A bug-fix release, cut deliberately small and soon. Every fix below was found by one person
-setting up a machine for the first time, and each one bites on a fresh setup and then never
-again — which is why they survived so long. The machines they were tested on had all already
-passed through the state that hides them.
+Every fix in this group was found by one person setting up a machine for the first time, and
+each one bites on a fresh setup and then never again — which is why they survived so long. The
+machines they were tested on had all already passed through the state that hides them.
 
 **BaseX (#38) is not in this release.** It remains blocked on `awesome-biblical-data#5`: the
 catalog cannot describe a treebank or a lexicon at all, so there is no input to build against.
 Three of its seventy entries carry a `provides` block and all three are Bibles. The `type: basex`
 step continues to work as it has since #49; what is missing is the loading half.
-
-### Fixed
 
 - **The first `sp resource add` on a set-up machine failed after downloading.**
 

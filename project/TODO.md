@@ -7,6 +7,48 @@
 
 ## 🔥 Active
 
+### 🤝 Helm adopts sp's idioms, then installs into paratext-copilot
+
+> **The Captain's second priority, 2026-09-19.** *"finish the new helm and install in paratext
+> copilot."* Nothing is built. The design is `human-at-the-helm/project/plans/design-helm-project-layout.md`
+> (R1–R12 ruled, steps 2–5 built) — but several of its §7 steps were **overtaken** by the rulings
+> below, and step 6 as written is now withdrawn. Read these before that document.
+
+**Ruled 2026-09-19, all the Captain's:**
+
+1. **Helm uses the same idioms as sp** — *"or we have two different implementations of the same
+   thing and we have to maintain each."* Three of them: `templates/<root>/` mirrors the
+   destination, so the path *is* the mapping (guarded in sp by
+   `test_project_templates_mirror_their_destination`); the declaration carries only what the tree
+   cannot say; ownership is a property of the half — `helm/` ours, `project/` theirs, which is R1.
+2. **The manifest's mapping rows go.** *"just copy the subdirectory and the files it contains."*
+   Its `groups:` already read the tree; its four `files:` rows are hand-kept and are the second
+   source. Once `templates/` mirrors the destination there may be nothing left to declare, since
+   Helm has no index to render and no `.gitignore` to generate — that is the same idiom producing
+   less declaration, not a divergence.
+3. **No migration record, no moves ledger, no stamp.** *"we are the source of these skills, we can
+   track them using source code control here."* D7.1's "permanent and accumulating" answered a
+   question the AI had posed; it is not a request for the thing it presupposed. Install and update
+   are one act: re-copy and read the diff.
+4. **Helm keeps its own installer.** `/install` stays a markdown skill any assistant can follow.
+   Shared idioms, not shared code — a methodology that needs a Bible-pipeline package installed is
+   not tool-neutral, and that is Helm's premise.
+5. **Helm gets `CHANGELOG.md` and `docs/`, and so does every Helm project.** It has neither today,
+   which is why its own rulings have had nowhere to live. `templates/project/CHANGELOG.md`,
+   create-only.
+
+- [ ] **Open:** D9 — the shape of Helm's own AI context, an empty `=>` in that design document.
+      Read as **B** (`docs/ai-context/project/` only, the shipped half being the source tree) and
+      **not confirmed**. It blocks §7 steps 11–12
+- [ ] Lay `templates/` out as a mirror of the destination, and delete what that makes redundant
+- [ ] Then install into `nida-institute/paratext-copilot`. **Its tree is not clean** — it carries
+      an uncommitted pre-2026-09-17 Helm install (`health-check/`, `helm-check/`,
+      `docs/ai-context/helm-manifest.yaml`, `project/` all untracked; `handoff/SKILL.md` modified
+      +14/−6) and is in the old flat `docs/ai-context/` layout. Installing over it without the
+      Captain reviewing that diff first would sweep someone's unreviewed work into the result
+- [ ] `sp doctor` labels the disciplines group **"Conventions"**, the directory's old name. That is
+      almost certainly where discourse-flow's stale `~/.sp/conventions/…` pointer came from
+
 ### 🚨 HIGH — there is no type checking, and the suite does not say so
 
 > **Flagged 2026-09-16.** `tests/test_types.py` fails, and it is easy to read as one more known
@@ -363,11 +405,65 @@ load-bearing, and it was established by fetching `WLC Ruth 1:1`, not by reading 
 
 ### 🚢 0.2.1.28 — merged? tagged? released?
 
-- [ ] **PR #236** — `dev` → `main`, 8 commits, `MERGEABLE`, build `34409536310` green on all four
-      jobs. Merge with a **merge commit**, tag the merge commit, watch all five `release.yml` jobs
-- [ ] Artifacts **expire 16–17 September**. After that the build re-runs, and Windows takes 2h17m
-- [ ] `data/models.json` is held back deliberately — one line, and committing it restarts a
-      two-hour build. It belongs to the cycle after
+> **Title, chosen by the Captain 2026-09-21: "the order is declared once, and lint reads it."**
+> So the PR reads `Release 0.2.1.28 — the order is declared once, and lint reads it`. **Not yet
+> applied:** `gh pr edit` fails with `Resource not accessible by personal access token
+> (updatePullRequest)`, so the retitle is the Captain's to make in the browser, or with a token
+> carrying PR write scope.
+>
+> **Scope grew 2026-09-21, at the Captain's direction.** This is no longer only "the bugs a first
+> setup hits": it now carries prompt-grammar enforcement, a prompt behaviour change and replaced
+> examples.
+>
+> **Before tagging:** the CHANGELOG carries a dated `## 0.2.1.28 — 2026-09-09` heading *and* an
+> `## Unreleased` section above it, so one release would ship as two sections, one dated twelve
+> days early. Fold them or redate before the tag.
+
+**Crucial, and first — #245: a re-run leaves the previous run's intermediates.** The Captain,
+2026-09-21: *"this is crucial."* Every run and every `/audit-output` is affected until it lands,
+because an audit reads two runs' files as one set. **Do not fix it with `sp clean` before the
+run:** that deletes every parameterisation's intermediates, which is #198's bug moved from
+`debug/` into `intermediate/`, and it breaks `--rewind-to`, which replays by reading the very
+files a pre-run clean removes. The design is a per-run write manifest keyed by pipeline and
+`debug.run_key_for(cli_vars)`, so a run deletes only its own previous output and the directory
+tree does not change. `clean_before_run: true|false` with `true` the documented default, and
+`--no-clean` per invocation. Four rails in the issue, all load-bearing.
+
+- [ ] **#245** — write the `--rewind-to` test first; it is the regression that would hurt most
+
+**Prompt work added to this release, in the order it has to land:**
+
+- [ ] **#176 — strip YAML frontmatter before the LLM call.** A **behaviour change**: the whole
+      `.gpt` file reaches the model today, frontmatter included (`steps/llm.py:220` → `307`; the
+      stripped `body` at line 85 feeds the contract check only and is discarded). Write the test
+      first, then validate across existing pipelines. Open: strip everything, or keep and relocate
+      `description:`
+- [ ] **#244 — replace the starter prompts.** Sequenced **after #176**, so the replacement is
+      written against post-#176 behaviour rather than rewritten after it
+- [ ] **Position 12, `reference`, in `data/prompt-structure.yaml`.** Ruled 2026-09-21: prompts
+      need an extension point and the end is the place for it. `reference` rather than
+      `extensions` or `appendix` — a content word, not a mechanism or a position, so it says what
+      belongs there. One `# REFERENCE` section, subsections free-form inside it, with C6
+      constraining it to material the tasks cite and no obligation. **Design notes are refused:**
+      everything in a `.gpt` reaches the model, so notes for maintainers would be tokens the model
+      reads and may act on; they belong in `project/plans/` or the header's `description:`
+- [x] **`sp lint` warns on a prompt that does not fit the grammar → #242.** Shipped. Warns, first
+      finding per prompt, required sequence once per run. What the grammar binds is declared, not
+      coded: a prompt whose **first line** is `---`
+
+> **Why the ordering is a constraint and not a preference:** `sp lint` now warns on all six
+> prompts in `prompts/`, so shipping the conformance check while keeping the current starter means
+> a new user's first lint warns about the example we gave them. #244 and the check ship together,
+> or the check waits.
+
+- [ ] **PR #236** — `dev` → `main`, **18 commits** as of 2026-09-21 and growing (`dev` is 14
+      further commits ahead, unpushed), `MERGEABLE`. Merge with a **merge commit**, tag the merge
+      commit, watch all five `release.yml` jobs
+- [x] Artifacts **expired 16–17 September** — past, so the build re-runs on this release whatever
+      else changes
+- [ ] `data/models.json` was held back because committing it "restarts a two-hour build". **That
+      reason has expired with the artifacts above**, so the one line now costs nothing it was not
+      already going to cost. Whether it joins this release is the Captain's call
 
 BaseX is **not** in this release; see below.
 

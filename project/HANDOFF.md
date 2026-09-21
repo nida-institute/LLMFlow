@@ -1,160 +1,142 @@
-# HANDOFF — 2026-09-14
+# HANDOFF — 2026-09-21
 
 ## ▶ NEXT ACTION
 
-**Strip the ruling citations from the alignment docstrings.** They violate
-`rule docstrings-say-what-not-why`, the Captain flagged them, and they are already committed in
-`1501da1` — so this is cleanup of shipped code, not of a draft. Every occurrence is tabled under
-"In flight" below, with what to keep and what to remove, so no searching is needed.
+**Nothing is committed. `dev` is at `30ac1de`, ahead 14 and unpushed, with 21 modified files and
+several untracked on top.** The suite is at its known baseline, so the tree is landable — but it
+is one session's worth of unrelated work in one diff, and the commit is the Captain's.
 
-**Verify when done:** `hatch run pytest tests/test_docstrings_say_what_not_why.py -q` → green,
-and `hatch run pytest tests/test_alignment.py -q` → still **21 passed**.
+Suggested split, smallest risk first. Each is independently green:
 
-Then take the open decisions to the Captain — starting with whether to revert
-`src/llmflow/utils/bible_data.py`, which is the one piece of uncommitted code and the one thing
-this session changed without authorisation.
+1. **The parser work** — `src/llmflow/utils/versification.py`, `src/llmflow/utils/data.py`,
+   `tests/test_book_names.py`, `tests/test_parse_bible_reference.py`,
+   `tests/test_data_utilities.py`. Fixes the live blocker and unifies two parsers.
+2. **The prompt grammar** — `data/prompt-structure.yaml`, `src/llmflow/prompt_structure.py`,
+   `src/llmflow/utils/linter.py`, the two `templates/sp/` files,
+   `tests/test_prompt_structure_*.py`, `docs/llmflow-language.md`.
+3. **#245 groundwork** — `src/llmflow/runner.py`, `src/llmflow/utils/file_io.py`,
+   `tests/test_run_manifest.py`, `tests/test_run_pipeline.py`.
+4. **Records** — `CHANGELOG.md`, `project/TODO.md`, this file, and the four untracked
+   `collab/discourse-flow/*.md` (untracked since 09-16; `plans-are-temporary` wants them tracked
+   so deleting them later is safe).
 
-**Then read `project/TODO.md`.** Everything that is not session residue lives there; this file
-does not restate it.
+**Then `project/TODO.md`.** Its 0.2.1.28 section carries the queue and its order. Do not read the
+queue out of this file.
+
+**A push is the Captain's act and has not been requested.**
 
 ---
 
-## What this session did, in one line
-
-Built `type: alignment` — target-language text for a span named by source word ids — from an
-unwritten design to a working, tested step. #238.
-
 ## Active threads
 
-### 1. `type: alignment` — built, tested, committed
+### 1. #245 — a re-run leaves the previous run's intermediates. **Started, mostly unbuilt**
 
-**Goal:** unblock `nida-institute/discourse-flow`. It is their only known blocker.
+**Goal.** A re-run deletes only its own previous output, so `/audit-output` stops reading two
+runs as one set. The Captain, 2026-09-21: *"this is crucial."*
 
-**State: working and in git.** Three commits, in order:
+**State: one piece landed, the rest not written.** The landed piece is the foundation:
+`file_io.reset_written_files()` replaces `runner.py`'s `global WRITTEN_FILES; WRITTEN_FILES = []`,
+which bound a name in `runner` and left the real list untouched, so it accumulated across every
+run in a process. #245 deletes from that list, so a stale entry is a file removed that this run
+never wrote.
 
-| sha | |
-|---|---|
-| `1501da1` | the step, its reader, 21 tests, `data/alignment-pairs.json`, bundling, language reference, CHANGELOG |
-| `6d023f2` | last session's Scripture Burrito plans (R1–R20, and sixteen open regeneration decisions) |
-| `4b3640e` | this session's design documents (R1–R16), the plans index, the inbound collab note |
+**Verify.** `hatch run pytest tests/test_run_manifest.py tests/test_run_pipeline.py -q` → 15
+passed.
 
-**Verify:** `hatch run pytest tests/test_alignment.py -q` → **21 passed**. Full suite at the time
-of writing: `3 failed, 5546 passed`, all three failures pre-existing and named under "Do NOT".
+**Next step.** Write the `--rewind-to` guard test **first** — it is the regression that would
+hurt most, because replay reads the very files a clean would remove. Then the manifest write, the
+keyed delete, `clean_before_run:` in `PIPELINE_SCHEMA`, and `--no-clean`. The full design and the
+four rails are in the issue; do not re-derive them.
 
-**Nothing is pushed.** `dev` is ahead of `origin/dev`; the push is a separate act and is the
-Captain's to ask for by name.
+### 2. The prompt grammar and `sp lint` — done, uncommitted
 
-**Next step:** the docstring cleanup above, then the two unfinished items under "In flight".
+**State: built and green.** `sp lint` warns on a prompt that does not fit the grammar; position 12
+`reference` is declared and rendered into the discipline; the `/audit-prompts` worked example no
+longer approves the old shape.
 
-### 2. `src/llmflow/utils/bible_data.py` — an unauthorized change awaiting a revert decision
+**Verify.** `hatch run pytest tests/test_prompt_structure_conformance.py
+tests/test_prompt_structure_single_source.py -q` → 27 passed.
+`hatch run sp lint --pipeline pipelines/hello.yaml` warns (expected — see #244).
 
-**State: modified, and it should probably be reverted.** This session rewrote
-`BibleDataRegistry.get_path` to resolve through the dataset store instead of building
-`Path.home() / "github" / org / dir_name`. The hardcoding was a real defect. **The rewrite was not
-authorized** — the Captain said "that needs immediate fixing" about a defect, and this session
-redesigned a resolution mechanism.
+### 3. Reference parsing — done, uncommitted
 
-**It breaks 8 tests** in `tests/test_bible_data.py`, which asserted the old contract.
+**State: built and green.** Multi-word book names parse alone; spaced ranges parse;
+`parse_bible_reference` reads `parse_passage_ref` and its 168 duplicate lines are deleted.
 
-**Verify:** `hatch run pytest tests/test_bible_data.py -q` → **8 failed, 18 passed**.
+**Verify.** `hatch run pytest tests/test_book_names.py -q` → 82 passed, including
+`test_every_declared_spelling_parses_as_a_whole_book` over all 341 spellings in 66 books.
 
-**Next step: ask the Captain.** The revert is clean:
-`git checkout -- src/llmflow/utils/bible_data.py`. The underlying question — whether that module
-should exist at all, given the datasets store and `resources.resolve_declared_path` already do
-this — is a design decision and is his.
-
-**Context he will need:** nothing in `src/` uses `BibleDataRegistry`; only `tests/test_bible_data.py`
-and `tests/test_runner_full.py` reference it. It is effectively dead code.
+---
 
 ## In flight / not yet done
 
-- **Ruling citations in docstrings must be stripped — committed in `1501da1`, so this is
-  cleanup of shipped code.** `rule docstrings-say-what-not-why`: a docstring says what the code
-  does and never carries design or rationale. The Captain flagged it; it is not done. Every
-  occurrence, so no searching is needed:
+- **`dev` ahead 14, unpushed**, tip `30ac1de`. Everything above is uncommitted on top of it.
+- **PR #236 cannot be retitled by this agent.** `gh pr edit` returns
+  `Resource not accessible by personal access token (updatePullRequest)`. The chosen title and
+  the exact command are in `project/TODO.md`. **This token cannot change any PR title, body,
+  label or state** — relevant to the whole release process.
+- **The reply to discourse-flow is sent**, into their tree, untracked for them:
+  `discourse-flow/collab/sp/2026-09-21-the-example-is-fixed-and-lint-now-reads-the-grammar.md`.
+- **Four inbound collab notes are untracked here**, the newest being
+  `collab/discourse-flow/2026-09-21-parse_passage_ref-refuses-every-book-whose-name-has-a-space.md`.
+  Everything it asks for is done, including the exhaustive test it requested by name.
+- **Uncommitted and the Captain's, not this session's:** `data/models.json`,
+  `docs/ai-context/project/data-sources.md`, `project/0x28.md`, `.cursorrules`, `.windsurfrules`,
+  `docs/ai-context/sp/github-workflow.md` and its template twin.
+- **`~/.claude/settings.json`** is still modified — the unreviewed one-line change reported at
+  session start (a `Write(//Users/jonathan/.claude/projects/**)` permission removed).
 
-  | file:line | |
-  |---|---|
-  | `utils/alignment.py:21` | "(R15)" on the `GAP` constant |
-  | `utils/alignment.py:36` | "(R2)" in `validate_pair` |
-  | `utils/alignment.py:68` | "(R2)" in `load_pair` |
-  | `utils/alignment.py:81` | "R8: target word order settles ownership…" |
-  | `utils/alignment.py:115` | "(R15)" in `_join` |
-  | `utils/alignment.py:130` | "(R15)" in `_source_phrase` |
-  | `utils/alignment.py:171,185,211` | "(R5)", "(R11)", "R5 source order:" in comments |
-  | `steps/alignment.py` | module docstring points at the design doc — that is a cross-reference and is *allowed*; the rule welcomes a pointer to where the reasoning lives |
-  | `utils/alignment.py:1-9` | same: the module docstring's pointer stays |
+## Six tests are RED, all pre-existing
 
-  **What to keep:** the sentence saying what the function does, and a bare cross-reference to
-  `project/plans/design-scripture-alignments.md`. **What goes:** the ruling numbers inline and
-  any sentence explaining *why* a choice was made. The rule is explicit that a pointer to where
-  the reasoning lives is the remedy, not the violation.
+`hatch run pytest -q` → **5673 passed, 6 failed**, plus a network-dependent MCP integration test
+that fails only when the server is unreachable. None is from this session:
+`test_types.py` (npx broken, so nothing is type-checked), `test_plan_docs_index.py` ×3 (two
+untracked 2026-09-17 design documents), `test_product_name_in_prose.py` (hits the Captain's
+`data-sources.md`), `test_resource_provisioning.py`.
 
-  **Verify after:** `hatch run pytest tests/test_docstrings_say_what_not_why.py -q` → green, and
-  `hatch run pytest tests/test_alignment.py -q` → still 21 passed.
-- **`data/alignment-pairs.json` is declared and shipped but nothing reads it.** The step resolves
-  pairs through the registered-resource store, which is what the tests exercise. Wiring the
-  declaration is the remaining work, and it is where D9's normalisation belongs.
-- **Nothing has run against the real corpus.** Tests are synthetic by design so they pass on a
-  fresh clone. `SBLGNT-BSB` has never been through this code.
-- **`tmp/gen_alignment_demo.py:8` hardcodes a path** — the worked-examples generator. Throwaway,
-  but `tmp/alignment-worked-examples.md` tells the reader to regenerate with it.
-- **Three issue drafts written and never posted:** the `_unlock_sp_dir` broken-symlink crash (in
-  the conversation only — see below), and nothing else outstanding.
+Two pre-existing `ruff check src/` errors, in `cli_utils.py` and `runner.py`, both untouched here.
 
 ## Decisions settled — do not reopen
 
-**Sixteen rulings, R1–R16, are in `project/plans/design-scripture-alignments.md` §2 with the
-Captain's own words.** Read that rather than re-deriving. The four most likely to be accidentally
-contradicted:
-
-- **R8** — a shared target word: **no token appears in two spans' text**, decided by target
-  order; but the constituent list shows it in **both**. Two outputs, two rules.
-- **R11** — **two** kinds of nothing, not three: `[]` (asked, nothing aligned) and `null` (ids not
-  in the alignment file). A "third kind" was a populated field and was removed.
-- **R16** — the request takes a **set**: the alignments, the aligned text, or both.
-- **Keys are `source:`/`target:`, not `from:`/`to:`** — `from` is a Python keyword and `Step`
-  cannot expose it. R4's substance is unchanged; the spelling is Scripture Burrito's own `roles`.
-
-**Vocabulary: nine coined terms were retired** — `absorbed`, `refused`, `foreign`, `partition`,
-`clean run`, `gap`, `interleaved`, `window`, `extent`. Say the phrase, not a noun.
-`rule 3` in `docs/ai-context/project/rules.md` now records why. **Do not reintroduce them.**
-
-## Open decisions awaiting the Captain
-
-1. **Revert `bible_data.py`?** And should that module exist at all?
-2. **D9** — §5 of the alignment design. Portuguese joins 0 of 99,258 because `JFA11` omits the
-   `n` prefix. Normalising on read is forced; what a client gets in *raw records* is the decision.
-3. **The store and the catalog disagree on ids.** `data/resources.json` declares `acai` and
-   `macula-hebrew`; `~/.sp/datasets/` holds `ACAI` and `macula-hebrew-macula-hebrew`. His store,
-   his catalog.
+- **The grammar binds a prompt whose first line is `---`.** Not a `#` heading: binding follows a
+  deliberate declaration, so any prompt may use `#` sections without being surprised. Not
+  `requires:` as well: a prompt may have zero required variables.
+- **The extension point is `reference`, not `extensions` or `appendix`** — a content word says
+  what belongs there; a mechanism or position word guides nobody. Design notes are refused there
+  because the whole `.gpt` reaches the model.
+- **Conformance is a warning, first finding per prompt, sequence once per run.** The Captain saw
+  the live output and ruled it fine as is — **do not make it lint-only.**
+- **`sp clean` before a run is the wrong fix for #245.** It deletes every parameterisation's
+  intermediates (#198's bug, relocated) and breaks `--rewind-to`.
+- **Where a book ends is decided by the declaration, not by whitespace.**
+- **The CHANGELOG keeps both `## Unreleased` and a dated version section.** That two-section shape
+  is enforced by `tests/test_changelog_*`; an attempt to fold them was wrong and was reverted.
 
 ## Do NOT
 
-- **Do not treat these three test failures as yours.** They are pre-existing:
-  `test_plan_docs_index` × 2 (the Captain's own staged plan docs cite no issue) and
-  `test_product_name_in_prose` (a collab file from 2026-09-09, unmodified in git).
-- **Do not run two pytest processes at once.** They share `tmp/pytest` and corrupt each other.
-  This session invalidated three suite runs that way. If it wedges with an `INTERNALERROR` about
-  `os.stat`, the fix is `chmod -R u+w tmp/pytest && rm -rf tmp/pytest` — plain `rm` fails because
-  `sp` locks the store read-only.
-- **Do not use `Clear/internal-Alignments`.** Captain, 2026-09-14: only the public
-  `Clear/Alignments` is registered for general use. R14: the per-language repos are
-  copyright-restricted.
-- **Do not decide the open questions above.** This session's repeated failure was answering
-  design questions instead of bringing them. See the correction list in the conversation.
-- **Do not push anything.** The Portuguese fix in `Clear/Alignments` is already committed and
-  pushed by the Captain on `fix/portuguese-source-id-prefix`; nothing else is owed there.
+- **Do not run `sp doctor` in this repository** — #210. It is safe in consumer projects, and was
+  run in `discourse-flow` this session to refresh installed skills.
+- **Do not `git add -A`** — `gui/frontend/node_modules` is tracked, ~8,000 deletions.
+- **Do not read a passing suite as type-checked** — `npx` is broken.
+- **Do not edit `docs/ai-context/sp/`** — regenerated; the fix belongs in
+  `src/llmflow/templates/project/docs/ai-context/sp/`.
+- **Do not hand-edit the rendered block in `templates/sp/disciplines/llmflow-prompt-organization.md`**
+  — regenerate it from `data/prompt-structure.yaml` via `prompt_structure.render_markdown()`.
+- **Do not fix the two `ruff` errors or the `is_whole_book` asymmetry while passing** — each is
+  noted and out of scope.
+- **Do not run two pytest processes at once** — they share `tmp/pytest`.
+
+## Unfiled, noted only here and in the CHANGELOG
+
+- `linter_config.treat_warnings_as_errors` is documented in two places and implemented nowhere.
+- `parse_bible_reference` returns `is_whole_book` on a whole-book result and omits it otherwise.
+- `_book_code("Song of Solomon")` is `None` while `Song of Songs` resolves — an alias question
+  discourse-flow raised, and a data question for the Captain rather than a bug.
 
 ## Key files & links
 
-- `project/TODO.md` — **the queue.** Everything not session residue.
-- `project/plans/design-scripture-alignments.md` — R1–R16, measurements with re-run commands,
-  D9 open. **Read first.**
-- `project/plans/design-operations-in-the-pipeline-language.md` — #241, the language question.
-  Concluded #238 is *not* blocked on it.
-- `tmp/alignment-worked-examples.md` — Luke 1:1–4, Ephesians 1:3–14, Psalm 23:1–4, Ruth 1:1–4.
-- Issues opened today: **#238** alignment, **#239** resolver kludge, **#240** hyphen naming,
-  **#241** operations in the language. Against `Clear-Bible/Alignments`: **#12**, **#13**, **#14**.
-- An unfiled issue draft — `_unlock_sp_dir` crashes on a broken symlink, reachable from
-  `sp doctor` and `sp init`, not just tests — exists only in this session's conversation.
+- `project/TODO.md` — the queue and its order. **#245 is its first entry.**
+- Issues **#245** (re-run intermediates), **#244** (replace the starter prompts), **#176** (strip
+  frontmatter before the LLM call), **#242** (lint reads the declaration — shipped).
+- `data/prompt-structure.yaml` — the grammar, and the pattern to copy: declare once, render, guard.
+- `src/llmflow/utils/debug.py` — `run_key_for()` and `manifest.jsonl`, the machinery #245 reuses.
