@@ -14,14 +14,21 @@ guards that hold it, the `/load-context` précis change, and the CHANGELOG entry
 - `tests/test_shipped_skills_name_real_paths.py`, `src/llmflow/templates/sp/skills/load-context/SKILL.md`
 - `data/helm-sync.yaml`, `CHANGELOG.md`, `project/TODO.md`
 - `src/llmflow/runner.py`, `src/llmflow/utils/run_manifest.py` — comment trims only, no behaviour
+- `project/plans/design-scripture-window-by-token-budget.md`,
+  `project/plans/design-artifact-conformance.md`, `project/plans/README.md` (regenerated)
 
-**The commit message is not yet written to a file.** Write it, then hand over the command. The
-commit, the push and the merge are the Captain's (`commit-authority`).
+**The commit message is written**: `tmp/commit-rules-and-load-context.txt`. It does not mention
+the two plan documents, which were added after it — amend it or commit them separately.
 
-**Verify before committing:** `hatch run pytest -q` → **5698 passed, 6 failed**. Those six are the
-known baseline — `test_types` (npx broken), `test_plan_docs_index` ×3, `test_product_name_in_prose`
-(hits the Captain's `data-sources.md`), `test_resource_provisioning`. A seventh,
+**Verify before committing:** `hatch run pytest -q` → **5 failed**, the known baseline:
+`test_types` (npx broken), `test_plan_docs_index::test_document_names_its_issue` ×2 (two design
+documents that name no issue — assigning them is the Captain's), `test_product_name_in_prose`
+(hits the Captain's `data-sources.md`), `test_resource_provisioning`. A sixth,
 `tests/integration/test_mcp_batch_calls.py`, fails only when the network is down.
+
+`test_plan_docs_index::test_index_is_current` **was** failing and is now green — regenerating the
+index with `hatch run python tools/update_plans_index.py` fixed it. Re-run that tool whenever a
+document is added to or removed from `project/plans/`.
 
 **Then `project/TODO.md`.** Its 0.2.1.28 section carries the queue and its order. Do not read the
 queue out of this file.
@@ -35,21 +42,21 @@ queue out of this file.
 The Captain, 2026-09-21, of discourse-flow's asks: both are built for this release rather than
 filed and deferred. **PR #236 now waits on them.**
 
-**State: issue bodies drafted, nothing created, no code.**
+**State: designs drafted and `proposed`, nothing created, no code.**
 
-- `tmp/issue-scripture-window.md` — window a scripture document by token budget, verse-sid cursor
-- `tmp/issue-artifact-conformance.md` — check a produced artifact against the schema its pipeline
-  declares, recording a defect rather than raising
+- `project/plans/design-scripture-window-by-token-budget.md`
+- `project/plans/design-artifact-conformance.md`
 
-Each carries four `=>` slots that are **design calls for the Captain**, not implementation detail.
+Each is **also the drafted body of a GitHub issue that does not exist yet** — its heading is the
+issue title — and each carries four `=>` slots that are **design calls for the Captain**, not
+implementation detail. `proposed` is not authorization to build.
 
 **Next step.** Get approval of the bodies, then `gh issue create` (`issues-need-approval` — never
-create silently), then the `=>` answers, then tests first.
+create silently), write the issue number into each document, then the `=>` answers, then tests
+first.
 
-**⚠️ `tmp/` is git-ignored, so those two drafts are the only copy and no commit protects them.**
-
-**Verify:** `ls tmp/issue-*.md`; `gh issue list --repo nida-institute/LLMFlow --search "window"`
-returns nothing yet.
+**Verify:** `ls project/plans/design-scripture-window-by-token-budget.md`;
+`gh issue list --repo nida-institute/LLMFlow --search "token budget"` returns nothing yet.
 
 ### 2. An unanswered inbound collab — **nobody has triaged it**
 
@@ -90,8 +97,15 @@ copy is untouched**. Do not run `--apply` on it.
 - **The reply to discourse-flow is sent**, into their tree, untracked for them:
   `discourse-flow/collab/sp/2026-09-21-the-defect-log-already-shipped.md`. Our 09-21 reply sits
   untracked there too — if they sweep, both vanish.
-- **Two inbound collab notes untracked here**, both 2026-09-21: the defect-log one (answered) and
-  the chapter-extent one (thread 2, unanswered). `plans-are-temporary` wants them tracked.
+- **Three inbound collab notes untracked here**, all 2026-09-21, in `collab/discourse-flow/`: the
+  defect-log one (answered), their acknowledgement of that answer, and the chapter-extent one
+  (thread 2, unanswered). `plans-are-temporary` wants them tracked.
+- **Their acknowledgement settles one thing and sharpens another.** Their editable install
+  resolves to this tree (`scripture-pipelines 0.2.1.28` at `src/llmflow/__init__.py`), so they
+  have #232's defect log; they have not deleted their own `plugins/defects.py` yet, deliberately.
+  And the untested concurrency path now has a name: their `subdivide_candidates` runs
+  `parallel: 5` with every step inside able to record. That is the open item under #232 in
+  `project/TODO.md` — a live risk with a named consumer, not a theoretical one.
 - **Uncommitted and the Captain's, not this session's:** `data/models.json`,
   `docs/ai-context/project/data-sources.md`, `docs/ai-context/sp/github-workflow.md` and its
   template twin, `.cursorrules`, `.windsurfrules`, `project/0x28.md`.
@@ -133,8 +147,9 @@ copy is untouched**. Do not run `--apply` on it.
 ## Key files & links
 
 - `project/TODO.md` — the queue and its order.
-- `tmp/issue-scripture-window.md`, `tmp/issue-artifact-conformance.md` — drafted, uncreated,
-  **in a git-ignored directory**.
+- `project/plans/design-scripture-window-by-token-budget.md`,
+  `project/plans/design-artifact-conformance.md` — drafted, uncreated as issues. Both become
+  deletable under `plans-are-temporary` on **2026-09-29**, and the deletion is the Captain's.
 - `collab/discourse-flow/2026-09-21-a-whole-chapter-has-no-extent-in-parse_passage_ref.md` — the
   untriaged thread.
 - Issues **#245** (shipped this session), **#176**, **#244**, **#236** (the release PR), **#232**

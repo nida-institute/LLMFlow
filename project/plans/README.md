@@ -11,6 +11,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-ai-drift-control.md](design-ai-drift-control.md) | Draft — awaiting Captain review | — |
 | [design-alignment-regeneration.md](design-alignment-regeneration.md) | proposed (2026-09-13) → #238. Nothing here is built. Every => is the Captain's. | #238 |
 | [design-annotation-without-anchors.md](design-annotation-without-anchors.md) | proposed (2026-09-09). Nothing is built. proposed is not authorization to build — | #200 |
+| [design-artifact-conformance.md](design-artifact-conformance.md) | proposed (2026-09-21) | #232 #245 |
 | [design-basex-collections.md](design-basex-collections.md) | proposal, awaiting the Captain on §8. Nothing is built. | #38 #49 #52 |
 | [design-biblical-text-conventions.md](design-biblical-text-conventions.md) | proposed — not authorization to build. Four decisions remain marked => and are the | #226 |
 | [design-clean-command.md](design-clean-command.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
@@ -18,6 +19,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-combining-levinsohn-and-ubs.md](design-combining-levinsohn-and-ubs.md) | proposed — not authorization to build. The design is stated in §6 as seven positions, | #169 #226 |
 | [design-decisions-awaiting-ruling.md](design-decisions-awaiting-ruling.md) | four decisions need answering. Nine are deferred — they block nothing in the ruled | #153 #169 #200 #201 #203 #204 #210 #211 #212 #215 #217 #218 #222 #225 #226 #227 #228 #230 |
 | [design-declaring-field-roles.md](design-declaring-field-roles.md) | ruled 2026-09-03, and scoped to release 0.2.1.27. All six open decisions in §8 are | #162 #230 |
+| [design-documentation-in-prompts.md](design-documentation-in-prompts.md) | Proposed, 2026-09-16. Nothing is built. Awaiting authorization to implement §6 and | — |
 | [design-edition-provisioning.md](design-edition-provisioning.md) | proposal, 2026-08-29. Not authorization to build. Four decisions are marked => and | #201 #203 #217 |
 | [design-expand-once-and-only-once.md](design-expand-once-and-only-once.md) | approved in conversation 2026-09-02 — *"double expansion is always a defect"*, and | #230 |
 | [design-foreach-syntax-migration.md](design-foreach-syntax-migration.md) | Proposed — awaiting Captain review | #153 |
@@ -26,6 +28,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-jmespath-step.md](design-jmespath-step.md) | Proposed — not built. Nothing in src/ implements this. Requires the Captain's approval before … | #167 #168 |
 | [design-loader-steps.md](design-loader-steps.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
 | [design-onboarding-fresh-clone.md](design-onboarding-fresh-clone.md) | D1–D7 ruled by the Captain 2026-08-18. D1 has a blocking technical conflict — see D1. | #15 #28 #29 #32 #181 #199 #204 #205 |
+| [design-one-prompt-order.md](design-one-prompt-order.md) | 2026-09-16. All three questions in §8 are ruled — no optional sections, rename | — |
 | [design-one-source-for-shipped-files.md](design-one-source-for-shipped-files.md) | Proposed, 2026-08-25. Nothing built. Four questions in §4 await a ruling. | #211 |
 | [design-one-working-document.md](design-one-working-document.md) | proposed (2026-09-08) | #229 #232 |
 | [design-operations-in-the-pipeline-language.md](design-operations-in-the-pipeline-language.md) | proposed (2026-09-14). Nothing here is built and nothing is decided. Every => in §5 | #125 #167 #168 #169 #238 #239 #240 #241 |
@@ -43,6 +46,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-scripture-alignments.md](design-scripture-alignments.md) | ruled (2026-09-14), one decision open. §2 carries sixteen rulings, R1–R16. D1–D8 are | #238 #241 |
 | [design-scripture-editions.md](design-scripture-editions.md) | Sources approved; core implemented, wiring outstanding | #196 #200 #201 |
 | [design-scripture-representations.md](design-scripture-representations.md) | sources and precedence ruled; representation shape ruled; the schema shape and several | #38 #52 #200 #201 #203 #208 #227 |
+| [design-scripture-window-by-token-budget.md](design-scripture-window-by-token-budget.md) | proposed (2026-09-21) | #241 |
 | [design-shipping-the-audit-method.md](design-shipping-the-audit-method.md) | Proposed, 2026-08-25. All four questions in §7 are answered — Q1 (templates mirror | #211 #214 |
 | [design-source-licensing.md](design-source-licensing.md) | Proposed, 2026-08-24. Four rulings recorded from the Captain (§3); six questions | #201 |
 | [design-structured-output-preflight.md](design-structured-output-preflight.md) | Implemented in 0.2.1.24 — historical record | #191 #197 |
@@ -65,4 +69,4 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-window-semantics.md](plan-window-semantics.md) | complete, 2026-08-21. Items 1 and 3 landed; item 2's two decisions were ruled and | #175 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-57 documents.
+61 documents.
