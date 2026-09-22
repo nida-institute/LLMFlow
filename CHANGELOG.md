@@ -4,6 +4,31 @@
 
 ### Changed
 
+- **`/load-context` reads the whole AI context and reports a précis of it.** The skill now opens
+  every document the indexes name — the shipped half and the project's own — and reports one line
+  per document, each naming something only that document says. It closes with the constraints
+  most likely to bear on the session's work, and any document an index names that could not be
+  read.
+
+  An assistant that reads half the context and paraphrases the rest looks exactly like one that
+  read all of it, until it proposes something the unread documents already settle. A line per
+  document makes that visible at the start, when it still costs nothing to correct. The two
+  halves are reported apart because they differ in authority: the shipped half is regenerated, so
+  a correction to it belongs upstream rather than in a local edit.
+
+  The skill also now names the context files as paths to open with the file tools. It previously
+  used `cat`, which is refused outright where the file-tool hook is configured — and a refused
+  read that nothing notices leaves the session with an empty context rather than an error.
+
+- **The rule against design notes in docstrings covers `#` comments.** It was worded as a rule
+  about docstrings, so moving a note into a comment above the same line looked like compliance;
+  the check has always read both. A design note goes stale at the same rate whichever it sits in.
+
+  The rule also now requires a cross-reference in code to resolve. Prose in code may carry a
+  pointer and nothing else, so a pointer into a working document that was deleted without ever
+  being committed still reads as authority with nothing behind it. `project/plans/` documents
+  named from code are checked for existence and for being tracked.
+
 - **⚠️ Behaviour change: a re-run now removes what that same run wrote last time → #245.**
   Re-running a pipeline with the same parameters used to leave the previous run's intermediates
   in place, so a later reader — `/audit-output` especially — saw two runs' files as one set and

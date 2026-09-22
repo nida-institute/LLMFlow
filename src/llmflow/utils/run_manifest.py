@@ -1,30 +1,14 @@
 """What a run wrote, so a re-run can remove its own previous output and nothing else.
 
-Re-running a pipeline with the same parameters used to leave the previous run's
-intermediates in place, so a later reader — `/audit-output` especially — saw two runs' files
-as one set and reasoned about a mixture (LLMFlow#245). Where filenames carry content rather
-than parameters, a re-run that draws a boundary differently writes *new* names and the old
-ones stay; nothing said which run a file came from.
+A run records every path it writes in `<intermediate_file_directory>/.sp-runs/<pipeline>/<run
+key>.json`. A re-run whose pipeline and run key match deletes exactly what that record lists,
+then writes a fresh one.
 
-`sp clean` before the run is the wrong fix twice over. It deletes the whole declared
-`intermediate_file_directory`, which every parameterisation shares, so cleaning before a Mark
-run destroys the 1 John intermediates — LLMFlow#198's bug moved from `debug/` into
-`intermediate/`. And it breaks `--rewind-to`, which replays a step by reading the very
-artifacts a pre-run clean removes.
+Four rails: only paths under the declared `intermediate_file_directory` are removed; the clean
+is skipped under `--rewind-to`; every deletion is reported; a listed file already gone is not
+an error.
 
-So the run records the paths it wrote, keyed by pipeline and by the run key that already
-keeps one parameterisation's debug trail apart from another's. A matching re-run deletes
-exactly what that record lists. This is #198's principle — separation makes deletion safe —
-without changing the directory tree: artifacts stay where the pipeline declares them, and a
-run can only ever delete its own previous output.
-
-Four rails, from the issue:
-
-1. Intermediates only. A recorded path outside the declared `intermediate_file_directory`
-   is skipped, so an implicit clean can never reach a deliverable.
-2. Skipped entirely under `--rewind-to`, which consumes the files a clean would remove.
-3. The run reports what it deleted.
-4. A listed file already gone is not an error.
+Why it works this way, and what was rejected: LLMFlow#245.
 """
 
 from __future__ import annotations
@@ -38,8 +22,7 @@ from llmflow.modules.logger import Logger
 logger = Logger()
 
 #: Where a run's record of its own writes lives, under the declared intermediate directory.
-#: Not under `debug/`: that tree is emptied by `_clear_debug_dir` at the start of every run,
-#: so a manifest kept there would be destroyed before the run needing it could read it.
+#: It must stay outside `debug/`, which `_clear_debug_dir` empties at the start of every run.
 RUNS_DIRNAME = ".sp-runs"
 
 
@@ -96,7 +79,7 @@ def clean_previous_run(
             continue
         removed.append(str(target))
 
-    # Rail 3. A silent deletion inside a run is how #145 and #198 each went wrong.
+    # Rail 3: every deletion is reported.
     if removed:
         logger.info(f"🧹 Removed {len(removed)} file(s) from this run's previous output:")
         for path in removed:
@@ -107,9 +90,8 @@ def clean_previous_run(
 def write(manifest: Path, written: Iterable[str]) -> None:
     """Record the paths this run wrote.
 
-    Every path is recorded, including those outside the intermediate directory: the manifest
-    says what the run wrote, and rail 1 is applied when reading it back. Filtering here would
-    make the record depend on a directory declaration that can change between runs.
+    Every path is recorded, including those outside the intermediate directory; rail 1 is
+    applied when the record is read back rather than when it is written.
     """
     manifest.parent.mkdir(parents=True, exist_ok=True)
     payload = {"written": sorted({str(path) for path in written})}

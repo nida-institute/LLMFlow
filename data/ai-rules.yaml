@@ -429,19 +429,26 @@ rules:
   enforcement: guarded
   scope: project
   guard: tests/test_docstrings_say_what_not_why.py
-  rule: '**A docstring says what the code does. It never records status, rationale or design.**
-    Design lives in `project/plans/` and in the AI context; status lives in issues,
-    `project/TODO.md` and the CHANGELOG. A docstring that carries either goes stale the moment
-    the thing it describes changes — and unlike a design document nothing regenerates it,
-    nobody reviews it, and it sits closer to hand than the file that is actually authoritative,
-    so the next reader trusts it. That is how a stale comment becomes a design decision nobody
-    made. Measurements and dates are the clearest case: a figure in a docstring is a claim about
-    a moment, presented as a property of the code. **What a docstring is for:** saying exactly
-    what a function does, and explaining code that is genuinely hard to read — a dense but
-    efficient implementation, a non-obvious algorithm, an obscure constant. Where the code could
-    be made clear instead, rewrite the code rather than describing it. Deleting a docstring is
-    often the right change. A cross-reference to where the reasoning lives is not provenance and
-    is welcome.'
+  rule: '**Prose in the source file says what the code does. It never records status, rationale
+    or design — and a `#` comment is prose exactly as a docstring is.** Design lives in
+    `project/plans/` and in the AI context; status lives in issues, `project/TODO.md` and the
+    CHANGELOG. Prose that carries either goes stale the moment the thing it describes changes —
+    and unlike a design document nothing regenerates it, nobody reviews it, and it sits closer
+    to hand than the file that is actually authoritative, so the next reader trusts it. That is
+    how a stale comment becomes a design decision nobody made. Measurements and dates are the
+    clearest case: a figure in a comment is a claim about a moment, presented as a property of
+    the code. **The container is not the rule.** Moving a design note out of a docstring and into
+    a `#` comment above the same line changes nothing about why it is forbidden: it is the same
+    text, in the same file, going stale at the same rate. **What prose in code is for:** saying
+    exactly what a function does, and explaining code that is genuinely hard to read — a dense
+    but efficient implementation, a non-obvious algorithm, an obscure constant. Where the code
+    could be made clear instead, rewrite the code rather than describing it. Deleting a docstring
+    or a comment is often the right change. **A cross-reference must resolve.** Prefer an issue
+    number or a CHANGELOG entry — both are durable by construction. Where a comment points at a
+    working document, that document must be committed: `plans-are-temporary` deletes it at eight
+    days, and only a commit lets `git show <commit>^:<path>` return the version the comment was
+    written against. A pointer with nothing behind it is worse than no pointer, because it still
+    reads as authority.'
   note: 'Added 2026-08-26 at the Captain''s direction, after an assistant put rulings, quoted
     decisions and dated measurements into a conftest, a test module and two commit messages in
     one session — while writing the plan section that required documentation to carry the
@@ -455,7 +462,22 @@ rules:
     backlog of 49 files that predate the rule, which a test forces to shrink rather than
     persist. Issue and plan references were deliberately left legal: a stable pointer to where
     the reasoning lives is the rule''s remedy, not its violation. Appended rather than inserted,
-    because rules are cited by position across this repository.'
+    because rules are cited by position across this repository.
+
+    Broadened 2026-09-21 at the Captain''s direction, in his words: "some projects are using #
+    comments in Python to escape the stricture against design notes in docstrings. the syntax
+    used to violate the principle is irrelevant." **Nothing about enforcement changed** — the
+    guard already read comments, `prose_of` tokenizing them alongside docstrings — so what this
+    closes is a gap between the instruction and what it was always checking: the text said
+    "docstring" seven times and so read as a rule about one container, which is exactly the
+    escape hatch he found. The cross-reference clause is his second point the same day: "I
+    really need to be committing design files and other temporary files so comments have
+    something to point to that reflects the state at the time they were written." Measured when
+    it was written: code in `src/`, `tests/` and `tools/` names 20 plan documents at 50 sites,
+    and all 19 that are expected to exist do and are tracked — the twentieth,
+    `project/plans/tmp-context.md`, is written by a skill''s own run. So the clause locks in a
+    state rather than demanding a cleanup, and `tests/test_code_pointers_resolve.py` holds it. The id still says "docstrings" and is
+    narrower than the rule; renaming it is the breaking change and is the Captain''s to call.'
 - id: reference-data-is-json
   enforcement: guarded
   scope: project

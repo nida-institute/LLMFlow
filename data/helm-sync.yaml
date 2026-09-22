@@ -81,7 +81,7 @@ files:
   status: identical
 - set: skills
   name: load-context
-  sha256: 048a4a726c4158675ee80deb40386775fc61015d1504b901bc5e23b41dbf8899
+  sha256: 6db8d50542d8216613a12cdcc56590810e0973d2bb122ec4fed3a32979022652
   status: differs
   ruling: 'Captain, 2026-08-24: "I permit this difference." Two indexes are a Scripture Pipelines
     concept — `docs/ai-context/project-index.md` is the project''s own map and `sp-index.md` is rendered

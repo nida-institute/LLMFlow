@@ -74,14 +74,19 @@ If no CLAUDE.md exists at the repo root, check parent directories or note its ab
 
 ### Step 3: Load the Topic Index
 
-```bash
-# Two indexes: the project's own map, and the inventory of what its tooling ships.
-# `index.md` is the pre-split single index — projects created before 2026-08-24 still
-# have it, and it is the one to read there. Read whichever are present.
-cat docs/ai-context/project/index.md 2>/dev/null
-cat docs/ai-context/sp/index.md 2>/dev/null
-cat docs/ai-context/index.md 2>/dev/null
-```
+**Read these with the file tools, not the shell.** `Read` needs no approval and takes an
+`offset` and `limit` for a large file; where the operator has configured the hook that enforces
+reading with the file tools, `cat`, `head`, `tail`, `sed -n` and `less` are refused outright —
+and a refused read that nothing notices is an empty context, not an error.
+
+Two indexes: the project's own map, and the inventory of what its tooling ships.
+
+- `docs/ai-context/project/index.md`
+- `docs/ai-context/sp/index.md`
+- `docs/ai-context/index.md` — the pre-split single index. Projects created before 2026-08-24
+  still have it, and it is the one to read there.
+
+A file that is not there is skipped in silence: a project has whichever layout it has.
 
 This table maps every topic to the authoritative file. Consult it before guessing.
 Never paraphrase from memory when the canonical doc is available.
@@ -93,17 +98,18 @@ carries all three. Step 3 read both maps; these are the other four, plus the pre
 names for projects created before 2026-08-24. Every read is guarded, because a project has
 whichever layout it has and a missing file must be skipped in silence.
 
-```bash
-# Constraints: what the tooling holds every session to, then what this project alone adds.
-cat docs/ai-context/sp/rules.md 2>/dev/null
-cat docs/ai-context/project/rules.md 2>/dev/null
-cat docs/ai-context/rules.md 2>/dev/null
+With the file tools, as in Step 3. Constraints first — what the tooling holds every session to,
+then what this project alone adds:
 
-# Self-description: what the tooling is, then what this project is.
-cat docs/ai-context/sp/overview.md 2>/dev/null
-cat docs/ai-context/project/overview.md 2>/dev/null
-cat docs/ai-context/overview.md 2>/dev/null
-```
+- `docs/ai-context/sp/rules.md`
+- `docs/ai-context/project/rules.md`
+- `docs/ai-context/rules.md` — pre-split
+
+Then the self-description: what the tooling is, then what this project is.
+
+- `docs/ai-context/sp/overview.md`
+- `docs/ai-context/project/overview.md`
+- `docs/ai-context/overview.md` — pre-split
 
 **Read the project's half as carefully as the tooling's.** `docs/ai-context/project/rules.md`
 holds constraints that apply in this project and nowhere else, and it is the file whose absence
@@ -129,26 +135,56 @@ restate:
 4. **Scope discipline** — do not improve code outside the requested scope; note it, don't
    fix it
 
-### Step 5: Read the Disciplines and Drift Patterns
+### Step 5: Read every document the indexes name, and write the précis
 
-Disciplines live in one of two places depending on how this project was set up. Read
-whichever exists — both, if both do:
+The indexes name the topic documents; this skill still does not list them — a list here would
+be a second copy of the index, drifting from it. Read **all** of them, both halves, with the
+file tools.
 
-```bash
-cat docs/ai-context/disciplines/README.md 2>/dev/null   # the index, when there is one
-cat docs/ai-context/disciplines/*.md 2>/dev/null        # committed with the project
-cat docs/ai-context/drift-patterns.md 2>/dev/null
-```
+Then write a précis: **one line per document**, each naming something only that document says —
+a constraint, a threshold, a term it defines, a decision it records. Under two headings,
+because the halves differ in authority and in lifecycle:
+
+- **What the tooling holds me to** — `sp/`, generated. A finding here is a note to the engine,
+  never a patch.
+- **What this project holds me to** — `project/`, the project's own, and where local rules live.
+
+Then two lines of your own:
+
+- **What I must not do here** — the three constraints likeliest to bite this session's work.
+- **What I could not read** — any document an index names that is missing or unreadable.
+
+**Why a line per document, and why specific.** A précis of a file nobody opened reads generic
+where every other entry is specific, so the omission is visible in one pass. This step exists
+because a session that reads half the context and quotes the rest secondhand looks identical,
+from the outside, to one that read all of it — until it proposes a rule that three unread files
+already contain.
+
+**Why the halves stay apart.** `sp/` is regenerated, so an edit there is lost and the fix
+belongs upstream. `project/` is the project's own. A session that has merged them will either
+treat engine documentation as locally negotiable, or treat project design as someone else's to
+change.
+
+The précis goes in the orientation summary, where it can be corrected before any work is built
+on it. The cost of reading is paid once, at the start; the cost of starting out unaligned is
+paid all session.
+
+### Step 6: Read the Disciplines and Drift Patterns
+
+Disciplines live in one of two places depending on how this project was set up. Read whichever
+exists — both, if both do — with the file tools:
+
+- `docs/ai-context/disciplines/README.md` — the index, when there is one
+- every `.md` in `docs/ai-context/disciplines/` — committed with the project
+- `docs/ai-context/drift-patterns.md`
 
 **If this machine also carries a machine-wide install at `~/.sp/`**, read that too — the
 project it belongs to keeps disciplines there rather than in the repository. A project
 whose disciplines are committed alongside its code is complete without it, so an absent
 `~/.sp/` means nothing is missing:
 
-```bash
-cat ~/.sp/disciplines/*.md 2>/dev/null     # installed machine-wide
-cat ~/.sp/drift-patterns.md 2>/dev/null
-```
+- every `.md` in `~/.sp/disciplines/`
+- `~/.sp/drift-patterns.md`
 
 The disciplines are rules that hold across projects rather than being specific to this
 one — shell tooling, audit workflow, and the boundaries around files the human controls.
@@ -165,20 +201,25 @@ framing drift, scope expansion, reporting bias, and persona performance. Interna
 the patterns — they recur across sessions and projects. The full Human at the Helm
 methodology is documented in `README.md` in the same repository as `drift-patterns.md`.
 
-### Step 6: Check Prior Session Memory
+### Step 7: Check Prior Session Memory
 
 Read `~/.claude/projects/*/memory/MEMORY.md` if available. These are user preferences
 and project context carried from prior sessions. Treat as background context — always
 verify against current file state before acting on it.
 
-### Step 7: Report Orientation Summary
+### Step 8: Report Orientation Summary
 
 Tell the user:
 - Which repo you are in and which branch
 - Key commands available (from CLAUDE.md)
 - Current git status in one line
 - Any in-progress work you noticed
+- **The précis from Step 5**, both halves, and the two lines that close it
 - Confirmation you are ready
+
+The précis is the part that is checkable. Everything else above the human already knows; the
+précis is what tells them whether this session read what it was given, and whether it read it
+the way they meant — while there is still time to correct it.
 
 ---
 
@@ -190,7 +231,11 @@ Tell the user:
 - Do not start implementing before explaining the plan and waiting for approval
 - Do not claim "build succeeded" from one green step — check every job
 
-Project-specific pitfalls belong in `CLAUDE.md` and `docs/ai-context/`, which steps 2 and 4
+- Do not summarise a document you did not open. A précis line sourced from another document
+  quoting it is the failure Step 5 exists to surface, and it reads generic where the others
+  read specific
+
+Project-specific pitfalls belong in `CLAUDE.md` and `docs/ai-context/`, which steps 2, 4 and 5
 already read. This list stays short on purpose: a long one here becomes a competing copy of
 those files.
 

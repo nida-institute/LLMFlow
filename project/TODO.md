@@ -429,7 +429,8 @@ files a pre-run clean removes. The design is a per-run write manifest keyed by p
 tree does not change. `clean_before_run: true|false` with `true` the documented default, and
 `--no-clean` per invocation. Four rails in the issue, all load-bearing.
 
-- [ ] **#245** — write the `--rewind-to` test first; it is the regression that would hurt most
+- [x] **#245 — implemented on `dev`, awaiting the merge to `main`.** The `--rewind-to` guard
+      was written first; `tests/test_run_manifest.py`, 14 tests
 
 **Prompt work added to this release, in the order it has to land:**
 

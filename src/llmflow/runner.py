@@ -639,9 +639,8 @@ def run_pipeline(
     # Empty this run's own directory — and only this run's (LLMFlow#198)
     _clear_debug_dir(pipeline_config, context, dry_run, pipeline_name, run_key)
 
-    # Remove what this same run wrote last time, and nothing else (LLMFlow#245). Keyed by
-    # pipeline and run key, so a Mark run never reaches a Ruth run's files; the paths come
-    # from what the previous run recorded writing, never from a filename pattern.
+    # Remove what this same pipeline and run key wrote last time, and nothing else — from the
+    # paths that run recorded, never from a filename pattern (LLMFlow#245).
     _run_manifest: Path | None = None
     _intermediate_raw = pipeline_config.get("intermediate_file_directory")
     if _intermediate_raw and not dry_run:
@@ -751,9 +750,8 @@ def run_pipeline(
         # warnings into this run's log.
         logging.getLogger("llmflow").removeHandler(_defect_handler)
 
-        # Recorded here rather than after the loop so a run that fails or is interrupted still
-        # says what it wrote (LLMFlow#245). Without that the files it left behind are orphans
-        # no later run knows to remove.
+        # In the `finally`, so a run that fails or is interrupted still records what it wrote
+        # and the next run can remove it (LLMFlow#245).
         if _run_manifest is not None:
             run_manifest.write(_run_manifest, WRITTEN_FILES)
 

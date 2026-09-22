@@ -31,6 +31,13 @@ TEMPLATES = REPO_ROOT / "src" / "llmflow" / "templates"
 #: Paths a project may supply to override a shipped default. Absent is the normal case.
 OPTIONAL_OVERRIDES = frozenset({
     "docs/prompt-organization-convention.md",
+    # sp installs disciplines and the drift-patterns catalog into `~/.sp/`. A project may
+    # instead commit its own alongside its code, which `/load-context` reads in preference;
+    # a project that does not is complete without them, so absence is correct rather than
+    # missing.
+    "docs/ai-context/disciplines",
+    "docs/ai-context/disciplines/README.md",
+    "docs/ai-context/drift-patterns.md",
 })
 
 #: Referenced inside an example of what someone *said* or a sample checklist line, not as a
@@ -58,6 +65,11 @@ AWAITING_A_RULING: frozenset = frozenset()
 #: spellings so it serves either, and the flat one resolves nowhere here by design.
 UNSPLIT_EQUIVALENT = frozenset({
     "docs/ai-context/rules.md",
+    # The other two spellings of the same pre-split layout. They became visible to this guard
+    # only when `/load-context` stopped naming them inside `cat` blocks, which the path pattern
+    # never matched — they were named by the skill all along.
+    "docs/ai-context/index.md",
+    "docs/ai-context/overview.md",
 })
 
 EXEMPT = (OPTIONAL_OVERRIDES | ILLUSTRATIVE | WRITTEN_BY_A_SKILL

@@ -1,4 +1,7 @@
-"""Guardrail: a docstring says what the code does, and carries no provenance.
+"""Guardrail: prose in a source file says what the code does, and carries no provenance.
+
+Docstrings and `#` comments alike — `prose_of` reads both, because the container is not the
+rule and a design note moved into a comment is the same text going stale at the same rate.
 
 Reported by `docstrings-say-what-not-why` in `data/ai-rules.yaml`, which is the rule this
 file enforces and the place its reasoning lives.
@@ -118,7 +121,7 @@ def prose_of(path: Path) -> list[tuple[int, str]]:
 
 
 def offences_in(path: Path) -> list[str]:
-    """One line per forbidden span, quoting the span rather than the docstring it sits in."""
+    """One line per forbidden span, quoting the span rather than the prose it sits in."""
     found = []
     for line, text in prose_of(path):
         for kind, pattern in FORBIDDEN.items():
@@ -139,9 +142,10 @@ def offences_in(path: Path) -> list[str]:
 )
 def test_prose_carries_no_provenance(path: Path):
     assert not offences_in(path), (
-        "A docstring says what the code does. Dates, hashes, rulings and issue numbers are "
-        "provenance: they belong in git history, the issue tracker, project/plans/ and the AI "
-        "context, all of which stay current while a docstring does not.\n  "
+        "Prose in code says what the code does — a `#` comment exactly as much as a docstring. "
+        "Dates, hashes, rulings and issue numbers are provenance: they belong in git history, "
+        "the issue tracker, project/plans/ and the AI context, all of which stay current while "
+        "prose in a source file does not. Moving the note into a comment is not the remedy.\n  "
         + "\n  ".join(offences_in(path))
     )
 
