@@ -36,10 +36,28 @@ becomes a decision nobody made. It matters most when an AI assistant wrote the d
 assistant that drafts the plan also reads it back next session, and cannot tell its own proposal
 from a human's ruling unless the document says which it is.
 
+### A working document has a death; a ruling does not
+
+Plans, designs, audits, decision lists and notes sent to another project are **scratch**: they
+exist to get a piece of work done, and they are deleted when it is over. A **ruling** is different
+in kind — it is permanent until overruled — and it lives in `CHANGELOG.md`, or in
+`docs/ai-context/project/rules.md` when it binds future work.
+
+Keep the two apart, because they have opposite lifecycles. Mixing them in one document is what
+makes a pile unsiftable: the durable half cannot be found and the rotting half cannot be
+discarded. A decision list is scratch like the rest — the decisions in it become rulings and move
+to the changelog, and the list itself goes with the plan that raised it.
+
 ### These documents are temporary
 
 **After about eight days a working document is either implemented or obsolete, and either way it
 goes.**
+
+**Age is measured from the later of two dates: the `Status:` date the document declares, and the
+last commit that changed the file.** Never the filesystem timestamp — a clone rewrites every
+mtime, so on a fresh checkout nothing would ever be old enough to delete, and a copy or a bulk
+sweep refreshes it without anyone having read the content. The three dates disagree in practice:
+one note has been seen carrying one date in its filename, a second in git, and a third as mtime.
 
 Accumulated design documents confuse people and AI assistants differently, and both failures are
 real. A person reads the newest and misses that an older one still governs. An assistant reads all
@@ -59,7 +77,10 @@ The lifecycle is: write it, commit it, work from it, **move what still has value
 home**, then delete the document in a commit of its own. `git log --diff-filter=D` finds what went
 and `git show <commit>:<path>` brings it back.
 
-**Deleting is not automatic.** List what is past eight days and ask; never delete unasked.
+**The deletion is the human's, every time.** List what is past eight days and ask. Never delete
+unasked, and never read this rule as standing authorization: it says what becomes deletable, not
+who may delete it. A file removed without being asked for is exactly the unreviewed act the
+authorization workflow exists to catch.
 
 ### Before deleting, move what still has value
 
@@ -114,12 +135,34 @@ another name.
 
 ---
 
+## Notes sent to another project
+
+When work spans repositories, the note carrying a question or a finding to the other project is a
+**message, not an archive.** It dies when it is answered: the ruling it produced is in the
+changelog, the work it produced is in the code, and a note that produced neither had nothing to
+carry.
+
+So it is written **once, into the recipient's tree.** The sender keeps no second copy to drift.
+Two repositories each holding half of one exchange, with nothing saying who owns a thread, is the
+same unreadable pile in a different directory — and it is what actually happens, because replying
+where the question was asked feels wrong and replying in your own tree is easier.
+
+**Commit it.** Tracking is what makes deleting it safe: `git show <commit>^:<path>` returns what
+was said. An untracked note leaves the recipient's copy as the only evidence the exchange
+happened.
+
+A note is subject to the same eight days as a plan, measured the same way.
+
+---
+
 ## Accumulating and rolling
 
 The distinction that decides which rule applies:
 
-- **Accumulating** — one more file per piece of work. `plans/` only. A growing set is one nobody
-  re-reads, which is why the eight-day rule exists there and nowhere else.
+- **Accumulating** — one more file per piece of work. `plans/`, and notes sent to another project.
+  A growing set is one nobody re-reads — each reader reads a different subset and they disagree
+  without discovering that they disagree — which is why the eight-day rule exists for these and
+  nowhere else.
 - **Rolling** — overwritten in place, current by construction. `audits/`, `TODO.md`, handoffs,
   generated indexes. **Age is a reason to update these, not to delete them.** Prune stale entries
   instead.
