@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
-from llmflow.exceptions import TruncationError
+from llmflow.exceptions import ModerationError, TruncationError
 from llmflow.modules.logger import Logger
 from llmflow.modules.mcp import init_mcp_client
 from llmflow.modules.telemetry import output_headroom, output_token_ceiling
@@ -315,18 +315,21 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
                 logger.info("⚠️  User interrupted - exiting")
                 raise
 
-            except TruncationError as e:
-                # Truncation is a certainty, not a transient failure: an identical re-request
-                # truncates identically, so the loop would spend two more calls on a known
-                # outcome (#247). The step name and the ceiling are added here because this
-                # is the layer that knows both.
-                e.step_name = name
-                e.ceiling = output_token_ceiling(final_model, e.prompt_tokens or 0)
-                if e.configured_max_tokens is None:
-                    e.configured_max_tokens = (
-                        merged_config.get("max_tokens")
-                        or merged_config.get("max_completion_tokens")
-                    )
+            except (TruncationError, ModerationError) as e:
+                # Both are certainties rather than transient failures, so the loop must not
+                # spend two more calls on a known outcome (#247). An identical re-request
+                # truncates identically; and `docs/moderation-handling.md` states that retries
+                # "will not succeed until the prompt changes", the remedy being its mitigation
+                # checklist, which a human applies.
+                if isinstance(e, TruncationError):
+                    # Added here because this is the layer that knows the step and the ceiling.
+                    e.step_name = name
+                    e.ceiling = output_token_ceiling(final_model, e.prompt_tokens or 0)
+                    if e.configured_max_tokens is None:
+                        e.configured_max_tokens = (
+                            merged_config.get("max_tokens")
+                            or merged_config.get("max_completion_tokens")
+                        )
                 logger.error(f"❌ {e}")
                 raise
 

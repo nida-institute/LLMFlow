@@ -13,22 +13,24 @@
 > everything else in this list. Told to discourse-flow in
 > `discourse-flow/collab/sp/2026-09-22-segment-text-landed-and-the-windowing-ask-is-ruled.md`.
 
-- [ ] **#246 — three defects in token windowing.** Work order:
-      `project/plans/plan-window-token-defects.md`. Partiality decided by position rather than
-      fill; `include_partial` accepted and ignored under `!window_advance` (**ruled A — honour
-      it**); the tiktoken counter written twice. Refactor lands last
-- [ ] **#247 — a truncated response is reported as malformed JSON, then retried three times
-      identically.** The budget that actually breaks a run is the *output* one, and no input-side
-      counting predicts it. Reads the provider's stop reason (`finish_reason` / `stop_reason`
-      appear nowhere in the engine today), reports the step and the budget, stops retrying a
-      certainty, and names the ceiling — `min(max_output_tokens, max_context_tokens −
-      prompt_tokens)`, derived from `data/models.json`, never a guessed number
+- [x] **#246 — three defects in token windowing. Committed to `dev` at `500601b`; closes at the
+      release.** Work order: `project/plans/plan-window-token-defects.md`. Partiality decided by
+      position rather than fill; `include_partial` accepted and ignored under `!window_advance`
+      (**ruled A — honour it**); the tiktoken counter written twice
+- [x] **#247 — a truncated response is reported as malformed JSON, then retried three times
+      identically. Committed to `dev` at `6f9840b`; closes at the release.** The budget that
+      actually breaks a run is the *output* one, and no input-side counting predicts it. Reads
+      the provider's stop reason across five provider shapes, reports the step and the budget,
+      stops retrying a certainty, and names the ceiling — `min(max_output_tokens,
+      max_context_tokens − prompt_tokens)`, derived from `data/models.json`, never a guessed
+      number. Also: a step near its budget is recorded in the defect log, and
+      `generate_optimization_suggestions` — which had no caller anywhere — now reaches the
+      operator. **`ModerationError` is still retried three times** by the same bare
+      `except Exception`; same defect, different condition, and the Captain's call
 - [ ] **#248 — `--rewind-to` cannot resume a loop.** `append_to` is refused outright
-      (`utils/rewind.py:77-88`), which is how every accumulating loop stores results, so a book
-      run that dies in window 8 of 13 restarts at window 1. D1, D2 and D4 ruled; **D3a open** —
-      the manifest records a sorted set of paths with no index, and a whole-document JSON write
-      cannot record progress incrementally. The Captain's candidate: append to a temporary TOML
-      during parallel execution, reassemble to JSON at the end
+      (`utils/rewind.py:77-88`), which is how every accumulating loop stores results, so a
+      book run that dies in window 8 of 13 restarts at window 1. **Every decision is ruled,
+      D3a included → #248.** The concurrency half is #249's and is unfixed
 - [ ] **#249 — `parallel:` is filed and NOT scheduled.** Tested only with `type: function`
       steps, while `telemetry.start_step` is called only from `steps/llm.py` and
       `steps/duckdb.py` — so no test has ever run a telemetry-recording step inside a parallel

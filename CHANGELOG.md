@@ -76,6 +76,20 @@
 
 ### Fixed
 
+- **A moderation block is no longer retried three times identically.** The engine contradicted its
+  own shipped documentation: `docs/moderation-handling.md` says the CLI points at that memo *"so
+  humans understand why retries will not succeed until the prompt changes"* — the remedy being its
+  mitigation checklist, which a human applies — while the step retry loop caught `ModerationError`
+  in the same bare `except Exception` that swallowed truncation and re-requested with identical
+  parameters. A block therefore cost three refused calls and six seconds of backoff to establish
+  what the first call already had. It now fails on the first attempt.
+
+  This matters here more than the general case: provider filters trip on biblical text routinely —
+  conquest and apocalyptic narrative, Greek and Hebrew glosses that match modern extremist
+  vocabulary out of context, multi-chapter batching, and MCP tools echoing source text verbatim —
+  which is why that memo exists at all. Identical retry stays correct for the transient failures
+  the loop was written for.
+
 - **A response cut off at `max_tokens` is reported as truncated, not as malformed JSON, and is
   no longer retried three times identically → #247.** The provider says plainly what happened —
   OpenAI `finish_reason: "length"`, Anthropic `stop_reason: "max_tokens"` — and the engine never

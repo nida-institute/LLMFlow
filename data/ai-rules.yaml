@@ -740,3 +740,35 @@ rules:
     `annotations` element, which means free-text notes; a lexicon output key; a vendored catalog''s
     descriptions of other people''s datasets — and `tests/test_one_word_for_an_analysis.py` holds
     that boundary with the reason beside each entry, because nobody will remember where it runs.'
+- id: write-shared-records-for-outsiders
+  enforcement: judgment
+  scope: none
+  rule: '**A record that leaves this repository is written for someone who was not in the
+    session.** GitHub issues and pull requests, and collab notes sent to another project, are
+    read by people with no view of this conversation or the conventions it runs on. Two of those
+    conventions must not travel. The `=>` answer slot belongs to a working document, where it
+    marks a question waiting for a person to type under it; in an issue it is a marker for a
+    ritual the reader has never seen. And the session''s form of address is not a role anyone
+    else recognises — write "Ruled 2026-09-23", never "the Captain ruled", "the Captain''s
+    candidate" or "recorded and not ruled". State the decision, the reasoning that supports it,
+    and the date, and let it stand without a procedural frame. **This is about artifacts that
+    travel.** `project/TODO.md`, `project/plans/`, this file, the AI context **and commit
+    messages** are read from inside this repository, and their own vocabulary is correct there.'
+  note: 'Added 2026-09-23 at the Captain''s direction, after an assistant drafted a ruling for
+    issue #248 opening "=> RULED 2026-09-23" and he posted it before the defect was noticed. His
+    words: "and =>, references to the Captain, etc., don''t belong in issues." The convention came
+    from `disciplines/surface-decisions.md`, which specifies `=>` for asking a question *in a
+    document* — "pose the question, then leave a line containing only `=>` for the answer" — and
+    says nothing about issues; the assistant carried a document device into a shared record
+    without noticing the change of audience. It had already spread: #248''s body carries several
+    `=>` slots and "The Captain''s candidate, recorded and not ruled", and #246 carries
+    "=> RULING: A". Both were filed by the bot account, so this is a pattern rather than one slip.
+    The existing issues are left as they are, on his ruling the same day: "I have ruled. let''s
+    get the job done and not worry about the github issue."
+
+    Commit messages are exempt on his explicit ruling — "commit messages are fine" — which is
+    where this rule parts company with `no-stakeholder-speculation`, whose harm falls on people
+    named in an artifact they never see and so reaches commit messages too. The harm here is
+    only that a reader outside the session meets a convention they cannot decode, and a commit
+    message is read from inside the repository. That rule governs what a shared artifact may
+    claim; this one governs the form it claims it in.'
