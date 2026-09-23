@@ -1292,6 +1292,16 @@
         },
         {
           "name": "__init__",
+          "signature": "__init__(self, message: str, provider: str, model: str, step_name: str | None = None, stop_reason: str | None = None, configured_max_tokens: int | None = None, completion_tokens: int | None = None, prompt_tokens: int | None = None, ceiling: int | None = None, original_error: Exception | None = None)",
+          "doc": ""
+        },
+        {
+          "name": "__str__",
+          "signature": "__str__(self)",
+          "doc": ""
+        },
+        {
+          "name": "__init__",
           "signature": "__init__(self, message: str, plugin_name: str, original_error: Optional[Exception] = None)",
           "doc": ""
         },
@@ -4145,6 +4155,21 @@
           "doc": ""
         },
         {
+          "name": "_walk",
+          "signature": "_walk(payload: Any, path: tuple) -> Any",
+          "doc": "Follow one STOP_REASON_PATHS entry through dicts, sequences and plain objects."
+        },
+        {
+          "name": "read_stop_reason",
+          "signature": "read_stop_reason(payload: Any) -> Optional[str]",
+          "doc": "Return the provider's stop reason, lowercased, or None if none could be read."
+        },
+        {
+          "name": "_raise_if_truncated",
+          "signature": "_raise_if_truncated(payload: Any, model_name: str, step_name: Optional[str] = None, configured_max_tokens: Optional[int] = None, prompt_tokens: Optional[int] = None, completion_tokens: Optional[int] = None) -> None",
+          "doc": "Raise TruncationError when the provider says the output budget was exhausted."
+        },
+        {
           "name": "_raise_if_moderation_blocked",
           "signature": "_raise_if_moderation_blocked(response: Any, model_name: str, step_name: str) -> None",
           "doc": "Inspect a Responses API payload for moderation blocks and raise immediately."
@@ -4662,10 +4687,13 @@
     {
       "module": "llmflow.steps.llm",
       "imports": [
+        "llmflow.exceptions",
         "llmflow.modules.logger",
         "llmflow.modules.mcp",
+        "llmflow.modules.telemetry",
         "llmflow.utils.context",
         "llmflow.utils.llm_runner",
+        "logging",
         "pathlib",
         "re",
         "time",
@@ -5164,6 +5192,16 @@
           "doc": "Get max context window for a model."
         },
         {
+          "name": "output_token_ceiling",
+          "signature": "output_token_ceiling(model: str, prompt_tokens: int) -> Optional[int]",
+          "doc": "Return the highest output budget this model would accept for this prompt."
+        },
+        {
+          "name": "output_headroom",
+          "signature": "output_headroom(model: str, configured_max_tokens: Optional[int], prompt_tokens: int, completion_tokens: int) -> Optional[Dict[str, Any]]",
+          "doc": "Report what the provider's own numbers say about this call's output headroom."
+        },
+        {
           "name": "supports_json_schema",
           "signature": "supports_json_schema(model: str) -> bool",
           "doc": "Check if a model supports JSON schema / structured output."
@@ -5465,6 +5503,6 @@
   ],
   "summary": {
     "total_modules": 91,
-    "total_functions": 867
+    "total_functions": 874
   }
 }

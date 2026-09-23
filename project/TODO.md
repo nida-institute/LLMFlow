@@ -41,6 +41,37 @@
 > (flatten, locate, rebuild), grouped and open for more. Reassemble stays discourse-flow's. D3c
 > is open and its framing is stale — see the note in that document.
 
+### 🎯 NEXT AFTER THE GOAL — #243, the prompt data contract
+
+> **Set by the Captain 2026-09-23:** *"add this next after the current set of goals."*
+> → #243. Raised from discourse-flow; full report in
+> `collab/discourse-flow/2026-09-18-a-prompt-cannot-name-the-schema-its-step-is-wired-to.md`.
+> Nothing is blocked there — the pipeline runs and lints clean, and both stale paths are
+> fixable by hand. What cannot be built without the engine is the **guarantee** that they
+> cannot come back.
+
+**⚠️ The issue names two different things as first. The order is the Captain's.**
+Part 2 is *"the half we would fix first"*; Part 3's one field is *"useful ahead of
+everything else here."* Both are cheap; they are not the same work.
+
+- [ ] **Part 2 — a prompt's input paths are unchecked, and a stale path is silent.** A prompt
+      says where its data is; when the producer moves the key the model finds nothing, fills
+      the gap from training, and returns something plausible with nothing recording that the
+      input was never read. Two live instances, both real. Makes the `## Input` table
+      checkable: `sp lint` for the variable column against `prompt.inputs`, and a path lookup
+      **at render, before the call** — so it fails before money is spent, not after a
+      plausible answer comes back
+- [ ] **Part 3 — `schema_file` in the debug manifest.** A capture cannot today answer which
+      schema a call was made against: `grep -c json_schema` on a request capture returns 0.
+      One field, and it gives `sp tools replay` its resolution path
+- [ ] **Part 1 — the runner substitutes the step's resolved schema into the prompt.** One
+      prompt is wired to **three** different schemas in discourse-flow, so which schema applies
+      is a property of the step, not the prompt — which is why neither frontmatter nor a mixin
+      can be right, and why only the engine can guarantee the two agree. Builds on
+      `Pipeline.schemas()` (`model.py:223`)
+- [ ] **Design it once with #177's unticked roadmap item** — *"Schema-driven `--show`"*, sitting
+      unticked under an issue closed COMPLETED. It needs the same missing capability
+
 ### 🤝 Helm adopts sp's idioms, then installs into paratext-copilot
 
 > **The Captain's second priority, 2026-09-19.** *"finish the new helm and install in paratext

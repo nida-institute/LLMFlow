@@ -74,7 +74,66 @@
 
 ## 0.2.1.28 — 2026-09-21
 
+### Fixed
+
+- **A response cut off at `max_tokens` is reported as truncated, not as malformed JSON, and is
+  no longer retried three times identically → #247.** The provider says plainly what happened —
+  OpenAI `finish_reason: "length"`, Anthropic `stop_reason: "max_tokens"` — and the engine never
+  asked: neither string appeared anywhere in `utils/llm_runner.py`, `steps/llm.py` or
+  `modules/telemetry.py`. The truncated text reached the JSON parser, which attempted an escape
+  repair that cannot help a cut-off string and raised `Unterminated string at position 24891` —
+  a character offset, when the cause was a token budget. `steps/llm.py` then caught that
+  `ValueError` in a bare `except Exception` and re-requested with identical parameters. A
+  truncation is not transient, so all three attempts truncated: **a truncation cost 3× the call
+  to discover**, and no retry in that loop could ever have fixed it.
+
+  **One reader, five provider shapes.** `STOP_REASON_PATHS` and `TRUNCATION_STOP_REASONS` are
+  declarations rather than code — OpenAI chat completions, Anthropic, Gemini, the Responses API,
+  and the flattened form some `llm` plugins produce — walked over dicts, sequences and SDK
+  attributes alike, so a new provider is one row. `_raise_if_truncated` sits beside the existing
+  `_raise_if_moderation_blocked` and fires at all four provider call sites, which is what keeps a
+  truncation from reaching the parser at all.
+
+  **A provider whose stop reason cannot be read says so.** Unreadable resolves to neither
+  "truncated" nor "complete"; it warns and names the model, per `say-which-kind-of-nothing`.
+  Treating unreadable as complete is the whole failure being fixed.
+
+  **The report names the ceiling, and never a number it cannot derive.**
+  `min(max_output_tokens, max_context_tokens − prompt_tokens)`, from `data/models.json` and the
+  usage the engine already records. Where the configured budget already equals the ceiling it
+  says raising it cannot help and the fix is less input — the case an operator most needs told,
+  and the one they would otherwise spend two more runs discovering. Where the model is absent
+  from the model table the ceiling is reported as underivable rather than estimated
+  (`declared-not-inferred`). Auto-raising `max_tokens` was rejected as the engine spending the
+  operator's money unasked, and salvaging a truncated payload was rejected because an incomplete
+  final item reads as complete once repaired.
+
 ### Added
+
+- **A step close to its output budget is recorded in the defect log → #247.** In a 13-window run,
+  window 3 reporting 94% says windows 8–13 will fail while the run is still worth saving. The
+  channel is #232's defect log — what a step noticed but did not fail on — so the record travels
+  attached to the output and is summarised at the end of the run, and `[]` still means the run
+  looked and found nothing. The record carries the provider's own numbers rather than a bare
+  warning: model, prompt and completion tokens, the configured budget, what remains, utilization,
+  the ceiling and whether the budget is already at it. `HIGH_OUTPUT_UTILIZATION` is declared
+  beside the existing low-utilization threshold.
+
+  The existing advisory computed `completion_tokens / max_tokens` and fired **only below 25%**
+  — "could reduce max_tokens" — never as utilization approached 100%, which is the case that
+  destroys a run.
+
+- **Optimization suggestions reach the operator instead of being computed and discarded → #247.**
+  `generate_optimization_suggestions` had **no caller** anywhere in `src/`, `tests/` or `gui/`:
+  the runner built a telemetry summary and left the suggestions switched off behind a comment
+  reading *"suppressed in favor of detailed cost breakdown"*. A suggestion nobody is shown cannot
+  be told from a suggestion never made. The run now prints them, and **states the empty case**
+  rather than printing nothing — the same failure shape `check-the-source-not-the-rendering`
+  names, and the one `tests/test_types.py` is still demonstrating in this repository.
+
+- **The provider's usage details are forwarded rather than dropped.** `_call_model` read only
+  `usage.input` and `usage.output`; cached-token and reasoning-token counts arrived in
+  `usage.details` and went on the floor. They now reach the step as `usage["details"]`.
 
 - **`sp lint` warns which prompts do not fit the section grammar → #242.** The declaration was
   already the single statement of the order; nothing read it at lint time, so conformance still

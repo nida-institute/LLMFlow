@@ -204,6 +204,64 @@ class ModerationError(LLMProviderError):
         return "\n".join(parts)
 
 
+class TruncationError(LLMProviderError):
+    """Raised when a provider stopped generating because the output budget was exhausted.
+
+    Carries the budget that was hit and, where the model table can supply it, the highest
+    budget the model would accept. ``ceiling`` is ``None`` when it could not be derived;
+    that is reported as underivable rather than filled with an estimate.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        provider: str,
+        model: str,
+        step_name: str | None = None,
+        stop_reason: str | None = None,
+        configured_max_tokens: int | None = None,
+        completion_tokens: int | None = None,
+        prompt_tokens: int | None = None,
+        ceiling: int | None = None,
+        original_error: Exception | None = None,
+    ):
+        self.step_name = step_name
+        self.stop_reason = stop_reason
+        self.configured_max_tokens = configured_max_tokens
+        self.completion_tokens = completion_tokens
+        self.prompt_tokens = prompt_tokens
+        self.ceiling = ceiling
+        super().__init__(message, provider, model, original_error=original_error)
+
+    def __str__(self):
+        parts = [super().__str__()]
+        if self.step_name:
+            parts.append(f"  Step: {self.step_name}")
+        if self.stop_reason:
+            parts.append(f"  Stop reason: {self.stop_reason}")
+        if self.configured_max_tokens is not None:
+            parts.append(
+                f"  Output budget: {self.completion_tokens} of {self.configured_max_tokens} "
+                f"tokens used — identical, which is what a truncation looks like"
+            )
+        if self.ceiling is None:
+            parts.append(
+                "  Highest budget this model would accept: could not be derived — "
+                "the model is not in the model table"
+            )
+        elif self.configured_max_tokens is not None and self.configured_max_tokens >= self.ceiling:
+            parts.append(
+                f"  The configured budget is already at the ceiling ({self.ceiling}). "
+                f"Raising it cannot help; the fix is less input."
+            )
+        else:
+            parts.append(
+                f"  Highest budget this model would accept: {self.ceiling} "
+                f"(min of the model's output limit and the context left after the prompt)"
+            )
+        return "\n".join(parts)
+
+
 class PluginError(LLMFlowError):
     """Error executing a plugin."""
 

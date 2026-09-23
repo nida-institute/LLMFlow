@@ -1,12 +1,15 @@
 """LLM step handler — prompt rendering, LLM call, debug capture."""
 
+import logging
 import re
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
+from llmflow.exceptions import TruncationError
 from llmflow.modules.logger import Logger
 from llmflow.modules.mcp import init_mcp_client
+from llmflow.modules.telemetry import output_headroom, output_token_ceiling
 from llmflow.utils.context import resolve
 from llmflow.utils.llm_runner import call_llm, run_llm_with_mcp_tools
 
@@ -312,6 +315,21 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
                 logger.info("⚠️  User interrupted - exiting")
                 raise
 
+            except TruncationError as e:
+                # Truncation is a certainty, not a transient failure: an identical re-request
+                # truncates identically, so the loop would spend two more calls on a known
+                # outcome (#247). The step name and the ceiling are added here because this
+                # is the layer that knows both.
+                e.step_name = name
+                e.ceiling = output_token_ceiling(final_model, e.prompt_tokens or 0)
+                if e.configured_max_tokens is None:
+                    e.configured_max_tokens = (
+                        merged_config.get("max_tokens")
+                        or merged_config.get("max_completion_tokens")
+                    )
+                logger.error(f"❌ {e}")
+                raise
+
             except Exception as e:
                 err_type = type(e).__name__
                 err_msg = str(e)[:200]
@@ -359,6 +377,32 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
             logger.warning(
                 f"⚠️  No usage data from Responses API; estimated tokens for cost "
                 f"(prompt≈{est_prompt}, completion≈{est_completion})."
+            )
+
+        # A step that came close to its output budget is the one warning worth having while the
+        # run is still worth saving: in a 13-window run, window 3 at 94% says windows 8-13 will
+        # fail. The channel is the defect log (#232) — what a step noticed but did not fail on —
+        # and the record carries the provider's own numbers rather than a bare warning, so a
+        # reader can act on it without re-deriving anything.
+        headroom = output_headroom(
+            final_model,
+            merged_config.get("max_tokens") or merged_config.get("max_completion_tokens"),
+            int(usage.get("prompt_tokens", 0) or 0),
+            int(usage.get("completion_tokens", 0) or 0),
+        )
+        if headroom and headroom["is_high"]:
+            ceiling_note = (
+                "the configured budget is already at the ceiling, so raising it cannot help"
+                if headroom["at_ceiling"]
+                else f"the highest budget this model would accept is {headroom['ceiling']}"
+                if headroom["ceiling"] is not None
+                else "the ceiling could not be derived — the model is not in the model table"
+            )
+            logging.getLogger("llmflow.defects").warning(
+                f"Used {headroom['completion_tokens']} of an output budget of "
+                f"{headroom['configured_max_tokens']} tokens "
+                f"({headroom['utilization'] * 100:.0f}%) — {ceiling_note}.",
+                extra={"step": name, **headroom},
             )
 
         try:

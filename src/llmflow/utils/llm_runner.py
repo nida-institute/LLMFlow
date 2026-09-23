@@ -2,13 +2,28 @@ from typing import Any, Dict, Optional
 
 import llm
 
-from llmflow.exceptions import ModerationError
+from llmflow.exceptions import ModerationError, TruncationError
 from llmflow.modules.json_parser import parse_llm_json_response
 from llmflow.modules.llm_response_clean import clean_llm_response_text
 from llmflow.modules.logger import Logger
 
 logger = Logger()
 MODERATION_GUIDE_PATH = "docs/moderation-handling.md"
+
+#: Where each provider records why generation stopped. Walked in order against the payload;
+#: an integer step indexes a sequence, a string step reads a dict key or an attribute, so one
+#: reader serves both a decoded JSON body and an SDK object. Declared rather than coded so a
+#: new provider is one row (rule `design-is-declarative`).
+STOP_REASON_PATHS = (
+    ("choices", 0, "finish_reason"),        # OpenAI chat completions
+    ("stop_reason",),                       # Anthropic
+    ("candidates", 0, "finishReason"),      # Gemini
+    ("incomplete_details", "reason"),       # OpenAI Responses API
+    ("finish_reason",),                     # flattened by some llm plugins
+)
+
+#: Stop-reason values, lowercased, that mean the output budget was exhausted.
+TRUNCATION_STOP_REASONS = frozenset({"length", "max_tokens", "max_output_tokens"})
 
 # Model cache - simpler than singleton pattern
 _model_cache: Dict[str, Any] = {}
@@ -18,6 +33,76 @@ def _extract_detail_value(details: Any, attr: str) -> Any:
     if isinstance(details, dict):
         return details.get(attr)
     return getattr(details, attr, None)
+
+
+def _walk(payload: Any, path: tuple) -> Any:
+    """Follow one STOP_REASON_PATHS entry through dicts, sequences and plain objects."""
+    current = payload
+    for key in path:
+        if current is None:
+            return None
+        if isinstance(key, int):
+            if not isinstance(current, (list, tuple)) or len(current) <= key:
+                return None
+            current = current[key]
+        elif isinstance(current, dict):
+            current = current.get(key)
+        else:
+            current = getattr(current, key, None)
+    return current
+
+
+def read_stop_reason(payload: Any) -> Optional[str]:
+    """Return the provider's stop reason, lowercased, or None if none could be read.
+
+    None means the reason could not be read — never that the response was complete.
+    Callers distinguish the two, because treating unreadable as complete is how a
+    truncation reaches the JSON parser (#247).
+    """
+    for path in STOP_REASON_PATHS:
+        value = _walk(payload, path)
+        if isinstance(value, str) and value:
+            return value.lower()
+    return None
+
+
+def _raise_if_truncated(
+    payload: Any,
+    model_name: str,
+    step_name: Optional[str] = None,
+    configured_max_tokens: Optional[int] = None,
+    prompt_tokens: Optional[int] = None,
+    completion_tokens: Optional[int] = None,
+) -> None:
+    """Raise TruncationError when the provider says the output budget was exhausted.
+
+    A provider whose stop reason cannot be read is reported as unread rather than passed
+    over silently, so an unreadable payload never resolves to "not truncated".
+    """
+    reason = read_stop_reason(payload)
+
+    if reason is None:
+        logger.warning(
+            f"⚠️  Could not read a stop reason for model {model_name}"
+            f"{f' in step {step_name!r}' if step_name else ''} — "
+            f"whether this response was truncated is unknown, not established as complete."
+        )
+        return
+
+    if reason not in TRUNCATION_STOP_REASONS:
+        return
+
+    raise TruncationError(
+        f"The model was cut off at the output budget before it finished"
+        f"{f' in step {step_name!r}' if step_name else ''}.",
+        provider=get_model_family(model_name) or "unknown",
+        model=model_name,
+        step_name=step_name,
+        stop_reason=reason,
+        configured_max_tokens=configured_max_tokens,
+        completion_tokens=completion_tokens,
+        prompt_tokens=prompt_tokens,
+    )
 
 
 def _raise_if_moderation_blocked(response: Any, model_name: str, step_name: str) -> None:
@@ -374,13 +459,25 @@ def _call_model(model, prompt: str, config: Dict[str, Any]) -> dict:
     raw_response = response.text()
     cleaned_response = clean_llm_response_text(raw_response)
 
-    # Capture token usage from the llm package Response object
+    # Capture token usage from the llm package Response object. `details` is whatever else the
+    # provider reported about the call — cached tokens, reasoning tokens — which is optimization
+    # information it gave us for free, so it is forwarded rather than dropped here.
+    usage_details = None
     try:
         usage_obj = response.usage()
         prompt_tokens = int(usage_obj.input or 0)
         completion_tokens = int(usage_obj.output or 0)
+        usage_details = getattr(usage_obj, "details", None)
     except Exception:
         prompt_tokens, completion_tokens = 0, 0
+
+    _raise_if_truncated(
+        getattr(response, "response_json", None),
+        model_name or "unknown",
+        configured_max_tokens=config.get("max_tokens") or config.get("max_completion_tokens"),
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+    )
 
     return {
         "content": cleaned_response,
@@ -388,6 +485,7 @@ def _call_model(model, prompt: str, config: Dict[str, Any]) -> dict:
             "prompt_tokens": prompt_tokens,
             "completion_tokens": completion_tokens,
             "total_tokens": prompt_tokens + completion_tokens,
+            "details": usage_details,
         },
     }
 
@@ -506,6 +604,14 @@ def _call_openai_with_response_format(prompt: str, config: Dict[str, Any], outpu
         "completion_tokens": response.usage.completion_tokens if response.usage else 0,
         "total_tokens": response.usage.total_tokens if response.usage else 0,
     }
+
+    _raise_if_truncated(
+        response,
+        model_name,
+        configured_max_tokens=config.get("max_completion_tokens") or config.get("max_tokens"),
+        prompt_tokens=usage["prompt_tokens"],
+        completion_tokens=usage["completion_tokens"],
+    )
 
     # Parse JSON if requested
     if output_type.lower() == "json":
@@ -690,6 +796,15 @@ async def _run_with_responses_api(
                 total_prompt_tokens += getattr(response.usage, 'prompt_tokens', 0) or 0
                 total_completion_tokens += getattr(response.usage, 'completion_tokens', 0) or 0
                 total_tokens += getattr(response.usage, 'total_tokens', 0) or 0
+
+            _raise_if_truncated(
+                response,
+                model_name,
+                step_name=step_name,
+                configured_max_tokens=config.get("max_completion_tokens") or config.get("max_tokens"),
+                prompt_tokens=total_prompt_tokens,
+                completion_tokens=total_completion_tokens,
+            )
 
             # Debug: Log response structure
             logger.debug(f"📊 Response status: {response.status}")
@@ -973,6 +1088,15 @@ async def _run_with_chat_completions(
                 total_prompt_tokens += response.usage.prompt_tokens or 0
                 total_completion_tokens += response.usage.completion_tokens or 0
                 total_tokens += response.usage.total_tokens or 0
+
+            _raise_if_truncated(
+                response,
+                model_name,
+                step_name=step_name,
+                configured_max_tokens=config.get("max_completion_tokens") or config.get("max_tokens"),
+                prompt_tokens=total_prompt_tokens,
+                completion_tokens=total_completion_tokens,
+            )
 
             message = response.choices[0].message
 

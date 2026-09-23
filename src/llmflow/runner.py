@@ -14,7 +14,7 @@ from llmflow.exceptions import (
     StepRewindError,
 )
 from llmflow.modules.logger import Logger
-from llmflow.modules.telemetry import TelemetryCollector
+from llmflow.modules.telemetry import TelemetryCollector, generate_optimization_suggestions
 from llmflow.plugins import plugin_registry
 from llmflow.plugins.loader import discover_plugins
 from llmflow.steps.basex import run_basex_step
@@ -777,7 +777,22 @@ def run_pipeline(
     logger.info("="*80)
     logger.info(summary)
 
-    # NOTE: Optimization suggestions table suppressed in favor of detailed cost breakdown
-    # Detailed per-model/per-prompt breakdown is included in the telemetry summary above.
+    # Reported rather than computed and discarded (#247). The empty case is stated, because a
+    # silent run cannot be told from a check that never ran — the failure `test_types` is still
+    # demonstrating elsewhere in this repository.
+    _llm_config = pipeline_config.get("llm_config", {}) or {}
+    suggestions = generate_optimization_suggestions(
+        telemetry.pipeline.steps,
+        mcp_max_iterations=(_llm_config.get("mcp", {}) or {}).get("max_iterations"),
+        configured_max_tokens=_llm_config.get("max_tokens"),
+    )
+    logger.info("\n" + "=" * 80)
+    logger.info("🔧 Optimization Suggestions")
+    logger.info("=" * 80)
+    if suggestions:
+        for suggestion in suggestions:
+            logger.info(f"   {suggestion}")
+    else:
+        logger.info("   No optimization suggestions — the run looked and found nothing.")
 
     return context

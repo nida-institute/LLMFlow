@@ -192,6 +192,60 @@ def get_model_max_tokens(model: str) -> Optional[int]:
     return metadata["max_context"] if metadata else None
 
 
+def output_token_ceiling(model: str, prompt_tokens: int) -> Optional[int]:
+    """Return the highest output budget this model would accept for this prompt.
+
+    The smaller of the model's own output limit and the context left once the prompt is
+    counted. Returns None when the model is absent from the model table, which callers
+    report as underivable rather than replacing with an estimate.
+    """
+    metadata = get_model_metadata(model)
+    if not metadata:
+        return None
+    max_output = metadata["max_output"]
+    max_context = metadata["max_context"]
+    if not max_output or not max_context:
+        return None
+    return max(0, min(max_output, max_context - (prompt_tokens or 0)))
+
+
+#: Fraction of the configured output budget at or above which a step is close enough to
+#: truncating that the run says so. Declared rather than inlined: it is the number a reader
+#: will want to find and change, and the low-utilization advisory below states its own the
+#: same way.
+HIGH_OUTPUT_UTILIZATION = 0.9
+
+
+def output_headroom(
+    model: str,
+    configured_max_tokens: Optional[int],
+    prompt_tokens: int,
+    completion_tokens: int,
+) -> Optional[Dict[str, Any]]:
+    """Report what the provider's own numbers say about this call's output headroom.
+
+    Returns None where the question does not apply — no budget was configured, or nothing
+    was generated — rather than a record saying zero, per rule `say-which-kind-of-nothing`.
+    `ceiling` is None when the model is absent from the model table.
+    """
+    if not configured_max_tokens or not completion_tokens:
+        return None
+
+    ceiling = output_token_ceiling(model, prompt_tokens)
+    utilization = completion_tokens / configured_max_tokens
+    return {
+        "model": model,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "configured_max_tokens": configured_max_tokens,
+        "remaining": configured_max_tokens - completion_tokens,
+        "utilization": utilization,
+        "ceiling": ceiling,
+        "at_ceiling": ceiling is not None and configured_max_tokens >= ceiling,
+        "is_high": utilization >= HIGH_OUTPUT_UTILIZATION,
+    }
+
+
 def supports_json_schema(model: str) -> bool:
     """Check if a model supports JSON schema / structured output.
 
