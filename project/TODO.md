@@ -7,6 +7,40 @@
 
 ## 🔥 Active
 
+### 🎯 THE GOAL — #246, #247, #248, all for discourse-flow
+
+> **Set by the Captain 2026-09-22.** Three issues, filed this session, and they come before
+> everything else in this list. Told to discourse-flow in
+> `discourse-flow/collab/sp/2026-09-22-segment-text-landed-and-the-windowing-ask-is-ruled.md`.
+
+- [ ] **#246 — three defects in token windowing.** Work order:
+      `project/plans/plan-window-token-defects.md`. Partiality decided by position rather than
+      fill; `include_partial` accepted and ignored under `!window_advance` (**ruled A — honour
+      it**); the tiktoken counter written twice. Refactor lands last
+- [ ] **#247 — a truncated response is reported as malformed JSON, then retried three times
+      identically.** The budget that actually breaks a run is the *output* one, and no input-side
+      counting predicts it. Reads the provider's stop reason (`finish_reason` / `stop_reason`
+      appear nowhere in the engine today), reports the step and the budget, stops retrying a
+      certainty, and names the ceiling — `min(max_output_tokens, max_context_tokens −
+      prompt_tokens)`, derived from `data/models.json`, never a guessed number
+- [ ] **#248 — `--rewind-to` cannot resume a loop.** `append_to` is refused outright
+      (`utils/rewind.py:77-88`), which is how every accumulating loop stores results, so a book
+      run that dies in window 8 of 13 restarts at window 1. D1, D2 and D4 ruled; **D3a open** —
+      the manifest records a sorted set of paths with no index, and a whole-document JSON write
+      cannot record progress incrementally. The Captain's candidate: append to a temporary TOML
+      during parallel execution, reassemble to JSON at the end
+- [ ] **#249 — `parallel:` is filed and NOT scheduled.** Tested only with `type: function`
+      steps, while `telemetry.start_step` is called only from `steps/llm.py` and
+      `steps/duckdb.py` — so no test has ever run a telemetry-recording step inside a parallel
+      loop, and the single `current_step` slot loses records and misattributes tokens silently.
+      Read from code, not from a red test
+
+> **The scripture-window design is ruled and is no longer about windowing.** Retitled and renamed
+> to `project/plans/design-usj-operations.md` — D1-D4 answered: no new step type,
+> `window` has no idea what a verse sid is, and the three operations become **USJ operations**
+> (flatten, locate, rebuild), grouped and open for more. Reassemble stays discourse-flow's. D3c
+> is open and its framing is stale — see the note in that document.
+
 ### 🤝 Helm adopts sp's idioms, then installs into paratext-copilot
 
 > **The Captain's second priority, 2026-09-19.** *"finish the new helm and install in paratext
@@ -107,8 +141,9 @@
       on the Psalm 23:1 evidence
 - [x] **E2 — `spans:` cuts a passage into units named by word id**, one result per span, read
       once — `tests/test_scripture_spans.py` plus an end-to-end step test through `load_pipeline`
-- [ ] **Tell them it has landed** — the reply promised "we will tell you when the first of those
-      lands", and all three have
+- [x] **Told them it has landed 2026-09-22** — all three, not just the first, in
+      `discourse-flow/collab/sp/2026-09-22-segment-text-landed-and-the-windowing-ask-is-ruled.md`.
+      Their editable install resolves to our tree, which they confirmed on 09-21, so they have it
 - [x] **`save_json`'s `indent=2` is ruled and stays** — see the section below
 
 **Their three answers, all the Captain's, so they are rulings and not opinions:**

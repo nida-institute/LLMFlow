@@ -1045,6 +1045,27 @@ class TestBuildWindowsToken:
         assert len(windows) == 1
         assert windows[0] == items[:3]
 
+    def test_exactly_full_final_window_survives_include_partial_false(self):
+        """A final window that fills the budget exactly is not partial, so it is kept.
+
+        Partiality is a property of how full a window is, not of where it sits: the
+        element-counted path decides it with `len(window) == size`, and the token path
+        must agree.  Six items at three per window divide evenly, so both windows are
+        full and `include_partial=False` removes neither.
+        """
+        import tiktoken
+        enc = tiktoken.encoding_for_model(self.MODEL)
+        items = self._words(6)
+        tok_per_item = len(enc.encode(items[0]))
+        size = tok_per_item * 3
+
+        windows = _build_windows_token(items, size_by_tokens=size, stride_by_tokens=0,
+                                       model=self.MODEL, include_partial=False)
+
+        assert len(windows) == 2
+        assert windows[0] == items[:3]
+        assert windows[1] == items[3:]
+
     def test_empty_input(self):
         windows = _build_windows_token([], size_by_tokens=1000, stride_by_tokens=0,
                                        model=self.MODEL, include_partial=True)

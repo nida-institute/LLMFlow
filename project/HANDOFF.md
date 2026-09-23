@@ -1,157 +1,154 @@
-# HANDOFF — 2026-09-21
+# HANDOFF — 2026-09-22
 
 ## ▶ NEXT ACTION
 
-**Commit the uncommitted set.** It is coherent, green, and nothing else should start on top of it.
-`dev` is at `2acb460`, **ahead 21 and unpushed**, with 8 modified and 1 new file on top (plus four
-that are the Captain's, listed below).
+**Commit #246.** It is built, green, and nothing else should start on top of it. `dev` is at
+`427a086`, **level with `origin/dev`** (0 ahead, 0 behind).
 
-The set is one change: `docstrings-say-what-not-why` broadened to cover `#` comments, the two
-guards that hold it, the `/load-context` précis change, and the CHANGELOG entry for both.
+This session's files, and only these:
 
-- `data/ai-rules.yaml`, `docs/ai-context/sp/rules.md` (regenerated — never hand-edit)
-- `tests/test_docstrings_say_what_not_why.py`, `tests/test_code_pointers_resolve.py` (new)
-- `tests/test_shipped_skills_name_real_paths.py`, `src/llmflow/templates/sp/skills/load-context/SKILL.md`
-- `data/helm-sync.yaml`, `CHANGELOG.md`, `project/TODO.md`
-- `src/llmflow/runner.py`, `src/llmflow/utils/run_manifest.py` — comment trims only, no behaviour
-- `project/plans/design-scripture-window-by-token-budget.md`,
-  `project/plans/design-artifact-conformance.md`, `project/plans/README.md` (regenerated)
+- `src/llmflow/steps/window.py` — the three fixes
+- `tests/test_window_step.py`, `tests/test_window_advance.py` — the tests
+- `project/plans/plan-window-token-defects.md` (**new, untracked**) — the work order
+- `project/plans/design-scripture-window-by-token-budget.md` → `design-usj-operations.md`
+  (**a rename — stage both halves or history does not follow**)
+- `project/TODO.md`, `project/plans/README.md` (regenerated)
 
-**The commit message is written**: `tmp/commit-rules-and-load-context.txt`. It does not mention
-the two plan documents, which were added after it — amend it or commit them separately.
+**One box in the plan is unticked and it needs your ruling first:** the CHANGELOG entry for
+#246. `CHANGELOG.md` carries both a dated `## 0.2.1.28 — 2026-09-09` heading *and* an
+`## Unreleased` section above it, so which one this belongs under is the Captain's call. Everything
+else in `plan-window-token-defects.md` is ticked with its evidence beside it.
 
-**Verify before committing:** `hatch run pytest -q` → **5 failed**, the known baseline:
-`test_types` (npx broken), `test_plan_docs_index::test_document_names_its_issue` ×2 (two design
-documents that name no issue — assigning them is the Captain's), `test_product_name_in_prose`
-(hits the Captain's `data-sources.md`), `test_resource_provisioning`. A sixth,
-`tests/integration/test_mcp_batch_calls.py`, fails only when the network is down.
+**Verify before committing:** `hatch run pytest -q` → **5710 passed, 6 failed**, every failure
+pre-existing: `test_types` (npx broken — it reports *nothing*, not clean),
+`test_plan_docs_index::test_document_names_its_issue` ×2, `test_product_name_in_prose`,
+`test_resource_provisioning`, and `tests/integration/test_mcp_batch_calls.py` (network).
 
-`test_plan_docs_index::test_index_is_current` **was** failing and is now green — regenerating the
-index with `hatch run python tools/update_plans_index.py` fixed it. Re-run that tool whenever a
-document is added to or removed from `project/plans/`.
-
-**Then `project/TODO.md`.** Its 0.2.1.28 section carries the queue and its order. Do not read the
+**Then `project/TODO.md`.** Its Active section carries the queue and its order. Do not read the
 queue out of this file.
 
 ---
 
 ## Active threads
 
-### 1. Two features must ship in 0.2.1.28 — **ruled, unbuilt, and they gate the release**
+### 1. #246 — built, uncommitted
 
-The Captain, 2026-09-21, of discourse-flow's asks: both are built for this release rather than
-filed and deferred. **PR #236 now waits on them.**
+**State: done and green.** Three defects in token windowing:
 
-**State: designs drafted and `proposed`, nothing created, no code.**
+- partiality decided by **fill** (`total < size_by_tokens`), not by position
+- `include_partial` honoured under `!window_advance` — **ruled A by the Captain**
+- one `_token_counter` (`steps/window.py:73`), both call sites; `_slice_window_from_pos` now
+  returns `(slice, total)`
 
-- `project/plans/design-scripture-window-by-token-budget.md`
-- `project/plans/design-artifact-conformance.md`
+**Verify:** `hatch run pytest tests/test_window_advance.py tests/test_window_step.py -q` → 95
+passed. Both behavioural tests were seen RED before their fix, and the converted dynamic test was
+re-verified RED with the guard disabled.
 
-Each is **also the drafted body of a GitHub issue that does not exist yet** — its heading is the
-issue title — and each carries four `=>` slots that are **design calls for the Captain**, not
-implementation detail. `proposed` is not authorization to build.
+**Next step:** the CHANGELOG ruling above, then the commit.
 
-**Next step.** Get approval of the bodies, then `gh issue create` (`issues-need-approval` — never
-create silently), write the issue number into each document, then the `=>` answers, then tests
-first.
+### 2. Five issues filed today — #246 is the only one with code
 
-**Verify:** `ls project/plans/design-scripture-window-by-token-budget.md`;
-`gh issue list --repo nida-institute/LLMFlow --search "token budget"` returns nothing yet.
+| # | subject | state |
+|---|---|---|
+| [#246](https://github.com/nida-institute/LLMFlow/issues/246) | token windowing defects | **built, uncommitted** |
+| [#247](https://github.com/nida-institute/LLMFlow/issues/247) | truncation reported as malformed JSON, retried 3× identically | no code |
+| [#248](https://github.com/nida-institute/LLMFlow/issues/248) | `--rewind-to` cannot resume a loop | no code, **D3a open** |
+| [#249](https://github.com/nida-institute/LLMFlow/issues/249) | `parallel:` untested past `type: function`; telemetry loses records | no code, not scheduled |
+| [#250](https://github.com/nida-institute/LLMFlow/issues/250) | 29 test files bypass the object model against 12 that use it | no code |
 
-### 2. An unanswered inbound collab — **nobody has triaged it**
+**The Captain's goal is #246, #247, #248, all for discourse-flow** — recorded in
+`project/TODO.md`.
 
-`collab/discourse-flow/2026-09-21-a-whole-chapter-has-no-extent-in-parse_passage_ref.md`,
-**untracked**, arrived late in the session and was read but not acted on.
+**Verify:** `gh issue view 247 --repo nida-institute/LLMFlow`.
 
-`parse_passage_ref('Mark 4')` returns `start_verse=None, end_verse=None`;
-`parse_bible_reference('Mark 4')` returns `1`–`41` with `is_whole_chapter: True`. They ask that the
-two agree, **or** that the two kinds of nothing be distinguishable per `say-which-kind-of-nothing`.
+### 3. `project/plans/design-usj-operations.md` — ruled, renamed, unbuilt
 
-This is the **second** input on which those two parsers differ; the first was the space-in-book-name
-crash fixed in `a7a0a66`. Whether they are meant to converge is undecided and is the Captain's.
+**State: D1–D4 and D3a/D3b/D4a all answered by the Captain. One slot open: D3c.**
 
-**Next step.** Triage: reply, issue, or queue entry. Not yet filed anywhere.
+Renamed and retitled this session from `design-scripture-window-by-token-budget.md`, because D2
+ruled there is no verse-sid cursor and D4a ruled the subject is not windowing. **Nothing is
+built** — it is still a design, not authorization.
 
-**Verify:** `hatch run python -c` is not how to check this — use a heredoc, and call both functions
-on `'Mark 4'`.
+**Verify:** `grep -n "^Status:" project/plans/design-usj-operations.md`. Not `git log --follow` —
+the document was rewritten as well as renamed, so git records it as a delete plus an add rather
+than a rename, and `--follow` does not reach the old history. Use
+`git log --diff-filter=D -- project/plans/design-scripture-window-by-token-budget.md` for that.
 
-### 3. `/load-context` — changed here, not yet propagated
+### 4. The reply to discourse-flow is sent — and they have already answered in code
 
-**State: template changed and green; the two stores untouched deliberately.**
+`discourse-flow/collab/sp/2026-09-22-segment-text-landed-and-the-windowing-ask-is-ruled.md`.
+**Tracked and committed in their tree** at `0bfc786`, not untracked. Our draft was deleted so the
+note has one home.
 
-`sp doctor` restores a *changed* file, not merely an absent one (`doctor.py` `_group_check`:
-"Missing or changed"), so the Captain runs `sp doctor` in each project to propagate. **Not in this
-repository** — #210.
+**They acted on #249 within the hour.** `0bfc786` — *"every for-each runs one iteration at a time,
+and it is guarded (#98)"* — pins `subdivide_candidates` from `parallel: 5` to `parallel: 1` and
+adds a test walking every step, nested loops included, that fails on any `parallel` above 1. Their
+commit message cites LLMFlow#249 and the telemetry race.
 
-Two things a later session will otherwise rediscover: `doctor` will leave `~/.claude` dirty, which
-is expected rather than an unreviewed write; and the skill is shared with Human at the Helm under a
-permitted divergence, so `data/helm-sync.yaml` was refreshed with `--refresh-record` and **Helm's
-copy is untouched**. Do not run `--apply` on it.
+**And they have disconfirmed a claim this session made.** Our note said #247 was *"the one we
+expect you have felt"*. Their commit message records the opposite, measured: *"the segment defect
+is not truncation. All 13 generate_segments responses of the last run parse as complete JSON, and
+the 21-verse pericope returned 32,741 characters holding one segment, so the model chose one.
+LLMFlow#247 is real and is not this."* Their open candidate is `supporting_evidence`, at 35-83% of
+each response.
+
+**#247 stands on its own evidence** — the engine genuinely does report truncation as malformed
+JSON and retry it three times identically — but **it is not discourse-flow's segment defect**, and
+nothing in this repository should be built on the assumption that it is.
+
+**Verify:** `git -C ../discourse-flow show 0bfc786 | head -30`.
 
 ---
 
 ## In flight / not yet done
 
-- **`dev` ahead 21, unpushed**, tip `2acb460` (`#245`, committed by the Captain this session).
-- **A push has not been requested** and is the Captain's own act.
-- **The reply to discourse-flow is sent**, into their tree, untracked for them:
-  `discourse-flow/collab/sp/2026-09-21-the-defect-log-already-shipped.md`. Our 09-21 reply sits
-  untracked there too — if they sweep, both vanish.
-- **Three inbound collab notes untracked here**, all 2026-09-21, in `collab/discourse-flow/`: the
-  defect-log one (answered), their acknowledgement of that answer, and the chapter-extent one
-  (thread 2, unanswered). `plans-are-temporary` wants them tracked.
-- **Their acknowledgement settles one thing and sharpens another.** Their editable install
-  resolves to this tree (`scripture-pipelines 0.2.1.28` at `src/llmflow/__init__.py`), so they
-  have #232's defect log; they have not deleted their own `plugins/defects.py` yet, deliberately.
-  And the untested concurrency path now has a name: their `subdivide_candidates` runs
-  `parallel: 5` with every step inside able to record. That is the open item under #232 in
-  `project/TODO.md` — a live risk with a named consumer, not a theoretical one.
+- **Nothing pushed this session.** `dev` == `origin/dev` at `427a086`. A push is the Captain's own
+  act and has not been requested.
+- **`project/TODO.md`'s `Tell them it has landed` is now ticked** — done 2026-09-22.
 - **Uncommitted and the Captain's, not this session's:** `data/models.json`,
   `docs/ai-context/project/data-sources.md`, `docs/ai-context/sp/github-workflow.md` and its
   template twin, `.cursorrules`, `.windsurfrules`, `project/0x28.md`.
+- **Three inbound collab notes still untracked** in `collab/discourse-flow/`, all 2026-09-21.
+  `plans-are-temporary` wants them tracked.
 - **`~/.claude/settings.json` is still modified** — the unreviewed one-line change reported at
   session start (a `Write(//Users/jonathan/.claude/projects/**)` permission removed). Not this
-  session's doing; `cgit restore settings.json` reverts it.
+  session's; `cgit restore settings.json` reverts it.
 
 ## Decisions settled — do not reopen
 
-- **The rule covers the container it is written in.** A design note in a `#` comment is the same
-  defect as one in a docstring. The guard already read both; only the wording was narrow.
-- **A cross-reference in code must resolve**, and the document it names must be committed —
-  otherwise `git show <commit>^:<path>` cannot return the version the comment was written against.
-- **`#245`'s manifest lives at `<intermediate>/.sp-runs/<pipeline>/<run key>.json`** — not under
-  `debug/`, which `_clear_debug_dir` empties at the start of every run.
-- **`#245` uses a new `utils/run_manifest.py`**, not an extension of `debug.py`: a write manifest
-  is not debug evidence.
-- **The CHANGELOG is user-facing feature notes.** No names, no rulings, no session narrative —
-  "high level features, not a copy of our discussions". `tests/test_changelog_is_not_a_transcript.py`
-  enforces the voice.
-- **The pre-split flat context paths in `/load-context` are deliberate**, and live in
-  `UNSPLIT_EQUIVALENT`. That decision predates this session; it was merely incomplete.
+- **`include_partial` under a cursor: honour it (A), not refuse it (B).** The Captain's ruling.
+- **The three operations are USJ operations, not windowing operations** — nothing in flatten,
+  locate or rebuild mentions a window, so they are grouped as USJ and the group is open.
+- **`window` stays domain-blind.** *"Windowing has no idea what an sid is."* The cursor stays a
+  list index; translating a domain identifier to a position is the pipeline's.
+- **Remote token counting is dropped, and not for cost.** The budget that breaks a run is the
+  **output** one; no input-side count predicts it, and the exact input count comes back free in
+  `usage`. Recorded in the design document so it is not re-proposed.
+- **Auto-raising `max_tokens` on truncation was rejected** — it is the engine spending the
+  Captain's money unasked. #247 reports the derivable ceiling instead and forbids a guessed number.
+- **A pure helper may be tested by direct call** — `project/rules.md` rule 1's carve-out. That is
+  why `_build_windows_token`'s test was left as a direct call while the two step-level tests were
+  converted to `load_pipeline(...).run()`.
 
 ## Do NOT
 
-- **Do not run `sp doctor` in this repository** — #210. Safe in consumer projects.
+- **Do not run two pytest processes at once** — they share `tmp/pytest`, and it happened this
+  session. Recovery: `chmod -R u+w tmp/pytest` then `rm -rf tmp/pytest`; the fake `~/.sp` inside it
+  is read-only by `sp`'s own `_lock_sp_dir()`, so `rm -rf` alone fails.
 - **Do not `git add -A`** — `gui/frontend/node_modules` is tracked, ~8,000 deletions.
-- **Do not run `tools/sync_helm.py --apply`** for `load-context` or `commit-ready` — both are
-  ruled divergences. `--refresh-record` is the command.
-- **Do not edit `docs/ai-context/sp/`** — regenerated by `tools/update_ai_context.py`.
-- **Do not fix the two `ruff` errors** (`cli_utils.py` F401, `runner.py` I001) — both pre-existing
-  and out of scope. `runner.py`'s was verified present at `HEAD` before this session's change.
+- **Do not run `sp doctor` in this repository** — #210. Safe in consumer projects.
 - **Do not read a passing suite as type-checked** — `npx` is broken, so `test_types` reports
   nothing rather than reporting clean.
-- **Do not run two pytest processes at once** — they share `tmp/pytest`.
-- **Looks like a next step but is not:** merging PR #236. It now waits on the two unbuilt features
-  above, and the merge is the Captain's act regardless.
+- **Do not fix the two pre-existing `test_document_names_its_issue` failures** by inventing issue
+  numbers; assigning them is the Captain's.
+- **Looks like a next step but is not:** merging PR #236, and building #247/#248 — both wait on
+  the commit above and, for #248, on D3a.
 
 ## Key files & links
 
 - `project/TODO.md` — the queue and its order.
-- `project/plans/design-scripture-window-by-token-budget.md`,
-  `project/plans/design-artifact-conformance.md` — drafted, uncreated as issues. Both become
-  deletable under `plans-are-temporary` on **2026-09-29**, and the deletion is the Captain's.
-- `collab/discourse-flow/2026-09-21-a-whole-chapter-has-no-extent-in-parse_passage_ref.md` — the
-  untriaged thread.
-- Issues **#245** (shipped this session), **#176**, **#244**, **#236** (the release PR), **#232**
-  (the defect log discourse-flow can now delete their copy of), **#241** (governs where a new
-  language operation belongs — bears on the scripture window).
+- `project/plans/plan-window-token-defects.md` — #246's work order and its evidence list.
+- `project/plans/design-usj-operations.md` — ruled, unbuilt, D3c open.
+- `utils/rewind.py:77-88` — #248's guard, and a **dangling pointer** to `docs/TODO.md`, which does
+  not exist in this repository.
+- Issues **#246**, **#247**, **#248**, **#249**, **#250**; **#236** is the release PR.

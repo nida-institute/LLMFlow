@@ -46,10 +46,10 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-scripture-alignments.md](design-scripture-alignments.md) | ruled (2026-09-14), one decision open. §2 carries sixteen rulings, R1–R16. D1–D8 are | #238 #241 |
 | [design-scripture-editions.md](design-scripture-editions.md) | Sources approved; core implemented, wiring outstanding | #196 #200 #201 |
 | [design-scripture-representations.md](design-scripture-representations.md) | sources and precedence ruled; representation shape ruled; the schema shape and several | #38 #52 #200 #201 #203 #208 #227 |
-| [design-scripture-window-by-token-budget.md](design-scripture-window-by-token-budget.md) | proposed (2026-09-21) | #241 |
 | [design-shipping-the-audit-method.md](design-shipping-the-audit-method.md) | Proposed, 2026-08-25. All four questions in §7 are answered — Q1 (templates mirror | #211 #214 |
 | [design-source-licensing.md](design-source-licensing.md) | Proposed, 2026-08-24. Four rulings recorded from the Captain (§3); six questions | #201 |
 | [design-structured-output-preflight.md](design-structured-output-preflight.md) | Implemented in 0.2.1.24 — historical record | #191 #197 |
+| [design-usj-operations.md](design-usj-operations.md) | D1-D4 ruled (2026-09-22); one follow-on open, D3c. Not authorization to build. | #241 #246 #247 #248 #249 |
 | [design-verse-range-operations.md](design-verse-range-operations.md) | Approved 2026-08-17 — authoritative for the data model. Not a work order: the | #168 |
 | [design-verse-regions.md](design-verse-regions.md) | built as llmflow.utils.verse_ranges, tested in tests/test_verse_ranges.py. | #169 |
 | [design-vocabulary.md](design-vocabulary.md) | Draft, but in force. The "use X, not Y" list is authoritative for user-facing text | — |
@@ -67,6 +67,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-skills-convention-json.md](plan-skills-convention-json.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | #163 #164 |
 | [plan-verse-range-set-ops.md](plan-verse-range-set-ops.md) | Approved 2026-08-17 — authoritative for the implementation (names, signatures, | — |
 | [plan-window-semantics.md](plan-window-semantics.md) | complete, 2026-08-21. Items 1 and 3 landed; item 2's two decisions were ruled and | #175 |
+| [plan-window-token-defects.md](plan-window-token-defects.md) | ruled (2026-09-22) → #246. Defect 2 ruled A by the Captain; the other two need no ruling. | #246 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-61 documents.
+62 documents.

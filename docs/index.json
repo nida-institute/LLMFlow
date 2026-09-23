@@ -4534,13 +4534,18 @@
           "doc": "Generate condition-based tumbling windows."
         },
         {
+          "name": "_token_counter",
+          "signature": "_token_counter(model: str) -> Callable[[Any], int]",
+          "doc": "Return a function giving one item's token count under *model*'s encoding."
+        },
+        {
           "name": "_build_windows_token",
           "signature": "_build_windows_token(items: list, size_by_tokens: int, stride_by_tokens: int, model: str, include_partial: bool) -> list[list]",
           "doc": "Token-aware sliding windows using tiktoken."
         },
         {
           "name": "_slice_window_from_pos",
-          "signature": "_slice_window_from_pos(items: list, start: int, size_by_tokens: int, model: str) -> list",
+          "signature": "_slice_window_from_pos(items: list, start: int, size_by_tokens: int, model: str) -> tuple[list, int]",
           "doc": "Slice items[start:] accumulating up to size_by_tokens tokens."
         },
         {
@@ -4572,11 +4577,6 @@
           "name": "run_window_step",
           "signature": "run_window_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any], run_step_fn: Optional[Callable] = None) -> Optional[str]",
           "doc": "Execute a window step — iterate over windows of the input list."
-        },
-        {
-          "name": "count_tokens",
-          "signature": "count_tokens(item: Any) -> int",
-          "doc": ""
         },
         {
           "name": "count_tokens",
