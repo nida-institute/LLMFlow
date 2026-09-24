@@ -42,3 +42,35 @@ quietly dropped when it becomes inconvenient.
    **Direct calls remain right for pure helpers.** `resolve_citation`, `normalize_greek` and
    `map_reference` take values rather than steps; routing them through a `Pipeline` would test
    the pipeline instead of the helper.
+
+2. **What we say to another project is the Captain's.** An AI drafts a collab note, a
+   reply or an issue body when asked, and shows it in full before it is sent. It does
+   not record in any document what a reply "must" contain, what another project "needs
+   to know", or what they should be told next — those are the Captain's calls about a
+   relationship he holds and the AI does not.
+
+   Filed 2026-09-13 after a session wrote "that reply must carry §3.1" into a design
+   document, converting the Captain's observation into a directive. The harm is that a
+   plan is read later as authorization: a future session finds the sentence, cannot tell
+   it from a ruling, and sends something nobody approved.
+
+3. **Prefer a meaningful phrase to a new noun.** Coining a term obliges everyone who reads
+   the project — people and models alike — to learn and maintain a definition. A phrase
+   costs nothing and cannot drift from a meaning it never had. Coin a noun only when the
+   phrase is genuinely unwieldy at the frequency it appears, and then define it where it
+   is introduced.
+
+   The Captain, 2026-09-14: *"Any time we create new vocabulary instead of a meaningful
+   phrase, we have to define it, and both LLMs and people need to learn it. Avoid
+   multiplying vocabulary where not needed."*
+
+   Filed after a session coined `absorbed`, `refused`, `foreign`, `partition`,
+   `clean run`, `gap` and `interleaved` for one small feature. `interleaved` silently
+   carried two different meanings for hours and propagated into two documents, a generator
+   and four worked examples before the Captain caught it. Every one was replaced by a
+   phrase or deleted, and nothing was lost.
+
+   This is the checkable form of the Terminology Capture countermeasure in
+   `drift-patterns.md`. Of any coined noun, ask: **what phrase would this replace, and is
+   the noun earning its keep?** An AI is especially prone to this because naming a concept
+   feels like understanding it.

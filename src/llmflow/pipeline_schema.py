@@ -78,6 +78,7 @@ class PipelineConfig(BaseModel):
     linter_config: Optional[Dict[str, Any]] = None
     intermediate_file_directory: Optional[str] = None
     output_file_directory: Optional[str] = None
+    clean_before_run: Optional[bool] = None
     steps: List[StepConfig]
     vars: Optional[Dict[str, Any]] = None
     prompts_dir: Optional[str] = None
@@ -257,11 +258,73 @@ _STEP_TYPE_PROPERTIES = [
             # The scheme `passage` is written in. Not an enum: a Paratext project brings its
             # own, and a custom mapping is a file the human puts in the store.
             "versification": {"type": "string"},
-            # The annotation families, read from the one place that names them. A list
+            # The analysis families, read from the one place that names them. A list
             # always — a bare string is rejected with the corrected form.
             "include": {
                 "type": "array",
                 "items": {"type": "string", "enum": list(SCRIPTURE_INCLUDE_FAMILIES)},
+            },
+            # Cuts the fetched passage into units named by word id, one result per span in the
+            # order given. A unit of analysis does not always start where a verse does — in
+            # Hebrew versification a psalm's superscription is part of verse 1 — so a boundary
+            # names a word rather than a verse. `passage:` still says what to fetch.
+            "spans": {
+                "oneOf": [
+                    {"type": "string"},  # `${var}` naming a list the pipeline computed
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "from": {"type": "string"},
+                                "to": {"type": "string"},
+                            },
+                            "required": ["from", "to"],
+                        },
+                    },
+                ]
+            },
+        },
+    ),
+    (
+        ("alignment",),
+        {
+            # A registered alignment pair. Both are named and neither is inferred (R4): the
+            # Hausa file proves a filename can contradict its own contents, so the pair is
+            # checked against the alignment document's `documents` and `roles` at read time.
+            # Named `source`/`target` after Scripture Burrito's own `roles`, and because `from`
+            # is a Python keyword that `Step` cannot expose as an attribute.
+            "source": {"type": "string"},
+            "target": {"type": "string"},
+            # The same `{from, to}` pairs `type: scripture` takes, so a for-each can join the
+            # two results without matching on anything.
+            "spans": {
+                "oneOf": [
+                    {"type": "string"},
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "from": {"type": "string"},
+                                "to": {"type": "string"},
+                            },
+                            "required": ["from", "to"],
+                        },
+                    },
+                ]
+            },
+            # R16 — a set, not a choice: the aligned text, the Scripture Burrito records, or
+            # both. Defaults to the text alone.
+            "returns": {
+                "type": "array",
+                "items": {"type": "string", "enum": ["text", "alignments"]},
+            },
+            # R5 — target order is what nearly every reader wants and is the default; source
+            # order is for reading the two texts side by side. Either, or both.
+            "order": {
+                "type": "array",
+                "items": {"type": "string", "enum": ["target", "source"]},
             },
         },
     ),
@@ -378,6 +441,9 @@ PIPELINE_SCHEMA = {
         "linter_config": {"type": "object", "additionalProperties": True},
         "intermediate_file_directory": {"type": "string"},
         "output_file_directory": {"type": "string"},
+        # Whether a run removes what the same pipeline and `--var` values wrote last time.
+        # Absent means the documented default, true (LLMFlow#245).
+        "clean_before_run": {"type": "boolean"},
         "steps": {"type": "array", "items": _STEP_SCHEMA},
     },
     "required": ["name", "steps"],

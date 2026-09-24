@@ -2,6 +2,635 @@
 
 ## Unreleased
 
+### Changed
+
+- **`/load-context` reads the whole AI context and reports a précis of it.** The skill now opens
+  every document the indexes name — the shipped half and the project's own — and reports one line
+  per document, each naming something only that document says. It closes with the constraints
+  most likely to bear on the session's work, and any document an index names that could not be
+  read.
+
+  An assistant that reads half the context and paraphrases the rest looks exactly like one that
+  read all of it, until it proposes something the unread documents already settle. A line per
+  document makes that visible at the start, when it still costs nothing to correct. The two
+  halves are reported apart because they differ in authority: the shipped half is regenerated, so
+  a correction to it belongs upstream rather than in a local edit.
+
+  The skill also now names the context files as paths to open with the file tools. It previously
+  used `cat`, which is refused outright where the file-tool hook is configured — and a refused
+  read that nothing notices leaves the session with an empty context rather than an error.
+
+- **The rule against design notes in docstrings covers `#` comments.** It was worded as a rule
+  about docstrings, so moving a note into a comment above the same line looked like compliance;
+  the check has always read both. A design note goes stale at the same rate whichever it sits in.
+
+  The rule also now requires a cross-reference in code to resolve. Prose in code may carry a
+  pointer and nothing else, so a pointer into a working document that was deleted without ever
+  being committed still reads as authority with nothing behind it. `project/plans/` documents
+  named from code are checked for existence and for being tracked.
+
+- **⚠️ Behaviour change: a re-run now removes what that same run wrote last time → #245.**
+  Re-running a pipeline with the same parameters used to leave the previous run's intermediates
+  in place, so a later reader — `/audit-output` especially — saw two runs' files as one set and
+  reasoned about a mixture. Where a filename carries content rather than parameters, a re-run
+  that draws a boundary even slightly differently writes *new* names and the old ones stay, with
+  nothing saying which run a file came from.
+
+  **On by default, so `sp run` begins deleting files without being asked, in every consumer, on
+  upgrade.** A project relying on accumulated intermediates loses them on the next run and should
+  set `clean_before_run: false`. This is stated plainly rather than softened: the rails below make
+  it safe in principle, but the behaviour is new.
+
+  **A run records what it wrote.** Every `saveas` already resolves to a concrete path, so the
+  engine knows. Those paths go to `<intermediate_file_directory>/.sp-runs/<pipeline>/<run
+  key>.json`, keyed by the same run key #198 uses to keep a Ruth run's debug trail apart from a
+  Mark run's. A re-run whose pipeline and key match deletes exactly what that record lists, then
+  writes a fresh one. This is #198's principle — separation makes deletion safe — obtained
+  **without changing the directory tree**: no new path segment appears for any artifact, and a run
+  can only ever delete its own previous output. It is declared rather than inferred: the engine
+  removes what it recorded writing, never what matches a filename pattern it guessed at.
+
+  **Four rails, all load-bearing.** Only paths under the declared `intermediate_file_directory`
+  are removed, so a clean cannot reach the deliverable (`separate-output-from-intermediates`, and
+  it must stay true now that the clean is implicit). It is skipped entirely under `--rewind-to`,
+  which replays by reading the very files a clean would take. The run reports every file it
+  deleted — a silent deletion inside a run is how #145 and #198 each went wrong. And a listed file
+  already gone is not an error.
+
+  **`sp clean` before the run was the wrong fix and was not taken.** It empties the whole declared
+  `intermediate_file_directory`, which every parameterisation shares, so cleaning before a Mark run
+  deletes the 1 John intermediates — #198's bug moved from `debug/` into `intermediate/` — and it
+  breaks `--rewind-to`.
+
+  **Opting out.** `clean_before_run: true|false` on the pipeline, `true` being the documented
+  default, so an absent key is explained by the default and a written `true` records a decision
+  that survives the default ever changing. `--no-clean` overrides per invocation. The key is
+  declared in `PIPELINE_SCHEMA` and typed on `PipelineConfig`, so a non-boolean is refused before
+  a step runs. The manifest is written in a `finally`, so a run that fails or is interrupted still
+  records what it wrote rather than orphaning it.
+
+  Guarded by `tests/test_run_manifest.py`, whose first test is the `--rewind-to` regression:
+  replay still reads the artifacts a clean would remove.
+
+### Fixed
+
+- **A dynamic window with no `size` crashed on a bare `TypeError`, and it was the whole build.**
+  `run_window_step` validates `size` before building fixed windows, but the `start_when` branch
+  returns before reaching that check, so `start_when` together with `!window_advance` and no
+  `size` arrived at `input_data[start:start + None]`. The failure named neither the step nor the
+  missing key. `_run_window_dynamic` now requires `size_by_tokens` or an integer `size` at entry
+  and says which to set, matching the fixed path's refusal. The now-unreachable `size is not
+  None` guard one line below it is removed.
+
+  This was the only Pyright error in `src/`, and Pyright is a gate step in the Tests workflow, so
+  the Build job had been skipped and every CI run had been red since at least 2026-09-10.
+  Guarded by
+  `tests/test_window_advance.py::TestWindowAdvanceErrors::test_dynamic_window_with_start_when_and_no_size_raises`.
+
+### Removed
+
+- **`project/plans/design-documentation-in-prompts.md`** — deleted 2026-09-24 under
+  `plans-are-temporary`, eight days after its declared date. Recover it with
+  `git log --diff-filter=D -- project/plans/design-documentation-in-prompts.md`, then
+  `git show <commit>^:project/plans/design-documentation-in-prompts.md`.
+
+  **The ruling it carried, recorded here because the document does not survive it.** Ruled
+  2026-09-16: documentation is written in the `.gpt` file beside the rule it explains, inside a
+  `~~~doc` fence, and `sp` strips those fences before the prompt reaches the model. A `.md`
+  sidecar and a tangler that generates the prompt from it were both considered and rejected, on
+  the grounds that two artifacts drift and one does not. The prompt is the right home rather
+  than merely the convenient one because a `.gpt` file is meant to be read and understood by
+  people, so an explanation belongs beside the rule it explains. Nothing was built.
+
+  **It stands in tension with the ruling of 2026-09-21**, which refuses design notes in prompts
+  on the grounds that everything in a `.gpt` reaches the model — the premise that stripping at
+  load would remove. Which of the two governs is unsettled; both dates are recorded so a later
+  reader can see that the question was asked rather than overlooked.
+
+## 0.2.1.28 — 2026-09-21
+
+### Fixed
+
+- **A moderation block is no longer retried three times identically.** The engine contradicted its
+  own shipped documentation: `docs/moderation-handling.md` says the CLI points at that memo *"so
+  humans understand why retries will not succeed until the prompt changes"* — the remedy being its
+  mitigation checklist, which a human applies — while the step retry loop caught `ModerationError`
+  in the same bare `except Exception` that swallowed truncation and re-requested with identical
+  parameters. A block therefore cost three refused calls and six seconds of backoff to establish
+  what the first call already had. It now fails on the first attempt.
+
+  This matters here more than the general case: provider filters trip on biblical text routinely —
+  conquest and apocalyptic narrative, Greek and Hebrew glosses that match modern extremist
+  vocabulary out of context, multi-chapter batching, and MCP tools echoing source text verbatim —
+  which is why that memo exists at all. Identical retry stays correct for the transient failures
+  the loop was written for.
+
+- **A response cut off at `max_tokens` is reported as truncated, not as malformed JSON, and is
+  no longer retried three times identically → #247.** The provider says plainly what happened —
+  OpenAI `finish_reason: "length"`, Anthropic `stop_reason: "max_tokens"` — and the engine never
+  asked: neither string appeared anywhere in `utils/llm_runner.py`, `steps/llm.py` or
+  `modules/telemetry.py`. The truncated text reached the JSON parser, which attempted an escape
+  repair that cannot help a cut-off string and raised `Unterminated string at position 24891` —
+  a character offset, when the cause was a token budget. `steps/llm.py` then caught that
+  `ValueError` in a bare `except Exception` and re-requested with identical parameters. A
+  truncation is not transient, so all three attempts truncated: **a truncation cost 3× the call
+  to discover**, and no retry in that loop could ever have fixed it.
+
+  **One reader, five provider shapes.** `STOP_REASON_PATHS` and `TRUNCATION_STOP_REASONS` are
+  declarations rather than code — OpenAI chat completions, Anthropic, Gemini, the Responses API,
+  and the flattened form some `llm` plugins produce — walked over dicts, sequences and SDK
+  attributes alike, so a new provider is one row. `_raise_if_truncated` sits beside the existing
+  `_raise_if_moderation_blocked` and fires at all four provider call sites, which is what keeps a
+  truncation from reaching the parser at all.
+
+  **A provider whose stop reason cannot be read says so.** Unreadable resolves to neither
+  "truncated" nor "complete"; it warns and names the model, per `say-which-kind-of-nothing`.
+  Treating unreadable as complete is the whole failure being fixed.
+
+  **The report names the ceiling, and never a number it cannot derive.**
+  `min(max_output_tokens, max_context_tokens − prompt_tokens)`, from `data/models.json` and the
+  usage the engine already records. Where the configured budget already equals the ceiling it
+  says raising it cannot help and the fix is less input — the case an operator most needs told,
+  and the one they would otherwise spend two more runs discovering. Where the model is absent
+  from the model table the ceiling is reported as underivable rather than estimated
+  (`declared-not-inferred`). Auto-raising `max_tokens` was rejected as the engine spending the
+  operator's money unasked, and salvaging a truncated payload was rejected because an incomplete
+  final item reads as complete once repaired.
+
+### Added
+
+- **A step close to its output budget is recorded in the defect log → #247.** In a 13-window run,
+  window 3 reporting 94% says windows 8–13 will fail while the run is still worth saving. The
+  channel is #232's defect log — what a step noticed but did not fail on — so the record travels
+  attached to the output and is summarised at the end of the run, and `[]` still means the run
+  looked and found nothing. The record carries the provider's own numbers rather than a bare
+  warning: model, prompt and completion tokens, the configured budget, what remains, utilization,
+  the ceiling and whether the budget is already at it. `HIGH_OUTPUT_UTILIZATION` is declared
+  beside the existing low-utilization threshold.
+
+  The existing advisory computed `completion_tokens / max_tokens` and fired **only below 25%**
+  — "could reduce max_tokens" — never as utilization approached 100%, which is the case that
+  destroys a run.
+
+- **Optimization suggestions reach the operator instead of being computed and discarded → #247.**
+  `generate_optimization_suggestions` had **no caller** anywhere in `src/`, `tests/` or `gui/`:
+  the runner built a telemetry summary and left the suggestions switched off behind a comment
+  reading *"suppressed in favor of detailed cost breakdown"*. A suggestion nobody is shown cannot
+  be told from a suggestion never made. The run now prints them, and **states the empty case**
+  rather than printing nothing — the same failure shape `check-the-source-not-the-rendering`
+  names, and the one `tests/test_types.py` is still demonstrating in this repository.
+
+- **The provider's usage details are forwarded rather than dropped.** `_call_model` read only
+  `usage.input` and `usage.output`; cached-token and reasoning-token counts arrived in
+  `usage.details` and went on the floor. They now reach the step as `usage["details"]`.
+
+- **`sp lint` warns which prompts do not fit the section grammar → #242.** The declaration was
+  already the single statement of the order; nothing read it at lint time, so conformance still
+  depended on an assistant applying a document correctly. It now names each non-conforming
+  prompt, shows the **first** finding in it, and prints the required sequence once per run beside
+  that first finding. A finding says what to write instead — `'# OUTPUT FORMAT' is not in the
+  grammar — the production is `# OUTPUT SCHEMA`` — because the declaration's `refused:` map
+  carries the remedy alongside the refusal.
+
+  **A warning, never an error.** A prompt whose sections are out of order still runs, and a
+  pipeline that works must not stop working over its shape.
+
+  **What the grammar binds is declared, not coded.** A prompt whose **first line** is `---` is
+  held to the grammar; a file without that header fence is checked by nothing. Measured across
+  four repositories, 40 of 41 prompts open this way and the one that does not has no header at
+  all. Because the trigger is a declaration rather than a formatting choice, **any prompt may use
+  `#` sections without being surprised by the grammar** — adding a heading never silently changes
+  what a prompt is held to.
+
+  It is the fence alone and not `requires:` as well: a prompt may legitimately declare zero
+  required variables, and keying on `requires:` would build an escape hatch for exactly that
+  case. It is the *first* line rather than a fence anywhere, because an unanchored match reads a
+  markdown horizontal rule as a header — `prompts/sikkemese/typology-checking.gpt` has one — and
+  an unanchored HTML-comment form reads a body comment as a header, which three prompts in a
+  consumer repository carry.
+
+  A heading-based trigger was implemented first and replaced: it left the case most in need of
+  checking — a transformation prompt written with no headings at all — invisible. The rule lives
+  in `data/prompt-structure.yaml` so `sp lint`, the audit skill and any consumer's own check
+  agree on scope by reading one statement, and it renders into the shipped discipline.
+
+  **Consequence, stated rather than softened:** all six prompts in `prompts/` declare a header and
+  carry no sections, so each now draws a warning — `sp lint --pipeline pipelines/hello.yaml`
+  included. Replacing the hello-world examples with scripture examples is already queued.
+
+  Only what the grammar can decide is reported: a heading's name, the order, a required section's
+  absence, and a task section's subsections. C2 and C4 turn on what a section *means* rather than
+  what it says, and nothing reports them — a warning that cannot be trusted teaches a reader to
+  skip warnings.
+
+- **A twelfth position, `# REFERENCE`, is the declared extension point.** Prompts need somewhere
+  to put material the grammar does not name — a label set, a taxonomy, a table the tasks cite —
+  and until now there was nowhere: C5 read any unrecognised heading as a task section, so a table
+  of labels was reported as a task missing four subsections, which is a wrong diagnosis rather
+  than a strict one.
+
+  Named `reference` and not `extensions` or `appendix`: a content word says what belongs there,
+  where a mechanism word or a position word says only how or where. Someone about to paste the
+  wrong thing under `# REFERENCE` notices the mismatch; `# EXTENSIONS` would have accepted it
+  silently.
+
+  **Design notes are refused, on measurement.** The whole `.gpt` file reaches the model,
+  frontmatter included (#176), so notes for maintainers would be tokens the model reads and may
+  act on. They belong in `project/plans/` or the header's `description:`.
+
+  One door, free-form behind it: a single `# REFERENCE`, subsections unconstrained, any further
+  heading after it unchecked — and C6 constraining it to material the tasks cite, introducing no
+  obligation. A refused heading is still refused there; unchecked for shape is not a hole where
+  anything becomes legal.
+
+### Fixed
+
+- **The per-run reset of the written-file list never ran** — groundwork for #245. `run_pipeline`
+  did `global WRITTEN_FILES; WRITTEN_FILES = []`, which bound a new name in `runner` and left
+  `file_io.WRITTEN_FILES` — the list every write records itself in — untouched, so it
+  accumulated across every run in a process. Invisible under the CLI, where one run is one
+  process; live for the Python API and the test suite. It matters now because #245 deletes a
+  re-run's own previous output from that list, and a stale entry is a file removed that this run
+  never wrote. `file_io.reset_written_files()` clears it in place, because callers hold a
+  reference to the list and rebinding is the defect being fixed.
+
+  **The test that guarded this was checking the wrong object.** It appended to
+  `runner.WRITTEN_FILES` and asserted against the same name — the rebound list no production
+  code reads — so it passed while the real list grew. It now reads `file_io`.
+
+- **A book whose name is more than one word could not be named alone.** `sp run --var
+  book="1 John"` was refused with *"'1 John' is not a passage reference"* — while the same
+  message listed `'MRK'`, a bare book, as an expected form. `2 Timothy` and `Song of Songs`
+  failed the same way; `Mark` worked, which is why a pipeline running single-word books never
+  met it. Reported from a book-level pipeline, where naming a whole book is the ordinary case.
+
+  The book had already resolved correctly. `books.resolve` returned `1JN`, and a second test
+  layered on top then threw that answer away, refusing any resolved book whose name contained a
+  space when no chapter followed. It guarded nothing: a string naming no book already fails
+  because `books.resolve` returns nothing for it.
+
+  **Where the book ends is now decided by the declaration, not by whitespace.** The split takes
+  the longest leading run of words that names a book and hands the remainder to the tail
+  pattern, so each half is answered by the thing that owns it. The previous split took the last
+  whitespace-delimited token with a numeric shape, which contradicted a tail pattern written to
+  allow spaces around the dash — so `Mark 1:1 - 2:2` left `Mark 1:1 -` as the book name and was
+  refused, a second bug the same change removes. Spacing no longer matters:
+  `Mark 1:1-2:2`, `Mark 1:1 - 2:2` and `1 John 1:1 - 2:2` all parse.
+
+  **Present in 0.2.1.25, .26 and .27**, verified by parsing `1 John` against a checkout of the
+  v0.2.1.27 tag. Not a regression in this release.
+
+- **One reference parser, and one refusal.** `parse_bible_reference` carried four regex patterns
+  of its own, duplicating what `parse_passage_ref` does. A pipeline met both — one in a
+  `function` step, the other in a `scripture` step — and they disagreed about inputs *and* about
+  errors: the same bad reference drew `Could not parse Bible reference '1JHN'` from one and a
+  message naming every accepted form from the other. A reader who met the first had nothing to
+  act on.
+
+  `parse_bible_reference` now reads `parse_passage_ref` and keeps its own return contract; its
+  168 lines of parsing are deleted rather than left beside the new path. Its full dictionary is
+  pinned by a characterisation test captured from the shipped function before the change, so the
+  contract consumers depend on is held to what it was rather than to a fresh opinion.
+
+  Two differences the old patterns had are settled rather than lost. An **en- or em-dash** in a
+  range now parses in the one parser, so `Luke 12:5–19` works everywhere instead of in one place.
+  And **trailing text is refused instead of ignored**: `re.match` let the old patterns read
+  `John 3:16` out of `John 3:16 garbage` and silently drop the rest, which is a confident answer
+  about an input nobody checked.
+
+  **Known asymmetry, deliberately not changed here:** the whole-book result carries
+  `is_whole_book` and the chapter results omit it, which `say-which-kind-of-nothing` would rather
+  they did not. Making the key always present is a contract change and belongs in its own.
+
+- **A worked example in the `/audit-prompts` skill approved the superseded shape, with ticks.**
+  Reported by `nida-institute/discourse-flow`, and verified: the example certified a prompt by
+  ticking `OUTPUT FORMAT`, which the grammar refuses, and listed the checklist before `INPUT DATA`
+  and `GUARDRAILS`, which the grammar puts last. It also showed three task subsections where four
+  are required. An example does not intend to state the order — it instantiates it — but a reader
+  copies it, and modelling the *verdict* alongside the shape made it worse than prose. It no
+  longer enumerates sections at all; it cites the authority.
+
+  The guard missed it because `REFUSED` was keyed on `# OUTPUT FORMAT` while the example read
+  `✅ Has OUTPUT FORMAT` — a document can name a refused heading without carrying one. That set is
+  no longer hand-kept: it is read from `prompt_structure.refused()` with the prefix stripped, the
+  hand-kept copy having already drifted from the declaration in a key and in a reason's wording.
+  A new guard checks the skill's fenced examples against the declared positions, so an example
+  that exhibits an order the grammar refuses now fails.
+
+- **The prompt section order is declared once, in `data/prompt-structure.yaml`.** Seven documents
+  stated it and most disagreed with the ruling. The worst was the `/audit-prompts` skill, which is
+  the document a session is pointed at: an agent drafted a prompt to its structure — `# OUTPUT
+  FORMAT`, `# CRITICAL REMINDERS`, `## Rules Specific to This Output Type`, none of them
+  admitted by the grammar — then ran `/audit-prompts`, which checked the prompt against the same
+  wrong text and passed it. The enforcement path certified what the ruling refuses. Reported by
+  `nida-institute/discourse-flow`, and every claim in that report verified against the files.
+
+  The declaration carries the eleven positions with their heading alternatives, which are required
+  and which are conditional on a named side condition, the four subsections every task section
+  carries, C1–C5, and the headings that get written by mistake with what each should be instead.
+  `llmflow.prompt_structure` renders the one block the discipline carries verbatim. The skill,
+  the disciplines README and `audits-pattern.md` name the declaration instead of restating it.
+  `CORE PRINCIPLES` is gone from the standard, `WHAT THIS STEP PRODUCES` is required, and
+  `## Guardrails` is the fourth required task subsection.
+
+  `tests/test_prompt_structure_single_source.py` fails if a skill copy names a refused heading,
+  if the two copies diverge, if the discipline stops carrying the rendered block, or if any
+  shipped document names a section count — which is how an eleven-position list came to be
+  headed "The 8-Section Pattern". `sp lint` is to read the same declaration (#242).
+
+- **`sp doctor` reports and restores a project file that is absent, skills included.** A skill
+  added to Scripture Pipelines after a project was set up never reached that project, and doctor
+  called it green. Two projects were in that state; `health-check` was missing from both.
+
+  Three separate things had to be wrong for it to be invisible, and each was a second place where
+  one fact was decided. Ownership was settled in the catalog as `policy: generated` and then
+  settled *again* in doctor by `source in (CONSTANT, TEMPLATE)` — `source` says where bytes travel
+  from during an install, which is not a statement about ownership, and it excluded every project
+  skill. The project check then built its expected set out of the files that already existed and
+  counted against that, so an absent file could not be represented. And a separate reachability
+  check asked whether Claude Code could see *any* skill rather than all of them.
+
+  All three are deleted rather than corrected. Ownership is read once, from the catalog.
+  `_repair_group` no longer distinguishes absence from drift — sp owns the file, so it is written
+  either way. The standard it now meets, set 2026-08-19: *"Warn, repair, and say you repaired
+  it."* The reachability check is gone; a project missing a skill is named in the report that
+  already exists for missing files.
+
+  `shipped_path` now resolves on the template an entry declares rather than on its `source`, and
+  `_expand_group` keeps the template it had already computed instead of discarding it for
+  `source: sp-home` rows. Those two lines are why a project skill had no shipped path and could
+  therefore be neither compared nor restored.
+
+- **`sp doctor` resolves a resource the way the engine does.** It reimplemented only the last
+  branch of `resolve_declared_path` — `~/.sp/data/<dataset>/<path>` — so it never consulted the
+  datasets store and never understood a path whose first segment is a registered dataset id.
+  That is the form the resolver documents and `sp resource set` writes, so a correctly configured
+  resource was reported as pointing at nothing while the engine read it without trouble. It now
+  calls `resolve_path`. The version check beside it looked in the same wrong place and now asks
+  where the dataset is actually registered.
+
+  When a path genuinely does not resolve, the report says why rather than printing where it gave
+  up: an unregistered dataset id is named as one, and where some registered dataset does hold the
+  file, that dataset is named. Offered only when the file is really there — a suggestion is
+  derived or it is not made.
+
+### Added
+
+- **`Policy.EXAMPLE`, and a statement of what the three project commands do.** The starter
+  examples are the only difference between `sp init --update` and `sp doctor`, which are otherwise
+  the same act. Captain, 2026-09-19: *"the hello world examples are the only difference between the
+  two commands. only `sp init` installs them."* That is now a property of the four catalog rows
+  rather than a flag in code and a comment, so the files it covers are the files that carry it,
+  and `restore_when_absent` is deleted.
+
+  `docs/ai-context/sp/command-line.md` is new and ships to every project: every `sp` command, which
+  files sp owns and which are the project's, and the contract that **either `sp doctor` or
+  `sp init --update` leaves a project up to date**. Nothing had stated any of it, which is why a
+  ruling made on 2026-08-23 went unbuilt and a first diagnosis of this bug was wrong.
+  `tests/test_cli_is_documented.py` fails when the CLI gains or loses a command the reference does
+  not match, in both directions, so the list cannot fall behind the program.
+
+- **`type: alignment` — the translation's text for a span named by source word ids** (#238). The
+  other side of `spans:` on `type: scripture`: where a unit of analysis opens or closes inside a
+  verse, a consumer has ids for the Greek or Hebrew and no handle on the English. Requested by
+  `discourse-flow`, for whom it was the only known blocker.
+
+  The step names a pair — `source:` and `target:`, both required and neither inferred — and
+  returns one result per span in the order asked. `returns:` and `order:` each take a **set**, not
+  a choice: the aligned text, the Scripture Burrito records, or both; target order, source order,
+  or both. Target order is the default because it is what nearly every reader wants; source order
+  does not read as English and is not meant to, but is what a reader comparing the two texts side
+  by side needs. The two differ in **81%** of spans and always cover the same tokens.
+
+  Three properties of the data drove the design, each measured rather than assumed. The alignment
+  is **filed per verse** — 80 of 115,008 records cross one — but a span is a clause or a sentence
+  and crosses verses whenever the language does, so the step reads past verse scope. A record may
+  group source words that are **not adjacent**: Greek does this routinely, in 22% of multi-word
+  records, and the gap is written ` … ` rather than closed up, on whichever side it falls. And
+  **unaligned tokens inside a span are kept** — 98% punctuation, but the 2% that are words are the
+  ones whose absence starts a sentence mid-clause.
+
+  Pairs are declared in `data/alignment-pairs.json` and each is verified at read time against the
+  alignment file's own `documents` and `roles`. That check is not ceremony: one file in the
+  published corpus is byte-identical to its sibling and declares a different source text, so
+  resolving a pair by filename serves Greek for a Hebrew request.
+
+  **Eighteen pairs ship**, across ten languages. The declaration names the files; the datasets
+  store says where the corpus is, so neither half carries a path that is wrong on another
+  machine. Three of the corpus's twenty-one alignment files are left out, each for a measured
+  reason the declaration records: one is byte-identical to its sibling and declares that
+  sibling's pair, one has target identifiers that join none of its target text, and one names a
+  target text that is an empty file. `scripts/check_alignment_pairs.py` re-derives every join
+  figure against the corpus and exits non-zero if any declared pair is unusable.
+
+  Rulings, measurements and the commands to re-derive them:
+  `project/plans/design-scripture-alignments.md`.
+
+### Changed
+
+- **`include:` is valid with every format, and the language reference now says so.** Two passages
+  still stated it was valid only with `format: usj` — the comment at line 802 and the paragraph
+  under "Annotation". Making `include:` valid with every format made both false, and a consumer
+  reading the document stopped because of them. Asserted by `test_include_with_any_format_returns_the_text_beside_the_container`.
+
+- **`/handoff` scoped its pointer rule to a single line of the file.** The skill required the
+  NEXT ACTION to point at `project/TODO.md` rather than restate it, and said nothing about the
+  rest of the file — so a handoff whose next action was a correct pointer still carried a
+  paragraph of a queued goal's substance, which the task list then moved past. The rule now
+  covers the whole file: it points at the task list and never summarises it.
+
+  The adequacy checklist gains the check that catches a breach — with the tree clean the file
+  reads in thirty seconds and is almost entirely pointers, so a paragraph saying what a queued
+  item *is*, rather than where it lives, is absorbed queue material. Shared with Human at the
+  Helm; both copies stay byte-identical.
+
+- **One YAML serialiser, where there were four.** `registry.py` sorted keys, `resources.py`
+  preserved them, and `utils/data.py::save_yaml` used the non-safe `yaml.dump` and had no
+  callers at all. All now go through `utils/file_io.dump_yaml` — safe dumper, `allow_unicode`
+  so Greek and Hebrew are written as themselves, `sort_keys=False`, block style. `save_yaml` is
+  deleted.
+
+  **One behaviour change:** a registration file's keys were written in alphabetical order and
+  are now written in the order given. It shows the next time one is rewritten.
+
+  `tests/test_yaml_normalization.py` states the nine properties the output must have, including
+  that `"1:1"` survives as a string rather than the integer 61 — the coercion
+  `reference-data-is-json` exists for, asserted on the writing side — and refuses a second
+  `yaml.dump`/`yaml.safe_dump` anywhere in `src/`, because a second call site is a second set of
+  defaults.
+
+- **`plans-are-temporary` now covers collab notes**, which accumulate exactly as plans do — 29
+  of them across two repositories, oldest from August, none ever pruned. A note is written once,
+  into the recipient's tree, so no second copy can drift; its durable trace is the CHANGELOG
+  entry or issue it caused, never the file.
+
+  It also states what "eight days" is measured from, which it never did: **the later of the
+  document's declared `Status:` date and the last commit that changed it — never the filesystem
+  timestamp**, because a clone rewrites every mtime and nothing would ever be old enough to
+  delete.
+
+### Added
+
+- **`include:` works with every format, so choosing annotation no longer chooses a text form.**
+  A pipeline reading Levinsohn features is no longer committed to a word-object document: with
+  `format: milestones` and a non-empty `include:`, the step returns `{text, scripture_pipelines}`
+  — the same text it would return without asking, and the payload beside it. `include: []` still
+  returns a bare string, so nothing written before this changes.
+
+  **Word addressing follows the form.** In a USJ document `ids` remains `srcloc`, where USX
+  defines it. Beside running text it is a map from word id to the word — `{"o19023001002":
+  ["לְ", "דָוִ֑ד"]}` — keyed rather than positional, because an id counts words within its verse
+  while the text runs on, and in Hebrew a word may be written in several morphemes, so a
+  position would have to be derived from where each verse starts. A word number the text does
+  not render is `null`: the source reserves those slots.
+
+- **`spans:` cuts a fetched passage into units named by word id**, returning one result per span
+  in the order asked, each with its own text and its own annotation. The passage is read once
+  however many spans are named.
+
+  A boundary names a word rather than a verse because a unit of analysis does not always start
+  where a verse does — in Hebrew versification a psalm's superscription is part of verse 1, so
+  a unit beginning at the psalm proper (`יְהוָ֥ה רֹ֝עִ֗י`, Psalm 23:1 word 3) begins mid-verse,
+  and no verse range expresses that. Every morpheme of the words at the edges is taken; a span naming a word the passage does
+  not contain raises rather than returning a shorter text that reads as a complete one; and a
+  USFM resource, having no word ids, says so instead of guessing.
+
+### Fixed
+
+- **`usj_to_text` lost the chapter and detached punctuation from its word.** Both bite exactly
+  where a consumer needs the function most: on a document sliced out of a book, with
+  `include: [ids]` asked for.
+
+  A slice keeps its verses and drops the `chapter` element they sat under, so tracking the
+  chapter from `chapter` elements alone produced `⌊?:1⌋` — while each verse node's `sid` said
+  `PHM 1:1` all along. The chapter now falls back to the `sid`.
+
+  And with `ids`, every word is a `char` node and the spacing and punctuation are the bare
+  strings between them. Stripping each string and re-inserting a separator turned
+  `ἐκκλησίᾳ· ` into `ἐκκλησίᾳ ·`. A bare string now keeps its own leading and trailing space,
+  with runs of whitespace collapsed to one so a document broken across lines does not carry
+  newlines into the text.
+
+  **Why it survived:** the oracle that asserts flattening reproduces `milestones` only ran over
+  documents without `ids`, where a verse's text is a single bare string and any split-and-rejoin
+  reproduces it. The oracle itself dropped every word when given an anchored document. It now
+  reads `char` nodes, and the invariant is asserted over the anchored form too — on Philemon
+  1:1–7 both paths return the same 665 characters.
+
+- **The shipped context document promised a `format: print` that has never existed.**
+  `FORMATS = ("plain", "milestones", "usj")`, and `resource_text(..., fmt="print")` answers
+  `unknown format 'print'`. The row is struck from
+  `docs/ai-context/sp/scripture-representations.md` and from the file catalog's `purpose:` for
+  it, and the document now states the three forms positively.
+
+  The code was never wrong: `pipeline_schema.py:256` builds the format enum from `FORMATS`, so
+  `sp lint` would always have rejected `print`. Only the documentation claimed it — which is why
+  this is a documentation fix and not a code one.
+
+### Fixed — the bugs a first setup hits
+
+Every fix in this group was found by one person setting up a machine for the first time, and
+each one bites on a fresh setup and then never again — which is why they survived so long. The
+machines they were tested on had all already passed through the state that hides them.
+
+**BaseX (#38) is not in this release.** It remains blocked on `awesome-biblical-data#5`: the
+catalog cannot describe a treebank or a lexicon at all, so there is no input to build against.
+Three of its seventy entries carry a `provides` block and all three are Bibles. The `type: basex`
+step continues to work as it has since #49; what is missing is the loading half.
+
+- **The first `sp resource add` on a set-up machine failed after downloading.**
+
+      Downloaded to ~/sp/resources/Clear-Bible/macula-greek
+      Could not register 'SBLGNT': [Errno 13] Permission denied: '~/.sp/registrations'
+
+  `~/.sp/registrations` does not exist until the first registration needs it, and `sp` creates it
+  inside a store it deliberately keeps read-only. The write unlocked the directory; the `mkdir`
+  that creates that directory ran first and unlocked nothing.
+
+  The division is what made it costly rather than merely annoying: the download succeeded and the
+  registration did not, so the data sat on disk with nothing recording it, and the obvious retry
+  fetched it all again. Fixed where directories are created, not one directory at a time — the
+  same defect had been patched once before for `~/.sp/versification`.
+
+- **`sp init` reported that it could not write to the store, and advised hand-editing it.** The
+  project registration unlocked correctly; the ai-context indexing beside it did not, so it hit
+  `Permission denied` on the first file and the whole block was swallowed as a warning. A
+  project's context went unindexed and the run said only that something "was not critical". The
+  remedy it printed — "registry can be updated manually" — recommended the one act the lock exists
+  to prevent.
+
+- **`sp doctor` called a populated `docs/ai-context/` tree empty** and recommended `sp init`, a
+  command that would have changed nothing. The check globbed non-recursively, and no `.md` files
+  have lived at that level since the `sp/` and `project/` split. It now names each document by its
+  path within the tree, because `sp/index.md` and `project/index.md` are different documents and
+  bare filenames printed `index.md` twice.
+
+- **`sp models` showed a roster three generations out of date, from a second hardcoded list.**
+  `data/models.json` was current — `gpt-5`, `claude-4-*`, `gemini-2.5-*` — while the command
+  printed a literal dict whose newest entry was `gpt-4o`, and which named two models the data file
+  has never contained. It now derives from the catalogue. Provider labels lose their generation
+  names, since "Anthropic (Claude 3.5, ...)" is a claim about what is current.
+
+- **Three strings told the reader to run `llmflow setup`,** a command this CLI has never had, one
+  of them printed to anyone without a Gemini key. `sp init --update`'s help also named the
+  generated-file marker as `<!-- Generated by llmflow init -->` when the marker written is
+  `sp init`, so grepping for what the help described found nothing.
+
+- **Shipped skills pointed at paths that do not exist in any project.** `stand-down` said to add a
+  project rule to `docs/ai-context/rules.md` — a pre-split path whose nearest survivor is
+  *generated*, so a rule written there is reverted by the next `sp doctor` without a word.
+  `commit-ready` cited `docs/ai-context/github-workflow.md` and looked for designs in
+  `docs/design/`. `audit-prompts` referenced a workflow document that exists nowhere.
+
+- **Shipped documentation still taught `optional:`,** the prompt-header key withdrawn in 0.2.1.26,
+  so `sp init` and `sp doctor` reinstated it in every consumer. One document contradicted itself
+  348 lines apart.
+
+- **Two shipped documents contradicted each other about how to name an audit record, and consumers
+  followed the wrong one.** `project/audits/README.md` suggested
+  `YYYY-MM-DD_<scope>_<pipeline>.md`, while `audits-pattern.md` says dates must never appear in a
+  filename because a dated filename produces a new file per run and a growing set is one nobody
+  re-reads. A consumer repository had accumulated six such records, three of them the same
+  pipeline on the same book at different times — by following the README sitting in the directory
+  they were writing into, which is the reasonable choice. The README now teaches rolling records,
+  and says that a record carries no verdict.
+
+  It is `create-once`, so existing projects keep their copy and must replace it by hand. That
+  policy is deliberate — sp must not overwrite a project's adaptations — but it does mean a
+  correction to a `create-once` document reaches only new projects.
+
+- **`audits-pattern.md` routed every session to `docs/audits/INDEX.md`, which `sp init` deliberately
+  does not create.** The checklists that once shipped there were one project's documents installed
+  into everyone's repository, withdrawn under #210 — but the references outlived the removal, so
+  that half of the pattern pointed nowhere in every project. The pattern now sends a session to
+  `docs/ai-context/project/index.md`, the map a project owns, and says a checklist is the
+  project's to write and to place.
+
+  The procedure-versus-record distinction is kept but narrowed: keep findings out of a procedure,
+  and a record that states the criteria it was judged against is correct rather than a category
+  error. The former wording implied otherwise, and would have had a consumer strip the criteria
+  that make their findings interpretable.
+
+### Added
+
+- **`project/plans/README.md`.** `project/audits/` has always had a shipped README and this did
+  not, so `plans-are-temporary`, the `authorize` skill and the project-tracking discipline all
+  directed work into a directory `sp init` never created. It carries the status convention —
+  `proposed` is never authorization to build — the eight-day rule, the distinction between
+  documents that accumulate and documents that roll, and that deleting is never automatic.
+
+### Test Coverage
+
+- Every model `sp models` displays must exist in `data/models.json`, and every provider in the
+  data must display something — the guard the two drifted lists never had.
+- No source file may tell a user to run `llmflow <subcommand>`.
+- Every repo path a shipped skill or discipline names must be one the file catalog creates.
+  Exemptions are listed individually with reasons rather than pattern-matched, including an
+  explicit set for questions awaiting a ruling, so an open question stays visible instead of being
+  quietly tolerated. Two are recorded there: `docs/audits/`, which `audits-pattern.md` routes every
+  session to and which no project receives, and `project/plans/`, which several shipped documents
+  direct designs into and which `sp init` does not create.
+
 ## 0.2.1.27 — 2026-09-09
 
 ### Added

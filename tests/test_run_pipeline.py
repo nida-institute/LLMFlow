@@ -257,13 +257,20 @@ class TestRunPipeline:
         assert result["step2_result"] == "value_step1_step2"
 
     def test_written_files_reset_between_runs(self, simple_pipeline):
-        """WRITTEN_FILES must be cleared at the start of each run_pipeline call."""
-        # Manually inject a stale entry from a "previous" run
-        runner_module.WRITTEN_FILES.append("/stale/from/previous/run.txt")
+        """The written-file list must be cleared at the start of each `run_pipeline` call.
+
+        Read from `file_io`, which is where the list lives and where every write records
+        itself. This test used to append to `runner.WRITTEN_FILES` and assert against the
+        same name — a list the runner created by rebinding and that no production code ever
+        read, so it passed while the real list accumulated across every run in the process.
+        """
+        from llmflow.utils import file_io
+
+        file_io.WRITTEN_FILES.append("/stale/from/previous/run.txt")
 
         run_pipeline(simple_pipeline, skip_lint=True)
 
-        assert "/stale/from/previous/run.txt" not in runner_module.WRITTEN_FILES
+        assert "/stale/from/previous/run.txt" not in file_io.WRITTEN_FILES
 
     @patch("llmflow.runner.validate_all_templates")
     @patch("llmflow.runner.lint_pipeline_full")

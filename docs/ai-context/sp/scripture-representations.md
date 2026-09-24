@@ -22,9 +22,12 @@ every decision downstream.
 |---|---|---|
 | `plain` | baseline | the prompt never cites a verse. A whole-book step that cannot window reads 32 KB where the annotated form is 1.3 MB — a 43× difference |
 | `milestones` | **1.072×** | **the default.** A verse reference is all the addressing needed, and the cost over bare text is under a tenth |
-| `usj`, no `include` | 2.56× codepoints, **6.74×** as escaped JSON | structure is needed, annotation is not |
+| `usj`, no `include` | 2.56× codepoints, **6.74×** as escaped JSON | structure is needed, analyses are not |
 | `usj` + families | to **11.78×** as one consumer ships it | only the families a step actually reads |
-| `print` | paragraphs, no annotation | the editorial shape, for a reader rather than a model |
+
+**Three forms, and that is the whole list.** `format:` accepts `plain`, `milestones` and `usj`;
+anything else raises, naming the three. A form for the editorial shape — paragraphs and
+headings for a reader rather than a model — is not built.
 
 Two consequences worth holding onto. **`milestones` is almost always right** — it is the default
 because the alternative costs six times as much for structure most prompts never use. And
@@ -66,7 +69,7 @@ by default.
 **`syntax` requires `ids`**, and asking for it alone raises. Its leaves are word ids, which reach
 the document as `srcloc` through `ids`; without them the payload names words the document does not
 identify, which is unusable rather than merely thinner. This is a stronger condition than the
-per-word families have, because a tree is *over* words rather than an annotation *on* one.
+per-word families have, because a tree is *over* words rather than an analysis *of* one.
 
 **The payload is a list, one entry per sentence**, in the order the source states them. So "which
 subtree is a sentence" is answered by the structure rather than by a class the engine invents —
@@ -98,7 +101,7 @@ once under the Greek spelling rather than making a reader know which corpus they
 `rule` and `nodeId` are not carried. They name how the parser derived a node rather than a fact
 about the constituent, and nothing downstream can check them against the text.
 
-## The annotation container
+## The analysis container
 
 Everything `include` delivers lives under one key, `scripture_pipelines`, which the USJ
 specification does not define and never will. Two things follow, and both matter more to a

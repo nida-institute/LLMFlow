@@ -122,6 +122,17 @@ files:
       How to audit: which skill answers which question, tracing an output field back to the
       request that produced it, and testing a prompt fix with `sp tools replay`.
 
+  - path: docs/ai-context/sp/command-line.md
+    scope: project
+    policy: generated
+    source: template
+    template: project/docs/ai-context/sp/command-line.md
+    committed: true
+    purpose: >-
+      Every `sp` command; which files sp owns and which are yours; and why `sp doctor` and
+      `sp init --update` both leave the project up to date, differing only over the
+      starter examples.
+
   - path: docs/ai-context/sp/scripture-representations.md
     scope: project
     policy: generated
@@ -129,7 +140,7 @@ files:
     template: project/docs/ai-context/sp/scripture-representations.md
     committed: true
     purpose: >-
-      Choosing between `plain`, `milestones`, `usj` and `print`, what each costs with the
+      Choosing between `plain`, `milestones` and `usj`, what each costs with the
       unit stated, and how to read a discourse item's `outcome`.
 
   - path: docs/ai-context/sp/passage-references.md
@@ -210,11 +221,13 @@ files:
     purpose: >-
       VS Code setup for editing pipelines and prompts.
 
-  # The hello-world example. `generated` at project scope: `sp init` creates these, and
-  # `sp doctor` refreshes one only when it is present and has diverged, never creating it.
+  # The hello-world example. `example` is what makes `sp init` and `sp doctor` differ at
+  # all: `sp init` creates these, `sp init --update` refreshes one that is present, and
+  # `sp doctor` leaves them alone entirely. Stated on the row rather than as a rule in
+  # code, so the four files it covers are the four files that carry it.
   - path: prompts/hello.gpt
     scope: project
-    policy: generated
+    policy: example
     source: template
     template: project/prompts/hello.gpt
     committed: true
@@ -223,21 +236,21 @@ files:
 
   - path: prompts/reply.gpt
     scope: project
-    policy: generated
+    policy: example
     source: template
     template: project/prompts/reply.gpt
     committed: true
 
   - path: pipelines/hello-llmflow.yaml
     scope: project
-    policy: generated
+    policy: example
     source: template
     template: project/pipelines/hello-llmflow.yaml
     committed: true
 
   - path: pipelines/hello.yaml
     scope: project
-    policy: generated
+    policy: example
     source: template
     template: project/pipelines/hello.yaml
     committed: true
@@ -254,6 +267,21 @@ files:
     committed: true
     purpose: >-
       How audit findings are recorded for this project.
+
+  # Where designs and plans live. `project/audits/README.md` has always been catalogued and this
+  # was not, so `plans-are-temporary`, the `authorize` skill and the project-tracking discipline
+  # all directed work into a directory `sp init` never created. Unlike the `docs/audits/`
+  # checklists withdrawn under #210, this is sp's own convention rather than one project's
+  # document: the eight-day rule and the status field are the engine's, not a project's invention.
+  - path: project/plans/README.md
+    scope: project
+    policy: create-once
+    source: template
+    template: project/project/plans/README.md
+    committed: true
+    purpose: >-
+      Where designs and plans live, the status they must declare, and why they are deleted after
+      about eight days.
 
   # The session cache, edited constantly. Written only when absent, never overwritten.
   - path: project/TODO.md

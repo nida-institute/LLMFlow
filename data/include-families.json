@@ -18,7 +18,7 @@
 
   "families": {
     "ids": {
-      "purpose": "The word's source identifier, so annotation can be joined back to the text.",
+      "purpose": "The word's source identifier, so an analysis can be joined back to the text.",
       "columns": ["xml:id"],
       "per_word": false
     },

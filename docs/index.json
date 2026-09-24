@@ -276,6 +276,11 @@
           "doc": "Register the project and its ai-context files in ~/.sp/ (Issue #132)."
         },
         {
+          "name": "_index_ai_context",
+          "signature": "_index_ai_context(registry, ai_context_dir: Path, project_name: str) -> None",
+          "doc": "Record each of a project's ai-context documents in the machine-wide index."
+        },
+        {
           "name": "list_pipelines",
           "signature": "list_pipelines(directory: str) -> list[str]",
           "doc": "List all YAML pipeline files in a directory."
@@ -296,6 +301,7 @@
         "llmflow.modules.telemetry",
         "llmflow.plugins",
         "llmflow.plugins.loader",
+        "llmflow.steps.alignment",
         "llmflow.steps.basex",
         "llmflow.steps.duckdb",
         "llmflow.steps.for_each",
@@ -308,6 +314,7 @@
         "llmflow.steps.save",
         "llmflow.steps.scripture",
         "llmflow.steps.window",
+        "llmflow.utils",
         "llmflow.utils.context",
         "llmflow.utils.debug",
         "llmflow.utils.file_io",
@@ -374,7 +381,7 @@
         },
         {
           "name": "run_pipeline",
-          "signature": "run_pipeline(pipeline_file, vars = None, dry_run = False, verbose = False, skip_lint = False, log_file = 'llmflow.log', rewind_to: str | None = None, stop_after: str | None = None, resume: bool = False)",
+          "signature": "run_pipeline(pipeline_file, vars = None, dry_run = False, verbose = False, skip_lint = False, log_file = 'llmflow.log', rewind_to: str | None = None, stop_after: str | None = None, resume: bool = False, no_clean: bool = False)",
           "doc": "Run a pipeline from a YAML file."
         },
         {
@@ -438,6 +445,7 @@
       "imports": [
         "datetime",
         "llmflow",
+        "llmflow.utils.file_io",
         "os",
         "pathlib",
         "typing",
@@ -728,6 +736,89 @@
       ]
     },
     {
+      "module": "llmflow.prompt_structure",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "importlib.resources",
+        "pathlib",
+        "typing",
+        "yaml"
+      ],
+      "functions": [
+        {
+          "name": "declaration_path",
+          "signature": "declaration_path() -> Path",
+          "doc": "Locate prompt-structure.yaml from an installed wheel or a dev checkout."
+        },
+        {
+          "name": "_load",
+          "signature": "_load() -> dict[str, Any]",
+          "doc": ""
+        },
+        {
+          "name": "positions",
+          "signature": "positions() -> tuple[Position, ...]",
+          "doc": "Every position, in order."
+        },
+        {
+          "name": "task_subsections",
+          "signature": "task_subsections() -> tuple[str, ...]",
+          "doc": "The four subsections required in every task section."
+        },
+        {
+          "name": "conditions",
+          "signature": "conditions() -> dict[str, str]",
+          "doc": "C1-C5 — what the grammar cannot express, each checkable."
+        },
+        {
+          "name": "refused",
+          "signature": "refused() -> dict[str, str]",
+          "doc": "Headings the grammar does not admit, each with what to write instead."
+        },
+        {
+          "name": "binds",
+          "signature": "binds() -> str",
+          "doc": "Which prompts the grammar binds, in the declaration's own words."
+        },
+        {
+          "name": "declares_a_header",
+          "signature": "declares_a_header(text: str) -> bool",
+          "doc": "Whether *text* opens with a header fence, which is what the grammar binds."
+        },
+        {
+          "name": "_top_level_headings",
+          "signature": "_top_level_headings(text: str) -> list[tuple[int, str]]",
+          "doc": ""
+        },
+        {
+          "name": "_heading_positions",
+          "signature": "_heading_positions() -> dict[str, Position]",
+          "doc": ""
+        },
+        {
+          "name": "check",
+          "signature": "check(text: str) -> Optional[Finding]",
+          "doc": "The first way *text* departs from the grammar, or None where it conforms."
+        },
+        {
+          "name": "_check_task_section",
+          "signature": "_check_task_section(text: str, start: int, heading: str) -> Optional[Finding]",
+          "doc": "A heading matching no other production is a task section (C5), and carries all four."
+        },
+        {
+          "name": "render_sequence",
+          "signature": "render_sequence() -> str",
+          "doc": "The required order, for a terminal."
+        },
+        {
+          "name": "render_markdown",
+          "signature": "render_markdown() -> str",
+          "doc": "The block every shipped document carries verbatim."
+        }
+      ]
+    },
+    {
       "module": "llmflow.gui_launcher",
       "imports": [
         "sys"
@@ -919,6 +1010,11 @@
           "doc": ""
         },
         {
+          "name": "clean_before_run",
+          "signature": "clean_before_run(self) -> Optional[bool]",
+          "doc": ""
+        },
+        {
           "name": "resolve",
           "signature": "resolve(self, vars: Optional[Dict[str, Any]] = None) -> 'ResolvedPipeline'",
           "doc": "Return a resolved view: ``${...}`` expanded and *vars* (``--var``) applied."
@@ -930,7 +1026,7 @@
         },
         {
           "name": "run",
-          "signature": "run(self, vars: Optional[Dict[str, Any]] = None, dry_run: bool = False, rewind_to: Optional[str] = None, stop_after: Optional[str] = None, resume: bool = False, verbose: bool = False, skip_lint: bool = False, log_file: str = 'llmflow.log')",
+          "signature": "run(self, vars: Optional[Dict[str, Any]] = None, dry_run: bool = False, rewind_to: Optional[str] = None, stop_after: Optional[str] = None, resume: bool = False, verbose: bool = False, skip_lint: bool = False, log_file: str = 'llmflow.log', no_clean: bool = False)",
           "doc": "Run the pipeline (delegates to the engine's ``run_pipeline``)."
         },
         {
@@ -1196,6 +1292,16 @@
         },
         {
           "name": "__init__",
+          "signature": "__init__(self, message: str, provider: str, model: str, step_name: str | None = None, stop_reason: str | None = None, configured_max_tokens: int | None = None, completion_tokens: int | None = None, prompt_tokens: int | None = None, ceiling: int | None = None, original_error: Exception | None = None)",
+          "doc": ""
+        },
+        {
+          "name": "__str__",
+          "signature": "__str__(self)",
+          "doc": ""
+        },
+        {
+          "name": "__init__",
           "signature": "__init__(self, message: str, plugin_name: str, original_error: Optional[Exception] = None)",
           "doc": ""
         },
@@ -1434,6 +1540,11 @@
       ],
       "functions": [
         {
+          "name": "provider_models",
+          "signature": "provider_models() -> dict",
+          "doc": "Model names grouped by provider, read from `data/models.json`."
+        },
+        {
           "name": "_load_keys",
           "signature": "_load_keys(keys_path)",
           "doc": ""
@@ -1517,7 +1628,7 @@
         },
         {
           "name": "_repair_group",
-          "signature": "_repair_group(entries: list[Entry], root: Path, restore_when_absent: bool) -> tuple[list[str], list[str], list[str]]",
+          "signature": "_repair_group(entries: list[Entry], root: Path) -> tuple[list[str], list[str]]",
           "doc": "Restore the entries that need it."
         },
         {
@@ -1536,13 +1647,18 @@
           "doc": "Warn about a redirected store or data directory (#217)."
         },
         {
+          "name": "_why_unresolved",
+          "signature": "_why_unresolved(definition) -> str",
+          "doc": "Name the cause when a registration's path does not exist, or \"\" when it is plain."
+        },
+        {
           "name": "_resources_check",
           "signature": "_resources_check(sp_home: Path) -> Check",
           "doc": "Report what this machine has registered, and whether it still resolves."
         },
         {
           "name": "_group_check",
-          "signature": "_group_check(check_id: str, label: str, entries: list[Entry], root: Path, total: int, restore_when_absent: bool = True, remedy: str = 'Run `sp init --update`.') -> Check",
+          "signature": "_group_check(check_id: str, label: str, entries: list[Entry], root: Path, total: int, remedy: str = 'Run `sp init --update`.') -> Check",
           "doc": ""
         },
         {
@@ -2047,9 +2163,9 @@
           "doc": "Every passage reference *text* names, in the order they appear, without repeats."
         },
         {
-          "name": "_split_tail",
-          "signature": "_split_tail(text: str)",
-          "doc": "`(\"Mark\", <1:40-2:12>)`. The tail is the last token when it has the numeric shape."
+          "name": "_split_reference",
+          "signature": "_split_reference(text: str)",
+          "doc": "`(\"MRK\", <1:40-2:12>)` — the book's code, and the tail that follows it."
         },
         {
           "name": "_book_code",
@@ -2160,6 +2276,48 @@
           "name": "states_nothing",
           "signature": "states_nothing(self) -> bool",
           "doc": "Whether the file declared no numbering — comments and blank lines only."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.run_manifest",
+      "imports": [
+        "__future__",
+        "json",
+        "llmflow.modules.logger",
+        "pathlib",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "manifest_path",
+          "signature": "manifest_path(intermediate_dir: Path, pipeline_name: str, run_key: str) -> Path",
+          "doc": "The manifest for one pipeline run under one set of `--var` values."
+        },
+        {
+          "name": "_under",
+          "signature": "_under(path: Path, directory: Path) -> bool",
+          "doc": "True when *path* is inside *directory*, both resolved."
+        },
+        {
+          "name": "read",
+          "signature": "read(path: Path) -> List[str]",
+          "doc": "The paths a previous run recorded, or [] when there is no readable record."
+        },
+        {
+          "name": "clean_previous_run",
+          "signature": "clean_previous_run(manifest: Path, intermediate_dir: Path) -> List[str]",
+          "doc": "Delete the files the previous matching run recorded writing. Returns what went."
+        },
+        {
+          "name": "write",
+          "signature": "write(manifest: Path, written: Iterable[str]) -> None",
+          "doc": "Record the paths this run wrote."
+        },
+        {
+          "name": "is_enabled",
+          "signature": "is_enabled(pipeline_config: dict, no_clean: bool, dry_run: bool, rewind_to: Optional[str]) -> bool",
+          "doc": "Whether this run cleans its own previous output."
         }
       ]
     },
@@ -2311,6 +2469,62 @@
           "name": "ctx_lookup",
           "signature": "ctx_lookup(expr)",
           "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.alignment",
+      "imports": [
+        "__future__",
+        "json",
+        "pathlib",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "word_key",
+          "signature": "word_key(source_id: str) -> str",
+          "doc": ""
+        },
+        {
+          "name": "verse_key",
+          "signature": "verse_key(token_or_source_id: str) -> str",
+          "doc": "`BBCCCVVV`, with any leading `n`/`o` removed so source and target keys compare."
+        },
+        {
+          "name": "validate_pair",
+          "signature": "validate_pair(document: Dict[str, Any], source_docid: str, target_docid: str) -> None",
+          "doc": "Refuse a pair the alignment file does not itself declare."
+        },
+        {
+          "name": "read_tsv",
+          "signature": "read_tsv(path: Any) -> List[Dict[str, str]]",
+          "doc": ""
+        },
+        {
+          "name": "load_pair",
+          "signature": "load_pair(definition: Dict[str, Any]) -> Dict[str, Any]",
+          "doc": "Open the three files a pair needs, and check the alignment declares the pair."
+        },
+        {
+          "name": "_owner_of_each_target_token",
+          "signature": "_owner_of_each_target_token(records: Sequence[Dict], target_ids: Sequence[str]) -> tuple[Dict[str, set], Dict[str, Optional[str]]]",
+          "doc": "Which source units each target token aligns to, and which unaligned token belongs where."
+        },
+        {
+          "name": "_join",
+          "signature": "_join(tokens: Sequence[str], text_of: Dict[str, Dict], order_of: Dict[str, int]) -> str",
+          "doc": "Assemble target text, writing `GAP` where the tokens are not a contiguous run."
+        },
+        {
+          "name": "_source_phrase",
+          "signature": "_source_phrase(ids: Sequence[str], text_of: Dict[str, Dict]) -> str",
+          "doc": "Join source surface forms, writing `GAP` where the unit's words are not adjacent."
+        },
+        {
+          "name": "aligned_text_for_spans",
+          "signature": "aligned_text_for_spans(spans: Iterable[Dict[str, str]], document: Dict[str, Any], source_rows: Sequence[Dict[str, str]], target_rows: Sequence[Dict[str, str]], order: Sequence[str] = ('target',), returns: Sequence[str] = ('text',)) -> List[Dict[str, Any]]",
+          "doc": "One result per span, in the order asked."
         }
       ]
     },
@@ -3142,6 +3356,11 @@
       ],
       "functions": [
         {
+          "name": "reset_written_files",
+          "signature": "reset_written_files() -> None",
+          "doc": "Empty the written-file list at the start of a run."
+        },
+        {
           "name": "_record_written_file",
           "signature": "_record_written_file(path: str) -> None",
           "doc": ""
@@ -3162,9 +3381,9 @@
           "doc": "JSON, re-parsing a string that already holds JSON so it is not double-encoded."
         },
         {
-          "name": "_as_yaml",
-          "signature": "_as_yaml(content: Any) -> str",
-          "doc": ""
+          "name": "dump_yaml",
+          "signature": "dump_yaml(content: Any) -> str",
+          "doc": "The engine's only YAML serialiser."
         },
         {
           "name": "_as_text",
@@ -3374,6 +3593,11 @@
           "name": "collect_all_steps",
           "signature": "collect_all_steps(items)",
           "doc": "Recursively collect all steps, including nested for-each and substeps."
+        },
+        {
+          "name": "prompt_conformance_warnings",
+          "signature": "prompt_conformance_warnings(prompt_paths: List[str]) -> List[str]",
+          "doc": "Which prompts do not fit the grammar, the first finding in each, and the order once."
         },
         {
           "name": "validate_all_step_contracts",
@@ -3751,6 +3975,41 @@
           "doc": "Validate `include` against `fmt` and return it as a tuple. See §4's lint rules."
         },
         {
+          "name": "_word_and_part",
+          "signature": "_word_and_part(identifier: str) -> tuple[str, Optional[int]]",
+          "doc": "Split a word id into the orthographic word and its part, where the source has parts."
+        },
+        {
+          "name": "rows_in_span",
+          "signature": "rows_in_span(rows: Sequence[Mapping[str, Any]], first: str, last: str) -> list[dict]",
+          "doc": "The rows from word *first* to word *last*, inclusive, in document order."
+        },
+        {
+          "name": "_continues",
+          "signature": "_continues(ordered: Sequence[tuple], identifier: str, last: str) -> bool",
+          "doc": "Whether a later row still belongs to the closing word — its next morpheme."
+        },
+        {
+          "name": "text_for_spans",
+          "signature": "text_for_spans(rows: Sequence[Mapping[str, Any]], spans: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None) -> list[dict]",
+          "doc": "One result per span, in the order asked, each carrying its own text and analyses."
+        },
+        {
+          "name": "per_word_analysis",
+          "signature": "per_word_analysis(rows: Sequence[Mapping[str, Any]], families: Sequence[str]) -> dict",
+          "doc": "`{family: {word id: {column: value}}}`, skipping the columns a word leaves empty."
+        },
+        {
+          "name": "analysis_container",
+          "signature": "analysis_container(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str], versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None, with_words: bool = True) -> dict",
+          "doc": "The `scripture_pipelines` container, identical whatever form the text took."
+        },
+        {
+          "name": "words_by_id",
+          "signature": "words_by_id(rows: Sequence[Mapping[str, Any]]) -> dict",
+          "doc": "Every word of *rows*, keyed by the id that an analysis and a boundary name it with."
+        },
+        {
           "name": "rows_to_output",
           "signature": "rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None) -> str | dict",
           "doc": "The requested representation of *rows*: a string, or a USJ document for ``fmt=\"usj\"``."
@@ -3764,6 +4023,11 @@
           "name": "resolve_resource",
           "signature": "resolve_resource(resource: str, registry_resources: Optional[Mapping[str, Any]] = None) -> Any",
           "doc": "Return the definition for a named resource: a TSV path string, or a mapping carrying a"
+        },
+        {
+          "name": "_chapter_of",
+          "signature": "_chapter_of(sid: Any) -> Optional[str]",
+          "doc": "The chapter in a verse `sid` — `\"MRK 1:1\"` -> `\"1\"` — or None if it says nothing."
         },
         {
           "name": "usj_to_text",
@@ -3817,12 +4081,17 @@
         },
         {
           "name": "_tei_passage_text",
-          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, resource: str, include: Sequence[str] = (), versification: Optional[str] = None) -> str | dict",
+          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, resource: str, include: Sequence[str] = (), versification: Optional[str] = None, spans: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
           "doc": "Running text for *passage* from a directory of per-book TEI files."
         },
         {
+          "name": "_emit",
+          "signature": "_emit(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str], versification: Optional[str], definition: Mapping[str, Any], resource: str, spans: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
+          "doc": "What a backend returns once it has rows: the whole passage, or one result per span."
+        },
+        {
           "name": "resource_text",
-          "signature": "resource_text(resource: str, passage: str, fmt: str = 'milestones', resources: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None, include: Any = ()) -> str | dict",
+          "signature": "resource_text(resource: str, passage: str, fmt: str = 'milestones', resources: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None, include: Any = (), spans: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
           "doc": "Running text for *passage* in *resource*, dispatched on the resource's `kind`."
         },
         {
@@ -3839,11 +4108,6 @@
           "name": "moved",
           "signature": "moved(chapter: Optional[int], verse: Optional[int]) -> tuple[int, int]",
           "doc": ""
-        },
-        {
-          "name": "annotate",
-          "signature": "annotate(row: Mapping[str, Any]) -> None",
-          "doc": "Collect a word's declared columns, verbatim, skipping the ones it leaves empty."
         },
         {
           "name": "emit",
@@ -3889,6 +4153,21 @@
           "name": "_extract_detail_value",
           "signature": "_extract_detail_value(details: Any, attr: str) -> Any",
           "doc": ""
+        },
+        {
+          "name": "_walk",
+          "signature": "_walk(payload: Any, path: tuple) -> Any",
+          "doc": "Follow one STOP_REASON_PATHS entry through dicts, sequences and plain objects."
+        },
+        {
+          "name": "read_stop_reason",
+          "signature": "read_stop_reason(payload: Any) -> Optional[str]",
+          "doc": "Return the provider's stop reason, lowercased, or None if none could be read."
+        },
+        {
+          "name": "_raise_if_truncated",
+          "signature": "_raise_if_truncated(payload: Any, model_name: str, step_name: Optional[str] = None, configured_max_tokens: Optional[int] = None, prompt_tokens: Optional[int] = None, completion_tokens: Optional[int] = None) -> None",
+          "doc": "Raise TruncationError when the provider says the output budget was exhausted."
         },
         {
           "name": "_raise_if_moderation_blocked",
@@ -4048,11 +4327,6 @@
           "name": "load_yaml",
           "signature": "load_yaml(file_path)",
           "doc": "Load YAML data from file with error handling and logging"
-        },
-        {
-          "name": "save_yaml",
-          "signature": "save_yaml(data, file_path)",
-          "doc": "Save data as YAML file with error handling and logging"
         },
         {
           "name": "merge_dicts",
@@ -4285,13 +4559,18 @@
           "doc": "Generate condition-based tumbling windows."
         },
         {
+          "name": "_token_counter",
+          "signature": "_token_counter(model: str) -> Callable[[Any], int]",
+          "doc": "Return a function giving one item's token count under *model*'s encoding."
+        },
+        {
           "name": "_build_windows_token",
           "signature": "_build_windows_token(items: list, size_by_tokens: int, stride_by_tokens: int, model: str, include_partial: bool) -> list[list]",
           "doc": "Token-aware sliding windows using tiktoken."
         },
         {
           "name": "_slice_window_from_pos",
-          "signature": "_slice_window_from_pos(items: list, start: int, size_by_tokens: int, model: str) -> list",
+          "signature": "_slice_window_from_pos(items: list, start: int, size_by_tokens: int, model: str) -> tuple[list, int]",
           "doc": "Slice items[start:] accumulating up to size_by_tokens tokens."
         },
         {
@@ -4330,11 +4609,6 @@
           "doc": ""
         },
         {
-          "name": "count_tokens",
-          "signature": "count_tokens(item: Any) -> int",
-          "doc": ""
-        },
-        {
           "name": "collect_outputs",
           "signature": "collect_outputs(steps_list)",
           "doc": ""
@@ -4352,6 +4626,41 @@
           "name": "run_if_step",
           "signature": "run_if_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None, run_step_fn: Callable) -> Optional[str]",
           "doc": "Execute an if step — condition already evaluated true by run_step dispatcher."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.steps.alignment",
+      "imports": [
+        "importlib.resources",
+        "json",
+        "llmflow.modules.logger",
+        "llmflow.utils.alignment",
+        "llmflow.utils.context",
+        "llmflow.utils.step_outputs",
+        "pathlib",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "pairs_path",
+          "signature": "pairs_path() -> Path",
+          "doc": "Locate `data/alignment-pairs.json`, installed wheel or dev checkout."
+        },
+        {
+          "name": "declared_pairs",
+          "signature": "declared_pairs() -> Dict[str, Any]",
+          "doc": "The supported alignments, and the dataset their paths are relative to."
+        },
+        {
+          "name": "resolve_pair",
+          "signature": "resolve_pair(source_docid: str, target_docid: str) -> Dict[str, Any]",
+          "doc": "The declared pair, with its three paths resolved under the registered dataset."
+        },
+        {
+          "name": "run_alignment_step",
+          "signature": "run_alignment_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> None",
+          "doc": ""
         }
       ]
     },
@@ -4378,10 +4687,13 @@
     {
       "module": "llmflow.steps.llm",
       "imports": [
+        "llmflow.exceptions",
         "llmflow.modules.logger",
         "llmflow.modules.mcp",
+        "llmflow.modules.telemetry",
         "llmflow.utils.context",
         "llmflow.utils.llm_runner",
+        "logging",
         "pathlib",
         "re",
         "time",
@@ -4880,6 +5192,16 @@
           "doc": "Get max context window for a model."
         },
         {
+          "name": "output_token_ceiling",
+          "signature": "output_token_ceiling(model: str, prompt_tokens: int) -> Optional[int]",
+          "doc": "Return the highest output budget this model would accept for this prompt."
+        },
+        {
+          "name": "output_headroom",
+          "signature": "output_headroom(model: str, configured_max_tokens: Optional[int], prompt_tokens: int, completion_tokens: int) -> Optional[Dict[str, Any]]",
+          "doc": "Report what the provider's own numbers say about this call's output headroom."
+        },
+        {
           "name": "supports_json_schema",
           "signature": "supports_json_schema(model: str) -> bool",
           "doc": "Check if a model supports JSON schema / structured output."
@@ -5180,7 +5502,7 @@
     }
   ],
   "summary": {
-    "total_modules": 87,
-    "total_functions": 821
+    "total_modules": 91,
+    "total_functions": 874
   }
 }

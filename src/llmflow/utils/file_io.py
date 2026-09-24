@@ -63,6 +63,16 @@ EXTENSION_FORMATS = {
 _ACCEPTED = ", ".join(sorted(FORMAT_ALIASES))
 
 
+def reset_written_files() -> None:
+    """Empty the written-file list at the start of a run.
+
+    Cleared in place rather than rebound, because callers hold a reference to the list. The
+    runner previously did `global WRITTEN_FILES; WRITTEN_FILES = []` in its own module, which
+    bound a new name there and left this one untouched.
+    """
+    WRITTEN_FILES.clear()
+
+
 def _record_written_file(path: str) -> None:
     p = Path(path).resolve()
     pstr = str(p)
@@ -125,7 +135,14 @@ def _as_json(content: Any) -> str:
     return json.dumps(content, ensure_ascii=False, indent=2)
 
 
-def _as_yaml(content: Any) -> str:
+def dump_yaml(content: Any) -> str:
+    """The engine's only YAML serialiser.
+
+    `allow_unicode` so Greek and Hebrew are written as themselves, `sort_keys=False` so a
+    document reads in the order its author wrote it, and the safe dumper so nothing emits a
+    `!!python/` tag that `safe_load` will refuse. Guarded by
+    tests/test_yaml_normalization.py.
+    """
     return yaml.safe_dump(content, allow_unicode=True, sort_keys=False, default_flow_style=False)
 
 
@@ -217,7 +234,7 @@ def _as_usfm(content: Any) -> str:
 
 WRITERS = {
     "json": _as_json,
-    "yaml": _as_yaml,
+    "yaml": dump_yaml,
     "text": _as_text,
     "markdown": _as_markdown,
     "csv": lambda content: _as_delimited(content, ",", "csv"),

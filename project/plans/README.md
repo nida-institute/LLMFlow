@@ -9,6 +9,9 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | --- | --- | --- |
 | [design-ai-context-layout.md](design-ai-context-layout.md) | In progress, 2026-08-25. Eleven rulings recorded from the Captain (§2). | #204 #210 #211 |
 | [design-ai-drift-control.md](design-ai-drift-control.md) | Draft — awaiting Captain review | — |
+| [design-alignment-regeneration.md](design-alignment-regeneration.md) | proposed (2026-09-13) → #238. Nothing here is built. Every => is the Captain's. | #238 |
+| [design-annotation-without-anchors.md](design-annotation-without-anchors.md) | proposed (2026-09-09). Nothing is built. proposed is not authorization to build — | #200 |
+| [design-artifact-conformance.md](design-artifact-conformance.md) | proposed (2026-09-21) | #232 #245 |
 | [design-basex-collections.md](design-basex-collections.md) | proposal, awaiting the Captain on §8. Nothing is built. | #38 #49 #52 |
 | [design-biblical-text-conventions.md](design-biblical-text-conventions.md) | proposed — not authorization to build. Four decisions remain marked => and are the | #226 |
 | [design-clean-command.md](design-clean-command.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
@@ -24,22 +27,28 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-jmespath-step.md](design-jmespath-step.md) | Proposed — not built. Nothing in src/ implements this. Requires the Captain's approval before … | #167 #168 |
 | [design-loader-steps.md](design-loader-steps.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
 | [design-onboarding-fresh-clone.md](design-onboarding-fresh-clone.md) | D1–D7 ruled by the Captain 2026-08-18. D1 has a blocking technical conflict — see D1. | #15 #28 #29 #32 #181 #199 #204 #205 |
+| [design-one-prompt-order.md](design-one-prompt-order.md) | 2026-09-16. All three questions in §8 are ruled — no optional sections, rename | #242 |
 | [design-one-source-for-shipped-files.md](design-one-source-for-shipped-files.md) | Proposed, 2026-08-25. Nothing built. Four questions in §4 await a ruling. | #211 |
 | [design-one-working-document.md](design-one-working-document.md) | proposed (2026-09-08) | #229 #232 |
+| [design-operations-in-the-pipeline-language.md](design-operations-in-the-pipeline-language.md) | proposed (2026-09-14). Nothing here is built and nothing is decided. Every => in §5 | #125 #167 #168 #169 #238 #239 #240 #241 |
 | [design-paratext-versification.md](design-paratext-versification.md) | implemented. | #222 |
+| [design-pericope-segments-and-text.md](design-pericope-segments-and-text.md) | ruled (2026-09-10) on §10 Q1–Q10; nothing is built. §7–§9 remain proposals except | #200 |
 | [design-pipeline-schema.md](design-pipeline-schema.md) | Decisions implemented — historical record, and the decision log is still binding. | — |
 | [design-pr-build-promote.md](design-pr-build-promote.md) | Proposed — awaiting Captain review | #173 |
 | [design-prompt-mixins.md](design-prompt-mixins.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
 | [design-python-api.md](design-python-api.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | #175 #186 #187 |
 | [design-reference-resolution.md](design-reference-resolution.md) | draft frame, 2026-08-27. Not authorization to build, and the answers are not here. | #218 |
+| [design-representation-workbench.md](design-representation-workbench.md) | proposed (2026-09-10). This document rules nothing. It exists so the decisions in | #200 |
 | [design-resource-provisioning.md](design-resource-provisioning.md) | proposed, 2026-08-27. Not authorization to build. Nine decisions are marked => | #212 #216 |
 | [design-resource-vocabulary.md](design-resource-vocabulary.md) | proposal, awaiting the Captain. Nothing is built. | #217 |
 | [design-schema-single-source.md](design-schema-single-source.md) | Approved 2026-08-12 — (1) hybrid (per-type schema + per-type linter, generic-flat | #187 |
+| [design-scripture-alignments.md](design-scripture-alignments.md) | ruled (2026-09-14), one decision open. §2 carries sixteen rulings, R1–R16. D1–D8 are | #238 #241 |
 | [design-scripture-editions.md](design-scripture-editions.md) | Sources approved; core implemented, wiring outstanding | #196 #200 #201 |
 | [design-scripture-representations.md](design-scripture-representations.md) | sources and precedence ruled; representation shape ruled; the schema shape and several | #38 #52 #200 #201 #203 #208 #227 |
 | [design-shipping-the-audit-method.md](design-shipping-the-audit-method.md) | Proposed, 2026-08-25. All four questions in §7 are answered — Q1 (templates mirror | #211 #214 |
 | [design-source-licensing.md](design-source-licensing.md) | Proposed, 2026-08-24. Four rulings recorded from the Captain (§3); six questions | #201 |
 | [design-structured-output-preflight.md](design-structured-output-preflight.md) | Implemented in 0.2.1.24 — historical record | #191 #197 |
+| [design-usj-operations.md](design-usj-operations.md) | D1-D4 ruled (2026-09-22); one follow-on open, D3c. Not authorization to build. | #241 #246 #247 #248 #249 |
 | [design-verse-range-operations.md](design-verse-range-operations.md) | Approved 2026-08-17 — authoritative for the data model. Not a work order: the | #168 |
 | [design-verse-regions.md](design-verse-regions.md) | built as llmflow.utils.verse_ranges, tested in tests/test_verse_ranges.py. | #169 |
 | [design-vocabulary.md](design-vocabulary.md) | Draft, but in force. The "use X, not Y" list is authoritative for user-facing text | — |
@@ -50,11 +59,14 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-memory-recovery.md](plan-memory-recovery.md) | transfer record. The audit is complete as of 2026-08-24 — all 81 files across 12 | #16 #64 #163 #200 #209 |
 | [plan-migrate-pipeline-directories.md](plan-migrate-pipeline-directories.md) | Rule corrected and executed 2026-08-17 — see the survey section at the foot for what was done, … | — |
 | [plan-release-0-2-1-26.md](plan-release-0-2-1-26.md) | approved in conversation 2026-09-01 — scope ruled, not yet started. #230 #217 #201 | #153 #169 #201 #212 #217 #218 #225 #226 #227 #228 #230 |
+| [plan-scripture-burrito-alignment.md](plan-scripture-burrito-alignment.md) | ruled (2026-09-11) → #238 | #238 |
+| [plan-scripture-documentation.md](plan-scripture-documentation.md) | proposed (2026-09-10) — drafts for review, nothing installed. Part A is a new | #200 |
 | [plan-scripture-pipelines-articles.md](plan-scripture-pipelines-articles.md) | Proposed — not built. A documentation plan; no articles from it have been written. | — |
 | [plan-scripture-step.md](plan-scripture-step.md) | Proposed, 2026-08-26. Targeted at the next release (ruled 2026-08-26). Nothing | #109 #110 #200 #203 #212 |
 | [plan-skills-convention-json.md](plan-skills-convention-json.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | #163 #164 |
 | [plan-verse-range-set-ops.md](plan-verse-range-set-ops.md) | Approved 2026-08-17 — authoritative for the implementation (names, signatures, | — |
 | [plan-window-semantics.md](plan-window-semantics.md) | complete, 2026-08-21. Items 1 and 3 landed; item 2's two decisions were ruled and | #175 |
+| [plan-window-token-defects.md](plan-window-token-defects.md) | ruled (2026-09-22) → #246. Defect 2 ruled A by the Captain; the other two need no ruling. | #246 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-49 documents.
+61 documents.

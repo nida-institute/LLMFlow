@@ -82,9 +82,9 @@ Both `sp lint` and `sp run` refuse a dotted name in a prompt body rather than se
 an unfilled placeholder.
 
 Prompt files usually include a small contract (often in a comment
-block) that documents which inputs they expect ("requires" / "optional").
-Make sure every required value is provided by the pipeline step
-via `prompt.inputs`.
+block) that documents which inputs they expect (`requires`). Every
+one of them is required — see "There is no `optional:` key" below —
+so make sure the pipeline step provides each via `prompt.inputs`.
 
 ## 3. Common step types
 
@@ -300,7 +300,7 @@ maps it before reading any text. A resource's own scheme comes from its
 registry entry, a Paratext project's settings, or the shipped table — there is
 no global default, and asking to cross schemes without one is an error.
 
-**`include`** delivers annotation under one key, `scripture_pipelines`, which a
+**`include`** delivers analyses under one key, `scripture_pipelines`, which a
 consumer can strip to get standard USJ. Seven families are named; `ids` and
 `discourse` work and the rest raise. `ids` becomes `srcloc` on each word.
 `discourse` attaches Levinsohn's features at word ids, each carrying an

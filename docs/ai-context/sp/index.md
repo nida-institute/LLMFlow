@@ -14,18 +14,20 @@ references there, or in documents it points to.
 | `docs/ai-context/project/overview.md` | What this project is and how its pipelines are organised. |
 | `docs/ai-context/project/rules.md` | Constraints that hold in this project and nowhere else. Yours to write. |
 | `docs/ai-context/sp/audits-pattern.md` | How to audit: which skill answers which question, tracing an output field back to the request that produced it, and testing a prompt fix with `sp tools replay`. |
+| `docs/ai-context/sp/command-line.md` | Every `sp` command; which files sp owns and which are yours; and why `sp doctor` and `sp init --update` both leave the project up to date, differing only over the starter examples. |
 | `docs/ai-context/sp/github-workflow.md` | Issue references, version numbering, CHANGELOG and gh CLI conventions. |
 | `docs/ai-context/sp/index.md` | The documents Scripture Pipelines ships, and what each is for. Rendered from data/file-catalog.yaml, so it cannot go stale. |
 | `docs/ai-context/sp/overview.md` | What Scripture Pipelines is, and where the rest of its documentation lives. |
 | `docs/ai-context/sp/passage-references.md` | Writing a passage reference: the forms that parse, book names and USFM codes, ranges that may cross a chapter but not a book, and the request-side and source-side versifications. |
 | `docs/ai-context/sp/rules.md` | The rules every AI session in this project is held to. Authoritative. |
-| `docs/ai-context/sp/scripture-representations.md` | Choosing between `plain`, `milestones`, `usj` and `print`, what each costs with the unit stated, and how to read a discourse item's `outcome`. |
+| `docs/ai-context/sp/scripture-representations.md` | Choosing between `plain`, `milestones` and `usj`, what each costs with the unit stated, and how to read a discourse item's `outcome`. |
 | `docs/llmflow-language-quickref.md` | The pipeline YAML reference — step types, variables, window and for-each. |
 | `docs/tutorial.md` | Step-by-step walkthrough: variables, saveas, and a two-step pipeline. |
 | `docs/vscode.md` | VS Code setup for editing pipelines and prompts. |
 | `pipelines/hello.yaml` | Smallest runnable pipeline — one llm step. |
 | `project/TODO.md` | Active work, what is in flight, and what not to touch. Read before anything else. |
 | `project/audits/README.md` | How audit findings are recorded for this project. |
+| `project/plans/README.md` | Where designs and plans live, the status they must declare, and why they are deleted after about eight days. |
 | `prompts/hello.gpt` | Starter prompt for the hello-world example. |
 ## Scripture Pipelines documentation
 

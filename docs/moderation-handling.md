@@ -6,6 +6,7 @@ OpenAI's Responses API occasionally blocks Scripture-heavy passages, historical 
 - Detects `status: incomplete` payloads whose `incomplete_details.reason` is `content_filter` or any `status: blocked` payload.
 - Raises `ModerationError` immediately with the model name, step, explanation, and OpenAI filter metadata.
 - Points back to this memo from the CLI so humans understand why retries will not succeed until the prompt changes.
+- **Does not retry a block.** A blocked call fails on the first attempt rather than the third. Until 2026-09-23 the step retry loop caught `ModerationError` in a bare `except Exception` and re-requested with identical parameters, which contradicted the line above: three blocked calls and six seconds of backoff to establish what the first call already had.
 
 ## Why Moderation Triggers Bible Pipelines
 1. **Graphic passages** – Books like Judges or Revelation describe violent scenes that trip generic filters.

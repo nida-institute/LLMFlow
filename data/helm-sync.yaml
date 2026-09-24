@@ -39,11 +39,11 @@ files:
   status: identical
 - set: disciplines
   name: project-tracking.md
-  sha256: 7cde4cbd3cc52978a004b1f4df21af22f5ceadfcc3981106dd2db7f6a9e7e3ee
+  sha256: bc306915c4350249a0b792855a40104ac9f4fc3a839a843f65bafa8414e8d175
   status: identical
 - set: disciplines
   name: surface-decisions.md
-  sha256: fe85ae4728b8c2affdb65f42b79408b919fcee2d16765b1e6c34eacbd518f61d
+  sha256: b8057a60c58fb9643296e17e0b23a10d05cd233330459a7bd5ef24e36c9a81c6
   status: identical
 - set: disciplines
   name: workflow.md
@@ -63,7 +63,7 @@ files:
   status: identical
 - set: skills
   name: commit-ready
-  sha256: 8d653e8fef9a739ac916cf535752b73c3d9da843087dcfb1bb4084542cd22b56
+  sha256: 2cc26ff288e372825f02c60e4c4e39a2f4c80fe6899d074bde1155770211777e
   status: differs
   ruling: 'Captain, 2026-08-20: "strip it out of [Human at the Helm]''s commit-ready". This repository''s
     copy names gui/frontend, pytest.ini and the Logger singleton rule — furniture no other project
@@ -73,11 +73,15 @@ files:
     untouched.)'
 - set: skills
   name: handoff
-  sha256: 3b060381f93c904223ee73499c1c5fac4befab32a0c4fc6cc5ab8b67f990c9fe
+  sha256: 3b87ea8da70dcfdc9bb8887c06660b47f1573633543d2571c1f021d64f497827
+  status: identical
+- set: skills
+  name: health-check
+  sha256: c2d2bf743098da04f42ceecf32d77fe2cd6353bbf379ff678de6d5fd09f44adc
   status: identical
 - set: skills
   name: load-context
-  sha256: 048a4a726c4158675ee80deb40386775fc61015d1504b901bc5e23b41dbf8899
+  sha256: 6db8d50542d8216613a12cdcc56590810e0973d2bb122ec4fed3a32979022652
   status: differs
   ruling: 'Captain, 2026-08-24: "I permit this difference." Two indexes are a Scripture Pipelines
     concept — `docs/ai-context/project-index.md` is the project''s own map and `sp-index.md` is rendered
@@ -98,7 +102,7 @@ files:
     difference is the Captain''s to say.'
 - set: skills
   name: stand-down
-  sha256: 0e6412267b719b98a410b6f4539fa09161872fdf358b0dc8823450642e2d0d64
+  sha256: be01ff5f74e195b9a43660d4b80aaf203745a5c7c84e111cb6a34dd660128056
   status: identical
 helm_only:
 - path: skills/helm-check

@@ -1,0 +1,156 @@
+# The established order for a transformation prompt's sections.
+#
+# THIS FILE IS THE ORDER. Every other statement of it is rendered from here or points here.
+#
+# Ruled 2026-09-16, recorded in `project/plans/design-one-prompt-order.md` §3. Until
+# 2026-09-19 three documents described the order and two disagreed with the ruling — one of
+# them the `/audit-prompts` skill, which is what a session is pointed at, so an agent drafted
+# to it and the audit then certified what the ruling refuses. That is why this is data.
+#
+# `sp lint` is to read this too (#242). A convention stated once as data cannot drift from its
+# own enforcement.
+#
+# ---------------------------------------------------------------------------
+# Fields
+#
+#   n           position, cited by number in the design document and the discipline
+#   id          the grammar production's name
+#   headings    the exact top-level headings that satisfy it; several where the grammar
+#               offers alternatives. Empty for frontmatter, which is not a heading.
+#   required    true, or false when a side condition licenses absence
+#   condition   the id of the condition that licenses absence — required iff not `required`
+#
+# There is no discretionary position. A bracket in the grammar is licensed by its side
+# condition and by nothing else: a section is never omitted because writing it was work.
+# ---------------------------------------------------------------------------
+
+# Which prompts the grammar binds. Ruled by the Captain, 2026-09-20, answering the open
+# question in #242.
+#
+# Declared rather than written as an `if` in the linter, because it is a statement about the
+# grammar and not about one program that reads it: `sp lint`, the audit skill and any consumer's
+# own check must agree on which prompts are in scope, and they can only agree by reading it here.
+binds: >
+  The grammar binds a prompt whose **first line** is `---`, the header fence. The header is where
+  a prompt declares what it takes, so the trigger is the author's own declaration that this is a
+  prompt with a contract; a file without one is checked by nothing. Measured across four
+  repositories, 40 of 41 prompts open this way and the one that does not has no header at all.
+  The trigger is a declaration rather than a formatting choice, so **any prompt may use `#`
+  sections without being surprised by the grammar** — adding a heading never silently changes
+  what a prompt is held to. It is the fence alone and not `requires:` as well, because a prompt
+  may legitimately have zero required variables and keying on `requires:` would build an escape
+  hatch for exactly that case. And it is the *first* line rather than a fence anywhere, because
+  an unanchored match reads a markdown horizontal rule as a header.
+
+positions:
+  - n: 1
+    id: frontmatter
+    headings: []
+    required: true
+
+  - n: 2
+    id: produces
+    headings:
+      - "# WHAT THIS STEP PRODUCES"
+      - "# WHAT THIS PROMPT PRODUCES"
+    required: true
+
+  - n: 3
+    id: variables
+    headings: ["# VARIABLES"]
+    required: false
+    condition: C1
+
+  - n: 4
+    id: system-role
+    headings: ["# SYSTEM ROLE"]
+    required: true
+
+  - n: 5
+    id: examples
+    headings: ["# EXAMPLES"]
+    required: false
+    condition: C2
+
+  - n: 6
+    id: data-sources
+    headings: ["# DATA SOURCES"]
+    required: true
+
+  - n: 7
+    id: input-data
+    headings: ["# INPUT DATA"]
+    required: true
+
+  - n: 8
+    id: output-schema
+    headings: ["# OUTPUT SCHEMA"]
+    required: true
+
+  - n: 9
+    id: band
+    headings: []
+    required: true
+
+  - n: 10
+    id: quality-controls
+    headings:
+      - "# GUARDRAILS"
+      - "# EVIDENCE DOCUMENTATION REQUIREMENTS"
+      - "# VALIDATION RULES"
+      - "# OUTPUT CONSTRAINTS"
+      - "# COMPLIANCE REQUIREMENTS"
+    required: true
+
+  - n: 11
+    id: checklist
+    headings:
+      - "# COVERAGE & QUALITY CHECKLIST"
+      - "# FINAL VALIDATION CHECKLIST"
+    required: true
+
+  # The extension point. Ruled 2026-09-21: prompts need one, and the end is the place for it.
+  #
+  # Named `reference` and not `extensions` or `appendix`: a content word says what belongs here,
+  # where a mechanism word ("extends") or a position word ("at the end") says only how or where,
+  # and guides nobody. Someone about to paste the wrong thing under `# REFERENCE` notices the
+  # mismatch; `# EXTENSIONS` would have accepted it silently.
+  #
+  # **Design notes do not go here.** Everything in a `.gpt` file reaches the model — the whole
+  # file is sent, frontmatter included (#176) — so notes for maintainers would be tokens the
+  # model reads and may act on. They belong in `project/plans/` or the header's `description:`.
+  #
+  # One door, free-form behind it: a single `# REFERENCE`, its subsections unconstrained, and
+  # any further heading after it left unchecked. That is what makes it an extension point rather
+  # than another production. A refused heading is still refused there — unchecked for shape is
+  # not a hole where anything becomes legal.
+  - n: 12
+    id: reference
+    headings: ["# REFERENCE"]
+    required: false
+    condition: C6
+
+# Position 9 is one or more task sections. All four subsections are required in each.
+# Grouping what to do, its examples and its boundary in one place is the governing
+# principle — pooling them elsewhere measured worse.
+task_subsections:
+  - "## Input: Where to Find the Data"
+  - "## Transformation Rules"
+  - "## Examples"
+  - "## Guardrails"
+
+conditions:
+  C1: "`variables` present iff the prompt declares template variables"
+  C2: "`examples` present iff examples are cross-cutting rather than per-task"
+  C3: "every task `## Examples` contains at least one ❌ counterexample"
+  C4: "a guardrail naming one task appears in that task's `## Guardrails`, never in `quality-controls`"
+  C5: "a task heading is any `#` heading matching no other production, before `reference`"
+  C6: "`reference` holds material the tasks cite and introduces no obligation — every instruction lives in a task's `## Transformation Rules` or in `quality-controls`"
+
+# Headings a reader may expect and the grammar does not admit. Recorded so a rejection can
+# say what to write instead, rather than only that the heading is unknown.
+refused:
+  "# OUTPUT FORMAT": "the production is `# OUTPUT SCHEMA`"
+  "# CRITICAL REMINDERS": "not a `quality-controls` alternative; use one of its headings"
+  "## Rules Specific to This Output Type": "the task subsection is `## Guardrails`"
+  "# CORE PRINCIPLES": "removed from the standard — 0 of 5 prompts ever carried one; cross-cutting principles belong in `# SYSTEM ROLE`, per-task ones in that task's `## Transformation Rules`"

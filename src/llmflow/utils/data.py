@@ -220,152 +220,33 @@ def parse_bible_reference(
     # Book names, codes, numbers and testaments live in `data/book-names.json`, read through
     # `llmflow.books`. They used to be 271 lines of dict literal here — unreachable to the read
     # path, which grew its own shape-matching parser and turned `Mark` into book `MARK`.
-    import re
+    from llmflow.utils.versification import parse_passage_ref
 
-    # Normalize input
     original_passage = passage
-    passage = passage.lower().strip()
-
-    # Validate input is not empty
-    if not passage:
+    if not (passage or "").strip():
         raise ValueError("Bible reference cannot be empty")
 
-    # Parse different formats
-    patterns = [
-        # Cross-chapter range: "Genesis 1:1-2:3", "Matthew 5:1-7:29"
-        # Accept both hyphen (-) and en-dash (–) for verse ranges
-        r"([\w\s]+?)\s+(\d+):(\d+)[-–](\d+):(\d+)",
-        # Same-chapter range: "Luke 12:5-19", "John 3:16-20", "Song of Songs 1:1-5"
-        r"([\w\s]+?)\s+(\d+):(\d+)[-–](\d+)",
-        # Single verse: "Luke 12:5", "John 3:16", "Song of Songs 1:1"
-        r"([\w\s]+?)\s+(\d+):(\d+)",
-        # Whole chapter: "Psalm 23", "Luke 12", "Song of Songs 1"
-        r"([\w\s]+?)\s+(\d+)$",
-    ]
-
-    for i, pattern in enumerate(patterns):
-        match = re.match(pattern, passage)
-        if match:
-            book_name_raw = match.group(1).strip()
-            chapter = int(match.group(2))
-
-            try:
-                book_code = _books.resolve(book_name_raw)
-            except _books.AmbiguousBook as ambiguous:
-                raise ValueError(
-                    f"Ambiguous book abbreviation '{book_name_raw}' in passage "
-                    f"'{original_passage}'. {ambiguous}"
-                )
-
-            if not book_code:
-                raise ValueError(
-                    f"Unrecognized Bible book '{book_name_raw}' in passage '{original_passage}'"
-                )
-
-            book_number = _books.number(book_code)
-            book_display_name = _books.name(book_code)
-            if not book_number or not book_display_name:
-                raise ValueError(
-                    f"Bible book {book_code!r} in passage '{original_passage}' has no name or "
-                    f"number declared, so a filename and a canonical reference cannot be built."
-                )
-
-            if i == 0:  # Cross-chapter range "Genesis 1:1-2:3"
-                start_verse = int(match.group(3))
-                end_chapter = int(match.group(4))
-                end_verse = int(match.group(5))
-                is_whole_chapter = False
-
-            elif i == 1:  # Same-chapter range "Luke 12:5-19"
-                start_verse = int(match.group(3))
-                end_verse = int(match.group(4))
-                end_chapter = chapter  # Same as start chapter
-                is_whole_chapter = False
-
-            elif i == 2:  # Single verse "John 3:16"
-                start_verse = int(match.group(3))
-                end_verse = start_verse
-                end_chapter = chapter
-                is_whole_chapter = False
-
-            else:  # Whole chapter "Psalm 23"
-                start_verse = 1
-                end_verse = None  # resolved from the scheme below
-                end_chapter = chapter
-                is_whole_chapter = True
-
-            scheme, book_known = _measuring_scheme(
-                book_code, versification, original_passage, extent_needed=is_whole_chapter
-            )
-            extent_from = None
-            if is_whole_chapter:
-                _check_reference(scheme, book_code, [(chapter, None)], original_passage)
-                end_verse = int(scheme.max_verses[book_code][chapter - 1])
-                extent_from = scheme.name
-            elif book_known:
-                _check_reference(
-                    scheme,
-                    book_code,
-                    [(chapter, start_verse), (end_chapter, end_verse)],
-                    original_passage,
-                )
-
-            # Build result
-            start_code = f"{book_number}{chapter:03d}{start_verse:03d}"
-            end_code = f"{book_number}{end_chapter:03d}{end_verse:03d}"
-            filename_prefix = f"{start_code}-{end_code}"
-
-            # Create display name and canonical reference
-            if is_whole_chapter:
-                display_name = f"{book_display_name.replace(' ', '-')}-{chapter}"
-                canonical_reference = f"{book_display_name} {chapter}:1-{end_verse}"
-            elif end_chapter != chapter:  # Cross-chapter
-                hyphenated = book_display_name.replace(" ", "-")
-                display_name = f"{hyphenated}-{chapter}-{start_verse}-{end_chapter}-{end_verse}"
-                canonical_reference = f"{book_display_name} {chapter}:{start_verse}-{end_chapter}:{end_verse}"
-            elif start_verse == end_verse:  # Single verse
-                display_name = (
-                    f"{book_display_name.replace(' ', '-')}-{chapter}-{start_verse}"
-                )
-                canonical_reference = f"{book_display_name} {chapter}:{start_verse}"
-            else:  # Same-chapter range
-                display_name = f"{book_display_name.replace(' ', '-')}-{chapter}-{start_verse}-{end_verse}"
-                canonical_reference = (
-                    f"{book_display_name} {chapter}:{start_verse}-{end_verse}"
-                )
-
-            return {
-                "book_name": book_display_name,
-                "book_number": book_number,
-                "book_code": book_code,
-                "chapter": chapter,
-                "chapter_padded": f"{chapter:03d}",
-                "start_verse": start_verse,
-                "end_verse": end_verse,
-                "end_chapter": end_chapter,
-                "is_whole_chapter": is_whole_chapter,
-                "filename_prefix": filename_prefix,
-                "display_name": display_name,
-                "canonical_reference": canonical_reference,
-                "testament": _books.testament(book_code),
-                "original_language": _books.original_language(book_code),
-                "requested_versification": versification,
-                "source_versification": source_versification,
-                "extent_versification": extent_from,
-                "book_in_versification": book_known,
-            }
-
-    # Last resort: try matching the entire input as a book name (whole-book reference)
-    # e.g. "1 John", "Romans", "Revelation"
+    # One parser, so a reference that reads here reads everywhere and a refusal says the same
+    # thing in both places. This function carried four patterns of its own, which accepted what
+    # `parse_passage_ref` rejected and refused what it accepted, and answered a bad reference
+    # with `Could not parse Bible reference` where the other named the forms it takes.
     try:
-        book_code = _books.resolve(passage)
-    except _books.AmbiguousBook:
-        book_code = None
-    entry = _books.entry(book_code) if book_code else None
-    if book_code and entry and entry.get("number") and entry.get("name"):
-        book_number = entry["number"]
-        book_display_name = entry["name"]
-        filename_prefix = f"{book_number}_book"
+        ref = parse_passage_ref(original_passage)
+    except _books.AmbiguousBook as ambiguous:
+        raise ValueError(
+            f"Ambiguous book abbreviation in passage '{original_passage}'. {ambiguous}"
+        ) from ambiguous
+
+    book_code = ref.book
+    book_number = _books.number(book_code)
+    book_display_name = _books.name(book_code)
+    if not book_number or not book_display_name:
+        raise ValueError(
+            f"Bible book {book_code!r} in passage '{original_passage}' has no name or "
+            f"number declared, so a filename and a canonical reference cannot be built."
+        )
+
+    if ref.start_chapter is None:
         _, book_known = _measuring_scheme(
             book_code, versification, original_passage, extent_needed=False
         )
@@ -380,7 +261,7 @@ def parse_bible_reference(
             "end_chapter": None,
             "is_whole_chapter": False,
             "is_whole_book": True,
-            "filename_prefix": filename_prefix,
+            "filename_prefix": f"{book_number}_book",
             "display_name": book_display_name.replace(" ", "-"),
             "canonical_reference": book_display_name,
             "testament": _books.testament(book_code),
@@ -391,8 +272,71 @@ def parse_bible_reference(
             "book_in_versification": book_known,
         }
 
-    # If we get here, the passage wasn't recognized
-    raise ValueError(f"Could not parse Bible reference '{original_passage}'")
+    chapter = ref.start_chapter
+    is_whole_chapter = ref.start_verse is None
+    start_verse = 1 if is_whole_chapter else ref.start_verse
+    end_chapter = ref.end_chapter or chapter
+    end_verse = ref.end_verse
+
+    scheme, book_known = _measuring_scheme(
+        book_code, versification, original_passage, extent_needed=is_whole_chapter
+    )
+    extent_from = None
+    if is_whole_chapter:
+        _check_reference(scheme, book_code, [(chapter, None)], original_passage)
+        end_verse = int(scheme.max_verses[book_code][chapter - 1])
+        extent_from = scheme.name
+    elif book_known:
+        _check_reference(
+            scheme,
+            book_code,
+            [(chapter, start_verse), (end_chapter, end_verse)],
+            original_passage,
+        )
+
+    filename_prefix = (
+        f"{book_number}{chapter:03d}{start_verse:03d}-{book_number}{end_chapter:03d}{end_verse:03d}"
+    )
+    hyphenated = book_display_name.replace(" ", "-")
+    if is_whole_chapter:
+        display_name = f"{hyphenated}-{chapter}"
+        canonical_reference = f"{book_display_name} {chapter}:1-{end_verse}"
+    elif end_chapter != chapter:
+        display_name = f"{hyphenated}-{chapter}-{start_verse}-{end_chapter}-{end_verse}"
+        canonical_reference = (
+            f"{book_display_name} {chapter}:{start_verse}-{end_chapter}:{end_verse}"
+        )
+    elif start_verse == end_verse:
+        display_name = f"{hyphenated}-{chapter}-{start_verse}"
+        canonical_reference = f"{book_display_name} {chapter}:{start_verse}"
+    else:
+        display_name = f"{hyphenated}-{chapter}-{start_verse}-{end_verse}"
+        canonical_reference = f"{book_display_name} {chapter}:{start_verse}-{end_verse}"
+
+    return {
+        "book_name": book_display_name,
+        "book_number": book_number,
+        "book_code": book_code,
+        "chapter": chapter,
+        "chapter_padded": f"{chapter:03d}",
+        "start_verse": start_verse,
+        "end_verse": end_verse,
+        "end_chapter": end_chapter,
+        "is_whole_chapter": is_whole_chapter,
+        # `is_whole_book` is deliberately absent here and present on the whole-book result,
+        # which is the shape callers already read. It is an asymmetry `say-which-kind-of-nothing`
+        # would rather not have; changing it is a contract change and is filed, not smuggled in
+        # with a parser unification.
+        "filename_prefix": filename_prefix,
+        "display_name": display_name,
+        "canonical_reference": canonical_reference,
+        "testament": _books.testament(book_code),
+        "original_language": _books.original_language(book_code),
+        "requested_versification": versification,
+        "source_versification": source_versification,
+        "extent_versification": extent_from,
+        "book_in_versification": book_known,
+    }
 
 
 def simple_json_compare(expected, actual, test_name="comparison"):
@@ -499,20 +443,6 @@ def load_yaml(file_path):
         raise
 
 
-def save_yaml(data, file_path):
-    """Save data as YAML file with error handling and logging"""
-    logger.debug(f"💾 Saving YAML to: {file_path}")
-
-    try:
-        # Ensure directory exists
-        Path(file_path).parent.mkdir(parents=True, exist_ok=True)
-
-        with open(file_path, "w", encoding="utf-8") as f:
-            yaml.dump(data, f, default_flow_style=False, allow_unicode=True, indent=2)
-        logger.debug("✅ Successfully saved YAML")
-    except Exception as e:
-        logger.error(f"❌ Error saving YAML to {file_path}: {e}")
-        raise
 
 
 def merge_dicts(dict1, dict2, deep=True):

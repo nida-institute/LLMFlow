@@ -52,9 +52,9 @@ What an AI may and may not do to a GitHub account, in every project.
 **Why:** in April 2026 an agent applied PRs and assigned tasks to team members unasked.
 
 ### project-tracking.md
-One rolling file per subsystem for audit findings and implementation plans.
+Where plans, audits and the task queue go, and which of them accumulate.
 
-**Key standard:** `project/audits/audit-{subsystem}.md` and `project/plans/{subsystem}-plan.md`, updated in place. Dates go on individual items, never in filenames; git history is the audit trail, so dated copies do not accumulate. Audits record what was found; plans record what will be done — the two stay separate. A project names its own unit; here it is the pipeline, per `sp-workflow.md`.
+**Key standard:** `project/plans/design-{topic}.md` and `plan-{topic}.md` **accumulate** — one document per piece of work, each declaring its status, and `proposed` is never authorization to build. They are temporary: after about eight days a document is implemented or obsolete, and either way it is committed and then deleted, with the durable ruling in `CHANGELOG.md`. Never delete unasked. `project/audits/audit-{subject}.md` and `project/TODO.md` **roll** — rewritten in place, current by construction, so age is a reason to update them rather than delete them. No dates in any filename; dates go on individual findings, and git history is the record of when. Audits record what was found; plans record what will be done — the two stay separate. A project names its own unit; here it is the pipeline, per `sp-workflow.md`.
 
 ---
 
@@ -77,7 +77,7 @@ Standard organization pattern for Scripture Pipelines `.gpt` prompt files.
 **Source:** Originated in nida-institute/ears-to-hear repository
 
 **Key standards:**
-- 8-section structure (YAML → System Role → Principles → Examples → Data Sources → Input → Schema → Guardrails)
+- The section order, declared in `data/prompt-structure.yaml` and rendered into the discipline — not restated here, and not anywhere else
 - Input data grounding (every output field must document its input source)
 - No markdown fences in JSON output examples
 - Examples consolidated in one section (not scattered)

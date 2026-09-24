@@ -41,13 +41,18 @@ OSIS_REF = re.compile(
 #: `markup` for features and `annotations` for notes. A file whose root is none of these, or
 #: which declares no header name, is skipped — which is how `levinsohn.xml`, a wrapper that
 #: only xi:includes the others, stays out.
+#:
+#: **`annotations` here is the corpus's own element name, not this engine's vocabulary.** In
+#: these files it means free-text notes in English. What this engine calls an analysis — a
+#: structured claim about a word — is a different thing, and the two must not be conflated.
+#: The spelling is fixed by the source files and cannot be renamed.
 CORPUS_ROOTS = ("feature", "markup", "annotations")
 
 
 #: A citation quoting the Greek it points at, so its index can be checked.
 FEATURE_KIND = "feature"
 
-#: One of Levinsohn's own annotations. Its text is English commentary, so there is no quote to
+#: One of Levinsohn's own notes. Its text is English commentary, so there is no quote to
 #: check an index against; it is anchored, never verified.
 NOTE_KIND = "note"
 

@@ -70,14 +70,12 @@ def _build_windows_condition(items: list, start_when: str, end_when: Optional[st
     return windows
 
 
-def _build_windows_token(
-    items: list,
-    size_by_tokens: int,
-    stride_by_tokens: int,
-    model: str,
-    include_partial: bool,
-) -> list[list]:
-    """Token-aware sliding windows using tiktoken."""
+def _token_counter(model: str) -> Callable[[Any], int]:
+    """Return a function giving one item's token count under *model*'s encoding.
+
+    A model tiktoken does not recognise falls back to `cl100k_base`. A dict or list is
+    counted as its JSON serialisation, anything else as `str()`.
+    """
     try:
         import tiktoken
     except ImportError:
@@ -95,6 +93,19 @@ def _build_windows_token(
         text = json.dumps(item, ensure_ascii=False) if isinstance(item, (dict, list)) else str(item)
         return len(enc.encode(text))
 
+    return count_tokens
+
+
+def _build_windows_token(
+    items: list,
+    size_by_tokens: int,
+    stride_by_tokens: int,
+    model: str,
+    include_partial: bool,
+) -> list[list]:
+    """Token-aware sliding windows using tiktoken."""
+    count_tokens = _token_counter(model)
+
     counts = [count_tokens(item) for item in items]
     n = len(items)
     windows: list[list] = []
@@ -109,7 +120,10 @@ def _build_windows_token(
             total += counts[end]
             end += 1
 
-        is_partial = end == n
+        # Partial means underfilled, not final: a window stopping because the input ran
+        # out still fills the budget when the items divide evenly. `_build_windows_fixed`
+        # decides this the same way, with `len(window) == size`.
+        is_partial = total < size_by_tokens
         if not is_partial or include_partial:
             windows.append(items[start:end])
 
@@ -129,24 +143,15 @@ def _build_windows_token(
     return windows
 
 
-def _slice_window_from_pos(items: list, start: int, size_by_tokens: int, model: str) -> list:
-    """Slice items[start:] accumulating up to size_by_tokens tokens."""
-    try:
-        import tiktoken
-    except ImportError:
-        raise ImportError(
-            "tiktoken is required for token-based windowing. "
-            "Install with: pip install tiktoken"
-        ) from None
+def _slice_window_from_pos(
+    items: list, start: int, size_by_tokens: int, model: str
+) -> tuple[list, int]:
+    """Slice items[start:] accumulating up to size_by_tokens tokens.
 
-    try:
-        enc = tiktoken.encoding_for_model(model)
-    except KeyError:
-        enc = tiktoken.get_encoding("cl100k_base")
-
-    def count_tokens(item: Any) -> int:
-        text = json.dumps(item, ensure_ascii=False) if isinstance(item, (dict, list)) else str(item)
-        return len(enc.encode(text))
+    Returns the slice and the tokens it accumulated, so a caller can tell a window that
+    filled its budget from one that merely ran out of input.
+    """
+    count_tokens = _token_counter(model)
 
     total = 0
     end = start
@@ -158,7 +163,7 @@ def _slice_window_from_pos(items: list, start: int, size_by_tokens: int, model: 
         total += tok
         end += 1
 
-    return items[start:end] if end > start else []
+    return (items[start:end], total) if end > start else ([], 0)
 
 
 def _propagate_window_outputs(
@@ -278,6 +283,15 @@ def _run_window_dynamic(
 ) -> Optional[str]:
     """Dynamic windowing: cursor is determined each iteration by a !window_advance step."""
     step_name = step.get("name", "unnamed")
+    # The cursor decides where a window starts; one of these bounds how far it reaches. The
+    # fixed path checks `size` before building its windows, but the `start_when` path does
+    # not, so a dynamic window can arrive here with nothing bounding the slice below.
+    if size_by_tokens is None and not isinstance(size, int):
+        raise ValueError(
+            f"Window step '{step_name}': 'size' must be a positive integer, or set "
+            f"'size_by_tokens'. A cursor says where each window starts; one of these says "
+            f"how far it reaches."
+        )
     start = 0
     index = 0
     n = len(input_data)
@@ -286,11 +300,25 @@ def _run_window_dynamic(
         index += 1
 
         if size_by_tokens is not None:
-            window = _slice_window_from_pos(input_data, start, size_by_tokens, model)
+            window, window_tokens = _slice_window_from_pos(
+                input_data, start, size_by_tokens, model
+            )
+            underfilled = window_tokens < size_by_tokens
         else:
             window = input_data[start:start + size]
+            underfilled = len(window) < size
 
         if not window:
+            break
+
+        # A dynamic window is underfilled only once the cursor has reached the end of the
+        # input, so this is always the final one. The cursor still decides when the loop
+        # ends; `include_partial` decides only whether an underfilled window is yielded.
+        if underfilled and not include_partial:
+            logger.info(
+                f"🪟  Window step '{step_name}': final window holds {len(window)} item(s) "
+                f"and does not fill the window — dropped, include_partial is false"
+            )
             break
 
         iteration_context = deepcopy(context)

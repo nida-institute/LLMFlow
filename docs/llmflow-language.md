@@ -56,6 +56,36 @@ Controls pipeline validation:
 - `treat_warnings_as_errors`: Fail on warnings
 - `log_level`: Logging verbosity (`debug`, `info`, `warning`, `error`)
 
+### `clean_before_run:` (optional, default `true`)
+
+Whether a run removes what the *same* pipeline wrote under the *same* `--var` values last
+time, before writing anything new.
+
+```yaml
+name: discourse
+intermediate_file_directory: output/intermediate
+clean_before_run: true      # the default; state it to record the decision
+```
+
+A run records every path it writes in `<intermediate_file_directory>/.sp-runs/<pipeline>/<run
+key>.json`, where the run key comes from the `--var` values that distinguish one run from the
+next. A re-run deletes exactly the files that record lists, so:
+
+- **a run can only ever delete its own previous output** — a Mark run never touches a Ruth
+  run's files, because they have different run keys;
+- **nothing outside `intermediate_file_directory` is removed**, so the deliverable is never
+  reachable by a clean, however a path was recorded;
+- **the run reports every file it deleted**;
+- **a listed file that is already gone is not an error.**
+
+Set `false` to keep the previous run's intermediates. `--no-clean` does the same for a single
+invocation, and `--rewind-to` implies it: replay reads the very artifacts a clean would
+remove, so the two can never collide.
+
+Why this rather than `sp clean` before the run: `sp clean` empties the whole declared
+`intermediate_file_directory`, which every parameterisation shares, so it would delete other
+runs' files and break `--rewind-to`.
+
 ---
 
 ## 🔧 Types of Steps
@@ -786,6 +816,62 @@ Writes content directly to a file. No LLM call, no Python function — just a wr
 
 ---
 
+### type: `alignment`
+
+The translation's text for a span named by **source** word ids — the other side of `spans:` on
+`type: scripture`. Where a unit of analysis opens or closes inside a verse, a consumer has ids for
+the Greek or Hebrew and no handle at all on the English; this gives it one.
+
+```yaml
+- name: english-for-segments
+  type: alignment
+  source: SBLGNT                 # the text the ids in `spans` belong to
+  target: BSB                    # the translation to return
+  spans: "${segment_bounds}"     # [{from: n57001018001, to: n57001019017}, ...]
+  returns: [text]                # text | alignments   (default: [text])
+  order: [target]                # target | source     (default: [target])
+  output: segment_english
+```
+
+**Required:** `source`, `target`, `spans`. An alignment is **directional** and neither side is
+inferred — not from the other, not from a filename. Both are checked against the alignment file's
+own `documents` and `roles`, and a mismatch is a loud error rather than a warning.
+
+One result per span, in the order asked, so a `for-each` can join this to the `type: scripture`
+result for the same spans without matching on anything.
+
+**What a result carries**
+
+| field | when |
+|---|---|
+| `text` | the assembled translation, in the translation's own word order |
+| `text_in_source_order` | when `order` includes `source` |
+| `contiguous` | always — false where another source unit's words fall inside this span's stretch |
+| `records` and `units` | when `returns` includes `alignments` |
+
+**`order` and `returns` take a set, not a choice.** Ask for one, the other, or both. Target order
+is the default because it is what nearly every reader wants; **source order does not read as
+English and is not meant to** — it puts the translation's words in the sequence of the text they
+translate, which is what a reader comparing the two side by side wants and what a fluent rendering
+destroys. The two differ in 81% of spans and always cover the same tokens: asking for source order
+changes the sequence, never the content.
+
+**Discontinuous units are written with ` … `.** A record may group source words that are not
+adjacent — Greek does this routinely, 22% of multi-word records — and the gap is written rather
+than closed up, on whichever side it falls:
+
+```
+ἐκ … τοῦ  ↔  by          # τῆς sits between them and belongs elsewhere
+```
+
+**Two kinds of nothing.** An empty collection means the span's words are in the alignment and align
+to no target token. `null` means the ids are not in the alignment file at all.
+
+**Supported pairs** are declared in `data/alignment-pairs.json`, not read from the alignment
+corpus's own catalog. Each is verified against the file's declared documents when it is opened.
+
+---
+
 ### type: `scripture`
 
 Fetches one passage from one **named** resource. The resource is a name resolved through the
@@ -799,7 +885,7 @@ machine where the sources live somewhere else.
   passage: "${passage}"       # MRK · MRK 1 · MRK 1:1 · MRK 1:1-8 · MRK 1:40-2:12
   format: milestones          # plain | milestones | usj   (default: milestones)
   versification: eng          # optional; the scheme `passage` is written in
-  include: [ids]              # optional; valid only with format: usj
+  include: [ids]              # optional; valid with every format
   output: source_text
 ```
 
@@ -825,7 +911,7 @@ pointing at data that is not there fails later, in the middle of a run, after th
 linted clean.
 
 **`list` shows only what sp can open as text** — three entries of seventy. The rest are
-annotation corpora, lexicons and treebanks that a pipeline reaches through a resource rather than
+analysis corpora, lexicons and treebanks that a pipeline reaches through a resource rather than
 by name, and `search` is how you find them.
 
 #### `sp dataset search` — the catalog, queried in XPath
@@ -899,7 +985,7 @@ sp resource set SBLGNT --lowfat-path ~/github/Clear-Bible/macula-greek/SBLGNT/lo
 Use `set` rather than re-running `add`: a command named for creating should not silently rewrite a
 file someone has curated by hand. Both values resolve before anything is written, and `set` prints
 where each one landed — a typo in a dataset id is otherwise invisible until a run reports the
-annotation family as `null`.
+analysis family as `null`.
 
 Between them, `dataset add` and `resource set` are how the store is changed. `~/.sp` is kept
 read-only and is unlocked only by `sp` itself, so editing a registration by hand is neither
@@ -915,7 +1001,7 @@ stale copy can be recognised rather than guessed at.
 **Optional Fields:**
 - `format`: The shape of the result (see below). Default `milestones`.
 - `versification`: The scheme `passage` is written in. See *Versification*.
-- `include`: Annotation families. A **list**, never a single word. See *Annotation*.
+- `include`: Analysis families. A **list**, never a single word. See *Analyses*.
 - `saveas`, `append_to`: as for any step.
 
 #### Choosing a format
@@ -956,11 +1042,21 @@ drop them again. A verse ends where the next `sid` begins, or where the chapter 
 **Text nodes carry their own spacing.** Rebuild running text by **concatenating** them, not by
 joining with a space — otherwise every comma gains a space in front of it.
 
-#### Annotation — the `include` families
+#### Analyses — the `include` families
 
-`include` names what the payload carries. It is valid **only** with `format: usj`; with `plain`
-or `milestones` there is nowhere to put it, and asking is an error rather than a silent no-op.
-It defaults to empty, because a payload nobody asked for is a payload nobody checked.
+`include` names what the payload carries, and is valid with **every** format. The payload is
+standoff — it needs nothing from the shape of the text — so choosing analyses no longer chooses a
+text form. It defaults to empty, because a payload nobody asked for is a payload nobody checked.
+
+Where `include` is non-empty the result is a dict: the text under `text`, unchanged from what the
+same request would return without `include`, and the analyses beside it in their own container —
+not inside the text. Where `include` is empty the result is the bare text for that format.
+
+*Corrected 2026-09-14. This paragraph and the comment in the example above both said `include` was
+valid only with `format: usj`; `3ca7139` made that false and it was reported by a consumer that
+had read the document and stopped. Asserted by
+`tests/test_scripture_include.py::test_include_with_any_format_returns_the_text_beside_the_container`
+and `::test_asking_for_analyses_does_not_change_the_text`.*
 
 Seven families: `ids`, `morphology`, `senses`, `glosses`, `referents`, `discourse`, `syntax`.
 **`ids` and `discourse` are implemented; the other five raise `NotImplementedError` naming
@@ -1070,7 +1166,7 @@ dataset is refused rather than followed.
 
 **Choose one form per registration and stay in it.** A dataset-relative value resolves inside
 whichever copy of the corpus the store holds; a dataset id resolves wherever that dataset was
-registered, which may be a different clone of the same corpus. Text and annotations join on word
+registered, which may be a different clone of the same corpus. Text and analyses join on word
 ids, so mixing the forms across keys can draw them from two copies — a silent mismatch rather than
 an error, which no check can catch for you. Where a machine's corpora are working clones rather
 than store downloads, naming the dataset throughout is the consistent choice, and it lets the
@@ -1089,6 +1185,15 @@ duplicate download be deleted.
 A resource naming no `discourse_path` **warns and attaches nothing** — Levinsohn's corpus covers
 the Greek NT only, so a Hebrew resource asking for it is a configuration mismatch rather than a
 failure.
+
+**Discourse comes from the resource's own `discourse_path` and from nowhere else.** Which corpus
+applies follows from the resource, not from its language and not from any other text it can be
+related to. A translation has no discourse of its own to give: Levinsohn analysed Greek, and his
+features are claims about Greek words. An English word aligned to a Greek point of departure is
+not a point of departure, because the translation was never analysed — so an alignment must never
+be the route by which a source analysis arrives on a target. If discourse is offered on the
+target side of `type: alignment` or anywhere else, it comes from a `discourse_path` registered for
+the target resource, or it does not come.
 
 **Why "reconciled" and not "attached".** Levinsohn's word indices are NA28-family; the text is
 SBLGNT. Where SBL made a different editorial choice his index names a *different word* — and it
@@ -1140,7 +1245,7 @@ mis-costs every decision downstream.
 |---|---|---|
 | `plain` | baseline | a whole-book step that cannot window — one consumer reads 32 KB where the annotated form is 1.3 MB, a 43× difference |
 | `milestones` | **1.072×** bare text | the default, and enough whenever a verse reference is all the addressing needed |
-| `usj`, no `include` | 2.56× codepoints, **6.74× as escaped JSON** | structure is needed but annotation is not |
+| `usj`, no `include` | 2.56× codepoints, **6.74× as escaped JSON** | structure is needed but analyses are not |
 | `usj` + families | to **11.78×** as one consumer ships it | only the families a step actually reads |
 
 #### Versification
@@ -1176,6 +1281,42 @@ base in force, and that project reports the base's name as before.
 If none of the three answers and you ask for a cross-scheme mapping, that is an **error** naming
 the field to add. Without `versification:` no mapping happens, so a resource with an unknown
 scheme keeps working for everything else.
+
+### Cutting a passage into units — `spans:`
+
+`passage:` says what to fetch. `spans:` cuts it into the units your analysis works in, each
+named by the word its boundary falls on:
+
+```yaml
+- name: segment_texts
+  type: scripture
+  resource: WLC
+  passage: "PSA 23:1"
+  format: milestones
+  include: [ids]
+  spans: "${segment_boundaries}"   # or a literal list of {from, to}
+  output: segments
+```
+
+The result is **a list, one entry per span, in the order asked**, each carrying `from`, `to`,
+its own `text`, and — when `include:` is non-empty — its own analyses for its own words.
+The passage is read once however many spans are named.
+
+**A boundary names a word, not a verse, because a unit of analysis does not always start where
+a verse does.** In Hebrew versification a psalm's superscription is part of verse 1: Psalm 23:1
+is `מִזְמ֥וֹר לְדָוִ֑ד יְהוָ֥ה רֹ֝עִ֗י לֹ֣א אֶחְסָֽר׃`, so any unit that begins at "the LORD is
+my shepherd" begins in the middle of the verse. A verse range cannot express that boundary.
+
+Two behaviours are deliberate:
+
+- **Every morpheme of the words at the edges is taken.** A boundary falls between words, never
+  inside one — which matters in Hebrew, where a word is often written in several morphemes.
+- **A span naming a word the passage does not contain raises**, listing it. Returning a shorter
+  text would read as a complete one, and whatever was analysed from it would be wrong in a way
+  nothing downstream could see.
+
+A USFM resource has no word ids, so `spans:` on one raises and says so. Ask it for a verse
+range instead.
 
 `versification:` on the step names the scheme **your `passage` is written in**. When it differs
 from the resource's, the reference is mapped *before* any text is read:
@@ -1735,6 +1876,20 @@ sp run --pipeline pipelines/discourse-flow.yaml \
   --stop-after generate_discourse_outline
 ```
 
+### Keep the previous run's intermediates
+
+By default a run removes what the same pipeline wrote under the same `--var` values last time
+— see `clean_before_run:` under Root-Level Configuration for what that covers and what it can
+never reach. `--no-clean` keeps them for one invocation:
+
+```bash
+sp run --pipeline pipelines/discourse-flow.yaml \
+  --var passage="Mark 11:12-25" \
+  --no-clean
+```
+
+`--rewind-to` already implies it, because replay reads the artifacts a clean would remove.
+
 ### Validate a pipeline
 ```bash
 sp lint pipelines/my-pipeline.yaml
@@ -1798,10 +1953,42 @@ The `lint` command validates:
 - Template file existence
 - Prompt file existence
 - Variable references
+- Prompt section structure — a **warning**, never an error (below)
 
 ```bash
 sp lint pipelines/my-pipeline.yaml
 ```
+
+### Prompt section structure
+
+Every prompt a pipeline's `llm` steps use is checked against the section grammar declared in
+`data/prompt-structure.yaml`, which states the order once for the whole system. Lint names each
+prompt that does not conform, shows the **first** finding in it, and prints the required
+sequence once per run, beside the first finding:
+
+```
+⚠️  prompts/questions.gpt:34: '# OUTPUT FORMAT' is not in the grammar — the production is `# OUTPUT SCHEMA`
+The required order:
+   1. frontmatter      YAML frontmatter
+   2. produces         # WHAT THIS STEP PRODUCES | # WHAT THIS PROMPT PRODUCES
+   ...
+```
+
+**Which prompts are checked.** A prompt that declares a **header** is held to the grammar. Every
+prompt taking variables has one, since the header is where `requires:` is declared, so the
+trigger is the author's own declaration that the prompt takes input. A prompt with no header
+takes none and its structure is not checked.
+
+The trigger is a declaration rather than a formatting choice, so **any prompt may use `#`
+sections without being surprised by the grammar** — adding a heading never silently changes what
+a prompt is held to. The declaration states this and the reasoning behind it; it is not a
+property of the linter.
+
+**Why a warning and not an error.** A prompt whose sections are out of order still runs, so a
+pipeline that works does not stop working over its shape. Only what the grammar can decide is
+reported — a heading's name, the order, a required section's absence, and a task section's
+subsections. Conditions that turn on what a section *means* rather than what it says are left
+alone, because a warning that cannot be trusted teaches a reader to skip warnings.
 
 Configure linting behavior in your pipeline:
 

@@ -429,19 +429,26 @@ rules:
   enforcement: guarded
   scope: project
   guard: tests/test_docstrings_say_what_not_why.py
-  rule: '**A docstring says what the code does. It never records status, rationale or design.**
-    Design lives in `project/plans/` and in the AI context; status lives in issues,
-    `project/TODO.md` and the CHANGELOG. A docstring that carries either goes stale the moment
-    the thing it describes changes — and unlike a design document nothing regenerates it,
-    nobody reviews it, and it sits closer to hand than the file that is actually authoritative,
-    so the next reader trusts it. That is how a stale comment becomes a design decision nobody
-    made. Measurements and dates are the clearest case: a figure in a docstring is a claim about
-    a moment, presented as a property of the code. **What a docstring is for:** saying exactly
-    what a function does, and explaining code that is genuinely hard to read — a dense but
-    efficient implementation, a non-obvious algorithm, an obscure constant. Where the code could
-    be made clear instead, rewrite the code rather than describing it. Deleting a docstring is
-    often the right change. A cross-reference to where the reasoning lives is not provenance and
-    is welcome.'
+  rule: '**Prose in the source file says what the code does. It never records status, rationale
+    or design — and a `#` comment is prose exactly as a docstring is.** Design lives in
+    `project/plans/` and in the AI context; status lives in issues, `project/TODO.md` and the
+    CHANGELOG. Prose that carries either goes stale the moment the thing it describes changes —
+    and unlike a design document nothing regenerates it, nobody reviews it, and it sits closer
+    to hand than the file that is actually authoritative, so the next reader trusts it. That is
+    how a stale comment becomes a design decision nobody made. Measurements and dates are the
+    clearest case: a figure in a comment is a claim about a moment, presented as a property of
+    the code. **The container is not the rule.** Moving a design note out of a docstring and into
+    a `#` comment above the same line changes nothing about why it is forbidden: it is the same
+    text, in the same file, going stale at the same rate. **What prose in code is for:** saying
+    exactly what a function does, and explaining code that is genuinely hard to read — a dense
+    but efficient implementation, a non-obvious algorithm, an obscure constant. Where the code
+    could be made clear instead, rewrite the code rather than describing it. Deleting a docstring
+    or a comment is often the right change. **A cross-reference must resolve.** Prefer an issue
+    number or a CHANGELOG entry — both are durable by construction. Where a comment points at a
+    working document, that document must be committed: `plans-are-temporary` deletes it at eight
+    days, and only a commit lets `git show <commit>^:<path>` return the version the comment was
+    written against. A pointer with nothing behind it is worse than no pointer, because it still
+    reads as authority.'
   note: 'Added 2026-08-26 at the Captain''s direction, after an assistant put rulings, quoted
     decisions and dated measurements into a conftest, a test module and two commit messages in
     one session — while writing the plan section that required documentation to carry the
@@ -455,7 +462,22 @@ rules:
     backlog of 49 files that predate the rule, which a test forces to shrink rather than
     persist. Issue and plan references were deliberately left legal: a stable pointer to where
     the reasoning lives is the rule''s remedy, not its violation. Appended rather than inserted,
-    because rules are cited by position across this repository.'
+    because rules are cited by position across this repository.
+
+    Broadened 2026-09-21 at the Captain''s direction, in his words: "some projects are using #
+    comments in Python to escape the stricture against design notes in docstrings. the syntax
+    used to violate the principle is irrelevant." **Nothing about enforcement changed** — the
+    guard already read comments, `prose_of` tokenizing them alongside docstrings — so what this
+    closes is a gap between the instruction and what it was always checking: the text said
+    "docstring" seven times and so read as a rule about one container, which is exactly the
+    escape hatch he found. The cross-reference clause is his second point the same day: "I
+    really need to be committing design files and other temporary files so comments have
+    something to point to that reflects the state at the time they were written." Measured when
+    it was written: code in `src/`, `tests/` and `tools/` names 20 plan documents at 50 sites,
+    and all 19 that are expected to exist do and are tracked — the twentieth,
+    `project/plans/tmp-context.md`, is written by a skill''s own run. So the clause locks in a
+    state rather than demanding a cleanup, and `tests/test_code_pointers_resolve.py` holds it. The id still says "docstrings" and is
+    narrower than the rule; renaming it is the breaking change and is the Captain''s to call.'
 - id: reference-data-is-json
   enforcement: guarded
   scope: project
@@ -615,9 +637,9 @@ rules:
 - id: plans-are-temporary
   enforcement: judgment
   scope: none
-  rule: '**A working document has a death; a ruling does not.** Plans, designs, audits and
-    decision lists are scratch: they exist to get a piece of work done and are deleted when it is
-    over. A **ruling** is different in kind — it is permanent until overruled — and it lives in
+  rule: '**A working document has a death; a ruling does not.** Plans, designs, audits, decision
+    lists and collab notes are scratch: they exist to get a piece of work done and are deleted
+    when it is over. A **ruling** is different in kind — it is permanent until overruled — and it lives in
     the CHANGELOG, or in this file when it binds future work. Keep them apart, because they have
     opposite lifecycles and mixing them in one document is what makes a pile unsiftable: the
     durable part cannot be found and the rotting part cannot be discarded.
@@ -631,13 +653,25 @@ rules:
     file. A decision list is scratch like the rest: the decisions in it become rulings and move to
     the CHANGELOG, and the list itself goes with the plan that raised it.
 
+    **Age is measured from the later of two dates: the `Status:` date the document declares, and
+    the last commit that changed the file.** Never the filesystem timestamp — a clone rewrites
+    every mtime, so on a fresh checkout nothing would ever be old enough to delete, and a copy or
+    a bulk sweep refreshes it without anyone having read the content.
+
+    **A collab note is a message, not an archive.** It exists to put a question or a finding in
+    front of another project, and it dies when that is answered: the ruling it produced is in the
+    CHANGELOG, the work it produced is in the code, and a note that produced neither had nothing
+    to carry. So it is written **once, into the recipient''s tree** — the sender keeps no second
+    copy to drift — and its durable trace is the issue or CHANGELOG entry it caused, never the
+    file. Track it, because tracking is what makes deleting it safe.
+
     **This applies to documents that accumulate, not to documents that roll.** A file that is
     updated or overwritten in place — a task list, a handoff, a checklist, a generated index — is
     current by construction, and its age is a reason to update it rather than to delete it. Prune
     its stale *entries* instead: a task list item from three weeks ago rots exactly like a whole
     document does. What rots as a pile is the set that grows by one file each time — plans,
-    designs, dated audit records, decision lists — because nobody re-reads a growing set, so each
-    reader reads a different subset and they disagree.
+    designs, dated audit records, decision lists, collab notes — because nobody re-reads a growing
+    set, so each reader reads a different subset and they disagree.
 
     **The deletion is the Captain''s, every time.** An AI lists what is past eight days and asks;
     it never deletes unasked, and never treats this rule as standing authorization. The rule says
@@ -658,4 +692,83 @@ rules:
     durable home because it is the only one whose update is a side effect of the very work that
     would otherwise invalidate it, which was checked on the day this rule was written: all seven
     rulings of a 190-line design document were already present in the CHANGELOG entry for the same
-    change.'
+    change.
+
+    Extended 2026-09-10 to name collab notes, at the Captain''s direction: *"do we really want to
+    check these in? they probably need a lifetime for the same reason as plans and design
+    documents."* Measured the same day: 29 notes across `LLMFlow/collab/` and
+    `discourse-flow/collab/`, the oldest from August, none ever pruned — the same pile in a
+    different directory. The "written once, into the recipient''s tree" clause settles a second
+    question from the same conversation: both repositories were keeping partial copies of one
+    exchange — 13 inbound and 6 outbound in a single directory, and a reply living in the
+    sender''s tree rather than the recipient''s — with no README saying who owned a thread.
+    Tracking is retained rather than dropped because this rule''s own safety argument is that git
+    keeps every deleted file; an untracked note would leave the recipient''s copy as the only
+    evidence of what was said, and `git show <commit>^:<path>` was verified against a real
+    deletion the same day. The age clause was added because the three candidate dates disagree in
+    practice — one collab note reads 2026-09-01 in its filename, 09-02 in git and 09-04 as mtime.
+    The general form of this rule belongs in the shared discipline rather than here; recorded in
+    `project/TODO.md` and not yet done.'
+
+- id: analysis-belongs-to-its-text
+  enforcement: guarded
+  scope: project
+  guard: tests/test_alignment.py, tests/test_one_word_for_an_analysis.py
+  rule: '**An analysis belongs to the text it was made about, and travels to no other.** A
+    resource names its own analysis sources, and a family is served from those or from nowhere.
+    Never derive an analysis for one text out of another text''s, however closely the two are
+    related. An alignment relates *words*, not analyses: a target word aligned to an analysed
+    source word has not itself been analysed, so offering the source''s analysis against it is
+    not a thinner answer but a false one, carrying the authority of the corpus it came from.
+    Where a resource names no source for a requested family, that is `null` and a warning — the
+    question could not be asked. **Say "analysis", not "annotation."** The second names how a
+    claim is delivered rather than what it is, and a term naming the representation is one every
+    reader has to translate before they can use it.'
+  note: 'Added 2026-09-16 at the Captain''s direction, after `nida-institute/discourse-flow`
+    asked that the contract state this rather than rest on it being currently impossible — which
+    it was, by three separate accidents any feature could have removed. Their framing of why it
+    is a rule: the temptation "is specific and will arrive with a feature rather than a bug",
+    because an alignment is exactly the machinery that could carry a source analysis across to a
+    target, one word id to another, and it would look like a convenience.
+
+    The vocabulary half is the Captain''s: *"our terms convey the semantic intent rather than the
+    internal representation"*, and then, of carrying both words, *"do we really need both terms?"*
+    "Annotation" described delivery; "analysis" says what the thing is and carries its own
+    provenance — an analysis implies an analyst and a subject, which is the whole of the rule
+    above. 30 uses were renamed across the engine, its shipped templates and the language
+    reference in one pass. The word still appears where it belongs to somebody else — Levinsohn''s
+    `annotations` element, which means free-text notes; a lexicon output key; a vendored catalog''s
+    descriptions of other people''s datasets — and `tests/test_one_word_for_an_analysis.py` holds
+    that boundary with the reason beside each entry, because nobody will remember where it runs.'
+- id: write-shared-records-for-outsiders
+  enforcement: judgment
+  scope: none
+  rule: '**A record that leaves this repository is written for someone who was not in the
+    session.** GitHub issues and pull requests, and collab notes sent to another project, are
+    read by people with no view of this conversation or the conventions it runs on. Two of those
+    conventions must not travel. The `=>` answer slot belongs to a working document, where it
+    marks a question waiting for a person to type under it; in an issue it is a marker for a
+    ritual the reader has never seen. And the session''s form of address is not a role anyone
+    else recognises — write "Ruled 2026-09-23", never "the Captain ruled", "the Captain''s
+    candidate" or "recorded and not ruled". State the decision, the reasoning that supports it,
+    and the date, and let it stand without a procedural frame. **This is about artifacts that
+    travel.** `project/TODO.md`, `project/plans/`, this file, the AI context **and commit
+    messages** are read from inside this repository, and their own vocabulary is correct there.'
+  note: 'Added 2026-09-23 at the Captain''s direction, after an assistant drafted a ruling for
+    issue #248 opening "=> RULED 2026-09-23" and he posted it before the defect was noticed. His
+    words: "and =>, references to the Captain, etc., don''t belong in issues." The convention came
+    from `disciplines/surface-decisions.md`, which specifies `=>` for asking a question *in a
+    document* — "pose the question, then leave a line containing only `=>` for the answer" — and
+    says nothing about issues; the assistant carried a document device into a shared record
+    without noticing the change of audience. It had already spread: #248''s body carries several
+    `=>` slots and "The Captain''s candidate, recorded and not ruled", and #246 carries
+    "=> RULING: A". Both were filed by the bot account, so this is a pattern rather than one slip.
+    The existing issues are left as they are, on his ruling the same day: "I have ruled. let''s
+    get the job done and not worry about the github issue."
+
+    Commit messages are exempt on his explicit ruling — "commit messages are fine" — which is
+    where this rule parts company with `no-stakeholder-speculation`, whose harm falls on people
+    named in an artifact they never see and so reaches commit messages too. The harm here is
+    only that a reader outside the session meets a convention they cannot decode, and a commit
+    message is read from inside the repository. That rule governs what a shared artifact may
+    claim; this one governs the form it claims it in.'

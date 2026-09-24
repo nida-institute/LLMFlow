@@ -226,7 +226,7 @@ class TestLoadRegistryEditions:
         assert "discourse_path" not in loaded
         assert "lowfat_path" not in loaded
 
-    def test_an_absolute_annotation_path_survives(self, store):
+    def test_an_absolute_analysis_path_survives(self, store):
         _edition(store, "SBLGNT", path="x.tsv", lowfat_path="/opt/lowfat")
         loaded = load_registry_resources(store / "registrations")["SBLGNT"]
         assert loaded["lowfat_path"] == "/opt/lowfat"

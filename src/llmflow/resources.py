@@ -41,7 +41,7 @@ RESOURCES_DIRNAME = "registrations"
 
 #: One file per dataset somebody has downloaded or cloned, naming where it landed on this
 #: machine. Written by `sp`, never by a project — which is what makes it the right home for the
-#: one absolute path a machine needs, and why an annotation key may name a dataset instead of a
+#: one absolute path a machine needs, and why an analysis key may name a dataset instead of a
 #: path. `registry.DatasetRegistry` writes the same directory.
 DATASETS_DIRNAME = "datasets"
 
@@ -231,8 +231,8 @@ def search(query: str) -> list:
 def readable() -> dict:
     """`{id: item}` for everything the catalog says can be opened.
 
-    An entry with no `provides` block is a resource sp has no reader for — ACAI is entity
-    annotation, MARBLE a domain index — and asking for one by name is an error rather than an
+    An entry with no `provides` block is a resource sp has no reader for — ACAI is an entity
+    dataset, MARBLE a domain index — and asking for one by name is an error rather than an
     empty result. Each item carries the dataset that provides it, because one download may carry
     several readable texts, and the licence, so a later reader sees the terms without coming back
     here.
@@ -317,7 +317,7 @@ def dataset_registration(identifier: str) -> Optional[dict]:
     try:
         loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
     except (yaml.YAMLError, OSError):
-        # One bad hand-edit should not make every annotation source unresolvable.
+        # One bad hand-edit should not make every analysis source unresolvable.
         return None
     return dict(loaded) if isinstance(loaded, Mapping) else None
 
@@ -340,7 +340,7 @@ def resolve_declared_path(value: Any, definition: Mapping[str, Any]) -> Path:
 
     The dataset-relative form resolves inside whichever copy of the corpus the store holds,
     while a dataset id resolves wherever that dataset was registered — possibly a different
-    clone of the same corpus. Text and annotations join on word ids, so a caller mixing the two
+    clone of the same corpus. Text and analyses join on word ids, so a caller mixing the two
     forms across keys can draw them from two copies, which is a silent mismatch rather than an
     error. The engine cannot tell the difference; the choice belongs to whoever writes the
     registration.
@@ -505,17 +505,36 @@ def _write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> 
     """
     import os
 
-    import yaml
-
     from llmflow.cli_utils import _lock_sp_dir, _unlock_sp_dir
+    from llmflow.utils.file_io import dump_yaml
 
-    target.parent.mkdir(parents=True, exist_ok=True)
+    # Creating the directory is itself a write *into the store*, so the store has to be unlocked
+    # for it — not just the directory afterwards. `~/.sp/registrations` does not exist until the
+    # first registration needs it, so on a machine where `~/.sp` was set up and nothing has been
+    # registered yet, this `mkdir` ran inside a locked store and raised EACCES naming the
+    # directory it was trying to create. The download had already succeeded, so the data was on
+    # disk with nothing recording it.
+    #
+    # It bites exactly once, on a fresh setup: a machine with no `~/.sp` is unaffected because the
+    # store is created writable, and a machine that has registered anything before is unaffected
+    # because the directory already exists.
+    store = target.parent.parent
+    if not target.parent.exists():
+        store_locked = store.exists() and not os.access(store, os.W_OK)
+        if store_locked:
+            _unlock_sp_dir(store)
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+        finally:
+            if store_locked and store.exists():
+                _lock_sp_dir(store)
+
     was_locked = not os.access(target.parent, os.W_OK)
     if was_locked:
         _unlock_sp_dir(target.parent)
     try:
         target.write_text(
-            banner + yaml.safe_dump(dict(entry), sort_keys=False, allow_unicode=True),
+            banner + dump_yaml(dict(entry)),
             encoding="utf-8",
         )
     finally:
@@ -524,9 +543,9 @@ def _write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> 
     return target
 
 
-#: The registration keys naming an annotation source. Both resolve the same three ways as
+#: The registration keys naming an analysis source. Both resolve the same three ways as
 #: `path`, so both are validated before anything is written.
-ANNOTATION_KEYS = ("discourse_path", "lowfat_path")
+ANALYSIS_KEYS = ("discourse_path", "lowfat_path")
 
 
 def register_dataset(identifier: str, path: Any, name: Optional[str] = None,
@@ -569,8 +588,8 @@ def resolved_fields(identifier: str, **fields: Any) -> dict:
     for key, value in fields.items():
         if value is None:
             continue
-        where = resolve_declared_path(value, definition) if key in ANNOTATION_KEYS else Path(str(value))
-        if key in ANNOTATION_KEYS and not where.exists():
+        where = resolve_declared_path(value, definition) if key in ANALYSIS_KEYS else Path(str(value))
+        if key in ANALYSIS_KEYS and not where.exists():
             raise ValueError(
                 f"{value!r} resolves to {where}, which does not exist. "
                 f"No dataset is registered as {str(value).partition('/')[0]!r}."

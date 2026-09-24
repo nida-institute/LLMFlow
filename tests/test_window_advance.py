@@ -14,6 +14,7 @@ NO STUBS — uses real runner.py.
 import pytest
 import yaml
 
+from llmflow import load_pipeline
 from llmflow.runner import run_window_step
 from llmflow.yaml_loader import LLMFlowLoader as _LLMFlowLoader
 from tests.test_helpers import set_cursor_seq
@@ -309,3 +310,107 @@ class TestWindowAdvanceErrors:
         }
         with pytest.raises(ValueError, match="must be a non-negative integer or null"):
             self._run(step, {"content": _make_content(10), "next_pos": None})
+
+    def test_dynamic_window_with_start_when_and_no_size_raises(self):
+        """`start_when` plus a cursor and no `size` raises, naming the step.
+
+        The cursor decides where a window starts; `size` bounds how far it reaches, so a
+        dynamic window needs `size` or `size_by_tokens` just as a fixed window does. The
+        `start_when` branch does not check `size`, so this is the one route by which a
+        dynamic window reaches the slice with nothing bounding it.
+        """
+        set_cursor_seq([5])
+        step = {
+            "name": "seg",
+            "type": "window",
+            "in": "${content}",
+            "for": "wc",
+            "start_when": "True",
+            "steps": [_window_advance_step()],
+        }
+        with pytest.raises(ValueError, match="'size' must be a positive integer"):
+            self._run(step, {"content": _make_content(10), "next_pos": None})
+
+
+# ---------------------------------------------------------------------------
+# include_partial under a cursor — driven through the object model
+# ---------------------------------------------------------------------------
+
+def content_of(n: int) -> list:
+    """The window loop's input: n simple string items. Called as a function step."""
+    return [f"item{i}" for i in range(n)]
+
+
+#: Windows of ten over fifteen items, so the cursor's second window holds five and is
+#: underfilled. `%s` is the `include_partial` value under test.
+_DYNAMIC_WINDOW_PIPELINE = """
+name: dynamic-window-include-partial
+steps:
+  - name: make_content
+    type: function
+    function: tests.test_window_advance.content_of
+    inputs:
+      n: 15
+    output: content
+
+  - name: seg
+    type: window
+    in: "${content}"
+    for: wc
+    size: 10
+    include_partial: %s
+    steps:
+      - name: collect
+        type: function
+        function: llmflow.utils.data.identity
+        inputs:
+          value: "${wc}"
+        output: last_window
+        append_to: all_windows
+
+      - !window_advance
+        name: advance
+        cursor: next_pos
+        step:
+          name: pop_cursor
+          type: function
+          function: tests.test_helpers.cursor_pop
+          inputs: {}
+          output: next_pos
+"""
+
+
+class TestIncludePartialUnderACursor:
+    """`include_partial` governs an underfilled final window under `!window_advance` too.
+
+    Driven through `load_pipeline(...).run()` rather than by handing `run_window_step` a
+    hand-written dict, per `project/rules.md` rule 1: a dict satisfies the runner and the
+    object model by construction, so it cannot see a key that one accepts and the other
+    does not.
+    """
+
+    def _run(self, tmp_path, monkeypatch, *, include_partial: bool) -> dict:
+        monkeypatch.chdir(tmp_path)
+        set_cursor_seq([10, None])
+        path = tmp_path / "pipeline.yaml"
+        path.write_text(
+            _DYNAMIC_WINDOW_PIPELINE % str(include_partial).lower(), encoding="utf-8"
+        )
+        return load_pipeline(str(path)).run(skip_lint=True)
+
+    def test_false_drops_a_short_final_window(self, tmp_path, monkeypatch):
+        """A dynamic window is underfilled only once the cursor has reached the end of
+        the input, so it is always the final one and is recognisable before its steps
+        run. The cursor still decides when the loop *ends*."""
+        context = self._run(tmp_path, monkeypatch, include_partial=False)
+
+        # The second window would be items 10-14 — five of ten, so it is dropped.
+        assert len(context["all_windows"]) == 1
+        assert context["all_windows"][0] == content_of(15)[:10]
+
+    def test_true_keeps_a_short_final_window(self, tmp_path, monkeypatch):
+        """The default keeps it, so the drop above is the flag and not the cursor."""
+        context = self._run(tmp_path, monkeypatch, include_partial=True)
+
+        assert len(context["all_windows"]) == 2
+        assert context["all_windows"][1] == content_of(15)[10:]

@@ -14,7 +14,7 @@ from llmflow.exceptions import (
     StepRewindError,
 )
 from llmflow.modules.logger import Logger
-from llmflow.modules.telemetry import TelemetryCollector
+from llmflow.modules.telemetry import TelemetryCollector, generate_optimization_suggestions
 from llmflow.plugins import plugin_registry
 from llmflow.plugins.loader import discover_plugins
 from llmflow.steps.basex import run_basex_step
@@ -27,11 +27,13 @@ from llmflow.steps.llm import render_prompt, run_llm_step
 from llmflow.steps.load import run_load_step
 from llmflow.steps.plugin import run_plugin_step
 from llmflow.steps.save import run_save_step
+from llmflow.steps.alignment import run_alignment_step
 from llmflow.steps.scripture import run_scripture_step
 from llmflow.steps.window import run_window_advance_step, run_window_step
+from llmflow.utils import run_manifest
 from llmflow.utils.context import _MISSING, get_from_context, resolve
 from llmflow.utils.debug import _clear_debug_dir, _get_debug_dir
-from llmflow.utils.file_io import save_content_to_file
+from llmflow.utils.file_io import WRITTEN_FILES, reset_written_files, save_content_to_file
 from llmflow.utils.guards import _safe_eval, build_eval_locals, build_step_eval_ctx, collect_warnings, enforce_require
 from llmflow.utils.io import validate_all_templates
 from llmflow.utils.linter import lint_pipeline_full
@@ -355,6 +357,9 @@ def run_step(
             elif step_type == "scripture":
                 run_scripture_step(step, context, pipeline_config)
 
+            elif step_type == "alignment":
+                run_alignment_step(step, context, pipeline_config)
+
             elif step_type == "basex":
                 run_basex_step(step, context, pipeline_config)
             elif step_type == "json":
@@ -469,6 +474,7 @@ def run_pipeline(
     rewind_to: str | None = None,
     stop_after: str | None = None,
     resume: bool = False,
+    no_clean: bool = False,
 ):
     """
     Run a pipeline from a YAML file.
@@ -482,6 +488,7 @@ def run_pipeline(
         log_file: Path to log file (default: llmflow.log in cwd)
         rewind_to: Optional step name to replay from saved artifacts instead of executing
         stop_after: Optional step name after which to halt execution
+        no_clean: Keep the previous run's intermediates instead of removing them
     """
     # Plugins are needed only to execute a pipeline (LLMFlow#178).
     discover_plugins()
@@ -492,9 +499,9 @@ def run_pipeline(
 
     from llmflow.pipeline_schema import PipelineConfig  # FIX: Correct module name
 
-    # Reset per-run state
-    global WRITTEN_FILES
-    WRITTEN_FILES = []
+    # Reset per-run state. The list lives in file_io and is cleared there: rebinding a name
+    # here left that list untouched, so it accumulated across runs in one process.
+    reset_written_files()
 
     # Debug dir clear is deferred until after pipeline load so we can resolve
     # intermediate_file_directory. See _clear_debug_dir() call below.
@@ -632,6 +639,18 @@ def run_pipeline(
     # Empty this run's own directory — and only this run's (LLMFlow#198)
     _clear_debug_dir(pipeline_config, context, dry_run, pipeline_name, run_key)
 
+    # Remove what this same pipeline and run key wrote last time, and nothing else — from the
+    # paths that run recorded, never from a filename pattern (LLMFlow#245).
+    _run_manifest: Path | None = None
+    _intermediate_raw = pipeline_config.get("intermediate_file_directory")
+    if _intermediate_raw and not dry_run:
+        _intermediate_dir = Path(str(resolve(str(_intermediate_raw), context)))
+        _run_manifest = run_manifest.manifest_path(_intermediate_dir, pipeline_name, run_key)
+        if run_manifest.is_enabled(
+            pipeline_config, no_clean=no_clean, dry_run=dry_run, rewind_to=rewind_to
+        ):
+            run_manifest.clean_previous_run(_run_manifest, _intermediate_dir)
+
     # One recorder per run, shared by every debug write site so they agree on the sequence
     # number and so the manifest describes the run as a whole (LLMFlow#198).
     from llmflow.utils.debug import DebugRecorder
@@ -731,6 +750,11 @@ def run_pipeline(
         # warnings into this run's log.
         logging.getLogger("llmflow").removeHandler(_defect_handler)
 
+        # In the `finally`, so a run that fails or is interrupted still records what it wrote
+        # and the next run can remove it (LLMFlow#245).
+        if _run_manifest is not None:
+            run_manifest.write(_run_manifest, WRITTEN_FILES)
+
     logger.info("Pipeline complete.")
     telemetry.complete_pipeline()
 
@@ -753,7 +777,22 @@ def run_pipeline(
     logger.info("="*80)
     logger.info(summary)
 
-    # NOTE: Optimization suggestions table suppressed in favor of detailed cost breakdown
-    # Detailed per-model/per-prompt breakdown is included in the telemetry summary above.
+    # Reported rather than computed and discarded (#247). The empty case is stated, because a
+    # silent run cannot be told from a check that never ran — the failure `test_types` is still
+    # demonstrating elsewhere in this repository.
+    _llm_config = pipeline_config.get("llm_config", {}) or {}
+    suggestions = generate_optimization_suggestions(
+        telemetry.pipeline.steps,
+        mcp_max_iterations=(_llm_config.get("mcp", {}) or {}).get("max_iterations"),
+        configured_max_tokens=_llm_config.get("max_tokens"),
+    )
+    logger.info("\n" + "=" * 80)
+    logger.info("🔧 Optimization Suggestions")
+    logger.info("=" * 80)
+    if suggestions:
+        for suggestion in suggestions:
+            logger.info(f"   {suggestion}")
+    else:
+        logger.info("   No optimization suggestions — the run looked and found nothing.")
 
     return context

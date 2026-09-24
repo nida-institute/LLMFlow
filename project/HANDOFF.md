@@ -1,260 +1,183 @@
-# HANDOFF — 2026-09-09
+# HANDOFF — 2026-09-24
 
 ## ▶ NEXT ACTION
 
-**Release 0.2.1.27.** All the feature work is committed and pushed; what is left is the release
-itself, in this order:
+**The live work is in another repository: `~/github/nida-institute/sil-translator-notes`.**
+Six files are uncommitted there, **no commit message is drafted**, and Paul needs that repo
+working for the Captain's 4 p.m. meeting (stated 2026-09-23 as *"we meet at 4 p.m."*, so
+2026-09-24 unless he says otherwise).
 
-1. **Bump `pyproject.toml`** — it still reads `0.2.1.26`.
-2. **Rename the CHANGELOG heading** `## Unreleased` → `## 0.2.1.27 — <date>`. Do this *after* the
-   bump, because guards require the literal word `Unreleased` until then
-   (`test_changelog_is_not_a_transcript.py:72`, `test_changelog_covers_the_version.py`).
-3. **Open the `dev` → `main` PR.** None is open; `dev` is 24 commits ahead. It closes #222 and
-   #227. `project/RELEASE_CHECKLIST.md` §6 opens it; §4–5 are then checked against the build that
-   opening it started; §7–9 tag the *merge* commit and watch all five `release.yml` jobs.
+First act: **draft the commit message into `sil-translator-notes/tmp/`, show it, and hand the
+Captain the command.** The commit is his — `commit-authority`.
 
-**Before the PR, two records need correcting — both are false as they stand:**
-
-- **`#38` carries a `done` label** reading *"Ready to be closed - implementation complete."* The
-  query half is complete (#49, closed, `steps/basex.py`); the naming scheme the issue is actually
-  about has no implementation, and `sp setup-db` (#52) does not exist in `cli.py`. As labelled,
-  the issue invites someone to close it and ship a scheme that was never built. Changing a label
-  is the Captain's act, not an agent's.
-- **BaseX is scheduled for 0.2.1.28**, not carried in x.27 as "blocked" (moved 2026-09-09).
-  Nothing in this release depends on it. `project/TODO.md` holds the ordered work list; see
-  "BaseX, measured" below for why it is much further from done than the label suggests.
-
-**Third, and cheap:** `sil-translator-notes` does not lint. Two of its prompts still declare the
-retired `optional:` key (#228). Their repo, their commit.
-
----
-
-## Where the repository is
-
-| | |
-|---|---|
-| `dev` | in sync with `origin/dev`. **24 commits ahead of `main`** |
-| working tree | the CHANGELOG entries and the doc sync for the release; nothing else outstanding |
-| `pyproject.toml` | `0.2.1.26` — **not yet bumped**. x.27 is unreleased |
-| suite | **5289 passed, 25 skipped, 28 deselected**, exit 0 |
-| `ruff check src/` | clean. `ruff check tests/` has 444 pre-existing findings — not from this work |
-
-**Verify:** `git status --short --branch`, `hatch run pytest -q -p no:randomly -m "not integration"`,
-`ruff check src/`.
-
-### The seven commits, all pushed
-
-```
-9c1d53b docs(project): handoff for 2026-09-08
-f90a926 docs(rules): a working document has a death; a ruling does not
-bbbe060 test(guard): a test that calls a live model is marked integration
-e8f2e21 feat(cli): sp dataset add and sp resource set
-570e33d feat(lint): warn on unused requires, and stop lint from poisoning sys.modules
-d319c52 feat(prompts): warn when a prompt's example is the passage under test
-ce37401 feat(defects): a run records what it noticed without failing
+```zsh
+git -C ~/github/nida-institute/sil-translator-notes status --short --branch
+hatch run sp lint --pipeline pipelines/translators-notes.yaml      # run from that repo
 ```
 
-Five of the six subjects carry two leading spaces, a paste artifact. They are pushed, so removing
-them means a force-push to a shared branch — deliberately left alone.
+**`~/github/nida-institute/LLMFlow` is clean of this session's work** — nothing to finish here.
+Its queue is `project/TODO.md`; do not read the queue out of this file.
 
 ---
 
-## What was built
+## Active threads
 
-All committed and pushed.
+### 1 — sil-translator-notes AI context (LIVE, uncommitted)
 
-| thread | state | verify |
-|---|---|---|
-| Defect log (#232) | **built and committed (`ce37401`).** Reserved `defects` key + a handler on the `llmflow` logger; written to `defects.json` under `intermediate_file_directory` | `hatch run pytest tests/test_defect_log.py` — 26 tests |
-| Example contamination | **built.** Warns when a prompt's example overlaps the passage under test | `hatch run pytest tests/test_example_contamination.py` — 16 tests |
-| Unused `requires:` | **built**, as a warning | `hatch run pytest tests/test_unused_requires.py` — 9 tests |
-| `sp dataset add` / `sp resource set` | **built** | `hatch run pytest tests/test_registration_commands.py` — 12 tests |
-| Paid calls in the ordinary run | **fixed and guarded.** Was making 6 API calls per `-m "not integration"` run | `hatch run pytest tests/test_paid_calls_are_marked_integration.py` — 3 tests |
-| `plans-are-temporary` | **ruled and written** into `data/ai-rules.yaml` | `hatch run pytest tests/test_ticked_boxes_carry_evidence.py` — 4 tests |
-| CHANGELOG + doc sync | **written**, uncommitted at the time this file was last saved | `grep -n "defects" docs/llmflow-language.md` |
-| BaseX #38 | **not release work.** See below | — |
+**Goal:** a new contributor on his own Mac can clone, set up and lint without hand-carried state.
 
-### Three faults the defect log's end-to-end test found
+**State:** done and **unverified by anyone but this session**. Six files, branch `dev`, **1 ahead
+of `origin/dev` before these changes**:
 
-Worth knowing, because each was invisible to unit tests and each made the log silently empty:
+```
+ M docs/ai-context/project/index.md
+ M docs/ai-context/project/overview.md
+ M docs/ai-context/project/rules.md
+ M prompts/render-notes.gpt
+ M prompts/translators-notes.gpt
+?? CHANGELOG.md
+```
 
-- The handler was attached **above** the block that calls `Logger.reset()`, and that reset clears
-  every handler on `llmflow`. It runs under exactly the condition that makes the log worth
-  keeping — a declared `intermediate_file_directory`. So the runs that write `defects.json` were
-  the runs whose log was empty. The reset is `runner.py:651`; the attach moved below it, to
-  `runner.py:670`.
-- Teardown named `llmflow.defects` where the attach named `llmflow`. Every run leaked its handler.
-- Nothing removed the handler when a run **failed**, so the next run's warnings would be filed
-  into the dead run's log. Now a `finally`.
+**Verify:** `hatch run sp lint --pipeline pipelines/translators-notes.yaml` from that repo →
+`✅ Pipeline OK`, nine checks. It was **RED before this session** with two `optional:` errors.
 
----
+**Next step:** commit message, then the Captain commits. Nothing is staged.
 
-## x.27 — what is done, and what is left
+### 2 — this repository's commits this session (DONE, pushed)
 
-| # | Feature | Issue | State |
-|---|---|---|---|
-| 1 | Hebrew in `include: [discourse]` | #230 | SHIPPED |
-| 2 | Copy forcing | #230 | SHIPPED |
-| 3 | Paratext `custom.vrs` | #222 | SHIPPED — `8e8b1e1` |
-| 4 | Comparing verse references | #169 | SHIPPED |
-| 5 | `include: [syntax]` | #227 | SHIPPED; issue closes at the `dev` → `main` merge |
-| 6 | BaseX | #38 | **moved to 0.2.1.28** (2026-09-09). Blocked upstream; nothing in x.27 depends on it |
+`6bf029c` (a moderation block is not retried) and `473cd80` (two rulings reach the shared
+disciplines). **Both pushed** — `dev` is level with `origin/dev`.
 
-**Added to x.27 unplanned:** the defect log (#232), the contamination guard, the
-unused-`requires:` warning, `sp dataset add`, `sp resource set`, the integration-marker guard, and
-`rule plans-are-temporary`.
+**Verify:** `git -C ~/github/nida-institute/LLMFlow log --oneline -3`.
 
-### BaseX, measured — now 0.2.1.28
+**`tmp/commit-moderation-retry.md` and `tmp/commit-shared-disciplines.md` are SPENT.** They
+describe commits already made and pushed. Do not run them. Delete when the Captain says.
 
-Scheduled out of x.27 on 2026-09-09. The full breakdown and the ordered work list live in
-`project/TODO.md` under *🗄️ BaseX collections*; this is the short form.
+### 3 — the Helm twin commit (BLOCKED on the Captain, leaves the suite RED)
 
-The ratio is the point: the half that ships is the half that was never blocked.
+`473cd80` deliberately left `tests/test_helm_sync.py` red: this repo's
+`templates/sp/disciplines/{project-tracking,surface-decisions}.md` carry text the Helm copies do
+not. The remedy is two file copies into
+`~/github/nida-institute/human-at-the-helm/disciplines/` and a twin commit there.
+`data/helm-sync.yaml` already carries the correct hashes — nothing needs recomputing.
 
-| piece | issue | state |
-|---|---|---|
-| `type: basex` — run XQuery against an existing database | #49 | **CLOSED, shipping.** `src/llmflow/steps/basex.py`, three test files |
-| `sp setup-db` — load a corpus into BaseX under a canonical name | #52 | **OPEN, no code.** `grep -n "setup-db" src/llmflow/cli.py` returns nothing |
-| collection naming from the catalog | #38 | **OPEN, no code.** Design is `Status: proposal … Nothing is built` |
-| `provides` can describe a treebank or a lexicon | `awesome-biblical-data#5` | **OPEN, zero comments**, untouched since it was raised 2026-09-07 |
+**Verify:** `hatch run pytest tests/test_helm_sync.py -q -p no:randomly` → expect **2 failed, 80
+passed**, both `test_the_two_sides_agree_where_the_record_says_they_do`.
 
-The upstream issue is not a formality. `provides` requires `versification`, `canon` and `language`
-of every entry, so **only a scripture text can be declared** — and the catalog bears that out:
-3 of 70 entries carry a `provides` block, and all three are Bibles (`WLC`, `SBLGNT`, `BSB`). The
-feature exists to load treebanks and lexicons, and the catalog cannot currently name one. Since the
-first design ruling is *"names come from the catalog"*, there is no input to build against.
+**Do not do this unasked** — that tree was on `main`, 3 ahead unpushed, with two files dirty
+under a session that may still be live.
 
-**Verify:** `python3 -c "import json;d=json.load(open('data/resources.json'));print(len(d), sum(1 for e in d if e.get('provides')))"` → `70 3`.
+### 4 — Helm edited this tree unasked; the change is KEPT on purpose, and a revert is owed
 
-So the remaining work is, in order: a schema change in another repository; editorial catalog work
-across up to 67 entries, which is the maintainer's judgment and not code; seven unruled decisions
-in §8 of the design (LANG, FTINDEX, a raw database name, the local root, and three more); and only
-then `sp setup-db`. That is not a tail to finish before a release, which is why it is x.28.
+At 12:21 on 2026-09-24 a Human at the Helm session modified seven files here without being
+asked — `data/helm-sync.yaml` and six `src/llmflow/templates/sp/skills/*/SKILL.md` — stripping
+the `**WORKFLOW SKILL** —` / `**CONTEXT SKILL** —` prefix from each description and rewriting the
+sync hashes to match. It made the same change on its own side.
 
-**Left for the release itself:** the three steps in NEXT ACTION. The CHANGELOG and the prose docs
-are done — `## Unreleased` now carries all five of this cycle's late additions, and
-`docs/llmflow-language.md` documents both the reserved `defects` key and the two new registration
-commands.
+**Ruled 2026-09-24: revert it, and Helm communicates by collab note in future, not by editing
+this tree.** Reverting our side alone was tried and **breaks the build** — Helm's copies are
+already stripped, so our reverted files disagree with theirs and `test_helm_sync` fails ×4, which
+CI runs. So the change is **deliberately left in place** to ship 0.2.1.28, and the revert is owed
+afterwards, on both sides together.
 
----
+**So these seven modified files are neither the Captain's nor an assistant's** — do not revert
+them as strays, and do not commit them as though they were reviewed.
 
-## In flight elsewhere — verified 2026-09-09
+- The full change is saved at `tmp/helm-rogue-edits-2026-09-24.diff` (124 lines). It exists in no
+  commit on this side, so that file is the only copy — **do not delete it.**
+- Helm's tree is on `main`, **5 ahead unpushed**, with `manifest.yaml` and
+  `.claude/skills/install/SKILL.md` staged and two skills staged *and* modified. An incautious
+  restore there destroys staged work. Reverting Helm's side is the Captain's act.
+- Whether stripping the prefixes is a good change is a separate question from Helm having made it
+  here unasked, and is not settled.
 
-Each is that repository's own commit to make. **No `edition:` key remains in any consumer's
-pipelines** — checked with `grep -rn "^\s*edition:" pipelines/` in both, which returns nothing.
+**Verify:** `hatch run pytest tests/test_helm_sync.py -q -p no:randomly` → **82 passed**. If it
+reports 4 failures, someone has reverted one side without the other.
 
-| repo | uncommitted | what |
-|---|---|---|
-| `discourse-flow` | `collab/sp/2026-09-08-old-documents-are-deleted-not-sifted.md` (modified). The three `pipelines/` files are **already committed** with `resource:` | the report on deleting old working documents; they have edited our report in place |
-| `ears-to-hear` | `collab/` is **entirely untracked** — the directory has never been committed there | the same report; it will be invisible to them until they add it |
-| `sil-translator-notes` | `pipelines/translators-notes.yaml`, `HANDOFF.md` | the `resource:` rename, done but uncommitted |
-| `human-at-the-helm` | `disciplines/workflow.md` | `ask-for-the-exception` **and** the new "Completion Is Claimed With Evidence" section. `data/helm-sync.yaml` here records the hash that expects both |
+### 5 — #248 research (PAUSED mid-design, findings recorded nowhere else)
 
-`discourse-flow` carries 76 uncommitted files in total and `ears-to-hear` 35 — most of it theirs,
-and most of it the document pile the eight-day rule addresses.
+Priorities changed before a design document was written. **No code was written and no plan file
+exists.** Two findings from reading the code are in no issue and no document — they are here or
+they are lost:
 
-**Verify:** `git -C ~/github/nida-institute/discourse-flow status --short`.
-
----
-
-## Decisions awaiting the Captain
-
-Three of the five the previous handoff listed are now ruled and built. What remains:
-
-1. **Where the contamination prohibition lives as a *principle*.** The guard is built here. The
-   general rule — *an LLM must not use the data under test as a prompt example* — was proposed for
-   Human at the Helm, since it is not specific to this engine. Unruled.
-2. **`CLAUDE.md`'s local copy of the shell rules** — whether it stays as it is now that
-   `data/ai-rules.yaml` is authoritative. His file; his call.
-3. **D3: remove `project/audits/`.** Measured at **21 files** — a catalog entry, a shipped
-   template, `sp/audits-pattern.md` and its mirror, two audit skills, three disciplines (one
-   Helm-shared, so a twin commit), the `file-organisation` rule, two tests, four docs. Not started.
-4. **`project/rolling/` and `project/scratchpad/`** — the directory split the Captain proposed so
-   accumulating and rolling documents are distinguishable by location rather than by an
-   unwritten rule. Designed in `design-one-working-document.md`; not built.
-5. **The `done` label on #38.** It reads "implementation complete" over an issue whose subject has
-   no implementation. Removing or re-wording a label on an issue is his act, not an agent's.
-
-## Settled — do not reopen
-
-- **Defect-log channels (2026-09-08).** The reserved `defects` key as the channel, so the record
-  is ordinary step output and every step type can write one; a handler on the `llmflow` logger as
-  the Python convenience; automatic file under `intermediate_file_directory` plus an end-of-run
-  summary. `[]` and absence differ — an empty log means the run looked.
-- **An unused `requires:` entry is a warning, not an error.** The run it produces is correct.
-- **A working document dies at eight days; a ruling is permanent until overruled.** *"after a work
-  week, it is usually either implemented or obsolete"*, *"rulings are permanent until overruled"*,
-  and *"but ask the Captain before deleting"* — the deletion is never the AI's to make.
-- **`resource`, not `edition`.** A **dataset** is an obtainable body of data; a **resource** is a
-  readable text inside one.
-- **`~/.sp` is never edited by hand.** *"you may never edit ~/.sp. period."* The template tree at
-  `src/llmflow/templates/sp/` is the source; `sp` copies from it.
-- **A push is its own act, requested every time**, naming remote and branch.
+- **D1 is two questions, not one.** `for-each` and fixed/token/condition windows compute the
+  partition *before* iterating (`steps/window.py:413-426`, `steps/for_each.py:308`), so
+  set-based resume by index works. A **dynamic window** (`!window_advance`) sets
+  `start = cursor` from the previous window's model output (`steps/window.py:348-364`), so
+  iteration N has no definition until N−1 ran: resume is prefix-based and **needs the cursor
+  recorded**, which #248 never mentions. The engine's own worked example of `!window_advance` is
+  discourse-flow's shape, so this is likely the case that loses the work —
+  `grep -n "window_advance" -r ~/github/nida-institute/discourse-flow/pipelines/` settles it.
+- **A rewound run overwrites the manifest with less than it knows.** `run_manifest.is_enabled`
+  correctly skips the *clean* under `--rewind-to` (`utils/run_manifest.py:116`), but `write`
+  still runs unconditionally in the runner's `finally` (`runner.py:755-756`) from
+  `WRITTEN_FILES`, which holds only this invocation's writes. **A resumed run must merge, not
+  replace** — a change to #245's writer, not an addition beside it.
+- Minor: `_rewind_complete` is one flag (`utils/rewind.py:127-128`), so lifting the `append_to`
+  guard alone gives one replayed iteration and N−1 live ones, silently.
 
 ---
 
-## ⚠️ Records that were false — still the dominant defect class
+## Decisions settled 2026-09-24 — do not reopen
 
-One new, and it is the first found on **GitHub** rather than in a design file — which matters,
-because the issue tracker is the record a release is planned from.
+- **`optional: []` deleted from two sil-translator-notes prompts**, on the Captain's explicit
+  *"delete them"*. Both lists were empty, so no name moved to `requires:`.
+- **`sil-translator-notes/docs/ai-context/project/rules.md` cut to three local rules.** Rules 3–8
+  duplicated `sp/rules.md`; rule 9 ("Additive over destructive") was the retired
+  `additive-to-authored`, replaced by `one-design` on 2026-08-24. The *why* is recorded in that
+  repo's new `CHANGELOG.md`, not here.
+- **`sil-translator-notes/CHANGELOG.md` was created beyond the declared scope**, on his
+  *"record rulings in a more permanent place and delete them"*. That repo had no changelog, and
+  `project-tracking.md` requires one before anything is deleted.
 
-| record | claimed | actual |
-|---|---|---|
-| **`#38`'s `done` label** | "Ready to be closed - implementation complete" | the issue's subject — collection naming — has no implementation, and `sp setup-db` does not exist. Only #49, a different issue, is complete |
-| a previous `HANDOFF.md` | BaseX is "blocked, unverified" | the blocker is real and verified; but the query half ships, so "blocked" alone misdescribes it in the other direction |
-| `TODO.md` #204 | `templates/` missing three files | all present under `templates/sp/` |
-| `design-paratext-versification.md` §2 | three `custom.vrs` constructs | **four** — `partialVerses` was absent |
-| the same, §2 | five files read | 66 exist |
-| a previous `HANDOFF.md` | `RELEASE_CHECKLIST.md` §12 "fails four guards" | **unverified** — no test references `RELEASE_CHECKLIST`, and the suite is green |
-| `discourse-flow`'s lint thread | a signature is reachable "without executing anything" | false; the import is three lines above the line they cited |
+## Open, and the Captain's
 
----
+- **Keep `sil-translator-notes/CHANGELOG.md`?** Created outside the scope he signed off; offered
+  for deletion, not answered.
+- **`sil-translator-notes/HANDOFF.md` (repo root) carries all three stale facts just fixed** —
+  `requires:`/`optional:` at line 439, `~/.sp/editions/` at 487 and 523, the patched fork at 445
+  and 525. Out of the scope he gave; flagged, not fixed.
+- **His `~/.sp/registrations/BSB.yaml` still points at the patched fork** —
+  `base_dir: /Users/jonathan/github/usfm-bible`. Machine state, not repository content.
+  `sp resource set BSB`, or delete and `sp resource add BSB`.
+- **An API-key line for the setup section** — drafted in conversation, not written.
+- **#248 scope** — both loop kinds or only the dynamic window; plan file or a comment on #248.
+- **`~/.claude/settings.json` is modified and unreviewed.** `cgit diff -- settings.json` shows one
+  line removed: `Write(//Users/jonathan/.claude/projects/**)`. Report it; do not commit it.
 
-## Landmines
+## Do NOT
 
-- **Do not evict a module from `sys.modules` on a "lives outside the working directory" test.**
-  A first cut of the lint import fix treated any package not at `./name` as foreign, which makes
-  **`llmflow` itself** foreign — it loads from `src/llmflow`. Evicting it mid-suite broke **84
-  tests**, and the symptom is misleading: mocks report `Called 0 times` because every later import
-  gets a fresh module object no patch knows about. `_is_sibling_of` in `linter.py` is deliberately
-  exact; keep it that way.
-- **`Logger.reset()` clears every handler on the `llmflow` logger** (`modules/logger.py:35`).
-  Anything attached before `runner.py:651` is silently gone. This is what made the defect log
-  empty.
-- **The blanket rename is still the standing hazard.** A search-and-replace across the suite
-  destroyed the one test whose subject was the retired word, rewrote a mapping's string literal
-  into a tautology, and rewrote a **generated** file. Protect string literals and generated
-  artifacts; never rename a file whose subject is the old name.
-- **A wrapped multi-line paste breaks in the Captain's terminal.** A `git add` with backslash
-  continuations ran its continuation lines as commands; an indented heredoc never terminated
-  (Ctrl-C exits). **Give one short single-line command at a time.**
-- **`output.txt` appeared untracked in the repo root** with the contents `Test content`, and was
-  deleted 2026-09-09 at the Captain's direction. A full suite run does **not** recreate it, and no
-  test was found that writes a bare relative `output.txt` — `steps/save.py` defaults to that name
-  when a save step declares no path, so the likeliest source is a manual invocation. If it returns,
-  that default is where to look.
-- **Never run `sp run`** (costs money) or **`sp doctor`** (unsafe until #210/#211).
-- **Two pytest runs collide** on `tmp/pytest/`. One at a time.
-- **`tmp/` is scanned by `test_install_instructions.py`.** Scratch files there fail the suite.
-- **`project/` keeps the word "edition"** in ~197 places deliberately — records of decisions made
-  when that was the word.
+- **Do not `git add -A` here** — `gui/frontend/node_modules` is tracked, ~8,000 deletions.
+- **Do not run `sp doctor` here** — #210. Safe in consumer projects.
+- **Do not hand-edit `docs/ai-context/sp/rules.md`** — regenerated from `data/ai-rules.yaml`.
+- **Do not run the two `tmp/commit-*.md` messages** — already committed and pushed.
+- **Do not start Helm work in this tree** — two sessions collide on `tmp/pytest` and one git index.
+- **Looks like a next step but is not:** building #248. Every decision in the issue is ruled, but
+  no plan file exists and no scope is signed off. Thread 4 above is research, not authorization.
 
----
+## Known-failing here — 2, and **neither blocks CI**
 
-## Key files
+**Verify:** `hatch run pytest tests/ -q --tb=short -m "not integration" -p no:randomly` — CI's
+exact command → **2 failed, 5729 passed, 24 skipped, 28 deselected**.
 
-- `src/llmflow/defects.py` — `DefectLog`, `defect_logging_handler`; `__deepcopy__` returns `self`
-  so a `for-each` iteration writes into the one log
-- `src/llmflow/utils/prompt_hygiene.py` — `contaminating_references`, `warn_about_contamination`
-- `src/llmflow/utils/linter.py` — `_cwd_importable`, `_is_sibling_of`, `_drop_foreign_package`,
-  `unused_requires_warnings`
-- `project/plans/design-one-working-document.md` — the eight-day rule, and the
-  `rolling`/`scratchpad` split that is designed but unbuilt
-- `project/plans/design-basex-collections.md` — §8 item 0 is the upstream blocker; §8 items 1–7
-  are the decisions that would still be open even if it cleared
-- `project/RELEASE_CHECKLIST.md` — reordered 2026-09-09 so the sections run in the order they are
-  done. §1–3 are pre-PR; §6 opens the PR; §4–5 read the build that opening it started; §7–9 tag
-  and watch
-- `project/TODO.md` — the open rulings
-- `docs/llmflow-language.md` — the reserved `defects` key under *Saving Outputs*; `sp dataset add`
-  and `sp resource set` under *Registering the text a pipeline names*
+- `test_product_name_in_prose` — **working tree only, and it will break CI if committed as is.**
+  The single offence is `docs/ai-context/project/data-sources.md:48`, an uncommitted edit that is
+  not this session's. HEAD is clean: the committed copy of that file contains no such reference.
+  The fix is one phrase — the possessive product name in front of `data/resources.json` should
+  read Scripture Pipelines. Paths and URLs are exempt from that rule; prose is not. Run the test
+  itself for the exact line, rather than reproducing it here, since quoting it re-trips the guard.
+- `test_resource_provisioning` — `skipif` on the catalog's home repository being present, so it
+  **skips in CI** and fails only on a machine that has that clone.
+
+Fixed this session and now passing: `test_types::test_pyright_src_passes` (the build blocker),
+`test_plan_docs_index::test_document_names_its_issue` ×2, `test_helm_sync` ×2,
+`test_changelog_is_not_a_transcript` ×3. `tests/integration/test_mcp_batch_calls.py` is network
+and is deselected in CI.
+
+## Key files & links
+
+- `project/TODO.md` — the queue and its order. **The four current goals live there.**
+- `~/github/nida-institute/sil-translator-notes` — thread 1, the live work.
+- Issues **#248** (researched, undesigned), **#249**, **#243** (queued next). **#236** is the
+  release PR — 0.2.1.28 is unreleased, which is why a consumer on PyPI gets 0.2.1.27 and lacks
+  `docs/ai-context/sp/command-line.md` and the `health-check` skill.

@@ -80,3 +80,28 @@ goes in a paragraph beneath the slot, never inside it.
 **Why this pairs with the rule above:** "one crisp ask, halt" describes *when* to stop.
 This describes *how* to leave room for the answer, so the halt has somewhere to land
 instead of scrolling away in a conversation.
+
+---
+
+## A record that leaves the repository is written for someone who was not here
+
+GitHub issues and pull requests, and notes sent to another project, are read by people with
+no view of this conversation or the conventions it runs on. Two of the conventions above must
+not travel with them.
+
+**The `=>` slot belongs to a working document**, where it marks a question waiting for a
+person to type under it. In an issue it is a marker for a ritual the reader has never seen,
+in a field they may not be able to edit.
+
+**The session's form of address is not a role anyone else recognises.** Write "Ruled
+2026-09-23", never "the Captain ruled", "the Captain's candidate", or "recorded and not
+ruled". State the decision, the reasoning that supports it, and the date, and let it stand
+without a procedural frame.
+
+**This is about artifacts that travel.** The task queue, the plans, the rules, the AI context
+**and commit messages** are read from inside the repository, and their own vocabulary is
+correct there. The distinction is the audience, not the formality.
+
+The failure is not carelessness about tone. It is carrying a device out of a document into a
+shared record without noticing that the audience changed — which is easy to do, because the
+device is doing its job right up until the moment it leaves.
