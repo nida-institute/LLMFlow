@@ -16,7 +16,7 @@ irm https://raw.githubusercontent.com/nida-institute/LLMFlow/main/install.ps1 | 
 
 After installing, run `sp --version` to confirm it worked.
 
-Then set your API key — see [Set your API key](#set-your-api-key) below. On 0.2.1.23 and earlier this must be an **environment variable**; `sp setup` alone is not enough, because several code paths read the key straight from the environment. From 0.2.1.24 either method works.
+Then set your API key with `sp setup` — see [Set your API key](#set-your-api-key) below.
 
 Once the key is set, see the [Quickstart Tutorial](docs/tutorial.md) to run your first pipeline.
 
@@ -107,9 +107,8 @@ In PowerShell (persists for your user account):
 ```
 Close and reopen PowerShell, then confirm: `echo $env:OPENAI_API_KEY`
 
-On 0.2.1.23 and earlier this environment variable is **required** — see
-[Set your API key](#set-your-api-key) for why `sp setup` alone is not sufficient on those
-versions.
+`sp setup` does the same thing and also persists the variable for your user account on Windows —
+see [Set your API key](#set-your-api-key).
 
 #### Step 6 — Know about the `sp` name clash in PowerShell
 
@@ -143,7 +142,7 @@ This affects macOS and Linux users not at all — only PowerShell defines that a
 sp.exe --version
 ```
 
-You should see the version printed, e.g. `sp 0.2.1.24`. You're ready — continue with the
+You should see the version printed, e.g. `sp 0.2.1.28`. You're ready — continue with the
 [Quickstart Tutorial](docs/tutorial.md).
 
 ### Linux
@@ -162,21 +161,22 @@ Scripture Pipelines uses the [`llm`](https://llm.datasette.io/) package to call 
 
 ### Set your API key
 
-**Set an environment variable.** On **0.2.1.23 and earlier this is required**; from **0.2.1.24**
-either method works and you can use `sp setup` instead.
+**Run `sp setup`.** It stores the key in `llm`'s keystore, and that is all that is needed:
 
-Scripture Pipelines calls models two ways: through the `llm` package, and — for steps using
-`response_format` (structured outputs) — through the provider's own client.
+```bash
+sp setup
+```
 
-- **0.2.1.23 and earlier:** that second path reads the key **straight from the environment**, so
-  `llm keys set` / `sp setup` alone is not enough — those write `llm`'s own keystore, and a
-  structured-output step will still fail to authenticate.
-- **0.2.1.24 onwards:** both paths resolve keys the same way — explicit key, then `llm`'s
-  keystore, then the environment variable — so `sp setup` on its own is sufficient. The
-  environment variable continues to work.
+An environment variable works too, and some people prefer it because it is visible in the shell
+and easy to swap between projects. Either is fine — you do not need both.
 
-If you are unsure which you have, run `sp --version`. Setting the environment variable is correct
-on every version, so the instructions below are always safe.
+*Why this used to be more complicated:* Scripture Pipelines calls models two ways, through the
+`llm` package and — for steps using `response_format` (structured outputs) — through the
+provider's own client. Before 0.2.1.24 the second path read the key straight from the
+environment, so `sp setup` alone left structured-output steps unable to authenticate. Since
+0.2.1.24 both paths resolve a key the same way: an explicit key, then `llm`'s keystore, then the
+environment variable. If you are running something older than that, set the environment
+variable; `sp --version` tells you what you have.
 
 **macOS / Linux** — add to `~/.zshrc` (or `~/.bashrc`), then open a new terminal:
 
@@ -213,12 +213,9 @@ Use `ANTHROPIC_API_KEY` or `GEMINI_API_KEY` in place of `OPENAI_API_KEY` for tho
 > export OPENAI_API_KEY="$(security find-generic-password -s OPENAI_API_KEY -w 2>/dev/null)"
 > ```
 
-**About `sp setup`.** It writes the key into `llm`'s keystore (`llm keys set` under the hood).
-
-- On **0.2.1.23 and earlier** it does **not** set the environment variable, so it does not replace
-  the step above.
-- From **0.2.1.24** it is sufficient on its own, and on Windows it also persists the environment
-  variable for your user account.
+**About `sp setup`.** It writes the key into `llm`'s keystore (`llm keys set` under the hood),
+and on Windows it also persists the environment variable for your user account. On any engine
+from 0.2.1.24 onwards it is sufficient on its own.
 
 ### Install additional model plugins (optional)
 
@@ -254,17 +251,17 @@ Run the CLI from any terminal:
 sp --version
 ```
 
-You should see output similar to:
+You should see the command's own name and the version you installed, for example:
 
 ```
-llmflow 0.2.1.23
+sp 0.2.1.28
 ```
 
 If the command is not found, double-check that the binary is executable and that the containing directory is on your PATH.
 
 ---
 
-## 4. Upgrading
+## 5. Upgrading
 
 1. Download the latest release artifact for your OS.
 2. Replace the existing binary with the new one (overwriting the file in your PATH directory).
@@ -272,7 +269,7 @@ If the command is not found, double-check that the binary is executable and that
 
 ---
 
-## 5. Troubleshooting
+## 6. Troubleshooting
 
 | Symptom | Likely Cause | Fix |
 | --- | --- | --- |
