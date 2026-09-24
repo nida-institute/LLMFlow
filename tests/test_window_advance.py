@@ -311,6 +311,26 @@ class TestWindowAdvanceErrors:
         with pytest.raises(ValueError, match="must be a non-negative integer or null"):
             self._run(step, {"content": _make_content(10), "next_pos": None})
 
+    def test_dynamic_window_with_start_when_and_no_size_raises(self):
+        """`start_when` plus a cursor and no `size` raises, naming the step.
+
+        The cursor decides where a window starts; `size` bounds how far it reaches, so a
+        dynamic window needs `size` or `size_by_tokens` just as a fixed window does. The
+        `start_when` branch does not check `size`, so this is the one route by which a
+        dynamic window reaches the slice with nothing bounding it.
+        """
+        set_cursor_seq([5])
+        step = {
+            "name": "seg",
+            "type": "window",
+            "in": "${content}",
+            "for": "wc",
+            "start_when": "True",
+            "steps": [_window_advance_step()],
+        }
+        with pytest.raises(ValueError, match="'size' must be a positive integer"):
+            self._run(step, {"content": _make_content(10), "next_pos": None})
+
 
 # ---------------------------------------------------------------------------
 # include_partial under a cursor — driven through the object model

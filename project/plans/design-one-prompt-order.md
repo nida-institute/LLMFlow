@@ -4,7 +4,7 @@
 rather than renumber, and a per-project override only with the Captain's explicit approval.
 **Nothing is built.** §6 awaits his authorization to implement, and sits third in the order he
 set: after telling discourse-flow the engine changes landed, and after the absent type check.
-**Issue:** none yet. This document is written to be posted to one.
+**Issue:** #242 — *sp lint should enforce the prompt section order, not only prompt contracts.*
 **Author:** AI, from the Captain's ruling on 2026-09-16 — *"I want one established order"* — and
 from measurements of `.claude/skills/audit-prompts/SKILL.md`,
 `src/llmflow/templates/sp/disciplines/llmflow-prompt-organization.md`,

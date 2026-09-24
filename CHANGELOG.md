@@ -72,6 +72,41 @@
   Guarded by `tests/test_run_manifest.py`, whose first test is the `--rewind-to` regression:
   replay still reads the artifacts a clean would remove.
 
+### Fixed
+
+- **A dynamic window with no `size` crashed on a bare `TypeError`, and it was the whole build.**
+  `run_window_step` validates `size` before building fixed windows, but the `start_when` branch
+  returns before reaching that check, so `start_when` together with `!window_advance` and no
+  `size` arrived at `input_data[start:start + None]`. The failure named neither the step nor the
+  missing key. `_run_window_dynamic` now requires `size_by_tokens` or an integer `size` at entry
+  and says which to set, matching the fixed path's refusal. The now-unreachable `size is not
+  None` guard one line below it is removed.
+
+  This was the only Pyright error in `src/`, and Pyright is a gate step in the Tests workflow, so
+  the Build job had been skipped and every CI run had been red since at least 2026-09-10.
+  Guarded by
+  `tests/test_window_advance.py::TestWindowAdvanceErrors::test_dynamic_window_with_start_when_and_no_size_raises`.
+
+### Removed
+
+- **`project/plans/design-documentation-in-prompts.md`** — deleted 2026-09-24 under
+  `plans-are-temporary`, eight days after its declared date. Recover it with
+  `git log --diff-filter=D -- project/plans/design-documentation-in-prompts.md`, then
+  `git show <commit>^:project/plans/design-documentation-in-prompts.md`.
+
+  **The ruling it carried, recorded here because the document does not survive it.** Ruled
+  2026-09-16: documentation is written in the `.gpt` file beside the rule it explains, inside a
+  `~~~doc` fence, and `sp` strips those fences before the prompt reaches the model. A `.md`
+  sidecar and a tangler that generates the prompt from it were both considered and rejected, on
+  the grounds that two artifacts drift and one does not. The prompt is the right home rather
+  than merely the convenient one because a `.gpt` file is meant to be read and understood by
+  people, so an explanation belongs beside the rule it explains. Nothing was built.
+
+  **It stands in tension with the ruling of 2026-09-21**, which refuses design notes in prompts
+  on the grounds that everything in a `.gpt` reaches the model — the premise that stripping at
+  load would remove. Which of the two governs is unsettled; both dates are recorded so a later
+  reader can see that the question was asked rather than overlooked.
+
 ## 0.2.1.28 — 2026-09-21
 
 ### Fixed

@@ -283,6 +283,15 @@ def _run_window_dynamic(
 ) -> Optional[str]:
     """Dynamic windowing: cursor is determined each iteration by a !window_advance step."""
     step_name = step.get("name", "unnamed")
+    # The cursor decides where a window starts; one of these bounds how far it reaches. The
+    # fixed path checks `size` before building its windows, but the `start_when` path does
+    # not, so a dynamic window can arrive here with nothing bounding the slice below.
+    if size_by_tokens is None and not isinstance(size, int):
+        raise ValueError(
+            f"Window step '{step_name}': 'size' must be a positive integer, or set "
+            f"'size_by_tokens'. A cursor says where each window starts; one of these says "
+            f"how far it reaches."
+        )
     start = 0
     index = 0
     n = len(input_data)
@@ -297,7 +306,7 @@ def _run_window_dynamic(
             underfilled = window_tokens < size_by_tokens
         else:
             window = input_data[start:start + size]
-            underfilled = size is not None and len(window) < size
+            underfilled = len(window) < size
 
         if not window:
             break

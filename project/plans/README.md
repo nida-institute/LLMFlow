@@ -19,7 +19,6 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-combining-levinsohn-and-ubs.md](design-combining-levinsohn-and-ubs.md) | proposed — not authorization to build. The design is stated in §6 as seven positions, | #169 #226 |
 | [design-decisions-awaiting-ruling.md](design-decisions-awaiting-ruling.md) | four decisions need answering. Nine are deferred — they block nothing in the ruled | #153 #169 #200 #201 #203 #204 #210 #211 #212 #215 #217 #218 #222 #225 #226 #227 #228 #230 |
 | [design-declaring-field-roles.md](design-declaring-field-roles.md) | ruled 2026-09-03, and scoped to release 0.2.1.27. All six open decisions in §8 are | #162 #230 |
-| [design-documentation-in-prompts.md](design-documentation-in-prompts.md) | Proposed, 2026-09-16. Nothing is built. Awaiting authorization to implement §6 and | — |
 | [design-edition-provisioning.md](design-edition-provisioning.md) | proposal, 2026-08-29. Not authorization to build. Four decisions are marked => and | #201 #203 #217 |
 | [design-expand-once-and-only-once.md](design-expand-once-and-only-once.md) | approved in conversation 2026-09-02 — *"double expansion is always a defect"*, and | #230 |
 | [design-foreach-syntax-migration.md](design-foreach-syntax-migration.md) | Proposed — awaiting Captain review | #153 |
@@ -28,7 +27,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-jmespath-step.md](design-jmespath-step.md) | Proposed — not built. Nothing in src/ implements this. Requires the Captain's approval before … | #167 #168 |
 | [design-loader-steps.md](design-loader-steps.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
 | [design-onboarding-fresh-clone.md](design-onboarding-fresh-clone.md) | D1–D7 ruled by the Captain 2026-08-18. D1 has a blocking technical conflict — see D1. | #15 #28 #29 #32 #181 #199 #204 #205 |
-| [design-one-prompt-order.md](design-one-prompt-order.md) | 2026-09-16. All three questions in §8 are ruled — no optional sections, rename | — |
+| [design-one-prompt-order.md](design-one-prompt-order.md) | 2026-09-16. All three questions in §8 are ruled — no optional sections, rename | #242 |
 | [design-one-source-for-shipped-files.md](design-one-source-for-shipped-files.md) | Proposed, 2026-08-25. Nothing built. Four questions in §4 await a ruling. | #211 |
 | [design-one-working-document.md](design-one-working-document.md) | proposed (2026-09-08) | #229 #232 |
 | [design-operations-in-the-pipeline-language.md](design-operations-in-the-pipeline-language.md) | proposed (2026-09-14). Nothing here is built and nothing is decided. Every => in §5 | #125 #167 #168 #169 #238 #239 #240 #241 |
@@ -70,4 +69,4 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-window-token-defects.md](plan-window-token-defects.md) | ruled (2026-09-22) → #246. Defect 2 ruled A by the Captain; the other two need no ruling. | #246 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-62 documents.
+61 documents.
