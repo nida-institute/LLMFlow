@@ -1059,9 +1059,34 @@ had read the document and stopped. Asserted by
 and `::test_asking_for_analyses_does_not_change_the_text`.*
 
 Seven families: `ids`, `morphology`, `senses`, `glosses`, `referents`, `discourse`, `syntax`.
-**`ids` and `discourse` are implemented; the other five raise `NotImplementedError` naming
-themselves** — a document returned without the payload you asked for would be worse than an
-error.
+**All seven are built.**
+
+*Corrected 2026-09-24. This paragraph said `ids` and `discourse` were implemented and the other
+five raised `NotImplementedError`. They do not, and had not for some time: each was measured
+against `SBLGNT` on `MRK 1:1-8` and returned a payload — morphology 127 entries, glosses 127,
+senses 124, referents 38, syntax 6, discourse 39.*
+
+**Every family except `ids` needs `ids` alongside it**, because the container keys its payload by
+word id and the document carries no `srcloc` to match against without it. Asking for one alone is
+a `ValueError` that says so, before anything is read:
+
+```
+include ['morphology'] annotates individual words, and the container keys them by word id —
+add `ids` so the document carries a srcloc to match them against.
+```
+
+**Two families also need a path on the resource's registry entry, and say so rather than
+failing.** `syntax` needs `lowfat_path`; `discourse` needs `discourse_path`. Where the entry
+names neither, the request is a warning and the key is `null` — the resource has no such source,
+which is a different fact from having one that returned nothing. Neither is written by
+`sp resource add` today, so a freshly registered resource answers `null` for both until the
+field is added with `sp resource set`.
+
+| family | what it needs beyond `ids` |
+|---|---|
+| `morphology`, `senses`, `glosses`, `referents` | nothing — they come from the resource's own TSV |
+| `syntax` | `lowfat_path` on the registry entry |
+| `discourse` | `discourse_path` on the registry entry |
 
 ```yaml
 - name: fetch-addressable
