@@ -67,7 +67,26 @@ Present the groups, name any path whose origin is unclear, and wait.
 Where the project keeps a handoff, check it **here** — before staging, not after. `/handoff`
 writes that file, so a check that fires later leaves the fresh handoff outside the commit.
 
-Three signals, each read from something declared rather than inferred:
+**The primary signal is the commit, not the date.** A handoff names the commit it was written
+against — "level with `origin/dev` at `3dbb55b`", or similar. If `HEAD` is not that commit, the
+handoff is describing a tree that no longer exists:
+
+```sh
+git rev-parse HEAD
+grep -m1 -E "[0-9a-f]{7,40}" project/HANDOFF.md
+```
+
+Both sides of that comparison are declared — one by the file, one by git — so neither is an
+inference about the other. Rule `declared-not-inferred`.
+
+**Why the date is not enough on its own, and why this check leads with the sha.** The first
+version of this check had only date signals, and it was run on the day it shipped against a
+handoff whose own text read *"Nothing from this session is committed"* while two commits already
+existed. Every signal missed: dates compare at **whole-day granularity**, and a handoff written
+and superseded within the **same day** is the ordinary case, not an edge one. Do not simplify the
+sha comparison away as duplicating the dates — it is the one that works.
+
+Then the weaker signals, which still matter for a handoff that names no commit at all:
 
 ```sh
 git diff --cached --name-only
@@ -75,12 +94,11 @@ git log -1 --format=%cs
 grep -m1 -E "^# HANDOFF" project/HANDOFF.md
 ```
 
-- **The handoff is not among the files about to be staged, but other files are.** The strongest
-  signal and the cheapest: the commit is about to make the handoff's in-flight section false, and
-  nothing afterwards will correct it.
+- **The handoff is not among the files about to be staged, but other files are.** The commit is
+  about to make its in-flight section false, and nothing afterwards will correct it.
 - **The date it declares is older than today.**
-- **The date it declares is older than the last commit's date.** That means it has not been
-  touched since the previous commit, so it is describing a tree two commits back.
+- **The date it declares is older than the last commit's date**, so it has not been touched since
+  the previous commit and is describing a tree two commits back.
 
 **Do not try to check it by reading its prose** — parsing the in-flight list and testing whether
 those files are still modified produces a derived set that silently becomes empty when the
@@ -149,10 +167,16 @@ still succeeds, carrying a message describing work it does not contain.
 ## Step 5 — check what is actually staged
 
 ```sh
-git diff --cached --stat
+git diff --cached
 ```
 
-Compare the file count against the list you meant to stage, and account for any difference before
+**Show the diff, never a summary.** `--stat` gives file names and a count of changed lines, which
+answers "did I stage roughly the right files" and nothing else. What a reviewer is looking for is
+what the change actually says: a line nobody meant to touch, a stray edit inside a file that does
+belong in the commit, someone else's work carried along inside a shared file. A summary hides
+every one of those — and hides them behind a number that reads like verification.
+
+Compare the file list against the one you meant to stage, and account for any difference before
 going further. Staging is not evidence that the index holds what you think it holds.
 
 ### Two files to look for in that list, and what to do about them
@@ -204,18 +228,25 @@ credential, so the record will name them as the pusher whoever wrote the change.
 As soon as a commit has been made, run this and read it:
 
 ```sh
-git show --stat HEAD
+git show HEAD
 ```
 
-**"Committed" is not evidence that the commit holds what you think it holds.** Check the file
-count against the list that was meant to be staged, and account for any difference out loud. A
-commit whose message describes work it does not contain is worse than no commit, because the
-message reads as authoritative to everyone afterwards.
+**"Committed" is not evidence that the commit holds what you think it holds**, and neither is a
+summary of it. Read the diff. Check the files against the list that was meant to be staged, and
+account for any difference out loud. A commit whose message describes work it does not contain is
+worse than no commit, because the message reads as authoritative to everyone afterwards.
 
-Where several commits were made, check each:
+Where several commits were made, show each diff without repeating the messages you already wrote:
 
 ```sh
-git log --stat -3
+git diff HEAD~2 HEAD
+```
+
+A large diff is not a reason to fall back to `--stat`. Show it in groups — the mechanical changes
+first, where a stray edit stands out, then the substantial ones — using a pathspec:
+
+```sh
+git show HEAD -- "path/one" "path/two"
 ```
 
 Run this whenever a commit has happened in reach of this skill — the human pasting the command

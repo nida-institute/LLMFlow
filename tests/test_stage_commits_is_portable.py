@@ -106,7 +106,25 @@ def test_the_commit_message_goes_through_a_file(skill_text):
 
 def test_the_staged_result_is_verified(skill_text):
     """"Committed" is not evidence that the commit holds what was intended."""
-    assert "git show --stat" in skill_text or "git diff --cached --stat" in skill_text, (
-        "The skill must tell the reader how to check what was actually staged or committed "
-        "against what was intended."
+    assert "git diff --cached" in skill_text and "git show HEAD" in skill_text, (
+        "The skill must tell the reader how to check what was actually staged, and what actually "
+        "landed, against what was intended."
+    )
+
+
+def test_the_check_shows_a_diff_rather_than_a_summary(skill_text):
+    """`--stat` answers "roughly the right files?" and hides everything worth reviewing.
+
+    A summary cannot show a line nobody meant to touch, a stray edit inside a file that does
+    belong in the commit, or someone else's work carried along inside a shared file — and it
+    hides them behind a number that reads like verification.
+    """
+    offences = [
+        line.strip()
+        for _lang, body in shell_blocks(skill_text)
+        for line in body.splitlines()
+        if "--stat" in line
+    ]
+    assert not offences, (
+        "The skill must show diffs, not summaries. Replace `--stat`:\n  " + "\n  ".join(offences)
     )
