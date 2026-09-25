@@ -59,11 +59,11 @@ files:
   status: identical
 - set: skills
   name: authorize
-  sha256: f323bd1a50d5a669eaa591a910d503cc4cd511c9a33e86b4b9f074697b6f2f28
+  sha256: a7be0a061eb43493b7acbd8652aa23255835305b0925b52083b06245289f5dc1
   status: identical
 - set: skills
   name: commit-ready
-  sha256: 2cc26ff288e372825f02c60e4c4e39a2f4c80fe6899d074bde1155770211777e
+  sha256: 3dbc6eae63a1e55f4a0c5915182fcc60fa47e027e8fe32c5068f67fabf99c391
   status: differs
   ruling: 'Captain, 2026-08-20: "strip it out of [Human at the Helm]''s commit-ready". This repository''s
     copy names gui/frontend, pytest.ini and the Logger singleton rule — furniture no other project
@@ -73,15 +73,15 @@ files:
     untouched.)'
 - set: skills
   name: handoff
-  sha256: 3b87ea8da70dcfdc9bb8887c06660b47f1573633543d2571c1f021d64f497827
+  sha256: 7c1133cf3cf541b2e059657cc3305e0cf368bdc947893725540d909470651505
   status: identical
 - set: skills
   name: health-check
-  sha256: c2d2bf743098da04f42ceecf32d77fe2cd6353bbf379ff678de6d5fd09f44adc
+  sha256: cf2bf6d3d0b7f2cdfb9463b0b2f4489e11121b3e11d735ffb1a75ac544c8f491
   status: identical
 - set: skills
   name: load-context
-  sha256: 6db8d50542d8216613a12cdcc56590810e0973d2bb122ec4fed3a32979022652
+  sha256: ef7e27049daf090ac54938ae5318f6bfd02a5f23fd94e9c789c203e55133ecd6
   status: differs
   ruling: 'Captain, 2026-08-24: "I permit this difference." Two indexes are a Scripture Pipelines
     concept — `docs/ai-context/project-index.md` is the project''s own map and `sp-index.md` is rendered
@@ -102,7 +102,7 @@ files:
     difference is the Captain''s to say.'
 - set: skills
   name: stand-down
-  sha256: be01ff5f74e195b9a43660d4b80aaf203745a5c7c84e111cb6a34dd660128056
+  sha256: 4c966cd4574c42c455e5ff90808bf26216a948fe8e3cf9f2675b63607815b2ac
   status: identical
 helm_only:
 - path: skills/helm-check

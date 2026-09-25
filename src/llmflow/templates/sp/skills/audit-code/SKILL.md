@@ -1,7 +1,7 @@
 ---
 name: audit-code
 description: |
-  **WORKFLOW SKILL** — Audit Python plugins and infrastructure code for structural
+  Audit Python plugins and infrastructure code for structural
   correctness, determinism, and architectural soundness.
   Core focus: verifying plugins are deterministic, that identifier normalization goes
   through canonical helpers (not inline reimplementations), that data contracts are

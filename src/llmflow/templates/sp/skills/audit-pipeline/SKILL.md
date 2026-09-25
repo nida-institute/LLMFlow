@@ -1,7 +1,7 @@
 ---
 name: audit-pipeline
 description: |
-  **WORKFLOW SKILL** — Audit Scripture Pipelines pipeline contracts: identifier matching, field-name consistency, JSON schema coverage, and structured output enforcement.
+  Audit Scripture Pipelines pipeline contracts: identifier matching, field-name consistency, JSON schema coverage, and structured output enforcement.
   USE FOR: finding fields that prompts reference but schemas don't define; finding fields schemas require but plugins don't produce; finding LLM calls missing response_format; tracing identifier lifecycle across pipeline stages; catching additionalProperties:false violations.
   FOUR AUDIT AXES: (1) Identifier audit — which fields are used as match keys across stages, their formats, and where they're produced vs. consumed; (2) Field contract audit — do prompts tell the LLM to read fields that don't exist in the data it receives? (3) Schema coverage audit — are schemas wired to LLM calls with json_schema enforcement? (4) Plugin/schema sync — does plugin output match what the schema requires?
   CRITICAL CHECKS: (1) additionalProperties:false schemas where actual output has unlisted fields (silently dropped or rejected); (2) required fields in schema not produced by the step; (3) LLM calls using json_object or no response_format when a schema exists; (4) identifier format mismatches (same concept, different format strings across stages); (5) late identifier computation (id fields absent in early phases that downstream depends on); (6) parallel array mismatches (arrays that must be index-aligned but can diverge).

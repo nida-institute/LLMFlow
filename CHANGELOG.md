@@ -2,7 +2,49 @@
 
 ## Unreleased
 
+### Added
+
+- **`/stage-commits` stages the outstanding changes and hands over the exact commit command →
+  #253.** Rule `commit-authority` requires an agent to run the gates, write the commit message to
+  a file, and hand over the command rather than committing itself. Nothing implemented that
+  handover, so sessions ended with an assistant listing changed paths in prose and a human
+  retyping them — and the retyping is where the mistakes live, because the paths are long, some
+  are new, and some belong to somebody else.
+
+  The skill stages explicitly named paths, writes each message to a file under `tmp/`, prints
+  `git commit -F <file>`, shows what landed with `git show --stat HEAD`, and deletes the message
+  files by name once the commit exists. It does not commit, push or merge.
+
+  **What it prints is POSIX shell.** A message carrying a quote, a backtick or a `$` behaves
+  differently in `sh`, `bash` and `zsh` when passed inline, so the message goes through a file and
+  quoting stops being part of the problem. `tests/test_stage_commits_is_portable.py` reads the
+  shipped template and refuses `[[ ]]`, `(( ))`, arrays, `+=`, process substitution, `echo -e`,
+  `$'…'` and `&>`, along with `git add -A`, `git commit -m`, and `git push` or `git merge` as
+  instructions — so portability holds by test rather than by attention.
+
+  It groups changes by concern and asks before staging. Nothing in `git status` says whose a
+  change is, and a working tree routinely holds work belonging to someone else; a sweep that takes
+  it commits unreviewed work under the wrong name.
+
+  **It also asks whether the handoff is stale, before staging rather than after.** Three declared
+  signals: the handoff is absent from the set about to be staged while other files are present;
+  the date it declares is older than today; or that date is older than the last commit's. It
+  offers `/handoff` and proceeds either way — a gate that refuses gets routed around, and a
+  one-line fix needs no fresh handoff. The check sits before staging because `/handoff` writes
+  that file, so firing later would leave the rewritten handoff outside the commit. It deliberately
+  does not test the handoff by parsing its in-flight prose: a derived set like that becomes empty
+  when the document changes shape, and the check then passes by vacuum.
+
 ### Changed
+
+- **Skill descriptions no longer open with a type prefix.** Eleven shipped skills opened with
+  `**WORKFLOW SKILL** —`, `**COMMAND SKILL** —`, `**CONTEXT SKILL** —` or `**SESSION SKILL** —`.
+  A description is what an assistant reads to decide whether a skill applies, and the prefix
+  spent words without helping that decision. All eleven now open with what the skill does.
+
+  Installed copies under `~/.sp/skills/` and a project's `.claude/skills/` are refreshed from
+  the templates by `sp init --update`; a project that has not run it still shows the old
+  descriptions.
 
 - **`/load-context` reads the whole AI context and reports a précis of it.** The skill now opens
   every document the indexes name — the shipped half and the project's own — and reports one line

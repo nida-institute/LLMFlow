@@ -1,7 +1,7 @@
 ---
 name: audit-output
 description: |
-  **WORKFLOW SKILL** — Audit pipeline output files against the project's docs/audits/ checklist.
+  Audit pipeline output files against the project's docs/audits/ checklist.
   Covers final outputs AND intermediate outputs. Core focus: detecting where LLMs are freelancing
   (generating from training knowledge instead of from the data they were given) and verifying that
   each step actually leverages the output of prior steps.

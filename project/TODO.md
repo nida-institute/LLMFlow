@@ -7,6 +7,67 @@
 
 ## 🔥 Active
 
+### 🧰 THE NEW GOAL — `/stage-commits`, and it goes first
+
+> **Set by the Captain 2026-09-25.** *"a skill that means 'stage the outstanding commits, and show
+> me the strings needed to commit them.' It should use universal shell syntax, so that it is
+> compatible with .zsh, bash, and any commonly used linux shell."* Named `/stage-commits` the same
+> day. **Placed first**, which was *"perhaps first"* — move it if that is wrong.
+
+**Why first.** This is rule `commit-authority` made mechanical — *"an agent runs the gates, writes
+the commit message to a file, and hands over the exact command."* Nothing implements that today, so
+every session ends with an assistant listing paths in prose and a human retyping them. The session
+that set this goal ended with **15 changed files and 2 new ones** needing exactly that treatment.
+It is small, and it is the only goal whose absence is paid for at the end of every other one.
+
+**The boundary with `commit-ready`, so this is not a second design.** `commit-ready` is the gate —
+issue, TDD, suite, CHANGELOG, message format, Actions, merge. It decides *whether* a commit may
+happen and *what the message must contain*. `/stage-commits` is the mechanism: it stages the paths
+and hands over a runnable command. It **checks nothing** `commit-ready` checks, and points at it
+rather than repeating it.
+
+**Universal shell syntax — what that rules out.** The requirement is real rather than stylistic;
+these differ between `zsh` and `bash` today:
+
+- **`git commit -F <file>`, never `-m "…"`.** A message containing a quote, a backtick or a `$`
+  is the thing that breaks, and it breaks *differently* in each shell. A message file sidesteps
+  quoting entirely, and `commit-authority` already asks for the message to be written to a file.
+- **Quote every path.** `zsh` does not word-split an unquoted variable; `bash` does. An unquoted
+  path with a space behaves differently in each.
+- **`printf`, not `echo -e`** — `echo`'s flag handling is not portable.
+- **No `[[ ]]`, no `(( ))`, no arrays, no `+=`, no process substitution.** POSIX `sh` only, and
+  `#!/bin/sh` on anything emitted as a script.
+
+**The landmines it exists to avoid** — all of them have already happened in this repository:
+
+- **Never `git add -A` or `-a`.** `gui/frontend/node_modules` is tracked, ~8,000 files, and a
+  sweep commits their deletion.
+- **`git add` aborts the entire command on an unmatched pathspec and stages nothing** — but if an
+  earlier `git mv` already staged something, the commit still succeeds carrying a message that
+  describes work it does not contain.
+- **A renamed file needs both halves named**, or history does not follow.
+- **Another party's uncommitted work sits in the same tree.** This session's did. The skill
+  **cannot infer** whose a change is, so it groups and asks rather than guessing.
+- **`git show --stat HEAD` afterwards**, with the file count checked against the intended list.
+
+- [x] **Built 2026-09-25 → #253.** `src/llmflow/templates/sp/skills/stage-commits/SKILL.md`, with
+      `tests/test_stage_commits_is_portable.py` written first and red before it existed —
+      **16 passed** after. The test reads the shipped template and refuses `[[ ]]`, `(( ))`,
+      arrays, `+=`, process substitution, `echo -e`, `$'…'` and `&>`, plus `git add -A`,
+      `git commit -m`, and `git push`/`git merge` as instructions
+- [x] **Ruled: several commits, grouped by concern, and it asks before staging.** Nothing in
+      `git status` says whose a change is, so grouping is presented rather than guessed
+- [x] **Ruled: it does not run `commit-ready`'s gates.** That skill is the gate, this is the
+      mechanism; it points rather than re-checking. `one-design`
+- [x] **Ruled: it writes nothing but message files, all under `./tmp`, deleted by name once the
+      commit exists.** It reports whether the changelog and handoff are in the staged set and
+      points at their owning skills rather than writing either — a third writer would be two
+      encodings of one fact
+- [x] **Ruled: `git show --stat HEAD` once a commit exists**, because "committed" is not evidence
+      that the commit holds what the message claims
+- [ ] **It reaches `~/.sp/skills/` and `.claude/skills/` only via `sp init --update`** — blocked on
+      the same drift as the prefix change, below
+
 ### 🎯 THE GOAL — #246, #247, #248, all for discourse-flow
 
 > **Set by the Captain 2026-09-22.** Three issues, filed this session, and they come before
@@ -29,8 +90,23 @@
       `except Exception`; same defect, different condition, and the Captain's call
 - [ ] **#248 — `--rewind-to` cannot resume a loop.** `append_to` is refused outright
       (`utils/rewind.py:77-88`), which is how every accumulating loop stores results, so a
-      book run that dies in window 8 of 13 restarts at window 1. **Every decision is ruled,
-      D3a included → #248.** The concurrency half is #249's and is unfixed
+      book run that dies in window 8 of 13 restarts at window 1. **D1, D2 and D4 were ruled
+      earlier; D3a was ruled 2026-09-25** — each finished iteration is appended to a temporary
+      TOML while the run is going, and reassembled into the canonical JSON manifest at the end.
+      The durable artifact stays JSON. **The issue is the plan**, ruled 2026-09-25; there is no
+      plan file and none is wanted → #248. The concurrency half is #249's and is unfixed
+  - [x] **Recorded in `CHANGELOG.md`** under Unreleased → Ruled, 2026-09-25, with what it does not
+        settle named beside it. **Ignore the `=>` markers in #248's body** —
+        `write-shared-records-for-outsiders` says that device does not belong in an issue, so an
+        empty one there is not an open question; slots live in `project/open-decisions.md` and
+        `project/plans/`
+  - [ ] **D1's answer was conditional** — *"ideally, we want to resume a partial loop, but if we
+        cannot do that reliably, then we do what is possible."* A per-iteration record is what
+        "reliably" was waiting on, so D3a probably settles D1 in favour of partial resume.
+        **Confirm rather than assume**
+  - [ ] **Appending from several iterations at once is #249's problem, not solved here.** TOML
+        appends cleanly for one writer; parallel iterations appending to one file still need
+        something to stop the writes interleaving
 - [ ] **#249 — `parallel:` is filed and NOT scheduled.** Tested only with `type: function`
       steps, while `telemetry.start_step` is called only from `steps/llm.py` and
       `steps/duckdb.py` — so no test has ever run a telemetry-recording step inside a parallel
@@ -74,9 +150,57 @@ everything else here."* Both are cheap; they are not the same work.
 - [ ] **Design it once with #177's unticked roadmap item** — *"Schema-driven `--show`"*, sitting
       unticked under an issue closed COMPLETED. It needs the same missing capability
 
-### 🤝 Helm adopts sp's idioms, then installs into paratext-copilot
+### 🤝 THE NEW GOAL — refactoring how we work with Human at the Helm
 
-> **The Captain's second priority, 2026-09-19.** *"finish the new helm and install in paratext
+> **Set by the Captain 2026-09-25**, for the next release, alongside the goals above. **Both
+> halves are in scope:** Helm adopting sp's idioms and installing into paratext-copilot — the
+> section below, unchanged — **and how the two repositories share files at all.**
+
+**Why it is a goal and not a tidy-up.** Two incidents in two days, both the same shape — a Helm
+session editing this tree directly:
+
+- **2026-09-23** — three files: the two shared disciplines plus `data/helm-sync.yaml`, leaving
+  `tests/test_helm_sync.py` red. **Resolved:** the content was kept and committed at `473cd80`,
+  and the suite is green — 82 passed, re-run 2026-09-25. The collab note reporting it is
+  `collab/human-at-the-helm/2026-09-23-a-helm-session-left-three-files-changed-here-and-two-tests-red.md`,
+  which is **spent and untracked** — untracked being what the convention that same note
+  introduced forbids
+- **2026-09-24** — seven files: `data/helm-sync.yaml` and six `templates/sp/skills/*/SKILL.md`,
+  stripping the `**WORKFLOW SKILL** —` prefix from each description. **Still in the working
+  tree.** Left in place deliberately so 0.2.1.28 could ship; that release is out, so the reason
+  has expired. Recorded in `project/HANDOFF.md` and in no issue
+
+**Ruled: Helm communicates by collab note in future rather than by editing this tree.**
+
+**The sharing mechanism is the other half of the goal.** Shared files are tracked by sha256 in
+`data/helm-sync.yaml`, so an edit on one side turns the other side's suite red — and so does
+reverting one side alone. Every fix is a twin commit across two repositories, which is why both
+incidents above ended in a tree nobody could clean unilaterally.
+
+- [x] **Ruled 2026-09-25: the prefixes go and stay gone.** The 09-24 change stands rather than
+      being reverted, and the five sp-only skills that still carried one — `audit-code`,
+      `audit-output`, `audit-pipeline`, `audit-prompts`, `release` — were stripped to match.
+      `tests/test_helm_sync.py` **82 passed** afterwards, confirming those five are not shared.
+      Recorded in `CHANGELOG.md`
+- [x] **Helm's files were not touched**, on explicit instruction — sp's only. Two things there now
+      contradict the ruling and were named rather than edited: `.claude/skills/install/SKILL.md`
+      still carries `**COMMAND SKILL** —`, and `project/plans/design-skill-defects.md` D3's slot
+      reads *"Discuss. Need more information."*
+- [x] **Helm told**, in their tree —
+      `collab/sp/2026-09-25-the-prefixes-are-ruled-out-and-sp-has-stripped-its-own.md`
+- [ ] **Issue drafted, not filed** — `tmp/issue-helm-collaboration.md`, for review before posting.
+      #181 is adjacent (`~/.sp` convention drift) and is not the same thing
+- [ ] **Decide what happens to the spent 09-23 collab note** — committed and then deleted, per
+      `plans-are-temporary`, or deleted. The deletion is the Captain's, either way
+- [ ] **`.claude/skills/` and `~/.sp/skills/` still carry the prefixes.** They are installed
+      copies, regenerated from the templates, so they refresh on the next `sp init --update` —
+      **not `sp doctor`, which must not be run here (#210)**. Until then this project's own skill
+      list shows the old descriptions
+
+#### Helm adopts sp's idioms, then installs into paratext-copilot
+
+> **The Captain's second priority, 2026-09-19**, and now the first half of the goal above.
+> *"finish the new helm and install in paratext
 > copilot."* Nothing is built. The design is `human-at-the-helm/project/plans/design-helm-project-layout.md`
 > (R1–R12 ruled, steps 2–5 built) — but several of its §7 steps were **overtaken** by the rulings
 > below, and step 6 as written is now withdrawn. Read these before that document.
@@ -115,6 +239,68 @@ everything else here."* Both are cheap; they are not the same work.
       Captain reviewing that diff first would sweep someone's unreviewed work into the result
 - [ ] `sp doctor` labels the disciplines group **"Conventions"**, the directory's old name. That is
       almost certainly where discourse-flow's stale `~/.sp/conventions/…` pointer came from
+
+### ⚖️ THE NEW GOAL — a dataset announces its terms when it lands
+
+> **Set by the Captain 2026-09-25**, for the next release. *"when sp downloads and registers a
+> dataset, it needs to display the copyright and license strings, reminding the user of his/her
+> obligations, such as attribution, using only for Bible translation purposes, or whatever."*
+> Scoped the same day: *"just print the string to the terminal. perhaps with a requirement for
+> the user to say he/she agrees with the terms before actually registering - if that's feasible,
+> it is a really good additional step."*
+
+**The gap, measured 2026-09-25.** The command that lists what the machine already has shows the
+terms. The two commands that put something new on it — the moments an obligation is incurred —
+say nothing.
+
+| command | terms shown today |
+|---|---|
+| `sp resource list` | a **LICENCE** column — `cli.py:594-599` |
+| `sp resource add` | none. `✅ Registered '<id>' — <path>` and nothing else — `cli.py:625` |
+| `sp dataset download` | none. Calls `fetch(entry, dest=…)` and returns — `cli.py:710-721` |
+| `sp dataset search` | none — `cli.py:665-676` |
+
+**The licence is already carried, so this is display rather than plumbing.** Merged at
+`resources.py:248`, stored in registrations (`REGISTERED_FIELDS`, `:423`), carried into report
+rows at `:693`. Every catalog entry has a `license` — 30 distinct values, including `Restricted`,
+`No license file — ask before redistributing`, `Custom — see http://sblgnt.com/license/` and
+Levinsohn's *"freely distributable, not for sale"*.
+
+**There is no `copyright` field** — 0 occurrences in `data/resources.json`. So "copyright and
+licence strings" is one string today. Adding one is `awesome-biblical-data`'s, and would be the
+third thread now waiting on that repository.
+
+**Ruled 2026-09-25, the Captain agreeing to all three:**
+
+1. **Print the licence at `sp dataset download` and `sp resource add`.**
+2. **The consent gate is on `resource add` only.** Registering is the act that takes the
+   obligation on; `dataset download` prints and proceeds. Downloading a file you then delete is
+   not agreement to anything.
+3. **`--accept-terms` for non-interactive use, and fail closed naming it when there is no TTY.**
+   Blocking breaks every script and CI run; assuming yes makes the gate theatre.
+
+- [ ] Build it. `click` is already the CLI library (`cli_utils.py:10`), so `click.confirm` is the
+      mechanism, and it aborts rather than proceeding when it cannot prompt — fail-closed is the
+      default behaviour rather than something to write
+- [ ] **This adds a prompt to a CLI that just removed four.** `_configure_ai_assistants` is
+      *"non-interactive by design (#204, D4/D5)"* (`cli_utils.py:230-244`) precisely because
+      prompts defaulting to No broke a fresh setup silently. A licence gate has something to
+      protect that the skills prompt did not, which is why it survives the comparison — but it is
+      the same shape, and the reason it differs should be written into the code, not assumed
+- [ ] **Eight catalog entries carry a pointer rather than terms** — `Custom — see <url>`,
+      `See repo`, `See site`, `No license file — see repo`. The gate can require agreement, but
+      what it shows for those is a URL the user has not opened. Worth deciding whether they read
+      differently
+- [x] **Filed as #252**, 2026-09-25, with the body reviewed first. Plan:
+      `project/plans/plan-terms-on-download-and-register.md`, `Status: ruled (2026-09-25)`.
+      Three open decisions in `project/open-decisions.md` §L — L1 blocks the gate, not the printing
+
+> **The larger design exists, is not this goal, and is past its life.**
+> `project/plans/design-source-licensing.md` — Proposed 2026-08-24, nothing built, four of the
+> Captain's rulings verbatim in §3, six open `=>` slots in §8, and a dedicated issue proposed in
+> §9 and never filed. **This goal needs none of the six answers.** At 32 days the document is
+> past the eight-day line and is the only copy of those four rulings, so they move to
+> `CHANGELOG.md` before it goes. The deletion is the Captain's.
 
 ### 🚨 HIGH — there is no type checking, and the suite does not say so
 
@@ -471,21 +657,24 @@ load-bearing, and it was established by fetching `WLC Ruth 1:1`, not by reading 
 - [ ] Parity handling: `hatch run python tools/sync_helm.py --apply`, and the shared copy must
       carry no engine vocabulary — the guard refuses it
 
-### 🚢 0.2.1.28 — merged? tagged? released?
+### 🚢 0.2.1.28 — SHIPPED. Two items did not land and roll forward
 
-> **Title, chosen by the Captain 2026-09-21: "the order is declared once, and lint reads it."**
-> So the PR reads `Release 0.2.1.28 — the order is declared once, and lint reads it`. **Not yet
-> applied:** `gh pr edit` fails with `Resource not accessible by personal access token
-> (updatePullRequest)`, so the retitle is the Captain's to make in the browser, or with a token
-> carrying PR write scope.
+> **Merged and tagged.** PR #236 merged 2026-09-24, `v0.2.1.28` is tagged, and `CHANGELOG.md`
+> carries `## 0.2.1.28 — 2026-09-21`. Verified 2026-09-25 with `gh pr view 236` and
+> `git tag --list "v0.2.1.2*"`.
 >
-> **Scope grew 2026-09-21, at the Captain's direction.** This is no longer only "the bugs a first
-> setup hits": it now carries prompt-grammar enforcement, a prompt behaviour change and replaced
-> examples.
+> **The double-heading hazard this section warned about was fixed before the tag** — the
+> CHANGELOG no longer carries a `2026-09-09` heading beside an `## Unreleased` one.
 >
-> **Before tagging:** the CHANGELOG carries a dated `## 0.2.1.28 — 2026-09-09` heading *and* an
-> `## Unreleased` section above it, so one release would ship as two sections, one dated twelve
-> days early. Fold them or redate before the tag.
+> **The retitle never happened.** The Captain chose "the order is declared once, and lint reads
+> it" on 2026-09-21, `gh pr edit` failed on token scope, and the PR merged under its original
+> title, `Release 0.2.1.28 — the bugs a first setup hits`. That is now permanent history; the
+> only remaining question is whether the CHANGELOG entry should carry the chosen title instead.
+>
+> **#176 and #244 did not ship.** Both are still open. They were listed below as "added to this
+> release, in the order it has to land"; the release went out without them, so they **roll
+> forward to the next release** with the goals at the top of this file. The ordering constraint
+> between them still holds — see the note under them.
 
 **Crucial, and first — #245: a re-run leaves the previous run's intermediates.** The Captain,
 2026-09-21: *"this is crucial."* Every run and every `/audit-output` is affected until it lands,
@@ -500,7 +689,7 @@ tree does not change. `clean_before_run: true|false` with `true` the documented 
 - [x] **#245 — implemented on `dev`, awaiting the merge to `main`.** The `--rewind-to` guard
       was written first; `tests/test_run_manifest.py`, 14 tests
 
-**Prompt work added to this release, in the order it has to land:**
+**Prompt work, rolled forward to the next release, in the order it has to land:**
 
 - [ ] **#176 — strip YAML frontmatter before the LLM call.** A **behaviour change**: the whole
       `.gpt` file reaches the model today, frontmatter included (`steps/llm.py:220` → `307`; the
@@ -525,9 +714,7 @@ tree does not change. `clean_before_run: true|false` with `true` the documented 
 > a new user's first lint warns about the example we gave them. #244 and the check ship together,
 > or the check waits.
 
-- [ ] **PR #236** — `dev` → `main`, **18 commits** as of 2026-09-21 and growing (`dev` is 14
-      further commits ahead, unpushed), `MERGEABLE`. Merge with a **merge commit**, tag the merge
-      commit, watch all five `release.yml` jobs
+- [x] **PR #236 merged 2026-09-24** — `dev` → `main`, and `v0.2.1.28` tagged
 - [x] Artifacts **expired 16–17 September** — past, so the build re-runs on this release whatever
       else changes
 - [ ] `data/models.json` was held back because committing it "restarts a two-hour build". **That

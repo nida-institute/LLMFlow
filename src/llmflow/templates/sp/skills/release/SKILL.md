@@ -1,7 +1,7 @@
 ---
 name: release
 description: |
-  **WORKFLOW SKILL** — Execute Scripture Pipelines release process with mandatory build verification.
+  Execute Scripture Pipelines release process with mandatory build verification.
   USE FOR: cutting new releases; tagging versions; verifying Nuitka builds actually succeeded on all platforms.
   CRITICAL: NEVER claim "build succeeded" without running verification commands. Check GitHub Actions logs directly.
   DO NOT USE FOR: hotfixes without full verification; skipping build checks; assuming success.

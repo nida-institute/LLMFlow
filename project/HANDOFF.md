@@ -1,183 +1,211 @@
-# HANDOFF — 2026-09-24
+# HANDOFF — 2026-09-25
 
 ## ▶ NEXT ACTION
 
-**The live work is in another repository: `~/github/nida-institute/sil-translator-notes`.**
-Six files are uncommitted there, **no commit message is drafted**, and Paul needs that repo
-working for the Captain's 4 p.m. meeting (stated 2026-09-23 as *"we meet at 4 p.m."*, so
-2026-09-24 unless he says otherwise).
+**Commit this session's work. Nothing here is committed, and it spans two repositories.**
 
-First act: **draft the commit message into `sil-translator-notes/tmp/`, show it, and hand the
-Captain the command.** The commit is his — `commit-authority`.
+The commit is the Captain's (`commit-authority`). The files are listed under **In flight** below,
+grouped by what they are. One group is *not* this session's and must not be swept in: the
+pre-existing modifications listed as "the Captain's".
 
-```zsh
-git -C ~/github/nida-institute/sil-translator-notes status --short --branch
-hatch run sp lint --pipeline pipelines/translators-notes.yaml      # run from that repo
-```
-
-**`~/github/nida-institute/LLMFlow` is clean of this session's work** — nothing to finish here.
-Its queue is `project/TODO.md`; do not read the queue out of this file.
+**Then:** `project/TODO.md` holds the queue and its order. Do not read the queue out of this file.
 
 ---
 
 ## Active threads
 
-### 1 — sil-translator-notes AI context (LIVE, uncommitted)
+### 1 — three new release goals were set and recorded (DONE, uncommitted)
 
-**Goal:** a new contributor on his own Mac can clone, set up and lint without hand-carried state.
+**Goal.** The next release carries the existing goals plus three new ones, all set 2026-09-25.
 
-**State:** done and **unverified by anyone but this session**. Six files, branch `dev`, **1 ahead
-of `origin/dev` before these changes**:
+- **`/stage-commits`** — a skill that stages the outstanding changes and hands over the runnable
+  commit command, in POSIX shell syntax. **Placed first in `project/TODO.md`**, which was "perhaps
+  first" — the position is the Captain's to confirm. No issue, no plan file. It is rule
+  `commit-authority` made mechanical, and its boundary with `commit-ready` (gate, not mechanism) is
+  stated in the task list so the two do not become one design in two files.
 
-```
- M docs/ai-context/project/index.md
- M docs/ai-context/project/overview.md
- M docs/ai-context/project/rules.md
- M prompts/render-notes.gpt
- M prompts/translators-notes.gpt
-?? CHANGELOG.md
-```
+**State.** Recorded in `project/TODO.md`. One is filed as an issue; one is drafted and not filed.
 
-**Verify:** `hatch run sp lint --pipeline pipelines/translators-notes.yaml` from that repo →
-`✅ Pipeline OK`, nine checks. It was **RED before this session** with two `optional:` errors.
+- **Refactoring collaboration with Human at the Helm** — both halves in scope: Helm adopting sp's
+  idioms and installing into paratext-copilot, *and* how the two repositories share files at all.
+  Issue **drafted, not filed**: `tmp/issue-helm-collaboration.md`.
+- **A dataset announces its terms when it lands** — filed as **#252**. Plan:
+  `project/plans/plan-terms-on-download-and-register.md`, `Status: ruled (2026-09-25)`. Open
+  decisions in `project/open-decisions.md` §L.
 
-**Next step:** commit message, then the Captain commits. Nothing is staged.
+**Verify.** `gh issue view 252`; `git status --short -- project/ CHANGELOG.md`.
 
-### 2 — this repository's commits this session (DONE, pushed)
+### 2 — the skill-type prefixes are ruled out and sp's are stripped (DONE, uncommitted)
 
-`6bf029c` (a moderation block is not retried) and `473cd80` (two rulings reach the shared
-disciplines). **Both pushed** — `dev` is level with `origin/dev`.
+**Goal.** Settle the 2026-09-24 Helm change that stripped `**WORKFLOW SKILL** —` from six shared
+skill descriptions and was left in the working tree pending a ruling.
 
-**Verify:** `git -C ~/github/nida-institute/LLMFlow log --oneline -3`.
+**State.** Ruled 2026-09-25: the prefixes go and stay gone. The 09-24 change **stands rather than
+being reverted**. Five sp-only skills that still carried one were stripped to match —
+`audit-code`, `audit-output`, `audit-pipeline`, `audit-prompts`, `release`.
 
-**`tmp/commit-moderation-retry.md` and `tmp/commit-shared-disciplines.md` are SPENT.** They
-describe commits already made and pushed. Do not run them. Delete when the Captain says.
+**Helm's files were not touched**, on explicit instruction. Two things there now contradict the
+ruling and were named rather than edited: `.claude/skills/install/SKILL.md` still carries
+`**COMMAND SKILL** —`, and `project/plans/design-skill-defects.md` D3's slot reads
+*"Discuss. Need more information."*
 
-### 3 — the Helm twin commit (BLOCKED on the Captain, leaves the suite RED)
+**Verify.** `grep -rn "SKILL\*\* —" src/llmflow/templates/sp/skills/` returns nothing.
+`hatch run pytest tests/test_helm_sync.py -q -p no:randomly` → **82 passed** (run 2026-09-25,
+after the change).
 
-`473cd80` deliberately left `tests/test_helm_sync.py` red: this repo's
-`templates/sp/disciplines/{project-tracking,surface-decisions}.md` carry text the Helm copies do
-not. The remedy is two file copies into
-`~/github/nida-institute/human-at-the-helm/disciplines/` and a twin commit there.
-`data/helm-sync.yaml` already carries the correct hashes — nothing needs recomputing.
+**⚠️ `.claude/skills/` and `~/.sp/skills/` still carry the prefixes.** They are installed copies,
+regenerated from the templates, so they refresh on the next `sp init --update` — **not
+`sp doctor`, which must not be run here (#210)**.
 
-**Verify:** `hatch run pytest tests/test_helm_sync.py -q -p no:randomly` → expect **2 failed, 80
-passed**, both `test_the_two_sides_agree_where_the_record_says_they_do`.
+### 3 — Helm has been told, in their tree (DONE, untracked there)
 
-**Do not do this unasked** — that tree was on `main`, 3 ahead unpushed, with two files dirty
-under a session that may still be live.
+`~/github/nida-institute/human-at-the-helm/collab/sp/2026-09-25-the-prefixes-are-ruled-out-and-sp-has-stripped-its-own.md`
 
-### 4 — Helm edited this tree unasked; the change is KEPT on purpose, and a revert is owed
+Written into the recipient's tree per `plans-are-temporary`. **It is untracked in that
+repository** and that repository has its own uncommitted state — see **Do NOT**.
 
-At 12:21 on 2026-09-24 a Human at the Helm session modified seven files here without being
-asked — `data/helm-sync.yaml` and six `src/llmflow/templates/sp/skills/*/SKILL.md` — stripping
-the `**WORKFLOW SKILL** —` / `**CONTEXT SKILL** —` prefix from each description and rewriting the
-sync hashes to match. It made the same change on its own side.
+### 4 — `project/open-decisions.md` is new here (DONE, uncommitted)
 
-**Ruled 2026-09-24: revert it, and Helm communicates by collab note in future, not by editing
-this tree.** Reverting our side alone was tried and **breaks the build** — Helm's copies are
-already stripped, so our reverted files disagree with theirs and `test_helm_sync` fails ×4, which
-CI runs. So the change is **deliberately left in place** to ship 0.2.1.28, and the revert is owed
-afterwards, on both sides together.
+The `=>` convention now has a named home in this repository, following
+`nida-institute/discourse-flow`. Adapted: answers move to `CHANGELOG.md` or
+`docs/ai-context/project/rules.md`, this project's two declared homes, because there is no
+`project/rulings.md` here.
 
-**So these seven modified files are neither the Captain's nor an assistant's** — do not revert
-them as strays, and do not commit them as though they were reviewed.
-
-- The full change is saved at `tmp/helm-rogue-edits-2026-09-24.diff` (124 lines). It exists in no
-  commit on this side, so that file is the only copy — **do not delete it.**
-- Helm's tree is on `main`, **5 ahead unpushed**, with `manifest.yaml` and
-  `.claude/skills/install/SKILL.md` staged and two skills staged *and* modified. An incautious
-  restore there destroys staged work. Reverting Helm's side is the Captain's act.
-- Whether stripping the prefixes is a good change is a separate question from Helm having made it
-  here unasked, and is not settled.
-
-**Verify:** `hatch run pytest tests/test_helm_sync.py -q -p no:randomly` → **82 passed**. If it
-reports 4 failures, someone has reverted one side without the other.
-
-### 5 — #248 research (PAUSED mid-design, findings recorded nowhere else)
-
-Priorities changed before a design document was written. **No code was written and no plan file
-exists.** Two findings from reading the code are in no issue and no document — they are here or
-they are lost:
-
-- **D1 is two questions, not one.** `for-each` and fixed/token/condition windows compute the
-  partition *before* iterating (`steps/window.py:413-426`, `steps/for_each.py:308`), so
-  set-based resume by index works. A **dynamic window** (`!window_advance`) sets
-  `start = cursor` from the previous window's model output (`steps/window.py:348-364`), so
-  iteration N has no definition until N−1 ran: resume is prefix-based and **needs the cursor
-  recorded**, which #248 never mentions. The engine's own worked example of `!window_advance` is
-  discourse-flow's shape, so this is likely the case that loses the work —
-  `grep -n "window_advance" -r ~/github/nida-institute/discourse-flow/pipelines/` settles it.
-- **A rewound run overwrites the manifest with less than it knows.** `run_manifest.is_enabled`
-  correctly skips the *clean* under `--rewind-to` (`utils/run_manifest.py:116`), but `write`
-  still runs unconditionally in the runner's `finally` (`runner.py:755-756`) from
-  `WRITTEN_FILES`, which holds only this invocation's writes. **A resumed run must merge, not
-  replace** — a change to #245's writer, not an addition beside it.
-- Minor: `_rewind_complete` is one flag (`utils/rewind.py:127-128`), so lifting the `append_to`
-  guard alone gives one replayed iteration and N−1 live ones, silently.
+**Open, and not decided:** `project/plans/design-decisions-awaiting-ruling.md` (2026-09-02) already
+does part of the same job. Two files for one purpose is the drift this repository has been burned
+by; consolidating them is the Captain's call and was deliberately not done while adding the second.
 
 ---
 
-## Decisions settled 2026-09-24 — do not reopen
+## In flight, and whose
 
-- **`optional: []` deleted from two sil-translator-notes prompts**, on the Captain's explicit
-  *"delete them"*. Both lists were empty, so no name moved to `requires:`.
-- **`sil-translator-notes/docs/ai-context/project/rules.md` cut to three local rules.** Rules 3–8
-  duplicated `sp/rules.md`; rule 9 ("Additive over destructive") was the retired
-  `additive-to-authored`, replaced by `one-design` on 2026-08-24. The *why* is recorded in that
-  repo's new `CHANGELOG.md`, not here.
-- **`sil-translator-notes/CHANGELOG.md` was created beyond the declared scope**, on his
-  *"record rulings in a more permanent place and delete them"*. That repo had no changelog, and
-  `project-tracking.md` requires one before anything is deleted.
+Branch `dev`, level with `origin/dev` at `3dbb55b`. **Nothing from this session is committed.**
 
-## Open, and the Captain's
+| | |
+|---|---|
+| **this session's, new** | `project/open-decisions.md`, `project/plans/plan-terms-on-download-and-register.md` |
+| **this session's, modified** | `project/TODO.md`, `CHANGELOG.md`, `project/plans/README.md` (regenerated), 5 × `src/llmflow/templates/sp/skills/{audit-code,audit-output,audit-pipeline,audit-prompts,release}/SKILL.md` |
+| **ruled in this session, changed on 2026-09-24** | `data/helm-sync.yaml`, 6 × `src/llmflow/templates/sp/skills/{authorize,commit-ready,handoff,health-check,load-context,stand-down}/SKILL.md` |
+| **the Captain's, pre-existing — do not sweep in** | `data/models.json`, `docs/ai-context/project/data-sources.md`, `docs/ai-context/sp/github-workflow.md` and its template twin |
+| **gitignored drafts** | `tmp/issue-helm-collaboration.md` (unfiled), `tmp/issue-licence-display.md` (filed as #252), `tmp/helm-rogue-edits-2026-09-24.diff` |
+| **another repository** | `human-at-the-helm/collab/sp/2026-09-25-…md`, untracked |
 
-- **Keep `sil-translator-notes/CHANGELOG.md`?** Created outside the scope he signed off; offered
-  for deletion, not answered.
-- **`sil-translator-notes/HANDOFF.md` (repo root) carries all three stale facts just fixed** —
-  `requires:`/`optional:` at line 439, `~/.sp/editions/` at 487 and 523, the patched fork at 445
-  and 525. Out of the scope he gave; flagged, not fixed.
-- **His `~/.sp/registrations/BSB.yaml` still points at the patched fork** —
-  `base_dir: /Users/jonathan/github/usfm-bible`. Machine state, not repository content.
-  `sp resource set BSB`, or delete and `sp resource add BSB`.
-- **An API-key line for the setup section** — drafted in conversation, not written.
-- **#248 scope** — both loop kinds or only the dynamic window; plan file or a comment on #248.
-- **`~/.claude/settings.json` is modified and unreviewed.** `cgit diff -- settings.json` shows one
-  line removed: `Write(//Users/jonathan/.claude/projects/**)`. Report it; do not commit it.
+**`project/plans/README.md` is generated.** Adding a plan document without regenerating it turns
+`tests/test_plan_docs_index.py` red — it did, and was fixed with
+`hatch run python tools/update_plans_index.py`.
+
+**`docs/ai-context/project/data-sources.md:48` still breaks CI if committed unchanged.** Run
+`hatch run pytest tests/test_product_name_in_prose.py` for the line rather than reproducing it —
+quoting it re-trips the guard.
+
+---
+
+## Decisions
+
+### Settled 2026-09-25 — do not reopen. All are in `CHANGELOG.md` → Unreleased → Ruled
+
+- **#248 D3a** — append each finished iteration to a temporary TOML during the run, reassemble
+  into the canonical JSON manifest at the end. *Not settled by it:* whether partial-loop resume is
+  now reliable (the earlier answer was conditional), and concurrent appends, which are #249's.
+- **The issue is the plan for #248** — no plan file, and none is wanted.
+- **#252's three rulings** — print at both commands; gate `resource add` only; `--accept-terms`
+  with fail-closed on no TTY.
+- **The skill-type prefixes go and stay gone.**
+- **`=>` slots live in `project/open-decisions.md` and `project/plans/`, never in a GitHub issue.**
+  An empty `=>` in an issue is a convention that travelled by mistake, not an open question.
+### ⚠️ One instruction could not be carried out as given
+
+**The rulings were to go into `CHANGELOG.md` for a permanent home. Three guards refused them**, and
+the refusal is correct rather than a bug to work around:
+
+- `### Ruled` is not in the allowed section set — `tests/test_changelog_is_not_a_transcript.py:22`
+  permits only Added, Changed, Deprecated, Removed, Fixed, Security, New Features, Test Coverage,
+  Documentation.
+- The verbatim quotes are first-person, and the guard forbids `I`, `we`, `our` **with no exemption
+  for quotation** (`:27-32`).
+- "in conversation" is banned as session commentary (`:37`).
+
+So only the prefix removal went in, under `### Changed`, where it belongs as a real change.
+
+**This is a genuine collision between two of this project's own rules**, not a mistake to route
+around: `plans-are-temporary` says a ruling lives in `CHANGELOG.md`, and
+`test_changelog_is_not_a_transcript` says the changelog carries changes written for an outsider.
+An unimplemented ruling is neither. **The Captain's call**, and the cheapest options are adding
+`Ruled` to that test's `SECTIONS`, or naming a different durable home.
+
+**Nothing was lost meanwhile.** The four 2026-08-24 rulings are still in
+`project/plans/design-source-licensing.md`, which is therefore **not yet safe to delete** — that
+document remains their only copy.
+
+### Open, and awaiting the Captain
+
+1. **File the Helm collaboration issue?** Draft at `tmp/issue-helm-collaboration.md`.
+2. **The spent 2026-09-23 collab note** — `collab/human-at-the-helm/2026-09-23-…md` is resolved and
+   **untracked**, which the convention it introduced forbids. Commit then delete, or delete?
+3. **Where unimplemented rulings live** — see the collision above. Until it is settled,
+   `design-source-licensing.md` holds the only copy of four rulings and **must not be deleted**.
+6. **The installed-copy drift** — commit or stash `docs/ai-context/sp/github-workflow.md`, then
+   `sp init --update`. One test is red until then.
+4. **`open-decisions.md` §L** — L1 (what agreement means when a licence is a URL) blocks the gate
+   but not the printing; L2 and L3 block nothing.
+5. **The CHANGELOG entry for 0.2.1.28** — PR #236 merged 2026-09-24 under its *original* title,
+   `Release 0.2.1.28 — the bugs a first setup hits`; the chosen retitle never applied. Whether the
+   CHANGELOG carries the chosen title is open.
+
+---
 
 ## Do NOT
 
-- **Do not `git add -A` here** — `gui/frontend/node_modules` is tracked, ~8,000 deletions.
-- **Do not run `sp doctor` here** — #210. Safe in consumer projects.
+- **Do not `git add -A`** — `gui/frontend/node_modules` is tracked, ~8,000 deletions.
+- **Do not run `sp doctor` here** — #210.
 - **Do not hand-edit `docs/ai-context/sp/rules.md`** — regenerated from `data/ai-rules.yaml`.
-- **Do not run the two `tmp/commit-*.md` messages** — already committed and pushed.
-- **Do not start Helm work in this tree** — two sessions collide on `tmp/pytest` and one git index.
-- **Looks like a next step but is not:** building #248. Every decision in the issue is ruled, but
-  no plan file exists and no scope is signed off. Thread 4 above is research, not authorization.
+- **Do not hand-edit `.claude/skills/` or `~/.sp/skills/`** — installed copies; fix the template.
+- **Do not edit anything in `human-at-the-helm`** beyond the collab note already written. That tree
+  was on `main`, 5 ahead unpushed, with staged work; an incautious restore there destroys it.
+- **Do not delete `tmp/`** — it holds the unfiled Helm issue draft and the only copy of the 09-24
+  diff, and it is gitignored.
+- **Looks like a next step but is not:** pruning `project/TODO.md`'s #204 section. It still lists
+  two prompt defects as live — the silent non-TTY return and "defaults to No" — which
+  `cli_utils.py:230-244` shows were fixed. Flagged twice this session and deliberately not edited;
+  it is a separate change.
+- **Also not a next step:** building #252. The printing half is unblocked, but no test is written
+  and `plans-first` wants the failing test first.
 
-## Known-failing here — 2, and **neither blocks CI**
+## Known-failing
 
-**Verify:** `hatch run pytest tests/ -q --tb=short -m "not integration" -p no:randomly` — CI's
-exact command → **2 failed, 5729 passed, 24 skipped, 28 deselected**.
+**Verify:** `hatch run pytest tests/ -q --tb=line -m "not integration" -p no:randomly` →
+**6 failed, 5728 passed, 25 skipped** on 2026-09-25 (2m35s). Three of those six were fixed
+immediately afterwards, so **the expected state is 3 failed**:
 
-- `test_product_name_in_prose` — **working tree only, and it will break CI if committed as is.**
-  The single offence is `docs/ai-context/project/data-sources.md:48`, an uncommitted edit that is
-  not this session's. HEAD is clean: the committed copy of that file contains no such reference.
-  The fix is one phrase — the possessive product name in front of `data/resources.json` should
-  read Scripture Pipelines. Paths and URLs are exempt from that rule; prose is not. Run the test
-  itself for the exact line, rather than reproducing it here, since quoting it re-trips the guard.
-- `test_resource_provisioning` — `skipif` on the catalog's home repository being present, so it
-  **skips in CI** and fails only on a machine that has that clone.
+- `test_product_name_in_prose` — working tree only, from the Captain's uncommitted
+  `docs/ai-context/project/data-sources.md`. The committed copy is clean.
+- `test_resource_provisioning` — `skipif` on a local clone being present, so it skips in CI.
+- **`test_prompt_structure_single_source::test_an_installed_copy_has_not_drifted_from_the_template`
+  — NEW, caused by this session, and BLOCKED on a decision.** See below.
 
-Fixed this session and now passing: `test_types::test_pyright_src_passes` (the build blocker),
-`test_plan_docs_index::test_document_names_its_issue` ×2, `test_helm_sync` ×2,
-`test_changelog_is_not_a_transcript` ×3. `tests/integration/test_mcp_batch_calls.py` is network
-and is deselected in CI.
+Also green after the fixes: `tests/test_changelog_is_not_a_transcript.py` **7 passed**,
+`tests/test_helm_sync.py` **82 passed**, `tests/test_plan_docs_index.py` +
+`tests/test_record_closure_claims.py` **176 passed, 15 skipped**.
+
+### The installed-copy drift, and why it was not fixed
+
+Stripping the prefix from the five sp-only skill templates left `.claude/skills/*/SKILL.md` behind.
+The test names the remedy itself: *"Run `sp init --update` or `sp doctor` to refresh it; editing it
+in place is lost on the next run."*
+
+**Neither was run, deliberately.** `sp doctor` must not be run here (#210). And `sp init --update`
+rewrites any file carrying the `<!-- Generated by sp init -->` marker — which includes
+`docs/ai-context/sp/github-workflow.md`, currently modified in the working tree and **not this
+session's**. Running it would silently revert that work.
+
+**The unblock is the Captain's:** commit or stash `docs/ai-context/sp/github-workflow.md`, then run
+`sp init --update`. Hand-editing `.claude/skills/` is not the fix — it is what the test exists to
+catch.
 
 ## Key files & links
 
-- `project/TODO.md` — the queue and its order. **The four current goals live there.**
-- `~/github/nida-institute/sil-translator-notes` — thread 1, the live work.
-- Issues **#248** (researched, undesigned), **#249**, **#243** (queued next). **#236** is the
-  release PR — 0.2.1.28 is unreleased, which is why a consumer on PyPI gets 0.2.1.27 and lacks
-  `docs/ai-context/sp/command-line.md` and the `health-check` skill.
+- `project/TODO.md` — the queue and its order.
+- `project/open-decisions.md` — `=>` slots. Only the Captain writes after one.
+- `project/plans/plan-terms-on-download-and-register.md` — #252's plan.
+- `tmp/issue-helm-collaboration.md` — drafted, unfiled.
+- Issues **#252** (new), **#248**, **#249**, **#245**, **#201**, **#181**, **#204**.

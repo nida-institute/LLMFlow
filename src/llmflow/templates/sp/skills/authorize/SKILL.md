@@ -1,7 +1,7 @@
 ---
 name: authorize
 description: |
-  **WORKFLOW SKILL** — Authorization workflow. Declare scope before touching any file.
+  Authorization workflow. Declare scope before touching any file.
   Verify authorization, state exactly what will change and what will not, and
   get Captain sign-off before implementation begins.
   USE FOR: before starting any non-trivial task; before touching a file that wasn't

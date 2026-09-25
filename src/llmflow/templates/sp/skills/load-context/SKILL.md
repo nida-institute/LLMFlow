@@ -1,7 +1,7 @@
 ---
 name: load-context
 description: |
-  **CONTEXT SKILL** — Orient the AI assistant for the current project.
+  Orient the AI assistant for the current project.
   Reads CLAUDE.md, the docs/ai-context indexes, rules.md and overview.md to establish
   collaboration model, topic-to-file map, key rules, and common pitfalls.
   USE FOR: starting a new session; switching to an unfamiliar project or subsystem;

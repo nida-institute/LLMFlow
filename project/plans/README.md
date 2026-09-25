@@ -64,9 +64,10 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-scripture-pipelines-articles.md](plan-scripture-pipelines-articles.md) | Proposed — not built. A documentation plan; no articles from it have been written. | — |
 | [plan-scripture-step.md](plan-scripture-step.md) | Proposed, 2026-08-26. Targeted at the next release (ruled 2026-08-26). Nothing | #109 #110 #200 #203 #212 |
 | [plan-skills-convention-json.md](plan-skills-convention-json.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | #163 #164 |
+| [plan-terms-on-download-and-register.md](plan-terms-on-download-and-register.md) | ruled (2026-09-25). Three decisions are the Captain's and are recorded in §2. | #204 |
 | [plan-verse-range-set-ops.md](plan-verse-range-set-ops.md) | Approved 2026-08-17 — authoritative for the implementation (names, signatures, | — |
 | [plan-window-semantics.md](plan-window-semantics.md) | complete, 2026-08-21. Items 1 and 3 landed; item 2's two decisions were ruled and | #175 |
 | [plan-window-token-defects.md](plan-window-token-defects.md) | ruled (2026-09-22) → #246. Defect 2 ruled A by the Captain; the other two need no ruling. | #246 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-61 documents.
+62 documents.

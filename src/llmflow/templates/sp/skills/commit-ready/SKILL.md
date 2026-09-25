@@ -1,7 +1,7 @@
 ---
 name: commit-ready
 description: |
-  **WORKFLOW SKILL** — Gate every commit/merge against this project's full definition of done:
+  Gate every commit/merge against this project's full definition of done:
   design or audit doc posted to a GH issue, TDD tests written and passing, full pytest suite
   clean, the GUI's TypeScript suite clean when the change touches gui/frontend, CHANGELOG
   updated, commit message properly formatted with issue refs and version bump,

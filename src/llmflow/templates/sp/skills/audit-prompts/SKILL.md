@@ -1,7 +1,7 @@
 ---
 name: audit-prompts
 description: |
-  **WORKFLOW SKILL** — Audit Scripture Pipelines prompt files (.gpt) AND pipeline files (.yaml) for organization, sprawl, convention compliance, and CRITICAL: input data grounding, example diversity, AI-generated examples, JSON output format, and structured outputs usage.
+  Audit Scripture Pipelines prompt files (.gpt) AND pipeline files (.yaml) for organization, sprawl, convention compliance, and CRITICAL: input data grounding, example diversity, AI-generated examples, JSON output format, and structured outputs usage.
   USE FOR: checking prompt structure; identifying sprawl (line count, header count); validating section hierarchy;
   comparing against prompt-organization-convention.md; finding scattered examples; detecting inconsistent heading levels;
   auditing pipelines for missing response_format on JSON steps.
