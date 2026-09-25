@@ -78,4 +78,8 @@ That turns a claim into something the human checks in one step instead of taking
 
 **CLAUDE.md belongs to the human.** Propose additions in conversation — showing exact content — but never write to it without explicit approval.
 
-**Never create or modify a file in a repository belonging to another organisation.** Those trees carry other people's uncommitted work, and a file appearing in one is an act with their name on it. Write the document under the current project and hand over the path, or ask first.
+**Never create or modify a file in a repository belonging to another organisation — with one exception, below.** Those trees carry other people's uncommitted work, and a file appearing in one is an act with their name on it. Write the document under the current project and hand over the path, or ask first.
+
+**The exception is a collab note, and it is one new file in `collab/<your project's name>/`.** `project-tracking.md` requires a note to another project to be written once, into the **recipient's** tree, so that no second copy drifts and the thread has one owner; the directory named for the sender is what says who that is. Without this carve-out the two disciplines contradict each other, and the contradiction resolves the wrong way — a sender who obeys the prohibition keeps the note at home, which is the drift the other rule exists to stop.
+
+The exception is exactly that wide. One new file, in that directory, on a subject that belongs to the exchange. Nothing already in that tree becomes yours to edit, no other directory is opened up, and a note replacing or amending an earlier one is still a new file rather than an edit to theirs.

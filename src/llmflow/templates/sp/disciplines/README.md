@@ -8,6 +8,17 @@ holds in any repository in any language; they are the ones shared with Human at 
 pipeline YAML — and stay here. A discipline that mixes the two gets split rather than filed
 under whichever half is larger; that is what `sp-workflow.md` and `workflow.md` are.
 
+**The general ones are shared files, and editing one is a two-repository change.** Scripture
+Pipelines is upstream and Human at the Helm carries the same copies, byte for byte unless a
+recorded ruling permits a difference. Which files, and the fingerprint of each, are declared in
+`data/helm-sync.yaml` in the Scripture Pipelines repository. Change a shared file on one side only
+and the parity suite goes red on both.
+
+The sequence is: edit here, make the same edit in Helm, run `tools/sync_helm.py` until it reports
+the file as `same`, and only then run it with `--apply` to refresh the record. Refreshing before
+the two copies match records them as identical when they are not, which is a defect rather than a
+shortcut.
+
 ---
 
 ## General Disciplines
