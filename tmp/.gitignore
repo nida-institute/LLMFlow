@@ -14,3 +14,8 @@
 
 # Release tracking files, kept from the previous version of this ignore list.
 !release-*.md
+
+# The index of what survives a sweep here, and why. Tracked deliberately: nothing else in this
+# directory is recoverable once deleted, so an untracked index would be exactly as losable as the
+# files it exists to justify. Added 2026-09-26 after a review that deleted ~30 spent files.
+!index.md

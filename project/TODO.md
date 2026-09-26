@@ -7,7 +7,100 @@
 
 ## 🔥 Active
 
-### 🧰 THE NEW GOAL — `/stage-commits`, and it goes first
+### 📖 FIRST — finish the examples
+
+> **Set by the Captain 2026-09-26:** *"let's finish the examples first, then put that second on our
+> todo list."* This goes ahead of everything below it, including the 2026-09-22 line that put
+> #246–#248 before everything else.
+
+The work order is `project/plans/plan-starter-example-commentary.md`, `proposed (2026-09-25)` with
+seven rulings in §2 and D1–D3 answered. → #244
+
+**Two pieces. #176 was listed here and is not a dependency** — corrected 2026-09-26 against
+`steps/llm.py`: `body` at line 88 feeds the contract check and is discarded, the whole file reaches
+the model (157 → 232 → 310), so #176 changes what the model sees and nothing about the pipeline
+YAML or how a `.gpt` is authored. It gates #255 instead; see that section.
+
+- [ ] **The Parallel Passages step → #258**, filed 2026-09-26. Ruling 7 makes the commentary step
+      *require* this input, so the example cannot be finished without it. Four open questions in
+      the issue; D4 in the plan (does the OT half ship at word level) is the first of them and
+      does **not** block, because the example is Greek
+- [ ] **#244 — the example itself.** Two genres, four steps, three of which call no model. D3 drops
+      `hello.gpt` / `hello.yaml`, which costs four catalog rows, four `policy: example` template
+      twins, `docs/tutorial.md` and `docs/ai-context/sp/command-line.md`
+- [ ] `sp lint`'s prompt-conformance check ships with the new example or waits for it — the
+      ordering constraint recorded under 0.2.1.28 below, unchanged
+
+### 🔁 SECOND — #255, `sp tools replay` cannot align multi-line variables
+
+> **Placed second by the Captain 2026-09-26**, behind the examples.
+
+**Nothing is implemented.** Verified 2026-09-26: the line-count refusal is present on `dev`,
+`origin/dev` and `main` at `src/llmflow/tools/replay.py:50`, and none of the three affected files
+has working-tree changes.
+
+- [ ] `recover_var_map` aligns on variable sites rather than line counts
+      (`src/llmflow/tools/replay.py:38-53`)
+- [ ] **`tests/test_tools_replay.py:60` asserts the current behaviour** —
+      `test_line_count_mismatch_raises` changes with the fix; this is not a pure addition
+- [ ] A test covers a capture whose values render across several lines. None does today
+- [ ] The caveat list in the **template** is corrected —
+      `src/llmflow/templates/project/docs/ai-context/sp/audits-pattern.md:286` still presents the
+      limitation as intended behaviour, and the rendered copy is overwritten
+- [ ] The frontmatter `schema:` requirement (`replay.py:294`) is resolved or explicitly deferred to
+      #243 Part 3 in the error message
+
+> **#176 lands on this, and neither issue says so.** Replay aligns the `.gpt` file against a
+> captured request. If #176 strips the frontmatter at render time, the capture
+> (`steps/llm.py:232`) shortens while `--prompt` is still the whole file, so every replay
+> mismatches by the frontmatter's length and the fix must strip the header from `--prompt` too. If
+> #176 strips only at the call site, captures are unaffected. Which it is, is open inside #176.
+> Settle that before building the alignment, or build it to strip either way.
+
+### 🔤 THIRD — the three variable mechanisms: CLI tests, lint tests, and documentation
+
+> **Set by the Captain 2026-09-26:** *"we need cli-level tests to ensure all three mechanisms work
+> … we need to make sure this is well documented in the ai context … the tests should also cover
+> lint."*
+
+**The three mechanisms, each measured 2026-09-26:**
+
+1. **A `--var` reaches steps without being declared anywhere.** The value enters the *context*;
+   `variables:` is one contributor to it, not a gate. Measured: `r.variables` stayed
+   `{'output_dir': 'outputs'}` while `step.content` resolved to `MRK 1:6`.
+2. **A self-referential declaration, `passage: "${passage}"`.** Functionally inert — the `--var`
+   value replaces it. With no `--var` it leaves the literal `${passage}` in place.
+3. **Derived variables inside `variables:`**, resolved transitively before any step runs.
+   `derived: "ref=${passage}"` became `ref=MRK 1:6`.
+
+**Existing coverage, checked rather than assumed:**
+
+- `tests/test_linter_variable_validation.py:585` `test_var_supplied_variables_are_available` — 1,
+  at lint level only
+- `tests/test_resolve_derived_variables.py` — 3
+- **2 has no test anywhere**, and appears in `pipelines/storyflow-psalms.yaml` and the complete
+  example in `docs/llmflow-language.md` unexplained
+- **nothing exercises any of the three through the CLI** — `main(["run", …])` — so no test proves
+  a `--var` reaches a step's written output end to end
+
+- [ ] CLI-level tests for all three, through `main([...])`, using native steps only so no model is
+      called. `tests/test_doctor.py` is the precedent for driving `main()`
+- [ ] **Lint bug found while measuring: `content:` and `path:` on a `save` step are not scanned for
+      undefined variables**, although they are that step type's own required fields. `saveas:` and
+      `inputs:` are scanned and error correctly. Fix the field list, then test all four
+- [ ] Decide whether an unused `requires:` entry is an error or a warning — the reverse-direction
+      check that is still missing, already recorded further down this file
+- [ ] **→ #257, filed 2026-09-26: a pipeline cannot declare a required input.** The root cause
+      under mechanisms 1 and 2 and under the lint inconsistency. Four open questions in it, the
+      first being the key's name. Not scheduled here; the examples do not wait for it
+- [ ] Document all three in the shipped AI context. The home is
+      `src/llmflow/templates/project/docs/llmflow-language-quickref.md` §2, which already has a
+      variables section and is catalogued at `data/file-catalog.yaml:206`; the full statement goes
+      in `docs/llmflow-language.md`. **Not the rendered copies** — those are regenerated
+- [ ] Say in that documentation which idiom is recommended and which are advanced, since the
+      starter example teaches only explicit variable reference as a step input (2026-09-26)
+
+### 🧰 `/stage-commits` — built, and now behind the two goals above (2026-09-26)
 
 > **Set by the Captain 2026-09-25.** *"a skill that means 'stage the outstanding commits, and show
 > me the strings needed to commit them.' It should use universal shell syntax, so that it is
@@ -188,8 +281,9 @@ incidents above ended in a tree nobody could clean unilaterally.
       reads *"Discuss. Need more information."*
 - [x] **Helm told**, in their tree —
       `collab/sp/2026-09-25-the-prefixes-are-ruled-out-and-sp-has-stripped-its-own.md`
-- [ ] **Issue drafted, not filed** — `tmp/issue-helm-collaboration.md`, for review before posting.
-      #181 is adjacent (`~/.sp` convention drift) and is not the same thing
+- [x] **Filed as #259**, 2026-09-26, with the body reviewed first. Both halves in scope: the
+      sharing mechanism, and Helm adopting sp's idioms. #181 is adjacent (`~/.sp` convention
+      drift) and is not the same thing
 - [ ] **Decide what happens to the spent 09-23 collab note** — committed and then deleted, per
       `plans-are-temporary`, or deleted. The deletion is the Captain's, either way
 - [ ] **`.claude/skills/` and `~/.sp/skills/` still carry the prefixes.** They are installed
