@@ -3513,6 +3513,39 @@
       ]
     },
     {
+      "module": "llmflow.utils.parallel_passages",
+      "imports": [
+        "__future__",
+        "llmflow",
+        "llmflow.utils.verse_ranges",
+        "lxml",
+        "pathlib",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "_whole_references",
+          "signature": "_whole_references(reference: str) -> List[str]",
+          "doc": "Split a comma list into complete references, carrying the chapter forward."
+        },
+        {
+          "name": "load_parallel_passages",
+          "signature": "load_parallel_passages(path: Any) -> Dict[str, Any]",
+          "doc": "Read the database into groups, plus one row per verse span for the lookup to filter."
+        },
+        {
+          "name": "_probe",
+          "signature": "_probe(passage: str, versification: str) -> Range",
+          "doc": "The request as a range in the database's own scheme."
+        },
+        {
+          "name": "groups_for_passage",
+          "signature": "groups_for_passage(index: Dict[str, Any], passage: str, versification: str = 'eng') -> List[Dict[str, Any]]",
+          "doc": "Every group the passage takes part in, whole, in the order the database states them."
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.linter",
       "imports": [
         "ast",
@@ -5502,7 +5535,7 @@
     }
   ],
   "summary": {
-    "total_modules": 91,
-    "total_functions": 874
+    "total_modules": 92,
+    "total_functions": 878
   }
 }

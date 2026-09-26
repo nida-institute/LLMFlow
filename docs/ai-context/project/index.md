@@ -21,6 +21,35 @@ job.
 | Active work, what is in flight, what not to touch | [project/TODO.md](../../../project/TODO.md) | Every session (rule `todo-is-the-session-cache`) |
 | The rules every session here is held to | [../sp/rules.md](../sp/rules.md) | **Before any change** — authoritative |
 | Constraints that hold in **this** repository and nowhere else | [rules.md](rules.md) | Alongside `sp/rules.md`; short, and it is where local prohibitions live |
+| **Every module and function this engine has** | [docs/index.json](../../index.json) | **Before writing any function, and before adding a module.** Search it first — **duplicate code is buggy code**, and it diverges from the original the moment either changes |
+
+### Search `docs/index.json` before you write
+
+It carries one entry per module — `module`, `imports`, and every function with its signature and
+docstring — so the question *"does this already exist?"* is answerable in one command rather than
+by recalling the tree:
+
+```bash
+jq -r '.modules[] | select(.module | test("verse|version")) | .module as $m
+       | .functions[] | "\($m).\(.name)\(.signature | sub("^[^(]*";""))"' docs/index.json
+```
+
+This is the file whose absence from this index let a session write its own verse-overlap check
+while `llmflow.utils.verse_ranges.overlaps` and `verse_ranges.select` already existed — `select`
+having been written precisely because four plugins had each hand-rolled that loop. `one-design`
+and `read-the-docs` both bear on it; this row is how you comply with them cheaply.
+
+**This guidance is engine-only and is deliberately not shipped.** A project using Scripture
+Pipelines reaches it through two surfaces and only two — the `sp` command line and the `llmflow`
+public API — and never through an `llmflow.*` submodule, which carries no compatibility promise.
+`index.json` maps the internals, so it answers a question only work *on the engine* is entitled
+to ask. The consumer-facing half of this — the two surfaces, and that a project's tests belong on
+them rather than on internals — lives in `templates/project/docs/ai-context/sp/overview.md`,
+which ships.
+
+**It binds this repository's own tests too.** A test here exercises a step through the object
+model or the CLI, not by handing a handler a dict (`rules.md` §1, and #250, which counts 29 files
+against 12). Reading `index.json` is how you find the public call before writing a private one.
 
 ## This engine's own documentation
 

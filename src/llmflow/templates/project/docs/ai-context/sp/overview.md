@@ -16,6 +16,28 @@ YAML is the design, not a wrapper around code hidden elsewhere — which is why 
 
 `sp run` is never run on an AI's initiative. A human decides when a pipeline runs.
 
+## The two surfaces, and what is not one
+
+A project reaches Scripture Pipelines two ways, and only two:
+
+- **The `sp` command line** — `sp lint`, `sp run`, `sp resource`, and the rest. See
+  `sp/command-line.md` for every command.
+- **The `llmflow` public API** — `load_pipeline(...)` then `.resolve()` / `.lint()` / `.run()` /
+  `.schemas()`, plus `PIPELINE_SCHEMA` and `api_catalog()`, which publish the syntax-to-API
+  mapping so a program can compose calls without guessing.
+
+**Everything reached through an `llmflow.*` submodule is internal and may change without
+notice.** It is not a surface, it carries no compatibility promise, and a project that imports
+one has taken on a maintenance cost the engine will not notice it is imposing.
+
+**This applies to a project's tests as much as to its pipelines.** A test that drives the CLI or
+the public API tests what a user actually does; a test that imports an internal helper pins an
+implementation detail, and it breaks on a change that broke nothing real.
+
+So before writing Python against this engine, look for the public call that already does it. If
+the surface genuinely cannot reach what you need, say so — that is a gap worth reporting, not a
+reason to reach past it.
+
 ## Where the rest of it is
 
 Three documents make up the standard set, on each side. Read them in this order at the start of
