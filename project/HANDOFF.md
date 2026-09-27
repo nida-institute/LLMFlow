@@ -2,21 +2,14 @@
 
 ## ▶ NEXT ACTION
 
-**Commit the staged package.** The message is written and the command is ready:
+**Run `hatch run sp init --update` in this repository, and commit its output separately.**
 
-```sh
-git commit -F tmp/commit-msg-258-one-surface.txt
-git show HEAD
-```
+The session's work is committed and pushed: `0030ef9`, 25 files, and `dev` is level with
+`origin/dev`. Nothing is in flight.
 
-`git show HEAD`, not `git show --stat HEAD` — the Captain reads the diffs, and a file list is
-not a review.
-
-If nothing is staged yet, the `git add` list is in the same session's handover and can be
-rebuilt from **In flight** below. Delete `tmp/commit-msg-258-one-surface.txt` once the commit
-exists.
-
-**Then run `sp init --update`, and commit its output separately.** Three rendered copies are
+`sp` is not on the bare PATH here — it exists only as the editable install inside the hatch
+environment, so it must be `hatch run sp init --update` or a command run from inside
+`hatch shell`. Plain `sp` fails with "command not found". Three rendered copies are
 behind their templates — `docs/ai-context/sp/overview.md`,
 `docs/ai-context/sp/passage-references.md`, `docs/llmflow-language-quickref.md` — because this
 session changed the templates and nothing regenerated the copies. `test_template_layout` names
@@ -33,7 +26,15 @@ the file the new rule lives in.
 Separate commit, because a mechanical regeneration read alongside a real change hides both.
 Expect `.cursorrules`, `.windsurfrules` and the `hello.*` starter files to be refreshed too.
 
-**Do not run `sp doctor` here** — #210.
+**The standing "do not run `sp doctor` here — #210" looks stale, and the Captain has not ruled
+on it.** #210's hazard was that `docs/ai-context/overview.md` was one path serving two
+documents, so doctor would replace the engine's overview with a project's. That path is no
+longer in `data/file-catalog.yaml` at all; the engine's own overview is now
+`docs/ai-context/project/overview.md`, catalogued at `file-catalog.yaml:169` as
+`policy: create-once`, which neither command overwrites. Note also that the hazard, being in
+the catalog, would have applied to `sp init --update` equally — doctor was never the more
+dangerous of the two, and it is the more conservative, since it never touches starter examples.
+Ask before acting on either reading.
 
 **Then do the survey below.** It was asked for on 2026-09-27 and deliberately not started here,
 because it is a wide research task and this session's corrections had begun to cluster around
@@ -70,6 +71,37 @@ writing — this is a new accumulating document and `plans-are-temporary` applie
 | `project/REVIEW.md` (149 lines) | note: `:136-147` names four `tmp/` commit files that no longer exist |
 | `gh issue list --state open` | **60 open issues** as of 2026-09-27 |
 
+### Three observations from `sp doctor`, 2026-09-27 — not filed, and not verified
+
+Read from terminal output the Captain pasted after running `sp doctor` in
+`ears-to-hear/scriptorium`. **Nobody has checked them against that machine**, so confirm each
+before filing. They belong to the survey because each is a thing part-way done.
+
+1. **The summary contradicts itself.** The report ends `No problems found.`, then
+   `1 warning(s).`, and the warning is actionable — `Project 'scriptorium' is not registered in
+   ~/.sp/projects/`. A green headline over a non-green state is the same class of defect
+   `sp/command-line.md` records for skills, where doctor called a project holding ten of eleven
+   complete.
+
+2. **That project carries both AI-context layouts at once, and doctor reports `✓`.** Its
+   `docs/ai-context/` holds seven pre-split flat documents — `overview.md`, `rules.md`,
+   `index.md`, `github-workflow.md`, `audits-pattern.md`, `conventions.md`, `project.md` — plus
+   eight `sp/` ones, **and no `project/` half at all**. So two copies of overview, rules, index
+   and github-workflow coexist with nothing saying which is live, and `/load-context` there
+   would read the flat `rules.md` while `sp/rules.md` is current. With no `project/rules.md`,
+   that project also has nowhere to put its own constraints — the absence `sp/rules.md`
+   describes as having sent project-specific rules into a memory store nobody read. This is the
+   substantial one.
+
+3. **The remedy printed for an unregistered project is `Run sp init`**, which also writes
+   starter examples into a project that has been running for months. `sp init --update` looks
+   like the right advice there.
+
+Explicable rather than defective, recorded so nobody re-investigates it: `Skills in ~/.sp: 12
+of 12 restored` is expected once, because the CHANGELOG's *"skill descriptions no longer open
+with a type prefix"* touched eleven and `stage-commits` is new. It should report `✓` on a
+second run. **Unverified — no second run was seen.**
+
 **Method, and why it is stated.** Cite a `file:line` or an issue number for every item, and mark
 anything you could not confirm as unverified rather than inferring it from a document that says
 it. `declared-not-inferred`. A survey is nothing but claims, and an unchecked one sends the
@@ -80,7 +112,7 @@ last stretch.
 
 ## Active threads
 
-### 1 — #258, the `type: parallel-passages` step (DONE, uncommitted)
+### 1 — #258, the `type: parallel-passages` step (DONE, committed at `0030ef9`)
 
 **Goal.** Link a passage to the passages it is parallel to or quotes, so a commentary can cite
 that rather than state it from training.
@@ -92,7 +124,7 @@ that rather than state it from training.
 
 **Next step is #244**, the starter example, which consumes this. Queued in `project/TODO.md`.
 
-### 2 — the one-surface ruling (DONE, uncommitted)
+### 2 — the one-surface ruling (DONE, committed at `0030ef9`)
 
 **Goal.** A project reaches the engine through the `sp` command line and the pipeline language,
 and shipped material shows none of our Python.
@@ -107,14 +139,14 @@ and shipped material shows none of our Python.
 
 ## In flight, and whose
 
-Branch `dev`, **ahead of `origin/dev` by 1** — `cd5108a` is unpushed. `origin/dev` is `23d9d74`.
+Branch `dev`, **level with `origin/dev` at `0030ef9`.** Nothing of this session's is
+outstanding: it went in as one commit of 25 files, `git show 0030ef9` to read it.
 
 | | |
 |---|---|
-| **this session's, staged for the commit above** | `src/llmflow/steps/parallel_passages.py` (new), `tests/test_parallel_passages_step.py` (new), `tests/test_shipped_context_names_one_surface.py` (new), `src/llmflow/utils/parallel_passages.py`, `utils/scripture.py`, `pipeline_schema.py`, `runner.py`, `resources.py`, `cli.py`, `tests/test_parallel_passages.py`, `tests/test_ai_rules_classification.py`, `data/ai-rules.yaml`, `docs/ai-context/sp/rules.md`, `docs/ai-context/project/index.md`, `docs/llmflow-language.md`, five files under `src/llmflow/templates/`, `CHANGELOG.md` |
-| **mixed — carries both parties' work** | `project/plans/plan-starter-example-commentary.md`: the Captain's two `=>` answers, plus this session's one-line `Status:` change |
-| **the Captain's, pre-existing — do not sweep in** | `data/models.json`, `docs/ai-context/project/data-sources.md`, `docs/ai-context/sp/github-workflow.md` and its template twin, `project/open-decisions.md`, `project/plans/README.md` |
-| **untracked, not this session's** | `project/0x28.md`, `tests/test_stage_commits_checks_the_handoff.py` |
+| **this session's** | all committed and pushed at `0030ef9` |
+| **the Captain's, uncommitted — do not sweep in** | `data/models.json`, `docs/ai-context/project/data-sources.md`, `docs/ai-context/sp/github-workflow.md` and its template twin, `project/open-decisions.md`, `project/plans/README.md`, and two tracked deletions, `tmp/commit-msg-helm.txt` and `tmp/commit-msg-sp.txt`, whose origin is unknown |
+| **untracked, not this session's** | `.cursorrules`, `.windsurfrules`, `project/0x28.md`, `tests/test_stage_commits_checks_the_handoff.py`, five `collab/discourse-flow/` notes, `collab/human-at-the-helm/` |
 
 **Do not `git add -A`** — `gui/frontend/node_modules` is tracked, ~8,000 deletions.
 
