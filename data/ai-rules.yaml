@@ -772,3 +772,35 @@ rules:
     only that a reader outside the session meets a convention they cannot decode, and a commit
     message is read from inside the repository. That rule governs what a shared artifact may
     claim; this one governs the form it claims it in.'
+- id: the-language-is-the-whole-surface
+  enforcement: guardable
+  scope: language
+  rule: '**A project needs zero Python, and shipped material shows none of ours.** Scripture
+    Pipelines is reached one way: the `sp` command line and the pipeline language it reads.
+    Everything inside the package is the engine''s own — it carries no compatibility promise and
+    a project that builds on it has taken a dependency nobody offered. So an example, a tutorial,
+    a discipline or a skill that ships to a project shows a step type and a command, never an
+    import and never one of our dotted paths in a `function:` step. **Where a project would need
+    Python, that is a missing construct, and the construct is the fix.** Say so and propose it;
+    do not show the reach-past. This binds implementation before it binds documentation: a
+    feature that can only be used from Python is not finished, and the question to ask of one is
+    what step type or command expresses it. Held by
+    `tests/test_shipped_context_names_one_surface.py` across the project context, the disciplines
+    and the skills, because shipped files are regenerated and a rule kept only in prose is undone
+    by the next `sp init --update`, in every project at once and with nothing reporting it.'
+  note: 'Added 2026-09-27 at the Captain''s direction, in his words: "we should need zero python
+    code and zero references to our own python code in this example, we have existing high level
+    constructs for everything, and the whole purpose of the tutorial is to teach the sp language
+    with practical and impressive examples", and, of the shipped context, "this absolutely needs
+    to show only the cli command line and the CLI API". It narrows what had been recorded as two
+    surfaces — the command line and the `llmflow` public API — to one; the Python API remains
+    real and supported and is the engine''s own, documented in `docs/python-api.md` for work in
+    this repository. `use-the-pipeline-language` is the same principle pointed at a project''s
+    own pipelines; this one points at what the engine offers and at what we put in front of a
+    project. What it found: the shipped `sp/overview.md` described the Python API with
+    `load_pipeline`, `PIPELINE_SCHEMA` and `api_catalog`; the shipped `audit-code` skill told a
+    project to `import llmflow` and grep the engine''s source for public functions; and the
+    `description:` discipline illustrated a step that pre-built an annotated book to disk and
+    reloaded it, where `type: scripture` with `format: usj` is the high-level construct for
+    exactly that. Appended rather than inserted, because rules are cited by position across this
+    repository.'

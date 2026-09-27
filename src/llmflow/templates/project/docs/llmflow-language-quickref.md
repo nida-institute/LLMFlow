@@ -259,7 +259,7 @@ appended by earlier iterations. This enables "rolling context" patterns:
 
     - name: summarize
       type: function
-      function: llmflow.utils.data.pick_fields
+      function: plugins.summaries.pick_fields   # your own, under plugins/
       inputs:
         obj: "${pericope_analysis}"
         fields: ["title", "themes"]

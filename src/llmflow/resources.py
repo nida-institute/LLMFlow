@@ -543,9 +543,9 @@ def _write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> 
     return target
 
 
-#: The registration keys naming an analysis source. Both resolve the same three ways as
-#: `path`, so both are validated before anything is written.
-ANALYSIS_KEYS = ("discourse_path", "lowfat_path")
+#: The registration keys naming an analysis source. Each resolves the same three ways as
+#: `path`, so each is validated before anything is written.
+ANALYSIS_KEYS = ("discourse_path", "lowfat_path", "parallel_passages_path")
 
 
 def register_dataset(identifier: str, path: Any, name: Optional[str] = None,

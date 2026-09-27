@@ -40,12 +40,17 @@ having been written precisely because four plugins had each hand-rolled that loo
 and `read-the-docs` both bear on it; this row is how you comply with them cheaply.
 
 **This guidance is engine-only and is deliberately not shipped.** A project using Scripture
-Pipelines reaches it through two surfaces and only two — the `sp` command line and the `llmflow`
-public API — and never through an `llmflow.*` submodule, which carries no compatibility promise.
+Pipelines reaches it through **one** surface — the `sp` command line and the pipeline language
+it reads — and never by importing the package, which carries no compatibility promise.
 `index.json` maps the internals, so it answers a question only work *on the engine* is entitled
-to ask. The consumer-facing half of this — the two surfaces, and that a project's tests belong on
-them rather than on internals — lives in `templates/project/docs/ai-context/sp/overview.md`,
-which ships.
+to ask. The consumer-facing half of this — the one surface, and that a project's tests belong on
+it rather than on internals — lives in `templates/project/docs/ai-context/sp/overview.md`, which
+ships, and is held there by `tests/test_shipped_context_names_one_surface.py`.
+
+The `llmflow` Python API is real and supported, and it is **the engine's own**: `docs/python-api.md`
+documents it for work in this repository. Narrowed from "two surfaces" on the Captain's ruling —
+*"this absolutely needs to show only the cli command line and the CLI API"* — because a project
+told about a second surface builds against a contract nobody offered it.
 
 **It binds this repository's own tests too.** A test here exercises a step through the object
 model or the CLI, not by handing a handler a dict (`rules.md` §1, and #250, which counts 29 files

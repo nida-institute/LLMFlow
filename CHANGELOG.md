@@ -4,6 +4,67 @@
 
 ### Added
 
+- **A Parallel Passages reader, and the `type: parallel-passages` step that serves it → #258.**
+  Nothing in the engine linked a passage to another passage, so a commentary saying Mark's
+  opening quotation is composite — Malachi joined to Isaiah, attributed to Isaiah alone — was
+  stating it from a model's training while every other claim in the same output was checkable.
+  A reader cannot tell the two apart. That is the failure `source-text-required` names.
+
+  The step answers which groups a passage takes part in, reading the UBS Parallel Passages
+  database named by the resource's own `parallel_passages_path` registration key, which
+  resolves the same three ways as `discourse_path` and is set with
+  `sp resource set <id> --parallel-passages-path`. The reader landed separately; this adds the
+  step, its schema branch, the dispatch line, and the CLI surface for the key.
+
+  **Ruled: a group is returned whole, never intersected, and groups are not collapsed.** A
+  passage can take part in two groups with identical New Testament members, one also naming the
+  Old Testament verse it quotes and one not — `MRK 1:2` does. Both are returned. Merging them
+  would assert a judgment the database never makes, and no later reader could recover the
+  difference between "Mark quotes Malachi" and "Mark runs parallel to Matthew and Luke".
+
+  **Ruled: `references` is the reference list, not the raw input.** The per-word digit strings
+  and the edition attribute naming them do not travel, because the digits index UBSGNT5 rather
+  than the resource asked about and nothing can match them to a word until the identifier join
+  exists — the same reason `syntax` omits `rule` and `nodeId`. `returns: [words]` is declared in
+  the schema so a misspelling is a lint error, and refused at run time: counting positions
+  instead of joining through MARBLE is wrong about one row in eleven, and silently.
+
+  **Two kinds of nothing**, per `say-which-kind-of-nothing`: `[]` where the database was
+  consulted and the passage is in no group, `null` where the resource names no source at all.
+  A commentary step can then take the input on every run.
+
+  **The service is called Parallel Passages, not cross references.** The database carries
+  parallels and quotations and holds no allusions: `2KI 1:8` occurs nowhere in it, so a reader
+  told "cross references" would look up `MRK 1:6` expecting the Elijah echo behind the camel-hair
+  clothing and not find it.
+
+  Tested through `load_pipeline(...).run()` for the behaviours and through
+  `main(["run", …, "--var", …])` end to end, because `sp run` is the surface a pipeline author
+  actually has. Every expected value comes from a fixture written for the tests; none is a count
+  read off the real database, which would freeze a defect in the reader as the expected answer
+  and turn a correct engine red on the next UBS release.
+
+### Changed
+
+- **A project is told about one surface: the `sp` command line and the pipeline language it
+  reads.** The shipped context described two, the second being the `llmflow` Python API with
+  `load_pipeline`, `PIPELINE_SCHEMA` and `api_catalog`. A project told about a second surface
+  builds against a contract nobody offered it, and the package carries no compatibility promise.
+
+  `templates/project/docs/ai-context/sp/overview.md` now describes the command line alone. The
+  shipped `audit-code` skill no longer tells a project to `import llmflow` and grep the engine's
+  source for public functions: its question is now whether a local plugin does something a step
+  type already does, which is the version of that audit a project can act on. Two shipped
+  examples stopped pointing at engine internals — the `description:` convention now shows
+  `type: scripture` loading a book in USJ, which is the high-level construct for that and
+  replaces an example that pre-built an annotated book to disk and reloaded it.
+
+  `tests/test_shipped_context_names_one_surface.py` holds it, across the project context, the
+  disciplines and the skills — a prose rule would not survive the next `sp init --update`, which
+  rewrites every generated file in every project at once with nothing reporting it. The dotted
+  path in a `function:` step is deliberately not checked: that is pipeline YAML rather than a
+  Python import, and the question of whether a shipped example may name one is open.
+
 - **`/stage-commits` stages the outstanding changes and hands over the exact commit command →
   #253.** Rule `commit-authority` requires an agent to run the gates, write the commit message to
   a file, and hand over the command rather than committing itself. Nothing implemented that

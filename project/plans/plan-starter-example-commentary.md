@@ -1,8 +1,10 @@
 # Plan — the starter example writes passage commentary for group leaders and preachers
 
-**Status:** proposed (2026-09-25). The rulings in §2 are the Captain's and are settled; the
-sample output in §5 is drafted and needs his review, because it is domain content. **Nothing is
-built.** `proposed` is not authorization to build.
+**Status:** ruled (2026-09-26). §2 and all four decisions in §8 are answered. The sample output
+in §6 is drafted and still needs review, because it is domain content.
+**§5 is superseded in one respect:** its `reference` step calls
+`llmflow.utils.data.parse_bible_reference`, and rule `the-language-is-the-whole-surface` now
+forbids an example naming our Python. The step needs a construct or it goes.
 **Issue:** #244. *Sequencing corrected 2026-09-26: **#176 does not gate this work.*** It was
 recorded as gating on the reasoning that the prompts would otherwise be rewritten against
 post-frontmatter-stripping behaviour. Read against `steps/llm.py`, that rework does not exist:
@@ -277,7 +279,7 @@ supplies it (a cross-reference input, or a resource that carries it) and the com
 it, or it is omitted. What the example must not do is state it from recall while every other claim
 is grounded, because a reader cannot tell the two apart.
 
-=>
+=>  It should be supplied, it is conspicuously missing.  It affects a passage we use for presentations.
 
 *Corrected 2026-09-26.* **"It is not in the payload" is false of the Parallel Passages database.**
 It carries the compositeness as two separate groups — `MAL 3:1 ↔ MAT 11:10 ↔ MRK 1:2 ↔ LUK 7:27`
@@ -391,7 +393,7 @@ quotations; what it would lack is which Hebrew words matched. The starter exampl
 Three positions: ship NT word-level and OT verse-level only; hold the OT half entirely until the
 mapping can be published; or pursue publication of the mapping first.
 
-=>
+=>  Yes, of course it does.
 
 ## 9. What this does not change
 

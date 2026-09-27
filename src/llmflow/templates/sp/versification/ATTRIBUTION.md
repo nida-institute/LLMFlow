@@ -36,8 +36,8 @@ Report a defect upstream instead. Seven entries are skipped on load, each named 
 
 The specification's own JSON schema permits unequal ranges, so these may be intended rather than
 mistaken — several look like merges, which the specification expresses with `mergedVerses`
-instead. `llmflow.utils.versification` skips such an entry and says so rather than guessing where
-a reference lands.
+instead. The engine skips such an entry and says so rather than guessing where a reference
+lands.
 
 ## What this engine reads
 

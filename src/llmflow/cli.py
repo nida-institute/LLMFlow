@@ -206,6 +206,8 @@ def build_parser():
                          help="Dataset-relative, or a dataset id with a subpath")
     res_set.add_argument("--lowfat-path", default=None, dest="lowfat_path",
                          help="Dataset-relative, or a dataset id with a subpath")
+    res_set.add_argument("--parallel-passages-path", default=None, dest="parallel_passages_path",
+                         help="Dataset-relative, or a dataset id with a subpath")
 
     ds_p = subparsers.add_parser("dataset", help="Bodies of data the catalog describes")
     ds_sub = ds_p.add_subparsers(dest="dataset_command", help="Dataset commands")
@@ -629,6 +631,7 @@ def main(argv=None):
             fields = {
                 "discourse_path": args.discourse_path,
                 "lowfat_path": args.lowfat_path,
+                "parallel_passages_path": args.parallel_passages_path,
             }
             if not any(fields.values()):
                 print("❌ Nothing to set. Name at least one field, e.g. --discourse-path.")

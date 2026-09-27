@@ -329,6 +329,28 @@ _STEP_TYPE_PROPERTIES = [
         },
     ),
     (
+        ("parallel-passages",),
+        {
+            # The text the answer is expressed against, resolved through the registry like any
+            # other resource. Its registration names the database, so no path appears here.
+            "resource": {"type": "string"},
+            # What parallels are sought for, in the forms `parse_bible_reference` reads. Given
+            # a range, every group any verse in the range takes part in is returned, so a
+            # passage and one verse inside it give different answers and both are correct.
+            "passage": {"type": "string"},
+            # A set, not a choice, as on `type: alignment`. `words` is declared so the language
+            # names its whole surface and a misspelling is caught here; the identifier join it
+            # needs is not built, and the step says so rather than counting positions (#258).
+            "returns": {
+                "type": "array",
+                "items": {"type": "string", "enum": ["references", "words"]},
+            },
+            # The scheme `passage` is written in. Not an enum, for the reason it is not one on
+            # `type: scripture`: a Paratext project brings its own.
+            "versification": {"type": "string"},
+        },
+    ),
+    (
         ("basex",),
         {
             "database": {"type": "string"},

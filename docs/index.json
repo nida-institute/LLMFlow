@@ -310,6 +310,7 @@
         "llmflow.steps.json_step",
         "llmflow.steps.llm",
         "llmflow.steps.load",
+        "llmflow.steps.parallel_passages",
         "llmflow.steps.plugin",
         "llmflow.steps.save",
         "llmflow.steps.scripture",
@@ -3542,6 +3543,16 @@
           "name": "groups_for_passage",
           "signature": "groups_for_passage(index: Dict[str, Any], passage: str, versification: str = 'eng') -> List[Dict[str, Any]]",
           "doc": "Every group the passage takes part in, whole, in the order the database states them."
+        },
+        {
+          "name": "_references_only",
+          "signature": "_references_only(group: Dict[str, Any]) -> Dict[str, Any]",
+          "doc": "A group as its member references, in the order the database states them."
+        },
+        {
+          "name": "parallel_passages_payload",
+          "signature": "parallel_passages_payload(definition: Any, passage: str, resource: str, versification: Optional[str] = None) -> Optional[List[Dict[str, Any]]]",
+          "doc": "The groups *passage* takes part in, or None where this resource names no database."
         }
       ]
     },
@@ -3900,6 +3911,7 @@
         "json",
         "llmflow.modules.logger",
         "llmflow.utils",
+        "llmflow.utils.parallel_passages",
         "llmflow.utils.syntax",
         "lxml",
         "pathlib",
@@ -4929,6 +4941,24 @@
       ]
     },
     {
+      "module": "llmflow.steps.parallel_passages",
+      "imports": [
+        "llmflow.modules.logger",
+        "llmflow.utils.context",
+        "llmflow.utils.parallel_passages",
+        "llmflow.utils.scripture",
+        "llmflow.utils.step_outputs",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "run_parallel_passages_step",
+          "signature": "run_parallel_passages_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> None",
+          "doc": ""
+        }
+      ]
+    },
+    {
       "module": "llmflow.steps.scripture",
       "imports": [
         "llmflow.modules.logger",
@@ -5535,7 +5565,7 @@
     }
   ],
   "summary": {
-    "total_modules": 92,
-    "total_functions": 878
+    "total_modules": 93,
+    "total_functions": 881
   }
 }

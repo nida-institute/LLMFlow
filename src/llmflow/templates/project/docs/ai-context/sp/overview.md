@@ -16,27 +16,24 @@ YAML is the design, not a wrapper around code hidden elsewhere — which is why 
 
 `sp run` is never run on an AI's initiative. A human decides when a pipeline runs.
 
-## The two surfaces, and what is not one
+## The surface, and what is not one
 
-A project reaches Scripture Pipelines two ways, and only two:
+A project reaches Scripture Pipelines one way: **the `sp` command line**, and the pipeline
+language it reads. `sp lint`, `sp run`, `sp resource`, and the rest — `sp/command-line.md` has
+every command, and `docs/llmflow-language-quickref.md` has the YAML they take.
 
-- **The `sp` command line** — `sp lint`, `sp run`, `sp resource`, and the rest. See
-  `sp/command-line.md` for every command.
-- **The `llmflow` public API** — `load_pipeline(...)` then `.resolve()` / `.lint()` / `.run()` /
-  `.schemas()`, plus `PIPELINE_SCHEMA` and `api_catalog()`, which publish the syntax-to-API
-  mapping so a program can compose calls without guessing.
+**Everything inside the Python package is the engine's own.** Importing it is not a supported
+way to use Scripture Pipelines: it carries no compatibility promise, it changes without notice,
+and a project that builds on it has taken on a maintenance cost the engine will not notice it
+is imposing.
 
-**Everything reached through an `llmflow.*` submodule is internal and may change without
-notice.** It is not a surface, it carries no compatibility promise, and a project that imports
-one has taken on a maintenance cost the engine will not notice it is imposing.
+**This applies to a project's tests as much as to its pipelines.** A test that drives `sp` tests
+what a user actually does. A test that imports from the package pins an implementation detail,
+and it breaks on a change that broke nothing real.
 
-**This applies to a project's tests as much as to its pipelines.** A test that drives the CLI or
-the public API tests what a user actually does; a test that imports an internal helper pins an
-implementation detail, and it breaks on a change that broke nothing real.
-
-So before writing Python against this engine, look for the public call that already does it. If
-the surface genuinely cannot reach what you need, say so — that is a gap worth reporting, not a
-reason to reach past it.
+So where you would reach for Python, look for the command or the step type that already does
+it. If the command line genuinely cannot reach what you need, say so — that is a gap worth
+reporting, not a reason to reach past it.
 
 ## Where the rest of it is
 

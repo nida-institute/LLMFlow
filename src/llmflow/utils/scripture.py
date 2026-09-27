@@ -21,6 +21,7 @@ from lxml import etree  # type: ignore[attr-defined]
 
 from llmflow.modules.logger import Logger
 from llmflow.utils import versification as _versification
+from llmflow.utils.parallel_passages import PARALLEL_PASSAGES_KEY
 from llmflow.utils.syntax import LOWFAT_KEY, syntax_payload
 
 logger = Logger()
@@ -1134,7 +1135,7 @@ def load_registry_resources(resources_dir: Any = None) -> dict:
         # The analysis sources resolve the same way, so a registration can name them without
         # an absolute path. They are not `path`: one may live outside the resource's dataset, so
         # a registered dataset id is accepted as well as a dataset-relative value.
-        for key in (DISCOURSE_KEY, LOWFAT_KEY):
+        for key in (DISCOURSE_KEY, LOWFAT_KEY, PARALLEL_PASSAGES_KEY):
             if entry.get(key):
                 entry[key] = str(_resources.resolve_declared_path(entry[key], entry))
 

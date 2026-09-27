@@ -14,7 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from lxml import etree
+from lxml import etree  # type: ignore[attr-defined]
 
 from llmflow import books
 from llmflow.utils.verse_ranges import Range, select
@@ -24,6 +24,11 @@ from llmflow.utils.verse_ranges import Range, select
 DATABASE_SCHEME = "org"
 
 EDITION_ATTRIBUTES = ("HEB", "GRK")
+
+#: The resource registry key naming the database, parallel to `discourse_path` and
+#: `lowfat_path`. Resolved by `load_registry_resources`, so a definition reaching a reader
+#: already carries a path it can open.
+PARALLEL_PASSAGES_KEY = "parallel_passages_path"
 
 
 class ParallelPassagesError(ValueError):
@@ -146,3 +151,57 @@ def groups_for_passage(index: Dict[str, Any], passage: str, versification: str =
         if row["group"] not in seen:
             seen.append(row["group"])
     return [index["groups"][position] for position in sorted(seen)]
+
+
+def _references_only(group: Dict[str, Any]) -> Dict[str, Any]:
+    """A group as its member references, in the order the database states them.
+
+    `scores` and `indexed_by` are deliberately absent. The digits index UBSGNT5 rather than
+    the resource being asked about, so until the MARBLE join exists nothing downstream can
+    match one to a word — the same reason `syntax` omits `rule` and `nodeId`, which name how
+    the parser derived a node rather than a fact about it. They belong under `words`, beside
+    the join that makes them readable; carrying them here would also hand every consumer the
+    presentation digits, which the database's own documentation disclaims.
+
+    One key rather than a bare list, so `words` can join it as a sibling without changing the
+    shape of a result anybody is already reading.
+    """
+    return {"references": [verse["reference"] for verse in group["verses"]]}
+
+
+def parallel_passages_payload(
+    definition: Any,
+    passage: str,
+    resource: str,
+    versification: Optional[str] = None,
+) -> Optional[List[Dict[str, Any]]]:
+    """The groups *passage* takes part in, or None where this resource names no database.
+
+    `None` rather than an empty list where the registration declares no
+    `parallel_passages_path`: the question could not be asked, as against asked and answered
+    with nothing. Rule `say-which-kind-of-nothing`.
+
+    `versification` names the scheme *passage* is written in. Omitted, the resource's own
+    governs — a pipeline naming one resource is almost always writing references the way that
+    resource numbers them.
+    """
+    from llmflow.modules.logger import Logger
+
+    logger = Logger()
+
+    path = definition.get(PARALLEL_PASSAGES_KEY) if isinstance(definition, dict) else None
+    if not path:
+        logger.warning(
+            f"parallel passages were requested but resource {resource!r} names no "
+            f"`{PARALLEL_PASSAGES_KEY}`, so none were looked for. Add one with "
+            f"`sp resource set {resource} --parallel-passages-path <dataset>/<path>`."
+        )
+        return None
+
+    if versification is None:
+        versification = (
+            definition.get("versification_scheme") if isinstance(definition, dict) else None
+        ) or "eng"
+
+    groups = groups_for_passage(load_parallel_passages(path), passage, versification)
+    return [_references_only(group) for group in groups]

@@ -872,6 +872,65 @@ corpus's own catalog. Each is verified against the file's declared documents whe
 
 ---
 
+### type: `parallel-passages`
+
+Which groups in the UBS Parallel Passages database a passage takes part in — what else in the
+canon it is parallel to, and what it quotes.
+
+```yaml
+- name: parallels
+  type: parallel-passages
+  resource: SBLGNT             # the text the answer is expressed against
+  passage: "${passage}"       # the passage parallels are sought for
+  returns: [references]       # references | words   (default: [references])
+  versification: eng          # optional — the scheme `passage` is written in
+  output: parallels
+```
+
+**Required:** `resource`, `passage`, `output`. **Optional:** `returns`, `versification`, plus
+`saveas` and `append_to` as for any step.
+
+**Not an `include:` family on `type: scripture`.** A group is a relation *between* passages
+rather than an analysis of the words of one, so it is a separate call with its own inputs.
+
+**The name is the data's.** The database carries parallels and quotations and holds **no
+allusions**: `MRK 1:6` has one partner, `MAT 3:4`, and `2KI 1:8` occurs nowhere in it. A reader
+told "cross references" would expect the Elijah echo behind the camel-hair clothing and not
+find it.
+
+**A group is returned whole, never intersected**, and groups are never collapsed into one
+another. A passage may take part in two groups with the same members in the New Testament, one
+also naming the Old Testament verse it quotes and one not; both are returned, because the
+database states them separately and merging them would assert a judgment the source never
+makes. Given a range, every group any verse in the range takes part in is returned — so a
+passage and a single verse inside it give different answers and both are correct.
+
+**Each group carries its member references, in the order the database states them:**
+
+```json
+[{"references": ["MAL 3:1", "MAT 11:10", "MRK 1:2", "LUK 7:27"]}]
+```
+
+The per-word digit strings do not travel under `references`. They index UBSGNT5 rather than the
+resource asked about, so nothing can match them to a word until the identifier join exists.
+
+**`returns: [words]` is declared and refused.** The join runs through MARBLE identifiers, and
+counting positions instead is wrong about one row in eleven and silently wrong; the step says so
+rather than guessing.
+
+**The database is named by the resource's registration**, not by a path in the pipeline:
+
+```bash
+sp resource set SBLGNT --parallel-passages-path <dataset>/<path>
+```
+
+**Two kinds of nothing.** An empty list means the database was consulted and this passage takes
+part in no group. `null` means the resource names no `parallel_passages_path`, so nothing was
+consulted — a step downstream can then take this input on every run and read `[]` as a real
+answer. Rule `say-which-kind-of-nothing`.
+
+---
+
 ### type: `scripture`
 
 Fetches one passage from one **named** resource. The resource is a name resolved through the

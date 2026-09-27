@@ -71,7 +71,7 @@ class TestFindingAGroup:
 
 class TestTheGroupIsReturnedWhole:
     def test_a_partial_overlap_returns_every_member(self, index):
-        """Decided 2026-09-26 (#258): the whole row, never an intersection."""
+        """The whole row, never an intersection (#258)."""
         groups = groups_for_passage(index, "MRK 1:2")
         refs = {v["reference"] for g in groups for v in g["verses"]}
         assert "MAT 3:3" in refs and "LUK 3:4" in refs
