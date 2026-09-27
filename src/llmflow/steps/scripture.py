@@ -9,6 +9,7 @@ from typing import Any, Dict
 
 from llmflow.modules.logger import Logger
 from llmflow.utils.context import resolve
+from llmflow.utils.data import parse_bible_reference
 from llmflow.utils.scripture import load_registry_resources, resource_text
 from llmflow.utils.step_outputs import handle_step_outputs
 
@@ -67,6 +68,14 @@ def run_scripture_step(
     else:
         size = f"{len(result)} chars"
     logger.debug(f"   {resource} {passage}: {size} ({fmt})")
+
+    # A second output name asks for what the passage string was parsed into. It is returned as a
+    # pair rather than a key in the result because the result is sometimes a bare string — a
+    # `passage_info` key would force every result into a dict and change the output shape of
+    # every scripture step in every project. Only a step naming two outputs sees a pair.
+    outputs = step.get("output")
+    if isinstance(outputs, (list, tuple)) and len(outputs) == 2:
+        result = (result, parse_bible_reference(passage, versification=scheme or "eng"))
 
     handle_step_outputs(step, result, context)
     logger.info(f"✅ Completed scripture step: {name}")

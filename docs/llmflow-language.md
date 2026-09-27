@@ -953,6 +953,44 @@ machine where the sources live somewhere else.
 - `passage`: A reference, in any of the five forms above
 - `output`: Variable name to store the result
 
+#### A second output name asks what the reference was parsed into
+
+The step has to parse `passage` before it can fetch it. Naming **two** outputs hands you that
+parse alongside the text, so nothing downstream re-parses a reference the engine has already read:
+
+```yaml
+- name: subject
+  type: scripture
+  resource: SBLGNT
+  passage: "${passage}"
+  format: usj
+  include: [ids, discourse]
+  output: [subject, passage_info]     # the passage, and what its reference means
+
+- name: english
+  type: scripture
+  resource: BSB
+  passage: "${passage}"
+  versification: org
+  format: milestones
+  output: english
+  saveas: "outputs/${passage_info.filename_prefix}-english.txt"
+```
+
+`passage_info` carries `book_code`, `book_name`, `chapter`, `start_verse`, `end_verse`,
+`testament`, `original_language`, `canonical_reference`, `display_name`, `filename_prefix` and
+the four versification fields — the same object `parse_bible_reference` returns, documented field
+by field in `docs/ai-context/project/data-shapes.md`.
+
+**One name behaves exactly as before.** `output: source_text` binds the passage and nothing else;
+only a step naming two outputs receives the pair. The parse is not folded into the result as a
+key because the result is sometimes a bare string — `format: milestones` with an empty `include`
+returns text — and a key would force every result into a dict.
+
+**Declare it on the step that needs it first.** A step's own `saveas` cannot name its own output:
+the linter adds a step's outputs to the available set after checking that step. So the step that
+declares `passage_info` is an earlier one than the steps that name it.
+
 #### Registering the text a pipeline names
 
 A pipeline names a resource; it never carries a path. That is what keeps a pipeline runnable on
