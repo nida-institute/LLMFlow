@@ -39,18 +39,20 @@ and the explicit extension to **tests** — `docs/ai-context/project/rules.md` r
 exercises a step through the object model or the CLI, and #250 counts **29 files against 12** going
 the other way.
 
-- [ ] **The generated file declares what it is.** `tools/index_signatures.py:139-142` builds the
-      JSON; the fix goes there, not in the artifact, which `tools/hooks/pre-commit` regenerates and
-      stages on every commit touching `src/`. A `purpose` field saying it maps the implementation
-      and is not a public API — evidence:
-- [ ] **`docs/ai-context/project/index.md`** — the row currently reads *"Every module and function
-      this engine has"*. It goes on to say the guidance is engine-only, but the headline is what a
-      skimming reader takes — evidence:
+- [x] **The generated file declares what it is**, in an `about` block placed **first**, before the
+      catalogue: what it is, why it exists, `not_an_api`, `not_for_tests`, and what regenerates it.
+      Written in `tools/index_signatures.py` so it survives regeneration. Guarded by
+      `tests/test_internals_map_declares_itself.py` — **RED first** (no `about` at all), 3 passed
+- [x] **`docs/ai-context/project/index.md`** — the row now reads *"A map of this engine's
+      implementation — not an API"*, and says it is not a surface for tests either. The old
+      headline was *"Every module and function this engine has"*, which is what a skimmer took
 - [ ] **Decide whether this belongs in `data/ai-rules.yaml`** as an extension to
       `the-language-is-the-whole-surface`, or as prose in the project index. A rule reaches every
       project; this concerns a file only this repository has — **the Captain's call** — evidence:
-- [ ] **`docs/python-api.md`** — states the Python API is the engine's own. Check it does not read
-      as an offer to projects — evidence:
+- [x] **`docs/python-api.md`** — it **did** read as an offer: *"a stable, documented surface for
+      programs that embed the engine"*, with nothing saying whose surface. It now opens with who
+      it is for — work in this repository — names the one surface a project gets, and points at
+      `index.json` as the thing most often confused with it
 - [ ] **Is it guardable?** `tests/test_shipped_context_names_one_surface.py` already holds the one-
       surface line across shipped material, 77 tests. Whether it can also refuse a test that
       imports an internal named only in `index.json` is worth asking before assuming it cannot —
@@ -77,18 +79,21 @@ exposed to users about our APIs."*
 > checking the file a note cited. **The lesson, now three times paid: grep for the claim, never
 > for the location.**
 
-- [ ] **Fix `SP_DOC_LINKS`** at `file_catalog.py:235-243`. It is a Python constant, not a template,
-      so no `sp init --update` regenerates it from a file anyone reviews — evidence:
+- [x] **`SP_DOC_LINKS` fixed** at `file_catalog.py`. It now states the one surface and points at
+      the language reference, the quickref and `sp --help`; the Python API offer is gone.
+      Regenerated into `docs/ai-context/sp/index.md`
 - [ ] **Sweep the AI context, both halves.** `sp/` is generated and ships; `project/` is ours —
       evidence:
-- [ ] **Sweep what users read about our APIs**, measured rather than listed from memory:
-      `README.md`, `docs/python-api.md`, `docs/architecture.md`, `docs/getting-started.md`,
-      `docs/GPT_CONTEXT.md`, `docs/llmflow-language.md`, and the shipped
-      `templates/project/docs/ai-context/sp/command-line.md` — evidence:
-- [ ] **Extend the guard rather than trusting the sweep.**
-      `tests/test_shipped_context_names_one_surface.py` holds the line across shipped material
-      already and **did not catch `SP_DOC_LINKS`**, because the string lives in a `.py` constant
-      rather than in a shipped document. That gap is the finding, not the sweep — evidence:
+- [x] **Swept, and it was narrower than feared.** Counted rather than assumed: `README.md`,
+      `docs/getting-started.md` and `docs/GPT_CONTEXT.md` mention the Python API **0 times**.
+      `docs/architecture.md` has 8 and `docs/python-api.md` 14 — both legitimately, since both
+      document the engine's internals for engine work. The defect was never the count; it was
+      that neither said **whose** surface it described
+- [x] **The guard is extended, and the gap was the finding.** It read `*.md` under `templates/`
+      only, so text rendered from Python constants shipped unseen. Four new tests render what a
+      project *receives* — `render_sp_index()` — and apply the same checks. **RED first**, naming
+      all four offending terms (`load_pipeline`, `api_catalog`, `PIPELINE_SCHEMA`,
+      `import llmflow`), then green: **80 passed**
 
 #### The discourse-flow inventory, read 2026-09-28
 
@@ -490,8 +495,12 @@ for the task"*.
 - [x] `--dry-run` resolves every path and variable and names the four steps in order —
       `subject`, `english`, `parallels` (all free), then `commentary`. Run with
       `--var passage="MRK 1:1-8"`; calls no model and writes nothing
-- [ ] **§6's sample output is domain content and needs the Captain's review before it ships.** It
-      is drafted and marked *"illustrations of shape, not approved content"* — evidence:
+- [x] **The prompt is approved.** The Captain, 2026-09-28: *"the prompt looks good."* That covers
+      `prompts/commentary.gpt` and the eleven ❌ counterexamples in it, which are the examples
+      that teach a model on every run.
+- [ ] **§6's sample output in the plan is still unreviewed** — a plan document, read by nobody at
+      run time, so it ships nothing. Review it only if the drafted commentary itself is wanted —
+      evidence:
 
 **C — the removal (D3: *"drop these"*).** One pass, `one-design`: nothing half-migrated.
 
@@ -525,7 +534,8 @@ for the task"*.
 
 **E — what only the Captain can do.** None of these is an AI's to assume.
 
-- [ ] **Approve §6's sample output** as domain content
+- [x] **Prompt approved 2026-09-28** — *"the prompt looks good."*
+- [ ] **§6's sample output** in the plan, if it is wanted at all — it ships nothing
 - [ ] **Direct the `sp run`** that proves the example end to end. It calls a model and costs money;
       no prior run authorizes a later one
 - [ ] **Rule the ordering with #242's conformance check** — it ships with this example or waits
