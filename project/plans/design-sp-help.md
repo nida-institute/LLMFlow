@@ -1,4 +1,4 @@
-# Design — `sp help resources` and `sp help services`
+# Design — `sp help resources` and `sp help step-types`
 
 **Status:** proposed (2026-09-28)
 
@@ -33,7 +33,7 @@ server would read too.
 | what does a step type return, and what are those called? | **no** |
 | what versification schemes are installed? | **no** |
 
-So resources are half-served and **services are not served at all**, though every fact is
+So resources are half-served and **step types are not served at all**, though every fact is
 declared: `pipeline_schema.py` carries per-type properties, and the `returns:` enums already name
 the members `alignment` and `parallel-passages` produce.
 
@@ -51,13 +51,14 @@ it would be teaching projects the wrong thing. #264 asks whether `sp help` shoul
 
 ## 2. The vocabulary, which has to be settled first
 
-#264 asks whether "service" means the step type or the capability behind it. This document cannot
-be written without an answer, so it proposes one and marks it for ruling (D1).
+#264 asks whether "service" means the step type or the capability behind it. **Ruled 2026-09-28
+(D1): it is the step type, and "step type" is the name to use** — it is what the user sees, and
+`type:` is what they write. The word "service" is retired from the interface and from this
+document's own voice; it survives below only inside quotations and in the record of the question.
 
-**Proposed:** a **service** is a **step type** — the thing a pipeline names in `type:`. That is
-what a user is choosing between when they write a step, and it is the only unit the pipeline
-language actually has. "Capability behind it" — BaseX, DuckDB, a resource reader — is an
-implementation detail a project is not meant to see.
+A step type is the only unit the pipeline language actually has. "The capability behind it" —
+BaseX, DuckDB, a resource reader — is an implementation detail a project is not meant to see, and
+naming it would hand projects a vocabulary they are not otherwise given.
 
 **A resource** is already defined and should not be redefined here: a readable text inside a
 dataset, carrying a reader and a versification
@@ -68,16 +69,16 @@ dataset, carrying a reader and a versification
 ## 3. The commands
 
 ```
-sp help                      # the topics
-sp help services             # every step type, one line each
-sp help services scripture   # one step type in full
-sp help resources            # what this machine can open, by category
-sp help resources SBLGNT     # one resource in full
+sp help                        # the topics
+sp help step-types             # every step type, one line each
+sp help step-types scripture   # one step type in full
+sp help resources              # what this machine can open, by category
+sp help resources SBLGNT       # one resource in full
 ```
 
-**`sp help services`** lists each step type with its one-line purpose.
+**`sp help step-types`** lists each step type with its one-line purpose.
 
-**`sp help services <type>`** prints what that type accepts and what it returns:
+**`sp help step-types <type>`** prints what that type accepts and what it returns:
 
 ```
 type: scripture — fetch one passage from one named resource
@@ -122,7 +123,7 @@ maintained.
 
 **Two gaps this exposes rather than creates:**
 
-- **`scripture` declares no members**, so `sp help services scripture` cannot print a `returns`
+- **`scripture` declares no members**, so `sp help step-types scripture` cannot print a `returns`
   block until #263 lands. The command should say *"members are not declared for this step type"*
   rather than print nothing — an absence a reader can tell from a silence.
 - **No step type declares a one-line purpose.** `argparse` has `help=` per command; the schema has
@@ -152,7 +153,26 @@ maintained.
 §2 proposes yes. The alternative is that a service is the capability behind it — a resource
 reader, BaseX, DuckDB — which is a vocabulary a project is not otherwise given.
 
-=>
+=> Yes, a service is a step type, and "step types" is a better name for it since it's what the user sees
+
+**RULED 2026-09-28, and it renames the command rather than only a word.** The commands are
+`sp help step-types` and `sp help step-types <type>`; "service" does not appear in the interface
+at all.
+
+**This is `docs/ai-context/project/rules.md` rule 3 applied** — *"Prefer a meaningful phrase to a
+new noun. Coining a term obliges everyone who reads the project — people and models alike — to
+learn and maintain a definition."* "Service" was a coined abstraction over a thing that already
+had a name. `type:` is what a pipeline author writes, so **step type** is the name they already
+know and the one that needs no definition.
+
+**Applied throughout this document**, and §3's command names are rewritten. Two records outside it
+still say "services" and are not silently corrected:
+
+- **#264's body**, filed 2026-09-28, uses "services" throughout — including in its open question
+  asking this very thing. It is a shared record and answering it there is a separate act.
+- **The Captain's own D1′ ruling** in `design-named-step-outputs.md` reads *"what categories of
+  services are available"*. That is his text in a `=>` slot and stays verbatim; this ruling is
+  what it resolved to.
 
 ### D2. Does `sp help` replace or complement `sp <cmd> --help`?
 

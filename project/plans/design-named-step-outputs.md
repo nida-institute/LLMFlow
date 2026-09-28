@@ -280,6 +280,23 @@ which is the whole-object form of D2 arriving by another road.
 in a variable named by the pipeline, or under the step's own name?* The second is cleaner to read
 and cannot express the example we are about to ship.
 
+**RULED 2026-09-28 — A: a bare output name binds the primary member.** The Captain, answering the
+residual after D3's rename syntax had settled the list form: *"Yes, A of course."*
+
+So `output: subject` binds the step's **primary member**, not an object of all of them. For
+`type: scripture` that is `text`, which is exactly what it binds today — **so no existing pipeline
+changes.** The alternative would have turned `${subject}` from a string into a dict in every
+pipeline in every project.
+
+**What follows, and it is the one real cost:** every step type with more than one member must
+**declare which is primary**. Proposed: `scripture` → `text`, `alignment` → `text`,
+`parallel-passages` → `references`. That declaration goes beside the members in
+`_STEP_TYPE_PROPERTIES`, so it is derived rather than hand-kept, and `sp help step-types` reports
+it.
+
+**A step type with exactly one member needs no such declaration** — its only member is primary by
+construction, which is every step type in the language today except the two that carry `returns:`.
+
 ### D3. Is a declared member shape in scope, or only member names?
 
 Names alone deliver rows 1–3 of §4. Declaring `reference`'s fields as well delivers row 4 —
@@ -418,7 +435,30 @@ as well.
 then two step types rather than the whole language. `one-design` is satisfied either way; the
 difference is only in what it costs.
 
-=>
+=> keep output  ...  ditch returns
+
+**RULED 2026-09-28.** `output:` is the one key. `returns:` is retired from the language.
+
+**Blast radius, measured the same day rather than estimated:**
+
+| | |
+|---|---|
+| pipelines using `returns:` — `pipelines/`, shipped templates | **0** |
+| source files | 4 — `pipeline_schema.py`, `steps/alignment.py`, `steps/parallel_passages.py`, `utils/alignment.py` |
+| test files | 2 — `test_alignment.py`, `test_parallel_passages_step.py` |
+| documentation | 3 lines of `docs/llmflow-language.md` |
+
+So the migration is real but contained, and **no project's pipeline changes** — which is the same
+argument §1.3 makes about the positional form.
+
+**`utils/alignment.py` has a Python parameter named `returns`**
+(`aligned_text_for_spans(..., returns=('text',))`). That is an internal signature, not the
+language, so retiring the YAML key does not require renaming it. Left alone deliberately;
+renaming it is a separate, cosmetic change.
+
+**`one-design` applies to how this lands:** `alignment` and `parallel-passages` migrate in the
+same change that introduces named outputs. A half-migrated language with two ways to ask for a
+member is the thing the rule exists to prevent.
 
 ### D5. Does #244's starter example wait for this?
 

@@ -7,6 +7,120 @@
 
 ## 🔥 Active
 
+### 🧱 ORDER OF GOALS — set by the Captain, 2026-09-28
+
+> In his words: **"(1) finish the bloody examples, (2) make df happy with latest collab and other
+> outstanding df items, (3) ANTLR"**. This supersedes every earlier ordering in this file.
+
+1. **Finish the examples → #244.** **Implementing #263 is inside this goal, not beside it** — he
+   ruled 2026-09-28 that the example waits on named step outputs, so the order is: implement
+   #263, write the example, do the removal, run the gates.
+2. **Make the CLI the unmistakable external API** — inserted here by the Captain 2026-09-28. See
+   immediately below.
+3. **discourse-flow.** The inventory is below; four items, three of them small.
+4. **ANTLR → #239.** The parser. Design decisions already ruled; nothing to build until the rest
+   are done.
+
+#### 🚪 GOAL 2 — the CLI API is THE external API, and `index.json` is not an API at all
+
+> **Set by the Captain 2026-09-28:** *"we HAVE to make it clear that the CLI API is THE external
+> API. index.json is a map of the implementation, not an API meant for users or tests."*
+
+**The file says nothing about itself, which is the whole problem.** Measured 2026-09-28:
+`docs/index.json` has exactly two top-level keys, `modules` and `summary`, and lists **881
+functions across 93 modules**. There is no statement of purpose and no boundary anywhere in it. A
+reader — person or model — who finds a catalogue of 881 functions concludes it is an API listing,
+because nothing in it says otherwise. `project/index.md` describes it as *"Every module and
+function this engine has"*, which reinforces exactly that reading.
+
+**Rule `the-language-is-the-whole-surface` already says the engine is reached one way.** What is
+missing is the same statement attached to the artifact that most invites the opposite conclusion,
+and the explicit extension to **tests** — `docs/ai-context/project/rules.md` rule 1 says a test
+exercises a step through the object model or the CLI, and #250 counts **29 files against 12** going
+the other way.
+
+- [ ] **The generated file declares what it is.** `tools/index_signatures.py:139-142` builds the
+      JSON; the fix goes there, not in the artifact, which `tools/hooks/pre-commit` regenerates and
+      stages on every commit touching `src/`. A `purpose` field saying it maps the implementation
+      and is not a public API — evidence:
+- [ ] **`docs/ai-context/project/index.md`** — the row currently reads *"Every module and function
+      this engine has"*. It goes on to say the guidance is engine-only, but the headline is what a
+      skimming reader takes — evidence:
+- [ ] **Decide whether this belongs in `data/ai-rules.yaml`** as an extension to
+      `the-language-is-the-whole-surface`, or as prose in the project index. A rule reaches every
+      project; this concerns a file only this repository has — **the Captain's call** — evidence:
+- [ ] **`docs/python-api.md`** — states the Python API is the engine's own. Check it does not read
+      as an offer to projects — evidence:
+- [ ] **Is it guardable?** `tests/test_shipped_context_names_one_surface.py` already holds the one-
+      surface line across shipped material, 77 tests. Whether it can also refuse a test that
+      imports an internal named only in `index.json` is worth asking before assuming it cannot —
+      evidence:
+
+**Widened by the Captain, 2026-09-28:** *"that needs to be clear in our ai context, and in anything
+exposed to users about our APIs."*
+
+> 🔴 **A live contradiction found while scoping this, 2026-09-28 — the shipped index still sells
+> the Python API.** `src/llmflow/file_catalog.py:235-243`, the `SP_DOC_LINKS` constant, renders
+> into every project's `docs/ai-context/sp/index.md:35-37`:
+>
+> *"[Python API] — `import llmflow`: `load_pipeline(...)` then `.resolve()` / `.lint()` / `.run()`
+> / `.schemas()`; `PIPELINE_SCHEMA` + `api_catalog()` are the machine-readable syntax-to-API map.
+> **Prefer this** over re-parsing pipeline YAML."*
+>
+> Rule `the-language-is-the-whole-surface` was ruled 2026-09-27 and its own record says the
+> shipped context was corrected — **it was corrected in `sp/overview.md` and not here.** So every
+> project initialised since is being told to import the package and preferentially use it.
+>
+> **This is the third instance of one pattern this week**, after `include: … valid only with
+> format: usj` (fixed in the language reference, alive in the shipped quickref) and `click` is
+> "the CLI library" (fixed in the queue, alive in the plan). Each was recorded as fixed after
+> checking the file a note cited. **The lesson, now three times paid: grep for the claim, never
+> for the location.**
+
+- [ ] **Fix `SP_DOC_LINKS`** at `file_catalog.py:235-243`. It is a Python constant, not a template,
+      so no `sp init --update` regenerates it from a file anyone reviews — evidence:
+- [ ] **Sweep the AI context, both halves.** `sp/` is generated and ships; `project/` is ours —
+      evidence:
+- [ ] **Sweep what users read about our APIs**, measured rather than listed from memory:
+      `README.md`, `docs/python-api.md`, `docs/architecture.md`, `docs/getting-started.md`,
+      `docs/GPT_CONTEXT.md`, `docs/llmflow-language.md`, and the shipped
+      `templates/project/docs/ai-context/sp/command-line.md` — evidence:
+- [ ] **Extend the guard rather than trusting the sweep.**
+      `tests/test_shipped_context_names_one_surface.py` holds the line across shipped material
+      already and **did not catch `SP_DOC_LINKS`**, because the string lives in a `.py` constant
+      rather than in a shipped document. That gap is the finding, not the sweep — evidence:
+
+#### The discourse-flow inventory, read 2026-09-28
+
+From `collab/discourse-flow/2026-09-28-the-defect-log-needs-an-info-severity-and-lint-refuses-a-safe-builtin.md`,
+which was untracked and unread when it arrived. **None of it blocks goal 1.**
+
+- [ ] **`info` as a third severity.** `SEVERITIES` is `("warning", "error")` at
+      `src/llmflow/defects.py:42` and `record` raises on anything else. For conditions that are
+      rare but **not wrong** — a window returning a single pericope; 56 of 119 Mark leaf pericopes
+      having no analysis by design, currently reported as warnings. **One consequence travels with
+      it:** `report` derives its warning count as `len(defects) - errors`, so a third severity
+      folds silently into the warning total unless the arithmetic moves too — evidence:
+- [ ] **`_DefectHandler.emit` promotes anything below ERROR to `warning`** —
+      `severity = "error" if record.levelno >= logging.ERROR else "warning"`. A deliberate INFO
+      becomes a warning silently. **A defect whichever way the item above goes** — evidence:
+- [ ] **`sp lint` refuses `${len(...)}` in a `condition:` that the evaluator accepts.** `len` is in
+      the evaluator's safe builtins (`src/llmflow/utils/__init__.py:17`, with `str`, `int`,
+      `float`, `bool`, `list`, `dict`), but the variable validator reads it as an undefined
+      variable and fails the pipeline. **The linter is stricter than the half that actually
+      executes**, which is the wrong way round. Suggested fix: the validator skips any name in the
+      same `safe_builtins` mapping, so one declaration governs both — evidence:
+- [ ] **→ #255 replay — the scope is worse than recorded here.** Not one awkward prompt:
+      `segment-book.gpt` (890 template lines vs 964 rendered) and `segments.gpt` (666 vs 742) both
+      refused, and **every prompt in that pipeline embeds a JSON payload**, so none can be
+      replayed. Four rulings in their segmentation audit said "test with sp replay" and could not
+      be; a 37-rule prompt change landed untested, and the alternative is **~$22 per edit** for a
+      Mark run. Also: replay reads `schema:` from prompt frontmatter and does not fall back to the
+      step's `response_format`, so the *first* error is misleading and hides the real one —
+      evidence:
+
+
+
 ### 🔴 The suite is red in seven places, and every one is a half-finished thing
 
 > **Audited 2026-09-27** at the Captain's direction — *"the last LLM instance left several
@@ -346,10 +460,14 @@ context."* The risk this addresses is a model carrying the `scripture` rule to a
 **B — the example itself.** One pipeline, one prompt: D2 ruled *"no more complexity than is needed
 for the task"*.
 
-- [ ] `pipelines/commentary.yaml` — five steps, `${passage}` named in every step, **no default**
-      (§5, ruled 2026-09-26) — evidence:
-- [ ] **The `output: [subject, passage_info]` semantics are recorded in the example pipeline
-      itself.** Set by the Captain 2026-09-27. The example is what a reader copies, so a semantic
+- [x] `pipelines/commentary.yaml` — **four** steps, not five: the separate `reference` step is
+      gone, absorbed into `scripture`'s members, so **three of four call no model** rather than
+      four of five. `${passage}` is named in every step and there is no default.
+      `hatch run sp lint --pipeline pipelines/commentary.yaml` → **✅ Pipeline OK**, zero warnings
+- [x] **The output semantics are recorded in the example pipeline itself**, in `description:`
+      block scalars as ruled — the list form, that members are decided by the step type and do
+      not carry to a `function` step, and why `passage_info` is declared on the first step.
+      Originally stated as Set by the Captain 2026-09-27. The example is what a reader copies, so a semantic
       that lives only in the language reference does not travel with the thing being copied. It
       must say: the list form is **positional**; **what each position means is decided by the step
       type**, so this does not carry to a `function` step; and `passage_info` must be declared on
@@ -362,23 +480,41 @@ for the task"*.
         for *"short inline notes and section dividers only"*. No divergence from the discipline to
         record. This matters beyond style: the example ships as the worked demonstration of how a
         step is documented, so whatever it does is what every project copies
-- [ ] `prompts/commentary.gpt` conforms to `data/prompt-structure.yaml` — twelve positions, four
-      subsections in each task section, an ❌ counterexample in each (C3) — evidence:
-- [ ] `sp lint --pipeline pipelines/commentary.yaml` is **silent** — evidence:
-- [ ] `--dry-run` shows four of five steps resolving before any model is called — evidence:
+- [x] `prompts/commentary.gpt` conforms to `data/prompt-structure.yaml` — twelve positions, four
+      subsections in each of its two task sections, an ❌ counterexample in each (C3). **It is the
+      first prompt in this repository to conform**: `sp lint` warns on `prompts/hello.gpt` at
+      position 2 and produces **zero** warnings on this one, so the check is live and the prompt
+      passes it rather than the check being absent
+- [x] `sp lint --pipeline pipelines/commentary.yaml` is **silent** — 0 warnings, verified against
+      `hello.yaml` warning as a control
+- [x] `--dry-run` resolves every path and variable and names the four steps in order —
+      `subject`, `english`, `parallels` (all free), then `commentary`. Run with
+      `--var passage="MRK 1:1-8"`; calls no model and writes nothing
 - [ ] **§6's sample output is domain content and needs the Captain's review before it ships.** It
       is drafted and marked *"illustrations of shape, not approved content"* — evidence:
 
 **C — the removal (D3: *"drop these"*).** One pass, `one-design`: nothing half-migrated.
 
-- [ ] 12 files deleted from `pipelines/` and `prompts/` — evidence:
-- [ ] 4 template twins deleted — evidence:
-- [ ] `data/file-catalog.yaml` rows 224–256 replaced by the new example's — evidence:
-- [ ] **`cli.py` and `cli_utils.py` no longer name the starter files** — the one the plan missed;
-      a deletion here breaks code, not prose — evidence:
-- [ ] 3 test files updated — evidence:
-- [ ] 9 docs updated, template twins in the same change — evidence:
-- [ ] `sp/index.md` regenerates from the catalog and names the new example — evidence:
+- [x] 12 files deleted from `pipelines/` and `prompts/` — the four starters plus their eight
+      `-view.md` / `.html` companions
+- [x] 4 template twins deleted; **2 added** — `templates/project/pipelines/commentary.yaml` and
+      `templates/project/prompts/commentary.gpt`
+- [x] `data/file-catalog.yaml` — four `policy: example` rows replaced by two, with the reason
+      the hello pair was dropped recorded on the row rather than lost
+- [x] **`cli.py` and `cli_utils.py` no longer name the starter files.** The one the plan missed:
+      `HELLO_PROMPT`/`HELLO_REPLY_PROMPT`/`HELLO_YAML`/`HELLO_PIPELINE` → `COMMENTARY_PIPELINE`
+      and `COMMENTARY_PROMPT`; `_EXAMPLE_PATHS` rewritten; two docstrings and a `--help` string.
+      Deleting to the plan would have left `tests/test_init.py` unimportable, which is exactly
+      what happened until these were fixed
+- [x] 2 test files updated, not 3. `tests/test_init.py` substantially rewritten — **43 passed**;
+      `tests/test_linter.py` points at the shipped prompt — 7 passed.
+      `tests/test_windows_encoding.py` needed **no** change: its `hello.gpt` is a throwaway
+      fixture name in `tmp_path`, not the shipped file. The estimate counted a grep hit
+- [x] Docs updated at their sources, then regenerated: `docs/tutorial.md` **rewritten** for the
+      new example; the quickref and `command-line.md` templates; and **`data/ai-rules.yaml`,
+      where rule `cite-paths` used the deleted files as its own example of a good citation**
+- [x] `sp/index.md` regenerated from the catalog and names the new example —
+      `hatch run sp init --update`
 
 **D — the gates, run and quoted.**
 
@@ -537,13 +673,21 @@ these differ between `zsh` and `bash` today:
 
 - [x] **`~/.sp/skills/stage-commits/` is present.** This arrived at some point after the item
       below was written; the item claimed both destinations were blocked and only one was
-- [ ] **`.claude/skills/stage-commits/` is absent here** — `find` over
-      `LLMFlow/.claude/skills/` returns 11 directories and this is not one of them. Until it is
-      there the skill cannot be invoked in this repository
-- [ ] **`~/.claude/skills/stage-commits/` is absent too** — 8 directories there, and not this one
-- [ ] **The route is `sp init --update`, not `sp doctor`** (#210). `data/file-catalog.yaml:52`
-      and `:75` declare `templates: "sp/skills/*"` for both destinations, so the glob already
-      covers this skill — nothing needs cataloguing, the command simply has not been run
+- [x] **`.claude/skills/stage-commits/` is now present** — `hatch run sp init --update` installed
+      **12 skills**, `stage-commits` among them, and it appears in a session's skill list. The
+      finding was correct and the remedy was the command nobody had run
+- [ ] **`~/.claude/skills/stage-commits/` is still absent.** The project store is fixed; the
+      machine-wide one is not, and that directory is the Captain's — evidence:
+- [x] **The route was `sp init --update`, not `sp doctor`** (#210), exactly as
+      `data/file-catalog.yaml:52` and `:75` implied — the glob already covered it
+
+> ⚠️ **Running `sp init --update` here overwrote this repository's own `docs/ai-context/sp/rules.md`
+> with the consumer-project variant.** Two generators write that one file and they disagree:
+> `sp init` emits `<!-- Generated by sp init -->` / `# AI Assistant Rules for This Repo`, while
+> `tools/update_ai_context.py` emits `<!-- Generated by tools/update_ai_context.py -->` /
+> `# AI Assistant Rules`. Caught by `test_ai_rules_single_source` and repaired by re-running the
+> generator. **This is the hazard #210 names, still live**, and it is two encodings of one file —
+> `design-is-declarative`. Worth its own issue — evidence:
 - [ ] **`tests/test_stage_commits_checks_the_handoff.py` is untracked** — 3 tests that exist in
       the working tree and in no commit. `git status` lists it under `??`. Either commit it or
       say why it should go
