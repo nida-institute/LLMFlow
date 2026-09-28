@@ -31,8 +31,14 @@ references there, or in documents it points to.
 | `prompts/commentary.gpt` | The commentary prompt. The first in this repository to conform to the ruled section order in data/prompt-structure.yaml. |
 ## Scripture Pipelines documentation
 
-- [Pipeline language spec](https://github.com/nida-institute/LLMFlow/blob/main/docs/llmflow-language.md)
-- [Python API](https://github.com/nida-institute/LLMFlow/blob/main/docs/python-api.md) —
-  `import llmflow`: `load_pipeline(...)` then `.resolve()` / `.lint()` / `.run()` /
-  `.schemas()`; `PIPELINE_SCHEMA` + `api_catalog()` are the machine-readable syntax-to-API
-  map. Prefer this over re-parsing pipeline YAML.
+**This engine is reached one way: the `sp` command line, and the pipeline language it reads.**
+Everything else is the engine's own and carries no compatibility promise, so a project that
+builds on it has taken a dependency nobody offered.
+
+- [The pipeline language](https://github.com/nida-institute/LLMFlow/blob/main/docs/llmflow-language.md)
+  — every step type, its keys, and what each one returns
+- [Quick reference](llmflow-language-quickref.md) — the same, short, beside you while you write
+- `sp --help`, and `sp <command> --help` — the commands, from the tool itself
+
+**Where the language cannot express something, that is a gap to report, not a reason to reach
+past it.** Say so and ask for the construct; do not import the package to work around it.

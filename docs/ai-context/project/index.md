@@ -21,7 +21,8 @@ job.
 | Active work, what is in flight, what not to touch | [project/TODO.md](../../../project/TODO.md) | Every session (rule `todo-is-the-session-cache`) |
 | The rules every session here is held to | [../sp/rules.md](../sp/rules.md) | **Before any change** — authoritative |
 | Constraints that hold in **this** repository and nowhere else | [rules.md](rules.md) | Alongside `sp/rules.md`; short, and it is where local prohibitions live |
-| **Every module and function this engine has** | [docs/index.json](../../index.json) | **Before writing any function, and before adding a module.** Search it first — **duplicate code is buggy code**, and it diverges from the original the moment either changes |
+| **A map of this engine's implementation — not an API** | [docs/index.json](../../index.json) | **Before writing any function, and before adding a module.** Search it first — **duplicate code is buggy code**, and it diverges from the original the moment either changes. It is **not a surface**: not for projects, and **not for tests**, which exercise a step through the object model or the CLI — see [rules.md](rules.md). It says so in its own `about` field |
+| **A map of the public surface — the one that *is* an API** | [docs/cli-api.json](../../cli-api.json) | Every `sp` command with its options, and every step type with its own keys, its members and which is primary. Generated from `build_parser()` and `PIPELINE_SCHEMA`, so it cannot drift from what the program does. **This is what a project may build against; `index.json` is not.** Answering "what does this engine offer?" from here needs no import |
 
 ### Search `docs/index.json` before you write
 

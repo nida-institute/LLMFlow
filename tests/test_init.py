@@ -574,19 +574,25 @@ def test_the_starter_map_does_not_name_a_document_sp_stopped_shipping():
     assert "docs/audits" not in AI_INDEX_DOC
 
 
-def test_index_references_python_api():
-    """Project AIs must be able to discover the public Python API from their AI context.
+def test_the_index_points_a_project_at_the_command_line():
+    """A project's AI context names the one surface: the CLI and the pipeline language.
 
-    The pointers moved from AI_INDEX_DOC to the rendered sp index with the two-index split
-    (Q1, 2026-08-24): they describe what the *engine* offers, so they belong in sp's
-    inventory rather than in the map a project writes for itself.
+    This replaces `test_index_references_python_api`, which required the opposite — that the
+    rendered index carry `python-api`, `load_pipeline` and `api_catalog`. Rule
+    `the-language-is-the-whole-surface` settled that a project reaches this engine one way, and
+    the Python API is the engine's own with no compatibility promise attached. The old test was
+    the pre-ruling contract still being enforced, so it went rather than being weakened —
+    `one-design`.
+
+    What a project must *not* be told is checked in
+    `tests/test_shipped_context_names_one_surface.py`, against the rendered text rather than
+    against the templates it is built from.
     """
     from llmflow.file_catalog import render_sp_index
 
     rendered = render_sp_index()
-    assert "python-api" in rendered
-    assert "load_pipeline" in rendered
-    assert "api_catalog" in rendered
+    assert "llmflow-language.md" in rendered, "the language reference must be findable"
+    assert "sp --help" in rendered, "the command line must be findable from the tool itself"
 
 
 def test_init_uses_outputs_not_singular_output_decoy(tmp_path, monkeypatch):

@@ -25,7 +25,7 @@ import enum
 import importlib.resources
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import yaml
 
@@ -69,13 +69,22 @@ class Source(enum.Enum):
     """Copied out of `~/.sp/` — the project skills of D1-A′."""
 
     DERIVED = "derived"
-    """Rendered from this catalog itself, so there is no second list to keep.
+    """Rendered by code at write time, so there is no second list to keep in step.
 
-    `docs/ai-context/sp-index.md` is the case: it lists sp's own documents, and every one of
-    them is already declared here with a `purpose:`. Holding that list in a constant instead
-    would be the failure this module's docstring blames for three conventions going unshipped
-    for months (#204, #181) — and the Captain's question that produced this: *"don't we need a
-    catalog for sp's files?"* We do, and it is this file.
+    The row names its renderer in `renderer:`, the way a `constant` row names its constant. It
+    was a single hardcoded call until `docs/cli-api.json` needed the same treatment — the enum
+    said "derived" while the dispatch meant one particular file, which is the kind of gap that
+    only shows when a second case arrives.
+
+    Two files use it, and they are opposites worth keeping straight:
+
+    - `docs/ai-context/sp/index.md` lists sp's own documents, every one of them already declared
+      here with a `purpose:`. Holding that list in a constant instead would be the failure this
+      module's docstring blames for three conventions going unshipped for months (#204, #181).
+    - `docs/cli-api.json` is the **public surface** — every command and step type, from
+      `build_parser()` and `PIPELINE_SCHEMA`. It ships because a project needs to answer "what
+      does this engine offer?" without importing the package, which is the one thing a project
+      is told not to do.
     """
 
     NONE = "none"
@@ -97,6 +106,8 @@ class Entry:
     committed: bool
     template: Optional[str] = None
     constant: Optional[str] = None
+    #: For `source: derived` — the function in this module that renders the content.
+    renderer: Optional[str] = None
     purpose: Optional[str] = None
     """What this document is for, in one line, for a human or an AI deciding whether to open it.
 
@@ -155,6 +166,7 @@ def _entry_from(spec: dict[str, Any], path: str, template: Optional[str]) -> Ent
         committed=bool(spec["committed"]),
         template=template,
         constant=spec.get("constant"),
+        renderer=spec.get("renderer"),
         purpose=spec.get("purpose"),
         block=spec.get("block"),
     )
@@ -232,15 +244,36 @@ references there, or in documents it points to.
 """
 
 
+#: Rendered into every project's `sp/index.md`. It is shipped text that is not a shipped file,
+#: which is why `tests/test_shipped_context_names_one_surface.py` renders this rather than
+#: reading `templates/`: an earlier version offered the Python API here and the guard beside it
+#: could not see the offer.
 SP_DOC_LINKS = """
 ## Scripture Pipelines documentation
 
-- [Pipeline language spec](https://github.com/nida-institute/LLMFlow/blob/main/docs/llmflow-language.md)
-- [Python API](https://github.com/nida-institute/LLMFlow/blob/main/docs/python-api.md) —
-  `import llmflow`: `load_pipeline(...)` then `.resolve()` / `.lint()` / `.run()` /
-  `.schemas()`; `PIPELINE_SCHEMA` + `api_catalog()` are the machine-readable syntax-to-API
-  map. Prefer this over re-parsing pipeline YAML.
+**This engine is reached one way: the `sp` command line, and the pipeline language it reads.**
+Everything else is the engine's own and carries no compatibility promise, so a project that
+builds on it has taken a dependency nobody offered.
+
+- [The pipeline language](https://github.com/nida-institute/LLMFlow/blob/main/docs/llmflow-language.md)
+  — every step type, its keys, and what each one returns
+- [Quick reference](llmflow-language-quickref.md) — the same, short, beside you while you write
+- `sp --help`, and `sp <command> --help` — the commands, from the tool itself
+
+**Where the language cannot express something, that is a gap to report, not a reason to reach
+past it.** Say so and ask for the construct; do not import the package to work around it.
 """
+
+
+def render_cli_api() -> str:
+    """The public surface as JSON, for a project's own copy.
+
+    Delegates to `llmflow.cli_api`, which is in the package and therefore reachable from an
+    installed wheel — `tools/` is not. Named here only so a catalog row can point at it.
+    """
+    from llmflow.cli_api import render_cli_api as render
+
+    return render()
 
 
 def render_sp_index() -> str:
@@ -305,6 +338,17 @@ def shipped_content(entry: Entry) -> Optional[str]:
         from llmflow import cli_utils
 
         return getattr(cli_utils, entry.constant, None)
-    if entry.source is Source.DERIVED:
-        return render_sp_index()
+    if entry.source is Source.DERIVED and entry.renderer:
+        render = _RENDERERS.get(entry.renderer)
+        return render() if render else None
     return None
+
+
+#: The renderers a `source: derived` row may name. An explicit registry rather than a lookup in
+#: module globals: the catalog is data, and data naming an arbitrary function to call is a wider
+#: door than this needs. A row naming something absent renders nothing and `sp doctor` reports
+#: the file as missing, which is the loud failure rather than the quiet one.
+_RENDERERS: dict[str, Callable[[], str]] = {
+    "render_sp_index": render_sp_index,
+    "render_cli_api": render_cli_api,
+}

@@ -19,6 +19,9 @@
 #   committed  true  -> belongs in git, must never appear in the generated .gitignore
 #              false -> goes in the generated .gitignore
 #   constant   name of the string constant in cli_utils, when source is `constant`
+#   renderer   name of the function in file_catalog.py that renders it, when source is
+#              `derived`. Named on the row rather than chosen in code, so a second derived
+#              file needs no `if` — which is what `derived` used to require.
 #   template   path under src/llmflow/templates/, when source is `template`
 #   block      delimiter name when sp owns only a block of the file, not all of it
 #   purpose    what the file is for; this text is the entry's row in the rendered index
@@ -93,11 +96,26 @@ files:
     purpose: >-
       What Scripture Pipelines is, and where the rest of its documentation lives.
 
+  # The public surface, as data. `docs/index.json` in this repository is the opposite thing
+  # and does not ship: it maps the implementation and says so in its own `about`. This one is
+  # what a project may build against, and it ships because answering "what does this engine
+  # offer?" should not require importing the package — the one thing a project is told not to do.
+  - path: docs/cli-api.json
+    scope: project
+    policy: generated
+    source: derived
+    renderer: render_cli_api
+    committed: true
+    purpose: >-
+      The public surface as data: every sp command with its options, and every step type with
+      its own keys, its members and which is primary. Generated, so it cannot drift.
+
   # Rendered from this file, so it cannot name a document the catalog does not declare.
   - path: docs/ai-context/sp/index.md
     scope: project
     policy: generated
     source: derived
+    renderer: render_sp_index
     committed: true
     purpose: >-
       The documents Scripture Pipelines ships, and what each is for. Rendered from

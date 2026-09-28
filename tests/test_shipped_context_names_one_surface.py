@@ -86,3 +86,48 @@ def test_the_internals_map_is_not_shipped(path: Path):
         "modules and functions. It is engine-only; a project has no use for it and no "
         "compatibility promise about anything in it."
     )
+
+
+# --- shipped text that is not a shipped file ------------------------------------------------
+#
+# The checks above read `*.md` under `templates/`, which is where shipped documents live — and
+# is not where all shipped *text* lives. `docs/ai-context/sp/index.md` is rendered from Python
+# constants in `file_catalog.py`, so its content reached every project without ever being a file
+# this guard could open. It carried an offer of the Python API for a full day after the
+# one-surface rule was ruled and applied to the documents beside it.
+#
+# So these render what a project receives and check that, rather than the sources it is built
+# from. A guard that reads only the convenient half of the surface is the shape of guard the
+# rules already warn about.
+
+
+def rendered_shipped_documents() -> dict[str, str]:
+    """Shipped text produced by code rather than copied from a template file."""
+    from llmflow.file_catalog import render_sp_index
+
+    return {"docs/ai-context/sp/index.md": render_sp_index()}
+
+
+def test_there_is_rendered_shipped_text_to_check():
+    """The companion to the emptiness check above, for the same reason."""
+    rendered = rendered_shipped_documents()
+    assert rendered and all(text.strip() for text in rendered.values())
+
+
+@pytest.mark.parametrize("name", sorted(rendered_shipped_documents()))
+def test_rendered_shipped_text_names_the_command_line_and_nothing_else(name: str):
+    text = rendered_shipped_documents()[name]
+    named = [api for api in PYTHON_API_NAMES if api in text]
+    assert not named, (
+        f"{name} is rendered into every project and tells it about the Python API "
+        f"({', '.join(named)}). A project reaches this engine through the `sp` command line "
+        "and the pipeline language it reads. Describe the command, not the call."
+    )
+
+
+@pytest.mark.parametrize("name", sorted(rendered_shipped_documents()))
+def test_rendered_shipped_text_does_not_name_the_internals_map(name: str):
+    assert INTERNALS_MAP not in rendered_shipped_documents()[name], (
+        f"{name} is rendered into every project and names {INTERNALS_MAP}, which maps the "
+        "engine's own modules and functions. It is engine-only."
+    )

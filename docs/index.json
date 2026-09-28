@@ -1,4 +1,11 @@
 {
+  "about": {
+    "what": "A map of this engine's implementation: every module in src/ with its imports, and every function with its signature and docstring.",
+    "why": "So that work on the engine can find what already exists before writing it again. Duplicate code is buggy code, and it diverges from the original the moment either changes.",
+    "not_an_api": "This is NOT an API. Nothing listed here carries a compatibility promise, and a project must not build against it. A project reaches this engine one way: the sp command line and the pipeline language it reads.",
+    "not_for_tests": "This is not a surface for tests either. A test that calls a function found here couples the suite to an internal. Exercise a step through the object model or the CLI — the surface a consumer uses. See docs/ai-context/project/rules.md rule 1.",
+    "generated_by": "tools/index_signatures.py, re-run by the pre-commit hook whenever src/ changes. Editing this file by hand does not survive."
+  },
   "modules": [
     {
       "module": "llmflow.catalog",
@@ -76,6 +83,11 @@
           "name": "documents",
           "signature": "documents() -> tuple[Entry, ...]",
           "doc": "Catalogued paths that carry a `purpose:` — the reading list `sp-index.md` renders."
+        },
+        {
+          "name": "render_cli_api",
+          "signature": "render_cli_api() -> str",
+          "doc": "The public surface as JSON, for a project's own copy."
         },
         {
           "name": "render_sp_index",
@@ -1584,6 +1596,58 @@
           "name": "run_models_update",
           "signature": "run_models_update() -> bool",
           "doc": "Interactively update models.json from installed llm plugins."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.cli_api",
+      "imports": [
+        "__future__",
+        "argparse",
+        "json",
+        "llmflow.pipeline_schema",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "commands",
+          "signature": "commands() -> Dict[str, dict]",
+          "doc": "Every `sp` command and subcommand, with its help text and options."
+        },
+        {
+          "name": "declared_step_types",
+          "signature": "declared_step_types() -> set",
+          "doc": "The step types the schema declares, read from the schema itself."
+        },
+        {
+          "name": "step_types",
+          "signature": "step_types() -> Dict[str, dict]",
+          "doc": "Every step type, its own keys, and what it returns."
+        },
+        {
+          "name": "cli_api_map",
+          "signature": "cli_api_map() -> dict",
+          "doc": "The whole map, as a dict."
+        },
+        {
+          "name": "render_cli_api",
+          "signature": "render_cli_api() -> str",
+          "doc": "The map as the JSON text that is written to disk."
+        },
+        {
+          "name": "options",
+          "signature": "options(parser: argparse.ArgumentParser) -> List[dict]",
+          "doc": ""
+        },
+        {
+          "name": "walk",
+          "signature": "walk(parser: argparse.ArgumentParser, prefix: str) -> None",
+          "doc": ""
+        },
+        {
+          "name": "walk",
+          "signature": "walk(node: Any) -> None",
+          "doc": ""
         }
       ]
     },
@@ -5587,7 +5651,7 @@
     }
   ],
   "summary": {
-    "total_modules": 93,
-    "total_functions": 885
+    "total_modules": 94,
+    "total_functions": 894
   }
 }
