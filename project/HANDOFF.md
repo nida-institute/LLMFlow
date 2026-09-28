@@ -5,7 +5,7 @@
 **Two commits. Both message files are written.**
 
 ```sh
-git add src/llmflow/file_catalog.py src/llmflow/cli_api.py data/file-catalog.yaml docs/cli-api.json docs/index.json docs/python-api.md docs/ai-context/project/index.md docs/ai-context/sp/index.md tools/index_cli_api.py tools/index_signatures.py tools/hooks/pre-commit tests/test_cli_api_map.py tests/test_internals_map_declares_itself.py tests/test_shipped_context_names_one_surface.py tests/test_init.py
+git add src/llmflow/defects.py src/llmflow/utils/__init__.py src/llmflow/utils/linter.py tests/test_defect_info_severity.py tests/test_condition_safe_builtins_lint.py tests/test_defect_log.py tests/test_llm_truncation.py
 git commit -F tmp/commit-1.txt
 
 git add project/TODO.md project/HANDOFF.md
@@ -15,19 +15,15 @@ git commit -F tmp/commit-2.txt
 Then delete `tmp/commit-1.txt` and `tmp/commit-2.txt` **by name** — `tmp/` holds other sessions'
 unbacked drafts and is git-ignored, so a sweep is unrecoverable.
 
-**Then run this once, and it is the Captain's to run**, because it changes his git config:
-
-```sh
-git config core.hooksPath tools/hooks
-```
-
-Until it does, **neither generated map refreshes on commit.** The live hook is
-`.git/hooks/pre-commit`, a copy nobody has updated; the tracked source is `tools/hooks/pre-commit`
-and it now regenerates both. Both maps have staleness tests, so drift fails loudly rather than
-silently — but the hook is the mechanism.
-
-**Then: goal 3, discourse-flow.** Four items inventoried in `project/TODO.md`; the expensive one
-for them is #255, replay, which costs them ~$22 per prompt edit today.
+**Then: → #255, replay.** The last of the four discourse-flow items and the expensive one. Their
+measurement: `segment-book.gpt` is 890 template lines against 964 rendered, `segments.gpt` 666
+against 742, and **every prompt in their pipeline embeds a JSON payload**, so none can be
+replayed. Four rulings in their segmentation audit said "test with sp replay" and could not be; a
+37-rule prompt change landed untested. The alternative is a book run per edit, **~$22 for Mark**.
+`recover_var_map` refuses on a line-count mismatch at `src/llmflow/tools/replay.py:50`; the fix is
+to align on variable sites instead. A second, smaller thing rides with it: replay reads `schema:`
+from prompt frontmatter and does not fall back to the step's `response_format`, so the *first*
+error a reader meets is misleading and hides the real one.
 
 `project/TODO.md` holds the queue and its order. Do not read the queue out of this file.
 
@@ -35,11 +31,11 @@ for them is #255, replay, which costs them ~$22 per prompt edit today.
 
 ## In flight, and whose
 
-Branch `dev`, level with `origin/dev` at `94f1edb`.
+Branch `dev`, level with `origin/dev` at `dfc4614`.
 
 | | |
 |---|---|
-| **this session's, uncommitted** | the two groups above |
+| **this session's, uncommitted** | the two groups above — the three defect/lint fixes, then the queue and this file |
 | **the Captain's, uncommitted — do not sweep in** | `data/models.json`, `docs/ai-context/sp/github-workflow.md` and its template twin, `project/open-decisions.md`, `project/plans/README.md`, two tracked `tmp/` deletions, and `docs/ai-context/project/data-sources.md` |
 | **unread, arrived 2026-09-28** | `collab/discourse-flow/2026-09-28-the-defect-log-needs-an-info-severity-and-lint-refuses-a-safe-builtin.md` — **inventoried in the queue as goal 3, not acted on** |
 | **untracked, not this session's** | `.cursorrules`, `.windsurfrules`, `project/0x28.md`, `tests/test_stage_commits_checks_the_handoff.py`, five earlier `collab/discourse-flow/` notes, `collab/human-at-the-helm/` |
@@ -52,7 +48,7 @@ and a two-line product-name fix are one hunk. His to commit or authorise whole.
 ## Known-failing — 4, down from 7 at the start of the day
 
 **Verify:** `hatch run pytest tests/ -q -m "not integration" -p no:randomly`
-→ **5916 passed, 24 skipped, 4 failed** (2026-09-28, 138s).
+→ **5940 passed, 24 skipped, 4 failed** (2026-09-28, 140s).
 
 `test_global_disciplines`, `test_plan_docs_index`, `test_portable_skills`,
 `test_resource_provisioning`. **What each names is in `project/TODO.md`**, first section under
@@ -79,6 +75,10 @@ code. The queue's note calling it a broken check reporting nothing is **stale**.
   API for users or for tests. Both maps now say so in their own `about` fields.
 - **The starter example ships**: `pipelines/commentary.yaml`, `prompts/commentary.gpt`. The prompt
   is **approved** — *"the prompt looks good"*.
+- **`info` is a third defect severity**, least-to-most-serious, and the logging handler maps onto
+  it rather than promoting everything below ERROR to `warning`. **`sp lint` accepts any condition
+  the evaluator accepts**, from one declaration both halves read. Three of the four things
+  discourse-flow asked for; #255 is the fourth.
 
 ### Open, and blocking
 

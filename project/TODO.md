@@ -100,21 +100,21 @@ exposed to users about our APIs."*
 From `collab/discourse-flow/2026-09-28-the-defect-log-needs-an-info-severity-and-lint-refuses-a-safe-builtin.md`,
 which was untracked and unread when it arrived. **None of it blocks goal 1.**
 
-- [ ] **`info` as a third severity.** `SEVERITIES` is `("warning", "error")` at
-      `src/llmflow/defects.py:42` and `record` raises on anything else. For conditions that are
-      rare but **not wrong** — a window returning a single pericope; 56 of 119 Mark leaf pericopes
-      having no analysis by design, currently reported as warnings. **One consequence travels with
-      it:** `report` derives its warning count as `len(defects) - errors`, so a third severity
-      folds silently into the warning total unless the arithmetic moves too — evidence:
-- [ ] **`_DefectHandler.emit` promotes anything below ERROR to `warning`** —
-      `severity = "error" if record.levelno >= logging.ERROR else "warning"`. A deliberate INFO
-      becomes a warning silently. **A defect whichever way the item above goes** — evidence:
-- [ ] **`sp lint` refuses `${len(...)}` in a `condition:` that the evaluator accepts.** `len` is in
-      the evaluator's safe builtins (`src/llmflow/utils/__init__.py:17`, with `str`, `int`,
-      `float`, `bool`, `list`, `dict`), but the variable validator reads it as an undefined
-      variable and fails the pipeline. **The linter is stricter than the half that actually
-      executes**, which is the wrong way round. Suggested fix: the validator skips any name in the
-      same `safe_builtins` mapping, so one declaration governs both — evidence:
+- [x] **`info` is a third severity.** `SEVERITIES = ("info", "warning", "error")`, ordered
+      least-to-most-serious so the order is part of the vocabulary. **The arithmetic trap they
+      warned about does not exist here** — `counts()` derives per severity from `SEVERITIES`
+      rather than `len(defects) - errors`, so it was already right. Pinned anyway by
+      `test_counts_are_per_severity_rather_than_derived_by_subtraction`, because the subtraction
+      form is the tempting simplification and fails *quietly*: the total stays right while the
+      split goes wrong. **Tell them it was already safe here**
+- [x] **`_DefectHandler.emit` no longer promotes.** `ERROR→error`, `WARNING→warning`, anything
+      below→`info`. It was a defect either way, and until `info` existed there was nowhere to put
+      an INFO. 11 tests in `tests/test_defect_info_severity.py`, **7 red first**
+- [x] **`sp lint` accepts what the evaluator accepts.** `condition_safe_builtins()` is now one
+      declaration read by both halves — the evaluator builds its environment from it, the
+      validator skips those names. All seven builtins covered, **7 red first**. **The
+      non-regression is the point:** `${len(nope) > 1}` still fails lint and names `nope`, because
+      skipping builtins is only safe if an unknown name is still caught
 - [ ] **→ #255 replay — the scope is worse than recorded here.** Not one awkward prompt:
       `segment-book.gpt` (890 template lines vs 964 rendered) and `segments.gpt` (666 vs 742) both
       refused, and **every prompt in that pipeline embeds a JSON payload**, so none can be
