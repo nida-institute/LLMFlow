@@ -400,7 +400,7 @@ def test_a_step_well_inside_its_budget_records_no_defect():
         written = _defects_after_run(tmpdir, response)
 
     assert written["defects"] == []
-    assert written["counts"] == {"warning": 0, "error": 0}
+    assert written["counts"] == {"info": 0, "warning": 0, "error": 0}
 
 
 def test_provider_usage_details_are_forwarded_rather_than_discarded():

@@ -4,6 +4,31 @@
 
 ### Added
 
+- **`docs/cli-api.json` — a map of the public surface, generated and shipped → #264.**
+  `docs/index.json` maps the engine's implementation, and having said what the surface is *not*,
+  nothing declared what it is. This does: every `sp` command with its options, and every step
+  type with its own keys, its members and which is primary — 38 commands and 19 step types,
+  derived from `build_parser()` and `PIPELINE_SCHEMA` so it cannot drift from what the program
+  does.
+
+  It ships into every project by `sp init`, because a project has to be able to answer "what does
+  this engine offer?" and the alternative is importing the package to read the schema — the one
+  thing a project is told not to do. A JSON file is the only form that answer can take without
+  contradicting itself. The rendering lives in `llmflow.cli_api` rather than in `tools/`, which is
+  not in the wheel.
+
+- **`info`, a third defect severity → #232.** For a condition that is rare and unlikely but **not
+  wrong** — nothing went amiss, and the record exists so someone examining the run can see it
+  happened. Asked for by a consumer with two such cases: a window returning a single pericope,
+  and derived children that carry no analysis by design, 56 of 119 leaf pericopes in one book.
+  Reporting those at `warning` spends a reader's attention on deciding they are not problems,
+  which is the cost the severity distinction exists to avoid.
+
+  `SEVERITIES` is now `("info", "warning", "error")`, ordered least-to-most-serious so the order
+  is itself part of the vocabulary. This was deliberately two values, on the reasoning that a
+  third invites a debate about which one applies; that reasoning is recorded and overruled rather
+  than deleted, because the debate is cheaper than the attention the missing value was costing.
+
 - **A Parallel Passages reader, and the `type: parallel-passages` step that serves it → #258.**
   Nothing in the engine linked a passage to another passage, so a commentary saying Mark's
   opening quotation is composite — Malachi joined to Isaiah, attributed to Isaiah alone — was
@@ -45,6 +70,59 @@
   and turn a correct engine red on the next UBS release.
 
 ### Changed
+
+- **A step's outputs are named members, not positions → #263.** `output:` entries name what a
+  step returns, optionally renamed — `output: [text_bsb=text, reference]`. Naming a member is how
+  it is requested, so there is no second key to ask with and a member nobody names is not
+  produced. **`returns:` is retired**, and `alignment` and `parallel-passages` migrated in the
+  same change rather than a half-migrated language surviving it.
+
+  **A bare name binds the primary member**, which is today's behaviour for every step type that
+  has one — so no existing pipeline changed. Binding an object of all members instead would have
+  turned every `${source_text}` in every project from a string into a dict.
+
+  Affordable now because nothing depended on the positional multi-name form: measured at zero
+  occurrences in shipped pipelines and templates, and seven of eleven in tests were synthetic
+  fixtures exercising the mechanism itself. The members are declared in `STEP_MEMBERS`, so
+  `sp lint` refuses one that does not exist — a check that is fully static, and that closes a
+  hole where three names on a step offering two bound the same value three times.
+
+  `type: scripture` gains a `reference` member: what the step already parsed in order to fetch
+  the passage. Nothing downstream re-parses a reference the engine has read.
+
+- **The starter example writes passage commentary → #244.** The hello-world pair asked for
+  greetings in five languages and then replied to them: it touched no scripture, no resource, no
+  versification and no schema, and its second step did not consume the first, so neither file
+  showed what this engine is for. `pipelines/commentary.yaml` and `prompts/commentary.gpt`
+  replace it — four steps, three of which call no model.
+
+  It teaches, in the order that matters: a resource is *named*, never pathed; `versification: org`
+  states which numbering a reference is written in, demonstrated on a passage where getting it
+  wrong is invisible; outputs are named members; and every step takes its passage from one
+  variable with no default. It is the first prompt in this repository to conform to the ruled
+  section order — `sp lint` warns on the old `hello.gpt` and produces zero warnings on this one.
+
+- **A project is no longer told to import the package → #264.** The shipped
+  `docs/ai-context/sp/index.md` said *"`import llmflow` … **Prefer this** over re-parsing pipeline
+  YAML"*. The one-surface rule had been applied to `sp/overview.md` and not to the constant that
+  renders this, so every project initialised since was told to build against a contract nobody
+  offered. The guard beside it could not see the offer, because it reads shipped *files* and this
+  was shipped *text* rendered from a Python constant; it now checks what a project receives.
+
+  `docs/index.json` now carries an `about` block saying it is **not an API** and **not a surface
+  for tests**, and `docs/python-api.md` states it is the engine's own, for work in this
+  repository.
+
+- **`sp lint` accepts any condition the evaluator accepts → #232.** `len` is one of the condition
+  evaluator's safe builtins, so `condition: "${len(pericopes) > 1}"` ran correctly and failed lint
+  with *"Variable '${len}' not available"*. The linter was the stricter of the two halves, which
+  is the wrong way round — it is the half that cannot execute the expression. One declaration now
+  governs both: the evaluator builds its environment from `condition_safe_builtins()` and the
+  validator skips those names. An undefined name inside a builtin call is still refused.
+
+- **The defect logging handler maps onto the severities rather than collapsing into them → #232.**
+  It read `"error" if levelno >= ERROR else "warning"`, so a deliberate INFO became a warning with
+  nothing saying so — and until `info` existed there was nowhere to put it.
 
 - **A project is told about one surface: the `sp` command line and the pipeline language it
   reads.** The shipped context described two, the second being the `llmflow` Python API with

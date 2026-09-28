@@ -2777,6 +2777,11 @@
       "imports": [],
       "functions": [
         {
+          "name": "condition_safe_builtins",
+          "signature": "condition_safe_builtins() -> dict",
+          "doc": "The names a `condition:` expression may use besides the pipeline's own variables."
+        },
+        {
           "name": "eval_condition",
           "signature": "eval_condition(condition: str, context: dict) -> bool",
           "doc": "Evaluate a condition string against the context."
@@ -3649,6 +3654,7 @@
         "llmflow.modules.logger",
         "llmflow.pipeline_schema",
         "llmflow.steps.window",
+        "llmflow.utils",
         "llmflow.utils.context",
         "llmflow.utils.get_prefix_directory",
         "llmflow.utils.llm_runner",
@@ -5652,6 +5658,6 @@
   ],
   "summary": {
     "total_modules": 94,
-    "total_functions": 894
+    "total_functions": 895
   }
 }

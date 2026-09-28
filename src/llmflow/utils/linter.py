@@ -23,9 +23,14 @@ from llmflow.pipeline_schema import PipelineConfig, allowed_step_keys, step_keys
 from llmflow.steps.window import is_expression
 from llmflow.utils.context import build_run_context
 from llmflow.utils.get_prefix_directory import get_prefix_directory
-from llmflow.utils.step_outputs import parse_output_entry
+from llmflow.utils import condition_safe_builtins
 from llmflow.utils.llm_runner import validate_model_parameter
+from llmflow.utils.step_outputs import parse_output_entry
 from llmflow.yaml_loader import load_pipeline_config
+
+#: Names the condition evaluator supplies, so the validator must not report them undefined.
+#: Derived from the evaluator's own mapping — one declaration, read by both halves.
+_CONDITION_BUILTINS = frozenset(condition_safe_builtins())
 
 
 def _identifiers_in_expr(expr: str) -> Set[str]:
@@ -723,6 +728,13 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
                 # Check each referenced variable
                 for var in referenced_vars:
                     root_var = var  # already a root identifier from _identifiers_in_expr
+
+                    # A name the condition evaluator supplies is not a variable the pipeline has
+                    # to declare. Read from the evaluator's own mapping rather than listed again
+                    # here, so the two halves cannot disagree about what a valid condition is —
+                    # which is exactly how `${len(...)}` came to run correctly and fail lint.
+                    if root_var in _CONDITION_BUILTINS:
+                        continue
 
                     if root_var not in available:
                         # Show helpful error message with available variables
