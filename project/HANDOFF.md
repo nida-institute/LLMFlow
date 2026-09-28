@@ -1,216 +1,119 @@
-# HANDOFF — 2026-09-27
+# HANDOFF — 2026-09-28
 
 ## ▶ NEXT ACTION
 
-**Run `hatch run sp init --update` in this repository, and commit its output separately.**
+**Two commits, in this order. Both message files are written.**
 
-The session's work is committed and pushed: `0030ef9`, 25 files, and `dev` is level with
-`origin/dev`. Nothing is in flight.
+```sh
+git add project/plans/design-named-step-outputs.md project/plans/design-sp-help.md
+git commit -F tmp/commit-1.txt
 
-`sp` is not on the bare PATH here — it exists only as the editable install inside the hatch
-environment, so it must be `hatch run sp init --update` or a command run from inside
-`hatch shell`. Plain `sp` fails with "command not found". Three rendered copies are
-behind their templates — `docs/ai-context/sp/overview.md`,
-`docs/ai-context/sp/passage-references.md`, `docs/llmflow-language-quickref.md` — because this
-session changed the templates and nothing regenerated the copies. `test_template_layout` names
-exactly those three, and regenerating is what makes it pass.
+git add project/TODO.md project/plans/plan-terms-on-download-and-register.md project/HANDOFF.md
+git commit -F tmp/commit-2.txt
+```
 
-**Nothing is at risk, checked rather than assumed.** An earlier handoff said to commit or stash
-`docs/ai-context/sp/github-workflow.md` first, on the reasoning that regeneration would
-overwrite it. It would not: that file and its template twin carry the same 42-line addition,
-and the two are identical both at HEAD and in the working tree, so the copy regenerates from
-the template into exactly what is already there. `docs/ai-context/sp/rules.md` is likewise
-safe — `cli_utils.ai_rules_doc()` renders it from `data/ai-rules.yaml` at call time, which is
-the file the new rule lives in.
+Then delete `tmp/commit-1.txt` and `tmp/commit-2.txt` **by name** — `tmp/` holds other sessions'
+unbacked drafts and is git-ignored, so a wildcard sweep is unrecoverable.
 
-Separate commit, because a mechanical regeneration read alongside a real change hides both.
-Expect `.cursorrules`, `.windsurfrules` and the `hello.*` starter files to be refreshed too.
+**`dev` is one commit ahead of `origin/dev`** at `c90f7a1`, unpushed. A push is the Captain's act.
 
-**The standing "do not run `sp doctor` here — #210" looks stale, and the Captain has not ruled
-on it.** #210's hazard was that `docs/ai-context/overview.md` was one path serving two
-documents, so doctor would replace the engine's overview with a project's. That path is no
-longer in `data/file-catalog.yaml` at all; the engine's own overview is now
-`docs/ai-context/project/overview.md`, catalogued at `file-catalog.yaml:169` as
-`policy: create-once`, which neither command overwrites. Note also that the hazard, being in
-the catalog, would have applied to `sp init --update` equally — doctor was never the more
-dangerous of the two, and it is the more conservative, since it never touches starter examples.
-Ask before acting on either reading.
+**Then: implement → #263**, which is what the starter example now waits on. **One small decision
+comes first** — see *Open, and blocking*.
 
-**Then do the survey below.** It was asked for on 2026-09-27 and deliberately not started here,
-because it is a wide research task and this session's corrections had begun to cluster around
-exactly its failure mode — repeating a written claim without checking it.
+**`/stage-commits` still cannot be invoked.** The template and `~/.sp/skills/stage-commits/` exist;
+`.claude/skills/stage-commits/` does not, here or in `~/.claude/`. Follow its template by hand, or
+install it with `hatch run sp init --update`. **Not `sp doctor`** (#210). `sp` is not on the bare
+PATH — only inside the hatch environment.
 
 `project/TODO.md` holds the queue and its order. Do not read the queue out of this file.
 
 ---
 
-## Asked for on 2026-09-27, not started: find the half-finished work
-
-**The request, in the Captain's words:** *"I think we have multiple open items like this — the
-examples are half way up the mountain, so is the copyright notice for registrations, I really
-don't know what all needs to be done. Please track them down and put checklists in the plan file
-for anything only part way finished."*
-
-**The deliverable:** a checklist per partly-finished item, saying what is done and what remains,
-in `project/plans/` per `file-organisation`. Propose the filename and get sign-off before
-writing — this is a new accumulating document and `plans-are-temporary` applies to it.
-
-**Two he named as examples**, both genuinely mid-climb:
-
-- the starter example replacement → **#244**, ruled and nothing built
-- the licence and copyright notice shown on download and registration → **#252**, whose consent
-  gate #261 says it reuses
-
-**Sources to mine, none of them read for this purpose yet:**
-
-| where | what it holds |
-|---|---|
-| `project/TODO.md` (1389 lines) | the queue, with mixed `[x]`/`[ ]` items — the richest source |
-| `project/open-decisions.md` (109 lines) | decisions raised and not ruled |
-| `project/plans/README.md` | 63 documents, each declaring its own status; scan for *Partly implemented*, *In progress*, *implemented in part* |
-| `project/REVIEW.md` (149 lines) | note: `:136-147` names four `tmp/` commit files that no longer exist |
-| `gh issue list --state open` | **60 open issues** as of 2026-09-27 |
-
-### Three observations from `sp doctor`, 2026-09-27 — not filed, and not verified
-
-Read from terminal output the Captain pasted after running `sp doctor` in
-`ears-to-hear/scriptorium`. **Nobody has checked them against that machine**, so confirm each
-before filing. They belong to the survey because each is a thing part-way done.
-
-1. **The summary contradicts itself.** The report ends `No problems found.`, then
-   `1 warning(s).`, and the warning is actionable — `Project 'scriptorium' is not registered in
-   ~/.sp/projects/`. A green headline over a non-green state is the same class of defect
-   `sp/command-line.md` records for skills, where doctor called a project holding ten of eleven
-   complete.
-
-2. **That project carries both AI-context layouts at once, and doctor reports `✓`.** Its
-   `docs/ai-context/` holds seven pre-split flat documents — `overview.md`, `rules.md`,
-   `index.md`, `github-workflow.md`, `audits-pattern.md`, `conventions.md`, `project.md` — plus
-   eight `sp/` ones, **and no `project/` half at all**. So two copies of overview, rules, index
-   and github-workflow coexist with nothing saying which is live, and `/load-context` there
-   would read the flat `rules.md` while `sp/rules.md` is current. With no `project/rules.md`,
-   that project also has nowhere to put its own constraints — the absence `sp/rules.md`
-   describes as having sent project-specific rules into a memory store nobody read. This is the
-   substantial one.
-
-3. **The remedy printed for an unregistered project is `Run sp init`**, which also writes
-   starter examples into a project that has been running for months. `sp init --update` looks
-   like the right advice there.
-
-Explicable rather than defective, recorded so nobody re-investigates it: `Skills in ~/.sp: 12
-of 12 restored` is expected once, because the CHANGELOG's *"skill descriptions no longer open
-with a type prefix"* touched eleven and `stage-commits` is new. It should report `✓` on a
-second run. **Unverified — no second run was seen.**
-
-**Method, and why it is stated.** Cite a `file:line` or an issue number for every item, and mark
-anything you could not confirm as unverified rather than inferring it from a document that says
-it. `declared-not-inferred`. A survey is nothing but claims, and an unchecked one sends the
-Captain to read the wrong thing — which is the specific failure this session made twice on its
-last stretch.
-
----
-
-## Active threads
-
-### 1 — #258, the `type: parallel-passages` step (DONE, committed at `0030ef9`)
-
-**Goal.** Link a passage to the passages it is parallel to or quotes, so a commentary can cite
-that rather than state it from training.
-
-**State.** Built and green. The verse-level `references` half only.
-
-**Verify.** `hatch run pytest tests/test_parallel_passages_step.py tests/test_parallel_passages.py -q`
-→ **22 passed**. One of them drives `main(["run", …, "--var", …])` end to end.
-
-**Next step is #244**, the starter example, which consumes this. Queued in `project/TODO.md`.
-
-### 2 — the one-surface ruling (DONE, committed at `0030ef9`)
-
-**Goal.** A project reaches the engine through the `sp` command line and the pipeline language,
-and shipped material shows none of our Python.
-
-**State.** Recorded as rule `the-language-is-the-whole-surface` in `data/ai-rules.yaml`;
-`docs/ai-context/sp/rules.md` regenerated from it. Five shipped files changed.
-
-**Verify.** `hatch run pytest tests/test_shipped_context_names_one_surface.py -q` → **77 passed**.
-`grep -rn "import llmflow\|llmflow\.utils" src/llmflow/templates/` returns nothing.
-
----
-
 ## In flight, and whose
 
-Branch `dev`, **level with `origin/dev` at `0030ef9`.** Nothing of this session's is
-outstanding: it went in as one commit of 25 files, `git show 0030ef9` to read it.
+Branch `dev`, **one ahead of `origin/dev`** at `c90f7a1`.
 
 | | |
 |---|---|
-| **this session's** | all committed and pushed at `0030ef9` |
-| **the Captain's, uncommitted — do not sweep in** | `data/models.json`, `docs/ai-context/project/data-sources.md`, `docs/ai-context/sp/github-workflow.md` and its template twin, `project/open-decisions.md`, `project/plans/README.md`, and two tracked deletions, `tmp/commit-msg-helm.txt` and `tmp/commit-msg-sp.txt`, whose origin is unknown |
-| **untracked, not this session's** | `.cursorrules`, `.windsurfrules`, `project/0x28.md`, `tests/test_stage_commits_checks_the_handoff.py`, five `collab/discourse-flow/` notes, `collab/human-at-the-helm/` |
+| **this session's, uncommitted** | `project/TODO.md`; untracked `project/plans/design-named-step-outputs.md` and `project/plans/design-sp-help.md`; `project/plans/plan-terms-on-download-and-register.md`; two of the eighteen changed lines in `docs/ai-context/project/data-sources.md` |
+| **the Captain's, uncommitted — do not sweep in** | `data/models.json`, `docs/ai-context/sp/github-workflow.md` and its template twin, `project/open-decisions.md`, `project/plans/README.md`, the other sixteen lines of `data-sources.md`, and two tracked deletions under `tmp/` |
+| **unread, arrived today** | `collab/discourse-flow/2026-09-28-the-defect-log-needs-an-info-severity-and-lint-refuses-a-safe-builtin.md` — **inbound, untracked, nobody has read it** |
+| **untracked, older** | `.cursorrules`, `.windsurfrules`, `project/0x28.md`, `tests/test_stage_commits_checks_the_handoff.py`, five earlier `collab/discourse-flow/` notes, `collab/human-at-the-helm/` |
+
+**`docs/ai-context/project/data-sources.md` cannot be split by path** — the Captain's paragraph and
+this session's two-line product-name fix are one hunk. It is his to commit or to authorise whole.
 
 **Do not `git add -A`** — `gui/frontend/node_modules` is tracked, ~8,000 deletions.
+
+## Known-failing — 6
+
+**Verify:** `hatch run pytest tests/ -q -m "not integration" -p no:randomly`
+→ **5894 passed, 24 skipped, 6 failed** (2026-09-28, 130s).
+
+`test_global_disciplines`, `test_plan_docs_index`, `test_portable_skills`,
+`test_prompt_structure_single_source`, `test_resource_provisioning`, `test_template_layout`.
+Three clear with `hatch run sp init --update`. **What each one names is in `project/TODO.md`**,
+first section under 🔥 Active.
+
+**Do not run two pytest runs at once** — they share `tmp/pytest/` and the second dies with
+`INTERNALERROR … FileNotFoundError`.
 
 ---
 
 ## Decisions
 
-### Settled 2026-09-26 — do not reopen
+### Settled 2026-09-28 — do not reopen
 
-- **A group is returned whole, and groups are not collapsed.** `MRK 1:2` sits in two groups with
-  identical NT members, one also naming `MAL 3:1`. Both are returned: merging them asserts a
-  judgment the database never makes, and no reader could then tell "Mark quotes Malachi" from
-  "Mark runs parallel to Matthew and Luke".
-- **`returns: [references]` is the reference list only.** The per-word digits index UBSGNT5, not
-  the resource asked about, so nothing can read them until the MARBLE join exists — the reason
-  `syntax` carries no `rule` or `nodeId`. `returns: [words]` is declared in the schema and
-  refused at run time.
-- **`words` is refused, never approximated.** Counting positions instead of joining through
-  MARBLE is wrong about one row in eleven, and silently.
-- **One surface, not two.** The shipped context described the Python API as a second surface;
-  a project told about one builds against a contract nobody offered it.
-- **Tests state shapes, not measurements.** No assertion names a figure read off the real UBS
-  database: that would freeze a reader defect in as the expected answer and turn a correct
-  engine red on the next UBS release. Measurements belong in #258.
-- **The `=>` slots in `plan-starter-example-commentary.md` §6 and D4 are answered.** Supply the
-  cross-reference material; the OT half ships.
+- **A step's outputs are named, not positional**, with an optional rename:
+  `[text_bsb=text, reference]`. Naming a member requests it; a caller may request a subset. That
+  one ruling dissolved the mapping-direction question and removed the need for a second key.
+  → #263, `project/plans/design-named-step-outputs.md`.
+- **The language will parse expressions with precedence.** This answers #241's open question —
+  operations are **expressions**, not step methods — and reclassifies #239 from "a kludge, off the
+  critical path" to a **precondition**.
+- **The starter example waits for #263**, so `📖 FIRST — finish the examples` is blocked. Group C
+  (removing the `hello.*` starters) is *not* blocked by it.
+- **`sp help resources` / `sp help services`** is the concrete first piece of discoverability
+  → #264, `project/plans/design-sp-help.md`.
 
 ### Open, and blocking
 
-1. **The starter example's reference step.** `plan-starter-example-commentary.md` §5 names
-   `llmflow.utils.data.parse_bible_reference`, which rule `the-language-is-the-whole-surface`
-   now forbids in an example. No step type returns `passage_info`, so this is either a construct
-   to add or a step to drop. #244's call; the plan's `Status:` line says so.
-2. **The CHANGELOG entry for `23d9d74`** — still unwritten. This session's entry covers the step,
-   not the reader that landed before it.
+1. **The residual of D2 in `design-named-step-outputs.md`** — what a **bare** `output: name` binds:
+   the primary member, or the whole object. The list form is ruled; this decides whether every
+   existing pipeline keeps working unchanged, so it is needed **before** implementation, not after.
+2. **Three more slots in that design** — D1′ (how a caller learns a step's members), D3 (are member
+   *shapes* in scope, or only *names*), and the identifier question below.
+3. **Four slots in `design-sp-help.md`**, D1 first: is a "service" a step type?
+4. **`text-bsb` cannot be written as ruled.** Hyphenated names do not resolve and fail silently —
+   `resolve("${text-bsb}", …)` returns the literal, because the identifier class at
+   `utils/context.py:148` is `[a-zA-Z0-9_]+`. Either the example becomes `text_bsb`, or the
+   resolver learns hyphens, which is #239's territory.
+5. **The expressions ruling is recorded nowhere binding.** It belongs in #241 and in
+   `design-operations-in-the-pipeline-language.md`, whose `=>` slots are the Captain's alone.
 
 ---
 
 ## Do NOT
 
-- **Do not run `sp doctor`** — #210. **Do not run `sp init --update`** before the Captain's
-  `github-workflow.md` is committed or stashed.
-- **Do not build the word-level MARBLE join.** It looks like the next step and is not: #258's
-  open questions 2 and 4 are unanswered, and #244 needs only `returns: [references]`.
-- **Do not fix the seven failing tests as a batch.** They predate this session — see below.
-- **Do not write a verse comparison, a reference parser, or a scheme mapper.** Search
-  `docs/index.json` first.
-- **Do not sweep `tmp/`** — `tmp/index.md` justifies each survivor. The one file this session
-  added, `tmp/commit-msg-258-one-surface.txt`, is deleted once the commit exists.
-
-## Known-failing
-
-`hatch run pytest tests/ -q -m "not integration" -p no:randomly` → **5878 passed, 24 skipped,
-7 failed**. Down from 9 before this session; none of the seven is this session's:
-`test_global_disciplines`, `test_plan_docs_index`, `test_portable_skills`,
-`test_product_name_in_prose`, `test_prompt_structure_single_source`,
-`test_resource_provisioning`, `test_template_layout`.
-
-`test_template_layout` names three stale copies rather than one — that widening is this
-session's, and `sp init --update` is its remedy (see NEXT ACTION).
+- **Do not implement #263 before the D2 residual is answered.** It fixes the backwards-compatibility
+  contract, and building first means choosing it by accident.
+- **Do not write the starter example** (group B). Its `output:` line is the thing under design, and
+  it ships as the pattern other projects copy.
+- **Do not do the three open A″ documentation boxes.** They document the *positional* form that
+  #263 replaces. Note that `c90f7a1` already shipped that documentation into
+  `docs/llmflow-language.md` and the quick-reference template — **shipped documentation currently
+  teaches a form under replacement**, which should be corrected before a release, not before a commit.
+- **Do not regenerate `project/plans/README.md`.** Generated, stale, and carrying the Captain's
+  uncommitted hand edit — and it would also index two plan documents added today.
+- **Do not run `sp doctor`** (#210). **Do not** commit, push or merge: `commit-authority`.
+- **Do not re-audit what `TODO.md` records for 2026-09-27/28.** Every claim there was checked
+  against the tree, the suite or `gh issue list`, not against another document.
 
 ## Key files & links
 
-- `project/TODO.md` — the queue and its order.
-- `project/plans/plan-starter-example-commentary.md` — the work order for #244, now `ruled`.
-- `tmp/commit-msg-258-one-surface.txt` — the commit message, delete after committing.
-- Issues: **#258** (the step, open questions 2 and 4 still open), **#244** (the example).
+- `project/TODO.md` — the queue. 🧭 *The language's shape* is the new section and sits ahead of the
+  examples.
+- `project/plans/design-named-step-outputs.md` → #263 · `project/plans/design-sp-help.md` → #264.
+- `project/open-decisions.md` — S1 ruled and not yet retired to `CHANGELOG.md`; L1–L3 open.
+- Issues opened 2026-09-28: **#263**, **#264**. Comment posted on **#239** carrying the parser
+  comparison and its measurements.

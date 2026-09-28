@@ -7,27 +7,393 @@
 
 ## 🔥 Active
 
+### 🔴 The suite is red in seven places, and every one is a half-finished thing
+
+> **Audited 2026-09-27** at the Captain's direction — *"the last LLM instance left several
+> features half-way up the mountain, reporting them as being done."* Measured, not recalled:
+> `hatch run pytest tests/ -q -m "not integration" -p no:randomly` → **5878 passed, 24 skipped,
+> 7 failed** in 138s. The count matches what `HANDOFF.md` claimed; what nobody had recorded is
+> that each failure names an unfinished job rather than a flaky test.
+>
+> **Four of the seven clear with one command** — `hatch run sp init --update`, which is
+> `HANDOFF.md`'s next action. `sp` is not on the bare PATH; it exists only inside the hatch
+> environment. **Not `sp doctor`** (#210).
+
+- [ ] **`test_template_layout`** — three rendered copies are behind their templates:
+      `docs/ai-context/sp/overview.md`, `docs/ai-context/sp/passage-references.md`,
+      `docs/llmflow-language-quickref.md`. Cleared by `sp init --update`
+- [ ] **`test_global_disciplines::test_installed_skills_match_templates`** — the installed skills
+      differ from what ships. Cleared by the same command
+- [ ] **`test_prompt_structure_single_source`** — `.claude/skills/audit-prompts/SKILL.md` has
+      drifted from its template; it still carries the `**WORKFLOW SKILL** —` prefix that was
+      ruled out on 2026-09-25. Cleared by the same command
+- [ ] **`test_plan_docs_index`** — `project/plans/README.md` is generated and stale: it lists
+      `plan-starter-example-commentary.md` as `proposed (2026-09-25)` while that file's line 3
+      declares **`ruled (2026-09-26)`**. Regenerate with
+      `hatch run python tools/update_plans_index.py`. ⚠️ **That file also carries an uncommitted
+      hand edit**, which regenerating would overwrite — a generated file changed the way that
+      gets lost. Look at the diff before running it
+- [ ] **`test_portable_skills`** — `/stage-commits` is unclassified. **The blocker is S1 in
+      `project/open-decisions.md`, an unanswered `=>`, and it is the Captain's.** See the
+      `/stage-commits` section below
+- [x] **`test_product_name_in_prose` — FIXED 2026-09-27** on the Captain's instruction
+      (*"it must say Scripture Pipelines. Fix it."*). `docs/ai-context/project/data-sources.md:48`
+      used the deprecated product name for `data/resources.json`'s vendored copy;
+      `design-vocabulary.md` requires the ruled name. One occurrence, rewritten in place. The
+      file is one of the Captain's uncommitted working-tree changes, so the fix rides with his
+      edit rather than standing alone
+- [ ] **`test_resource_provisioning`** — the vendored `data/resources.json` is behind its
+      upstream in `awesome-biblical-data`: ids were renamed there
+      (`bibleaquifer-bdb-hebrew` → `bdb-hebrewlexicon`, and 150 further diff lines). Re-sync the
+      vendored copy; **never edit it here**, an edit is reverted by the next sync
+
+**Guard wanted, noted and deliberately not built (Captain's call, 2026-09-27).** Nothing checks
+this file against reality, which is why eleven finished entries sat here unticked. A test reading
+every `→ #N` and failing when an entry marked open names a closed issue would catch it — it needs
+either network in the suite or a committed snapshot, which is a design decision rather than a
+tidy-up. **Do not build it without a ruling.**
+
+### 🧭 The language's shape — three threads opened 2026-09-27/28, and they gate the examples
+
+> Opened while unblocking #244 and now ahead of it. All three share one subject: **what the
+> language declares, and how a caller finds out.**
+
+**→ #263 — named step outputs.** Design: `project/plans/design-named-step-outputs.md`,
+`proposed (2026-09-28)`.
+
+- [x] Filed, design written, two decisions ruled — naming a member is requesting it; the example waits
+- [ ] **D1′, D2 and D3 are the Captain's.** The live one is **D2**: does a member land in a
+      variable the pipeline names, or under the member's own name? — evidence:
+- [ ] **Identifier rules are part of the grammar, so this waits on #239.** The rename syntax was
+      written `text-bsb=text`; **hyphenated names do not resolve and fail silently** —
+      `resolve("${text-bsb}", …)` returns the literal. Measured 2026-09-28 — evidence:
+
+**→ #239 — the expression parser. Reclassified 2026-09-28.**
+
+> This file recorded it as *"a kludge, off the critical path"*. **It is now a precondition.**
+> Ruled by the Captain 2026-09-28: *"we WILL be parsing expressions with precedence."* That
+> answers #241's open question — operations are **expressions**, not step methods — and makes a
+> real grammar the larger half of that work rather than a cleanup.
+
+- [x] **Parser comparison posted** as a comment on #239, 2026-09-28, with measurements
+- [x] **Measured, not assumed:** ANTLR 4.13.2 codegen is **byte-deterministic** (two runs,
+      `diff -r` identical, no timestamps or absolute paths); the header carries the version, so a
+      version bump self-enforces the pin; a left-recursive expression rule compiles as written;
+      output was **408 lines**, not the thousands an earlier draft claimed; **`antlr4-tools` does
+      not pin the generator** — it depends on `install-jdk` and fetches a JDK and the jar at run
+      time; the jar is pinnable by URL + sha256 instead
+- [x] **Recommendation: ANTLR**, generated sources committed, drift caught in CI by regenerate-and-diff.
+      A JDK in CI is smaller than the Node toolchain CI already carries
+- [ ] **The Captain's ruling on expressions belongs in #241 and in
+      `design-operations-in-the-pipeline-language.md`**, whose `=>` slots are his alone — evidence:
+- [ ] **Choose the parser.** Partly downstream of #264's editor question: tree-sitter only earns
+      its place if editor tooling is pursued — evidence:
+
+**→ #264 — nothing lets a user ask what the engine provides.** Filed 2026-09-28.
+
+- [x] Filed, with the LSP-versus-tree-sitter analysis and the shared-corpus argument in it
+- [x] **Design for the concrete portion** — `project/plans/design-sp-help.md`,
+      `proposed (2026-09-28)`: `sp help services`, `sp help resources`, everything rendered from
+      the schema rather than hand-kept
+- [x] **Corrected a premise of #264 while designing it:** `api_catalog()` is **not** the source.
+      It catalogues the *Python API's verbs* (`catalog.py:31-60`) — the surface
+      `the-language-is-the-whole-surface` says a project must not build against. `sp help services`
+      derives from `PIPELINE_SCHEMA` instead
+- [ ] **Four decisions in that design are the Captain's**, D1 first: is a "service" a step type? —
+      evidence:
+- [ ] **Two gaps it exposed rather than created:** `scripture` declares no members, so
+      `sp help services scripture` has no `returns` block until #263 lands; and **no step type
+      declares a one-line purpose**, so either the schema gains one or the text is hand-kept and
+      drifts — evidence:
+
 ### 📖 FIRST — finish the examples
 
+> ⛔ **BLOCKED 2026-09-28 — the example waits on → #263.** Ruled by the Captain answering D5 of
+> `project/plans/design-named-step-outputs.md`: *"Yes, the starter example waits for this."*
+> The example's `output:` line is the thing under design, and the example ships as the worked
+> pattern every project copies — so writing it now would teach a form being replaced.
+>
+> **Group B is not to be started.** Three decisions in that design are open, and D2 in particular
+> changes what the example's YAML looks like. Groups A″ (documentation) and C (the removal) are
+> **not** blocked by it.
+>
 > **Set by the Captain 2026-09-26:** *"let's finish the examples first, then put that second on our
 > todo list."* This goes ahead of everything below it, including the 2026-09-22 line that put
-> #246–#248 before everything else.
+> #246–#248 before everything else — **and is itself now behind #263.**
 
-The work order is `project/plans/plan-starter-example-commentary.md`, `proposed (2026-09-25)` with
-seven rulings in §2 and D1–D3 answered. → #244
+The work order is `project/plans/plan-starter-example-commentary.md`, **`ruled (2026-09-26)`**
+(this line said `proposed (2026-09-25)` until 2026-09-27; the file's line 3 is the authority) with
+seven rulings in §2 and **all four** decisions in §8 answered. → #244
 
 **Two pieces. #176 was listed here and is not a dependency** — corrected 2026-09-26 against
 `steps/llm.py`: `body` at line 88 feeds the contract check and is discarded, the whole file reaches
 the model (157 → 232 → 310), so #176 changes what the model sees and nothing about the pipeline
 YAML or how a `.gpt` is authored. It gates #255 instead; see that section.
 
-- [ ] **The Parallel Passages step → #258**, filed 2026-09-26. Ruling 7 makes the commentary step
-      *require* this input, so the example cannot be finished without it. Four open questions in
-      the issue; D4 in the plan (does the OT half ship at word level) is the first of them and
-      does **not** block, because the example is Greek
-- [ ] **#244 — the example itself.** Two genres, four steps, three of which call no model. D3 drops
-      `hello.gpt` / `hello.yaml`, which costs four catalog rows, four `policy: example` template
-      twins, `docs/tutorial.md` and `docs/ai-context/sp/command-line.md`
+- [x] **The Parallel Passages step → #258.** Verse-level `references` shipped at `0030ef9`;
+      `hatch run pytest tests/test_parallel_passages_step.py tests/test_parallel_passages.py -q`
+      → 22 passed. `returns: [words]` stays refused and does **not** block: the example is Greek
+      and needs references only
+
+#### The completion checklist for #244 — tick a box only with its evidence beside it
+
+> **Standing instruction, the Captain 2026-09-27: *"always keep progress up to date by checking
+> off items."*** Tick a box **when the work lands, not at the end of a session** — a checklist
+> updated in one batch afterwards is written from memory, which is the failure it exists to
+> prevent. Evidence is a test id, a command and its result, a count, or a commit sha.
+
+> **Built 2026-09-27** because §7 of the plan is not one: it covers the example's behaviour and
+> says nothing about the catalog, the template twins, the docs or the deletions, and it carries no
+> evidence column. Rule: *"not **done** — **how you know**: a test id, a file and line, a command
+> and its result, a count, a date."* → #229, which was filed for exactly this failure.
+>
+> **The removal surface was measured, not estimated.** The plan says "four catalog rows, four
+> template twins, `docs/tutorial.md` and `command-line.md`". The tree says otherwise, and the
+> difference includes code:
+
+| what | measured 2026-09-27 |
+|---|---|
+| files in `pipelines/` + `prompts/` | **12** — each `.yaml`/`.gpt` also has a `-view.md` and a `.html` |
+| template twins under `src/llmflow/templates/project/` | 4 |
+| `data/file-catalog.yaml` | lines **224–256** |
+| **code** | `src/llmflow/cli.py`, `src/llmflow/cli_utils.py` |
+| tests | `tests/test_init.py`, `tests/test_linter.py`, `tests/test_windows_encoding.py` |
+| docs | `tutorial.md`, `command-line.md`, `llmflow-language-quickref.md`, `presentations/tabs.md`, `sp/index.md` (generated from the catalog), plus 4 template twins and `templates/project/project/TODO.md` |
+
+**A — the engine change. Ruled by the Captain 2026-09-27: expose `passage_info` from the
+`scripture` step**, rather than adding a `reference` step type or dropping the step. Chosen over
+both because `type: scripture` already parses the reference in order to fetch the passage, so
+nothing new parses and no step type is added. It is a **contract change to an existing step's
+output**, which is the cost.
+
+> **Built and COMMITTED 2026-09-27 at `c90f7a1`.** Five paths in the commit, not the four
+> staged: `.git/hooks/pre-commit` regenerates `docs/index.json` and stages it, adding one line
+> (`"llmflow.utils.data"`, the new import). **Expect that file to join any commit that changes
+> imports under `src/` — group C's deletions will pick it up too, and there the diff is larger.**
+>
+> The mechanism is a **second output name**, not a key in the result:
+> `output: [subject, passage_info]`. Chosen because `type: scripture` returns a **bare string**
+> for `format: milestones` with an empty `include`, so a `passage_info` key would force every
+> result into a dict and change the output shape of every scripture step in every project. The
+> pair is returned only when a step names exactly two outputs — `src/llmflow/steps/scripture.py:71-78`.
+
+- [x] Failing test first — `tests/test_scripture_passage_info.py`, **2 failed / 1 passed** before
+      the handler changed, 3 passed after. The one that passed first is the non-regression test,
+      which is the point: it pins today's behaviour before the change touches it
+- [x] `passage_info` reaches the scripture step's output —
+      `test_a_second_output_name_receives_the_parsed_reference`, asserting `book_code`,
+      `canonical_reference`, `filename_prefix` = `01001001-01001001`, `testament`,
+      `original_language` and all four versification fields
+- [x] `pipeline_schema.py` and the object model agree — **no schema change was needed**: `output`
+      already accepts a list. `hatch run pytest tests/test_pipeline_model.py
+      tests/test_schema_covers_runner_keys.py tests/test_one_syntax.py` + all seven scripture test
+      files → **200 passed**
+- [x] **Existing consumers are unaffected, and that is tested rather than asserted.**
+      `test_a_single_output_name_is_unchanged` proves `output: source` still binds a `str` and
+      binds no `passage_info`. The change is opt-in, so `discourse-flow`'s editable install sees
+      no difference until a pipeline there asks for two names
+- [x] `docs/llmflow-language.md` documents it under `type: scripture` — a new subsection with two
+      worked YAML blocks, both **linted by `test_doc_examples_lint`** (the suite's collected count
+      rose by 9 because of them)
+- [ ] **Lint and runtime disagree about a step's own output, found while doing this — not fixed,
+      not in scope.** `handle_step_outputs` binds `output` *before* writing `saveas`
+      (`step_outputs.py:39-85`), so a step naming its own output in its own `saveas` works at run
+      time; the linter adds outputs to the available set only *after* checking the step
+      (`linter.py:701-708`), so the same pipeline fails lint. **§5 of the plan is wrong for this
+      reason** — its `english` step (2nd) names `${passage_info.filename_prefix}` while the
+      `reference` step that declared it was 3rd. Declaring it on the first step fixes the example;
+      the lint/runtime inconsistency is a separate defect and needs its own issue — evidence:
+
+##### The schema declares syntax and no semantics — raised by the Captain, 2026-09-27
+
+> `output` is declared once, in the common keys (`pipeline_schema.py:167`), as
+> `_OUTPUT_TARGET = {"oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]}`.
+>
+> **That declaration carries syntax only. It has no `description`, no per-type constraint, and no
+> upper bound. So right now:**
+>
+> - nothing declarative says that on a `scripture` step position 0 is the passage and position 1
+>   is the parsed reference;
+> - nothing says the same two-name form means something entirely different on a `function` step;
+> - **`output: [a, b, c]` on a `scripture` step is schema-legal, lints clean, and silently binds
+>   the text to all three names** — verified 2026-09-27:
+>   `handle_step_outputs({"output": ["a","b","c"]}, "TEXT", ctx)` → `{'a': 'TEXT', 'b': 'TEXT', 'c': 'TEXT'}`.
+>
+> This is a `design-is-declarative` breach: *"each field says what it governs, what it forbids,
+> and which ruling decided it, so a reader can act on it without reading the implementation."*
+> The semantics currently live in `steps/scripture.py:71-78` and in prose, which is two encodings
+> of one fact with the declaration carrying neither.
+>
+> **One correction to an earlier claim in this session:** adding `maxItems` to the schema would
+> **not** by itself make the three-name case a lint error. Measured — `PIPELINE_SCHEMA` is
+> consumed by `model.py`, `catalog.py`, `file_catalog.py` and `__init__.py`, and **not** by
+> `linter.py`, which validates *which keys are legal on which type* via `allowed_step_keys()` and
+> never evaluates value constraints. Nothing validates a pipeline against the schema as JSON
+> Schema. So declaring and enforcing are two separate pieces of work.
+
+> ⛔ **The three items below are SUPERSEDED, 2026-09-28.** The Captain preferred named outputs to
+> positional — *"I prefer named parameters if this is possible… named parameters, perhaps even
+> typed, will be more robust"* — and added that the same names should key the result object.
+> Patching the positional form with `maxItems` and a lint arity check would be building the thing
+> we have decided to replace. **They are kept, struck, so nobody re-derives them.**
+
+- [x] ~~**Declare it** — `maxItems: 2` and a `description` on the `scripture` branch.~~ Superseded
+      by the design below; a per-type constraint on a positional form we are replacing is wasted work
+- [x] ~~**Enforce it** — lint refusing three or more names.~~ Superseded: arity falls out of
+      declared members for free, and needs no special-case check
+- [x] ~~**Decide whether per-type output semantics belong in the schema generally.**~~ **Answered**,
+      and the answer changed the design: the vocabulary **already exists**, declared per step type
+      as the `returns:` enum — `alignment` offers `["text", "alignments"]`
+      (`pipeline_schema.py:319-322`), `parallel-passages` offers `["references", "words"]`
+      (`:344-347`), `scripture` declares none. So this is connecting two halves rather than
+      inventing a mechanism
+
+**A‴ — named step outputs. Written up 2026-09-28 on the Captain's instruction.**
+
+- [x] **Design document** — `project/plans/design-named-step-outputs.md`,
+      `Status: proposed (2026-09-28)`, five decisions as `=>` slots. **`proposed` is not
+      authorization to build**
+- [x] **Issue body drafted** — `tmp/issue-named-step-outputs.md`. **Not filed**;
+      `issues-need-approval` requires the Captain to read the body and create it. Written for an
+      outsider: no `=>` slots, no session vocabulary — `write-shared-records-for-outsiders`
+- [x] **Static checking reconsidered, and the earlier claim corrected.** On 2026-09-27 an AI said
+      types "could not be checked at lint time". Wrong: that confused checking a *value* with
+      checking a *declared name*. Member existence, member-was-requested and arity are **fully
+      static**; a field access is static where the member's shape is declared; only the runtime
+      value type is not, and that belongs at bind time. Recorded in §4 of the design rather than
+      quietly fixed
+- [x] **Filed as → #263**, 2026-09-28, on the Captain's instruction and with the body reviewed
+      first. No `=>` slots and no session vocabulary in it —
+      `write-shared-records-for-outsiders`; verified by grep before posting
+- [x] **Drafts deleted by name** — `tmp/issue-named-step-outputs.md` and `tmp/issue-body.md`.
+      `tmp/issue-hin-roles.md` is another session's and was left
+- [x] **Two of the five decisions are RULED** (2026-09-28), moved verbatim into the design's `=>`
+      slots from the issue draft the Captain answered in: **naming a member in `output:` is
+      requesting it**, a caller may request a subset; and **#244's example waits for this design**
+- [ ] **Three decisions are still the Captain's**, and two came back as questions rather than
+      answers. **D1 was badly posed and is withdrawn** — "which side is the key" asked him to
+      decode YAML mechanics; restated as **D1′: how does a caller learn the arity, names and types
+      a step provides?** with four mechanisms tabled. **D3 asked for terms**, now defined in the
+      document — member / arity / shape. **D2 is the substantive one**: does a member land in a
+      variable the pipeline names, or under the member's own name? The second removes the mapping
+      question entirely and **cannot express the starter example**, which has two `scripture` steps
+      both offering `text` — evidence:
+
+**A′ — the CLI API must carry this too.** Raised by the Captain 2026-09-27. Rule
+`the-language-is-the-whole-surface`: a project reaches the engine through the `sp` command line
+and the pipeline language, so a semantic the command line cannot express or report is a semantic
+a project does not have.
+
+- [ ] **`api_catalog()` / `PIPELINE_SCHEMA` surface the new semantics** — they are the declared
+      syntax-to-API map (`docs/python-api.md`), so a `description` added above must actually reach
+      a caller of `api_catalog()` rather than sitting unread in the schema dict — evidence:
+- [ ] **`sp lint` says something useful** about a two-name `scripture` output, and something
+      actionable about three — evidence:
+- [ ] **Check whether any `sp` command's output or help text changes.**
+      `tests/test_cli_is_documented.py` fails in both directions when the parser and
+      `docs/ai-context/sp/command-line.md` disagree, so if nothing changes, say so and record that
+      it was checked rather than leaving it unexamined — evidence:
+- [ ] **`docs/python-api.md`** — the engine's own surface, documented for work in this repository.
+      Does `.schemas()` or the `Step` view need to say anything about the pair? — evidence:
+
+**A″ — the AI context, which is documentation for humans *and* LLMs.** The Captain, 2026-09-27:
+*"these semantics are then specific to the step type and must be clearly documented in the ai
+context."* The risk this addresses is a model carrying the `scripture` rule to another step type.
+
+- [x] `docs/llmflow-language.md` — new subsection under `type: scripture`, two worked YAML blocks,
+      both linted by `test_doc_examples_lint` (the suite's collected count rose by 9 for them).
+      **Committed `c90f7a1`**
+- [x] **The shipped quickref template** —
+      `src/llmflow/templates/project/docs/llmflow-language-quickref.md:285`. States the two-name
+      form, the field list, that `versification:` feeds the parse, and the three rules that bite:
+      order decides meaning not the names; declare on an earlier step than the one that uses it;
+      one name behaves exactly as before. **Committed `c90f7a1`**
+- [ ] **State the general principle where it cannot be missed** — that `output:` as a list is
+      positional and **what each position means is decided by the step type**. The scripture
+      section now says it locally; a reader who starts at `## 3. Common step types` does not meet
+      it — evidence:
+- [ ] **`docs/ai-context/project/data-shapes.md`** already documents `passage_info` as
+      `parse_bible_reference`'s return. It should say the `scripture` step now produces it too, or
+      a reader concludes the function is the only route — evidence:
+- [ ] **The rendered `docs/llmflow-language-quickref.md` regenerates** — it is `generated`, so it
+      is not hand-edited; `sp init --update` refreshes it. It is already named by
+      `test_template_layout` among the three stale copies, so this adds no new failure — evidence:
+- [ ] **Document in the AI context what the schema actually is, and what validates what.** Raised
+      by the Captain 2026-09-27. This is the fact a session most reliably gets wrong — I got it
+      wrong in this very session, claiming a `maxItems` would make lint fail. What has to be
+      written down, because none of it is currently stated anywhere a session reads:
+      **`PIPELINE_SCHEMA` is a key vocabulary, not a validator**; it drives `Step`'s attribute set
+      in `model.py`, `allowed_step_keys()` for *which keys are legal on which type*, and
+      `api_catalog()`; **nothing validates a pipeline against it as JSON Schema**, so a value
+      constraint written there documents intent and enforces nothing; and **`output:` as a list is
+      positional, with each position's meaning decided by the step type.** Home is
+      `docs/ai-context/project/` — this is engine-internal, and `sp/` is generated. A new topic
+      document needs a row in `project/index.md` — evidence:
+- [ ] **Document the CLI API's part in the AI context too**, per `the-language-is-the-whole-surface`:
+      which semantics a project can reach from the `sp` command line and the pipeline language,
+      and which live only in the engine's own Python surface. A reader who cannot tell the two
+      apart builds against a contract nobody offered — evidence:
+
+- [x] ⚠️ **A stale claim survived a fix that was recorded as complete — found, fixed and
+      committed at `c90f7a1`.** Restored to this file 2026-09-27 after being deleted from it the
+      same day. The entry said `docs/llmflow-language.md:802,961` claimed `include:` was *"valid
+      only with `format: usj`"* and that the fix had landed. It had, **in that file only**.
+      `grep -rn "valid only with"` found it still live in **the shipped quickref and its
+      template**, which is the copy every project reads. The template is fixed; the rendered copy
+      regenerates with `sp init --update`. **The lesson is the one this audit exists for: a fix
+      verified in one file is not a fix, when the fact is rendered into several.**
+
+**B — the example itself.** One pipeline, one prompt: D2 ruled *"no more complexity than is needed
+for the task"*.
+
+- [ ] `pipelines/commentary.yaml` — five steps, `${passage}` named in every step, **no default**
+      (§5, ruled 2026-09-26) — evidence:
+- [ ] **The `output: [subject, passage_info]` semantics are recorded in the example pipeline
+      itself.** Set by the Captain 2026-09-27. The example is what a reader copies, so a semantic
+      that lives only in the language reference does not travel with the thing being copied. It
+      must say: the list form is **positional**; **what each position means is decided by the step
+      type**, so this does not carry to a `function` step; and `passage_info` must be declared on
+      an **earlier** step than the one whose `saveas` names it, because a step's own `saveas`
+      cannot see its own output — evidence:
+  - [x] **Ruled by the Captain 2026-09-27: use `description:`** — *"sure, use description, that's
+        better."* So the positional semantics go in a `description: |` block scalar and short `#`
+        notes stay for one-line labels, which is what `~/.sp/disciplines/llmflow-pipeline-steps.md`
+        already requires — *"all step documentation belongs in `description`"*, `#` being reserved
+        for *"short inline notes and section dividers only"*. No divergence from the discipline to
+        record. This matters beyond style: the example ships as the worked demonstration of how a
+        step is documented, so whatever it does is what every project copies
+- [ ] `prompts/commentary.gpt` conforms to `data/prompt-structure.yaml` — twelve positions, four
+      subsections in each task section, an ❌ counterexample in each (C3) — evidence:
+- [ ] `sp lint --pipeline pipelines/commentary.yaml` is **silent** — evidence:
+- [ ] `--dry-run` shows four of five steps resolving before any model is called — evidence:
+- [ ] **§6's sample output is domain content and needs the Captain's review before it ships.** It
+      is drafted and marked *"illustrations of shape, not approved content"* — evidence:
+
+**C — the removal (D3: *"drop these"*).** One pass, `one-design`: nothing half-migrated.
+
+- [ ] 12 files deleted from `pipelines/` and `prompts/` — evidence:
+- [ ] 4 template twins deleted — evidence:
+- [ ] `data/file-catalog.yaml` rows 224–256 replaced by the new example's — evidence:
+- [ ] **`cli.py` and `cli_utils.py` no longer name the starter files** — the one the plan missed;
+      a deletion here breaks code, not prose — evidence:
+- [ ] 3 test files updated — evidence:
+- [ ] 9 docs updated, template twins in the same change — evidence:
+- [ ] `sp/index.md` regenerates from the catalog and names the new example — evidence:
+
+**D — the gates, run and quoted.**
+
+- [ ] §7's eleven acceptance tests, each ticked with its evidence — evidence:
+- [ ] Full suite, not a subset: `hatch run pytest tests/ -q -m "not integration" -p no:randomly`,
+      with the count and every failure named — evidence:
+- [ ] `CHANGELOG.md` entry — evidence:
+
+**E — what only the Captain can do.** None of these is an AI's to assume.
+
+- [ ] **Approve §6's sample output** as domain content
+- [ ] **Direct the `sp run`** that proves the example end to end. It calls a model and costs money;
+      no prior run authorizes a later one
+- [ ] **Rule the ordering with #242's conformance check** — it ships with this example or waits
+      for it. Recorded under 0.2.1.28 below and not reopened here
 - [ ] `sp lint`'s prompt-conformance check ships with the new example or waits for it — the
       ordering constraint recorded under 0.2.1.28 below, unchanged
 
@@ -100,7 +466,7 @@ has working-tree changes.
 - [ ] Say in that documentation which idiom is recommended and which are advanced, since the
       starter example teaches only explicit variable reference as a step input (2026-09-26)
 
-### 🧰 `/stage-commits` — built, and now behind the two goals above (2026-09-26)
+### 🧰 `/stage-commits` — written, NOT installed, and not invocable by anyone (2026-09-27)
 
 > **Set by the Captain 2026-09-25.** *"a skill that means 'stage the outstanding commits, and show
 > me the strings needed to commit them.' It should use universal shell syntax, so that it is
@@ -143,11 +509,19 @@ these differ between `zsh` and `bash` today:
   **cannot infer** whose a change is, so it groups and asks rather than guessing.
 - **`git show --stat HEAD` afterwards**, with the file count checked against the intended list.
 
+> ⚠️ **Corrected 2026-09-27: this was reported as built and the skill cannot be invoked by
+> anyone.** The template exists and `~/.sp/skills/stage-commits/` exists, but
+> **`.claude/skills/stage-commits/` is absent** — both in this repository and in `~/.claude/`.
+> That is the directory Claude Code actually reads (`docs/ai-context/sp/command-line.md`), so
+> `/stage-commits` does not appear in any session's skill list. Measured with `find` over all
+> four stores, 2026-09-27.
+
 - [x] **Built 2026-09-25 → #253.** `src/llmflow/templates/sp/skills/stage-commits/SKILL.md`, with
       `tests/test_stage_commits_is_portable.py` written first and red before it existed —
-      **16 passed** after. The test reads the shipped template and refuses `[[ ]]`, `(( ))`,
-      arrays, `+=`, process substitution, `echo -e`, `$'…'` and `&>`, plus `git add -A`,
-      `git commit -m`, and `git push`/`git merge` as instructions
+      **17 passed** after (16 when this line was written; a test was added since). The test reads
+      the shipped template and refuses `[[ ]]`, `(( ))`, arrays, `+=`, process substitution,
+      `echo -e`, `$'…'` and `&>`, plus `git add -A`, `git commit -m`, and `git push`/`git merge`
+      as instructions
 - [x] **Ruled: several commits, grouped by concern, and it asks before staging.** Nothing in
       `git status` says whose a change is, so grouping is presented rather than guessed
 - [x] **Ruled: it does not run `commit-ready`'s gates.** That skill is the gate, this is the
@@ -158,8 +532,28 @@ these differ between `zsh` and `bash` today:
       encodings of one fact
 - [x] **Ruled: `git show --stat HEAD` once a commit exists**, because "committed" is not evidence
       that the commit holds what the message claims
-- [ ] **It reaches `~/.sp/skills/` and `.claude/skills/` only via `sp init --update`** — blocked on
-      the same drift as the prefix change, below
+
+**What remains, one line per step, each checked against the tree on 2026-09-27:**
+
+- [x] **`~/.sp/skills/stage-commits/` is present.** This arrived at some point after the item
+      below was written; the item claimed both destinations were blocked and only one was
+- [ ] **`.claude/skills/stage-commits/` is absent here** — `find` over
+      `LLMFlow/.claude/skills/` returns 11 directories and this is not one of them. Until it is
+      there the skill cannot be invoked in this repository
+- [ ] **`~/.claude/skills/stage-commits/` is absent too** — 8 directories there, and not this one
+- [ ] **The route is `sp init --update`, not `sp doctor`** (#210). `data/file-catalog.yaml:52`
+      and `:75` declare `templates: "sp/skills/*"` for both destinations, so the glob already
+      covers this skill — nothing needs cataloguing, the command simply has not been run
+- [ ] **`tests/test_stage_commits_checks_the_handoff.py` is untracked** — 3 tests that exist in
+      the working tree and in no commit. `git status` lists it under `??`. Either commit it or
+      say why it should go
+- [ ] **`tests/test_portable_skills.py::test_every_shipped_skill_is_classified` is red because
+      of this skill** — confirmed in the 2026-09-27 suite run. It is unclassified, and the
+      classification is **S1 in `project/open-decisions.md`**, an unanswered `=>`. `ENGINE_ONLY`
+      passes mechanically and is false; `SHARED_WITH_HELM` costs a Helm commit and a
+      `data/helm-sync.yaml` row. **The Captain's ruling, and it is what blocks a green suite**
+- [ ] **Verify after installing** — `/stage-commits` appears in a fresh session's skill list.
+      Nothing else proves it; the tests read the template, not the installed copy
 
 ### 🎯 THE GOAL — #246, #247, #248, all for discourse-flow
 
@@ -270,6 +664,79 @@ session editing this tree directly:
 reverting one side alone. Every fix is a twin commit across two repositories, which is why both
 incidents above ended in a tree nobody could clean unilaterally.
 
+#### ⛔ Coordination between Helm and Scripture Pipelines has no design, and the old one is obsolete
+
+> **Set by the Captain 2026-09-27**, in his words: *"coordination with HELM is its own TODO. we
+> do not yet have a plan for coordination shared between Helm and Scripture Pipelines, and we
+> need to design it."* And: *"The old design is obsolete."*
+>
+> **This blocks every cross-repository act, and it is why S1 below could be ruled but not
+> delivered.** Nothing should be synced, hashed or twin-committed until the design exists.
+
+- [ ] **Design how the two repositories coordinate.** No plan file yet; propose a name and get
+      sign-off before writing one. `plans-are-temporary` applies to it
+- [ ] **`project/plans/design-helm-parity.md` is obsolete** (45 KB, 2026-09-10). It is still
+      cited as live in two places that will mislead the next session:
+      `tests/test_portable_skills.py:49` names its §4 as *"Source of truth for this list"*, and
+      `project/plans/README.md` lists it as *"awaiting the Captain's review"*. Neither says
+      obsolete. Retiring it is the Captain's act
+- [ ] **Helm already has a draft nobody here has read** —
+      `human-at-the-helm/project/plans/design-coordinating-changes-with-sp.md`, **untracked** in
+      that tree as of 2026-09-27. Read it before designing anything, so this is not designed
+      twice
+- [ ] **The Helm tree is mid-flight and must not be written to.** Measured 2026-09-27: `main`
+      **6 commits ahead of `origin/main`**, nine modified files — including *all six* currently
+      shared skills — two of them staged-and-modified, and five untracked paths. Any
+      `tools/sync_helm.py --apply` now would record hashes against somebody's unreviewed work,
+      which is the failure mode `disciplines/README.md` warns about in as many words
+
+**The problem is already written down. Read these two before designing anything:**
+
+`collab/human-at-the-helm/2026-09-23-a-helm-session-left-three-files-changed-here-and-two-tests-red.md`
+names the mechanism that fails: both sides edited, the record was refreshed with
+`--apply`, **the Helm side was reverted and this side was not**, so the record carried hashes for
+text that existed in one tree only. Its own diagnosis is the sentence to design against — the
+session *"did not treat this repository's green suite as part of the definition of done for work
+that touched it."*
+
+`human-at-the-helm/project/plans/design-coordinating-changes-with-sp.md`,
+`Status: proposed (2026-09-25)`, **untracked in their tree**, proposes seven changes — a shared
+file changes in one repository per act; a third record status `pending`; the check compares
+**committed** state; polarity follows ownership; Helm carries its own record and check; neither
+side writes in the other except into `collab/`; the second half of a twin edit is its own act.
+
+- [ ] **Answer the six questions Helm has addressed to us.** They are in §"What we ask Scripture
+      Pipelines" of that document and every one lands in *our* tree. **All six are the Captain's:**
+      1. does one-side-at-a-time work from upstream, when upstream is normally ahead;
+      2. who holds the record — a copy each is the very drift this exercise exists to prevent;
+      3. do we accept a `pending` status in `data/helm-sync.yaml` and in `tools/sync_helm.py`;
+      4. do we make the check compare committed state rather than the working tree —
+         **their evidence is that it currently reports green across two dirty trees, and this
+         repository's 2026-09-27 state reproduces it exactly**;
+      5. do we accept the symmetric write restriction, `collab/` only, never committing there;
+      6. where do Helm's own tests live, given they have no suite and ship only markdown
+- [ ] **Reply as a collab note into their tree**, once answered — `plans-are-temporary` and
+      `workflow.md`'s one carve-out: one new file in their `collab/sp/`, not committed there
+- [ ] **Dispose of the spent inbound note.** The 09-23 note says *"This note dies with whichever
+      choice is made"*; the choice was made — content kept, committed at `473cd80`. It is still
+      here and still **untracked**, which the very convention it delivered forbids. Commit then
+      delete, or delete. **The deletion is the Captain's**
+
+**S1 is ruled and cannot be delivered yet.** The Captain, 2026-09-27, answering
+`project/open-decisions.md` S1 — *does Human at the Helm get `/stage-commits`?* — **yes**.
+
+- [ ] **Record the ruling** in `CHANGELOG.md` in his words and retire S1 from
+      `project/open-decisions.md`, per that file's own header. Not done here: writing after a
+      `=>` is his alone, and both edits were outside this change's declared scope
+- [ ] **Do not add `stage-commits` to `SHARED_WITH_HELM` until the coordination design lands.**
+      Tried on 2026-09-27 and reverted: membership is not a label but a claim that the skill is
+      delivered and parity-checked, so it turned `test_helm_sync::test_the_record_covers_exactly_the_shared_set`
+      red (*"shared but unrecorded: ['skills/stage-commits']"*) and
+      `test_shared_skill_serves_both_ecosystems[stage-commits]` red as well — the latter because
+      `ECOSYSTEM_MARKERS` matches a bare `.py` path in the skill with no TypeScript counterpart
+      beside it. **`test_portable_skills::test_every_shipped_skill_is_classified` therefore stays
+      red, now for a known and ruled reason with a named blocker rather than an unasked question**
+
 - [x] **Ruled 2026-09-25: the prefixes go and stay gone.** The 09-24 change stands rather than
       being reverted, and the five sp-only skills that still carried one — `audit-code`,
       `audit-output`, `audit-pipeline`, `audit-prompts`, `release` — were stripped to match.
@@ -373,9 +840,15 @@ third thread now waiting on that repository.
 3. **`--accept-terms` for non-interactive use, and fail closed naming it when there is no TTY.**
    Blocking breaks every script and CI run; assuming yes makes the gate theatre.
 
-- [ ] Build it. `click` is already the CLI library (`cli_utils.py:10`), so `click.confirm` is the
-      mechanism, and it aborts rather than proceeding when it cannot prompt — fail-closed is the
-      default behaviour rather than something to write
+- [ ] Build it. **`click.confirm` is the mechanism** — it aborts rather than proceeding when it
+      cannot prompt, so fail-closed is the default behaviour rather than something to write.
+      ⚠️ **Corrected 2026-09-28: this line said "`click` is already the CLI library", which is
+      false.** Measured: `click` is imported by `cli_utils.py` and `utils/linter.py` and used
+      **only for terminal output** (`click.echo`); **argument parsing is `argparse`**, in
+      `cli.py:74` and `tools/replay.py`. The conclusion survives — `click` is a declared
+      dependency and `confirm` is available — but nobody should reach for click's command or
+      group machinery on the strength of it, and anyone designing `sp help` (→ #264) needs the
+      right framework
 - [ ] **This adds a prompt to a CLI that just removed four.** `_configure_ai_assistants` is
       *"non-interactive by design (#204, D4/D5)"* (`cli_utils.py:230-244`) precisely because
       prompts defaulting to No broke a fresh setup silently. A licence gate has something to
@@ -593,7 +1066,8 @@ third thread now waiting on that repository.
 
 **Tracked as → #238. Built and committed 2026-09-14** — `1501da1` (step, reader, 21 tests,
 declaration, bundling, docs), `4b3640e` (the design documents). Design status `ruled (2026-09-14)`,
-R1–R16, D1–D8 answered. **Not pushed.**
+R1–R16, D1–D8 answered. **Pushed and released** — corrected 2026-09-27: `git branch --contains`
+puts both commits on `origin/dev` *and* `origin/main`. This line read "Not pushed" for thirteen days.
 
 > ⚠️ **"Built" does not cover every ruling above it. Two are ruled and not built**, and this
 > entry read as though they were:
@@ -605,6 +1079,16 @@ R1–R16, D1–D8 answered. **Not pushed.**
 > - **R9 — the opt-in correspondence map.** `correspondence` appears nowhere in `src/` or
 >   `tests/`; the schema's `returns` enum is `["text", "alignments"]`. This one fails loudly —
 >   `returns: [correspondence]` is refused at lint — so it is the less dangerous of the two.
+>
+> **Both re-verified 2026-09-27.** `grep -rn correspondence src/ tests/` returns one unrelated
+> hit in `test_ai_rules_classification.py`, and `pipeline_schema.py:321` still reads
+> `"enum": ["text", "alignments"]`. Neither has moved since 2026-09-16.
+
+- [ ] **R7 — build it or drop it.** Undecided before it can be built: what the field is called,
+      and whether `returns:` gains a member for it. A span over Psalm 23 silently drops
+      "A Psalm of David" until this lands — silent is what makes it the dangerous half
+- [ ] **R9 — build it or drop it.** Adding `correspondence` to the enum at
+      `pipeline_schema.py:321` is the visible part; the map itself is the work
 
 **Verify:** `hatch run pytest tests/test_alignment.py -q` → 22 passed.
 
@@ -671,14 +1155,6 @@ request bodies sit unfiled in `tmp/`.
 - [ ] Fixing the catalog on the local `dev` branch in `Clear/Alignments` is a contribution to
       offer upstream, **not** something the engine reads — R2 settles that. That branch has no
       upstream today
-
-### 📄 `docs/llmflow-language.md` contradicts shipped behaviour
-
-> Reported by discourse-flow in their 2026-09-11 note, §7, and confirmed. `3ca7139` made
-> `include:` valid with every format and our own tests assert it, but the document still says
-> otherwise in two places — and it is the sentence that would stop a reader adopting the feature.
-- [ ] Line **802** — `include: [ids]  # optional; valid only with format: usj`
-- [ ] Line **961** — *"It is valid **only** with `format: usj`"*
 
 ### ✅ `save_json` indents every artifact — ruled, and deliberately unchanged
 
@@ -780,8 +1256,8 @@ files a pre-run clean removes. The design is a per-run write manifest keyed by p
 tree does not change. `clean_before_run: true|false` with `true` the documented default, and
 `--no-clean` per invocation. Four rails in the issue, all load-bearing.
 
-- [x] **#245 — implemented on `dev`, awaiting the merge to `main`.** The `--rewind-to` guard
-      was written first; `tests/test_run_manifest.py`, 14 tests
+- [x] **#245 — shipped and CLOSED**, confirmed 2026-09-27. The `--rewind-to` guard was written
+      first; `tests/test_run_manifest.py`, 14 tests
 
 **Prompt work, rolled forward to the next release, in the order it has to land:**
 
@@ -799,7 +1275,8 @@ tree does not change. `clean_before_run: true|false` with `true` the documented 
       constraining it to material the tasks cite and no obligation. **Design notes are refused:**
       everything in a `.gpt` reaches the model, so notes for maintainers would be tokens the model
       reads and may act on; they belong in `project/plans/` or the header's `description:`
-- [x] **`sp lint` warns on a prompt that does not fit the grammar → #242.** Shipped. Warns, first
+- [x] **`sp lint` warns on a prompt that does not fit the grammar → #242. Shipped — but #242 is
+      still OPEN on GitHub** (checked 2026-09-27). Close it or say why it stays open. Warns, first
       finding per prompt, required sequence once per run. What the grammar binds is declared, not
       coded: a prompt whose **first line** is `---`
 
@@ -1095,10 +1572,10 @@ build against.
 > unnormalised position is a **proposal, not a ruling** — implementable as written, but a
 > normalising ruling changes the payload and anything built first is wrong.
 
-> **Insurance worth taking:** `wip/scripture-200` is a **local tag with no remote**, and
-> `project/plans/design-scripture-editions.md` exists nowhere else — not on `dev`, not in the
-> working tree. `git push origin wip/scripture-200` costs nothing and removes a single point of
-> failure. A push is the Captain's act.
+> **Insurance taken — corrected 2026-09-27.** `wip/scripture-200` **is on the remote**:
+> `git ls-remote --tags origin` finds it. This entry asked for a push that had already happened,
+> so `project/plans/design-scripture-editions.md` is no longer a single point of failure. Read it
+> with `git show wip/scripture-200:project/plans/design-scripture-editions.md`.
 
 > **Deliberately not scheduled:** #209, the repository rename. Filed with its migration detail
 > and an order of operations, to be picked up when the Captain chooses.
@@ -1106,11 +1583,13 @@ build against.
 ### 🆕 Opened 2026-09-01 — five issues, order not yet set
 > **Where these sit relative to the ordered list above is the Captain's to set.** They are
 > recorded here because the task list is the queue; `HANDOFF.md` carries only session residue.
-> One is built: #225, rules cited by id — `fcd4c67` on `dev`, carrying `Closes #225`. **The issue
-> is still open on GitHub** and closes when `dev` merges to `main`; the change is already live in
-> consumer repos here through the editable install. Guarded by
-> `tests/test_record_closure_claims.py`.
-- [x] **Remove `optional:` from prompt frontmatter → #228.** Shipped in 0.2.1.26. Breaking: both
+> One is built: #225, rules cited by id — `fcd4c67` on `dev`, carrying `Closes #225`. **#225 is
+> now CLOSED** (verified 2026-09-27); this line read "still open on GitHub" after the merge that
+> closed it. Guarded by `tests/test_record_closure_claims.py`, which checks closure *claims* and
+> cannot catch a claim that has gone stale in the other direction.
+- [x] **Remove `optional:` from prompt frontmatter → #228. Shipped in 0.2.1.26 — but #228 is
+      still OPEN on GitHub** (checked 2026-09-27), two releases after it shipped. Close it or say
+      why it stays open. Breaking: both
       header forms are refused by `sp lint` and `sp run` with one shared message. The shipped
       discipline now teaches the key's absence rather than `optional: [perspectives]`, so `sp init`
       no longer installs the retired convention.
@@ -1119,9 +1598,6 @@ build against.
         `requires:` or is deleted. Mechanism and evidence:
         `collab/discourse-flow/2026-09-01-dotted-requires.md`. Their repository, their change —
         tell them the release is out.
-- [ ] **`include: [syntax]`, Lowfat as standoff JSON → #227.** Design ruled and recorded in
-      `project/plans/design-scripture-representations.md` §4.5 and §7. Read the issue for the JSON
-      shape, not the handoff.
 - [ ] **Extract the biblical-text convention layer → #226.** Design in
       `project/plans/design-biblical-text-conventions.md`; the middle layer lives in
       `awesome-biblical-data`. D3 is ruled. **D1, D2, D4 and D5 are unanswered `=>` slots and are
@@ -1168,20 +1644,6 @@ build against.
 > with a warning, rather than raising, with `versification: null` plus `versification_guessed`
 > keeping the guess distinguishable from a declaration. Neither closes the entry: the `PSA 51:1`
 > disagreement above is about the mapping being applied on the way in, not about labelling.
-
-### ⚠️ Paratext `custom.vrs` is detected and ignored → #222
-> **A project's own versification should win, and today it loses silently.** `_paratext_scheme`
-> finds a `custom.vrs`, warns that it will not read it, and uses the numbered scheme — so
-> references into such a project are wrong wherever the overlay changes something.
->
-> The format is the three concepts `utils/versification.py` already models: 193 amended chapter
-> lengths, 465 mappings, 5 exclusions across 29 real files on this machine. A `custom.vrs` is a
-> Copenhagen scheme with `basedOn` set to the numbered one.
->
-> The substance is not the parser but this: `edition_scheme()` returns a scheme *name* and
-> `map_reference` takes names, while an overlay has none. Synthetic name, or `Scheme` objects
-> through the API — that choice is the work. Scripture Burrito is #221 and follows, reusing
-> whatever shape this settles.
 
 ### 📖 Scripture editions — core landed, wiring incomplete → #200
 > Commits are parked on the **local** tag `wip/scripture-200` (`05d75a5`, `34c7931`) and are
@@ -1245,74 +1707,24 @@ build against.
 
 ### 🎓 Workshop readiness (main next goal)
 
-#### 🎯 Doing now — bugs Paul hit setting up on his own machine → #204
-> Board 13: **In Progress**. Targets the **next** version, not the 0.2.1.24 release in flight.
->
-> **Acceptance criterion (Captain, 2026-08-17):** a user clones a mentoring repository such as
-> `sil-translator-notes`, runs `sp init`, and `/load-context` works. Nothing hand-carried.
->
-> Paul cloned the repo, ran `sp init`, ran `/load-context`, and got **HTTP 400 with no body**.
-> Getting him working took a hand-built zip of `~/.sp/`, copying `~/.sp/skills` →
-> `~/.claude/skills`, hand-editing three edition files to strip another machine's absolute paths,
-> and patching a USFM file — and it still did not work.
+> **#204 and #32 are CLOSED and their sections were deleted 2026-09-27.** Both carried unticked
+> boxes for work that had shipped — #204 eleven of them, #32 two. Verified with
+> `gh issue list --state all`. Git holds what went; `git log --diff-filter=D` finds it.
 
-**⚠️ The cause recorded in #204 is wrong.** Read against `cli_utils.py` on 2026-08-17:
-> #204 says *"`sp init` does not create `CLAUDE.md` — there is no code that creates one"* and
-> *"`sp init` overwrites hand-written AI context"*. **Both are false.** `_configure_claude_code`
-> (`cli_utils.py:756-761`) upserts a delimited block into `CLAUDE.md`, and every generated
-> ai-context file is guarded `if not exists → write / elif update and _is_generated → rewrite /
-> else → leave as-is` (`cli_utils.py:1854-1888`). Plain `sp init` overwrites nothing.
-> **#204 needs correcting before anything is built against it.**
+**Two things survived those sections because they are still live, and one ruling needs a home:**
 
-What actually blocks the acceptance criterion:
-- [ ] **`_configure_ai_assistants` returns silently when stdin is not a TTY**
-      (`cli_utils.py:805-806`). No `CLAUDE.md`, no skills, no message saying so
-- [ ] **"Claude Code" defaults to No** (`cli_utils.py:812`, `default=False`). A user pressing
-      Enter through the prompts gets no `CLAUDE.md` and no skills
-- [ ] **"Install Claude Code skills?" also defaults to No** (`cli_utils.py:777`) — and that
-      consent branch is the *only* path that copies into `~/.claude/skills/`, which is where
-      Claude Code actually reads. `~/.sp/skills/` is populated either way, and is the wrong place
-- [ ] **Most of `~/.sp/` is not in the package.** `templates/` ships only `sp-conventions/`
-      (5 files) and `sp-skills/` (10 skills). Missing, and therefore unobtainable by any
-      `sp init`: `drift-patterns.md`; the whole `user-context/` directory
-      (`filesystem-access.md`, `github-authority.md`, `consumer-repo-conventions.md`);
-      the conventions `design-authority.md`, `sp-debugging.md`, `sp-workflow.md`;
-      `editions/*.yaml.template`; and the 12 `ai-context/*.yaml` registry files.
-      **This is what the zip was carrying** — overlaps #181
-- [ ] **`/load-context` reads files that a fresh machine cannot have** — its step 5 runs
-      `cat ~/.sp/drift-patterns.md`, which the package does not ship. Skills must skip a missing
-      file cleanly and never emit an empty read (an empty content block is the bodyless 400)
-- [ ] **No verification step** — `sp doctor` or `sp init --check`: are skills in
-      `~/.claude/skills/`, are editions registered and resolvable, is `CLAUDE.md` present
-- [ ] **Editions are not portable** — `~/.sp/editions/*.yaml` carry absolute paths. Ship the
-      `.yaml.template` files and add a per-machine registration flow
-- [ ] **Confirm `~/.sp` creation.** `install_global_conventions`/`install_global_skills` run
-      non-interactively (`cli_utils.py:1952-1954`) and `mkdir(parents=True)`, so this appears
-      already satisfied — but the call is wrapped in a `try/except` that only *warns* on failure
-      (`cli_utils.py:1955-1956`), so a silent partial install is possible
-- [ ] **Hazard, `--update` only:** a file still carrying the `<!-- Generated by sp init -->`
-      first line is rewritten by `sp init --update` even if hand-edited. Only `project.md` is
-      exempt (`cli_utils.py:1890`)
-- [ ] **Nothing tests a clean machine** — 2620 tests pass and none caught any of the above. Needs
-      a run from a clone with an empty `HOME`, plus a committed fixture-edition TSV so `sp lint`'s
-      "no text found" path can be tested
-
-#### Installers and setup
-- [ ] Build Mac + Windows installers via GitHub Actions CI → #32
-  - Built via Nuitka in `.github/workflows/build.yml` (`--standalone --onefile`, per-platform)
-  - Trigger: push a version tag `v*` → auto-publish to GitHub Releases
-  - Install script renames binary to `llmflow` (no manual rename needed):
-    ```bash
-    curl -fsSL .../llmflow-macos -o ~/bin/llmflow && chmod +x ~/bin/llmflow
-    ```
-- [ ] Implement `llmflow setup` command (per-machine, run once after install) → #32
-  - Silently installs `llm` plugins (e.g. `llm install llm-gpt4all`)
-  - Prompts user for OpenAI API key (`llm keys set openai`)
-  - `llmflow setup --update` re-runs (update plugins, change key)
-- [ ] **Naming convention locked:** `--update` is always a flag on its parent command, never a standalone subcommand
-  - `llmflow init --update` — refresh generated project docs
-  - `llmflow setup --update` — update plugins / change API key
-  - No bare `llmflow update` command (use install script or `brew upgrade` to update binary)
+- [ ] **Most of `~/.sp/` is still not in the package → #181, which is OPEN.** `drift-patterns.md`,
+      the whole `user-context/` directory, and several disciplines are unobtainable by any
+      `sp init` on a fresh machine. This was #204's most substantial item and #181 is where it
+      lives now; do not re-derive it from the deleted text
+- [ ] **Nothing tests a clean machine.** No run from a clone with an empty `HOME`. The count in
+      the deleted text said "2620 tests pass and none caught any of the above"; the suite is
+      **5878 passed / 7 failed** as of 2026-09-27 and the gap is unchanged
+- [ ] **Move one ruling to `CHANGELOG.md` before it is lost** — *"`--update` is always a flag on
+      its parent command, never a standalone subcommand"*, so `sp init --update` and
+      `sp setup --update`, never a bare `sp update`. It lived only in the deleted #32 section.
+      `plans-are-temporary` puts a ruling in the CHANGELOG; **that edit is not in this change's
+      scope and needs the Captain**
 
 ## 📋 Backlog
 
@@ -1340,15 +1752,12 @@ What actually blocks the acceptance criterion:
 - [ ] API key story for workshop: shared org key so participants don't each need one
 
 ### 🚀 Publishing
-- [ ] Clean up repo for public release → #33
-  (metadata, data licensing, .gitignore gaps, README, history audit)
+- [ ] **Missing project files: `CONTRIBUTING.md`, `SECURITY.md`, issue/PR templates → #33.**
+      Retitled upstream; this line said "Clean up repo for public release (metadata, data
+      licensing, .gitignore gaps, README, history audit)" until 2026-09-27. Read the issue for
+      the scope, not this line
 - [x] Published to PyPI as `scripture-pipelines` — latest 0.2.1.23. (The name `llmflow` was never
       used; see the PyPI note under Monday priorities.)
-
-### 🔧 Open issues on board
-- [ ] Bootstrap New Project UX improvements → #28
-- [ ] Conditionals and switches → #11
-- [ ] Checkpointing support → #8
 
 ### 🗂 Pipeline data operations
 

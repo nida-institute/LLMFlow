@@ -85,9 +85,15 @@ goal's "copyright and license strings" is one string until L3 is answered.
 
 **Step 2 — the gate on `resource add`.** Blocked on **L1**.
 
-- `click` is already the CLI library (`cli_utils.py:10`), so `click.confirm` is the mechanism.
-  It raises `Abort` when it cannot prompt, so **fail-closed is its default behaviour** rather than
-  something to write.
+- **`click.confirm` is the mechanism.** It raises `Abort` when it cannot prompt, so **fail-closed
+  is its default behaviour** rather than something to write.
+  ⚠️ **Corrected 2026-09-28.** This read *"`click` is already the CLI library (`cli_utils.py:10`)"*,
+  which is false and would mislead anyone building on it. Measured: `click` is imported by
+  `cli_utils.py` and `utils/linter.py` and used **only for terminal output** (`click.echo`);
+  **argument parsing is `argparse`** — `cli.py:74` builds the `ArgumentParser`, and
+  `tools/replay.py` has its own. The conclusion stands, because `click` is a declared dependency
+  and `confirm` is available whatever parses the arguments; what does not stand is any assumption
+  that click's command, group or option machinery is in play.
 - `--accept-terms` skips the prompt. With no TTY and no flag, exit non-zero and name the flag.
 - **Write down why this prompt exists.** `_configure_ai_assistants` is *"non-interactive by design
   (#204, D4/D5)"* (`cli_utils.py:230-244`) because four prompts defaulting to *No* silently broke a
