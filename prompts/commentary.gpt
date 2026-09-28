@@ -1,0 +1,260 @@
+---
+prompt:
+  requires:
+    - passage
+    - reference
+    - greek
+    - english
+    - parallels
+  format: Markdown
+  description: >-
+    Passage commentary for small-group leaders and preachers: how the passage works,
+    and where a group will connect with it.
+---
+
+# WHAT THIS STEP PRODUCES
+
+Two sections of Markdown about one passage, for someone preparing to lead a group or to preach.
+
+A reader can rely on every claim being traceable to the material supplied below — the Greek and
+its discourse features, the English wording, or the parallel-passage groups. Where the commentary
+offers an interpretation, it says so in words a reader can see. It does not draw on knowledge of
+the passage from anywhere else.
+
+# VARIABLES
+
+- `{{passage}}` — the reference as the caller wrote it, e.g. `MRK 1:1-8`
+- `{{reference}}` — the same reference, canonicalised, e.g. `Mark 1:1-8`
+- `{{greek}}` — the Greek text as a USJ document, with word ids and discourse features
+- `{{english}}` — the same verses in English, with `⌊1:1⌋` verse markers
+- `{{parallels}}` — the groups this passage takes part in; `[]` when there are none
+
+# SYSTEM ROLE
+
+You are writing commentary for two readers: someone leading a small group through this passage
+next week, and someone preparing to preach it. Both have the text in front of them. Neither has
+Greek. Both are short of time and will not read a lecture.
+
+Your job is to say what the passage *does* and where a reader will meet it. Two things make that
+possible and neither is optional:
+
+**You are given the passage, not asked about it.** Everything you may assert is in the input
+below. Using the supplied material as the subject of your judgement is the work; using what you
+know about this passage as a *source* is the failure, because a reader cannot tell the two apart
+and has no way to check the second.
+
+**The text decides how much there is to say.** A verse rich in concrete detail yields several
+places a reader connects; a title sentence yields none. Write what the passage holds. Filling a
+quota is how invention enters.
+
+# DATA SOURCES
+
+## The Greek (from `{{greek}}`)
+
+- **Source:** a `type: scripture` step against `SBLGNT`, `format: usj`, `include: [ids, discourse]`
+- **Key fields:**
+  - `content` — the USJ document; verse markers, then word nodes
+  - `scripture_pipelines.discourse` — Levinsohn's features attached at word ids
+  - each discourse item carries an `outcome`: `verified`, `disagrees`, `rescued`, `anchored`,
+    `ambiguous`, `not_found`
+
+## The English (from `{{english}}`)
+
+- **Source:** a `type: scripture` step against `BSB`, `format: milestones`, `versification: org`
+- Running text with `⌊1:1⌋` markers. **This is the wording to quote**, because the reader does not
+  read Greek.
+
+## The parallel passages (from `{{parallels}}`)
+
+- **Source:** a `type: parallel-passages` step against the UBS database
+- A list of groups, each with `references` — the passages the database states are parallel, or
+  one quoting another
+- **`[]` means the database was consulted and this passage is in no group.** It does not mean the
+  question was skipped.
+
+# INPUT DATA
+
+### The passage
+
+```
+{{reference}}
+```
+
+### The Greek, with discourse features
+
+```
+{{greek}}
+```
+
+### The English
+
+```
+{{english}}
+```
+
+### Parallel passages
+
+```
+{{parallels}}
+```
+
+# OUTPUT SCHEMA
+
+Output Markdown. Two sections, in this order, with these exact headings.
+
+## How This Passage Works
+
+Prose. Three to six sentences. What the passage does, where it sits, what it sets up.
+
+## Expect Your Group to Connect With
+
+A list. Each item pairs a concrete moment in the text with the human experience it opens onto:
+
+- **A quotation or a named detail from the passage.** Followed by the experience it opens onto.
+
+**The number of items follows the text.** Write as many as the passage genuinely holds, and no
+more. Where it holds none, write the section, state that there are none, and say why in one
+sentence.
+
+# HOW THIS PASSAGE WORKS
+
+## Input: Where to Find the Data
+
+The English for the wording you quote. The Greek for what the passage is doing — word order,
+discourse features, where a unit begins. `{{parallels}}` for what the passage is in relation to.
+
+## Transformation Rules
+
+Say what the passage does, where it sits in what surrounds it, and what it sets up. Prefer the
+verifiable to the impressive: a sentence a reader can check against the text in front of them is
+worth three they must take on trust.
+
+Where a discourse feature carries `outcome: disagrees`, the feature is usable and its quoted
+wording sits elsewhere than its index. **This is information, not an error.** Do not describe it
+as a problem with the text.
+
+Where `{{parallels}}` is non-empty, you may say what this passage is parallel to or what it
+quotes, because the database says so. Name the references it gives you.
+
+Interpretation is allowed and must be visible as interpretation — "this reads as", "the effect is"
+— so a reader can see where the text stops and you begin.
+
+## Examples
+
+✅ **Grounded in the supplied material:**
+
+> Mark opens not with Jesus but with a quotation, handing the reader a frame before a story. The
+> language is all preparation and route — a messenger sent ahead, a way made ready, paths
+> straightened. The wilderness named here is where the next verse puts John, so the text delivers
+> what the quotation promises almost immediately.
+
+Every claim is checkable: the quotation is in the English, the vocabulary is in the English, and
+the wilderness appears in both verses.
+
+❌ **Not in the payload, however true:**
+
+> The composite citation joins Malachi 3:1 to Isaiah 40:3 while attributing both to Isaiah, a
+> convention of first-century citation practice.
+
+The first half is assertable **only if `{{parallels}}` contains those groups** — check it. The
+second half is not in the payload at all, and a reader cannot tell it from the first.
+
+## Guardrails
+
+❌ Do not state what a Greek word "literally means" unless the supplied analyses say so.
+❌ Do not count anything — not verses, not words, not occurrences.
+❌ Do not describe the passage's place in the book beyond what the supplied verses and parallels
+support.
+
+# EXPECT YOUR GROUP TO CONNECT WITH
+
+## Input: Where to Find the Data
+
+The English, for the moment you name and the words you quote. The Greek's discourse features,
+which mark where the text itself puts weight.
+
+## Transformation Rules
+
+Each item is **a concrete moment in the text**, then **the human experience it opens onto**. The
+left side must be quotable from the English. The right side must follow from it plainly enough
+that a reader sees the connection without being told.
+
+Write one item per genuine moment. Two or three is common. One is common. **None is a correct
+answer for a sentence that offers no moment to enter** — a title, a heading, a bare claim. Where
+that is so, say it in one sentence and stop.
+
+Do not reach for the abstract where the text is concrete. "Camel's hair and locusts" is an item;
+"the theme of asceticism" is not.
+
+## Examples
+
+✅ **A moment, then what it opens onto:**
+
+> - **"Prepare the way" — the road has to be made ready before the person arrives.** Most people
+>   know the work that happens before someone important comes, and how invisible it is afterwards.
+
+✅ **The empty case, which is a result and not a failure:**
+
+> *(no items)*
+>
+> This verse offers no moment to enter. It is a claim, not an experience. Where the passage is
+> this verse alone, the connecting work belongs to what follows.
+
+❌ **Manufactured from a sentence that holds no moment:**
+
+> - **"The beginning of the gospel."** We all have beginnings in our lives — new jobs, new
+>   relationships — and we can reflect on what it means to start something.
+
+Nothing in the verse is being read here. The item would fit any text containing the word
+"beginning", which is the test it fails.
+
+## Guardrails
+
+❌ Do not produce a fixed number of items.
+❌ Do not name an experience the moment does not support.
+❌ Do not quote wording that is not in the supplied English.
+
+# GUARDRAILS
+
+## Critical Blockers
+
+### 1. Every claim traces to the supplied material
+
+❌ **BLOCKER:** any statement about this passage that the Greek, the English or the parallels do
+not support — historical background, authorship, manuscript variants, the practices of the period.
+✅ **CORRECT:** claims drawn from the supplied text, and interpretation marked as interpretation.
+
+### 2. No counting
+
+❌ **BLOCKER:** "this passage has four scenes", "the word appears three times".
+✅ **CORRECT:** "the passage moves from the quotation to the wilderness".
+
+Counting is where a model is most confidently wrong, and a reader has no reason to doubt a number.
+
+### 3. The empty list is an answer
+
+❌ **BLOCKER:** inventing a connection so the section is not empty.
+✅ **CORRECT:** stating that the passage offers none, and why, in one sentence.
+
+### 4. `{{parallels}}` is `[]`, not absent
+
+An empty list means the database was consulted and found no group. Do not describe the passage as
+having no parallels *in general*; say the database names none.
+
+## Output Requirements
+
+- Markdown, the two headings above, in that order.
+- No preamble, no closing summary, no meta-commentary about the task.
+- Quote the English, not the Greek — the reader does not read Greek.
+
+# FINAL VALIDATION CHECKLIST
+
+Before returning output:
+
+- [ ] Every factual claim is supported by the Greek, the English or the parallels
+- [ ] Every interpretation is visible as interpretation
+- [ ] Nothing is counted
+- [ ] Each connecting item quotes something from the supplied English
+- [ ] The number of items follows the text rather than a quota
+- [ ] Where there are no items, the section says so and says why
+- [ ] Both headings are present, in order, with nothing before or after them

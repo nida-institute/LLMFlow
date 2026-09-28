@@ -221,41 +221,33 @@ files:
     purpose: >-
       VS Code setup for editing pipelines and prompts.
 
-  # The hello-world example. `example` is what makes `sp init` and `sp doctor` differ at
+  # The starter example. `example` is what makes `sp init` and `sp doctor` differ at
   # all: `sp init` creates these, `sp init --update` refreshes one that is present, and
   # `sp doctor` leaves them alone entirely. Stated on the row rather than as a rule in
-  # code, so the four files it covers are the four files that carry it.
-  - path: prompts/hello.gpt
+  # code, so the files it covers are the files that carry it.
+  #
+  # The hello-world pair it replaced touched no scripture, no resource, no versification
+  # and no schema, and the second did not consume the first — so neither showed what the
+  # engine is for (#244).
+  - path: pipelines/commentary.yaml
     scope: project
     policy: example
     source: template
-    template: project/prompts/hello.gpt
+    template: project/pipelines/commentary.yaml
     committed: true
     purpose: >-
-      Starter prompt for the hello-world example.
+      Passage commentary for group leaders and preachers — four steps, three of which
+      call no model.
 
-  - path: prompts/reply.gpt
+  - path: prompts/commentary.gpt
     scope: project
     policy: example
     source: template
-    template: project/prompts/reply.gpt
-    committed: true
-
-  - path: pipelines/hello-llmflow.yaml
-    scope: project
-    policy: example
-    source: template
-    template: project/pipelines/hello-llmflow.yaml
-    committed: true
-
-  - path: pipelines/hello.yaml
-    scope: project
-    policy: example
-    source: template
-    template: project/pipelines/hello.yaml
+    template: project/prompts/commentary.gpt
     committed: true
     purpose: >-
-      Smallest runnable pipeline — one llm step.
+      The commentary prompt. The first in this repository to conform to the ruled
+      section order in data/prompt-structure.yaml.
 
   # How a project records audit findings. create-once: the project adapts it, and
   # `sp doctor` never overwrites a create-once entry.

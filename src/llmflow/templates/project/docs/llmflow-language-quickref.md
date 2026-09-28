@@ -363,7 +363,7 @@ Writes literal content to disk without calling an LLM.
     ✅ Scripture Pipelines is installed and running.
     2 + 2 = ${total}
   saveas:
-    path: "${output_dir}/hello-llmflow.txt"
+    path: "${output_dir}/commentary.md"
 ```
 
 Use `save` when you just need to materialize a small message or

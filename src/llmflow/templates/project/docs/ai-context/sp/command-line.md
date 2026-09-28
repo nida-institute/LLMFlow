@@ -19,8 +19,8 @@ They differ in exactly one thing, named below.
 | `sp init --update` | no | yes | refreshes one that is present |
 | `sp doctor` | no | yes | never |
 
-The starter examples — `pipelines/hello.yaml`, `pipelines/hello-llmflow.yaml`,
-`prompts/hello.gpt`, `prompts/reply.gpt` — are the whole difference. A project that
+The starter example — `pipelines/commentary.yaml`, `prompts/commentary.gpt` and
+`docs/tutorial.md` — is the whole difference. A project that
 deleted them has decided something, and re-creating them would overrule it. Everything
 else sp owns comes back whether it was deleted, corrupted or never installed.
 

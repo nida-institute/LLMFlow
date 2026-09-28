@@ -155,7 +155,7 @@ def build_parser():
         "--no-examples",
         action="store_true",
         dest="no_examples",
-        help="Skip example files (hello.gpt, hello-llmflow.yaml, tutorial.md, etc.) — "
+        help="Skip example files (commentary.yaml, commentary.gpt, tutorial.md) — "
         "creates directories and structural files only",
     )
 

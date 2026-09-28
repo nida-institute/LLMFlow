@@ -259,7 +259,7 @@ appended by earlier iterations. This enables "rolling context" patterns:
 
     - name: summarize
       type: function
-      function: llmflow.utils.data.pick_fields
+      function: plugins.summaries.pick_fields   # your own, under plugins/
       inputs:
         obj: "${pericope_analysis}"
         fields: ["title", "themes"]
@@ -283,9 +283,54 @@ pipeline runs on any machine.
   passage: "${passage}"       # MRK · MRK 1 · MRK 1:1 · MRK 1:1-8 · MRK 1:40-2:12
   format: milestones          # plain | milestones | usj  (default: milestones)
   versification: eng          # optional — the scheme `passage` is written in
-  include: [ids, discourse]   # optional — valid only with format: usj
+  include: [ids, discourse]   # optional — valid with every format
   output: source_text
 ```
+
+**`output:` here takes one name, or exactly two.** The list form is *positional*,
+and what each position means is decided by **the step type** — it is not a
+general destructuring rule you can carry from one step type to another:
+
+```yaml
+  output: source_text                 # the passage
+  output: [source_text, passage_info]  # the passage, and its parsed reference
+```
+
+With two names the second receives what the engine parsed out of `passage`
+before fetching it: `book_code`, `book_name`, `chapter`, `start_verse`,
+`end_verse`, `testament`, `original_language`, `canonical_reference`,
+`display_name`, `filename_prefix`, and the four versification fields. It is
+parsed in this step's `versification:` if one is given, otherwise `eng` — so the
+same `passage` string can yield two different `passage_info` objects in one
+pipeline, which is correct and worth knowing.
+
+Use it so nothing downstream re-parses a reference the engine has already read:
+
+```yaml
+- name: subject
+  type: scripture
+  resource: SBLGNT
+  passage: "${passage}"
+  output: [subject, passage_info]
+
+- name: english
+  type: scripture
+  resource: BSB
+  passage: "${passage}"
+  versification: org
+  output: english
+  saveas: "${output_dir}/${passage_info.filename_prefix}-english.txt"
+```
+
+**Three rules that bite:**
+
+- **Order decides meaning, not the names.** `[passage_info, subject]` binds them
+  backwards and says nothing; the engine does not know what your names mean.
+- **Declare it on an earlier step than the one that uses it.** A step's own
+  `saveas` cannot name its own output — the linter adds a step's outputs to the
+  available set after checking that step.
+- **One name behaves exactly as it always has.** The pair is produced only when a
+  step names two outputs, so nothing existing changes.
 
 **Formats.** `plain` is running text. `milestones` adds `⌊1:1⌋` markers and
 costs 1.072x — it is the default and usually enough. `usj` returns a **dict**,
@@ -318,7 +363,7 @@ Writes literal content to disk without calling an LLM.
     ✅ Scripture Pipelines is installed and running.
     2 + 2 = ${total}
   saveas:
-    path: "${output_dir}/hello-llmflow.txt"
+    path: "${output_dir}/commentary.md"
 ```
 
 Use `save` when you just need to materialize a small message or

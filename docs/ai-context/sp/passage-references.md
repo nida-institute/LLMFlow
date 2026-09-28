@@ -61,12 +61,10 @@ In a pipeline:
   output: psalm           # returns org PSA 51:3 — the verse an English reader means
 ```
 
-## What `parse_bible_reference` returns
+## What the engine resolves about a reference
 
-```python
-from llmflow import parse_bible_reference
-parse_bible_reference("Mark 3")
-```
+Every part of a reference is scheme-free except one, and knowing which is the difference
+between a passage you asked for and a passage you got.
 
 Every field is scheme-free except one: **`end_verse` for a whole chapter**, which is resolved
 from the named scheme's `maxVerses`. `Psalm 3` ends at verse 8 in `eng` and verse 9 in `org`,

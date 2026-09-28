@@ -1,0 +1,104 @@
+name: commentary
+description: |
+  Passage commentary for small-group leaders and preachers.
+
+  Requires --var passage=<reference>, and supplies no default:
+
+    sp run --pipeline pipelines/commentary.yaml --var passage="MRK 1:1-8"
+
+  Four steps, three of which call no model. The engine fetches the Greek with its
+  analyses, the English that the commentary will quote, and the passages this one is
+  parallel to; only the last step costs anything.
+
+  What this example teaches, in order of how often it matters:
+
+    - a resource is *named*, never pathed, so the pipeline runs on any machine
+    - `versification:` says which numbering your reference is written in
+    - a step's outputs are *named members*, and may be renamed
+    - every step takes its passage from one variable, `${passage}`
+
+variables:
+  output_dir: "outputs"
+
+steps:
+  - name: subject
+    description: |
+      The passage under commentary, with the analyses the commentary cites.
+
+      Two members are named. `text` is the passage; `reference` is what the engine
+      parsed out of `${passage}` on the way to fetching it — book code, testament,
+      and the `filename_prefix` the steps below name their files with. Nothing has to
+      re-parse a reference the engine has already read.
+
+      The list form is positional in neither sense: each entry names a member, and
+      `variable=member` renames it. What the members *are* is decided by the step
+      type, so this does not carry across to a `function` step.
+
+      Declared on the first step because a step's own `saveas` cannot name its own
+      output — the linter adds a step's outputs after checking that step.
+    type: scripture
+    resource: SBLGNT                    # a registered resource, never a path
+    passage: "${passage}"
+    format: usj
+    include: [ids, discourse]
+    output: [subject=text, passage_info=reference]
+
+  - name: english
+    description: |
+      The same verses in English, for the commentary to quote.
+
+      `versification: org` is the point of this step, not decoration. It states the
+      scheme the *passage string* is written in — the request side — while the
+      resource declares its own source side. The Greek is numbered `org`, so saying
+      so makes the engine map the reference before reading BSB, and the English lines
+      up with the Greek verses rather than merely appearing to.
+
+      Left unstated it defaults to `eng`. The two agree in Mark and disagree
+      elsewhere, so this is the habit taught on a passage where getting it wrong is
+      invisible — the only safe place to teach it.
+
+      A bare output name binds the step's primary member, which here is the text.
+    type: scripture
+    resource: BSB
+    passage: "${passage}"
+    versification: org
+    format: milestones
+    output: english
+    saveas: "${output_dir}/${passage_info.filename_prefix}-english.txt"
+
+  - name: parallels
+    description: |
+      Which groups in the UBS Parallel Passages database this passage takes part in —
+      synoptic parallels, and Old Testament passages quoted in the New.
+
+      It follows the subject rather than any wider context: the question is what *this*
+      passage is parallel to. Narrow the passage and the parallels narrow with it.
+
+      An empty list means the database was consulted and this passage is in no group.
+      That is a real answer, and the commentary step is told to treat it as one.
+    type: parallel-passages
+    resource: SBLGNT                    # the text the answer is expressed against
+    passage: "${passage}"
+    output: [parallels=references]
+    saveas: "${output_dir}/${passage_info.filename_prefix}-parallels.json"
+
+  - name: commentary
+    description: |
+      The only step that calls a model, and the only one that costs anything.
+
+      Everything it is asked about is handed to it as a named input. It is not asked
+      what it knows about the passage; it is asked what the supplied Greek, English,
+      discourse features and parallels say. That distinction is the whole design:
+      training knowledge interpreting supplied material is the job, training knowledge
+      as the *source* of a claim is the defect.
+    type: llm
+    prompt:
+      file: prompts/commentary.gpt
+      inputs:
+        passage: "${passage}"
+        reference: "${passage_info.canonical_reference}"
+        greek: "${subject}"
+        english: "${english}"
+        parallels: "${parallels}"
+    output: commentary
+    saveas: "${output_dir}/${passage_info.filename_prefix}-commentary.md"

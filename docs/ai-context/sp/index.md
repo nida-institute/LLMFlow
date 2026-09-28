@@ -24,11 +24,11 @@ references there, or in documents it points to.
 | `docs/llmflow-language-quickref.md` | The pipeline YAML reference — step types, variables, window and for-each. |
 | `docs/tutorial.md` | Step-by-step walkthrough: variables, saveas, and a two-step pipeline. |
 | `docs/vscode.md` | VS Code setup for editing pipelines and prompts. |
-| `pipelines/hello.yaml` | Smallest runnable pipeline — one llm step. |
+| `pipelines/commentary.yaml` | Passage commentary for group leaders and preachers — four steps, three of which call no model. |
 | `project/TODO.md` | Active work, what is in flight, and what not to touch. Read before anything else. |
 | `project/audits/README.md` | How audit findings are recorded for this project. |
 | `project/plans/README.md` | Where designs and plans live, the status they must declare, and why they are deleted after about eight days. |
-| `prompts/hello.gpt` | Starter prompt for the hello-world example. |
+| `prompts/commentary.gpt` | The commentary prompt. The first in this repository to conform to the ruled section order in data/prompt-structure.yaml. |
 ## Scripture Pipelines documentation
 
 - [Pipeline language spec](https://github.com/nida-institute/LLMFlow/blob/main/docs/llmflow-language.md)
