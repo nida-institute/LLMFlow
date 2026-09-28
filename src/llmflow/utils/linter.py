@@ -8,14 +8,14 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from difflib import unified_diff
 from pathlib import Path
-from typing import Any, List, Set
+from typing import Any, Dict, List, Set
 
 import click
 import yaml
 from pydantic import ValidationError
 
 from llmflow.exceptions import StepRewindError
-from llmflow.pipeline_schema import PipelineConfig, allowed_step_keys, step_keys
+from llmflow.pipeline_schema import PipelineConfig, allowed_step_keys, step_keys, step_members
 
 # `size`/`stride` accept an expression resolved once before the loop starts. The test for
 # what counts as an expression comes from the module that resolves them, so lint and run
@@ -23,6 +23,7 @@ from llmflow.pipeline_schema import PipelineConfig, allowed_step_keys, step_keys
 from llmflow.steps.window import is_expression
 from llmflow.utils.context import build_run_context
 from llmflow.utils.get_prefix_directory import get_prefix_directory
+from llmflow.utils.step_outputs import parse_output_entry
 from llmflow.utils.llm_runner import validate_model_parameter
 from llmflow.yaml_loader import load_pipeline_config
 
@@ -548,10 +549,50 @@ def _collect_declared_outputs(all_steps):
         if isinstance(outs, dict):
             declared.update(outs.keys())
         elif isinstance(outs, list):
-            declared.update(outs)
+            # An entry may be `variable=member` (#263); the variable is what a later step can
+            # name, so the member half must not be registered as one.
+            declared.update(parse_output_entry(str(entry))[0] for entry in outs)
         elif isinstance(outs, str):
             declared.add(outs)
     return declared
+
+
+def validate_output_members(all_steps) -> List[str]:
+    """Refuse an `output:` entry naming a member its step type does not declare (#263).
+
+    This is the check that makes declaring members worth anything: a misspelling is caught before
+    the run rather than binding `None` and failing somewhere downstream. It is fully static —
+    the members are an enum in the schema and `output:` is a literal list in the YAML.
+
+    A step type declaring no members is skipped, not faulted: `function` and the rest bind their
+    whole result, and their `output:` list is positional.
+    """
+    errors: List[str] = []
+    for step in all_steps:
+        declared = step_members(str(step.get("type", "")))
+        if not declared:
+            continue
+        outs = step.get("output")
+        if not isinstance(outs, list):
+            continue
+
+        name = step.get("name", "unnamed")
+        seen: Dict[str, str] = {}
+        for entry in outs:
+            variable, member = parse_output_entry(str(entry))
+            if member not in declared:
+                errors.append(
+                    f"❌ Step '{name}' output '{entry}': '{member}' is not a member of "
+                    f"type '{step.get('type')}'. Members: {', '.join(declared)}"
+                )
+            elif member in seen:
+                errors.append(
+                    f"❌ Step '{name}' output '{entry}': member '{member}' is already bound to "
+                    f"'{seen[member]}'. Name a member once."
+                )
+            else:
+                seen[member] = variable
+    return errors
 
 
 def _validate_template_var_provenance(all_steps, errors):
@@ -703,7 +744,8 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
         if isinstance(outs, dict):
             declared_outputs.update(outs.keys())
         elif isinstance(outs, list):
-            declared_outputs.update(outs)
+            # `variable=member` (#263): only the variable is nameable by a later step.
+            declared_outputs.update(parse_output_entry(str(entry))[0] for entry in outs)
         elif isinstance(outs, str):
             declared_outputs.add(outs)
 
@@ -1394,6 +1436,16 @@ def lint_pipeline_full(
             logger.error(error)
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     logger.info("✅ All step keywords are valid")
+
+    # 1.55) Members named in `output:` exist on the step type that produces them (#263)
+    logger.info("🔍 Validating step output members...")
+    member_errors = validate_output_members(all_steps)
+    if member_errors:
+        all_errors.extend(member_errors)
+        for error in member_errors:
+            logger.error(error)
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
+    logger.info("✅ All output members are declared by their step type")
 
     # 1.6) Model-parameter compatibility validation
     logger.info("🔍 Validating model-parameter compatibility...")

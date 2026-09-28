@@ -97,8 +97,12 @@ def unregistered(tmp_path, monkeypatch):
     return "BARE"
 
 
-def build(tmp_path, resource, passage, extra=""):
-    """A one-step pipeline that saves the step's result as JSON."""
+def build(tmp_path, resource, passage, extra="", output="parallels"):
+    """A one-step pipeline that saves the step's result as JSON.
+
+    `output` names the members wanted (#263). A bare name binds the primary member,
+    `references`, which is what every test here reads.
+    """
     out = tmp_path / "parallels.json"
     pipeline = tmp_path / "parallels.yaml"
     pipeline.write_text(
@@ -109,16 +113,16 @@ def build(tmp_path, resource, passage, extra=""):
         f"    resource: {resource}\n"
         f'    passage: "{passage}"\n'
         f"{extra}"
-        "    output: parallels\n"
+        f"    output: {output}\n"
         f"    saveas: {out}\n",
         encoding="utf-8",
     )
     return load_pipeline(pipeline), out
 
 
-def run(tmp_path, resource, passage, extra=""):
+def run(tmp_path, resource, passage, extra="", output="parallels"):
     """Run it and return what reached disk."""
-    pipeline, out = build(tmp_path, resource, passage, extra)
+    pipeline, out = build(tmp_path, resource, passage, extra, output)
     pipeline.run()
     return json.loads(out.read_text(encoding="utf-8"))
 
@@ -142,7 +146,10 @@ class TestTheStepIsInTheLanguage:
 
         allowed = allowed_step_keys("parallel-passages")
         assert allowed is not None, "the type is permissive — no schema branch declares it"
-        assert {"resource", "passage", "returns", "versification"} <= allowed
+        # `returns:` was retired (#263): members are named in `output:`, which is a
+        # common key, and naming one is how it is requested.
+        assert {"resource", "passage", "versification"} <= allowed
+        assert "returns" not in allowed, "returns: is retired; members are named in output:"
         # `include:` belongs to `type: scripture`. Not `format:`, which is common to every
         # step — it names how `saveas` serialises — so it is legal here and proves nothing.
         assert "include" not in allowed - common_step_keys()
@@ -282,5 +289,5 @@ class TestTheWordLevelHalfIsNotBuilt:
         refusing. The join goes through MARBLE identifiers or it does not happen.
         """
         with pytest.raises(Exception) as caught:
-            run(tmp_path, registered, "MRK 1:2", extra="    returns: [words]\n")
+            run(tmp_path, registered, "MRK 1:2", output="[words]")
         assert "words" in str(caught.value)

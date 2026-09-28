@@ -857,6 +857,11 @@
       ],
       "functions": [
         {
+          "name": "step_members",
+          "signature": "step_members(step_type: str) -> tuple[str, ...]",
+          "doc": "The members `step_type` declares, primary first; empty when it declares none."
+        },
+        {
           "name": "_type_branch",
           "signature": "_type_branch(types, properties)",
           "doc": "Build one ``if type == …  then <keys>`` branch of the step schema."
@@ -3436,8 +3441,18 @@
       ],
       "functions": [
         {
+          "name": "parse_output_entry",
+          "signature": "parse_output_entry(entry: str) -> tuple[str, str]",
+          "doc": "Split one `output:` list entry into `(variable, member)`."
+        },
+        {
+          "name": "_bound_variables",
+          "signature": "_bound_variables(step: Dict[str, Any], members: Dict[str, Any], primary: str) -> Dict[str, Any]",
+          "doc": "Map each variable this step binds to its value, for a step type declaring members."
+        },
+        {
           "name": "handle_step_outputs",
-          "signature": "handle_step_outputs(step: Dict[str, Any], result: Any, context: Dict[str, Any], base_dir: str = '.', defects: Any = None) -> None",
+          "signature": "handle_step_outputs(step: Dict[str, Any], result: Any, context: Dict[str, Any], base_dir: str = '.', defects: Any = None, members: Dict[str, Any] | None = None, primary: str = '') -> None",
           "doc": "Store step result in context and handle saveas."
         },
         {
@@ -3573,6 +3588,7 @@
         "llmflow.utils.context",
         "llmflow.utils.get_prefix_directory",
         "llmflow.utils.llm_runner",
+        "llmflow.utils.step_outputs",
         "llmflow.yaml_loader",
         "os",
         "pathlib",
@@ -3672,6 +3688,11 @@
           "name": "_collect_declared_outputs",
           "signature": "_collect_declared_outputs(all_steps)",
           "doc": ""
+        },
+        {
+          "name": "validate_output_members",
+          "signature": "validate_output_members(all_steps) -> List[str]",
+          "doc": "Refuse an `output:` entry naming a member its step type does not declare (#263)."
         },
         {
           "name": "_validate_template_var_provenance",
@@ -5567,6 +5588,6 @@
   ],
   "summary": {
     "total_modules": 93,
-    "total_functions": 881
+    "total_functions": 885
   }
 }

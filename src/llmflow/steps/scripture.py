@@ -69,13 +69,13 @@ def run_scripture_step(
         size = f"{len(result)} chars"
     logger.debug(f"   {resource} {passage}: {size} ({fmt})")
 
-    # A second output name asks for what the passage string was parsed into. It is returned as a
-    # pair rather than a key in the result because the result is sometimes a bare string — a
-    # `passage_info` key would force every result into a dict and change the output shape of
-    # every scripture step in every project. Only a step naming two outputs sees a pair.
-    outputs = step.get("output")
-    if isinstance(outputs, (list, tuple)) and len(outputs) == 2:
-        result = (result, parse_bible_reference(passage, versification=scheme or "eng"))
-
-    handle_step_outputs(step, result, context)
+    # This step's members (#263). `text` is primary, so a bare `output:` name binds the passage
+    # exactly as it always has. `reference` is what the step already parsed in order to fetch —
+    # surfacing it means nothing downstream re-parses a reference the engine has read, and the
+    # starter example can name its files without reaching into our Python.
+    members = {
+        "text": result,
+        "reference": parse_bible_reference(passage, versification=scheme or "eng"),
+    }
+    handle_step_outputs(step, result, context, members=members, primary="text")
     logger.info(f"✅ Completed scripture step: {name}")

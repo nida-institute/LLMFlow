@@ -14,13 +14,9 @@ from llmflow.modules.logger import Logger
 from llmflow.utils.context import resolve
 from llmflow.utils.parallel_passages import parallel_passages_payload
 from llmflow.utils.scripture import load_registry_resources, resolve_resource
-from llmflow.utils.step_outputs import handle_step_outputs
+from llmflow.utils.step_outputs import handle_step_outputs, parse_output_entry
 
 logger = Logger()
-
-#: What a result may carry. `words` is declared so the language names the whole surface and a
-#: misspelling is a lint error, and refused at run time until the identifier join exists.
-RETURNS = ("references", "words")
 
 
 def run_parallel_passages_step(
@@ -40,14 +36,14 @@ def run_parallel_passages_step(
             "what parallels are sought for."
         )
 
-    returns: List[str] = list(step.get("returns") or ["references"])
-    unknown = [item for item in returns if item not in RETURNS]
-    if unknown:
-        raise ValueError(
-            f"parallel-passages step '{name}': {', '.join(unknown)} is not something this "
-            f"step returns. Choose from {', '.join(RETURNS)}."
-        )
-    if "words" in returns:
+    # Members are named in `output:` now; `returns:` is retired (#263). An
+    # unknown member is refused by `sp lint` before the run, so what is left here is the one
+    # refusal lint cannot make: a member that is declared and deliberately not built.
+    requested: List[str] = [
+        parse_output_entry(str(entry))[1] for entry in (step.get("output") or [])
+    ] if isinstance(step.get("output"), list) else ["references"]
+
+    if "words" in requested:
         raise ValueError(
             f"parallel-passages step '{name}' asked for 'words', and the word-level join is "
             "not built. The database's digits index UBSGNT5, so matching them to this "
@@ -70,4 +66,8 @@ def run_parallel_passages_step(
         f"   {'no source registered' if result is None else f'{len(result)} groups'} "
         f"for {passage} in {resource}"
     )
-    handle_step_outputs(step, result, context)
+    # `references` is primary, so a bare `output:` name binds the group list exactly as before.
+    # `words` is declared and refused above, so it never reaches here with a value.
+    handle_step_outputs(
+        step, result, context, members={"references": result, "words": None}, primary="references"
+    )
