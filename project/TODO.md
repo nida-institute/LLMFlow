@@ -7,6 +7,32 @@
 
 ## 🔥 Active
 
+### 📅 TOMORROW IS HELM — set by the Captain, Tuesday 2026-09-29
+
+> In his words: **"I am mentoring sp tomorrow, Helm on Thursday, so we will focus on Helm
+> tomorrow."**
+
+So **Wednesday 2026-09-30 is Helm work**, ahead of mentoring Helm on **Thursday 2026-10-01**.
+This is a scheduling instruction and does not supersede the order of goals below; it says which
+day is spent where.
+
+- [ ] **The parity suite is red on both sides, and this session made it so.**
+      `src/llmflow/templates/sp/disciplines/project-tracking.md` gained a fourth directory —
+      `project/upstream/<owner>-<repo>/` — and `hatch run python tools/sync_helm.py` reports
+      **`DIVERGED disciplines/project-tracking.md`**, 12 of 13 shared files otherwise `same`.
+      The Helm half has not been made. **Not applied**, because that tree is busy: 6 unpushed
+      commits, staged *and* unstaged edits across eight skill files, and five untracked paths —
+      evidence:
+- [ ] **Helm already has a design in flight on exactly this subject** —
+      `project/plans/design-coordinating-changes-with-sp.md`, untracked in their tree as of
+      2026-09-29. Read it before starting, rather than designing the same thing twice — evidence:
+- [ ] **No new folder is needed for Helm coordination**, checked 2026-09-29 rather than assumed.
+      Three homes already exist and one is already in use: `collab/human-at-the-helm/` carries
+      their note of 2026-09-23 (*"a helm session left three files changed here and two tests
+      red"*), `data/helm-sync.yaml` declares the 13 shared files with a recorded ruling beside
+      each permitted difference, and design documents go in `project/plans/`. `project/upstream/`
+      is for repositories we do **not** own, which Helm is not
+
 ### 🧱 ORDER OF GOALS — set by the Captain, 2026-09-28
 
 > In his words: **"(1) finish the bloody examples, (2) make df happy with latest collab and other
@@ -53,10 +79,13 @@ the other way.
       programs that embed the engine"*, with nothing saying whose surface. It now opens with who
       it is for — work in this repository — names the one surface a project gets, and points at
       `index.json` as the thing most often confused with it
-- [ ] **Is it guardable?** `tests/test_shipped_context_names_one_surface.py` already holds the one-
-      surface line across shipped material, 77 tests. Whether it can also refuse a test that
-      imports an internal named only in `index.json` is worth asking before assuming it cannot —
-      evidence:
+- [x] **Is it guardable? Not as posed** — measured 2026-09-29 by `grep -rlE` over `tests/`:
+      **26 files** call a step handler directly, **14** use the object model, and **~230 of ~260**
+      import `llmflow` at all, which is correct here since the rule binds projects and not the
+      engine's own tests. **A ratchet on rule 1 is buildable instead**, on the
+      `test_docstrings_say_what_not_why` pattern — findings, depth and what must be settled first
+      in `project/audits/audit-one-surface.md`. **Not built**: a new guard needs its own
+      authorization — evidence: that record
 
 **Widened by the Captain, 2026-09-28:** *"that needs to be clear in our ai context, and in anything
 exposed to users about our APIs."*
@@ -150,12 +179,17 @@ which was untracked and unread when it arrived. **None of it blocks goal 1.**
 - [ ] **`test_prompt_structure_single_source`** — `.claude/skills/audit-prompts/SKILL.md` has
       drifted from its template; it still carries the `**WORKFLOW SKILL** —` prefix that was
       ruled out on 2026-09-25. Cleared by the same command
-- [ ] **`test_plan_docs_index`** — `project/plans/README.md` is generated and stale: it lists
-      `plan-starter-example-commentary.md` as `proposed (2026-09-25)` while that file's line 3
-      declares **`ruled (2026-09-26)`**. Regenerate with
-      `hatch run python tools/update_plans_index.py`. ⚠️ **That file also carries an uncommitted
-      hand edit**, which regenerating would overwrite — a generated file changed the way that
-      gets lost. Look at the diff before running it
+- [x] **`test_plan_docs_index` — GREEN 2026-09-29**, regenerated with
+      `hatch run python tools/update_plans_index.py` on the Captain's instruction, *"it should be
+      kept up to date, always"*. `hatch run pytest tests/test_plan_docs_index.py -q -p no:randomly`
+      → **187 passed, 13 skipped, 0 failed**, from 186/13/1. Committed `8c97cd0`.
+      **It was stale by four documents, not one** — `design-named-step-outputs.md`,
+      `design-parallel-passages-json.md`, `design-sp-help.md` and
+      `plan-starter-example-commentary.md`, 62 documents to 66 — and the last of those was the
+      recorded symptom, `proposed (2026-09-25)` against the `ruled (2026-09-26)` its line 3
+      declares. ⚠️ **The "uncommitted hand edit" this entry warned about was not one**: the diff
+      was a partial regeneration someone had left — one added row and the count at 63 — so nothing
+      authored was at risk. Looking at the diff first is still the right order
 - [ ] **`test_portable_skills`** — `/stage-commits` is unclassified. **The blocker is S1 in
       `project/open-decisions.md`, an unanswered `=>`, and it is the Captain's.** See the
       `/stage-commits` section below
@@ -185,8 +219,12 @@ tidy-up. **Do not build it without a ruling.**
 `proposed (2026-09-28)`.
 
 - [x] Filed, design written, two decisions ruled — naming a member is requesting it; the example waits
-- [ ] **D1′, D2 and D3 are the Captain's.** The live one is **D2**: does a member land in a
-      variable the pipeline names, or under the member's own name? — evidence:
+- [x] **All five are ruled**, and this box said otherwise until 2026-09-29 — the **second** copy of
+      that false claim in this file, corrected here after the first was fixed at the `A‴` entry
+      below and this one was missed. That is the failure this file already records twice: **grep for
+      the claim, never for the location.** D3's rename syntax settled D1, D2, D2′ and D4; D2 is
+      ruled A, a bare output name binds the primary member. The one open slot is at
+      `design-named-step-outputs.md:389` and is listed under `A‴`
 - [ ] **Identifier rules are part of the grammar, so this waits on #239.** The rename syntax was
       written `text-bsb=text`; **hyphenated names do not resolve and fail silently** —
       `resolve("${text-bsb}", …)` returns the literal. Measured 2026-09-28 — evidence:
@@ -222,8 +260,12 @@ tidy-up. **Do not build it without a ruling.**
       It catalogues the *Python API's verbs* (`catalog.py:31-60`) — the surface
       `the-language-is-the-whole-surface` says a project must not build against. `sp help services`
       derives from `PIPELINE_SCHEMA` instead
-- [ ] **Four decisions in that design are the Captain's**, D1 first: is a "service" a step type? —
-      evidence:
+- [x] **D1 is ruled** — `design-sp-help.md:156`: *"Yes, a service is a step type, and 'step types'
+      is a better name for it since it's what the user sees."* So the command is
+      `sp help step-types`. This box listed it as open until 2026-09-29; found while re-reading the
+      queue against the design documents' own `=>` slots, which are the authority
+- [ ] **Three decisions in that design are still the Captain's** — the remaining empty slots at
+      `design-sp-help.md:183`, `:190` and `:198` — evidence:
 - [ ] **Two gaps it exposed rather than created:** `scripture` declares no members, so
       `sp help services scripture` has no `returns` block until #263 lands; and **no step type
       declares a one-line purpose**, so either the schema gains one or the text is hand-kept and
@@ -231,11 +273,20 @@ tidy-up. **Do not build it without a ruling.**
 
 ### 📖 FIRST — finish the examples
 
-> ⛔ **BLOCKED 2026-09-28 — the example waits on → #263.** Ruled by the Captain answering D5 of
-> `project/plans/design-named-step-outputs.md`: *"Yes, the starter example waits for this."*
-> The example's `output:` line is the thing under design, and the example ships as the worked
-> pattern every project copies — so writing it now would teach a form being replaced.
+> ✅ **UNBLOCKED — #263 shipped at `3d6c8c5` on 2026-09-28**, the same day this block was written.
+> The banner below is kept as the record of why the example waited; it stopped being true within
+> hours and nothing updated it, which is how a session on 2026-09-29 came to report the example as
+> blocked three times before checking `git log`.
 >
+> **Group B is done and was never restarted from this banner** — `pipelines/commentary.yaml`
+> already carries the ruled syntax at line 44, `output: [subject=text, passage_info=reference]`,
+> and lints clean. What actually remains is **Group D, the gates**, and **Group E, the Captain's
+> `sp run`**. Both are below.
+>
+> ⛔ *Written 2026-09-28, superseded the same day:* **the example waits on → #263.** Ruled by the
+> Captain answering D5 of `project/plans/design-named-step-outputs.md`: *"Yes, the starter example
+> waits for this."* The example's `output:` line is the thing under design, and the example ships
+> as the worked pattern every project copies — so writing it now would teach a form being replaced.
 > **Group B is not to be started.** Three decisions in that design are open, and D2 in particular
 > changes what the example's YAML looks like. Groups A″ (documentation) and C (the removal) are
 > **not** blocked by it.
@@ -315,7 +366,7 @@ output**, which is the cost.
       `test_a_single_output_name_is_unchanged` proves `output: source` still binds a `str` and
       binds no `passage_info`. The change is opt-in, so `discourse-flow`'s editable install sees
       no difference until a pipeline there asks for two names
-- [x] `docs/llmflow-language.md` documents it under `type: scripture` — a new subsection with two
+- [x] `docs/sp-language.md` documents it under `type: scripture` — a new subsection with two
       worked YAML blocks, both **linted by `test_doc_examples_lint`** (the suite's collected count
       rose by 9 because of them)
 - [ ] **Lint and runtime disagree about a step's own output, found while doing this — not fixed,
@@ -389,7 +440,7 @@ output**, which is the cost.
       first. No `=>` slots and no session vocabulary in it —
       `write-shared-records-for-outsiders`; verified by grep before posting
 - [x] **Drafts deleted by name** — `tmp/issue-named-step-outputs.md` and `tmp/issue-body.md`.
-      `tmp/issue-hin-roles.md` is another session's and was left
+      `project/upstream/Clear-Bible-Alignments/issue-hin-roles.md` is another session's and was left
 - [x] **Two of the five decisions are RULED** (2026-09-28), moved verbatim into the design's `=>`
       slots from the issue draft the Captain answered in: **naming a member in `output:` is
       requesting it**, a caller may request a subset; and **#244's example waits for this design**
@@ -402,40 +453,67 @@ output**, which is the cost.
       pipeline changes; the cost is that every step type with more than one member must declare
       which is primary, beside the members in `_STEP_TYPE_PROPERTIES`. D2′'s collision objection is
       met, because either of two `scripture` steps may rename. D4: one key, not two
-- [ ] **One slot is open, and it is the last thing between #263 and implementation** —
-      `design-named-step-outputs.md:389`. The ruled syntax's own example does not work:
-      hyphenated variable names are **not resolved and fail silently**, `resolve("${text-bsb}", …)`
-      returning the literal (measured 2026-09-28). Either variable names stay
-      `[A-Za-z_][A-Za-z0-9_]*` and the example becomes `text_bsb=text` — one character — or the
-      resolver learns hyphens, which is #239's territory and touches every `${…}` in every
-      pipeline. **#240 points the other way for key names**, so the two conventions meet here and
-      the meeting should be deliberate — evidence:
-- [ ] **The design still declares `Status: proposed`**, which `project-tracking.md` says is never
-      authorization to build. Implementation waits on the Captain marking it `ruled`, independently
-      of the slot above — evidence:
+- [x] **#263 IS IMPLEMENTED — `3d6c8c5`, 2026-09-28**, *"feat(language): a step's outputs are named
+      members, not positions"*, an ancestor of HEAD. `hatch run pytest tests/test_named_step_outputs.py
+      -q -p no:randomly` → **7 passed**. `pipelines/commentary.yaml:44` uses the ruled syntax —
+      `output: [subject=text, passage_info=reference]` — and lints clean.
+      ⚠️ **This file, `HANDOFF.md` and the design document all said it was unbuilt**, and a session
+      on 2026-09-29 repeated that to the Captain three times before checking `git log`. The claim
+      was never measured; it was copied forward. **The check that settles it is one command against
+      the path, not a reading of the queue**
+- [ ] **The hyphen residual at `design-named-step-outputs.md:389` was decided in code, not in the
+      slot** — the slot is still empty, and the implementation took option 1: variable names stay
+      `[A-Za-z_][A-Za-z0-9_]*`, which is why the example reads `passage_info=reference` and not a
+      hyphenated name. Hyphenated names still **fail silently** — `resolve("${text-bsb}", …)`
+      returns the literal — so the choice is real and unrecorded. **#240 points the other way for
+      key names.** Either the Captain writes the slot to match what shipped, or the discrepancy
+      stands as an undeclared decision — evidence:
+- [ ] **The design still declares `Status: proposed` and "Nothing here is implemented", and both
+      are false** — `3d6c8c5` shipped it. `proposed` is never authorization to build, so a document
+      reading `proposed` beside a shipped feature says either that the status was never updated or
+      that something was built without authorization; nothing in the file distinguishes those, and
+      the next reader cannot tell. **The Captain's to set** — `ruled`, with the date the
+      implementation landed — evidence:
 
 **A′ — the CLI API must carry this too.** Raised by the Captain 2026-09-27. Rule
 `the-language-is-the-whole-surface`: a project reaches the engine through the `sp` command line
 and the pipeline language, so a semantic the command line cannot express or report is a semantic
 a project does not have.
 
-- [ ] **`api_catalog()` / `PIPELINE_SCHEMA` surface the new semantics** — they are the declared
-      syntax-to-API map (`docs/python-api.md`), so a `description` added above must actually reach
-      a caller of `api_catalog()` rather than sitting unread in the schema dict — evidence:
-- [ ] **`sp lint` says something useful** about a two-name `scripture` output, and something
-      actionable about three — evidence:
+> 🔄 **Re-read against the #263 ruling, 2026-09-29.** These boxes were written for the
+> **two-name positional** `output:` form. D2 and D3 replaced that with named members and an
+> optional rename, so what each box asks for has changed even where the box is still worth doing.
+> Restated below rather than left to be worked as written; two were struck.
+
+- [ ] **`PIPELINE_SCHEMA` surfaces the member list and which member is primary** — restated
+      2026-09-29. It was *"a `description` added above must reach a caller of `api_catalog()`"*,
+      which is doubly wrong now: the thing that must reach a caller is the **declared members and
+      the primary one**, not a positional description; and `api_catalog()` is the wrong vehicle —
+      the box four rows above already records that it catalogues the *Python API's verbs*, the
+      surface a project must not build against. `sp help step-types` derives from `PIPELINE_SCHEMA`
+      instead — evidence:
+- [x] ~~**`sp lint` says something useful** about a two-name `scripture` output, and something
+      actionable about three.~~ **Struck 2026-09-29 — obsolete as posed.** Arity was already
+      recorded as falling out of declared members for free, needing no special-case check. Under
+      named members there is no "two-name versus three-name" case to report on: lint's job is
+      refusing a member name the step does not declare. That is the next box, not this one
+- [ ] **`sp lint` refuses an undeclared member name** and names it, the way it already names an
+      unknown variable — the non-regression that matters, since requesting a subset is legal and
+      only an *unknown* member is an error — evidence:
 - [ ] **Check whether any `sp` command's output or help text changes.**
       `tests/test_cli_is_documented.py` fails in both directions when the parser and
       `docs/ai-context/sp/command-line.md` disagree, so if nothing changes, say so and record that
       it was checked rather than leaving it unexamined — evidence:
 - [ ] **`docs/python-api.md`** — the engine's own surface, documented for work in this repository.
-      Does `.schemas()` or the `Step` view need to say anything about the pair? — evidence:
+      Does `.schemas()` or the `Step` view need to say anything about **the member list**? —
+      restated 2026-09-29; it read *"about the pair"*, which named the positional two-name form —
+      evidence:
 
 **A″ — the AI context, which is documentation for humans *and* LLMs.** The Captain, 2026-09-27:
 *"these semantics are then specific to the step type and must be clearly documented in the ai
 context."* The risk this addresses is a model carrying the `scripture` rule to another step type.
 
-- [x] `docs/llmflow-language.md` — new subsection under `type: scripture`, two worked YAML blocks,
+- [x] `docs/sp-language.md` — new subsection under `type: scripture`, two worked YAML blocks,
       both linted by `test_doc_examples_lint` (the suite's collected count rose by 9 for them).
       **Committed `c90f7a1`**
 - [x] **The shipped quickref template** —
@@ -443,13 +521,20 @@ context."* The risk this addresses is a model carrying the `scripture` rule to a
       form, the field list, that `versification:` feeds the parse, and the three rules that bite:
       order decides meaning not the names; declare on an earlier step than the one that uses it;
       one name behaves exactly as before. **Committed `c90f7a1`**
-- [ ] **State the general principle where it cannot be missed** — that `output:` as a list is
-      positional and **what each position means is decided by the step type**. The scripture
-      section now says it locally; a reader who starts at `## 3. Common step types` does not meet
-      it — evidence:
+- [x] ~~**State the general principle where it cannot be missed** — that `output:` as a list is
+      positional and what each position means is decided by the step type.~~ **Struck 2026-09-29 —
+      the principle is false under the ruling.** The list is no longer positional: it names members,
+      each optionally renamed with `=`, so order carries no meaning at all. Documenting it as
+      positional would teach the form being replaced. **What replaces it is the next box**
+- [ ] **State the general principle where it cannot be missed** — that `output:`/`returns:` as a
+      list **names members**, that a bare name binds that member under its own name, that `=`
+      renames, and that **which members exist and which is primary is declared per step type**. The
+      risk is unchanged from the Captain's 2026-09-27 framing — a model carrying one step type's
+      member vocabulary to another — evidence:
 - [ ] **`docs/ai-context/project/data-shapes.md`** already documents `passage_info` as
-      `parse_bible_reference`'s return. It should say the `scripture` step now produces it too, or
-      a reader concludes the function is the only route — evidence:
+      `parse_bible_reference`'s return. It should say the `scripture` step produces it too, **under
+      the member name the ruling gives it** rather than as a second output position, or a reader
+      concludes the function is the only route — evidence:
 - [ ] **The rendered `docs/llmflow-language-quickref.md` regenerates** — it is `generated`, so it
       is not hand-edited; `sp init --update` refreshes it. It is already named by
       `test_template_layout` among the three stale copies, so this adds no new failure — evidence:
@@ -460,8 +545,10 @@ context."* The risk this addresses is a model carrying the `scripture` rule to a
       **`PIPELINE_SCHEMA` is a key vocabulary, not a validator**; it drives `Step`'s attribute set
       in `model.py`, `allowed_step_keys()` for *which keys are legal on which type*, and
       `api_catalog()`; **nothing validates a pipeline against it as JSON Schema**, so a value
-      constraint written there documents intent and enforces nothing; and **`output:` as a list is
-      positional, with each position's meaning decided by the step type.** Home is
+      constraint written there documents intent and enforces nothing; and **`output:` as a list
+      names declared members, not positions** (corrected 2026-09-29 — this clause said "positional,
+      with each position's meaning decided by the step type", which the #263 ruling made false).
+      Home is
       `docs/ai-context/project/` — this is engine-internal, and `sp/` is generated. A new topic
       document needs a row in `project/index.md` — evidence:
 - [ ] **Document the CLI API's part in the AI context too**, per `the-language-is-the-whole-surface`:
@@ -471,7 +558,7 @@ context."* The risk this addresses is a model carrying the `scripture` rule to a
 
 - [x] ⚠️ **A stale claim survived a fix that was recorded as complete — found, fixed and
       committed at `c90f7a1`.** Restored to this file 2026-09-27 after being deleted from it the
-      same day. The entry said `docs/llmflow-language.md:802,961` claimed `include:` was *"valid
+      same day. The entry said `docs/sp-language.md:802,961` claimed `include:` was *"valid
       only with `format: usj`"* and that the fix had landed. It had, **in that file only**.
       `grep -rn "valid only with"` found it still live in **the shipped quickref and its
       template**, which is the copy every project reads. The template is fixed; the rendered copy
@@ -490,12 +577,15 @@ for the task"*.
       not carry to a `function` step, and why `passage_info` is declared on the first step.
       Originally stated as Set by the Captain 2026-09-27. The example is what a reader copies, so a semantic
       that lives only in the language reference does not travel with the thing being copied. It
-      must say: the list form is **positional**; **what each position means is decided by the step
-      type**, so this does not carry to a `function` step; and `passage_info` must be declared on
-      an **earlier** step than the one whose `saveas` names it, because a step's own `saveas`
-      cannot see its own output — evidence:
+      It says — corrected 2026-09-29, this having been the **third** copy of the superseded
+      positional claim in this file — that the list form **names members and is positional in
+      neither sense**, `variable=member` renaming one; that what the members *are* is decided by the
+      step type, so it does not carry to a `function` step; and that `passage_info` is declared on
+      an **earlier** step than the one whose `saveas` names it, because a step's own `saveas` cannot
+      see its own output. **Verified against the file, not recalled**: `pipelines/commentary.yaml`
+      lines 28-38 and `output: [subject=text, passage_info=reference]` at line 44
   - [x] **Ruled by the Captain 2026-09-27: use `description:`** — *"sure, use description, that's
-        better."* So the positional semantics go in a `description: |` block scalar and short `#`
+        better."* So the output semantics go in a `description: |` block scalar and short `#`
         notes stay for one-line labels, which is what `~/.sp/disciplines/llmflow-pipeline-steps.md`
         already requires — *"all step documentation belongs in `description`"*, `#` being reserved
         for *"short inline notes and section dividers only"*. No divergence from the discipline to
@@ -616,7 +706,7 @@ has working-tree changes.
   at lint level only
 - `tests/test_resolve_derived_variables.py` — 3
 - **2 has no test anywhere**, and appears in `pipelines/storyflow-psalms.yaml` and the complete
-  example in `docs/llmflow-language.md` unexplained
+  example in `docs/sp-language.md` unexplained
 - **nothing exercises any of the three through the CLI** — `main(["run", …])` — so no test proves
   a `--var` reaches a step's written output end to end
 
@@ -633,7 +723,7 @@ has working-tree changes.
 - [ ] Document all three in the shipped AI context. The home is
       `src/llmflow/templates/project/docs/llmflow-language-quickref.md` §2, which already has a
       variables section and is catalogued at `data/file-catalog.yaml:206`; the full statement goes
-      in `docs/llmflow-language.md`. **Not the rendered copies** — those are regenerated
+      in `docs/sp-language.md`. **Not the rendered copies** — those are regenerated
 - [ ] Say in that documentation which idiom is recommended and which are advanced, since the
       starter example teaches only explicit variable reference as a step input (2026-09-26)
 
@@ -1271,9 +1361,9 @@ puts both commits on `origin/dev` *and* `origin/main`. This line read "Not pushe
 
 **Verify:** `hatch run pytest tests/test_alignment.py -q` → 22 passed.
 
-**Worked examples**: `tmp/alignment-worked-examples.md` — Luke 1:1–4, Ephesians 1:3–14,
+**Worked examples**: `scripts/alignment-worked-examples.md` — Luke 1:1–4, Ephesians 1:3–14,
 Psalm 23:1–4 and Ruth 1:1–4, Greek and Hebrew, regenerable with
-`hatch run python tmp/gen_alignment_demo.py`. In all four, the tokens are contiguous in every verse.
+`hatch run python scripts/gen_alignment_demo.py`. In all four, the tokens are contiguous in every verse.
 
 **What is left before discourse-flow can use it — all but one done 2026-09-16:**
 - [x] **Ruling citations stripped from the alignment docstrings** — `rule
@@ -1361,7 +1451,7 @@ status `proposed`. It was raised by
 `collab/discourse-flow/2026-09-09-include-forces-the-most-expensive-text-form.md`.
 
 - [x] **Measured** — `project/plans/design-representation-workbench.md`, 72 cells, regenerate
-      with `hatch run python tmp/representation-grid/generate.py`
+      with `hatch run python scripts/representation-grid/generate.py`
 - [x] **Inventory collab read** and folded into the design
 - [x] **Ruled 2026-09-10, Q1–Q10** in `project/plans/design-pericope-segments-and-text.md` §10:
       segments hold text; `include` works with any format; word array replaces anchors, `null`
@@ -1534,7 +1624,7 @@ BaseX is **not** in this release; see below.
 > dataset-relative value is resolved against the process working directory and absolute is the
 > only form that works. A registration therefore carries two kinds of reference at once, under a
 > header that promises the file "means the same thing on every machine" — and
-> `docs/llmflow-language.md:985` documents the absolute form, so this is the documented outcome.
+> `docs/sp-language.md:985` documents the absolute form, so this is the documented outcome.
 > Our own `tests/test_discourse_loading.py:15` makes the same assumption via `Path.home()`, in the
 > one place a reader would look for guidance.
 >
@@ -1831,7 +1921,7 @@ build against.
 > on that tag** — not on `dev` and not in the working tree, so read it with
 > `git show wip/scripture-200:project/plans/design-scripture-editions.md`.
 - [ ] Pericope reader
-- [ ] Docs — `docs/llmflow-language.md` and `docs/architecture.md` currently never mention it
+- [ ] Docs — `docs/sp-language.md` and `docs/architecture.md` currently never mention it
 - [ ] Decide whether #200 supersedes or merely cross-references #38, #39/#172, #40, #41
 - [ ] `~/.sp/editions/*.yaml` were seeded with absolute paths on this machine; how editions get
       registered per machine is undecided
@@ -1907,10 +1997,36 @@ build against.
 
 ## 📋 Backlog
 
+### 🪪 Retiring the name `llmflow` → #265, #209
+
+> **Set aside by the Captain 2026-09-29: low priority for today.** Filed so it is not
+> re-derived; not scheduled.
+
+- [x] **Ruled 2026-09-29:** the public API is imported as **`import scripture_pipelines as sp`**,
+      and **`llmflow` does not survive** — no shim, no alias, no grace period. Design, the method
+      and its four risk tiers: `project/plans/design-public-api-namespace.md` → **#265**
+- [x] **`docs/llmflow-language.md` → `docs/sp-language.md`**, done 2026-09-29 on the Captain's
+      *"there is no llmflow language"*. Engine-only and uncatalogued, so no project is orphaned.
+      17 referring files updated, records left alone;
+      `hatch run pytest tests/test_init.py tests/test_ai_context_layout.py
+      tests/test_window_cursor_guidance.py tests/test_ai_rules_single_source.py` → **63 passed**
+- [ ] **The quickref rename waits on a catalog that can retire a path.** `file_catalog.py` has
+      **no orphan handling** — grepped 2026-09-29 — so renaming a `policy: generated` shipped file
+      writes the new name beside the old in every existing project and nothing ever removes the
+      stale one. Needs a `retires:` field or equivalent first — evidence:
+- [ ] **`llmflow.log` → `sp.log`.** Ruled 2026-09-29. A behaviour change, not prose: 26 files,
+      including `modules/logger.py`, 13 test files, `data/file-catalog.yaml` (so the generated
+      `.gitignore` follows), the shipped `sp-debugging.md` discipline, and `CLAUDE.md`, which is
+      the Captain's. Wants a failing test first and a CHANGELOG entry — evidence:
+- [ ] **Two generated files still name the old doc path** — `docs/ai-context/sp/index.md` and
+      `sp/scripture-representations.md`. They come from the file catalog, so the route is
+      `sp init --update` followed by `hatch run python tools/update_ai_context.py`; not run,
+      because it does more than the rename asked — evidence:
+
 ### 🧹 Debug/log docs follow-ups + `sp` terminology audit → #180
 > Fallout from documenting the `log_level: debug` request/response dump feature
 > (added `docs/architecture.md` §15; new `~/.sp/conventions/sp-debugging.md`).
-- [ ] Cross-ref the debug-dump feature from `docs/llmflow-language.md` — `log_level`
+- [ ] Cross-ref the debug-dump feature from `docs/sp-language.md` — `log_level`
       is documented there (≈ line 57) only as a verbosity knob; point it at
       `architecture.md` §15 so the dump behavior is discoverable from the language spec.
 - [ ] **Decide:** rename the log file `llmflow.log` → `sp.log`? Core change

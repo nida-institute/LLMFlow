@@ -38,6 +38,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-pipeline-schema.md](design-pipeline-schema.md) | Decisions implemented — historical record, and the decision log is still binding. | — |
 | [design-pr-build-promote.md](design-pr-build-promote.md) | Proposed — awaiting Captain review | #173 |
 | [design-prompt-mixins.md](design-prompt-mixins.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
+| [design-public-api-namespace.md](design-public-api-namespace.md) | proposed (2026-09-29). Two rulings recorded; D1, D2 and D3 open. | #209 #265 |
 | [design-python-api.md](design-python-api.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | #175 #186 #187 |
 | [design-reference-resolution.md](design-reference-resolution.md) | draft frame, 2026-08-27. Not authorization to build, and the answers are not here. | #218 |
 | [design-representation-workbench.md](design-representation-workbench.md) | proposed (2026-09-10). This document rules nothing. It exists so the decisions in | #200 |
@@ -74,4 +75,4 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-window-token-defects.md](plan-window-token-defects.md) | ruled (2026-09-22) → #246. Defect 2 ruled A by the Captain; the other two need no ruling. | #246 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-66 documents.
+67 documents.
