@@ -219,7 +219,9 @@ files:
     template: project/docs/tutorial.md
     committed: true
     purpose: >-
-      Step-by-step walkthrough: variables, saveas, and a two-step pipeline.
+      Step-by-step walkthrough of the starter example: naming a resource, stating which
+      versification a reference is written in, and named step outputs. Four steps, three
+      of which call no model.
 
   - path: docs/llmflow-language-quickref.md
     scope: project

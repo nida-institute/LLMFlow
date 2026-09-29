@@ -21,8 +21,9 @@ references there, or in documents it points to.
 | `docs/ai-context/sp/passage-references.md` | Writing a passage reference: the forms that parse, book names and USFM codes, ranges that may cross a chapter but not a book, and the request-side and source-side versifications. |
 | `docs/ai-context/sp/rules.md` | The rules every AI session in this project is held to. Authoritative. |
 | `docs/ai-context/sp/scripture-representations.md` | Choosing between `plain`, `milestones` and `usj`, what each costs with the unit stated, and how to read a discourse item's `outcome`. |
+| `docs/cli-api.json` | The public surface as data: every sp command with its options, and every step type with its own keys, its members and which is primary. Generated, so it cannot drift. |
 | `docs/llmflow-language-quickref.md` | The pipeline YAML reference — step types, variables, window and for-each. |
-| `docs/tutorial.md` | Step-by-step walkthrough: variables, saveas, and a two-step pipeline. |
+| `docs/tutorial.md` | Step-by-step walkthrough of the starter example: naming a resource, stating which versification a reference is written in, and named step outputs. Four steps, three of which call no model. |
 | `docs/vscode.md` | VS Code setup for editing pipelines and prompts. |
 | `pipelines/commentary.yaml` | Passage commentary for group leaders and preachers — four steps, three of which call no model. |
 | `project/TODO.md` | Active work, what is in flight, and what not to touch. Read before anything else. |

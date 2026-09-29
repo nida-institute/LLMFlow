@@ -1816,7 +1816,7 @@
         {
           "name": "recover_var_map",
           "signature": "recover_var_map(prompt: str, request: str) -> dict[str, str]",
-          "doc": "Recover {var: value} by aligning the original `.gpt` against the rendered"
+          "doc": "Recover {var: value} by aligning the original `.gpt` against the rendered request."
         },
         {
           "name": "render",
