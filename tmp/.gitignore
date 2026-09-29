@@ -1,12 +1,22 @@
 # tmp/ is for throwaway files (CLAUDE.md: "ALWAYS use tmp/ for throwaway files").
 #
-# Nothing here is tracked by default, so a `git add -A` cannot sweep a scratch file into
-# history. That is not hypothetical: 9b09195 committed tmp/commit-msg-sp.txt and
-# tmp/commit-msg-helm.txt — two commit-message drafts — because this file listed only
-# *.pyc, __pycache__/ and *.log, and CLAUDE.md's cleanup rule was a convention nothing
-# enforced. Rule `design-is-declarative`: state it where the tool reads it.
+# Nothing here is tracked, so a `git add -A` cannot sweep a scratch file into history. That is
+# not hypothetical: 9b09195 committed tmp/commit-msg-sp.txt and tmp/commit-msg-helm.txt — two
+# commit-message drafts — because this file listed only *.pyc, __pycache__/ and *.log, and
+# CLAUDE.md's cleanup rule was a convention nothing enforced. Rule `design-is-declarative`:
+# state it where the tool reads it.
 #
-# To track something here deliberately, add a negation below and say why.
+# **Anything that needs justifying does not belong here.** This directory is disposable, and
+# that is its whole contract — a file kept because something points at it is a file in the wrong
+# place. It used to carry an index.md explaining why each survivor had survived, which was a
+# workaround for exactly that: four directories of upstream issue drafts, a generator and its
+# 63KB of output, and five drafts that were the only copies of work meant for another
+# organisation, all living somewhere a sweep could take them. The Captain, 2026-09-29: *"the
+# whole point of a tmp directory is that it is disposable. anything more permanent should be
+# moved to an appropriate place."* They were moved; the index went with them.
+#
+# Where they went: upstream issue and PR drafts to `project/upstream/<owner>-<repo>/`,
+# generators and their outputs to `scripts/`.
 *
 
 # This file itself, so the rule travels with the directory.
@@ -14,8 +24,3 @@
 
 # Release tracking files, kept from the previous version of this ignore list.
 !release-*.md
-
-# The index of what survives a sweep here, and why. Tracked deliberately: nothing else in this
-# directory is recoverable once deleted, so an untracked index would be exactly as losable as the
-# files it exists to justify. Added 2026-09-26 after a review that deleted ~30 spent files.
-!index.md
