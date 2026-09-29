@@ -168,5 +168,5 @@ and the base's name is reported as before.
 
 ## Where the detail is
 
-`docs/llmflow-language.md` under `type: scripture` for the grammar and every key;
+`docs/sp-language.md` under `type: scripture` for the grammar and every key;
 `docs/architecture.md` §3.3a for how a passage is resolved in four steps.

@@ -685,7 +685,7 @@ Report project-wide JSON reliability status:
 - Estimated retry waste: ~$150-200 per failed run (from issue #95)
 - Recommendation: Implement structured outputs on all JSON steps
 
-**Documentation:** See docs/llmflow-language.md "Structured JSON Output" section
+**Documentation:** See docs/sp-language.md "Structured JSON Output" section
 ```
 
 ### Step 10: Generate Report

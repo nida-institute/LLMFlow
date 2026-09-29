@@ -315,7 +315,7 @@ not a module that re-exports it:
 @patch("llmflow.runner.call_llm")
 ```
 
-**Step type YAML contracts** are documented in `docs/llmflow-language.md`.
+**Step type YAML contracts** are documented in `docs/sp-language.md`.
 The implementation of each contract is in the corresponding `steps/` file.
 
 ## 12. Testing Philosophy

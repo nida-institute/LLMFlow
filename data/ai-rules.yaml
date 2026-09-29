@@ -89,7 +89,7 @@ rules:
   enforcement: guarded
   scope: language
   guard: tests/test_one_syntax.py, tests/test_schema_covers_runner_keys.py, tests/test_pipeline_model.py
-  rule: '**Respect the pipeline schema.** Use only the keys `docs/llmflow-language.md` documents;
+  rule: '**Respect the pipeline schema.** Use only the keys `docs/sp-language.md` documents;
     never invent a field.'
 - id: logging-telemetry
   enforcement: partial
@@ -280,7 +280,7 @@ rules:
     writing a file is `saveas`; substitution is `${var}` and `{{var}}`. A `function` step is for
     what the language has no construct for — parsing, computation, I/O at a declared boundary. A
     Python loop over steps, an inline template renderer, or a plugin that decides what runs next
-    moves the pipeline out of the YAML into code the linter cannot see. Read `docs/llmflow-language.md`
+    moves the pipeline out of the YAML into code the linter cannot see. Read `docs/sp-language.md`
     before writing a plugin; if the language is genuinely missing something, say so and propose
     it rather than working around it.'
 - id: semantics-not-presentation

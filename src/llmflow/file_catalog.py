@@ -255,7 +255,7 @@ SP_DOC_LINKS = """
 Everything else is the engine's own and carries no compatibility promise, so a project that
 builds on it has taken a dependency nobody offered.
 
-- [The pipeline language](https://github.com/nida-institute/LLMFlow/blob/main/docs/llmflow-language.md)
+- [The pipeline language](https://github.com/nida-institute/LLMFlow/blob/main/docs/sp-language.md)
   — every step type, its keys, and what each one returns
 - [Quick reference](llmflow-language-quickref.md) — the same, short, beside you while you write
 - `sp --help`, and `sp <command> --help` — the commands, from the tool itself

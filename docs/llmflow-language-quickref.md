@@ -4,7 +4,7 @@ This file is a compact, self-contained reference to the Scripture Pipelines
 pipeline language for day-to-day work in this repository.
 
 If you have access to the engine repo, the full specification lives
-in `docs/llmflow-language.md` there, but this quickref is designed to
+in `docs/sp-language.md` there, but this quickref is designed to
 be enough to author and review pipelines on its own.
 
 ## 1. Pipeline structure

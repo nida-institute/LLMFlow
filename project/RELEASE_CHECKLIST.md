@@ -41,7 +41,7 @@ finish, then come back and tick them before merging.
 - [ ] The version-bump commit is part of the PR (so the tag lands on code with the right version)
 
 ### 2. Documentation sync
-- [ ] Main docs reflect new features (`docs/*.md`, e.g. `docs/llmflow-language.md`)
+- [ ] Main docs reflect new features (`docs/*.md`, e.g. `docs/sp-language.md`)
 - [ ] `INSTALL.md` / `README.md` examples still accurate
 - [ ] Tutorial matches current CLI behavior
 - [ ] **A breaking change is a doc sweep, not a doc note.** Grep the retired spelling across

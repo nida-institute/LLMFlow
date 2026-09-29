@@ -591,7 +591,7 @@ def test_the_index_points_a_project_at_the_command_line():
     from llmflow.file_catalog import render_sp_index
 
     rendered = render_sp_index()
-    assert "llmflow-language.md" in rendered, "the language reference must be findable"
+    assert "sp-language.md" in rendered, "the language reference must be findable"
     assert "sp --help" in rendered, "the command line must be findable from the tool itself"
 
 
