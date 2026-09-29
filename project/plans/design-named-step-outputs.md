@@ -5,9 +5,14 @@ The issue carries the problem and the two rulings; this document carries the wor
 measurements and the open slots. The issue is the record outsiders read — it holds no `=>` slots
 and no session vocabulary, per `write-shared-records-for-outsiders`.
 
-**Status:** proposed (2026-09-28). **D4 and D5 are ruled; D1, D2 and D3 are open**, and two of
-them came back as questions rather than answers — D1 was badly posed and is withdrawn in favour
-of D1′, D3 asked for terms which §6 now defines. Nothing here is implemented.
+**Status:** proposed (2026-09-28). All five decisions ruled; one residual slot open.
+
+**All five are ruled in §6**, and D3's rename syntax settled D1, D2, D2′ and D4 in one stroke —
+D1 being dissolved rather than answered. Two came back as questions rather than answers on the
+way: D1 was badly posed and is withdrawn in favour of D1′, D3 asked for terms which §6 now
+defines. **The open slot is the residual under D3**: whether a rename's variable name stays
+`[A-Za-z_][A-Za-z0-9_]*` (`text_bsb=text`) or the resolver learns hyphens, which is #239's
+territory and meets #240 head-on. Nothing here is implemented.
 
 `proposed` is thinking aloud and is **not authorization to build**. Every `=>` in §6 is the
 Captain's, and his answers are quoted verbatim where he gave them.
@@ -296,6 +301,8 @@ it.
 
 **A step type with exactly one member needs no such declaration** — its only member is primary by
 construction, which is every step type in the language today except the two that carry `returns:`.
+
+=> Agreed.
 
 ### D3. Is a declared member shape in scope, or only member names?
 

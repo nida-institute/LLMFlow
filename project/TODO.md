@@ -115,14 +115,18 @@ which was untracked and unread when it arrived. **None of it blocks goal 1.**
       validator skips those names. All seven builtins covered, **7 red first**. **The
       non-regression is the point:** `${len(nope) > 1}` still fails lint and names `nope`, because
       skipping builtins is only safe if an unknown name is still caught
-- [ ] **→ #255 replay — the scope is worse than recorded here.** Not one awkward prompt:
+- [x] **→ #255 replay — landed at `debce504`.** This box sat unticked until 2026-09-29 while the
+      `🔁 SECOND` section below recorded the same work as finished; the commit is the evidence and
+      this was the stale half. The scope was worse than first recorded — not one awkward prompt:
       `segment-book.gpt` (890 template lines vs 964 rendered) and `segments.gpt` (666 vs 742) both
-      refused, and **every prompt in that pipeline embeds a JSON payload**, so none can be
+      refused, and **every prompt in that pipeline embeds a JSON payload**, so none could be
       replayed. Four rulings in their segmentation audit said "test with sp replay" and could not
-      be; a 37-rule prompt change landed untested, and the alternative is **~$22 per edit** for a
-      Mark run. Also: replay reads `schema:` from prompt frontmatter and does not fall back to the
-      step's `response_format`, so the *first* error is misleading and hides the real one —
-      evidence:
+      be; a 37-rule prompt change landed untested, against an alternative of **~$22 per edit** for
+      a Mark run. Replay now aligns on variable sites rather than line counts, so a multi-line
+      value is no different from a single-line one. **One thing it still does not do**, deferred to
+      #243 Part 3 and now named in the error message rather than left to surprise: it reads
+      `schema:` from prompt frontmatter and does not fall back to the step's `response_format`,
+      because replay is handed a prompt and a capture and never sees the pipeline
 
 
 
@@ -389,14 +393,26 @@ output**, which is the cost.
 - [x] **Two of the five decisions are RULED** (2026-09-28), moved verbatim into the design's `=>`
       slots from the issue draft the Captain answered in: **naming a member in `output:` is
       requesting it**, a caller may request a subset; and **#244's example waits for this design**
-- [ ] **Three decisions are still the Captain's**, and two came back as questions rather than
-      answers. **D1 was badly posed and is withdrawn** — "which side is the key" asked him to
-      decode YAML mechanics; restated as **D1′: how does a caller learn the arity, names and types
-      a step provides?** with four mechanisms tabled. **D3 asked for terms**, now defined in the
-      document — member / arity / shape. **D2 is the substantive one**: does a member land in a
-      variable the pipeline names, or under the member's own name? The second removes the mapping
-      question entirely and **cannot express the starter example**, which has two `scripture` steps
-      both offering `text` — evidence:
+- [x] **All five decisions are ruled**, and this entry said otherwise until 2026-09-29 — corrected
+      against the document's own `=>` slots, which are the authority. **D3's rename syntax settled
+      four at once**: `returns: [text-bsb=text, reference]`, left of `=` the pipeline's variable and
+      right the step's member. D1 is **dissolved** — there is no mapping with two sides, only a list
+      with an optional rename inside an entry. **D2 is ruled A** — *"Yes, A of course"* — a bare
+      output name binds the **primary member**, so `${subject}` stays a string and no existing
+      pipeline changes; the cost is that every step type with more than one member must declare
+      which is primary, beside the members in `_STEP_TYPE_PROPERTIES`. D2′'s collision objection is
+      met, because either of two `scripture` steps may rename. D4: one key, not two
+- [ ] **One slot is open, and it is the last thing between #263 and implementation** —
+      `design-named-step-outputs.md:389`. The ruled syntax's own example does not work:
+      hyphenated variable names are **not resolved and fail silently**, `resolve("${text-bsb}", …)`
+      returning the literal (measured 2026-09-28). Either variable names stay
+      `[A-Za-z_][A-Za-z0-9_]*` and the example becomes `text_bsb=text` — one character — or the
+      resolver learns hyphens, which is #239's territory and touches every `${…}` in every
+      pipeline. **#240 points the other way for key names**, so the two conventions meet here and
+      the meeting should be deliberate — evidence:
+- [ ] **The design still declares `Status: proposed`**, which `project-tracking.md` says is never
+      authorization to build. Implementation waits on the Captain marking it `ruled`, independently
+      of the slot above — evidence:
 
 **A′ — the CLI API must carry this too.** Raised by the Captain 2026-09-27. Rule
 `the-language-is-the-whole-surface`: a project reaches the engine through the `sp` command line
