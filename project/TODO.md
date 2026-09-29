@@ -551,16 +551,25 @@ for the task"*.
 `origin/dev` and `main` at `src/llmflow/tools/replay.py:50`, and none of the three affected files
 has working-tree changes.
 
-- [ ] `recover_var_map` aligns on variable sites rather than line counts
-      (`src/llmflow/tools/replay.py:38-53`)
-- [ ] **`tests/test_tools_replay.py:60` asserts the current behaviour** —
-      `test_line_count_mismatch_raises` changes with the fix; this is not a pure addition
-- [ ] A test covers a capture whose values render across several lines. None does today
-- [ ] The caveat list in the **template** is corrected —
-      `src/llmflow/templates/project/docs/ai-context/sp/audits-pattern.md:286` still presents the
-      limitation as intended behaviour, and the rendered copy is overwritten
-- [ ] The frontmatter `schema:` requirement (`replay.py:294`) is resolved or explicitly deferred to
-      #243 Part 3 in the error message
+- [x] `recover_var_map` aligns on variable sites rather than line counts. One pattern over the
+      whole prompt — literals escaped, each variable a capture group, `DOTALL`, `fullmatch` — so
+      a multi-line value is no different from a single-line one
+- [x] **This prediction was wrong, in the safe direction.** `test_line_count_mismatch_raises`
+      did **not** need to change: its case — no variables, unequal text — is still refused, now
+      because the literals do not match rather than because the line counts differ. All 23
+      existing replay tests pass untouched
+- [x] `tests/test_replay_multiline_values.py` — 14 tests, **7 red first**: multi-line JSON, two
+      multi-line values, regex metacharacters in a value, an empty value, a variable at the very
+      end, a repeated variable, adjacent variables refused, and a round trip through `render`
+- [x] **The shipped caveat is corrected**, and it mattered most of the five: it told every
+      project *"if the line counts differ, replay refuses"*, which is the sentence that would
+      stop a reader trying again. Template fixed and the rendered copy regenerated. Sending a
+      collab saying "fixed" while the document in their own tree described the bug would have
+      been the fourth instance this week of a claim fixed in one file and alive in another
+- [x] **Explicitly deferred to #243 Part 3, in the error message.** Replay is handed a prompt and
+      a capture and never sees the pipeline, so it *cannot* read a step's `response_format`
+      without a new argument. The message now says what was looked at, what was not, why adding
+      the frontmatter key is harmless, and where the real fallback belongs
 
 > **#176 lands on this, and neither issue says so.** Replay aligns the `.gpt` file against a
 > captured request. If #176 strips the frontmatter at render time, the capture

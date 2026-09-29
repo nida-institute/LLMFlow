@@ -5,25 +5,21 @@
 **Two commits. Both message files are written.**
 
 ```sh
-git add src/llmflow/defects.py src/llmflow/utils/__init__.py src/llmflow/utils/linter.py tests/test_defect_info_severity.py tests/test_condition_safe_builtins_lint.py tests/test_defect_log.py tests/test_llm_truncation.py
+git add src/llmflow/tools/replay.py tests/test_replay_multiline_values.py data/file-catalog.yaml src/llmflow/templates/project/docs/ai-context/sp/audits-pattern.md docs/ai-context/sp/audits-pattern.md docs/ai-context/sp/index.md
 git commit -F tmp/commit-1.txt
 
 git add project/TODO.md project/HANDOFF.md
 git commit -F tmp/commit-2.txt
 ```
 
-Then delete `tmp/commit-1.txt` and `tmp/commit-2.txt` **by name** — `tmp/` holds other sessions'
-unbacked drafts and is git-ignored, so a sweep is unrecoverable.
+Then delete `tmp/commit-1.txt` and `tmp/commit-2.txt` **by name**.
 
-**Then: → #255, replay.** The last of the four discourse-flow items and the expensive one. Their
-measurement: `segment-book.gpt` is 890 template lines against 964 rendered, `segments.gpt` 666
-against 742, and **every prompt in their pipeline embeds a JSON payload**, so none can be
-replayed. Four rulings in their segmentation audit said "test with sp replay" and could not be; a
-37-rule prompt change landed untested. The alternative is a book run per edit, **~$22 for Mark**.
-`recover_var_map` refuses on a line-count mismatch at `src/llmflow/tools/replay.py:50`; the fix is
-to align on variable sites instead. A second, smaller thing rides with it: replay reads `schema:`
-from prompt frontmatter and does not fall back to the step's `response_format`, so the *first*
-error a reader meets is misleading and hides the real one.
+**All four of discourse-flow's items are then done**, and a collab note is waiting untracked in
+their tree at `collab/sp/2026-09-28-all-four-have-landed.md` — written, not committed there.
+
+**Then: goal 4, ANTLR → #239.** The parser. The comparison and its measurements are already a
+comment on that issue; the decisions are ruled. Nothing blocks it but the choice between ANTLR
+and Lark, which is partly downstream of #264's editor question.
 
 `project/TODO.md` holds the queue and its order. Do not read the queue out of this file.
 
@@ -31,7 +27,7 @@ error a reader meets is misleading and hides the real one.
 
 ## In flight, and whose
 
-Branch `dev`, level with `origin/dev` at `dfc4614`.
+Branch `dev`, level with `origin/dev` at `78eacc9`.
 
 | | |
 |---|---|
@@ -48,7 +44,7 @@ and a two-line product-name fix are one hunk. His to commit or authorise whole.
 ## Known-failing — 4, down from 7 at the start of the day
 
 **Verify:** `hatch run pytest tests/ -q -m "not integration" -p no:randomly`
-→ **5940 passed, 24 skipped, 4 failed** (2026-09-28, 140s).
+→ **5956 passed, 24 skipped, 4 failed** (2026-09-28, 140s).
 
 `test_global_disciplines`, `test_plan_docs_index`, `test_portable_skills`,
 `test_resource_provisioning`. **What each names is in `project/TODO.md`**, first section under
@@ -78,7 +74,10 @@ code. The queue's note calling it a broken check reporting nothing is **stale**.
 - **`info` is a third defect severity**, least-to-most-serious, and the logging handler maps onto
   it rather than promoting everything below ERROR to `warning`. **`sp lint` accepts any condition
   the evaluator accepts**, from one declaration both halves read. Three of the four things
-  discourse-flow asked for; #255 is the fourth.
+  discourse-flow asked for; the fourth is #255 and is also done.
+- **Replay aligns on variable sites, not line counts** → #255. A value spanning many lines is no
+  different from one spanning none. It still refuses a `--prompt` that did not produce the
+  capture, and refuses two adjacent `{{a}}{{b}}` rather than guessing where one value ends.
 
 ### Open, and blocking
 
