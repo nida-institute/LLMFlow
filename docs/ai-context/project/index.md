@@ -64,9 +64,9 @@ against 12). Reading `index.json` is how you find the public call before writing
 | Installing the CLI | [INSTALL.md](../../../INSTALL.md) | Standalone binaries; Gatekeeper and SmartScreen steps |
 | Quickstart | [docs/tutorial.md](../../tutorial.md) | `sp init`, a greeting pipeline, a two-step example |
 | Setup and CLI basics | [docs/getting-started.md](../../getting-started.md) | Environment variables, linting, the resource-repo pattern |
-| YAML grammar and step types | [docs/llmflow-language.md](../../llmflow-language.md) | `llm` / `function` / `for-each` / `window`, variables, `append_to`, structured output |
+| YAML grammar and step types | [docs/sp-language.md](../../sp-language.md) | `llm` / `function` / `for-each` / `window`, variables, `append_to`, structured output |
 | Architecture and modules | [docs/architecture.md](../../architecture.md) | CLI, runner, linter, telemetry, plugin hooks; §15 is the debug request/response dump |
-| Python API | [docs/python-api.md](../../python-api.md) | `load_pipeline(...)` then `.resolve()` / `.lint()` / `.run()` / `.schemas()`; `PIPELINE_SCHEMA` and `api_catalog()` are the machine-readable syntax-to-API map. Prefer this over re-parsing pipeline YAML |
+| Python API — **the engine's own, not a project's** | [docs/python-api.md](../../python-api.md) | `load_pipeline(...)` then `.resolve()` / `.lint()` / `.run()` / `.schemas()`. **For work in this repository only**: it carries no compatibility promise, and a project reaches the engine through the `sp` command line and the pipeline language — rule `the-language-is-the-whole-surface`. `docs/cli-api.json` above is what a project may build against |
 | Why this rather than something else | [docs/why-scripture-pipelines.md](../../why-scripture-pipelines.md) | Comparison with general-purpose orchestration frameworks |
 | Moderation failures | [docs/moderation-handling.md](../../moderation-handling.md) | Provider blocks on biblical text, and the mitigation checklist |
 | Design and plan documents | [project/plans/README.md](../../../project/plans/README.md) | Generated index of every design and plan with its status. **Consult before proposing a design.** A document marked *Implemented — historical record* explains why code looks as it does; one marked *Proposed* is not authorization to build |
