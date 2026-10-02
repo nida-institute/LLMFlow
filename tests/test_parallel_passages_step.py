@@ -244,6 +244,31 @@ class TestTwoKindsOfNothing:
         """
         assert run(tmp_path, unregistered, "MRK 1:2") is None
 
+    def test_the_warning_says_how_to_obtain_the_database(
+        self, tmp_path, unregistered, caplog
+    ):
+        """Naming the registration command alone is half an instruction.
+
+        `sp resource set --parallel-passages-path` cannot succeed until the data is on
+        disk, and on a fresh machine it is not: the catalog carries
+        `ubs-parallel-passages` as `git`, undownloaded. So the starter example's third
+        step writes `null` on its first run and the advice offered could not be followed.
+        """
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            run(tmp_path, unregistered, "MRK 1:2")
+
+        warned = "\n".join(
+            r.message for r in caplog.records if r.levelno >= logging.WARNING
+        )
+        assert "sp resource set" in warned, "the registration step must still be named"
+        assert "sp dataset" in warned, (
+            "the warning names how to register a path but not how to obtain the data. "
+            "`sp dataset search parallel` finds it and `sp dataset download` fetches it; "
+            "without that half, a reader is told to register a file they do not have."
+        )
+
 
 class TestThroughTheCommandLine:
     """`sp run` is the surface a pipeline author actually has.

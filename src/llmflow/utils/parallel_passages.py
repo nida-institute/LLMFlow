@@ -193,8 +193,12 @@ def parallel_passages_payload(
     if not path:
         logger.warning(
             f"parallel passages were requested but resource {resource!r} names no "
-            f"`{PARALLEL_PASSAGES_KEY}`, so none were looked for. Add one with "
-            f"`sp resource set {resource} --parallel-passages-path <dataset>/<path>`."
+            f"`{PARALLEL_PASSAGES_KEY}`, so none were looked for. Two steps enable them: "
+            f"`sp dataset search parallel` finds a database and `sp dataset download <id>` "
+            f"fetches it, then `sp resource set {resource} "
+            f"--parallel-passages-path <dataset>/<path>` registers it. Naming the second "
+            f"alone was half an instruction: on a machine that has not downloaded the data "
+            f"there is no path to register."
         )
         return None
 
