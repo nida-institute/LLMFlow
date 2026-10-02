@@ -7,6 +7,71 @@
 
 ## 🔥 Active
 
+### 🚢 THE NEXT RELEASE — walked through with the Captain, 2026-10-01
+
+> No GitHub milestone exists; this section is the release's only declared scope. Walk it **in
+> this order**, one item at a time, with the Captain — he asked for exactly that.
+
+**Ruled 2026-10-01:**
+
+- **Helm parity is out of this release** — *"Let's take Helm parity out of this release."*
+  `tests/test_helm_sync.py` stays red (3) until the coordination design lands. Ship with those
+  known failures, or record an exemption: **his call, not yet made.**
+- **The prompt rework is not LLMFlow's.** The Ears to Hear methodology belongs to a client, and
+  the commentary it shapes belongs in `ears-to-hear`, not in the engine's starter example.
+  `prompts/commentary.gpt` stays as he approved it 2026-09-28. Whether Ears to Hear is told
+  anything is his (`project/rules.md` rule 2).
+- **The quickref stays short** — worked examples, the rules that bite, and a pointer to
+  `docs/cli-api.json` for the complete key list. It is not to become a second copy of
+  `docs/sp-language.md`. **Open, his:** whether `sp-language.md` ships to projects as a
+  generated catalog row, which decides how thin the quickref can be.
+- **The `<!-- -->` prompt header is withdrawn**, and **lint expands mixins** (his option A).
+  Both built this session; `CHANGELOG.md` Unreleased carries them.
+
+**The inventory, in order:**
+
+1. **→ #244, the starter example's gates** — `plan-starter-example-commentary.md` §7. Tests 6, 7
+   and 10 are met; 1–5 need one `sp run`. Four questions put to him and **unanswered**:
+   - [ ] download the UBS Parallel Passages dataset? `parallels` is `null` on this machine, so a
+         run now tests the commentary step without one of its inputs. Writes `~/.sp` — his
+   - [ ] which passages §7 evaluates — `MRK 1:1` and `MRK 1:6` as written, or another passage
+   - [ ] test 9, *"the reference object is saved"* — nothing saves `passage_info`. Keep or drop
+   - [ ] §7 still says "both prompts" and "nine positions"; D2 ruled one prompt, the grammar has
+         twelve. Update the plan — his document
+2. **→ #176**, strip frontmatter before the model call — not started
+3. **→ #252**, licence terms at download and register — ruled 2026-09-25, not built:
+   `grep -n "accept-terms\|click.confirm" src/llmflow/cli.py src/llmflow/cli_utils.py` → nothing
+4. **Position 12, `# REFERENCE`**, in `data/prompt-structure.yaml` — ruled 2026-09-21; built or
+   not is **unchecked**
+5. **`data/models.json`** — his uncommitted change; whether it ships is his call
+6. **A red suite blocks any cut** — see the 🔴 section below and `project/HANDOFF.md`
+7. **The `sp/index.md` link to `llmflow-language.md` breaks at this release** — the rename reaches
+   `main` with it. The link is `SP_DOC_LINKS` in `src/llmflow/file_catalog.py`
+
+**Not in the release, raised for his decision: `\q` continuation lines lost from BSB.** Measured
+2026-09-29: `~/github/usfm-bible/examples.bsb/42MRKBSB.usfm:12-18` carries the Isaiah quotation on
+`\q1`/`\q2` lines; `playground/outputs/41001001-41001008-english.txt` delivered only
+`⌊1:2⌋ As it is written in Isaiah the prophet: ⌊1:3⌋ "A voice of one calling in the wilderness,`.
+**Not yet placed** — engine reader, the `examples.bsb` mirror BSB is registered against
+(`~/.sp/registrations/BSB.yaml`; `data-sources.md` says the official release replaced it), or the
+registration. The evidence shows the source has the lines and the output does not, nothing more.
+No issue, no test.
+
+**Found 2026-10-01, untriaged — each wants an issue or a ruling, not a quiet fix:**
+
+- `sp init --update` **creates** absent starter examples (`cli_utils.py:637` skips them only
+  under `--no-examples`); `docs/ai-context/sp/command-line.md` says it only refreshes present ones
+- `docs/ai-assistants.md` and `docs/consumer-repo-layout.md` describe the pre-split four-file AI
+  context and an `AGENTS.md` that `sp init` never writes
+- `~/.sp/registrations/WLC.yaml:8` is an absolute path with no `dataset:`
+- `~/github/nida-institute/levinsohn-samuel-hebrew`'s origin is `jonathanrobie/levinsohn-samuel-hebrew`
+- `CHANGELOG.md` Unreleased has `### Changed` twice (lines 72 and 177)
+- likely stale: the shell-rules box below (`ask-for-the-exception` exists, `data/ai-rules.yaml:638`);
+  the unused-`requires:` box (`unused_requires_warnings` exists, warns — ruling unrecorded); the
+  `levinsohn-lgntdf` box (it is registered, `~/.sp/datasets/levinsohn-lgntdf.yaml`)
+- CLAUDE.md names `apply_template()` in `io.py`; there is no such function
+- the 5 comment-header prompts in `llmflow-historical-pipelines` are now refused
+
 ### 📅 TOMORROW IS HELM — set by the Captain, Tuesday 2026-09-29
 
 > In his words: **"I am mentoring sp tomorrow, Helm on Thursday, so we will focus on Helm
@@ -908,6 +973,10 @@ everything else here."* Both are cheap; they are not the same work.
 
 ### 🤝 THE NEW GOAL — refactoring how we work with Human at the Helm
 
+> ⛔ **Taken out of the next release by the Captain, 2026-10-01:** *"Let's take Helm parity out of
+> this release."* `tests/test_helm_sync.py` stays red (3 failures) until the coordination design
+> lands; whether the release ships with those known failures or an exemption is still his call.
+>
 > **Set by the Captain 2026-09-25**, for the next release, alongside the goals above. **Both
 > halves are in scope:** Helm adopting sp's idioms and installing into paratext-copilot — the
 > section below, unchanged — **and how the two repositories share files at all.**

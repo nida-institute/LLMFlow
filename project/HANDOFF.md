@@ -1,114 +1,110 @@
-# HANDOFF — 2026-09-28
+# HANDOFF — 2026-10-01
 
 ## ▶ NEXT ACTION
 
-**Two commits. Both message files are written.**
+**Land this session's work. Three steps, in order, the first needing the Captain's word:**
 
-```sh
-git add src/llmflow/tools/replay.py tests/test_replay_multiline_values.py data/file-catalog.yaml src/llmflow/templates/project/docs/ai-context/sp/audits-pattern.md docs/ai-context/sp/audits-pattern.md docs/ai-context/sp/index.md
-git commit -F tmp/commit-1.txt
+1. **Regenerate the rendered copies — ask first.** The quickref template was fixed; its rendered
+   copy `docs/llmflow-language-quickref.md` was not, and two tests read it. The route is
+   `hatch run sp init --update` then `hatch run python tools/update_ai_context.py` (**both**, in
+   that order — `sp init --update` alone overwrites `docs/ai-context/sp/rules.md` with the
+   consumer variant). `sp init --update` also writes `~/.sp`, which **is the Captain's store**;
+   he declined that once today for another repository. Ask, and say it would also bring
+   `~/.sp/disciplines/sp-debugging.md` up to date.
+2. **`tests/test_parallel_passages_step.py:254` carries a date** (`Ruled 2026-09-29: …`), which
+   `test_docstrings_say_what_not_why` refuses. That file is the **2026-09-30 session's**
+   uncommitted fix, not this one's. Removing the date is a one-line change; it still needs his
+   yes.
+3. **`/stage-commits`.** It must ask whose each change is — the tree holds four parties' work,
+   listed below. Do not sweep.
 
-git add project/TODO.md project/HANDOFF.md
-git commit -F tmp/commit-2.txt
-```
-
-Then delete `tmp/commit-1.txt` and `tmp/commit-2.txt` **by name**.
-
-**All four of discourse-flow's items are then done**, and a collab note is waiting untracked in
-their tree at `collab/sp/2026-09-28-all-four-have-landed.md` — written, not committed there.
-
-**Then: goal 4, ANTLR → #239.** The parser. The comparison and its measurements are already a
-comment on that issue; the decisions are ruled. Nothing blocks it but the choice between ANTLR
-and Lark, which is partly downstream of #264's editor question.
-
-`project/TODO.md` holds the queue and its order. Do not read the queue out of this file.
+Then the release walkthrough: **`project/TODO.md` → 🚢 THE NEXT RELEASE**, item 1. He asked for
+it one item at a time, in that order.
 
 ---
 
-## In flight, and whose
+## Active threads
 
-Branch `dev`, level with `origin/dev` at `78eacc9`.
+### 1. This session's pass — built, green where it can be, uncommitted
 
-| | |
+**Goal.** Contradictions found at session start, then widened by the Captain: the positional
+`output:` form and retired `returns:` in the docs; dotted `{{…}}` taught as working; stale
+debug-dump filenames; the `<!-- -->` prompt header retired (**breaking**); lint expanding mixins
+the way a run does; quickref wrong statements and a mixins section. `CHANGELOG.md` Unreleased →
+Fixed and Removed has the whole of it.
+
+**State.** Done, uncommitted. Suite: **11 failed, 5985 passed, 24 skipped**
+(`hatch run pytest tests/ -q -m "not integration" -p no:randomly`, 140 s). Two of the 11 are this
+session's and clear on regeneration (NEXT ACTION step 1):
+`test_doc_examples_lint::…name_declared_output_members` and
+`test_template_layout::…matches_its_own_templates`.
+
+**Verify.**
+`hatch run pytest tests/test_prompt_header_is_frontmatter.py tests/test_lint_expands_mixins.py tests/test_doc_examples_lint.py -q -p no:randomly`
+→ 15 + 1 pass, 1 fails on the rendered quickref only.
+
+### 2. The nine failures that were already red
+
+Not this session's; none touches a file it changed. Listed so nobody attributes them:
+`test_helm_sync` ×3 (Helm parity — now **out of this release**, see TODO), `test_global_disciplines`
+and `test_portable_skills` (`stage-commits` unclassified, S1), `test_resource_provisioning`
+(vendored catalog behind upstream), `test_rules_are_cited_by_id` ×2 ("rule 1" in
+`project/TODO.md:85` and `project/audits/audit-one-surface.md`), and the docstring date above.
+
+---
+
+## In flight / not yet done
+
+Branch `dev`, level with `origin/dev` at **`c5e88fa`**. Nothing committed this session.
+
+| whose | paths |
 |---|---|
-| **this session's, uncommitted** | the two groups above — the three defect/lint fixes, then the queue and this file |
-| **the Captain's, uncommitted — do not sweep in** | `data/models.json`, `docs/ai-context/sp/github-workflow.md` and its template twin, `project/open-decisions.md`, `project/plans/README.md`, two tracked `tmp/` deletions, and `docs/ai-context/project/data-sources.md` |
-| **unread, arrived 2026-09-28** | `collab/discourse-flow/2026-09-28-the-defect-log-needs-an-info-severity-and-lint-refuses-a-safe-builtin.md` — **inventoried in the queue as goal 3, not acted on** |
-| **untracked, not this session's** | `.cursorrules`, `.windsurfrules`, `project/0x28.md`, `tests/test_stage_commits_checks_the_handoff.py`, five earlier `collab/discourse-flow/` notes, `collab/human-at-the-helm/` |
+| **this session** | `src/llmflow/utils/linter.py`, `src/llmflow/steps/llm.py`; `src/llmflow/templates/project/docs/llmflow-language-quickref.md`, `src/llmflow/templates/sp/disciplines/sp-debugging.md`; `docs/sp-language.md`, `docs/getting-started.md`, `docs/architecture.md`, `docs/ai-context/project/data-shapes.md`; `CHANGELOG.md`, `project/TODO.md`, `project/HANDOFF.md`; new `tests/test_prompt_header_is_frontmatter.py`, `tests/test_lint_expands_mixins.py`; `tests/test_doc_examples_lint.py`; fixtures in `tests/conftest.py`, `test_lint_structured_output.py`, `test_linter_append_to.py`, `test_linter_integration.py`, `test_prompt_contract_enforcement.py`, `test_xpath_integration.py` |
+| **2026-09-30 session** | `src/llmflow/utils/parallel_passages.py`, `tests/test_parallel_passages_step.py` — the warning names how to obtain the dataset |
+| **the Captain's — do not stage** | `data/models.json`, `docs/ai-context/project/data-sources.md`, `docs/ai-context/sp/github-workflow.md` and its template twin, `project/open-decisions.md` |
+| **untracked, origin unknown — ask** | `.cursorrules`, `.windsurfrules`, `project/0x28.md`, `tests/test_stage_commits_checks_the_handoff.py`, seven `collab/discourse-flow/` notes, `collab/human-at-the-helm/` |
+| **deliberately unstaged** | `scripts/representation-grid/{cells/,grid.json,grid.tsv}` — Q5 of `design-representation-workbench.md` |
 
-**`docs/ai-context/project/data-sources.md` cannot be split by path** — the Captain's paragraph
-and a two-line product-name fix are one hunk. His to commit or authorise whole.
+`gui/frontend/node_modules` is tracked and shows ~8,000 deletions. **Never `git add -A`.**
 
-**Do not `git add -A`** — `gui/frontend/node_modules` is tracked, ~8,000 deletions.
-
-## Known-failing — 4, down from 7 at the start of the day
-
-**Verify:** `hatch run pytest tests/ -q -m "not integration" -p no:randomly`
-→ **5956 passed, 24 skipped, 4 failed** (2026-09-28, 140s).
-
-`test_global_disciplines`, `test_plan_docs_index`, `test_portable_skills`,
-`test_resource_provisioning`. **What each names is in `project/TODO.md`**, first section under
-🔥 Active.
-
-**`test_types.py` is live again and catching real errors** — it found two in this session's own
-code. The queue's note calling it a broken check reporting nothing is **stale**.
-
-**Do not run two pytest runs at once** — they share `tmp/pytest/` and the second dies with
-`INTERNALERROR`.
+**Done elsewhere today, nothing outstanding:** `sil-translator-notes` was refreshed from the dev
+engine with `~/.sp` redirected, and the Captain committed it — `c18f427`, level with
+`origin/dev`. **#266** (`sp` cannot tell a user a newer build exists) was filed on his approval.
 
 ---
 
 ## Decisions
 
-### Settled 2026-09-28 — do not reopen
+Today's rulings are in **`project/TODO.md` → 🚢 THE NEXT RELEASE**, each with its why. Two
+corrections to the previous handoff, so they are not reopened:
 
-- **Goal order:** examples → the CLI is the external API → discourse-flow → ANTLR.
-- **A step's outputs are named, not positional**, with an optional rename; a bare name binds the
-  primary member; **`returns:` is retired**. → #263, implemented.
-- **The language will parse expressions with precedence** → reclassifies #239 as a precondition.
-- **A "service" is a step type**, so the command is `sp help step-types`. → #264.
-- **The CLI is THE external API**, and `docs/index.json` maps the implementation and is not an
-  API for users or for tests. Both maps now say so in their own `about` fields.
-- **The starter example ships**: `pipelines/commentary.yaml`, `prompts/commentary.gpt`. The prompt
-  is **approved** — *"the prompt looks good"*.
-- **`info` is a third defect severity**, least-to-most-serious, and the logging handler maps onto
-  it rather than promoting everything below ERROR to `warning`. **`sp lint` accepts any condition
-  the evaluator accepts**, from one declaration both halves read. Three of the four things
-  discourse-flow asked for; the fourth is #255 and is also done.
-- **Replay aligns on variable sites, not line counts** → #255. A value spanning many lines is no
-  different from one spanning none. It still refuses a `--prompt` that did not produce the
-  capture, and refuses two adjacent `{{a}}{{b}}` rather than guessing where one value ends.
+- **Thread 1 of the 2026-09-30 handoff is withdrawn.** It said `prompts/commentary.gpt` "must be
+  redone against Ears to Hear". The Captain, 2026-10-01: Ears to Hear is a client, and that work
+  belongs in `ears-to-hear`. The A/B "Prepare the way" question and the two-headings question at
+  `commentary.gpt:105,109` dissolve with it. The prompt stays as approved 2026-09-28.
+- **The `\q` loss is not established as an engine defect.** This session called it one without
+  evidence. What is known is in TODO under the release section.
 
-### Open, and blocking
-
-1. **The `sp run` that proves the starter example end to end.** Costs money; the Captain's to
-   direct. Everything else about the example is done and green.
-2. **Does the map boundary belong in `data/ai-rules.yaml`** as a rule, or stay as prose plus the
-   two artifacts' `about` fields? A rule reaches every project, and `docs/index.json` is a file
-   only this repository has. The last open box of goal 2.
-3. **Three slots in `design-named-step-outputs.md`** and **three in `design-sp-help.md`**.
-4. **`tmp/comment-264-vocabulary.md`** — drafted, reviewed, **not posted**.
+**Still open, his, carried from 2026-09-29:** whether `2591d3e` and `7c4d133` — pushed with
+messages naming files they did not contain, repaired by `c5e88fa` — want correcting. Nothing
+rewrites history unasked.
 
 ---
 
 ## Do NOT
 
-- **Do not run `sp init --update` here without re-running
-  `hatch run python tools/update_ai_context.py` afterwards.** Two generators write
-  `docs/ai-context/sp/rules.md` and they disagree: `sp init` emits the consumer-project variant,
-  the tool emits this repository's own. Caught by `test_ai_rules_single_source`. The #210 hazard,
-  still live, and it wants an issue.
-- **Do not put a renderer in `tools/`.** It is not in the wheel, so `sp init` cannot reach it in
-  an installed project. `llmflow.cli_api` exists because that was tried and was wrong.
-- **Do not regenerate `project/plans/README.md`** — generated, stale, and carrying the Captain's
-  uncommitted hand edit.
-- **Do not run `sp doctor`** (#210). **Do not** commit, push or merge: `commit-authority`.
+- **Do not run `sp init --update` here without `tools/update_ai_context.py` straight after**, and
+  not at all without the Captain's word — it writes `~/.sp`. **Do not run `sp doctor`** (#210).
+- **Do not carry a client's methodology into the engine.** Ears to Hear's is theirs. Do not name
+  clients in anything that leaves this repository (`no-stakeholder-speculation`).
+- **Do not take a written claim on trust.** Five of nine corrections this session were exactly
+  that — `command-line.md`, a TODO line, CLAUDE.md's `apply_template`, and two inherited framings.
+  Check the code or ask.
+- **Do not fix the untriaged findings quietly.** TODO lists them; each wants an issue or a ruling.
 
 ## Key files & links
 
-- `project/TODO.md` — the queue. 🧱 *Order of goals* is the top section.
-- `docs/cli-api.json` — the public surface, shipped. `docs/index.json` — the implementation, not.
-- `src/llmflow/cli_api.py` — one renderer, two callers: `sp init` and the pre-commit hook.
-- `pipelines/commentary.yaml`, `prompts/commentary.gpt` — the starter example; lints clean with
-  zero grammar warnings.
-- Issues: **#263**, **#264**; a comment on **#239** carrying the parser comparison.
+- `project/TODO.md` → **🚢 THE NEXT RELEASE** — the queue for this release, and today's rulings
+- `CHANGELOG.md` → Unreleased → Fixed / Removed — what this session built
+- `project/plans/plan-starter-example-commentary.md` §7 — release item 1
+- Issues: **#244**, **#176**, **#252**, **#266** (filed today), **#263**/**#242** (built, close at merge)
