@@ -28,11 +28,10 @@ def test_typo_ouput_caught_by_full_linter(tmp_path):
     prompts_dir = tmp_path / "prompts"
     prompts_dir.mkdir()
     prompt_file = prompts_dir / "test.gpt"
-    prompt_file.write_text("""
-<!--
+    prompt_file.write_text("""---
 prompt:
   requires: []
--->
+---
 ---
 system: Test system prompt
 ---
@@ -90,11 +89,10 @@ def test_nested_steps_typos_caught(tmp_path):
     prompts_dir = tmp_path / "prompts"
     prompts_dir.mkdir()
     prompt_file = prompts_dir / "test.gpt"
-    prompt_file.write_text("""
-<!--
+    prompt_file.write_text("""---
 prompt:
   requires: []
--->
+---
 ---
 system: Test system prompt
 ---
@@ -133,11 +131,10 @@ def test_multiple_typos_all_reported(tmp_path):
     prompts_dir = tmp_path / "prompts"
     prompts_dir.mkdir()
     prompt_file = prompts_dir / "test.gpt"
-    prompt_file.write_text("""
-<!--
+    prompt_file.write_text("""---
 prompt:
   requires: []
--->
+---
 ---
 system: Test system prompt
 ---

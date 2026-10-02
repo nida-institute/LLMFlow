@@ -111,9 +111,7 @@ Produced by an LLM step with `output_type: json`. The shape is defined by the pr
 ]
 ```
 
-Access in YAML: `${scene_list[0].Title}`, `${scene.Citation}`, `${scene.WLC}` (when `for: scene`).
-
-**Note:** `${scene_list[*].Title}` is documented but **NOT YET IMPLEMENTED** — see the `[*]` section in `sp-language.md` and `tests/test_variable_resolution.py::TestStarWildcardResolution`.
+Access in YAML: `${scene_list[0].Title}`, `${scene.Citation}`, `${scene.WLC}` (when `for: scene`), and `${scene_list[*].Title}` for one field from every item — see below.
 
 ---
 

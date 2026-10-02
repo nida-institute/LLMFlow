@@ -109,37 +109,74 @@ def log_and_screen(msg, color="white", level="info"):
         click.secho(msg, fg=color, err=True)
 
 
+#: A prompt header: YAML frontmatter fenced by `---`, the opening fence on the first line.
+FRONTMATTER_RE = re.compile(r"\A\ufeff?---[ \t]*\n(.*?)\n---[ \t]*(?:\n|\Z)", re.DOTALL)
+
+
+def prompt_body(text: str) -> str:
+    """*text* without its frontmatter; the whole of *text* when it has none."""
+    match = FRONTMATTER_RE.match(text)
+    return text[match.end() :] if match else text
+
+
+def uses_comment_header(text: str) -> bool:
+    """Whether *text* opens with the withdrawn `<!-- ... -->` header form.
+
+    True only when the opening comment holds a YAML mapping, so a prompt that merely begins
+    with an ordinary HTML comment is not mistaken for one.
+    """
+    stripped = text.lstrip("\ufeff").lstrip()
+    if not stripped.startswith("<!--"):
+        return False
+    end = stripped.find("-->")
+    if end == -1:
+        return False
+    try:
+        return isinstance(yaml.safe_load(stripped[4:end]), dict)
+    except yaml.YAMLError:
+        return False
+
+
+def withdrawn_comment_header_error(prompt_path) -> str:
+    """The message for a prompt still using the `<!-- ... -->` header form.
+
+    One wording, used by the linter and by the runtime contract check.
+    """
+    return (
+        f"❌ {prompt_path}: uses a `<!-- ... -->` header, which is no longer a prompt header "
+        f"form. A header is YAML frontmatter fenced by `---`, with the opening `---` on the "
+        f"first line. Move the same YAML between two `---` lines at the top of the file."
+    )
+
+
 def parse_prompt_header(prompt_path):
-    """Parse header from a .gpt prompt file (supports both YAML frontmatter and HTML comments)"""
+    """The YAML frontmatter of a prompt file, with a `prompt:` wrapper unwrapped.
+
+    None when the file has no frontmatter on its first line, or the YAML does not parse.
+    """
     text = Path(prompt_path).read_text(encoding="utf-8")
+    match = FRONTMATTER_RE.match(text)
+    if not match:
+        return None
+    try:
+        data = yaml.safe_load(match.group(1))
+    except yaml.YAMLError as e:
+        logger.error(f"Failed to parse YAML frontmatter in {prompt_path}: {e}")
+        return None
+    if not isinstance(data, dict):
+        return None
+    return data.get("prompt", data)
 
-    # Try YAML frontmatter first (--- ... ---)
-    yaml_match = re.search(r"^---\s*\n(.*?)\n---\s*$", text, re.DOTALL | re.MULTILINE)
-    if yaml_match:
-        block = yaml_match.group(1).strip()
-        try:
-            data = yaml.safe_load(block)
-            # Unwrap 'prompt' key if present (same as HTML comment format)
-            return data.get("prompt", data)
-        except Exception as e:
-            logger.error(f"Failed to parse YAML frontmatter in {prompt_path}: {e}")
-            return None
 
-    # Fallback: Try HTML comment style (<!-- ... -->)
-    html_match = re.search(r"<!--(.*?)-->", text, re.DOTALL)
-    if html_match:
-        block = html_match.group(1).strip()
-        try:
-            data = yaml.safe_load(block)
-            # Old format may wrap in 'prompt' key
-            return data.get("prompt", data)
-        except Exception as e:
-            logger.error(f"Failed to parse HTML comment header in {prompt_path}: {e}")
-            return None
+def prompt_body_with_mixins(prompt_path) -> str:
+    """The body of a prompt file as a run sees it: frontmatter removed, mixins expanded.
 
-    # No header found
-    logger.error(f"No valid header found in {prompt_path} (tried both --- and <!-- formats)")
-    return None
+    Raises FileNotFoundError when a mixin names a file that does not exist.
+    """
+    from llmflow.utils.io import expand_mixins
+
+    text = Path(prompt_path).read_text(encoding="utf-8")
+    return expand_mixins(prompt_body(text), Path(prompt_path))
 
 
 def extract_template_variables(template_content):
@@ -188,10 +225,14 @@ def dotted_template_names(names) -> List[str]:
 def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
     """Check that every {{var}} used in a .gpt body is flat and declared in requires:.
 
-    A dotted name is rejected outright, `optional:` is refused as a withdrawn key, and the
-    rest must appear in requires:. Returns a list of error strings (empty list means the file
-    is clean).
+    The body is read with its mixins expanded, as a run reads it. A dotted name is rejected
+    outright, `optional:` and the `<!-- -->` header are refused as withdrawn forms, a mixin
+    naming no file is an error, and the rest must appear in requires:. Returns a list of error
+    strings (empty list means the file is clean).
     """
+    if uses_comment_header(Path(prompt_path).read_text(encoding="utf-8")):
+        return [withdrawn_comment_header_error(prompt_path)]
+
     header = parse_prompt_header(prompt_path)
     if header is None:
         return [f"❌ {prompt_path}: No parseable frontmatter — cannot validate template variables"]
@@ -204,10 +245,10 @@ def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
     if isinstance(requires, list):
         declared.update(requires)
 
-    # Extract body (everything after the closing --- of the frontmatter)
-    text = Path(prompt_path).read_text(encoding="utf-8")
-    frontmatter_match = re.search(r"^---[ \t]*\n.*?\n---[ \t]*\n?", text, re.DOTALL | re.MULTILINE)
-    body = text[frontmatter_match.end() :] if frontmatter_match else text
+    try:
+        body = prompt_body_with_mixins(prompt_path)
+    except FileNotFoundError as e:
+        return [f"❌ {prompt_path}: {e}"]
 
     body_vars = extract_template_variables(body)
 
@@ -238,8 +279,9 @@ def unused_requires_warnings(prompt_path: str) -> List[str]:
     nothing reads, and a reader believing the prompt uses it.
 
     Silent where another check owns the problem: an unparseable header, a withdrawn `optional:`
-    key and a dotted name are each reported by the check that owns them, and saying so twice
-    trains a reader to skim.
+    key, a dotted name and a missing mixin are each reported by the check that owns them, and
+    saying so twice trains a reader to skim. Mixins are expanded first, so a name used only
+    inside one counts as used.
     """
     header = parse_prompt_header(prompt_path)
     if header is None or "optional" in header:
@@ -252,9 +294,10 @@ def unused_requires_warnings(prompt_path: str) -> List[str]:
     if not declared:
         return []
 
-    text = Path(prompt_path).read_text(encoding="utf-8")
-    frontmatter = re.search(r"^---[ \t]*\n.*?\n---[ \t]*\n?", text, re.DOTALL | re.MULTILINE)
-    body = text[frontmatter.end() :] if frontmatter else text
+    try:
+        body = prompt_body_with_mixins(prompt_path)
+    except FileNotFoundError:
+        return []
 
     unused = sorted(declared - extract_template_variables(body))
     if not unused:
@@ -407,6 +450,12 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
                 continue
 
             try:
+                if uses_comment_header(Path(prompt_path).read_text(encoding="utf-8")):
+                    errors.append(
+                        f"❌ Step '{step_name}': {withdrawn_comment_header_error(prompt_path)}"
+                    )
+                    continue
+
                 prompt_data = parse_prompt_header(prompt_path)
 
                 if not prompt_data:
@@ -1669,6 +1718,10 @@ def validate_step_prompt_contract(step, prompt_file, step_name):
             break
     if not prompt_path:
         errors.append(f"❌ Step '{step_name}': Prompt file not found: {prompt_file}")
+        return errors
+
+    if uses_comment_header(Path(prompt_path).read_text(encoding="utf-8")):
+        errors.append(f"❌ Step '{step_name}': {withdrawn_comment_header_error(prompt_path)}")
         return errors
 
     header = parse_prompt_header(prompt_path)

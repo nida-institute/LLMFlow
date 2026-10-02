@@ -60,7 +60,16 @@ def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, 
     # project/plans/design-expand-once-and-only-once.md (#230)
     rendered_prompt = str(resolve(rendered_prompt, context))
 
-    from llmflow.utils.linter import extract_template_variables, parse_prompt_header
+    from llmflow.utils.linter import (
+        extract_template_variables,
+        parse_prompt_header,
+        prompt_body,
+        uses_comment_header,
+        withdrawn_comment_header_error,
+    )
+
+    if uses_comment_header(full_prompt_path.read_text(encoding="utf-8")):
+        raise ValueError(withdrawn_comment_header_error(full_prompt_path.name))
 
     header = parse_prompt_header(str(full_prompt_path))
 
@@ -79,14 +88,7 @@ def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, 
         if isinstance(requires, list):
             declared.update(requires)
 
-        frontmatter_match = re.search(
-            r"^---[ \t]*\n.*?\n---[ \t]*\n?", rendered_prompt, re.DOTALL | re.MULTILINE
-        )
-        if not frontmatter_match:
-            frontmatter_match = re.search(r"<!--(.*?)-->", rendered_prompt, re.DOTALL)
-
-        body = rendered_prompt[frontmatter_match.end():] if frontmatter_match else rendered_prompt
-        body_vars = extract_template_variables(body)
+        body_vars = extract_template_variables(prompt_body(rendered_prompt))
 
         from llmflow.utils.linter import dotted_template_names
 

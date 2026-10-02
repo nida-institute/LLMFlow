@@ -3685,9 +3685,29 @@
           "doc": "Log to file and display once on screen with color"
         },
         {
+          "name": "prompt_body",
+          "signature": "prompt_body(text: str) -> str",
+          "doc": "*text* without its frontmatter; the whole of *text* when it has none."
+        },
+        {
+          "name": "uses_comment_header",
+          "signature": "uses_comment_header(text: str) -> bool",
+          "doc": "Whether *text* opens with the withdrawn `<!-- ... -->` header form."
+        },
+        {
+          "name": "withdrawn_comment_header_error",
+          "signature": "withdrawn_comment_header_error(prompt_path) -> str",
+          "doc": "The message for a prompt still using the `<!-- ... -->` header form."
+        },
+        {
           "name": "parse_prompt_header",
           "signature": "parse_prompt_header(prompt_path)",
-          "doc": "Parse header from a .gpt prompt file (supports both YAML frontmatter and HTML comments)"
+          "doc": "The YAML frontmatter of a prompt file, with a `prompt:` wrapper unwrapped."
+        },
+        {
+          "name": "prompt_body_with_mixins",
+          "signature": "prompt_body_with_mixins(prompt_path) -> str",
+          "doc": "The body of a prompt file as a run sees it: frontmatter removed, mixins expanded."
         },
         {
           "name": "extract_template_variables",
@@ -5658,6 +5678,6 @@
   ],
   "summary": {
     "total_modules": 94,
-    "total_functions": 895
+    "total_functions": 899
   }
 }

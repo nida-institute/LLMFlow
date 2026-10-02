@@ -828,9 +828,8 @@ the Greek or Hebrew and no handle at all on the English; this gives it one.
   source: SBLGNT                 # the text the ids in `spans` belong to
   target: BSB                    # the translation to return
   spans: "${segment_bounds}"     # [{from: n57001018001, to: n57001019017}, ...]
-  returns: [text]                # text | alignments   (default: [text])
   order: [target]                # target | source     (default: [target])
-  output: segment_english
+  output: segment_english        # members: text (primary) | alignments
 ```
 
 **Required:** `source`, `target`, `spans`. An alignment is **directional** and neither side is
@@ -847,9 +846,14 @@ result for the same spans without matching on anything.
 | `text` | the assembled translation, in the translation's own word order |
 | `text_in_source_order` | when `order` includes `source` |
 | `contiguous` | always — false where another source unit's words fall inside this span's stretch |
-| `records` and `units` | when `returns` includes `alignments` |
+| `records` and `units` | when `output:` names the `alignments` member |
 
-**`order` and `returns` take a set, not a choice.** Ask for one, the other, or both. Target order
+**Members are named in `output:`.** A bare name binds `text`, the primary member. Name
+`alignments` to have each result carry the records as well — `output: [segment_english=text,
+segment_records=alignments]` — and both variables then hold the same per-span results, records
+included. Which members exist is declared by the step type; `sp lint` refuses any other name.
+
+**`order` takes a set, not a choice.** Ask for one, the other, or both. Target order
 is the default because it is what nearly every reader wants; **source order does not read as
 English and is not meant to** — it puts the translation's words in the sequence of the text they
 translate, which is what a reader comparing the two side by side wants and what a fluent rendering
@@ -882,13 +886,12 @@ canon it is parallel to, and what it quotes.
   type: parallel-passages
   resource: SBLGNT             # the text the answer is expressed against
   passage: "${passage}"       # the passage parallels are sought for
-  returns: [references]       # references | words   (default: [references])
   versification: eng          # optional — the scheme `passage` is written in
-  output: parallels
+  output: parallels           # members: references (primary) | words
 ```
 
-**Required:** `resource`, `passage`, `output`. **Optional:** `returns`, `versification`, plus
-`saveas` and `append_to` as for any step.
+**Required:** `resource`, `passage`, `output`. **Optional:** `versification`, plus `saveas`
+and `append_to` as for any step. A bare `output:` name binds `references`, the primary member.
 
 **Not an `include:` family on `type: scripture`.** A group is a relation *between* passages
 rather than an analysis of the words of one, so it is a separate call with its own inputs.
@@ -914,7 +917,8 @@ passage and a single verse inside it give different answers and both are correct
 The per-word digit strings do not travel under `references`. They index UBSGNT5 rather than the
 resource asked about, so nothing can match them to a word until the identifier join exists.
 
-**`returns: [words]` is declared and refused.** The join runs through MARBLE identifiers, and
+**The `words` member is declared and refused** — `output: [w=words]` lints clean and fails at
+run time. The join runs through MARBLE identifiers, and
 counting positions instead is wrong about one row in eleven and silently wrong; the step says so
 rather than guessing.
 
@@ -951,12 +955,14 @@ machine where the sources live somewhere else.
 **Required Fields:**
 - `resource`: Name of a registered resource
 - `passage`: A reference, in any of the five forms above
-- `output`: Variable name to store the result
+- `output`: Variable name to store the result, or a list naming members
 
-#### A second output name asks what the reference was parsed into
+#### The `reference` member: what the reference was parsed into
 
-The step has to parse `passage` before it can fetch it. Naming **two** outputs hands you that
-parse alongside the text, so nothing downstream re-parses a reference the engine has already read:
+A `scripture` step has two members: `text`, the passage, which is primary, and `reference`, the
+parse of `passage` the step made in order to fetch it. Name both in `output:` and nothing
+downstream re-parses a reference the engine has already read. Each entry is a member name,
+optionally renamed as `variable=member`:
 
 ```yaml
 - name: subject
@@ -965,7 +971,7 @@ parse alongside the text, so nothing downstream re-parses a reference the engine
   passage: "${passage}"
   format: usj
   include: [ids, discourse]
-  output: [subject, passage_info]     # the passage, and what its reference means
+  output: [subject=text, passage_info=reference]   # the passage, and what its reference means
 
 - name: english
   type: scripture
@@ -982,10 +988,11 @@ parse alongside the text, so nothing downstream re-parses a reference the engine
 the four versification fields — the same object `parse_bible_reference` returns, documented field
 by field in `docs/ai-context/project/data-shapes.md`.
 
-**One name behaves exactly as before.** `output: source_text` binds the passage and nothing else;
-only a step naming two outputs receives the pair. The parse is not folded into the result as a
-key because the result is sometimes a bare string — `format: milestones` with an empty `include`
-returns text — and a key would force every result into a dict.
+**A bare name binds the primary member.** `output: source_text` binds the passage and nothing
+else. Order in the list carries no meaning — each entry says which member it names — and a
+member nobody names is not produced. `sp lint` refuses a name the step type does not declare.
+The parse is a member rather than a key in the result because the result is sometimes a bare
+string — `format: milestones` with an empty `include` returns text.
 
 **Declare it on the step that needs it first.** A step's own `saveas` cannot name its own output:
 the linter adds a step's outputs to the available set after checking that step. So the step that
@@ -1704,31 +1711,44 @@ sp run --pipeline pipeline.yaml --var passage="Psalm 23"
 - Combined operations: `"${pericope_results[-3:][*].analysis}"` — slice then extract field
 
 **In prompt / template files (`.gpt`, `.md`):**
-- Use `{{var}}` for substitution
-- Access nested fields with dot notation: `{{scene.WLC}}`
-- Index into lists: `{{items[0]}}`
-- Slice notation: `{{items[-3:]}}`
+- Use `{{var}}` for substitution, with a **flat name only**. A placeholder is filled by matching
+  its name against a literal key, so `{{scene.WLC}}` and `{{items[0]}}` are never filled.
+- In a `.gpt` prompt, `sp lint` and `sp run` both refuse a dotted name, and an indexed one is
+  refused as undeclared. In an `.md` template, nothing refuses either: the placeholder is left
+  in the output as written.
+- Do the field access on the pipeline side and pass the value in under a flat name:
+  `inputs: {wlc_text: "${scene.WLC}"}`, then `{{wlc_text}}` in the prompt.
 
 ---
 
 ## 💾 Saving Outputs
 
-### `outputs:` — storing results in context
+### `output:` — storing results in context
 
-`outputs` controls what variable name(s) the step result is stored under in the pipeline context.
+`output` controls what variable name(s) the step result is stored under in the pipeline context.
 
 ```yaml
 output: my_var          # string — stores result as context["my_var"]
 output:                 # list of one — same effect
   - my_var
-output:                 # list of N — unpacks result tuple/list into N variables
+output:                 # list of N — see below: what a list means depends on the step type
   - first_thing
   - second_thing
 ```
 
+What a list means is decided by the step type:
+
+- **A step type that declares members** — `scripture` (`text`, `reference`), `alignment`
+  (`text`, `alignments`) and `parallel-passages` (`references`, `words`) — reads each entry as a
+  **member name**, optionally renamed: `[subject=text, passage_info=reference]`. Order carries no
+  meaning, a bare `output: x` binds the first-listed (primary) member, and `sp lint` refuses a
+  member the type does not declare.
+- **Every other step type** binds its whole result, and a list of N unpacks a returned
+  tuple/list into N variables by position.
+
 - A string value is always accessible as `${my_var}` in later steps.
 - If a function returns a dict, the whole dict is stored; access fields with `${my_var.key}`.
-- `outputs` is required for any step that uses `saveas:` or `append_to:`.
+- `output` is required for any step that uses `saveas:` or `append_to:`.
 
 ### `saveas:` — writing results to disk
 
@@ -2014,7 +2034,7 @@ sp run --pipeline pipelines/discourse-flow.yaml \
 
 ### Validate a pipeline
 ```bash
-sp lint pipelines/my-pipeline.yaml
+sp lint --pipeline pipelines/my-pipeline.yaml
 ```
 
 ### Show version
@@ -2078,7 +2098,7 @@ The `lint` command validates:
 - Prompt section structure — a **warning**, never an error (below)
 
 ```bash
-sp lint pipelines/my-pipeline.yaml
+sp lint --pipeline pipelines/my-pipeline.yaml
 ```
 
 ### Prompt section structure
@@ -2127,35 +2147,35 @@ linter_config:
 
 ### Prompt File Format
 
-Prompt files (`.gpt` extension) use **double curly brace syntax** with
-`{{variable_name}}` placeholders:
+Prompt files (`.gpt` extension) open with a YAML frontmatter header and use **double curly
+brace syntax** with `{{variable_name}}` placeholders:
 
 ```
-<!--
+---
 prompt:
   requires:
     - passage
-    - scene
+    - scene_text
     - citation
   format: Markdown
   description: Description of what this prompt does
--->
+---
 
-# Your Prompt Title
+# WHAT THIS STEP PRODUCES
 
 Your prompt instructions here. Reference variables using
-`{{variable_name}}`.
-
-Supports:
-- Simple variables: `{{passage}}`
-- Dot notation: `{{scene.WLC}}`
-- Array access: `{{items[0]}}`
+`{{variable_name}}` — a flat name, such as `{{passage}}` or `{{scene_text}}`.
 ```
 
 **Key features:**
-- **Contract in HTML comments**: YAML frontmatter defines `requires:`, `format:`, `description:`. There is no `optional:` key — every prompt parameter is required, and a header declaring it is refused by `sp lint` and `sp run`
-- **Variable syntax**: `{{variable_name}}` for substitution
-- **Validation**: Linter checks that all `requires:` inputs are provided
+- **The header is YAML frontmatter, fenced by `---`, with the opening `---` on the first line.**
+  It declares `requires:`, `format:` and `description:`. There is no `optional:` key — every
+  prompt parameter is required — and the old `<!-- ... -->` header form is withdrawn. `sp lint`
+  and `sp run` refuse both.
+- **Variable syntax**: `{{variable_name}}`, flat names only. A dotted or indexed name is never
+  filled; do the field access in the step's `prompt.inputs` instead.
+- **Validation**: Linter checks that all `requires:` inputs are provided, and that the body's
+  sections follow the order in *Prompt section structure* above.
 
 #### Prompt Mixins
 
@@ -2165,27 +2185,30 @@ Reuse shared text across multiple prompt files with inline mixin directives:
 {{mixin:../mixins/output-language.md}}
 ```
 
-The directive is replaced at render time with the full contents of the referenced file. Paths are relative to the prompt file that contains the directive.
+The directive is replaced with the full contents of the referenced file before anything else
+happens to the prompt. Paths are relative to the prompt file that contains the directive.
 
 **Conventions:**
 - Mixin files are plain Markdown fragments — no headers required, no frontmatter
 - Place shared mixins in a `prompts/mixins/` directory alongside your prompt files
-- Mixins do not need to be listed in the prompt contract (`requires:`) — they are expanded before contract validation
+- The directive itself is not a variable and is not listed in `requires:`. **The variables
+  inside a mixin are**: the contract is checked against the prompt with its mixins expanded, so
+  a `{{language}}` in a mixin needs `language` in the prompt's `requires:`.
+- A directive naming a file that does not exist is an error, in `sp lint` and in `sp run`.
 
 **Example:**
 ```
-<!--
+---
 prompt:
   requires:
     - passage
--->
+    - language        # used inside the mixin
+---
 
 Analyze the following passage: {{passage}}
 
 {{mixin:../mixins/output-language.md}}
 ```
-
-The linter skips `{{mixin:...}}` patterns — they are not treated as missing variables.
 
 ### Template File Format
 
@@ -2226,7 +2249,7 @@ Scripture Pipelines uses a **custom template engine** with regex-based substitut
 - In pipeline YAML, `${variable}` expressions are resolved when
   constructing step inputs and file paths.
 - Dot notation (`scene.WLC`), indexing (`items[0]`), and slicing (`items[-3:]`) are
-  supported in both forms.
+  supported in `${...}` only. A `{{...}}` placeholder takes a flat name.
 
 **Summary of syntax by context:**
 - **Pipeline YAML**: `${var}` with dollar sign.

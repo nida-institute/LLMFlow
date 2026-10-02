@@ -268,7 +268,65 @@
   Guarded by
   `tests/test_window_advance.py::TestWindowAdvanceErrors::test_dynamic_window_with_start_when_and_no_size_raises`.
 
+- **The missing-database warning for `type: parallel-passages` says how to obtain the data.** It
+  named only `sp resource set <id> --parallel-passages-path`, which cannot succeed on a machine
+  that has never downloaded the database — so the starter example's third step wrote `null` on
+  its first run and the advice offered could not be followed. It now names
+  `sp dataset search parallel`, `sp dataset download <id>`, then `sp resource set`, in that order.
+  Ruled 2026-09-29: *"the warning should also tell the user how to install it."* Guarded by
+  `tests/test_parallel_passages_step.py::TestTwoKindsOfNothing::test_the_warning_says_how_to_obtain_the_database`.
+
+- **`sp lint` now reads a prompt's mixins the way a run does.** A run expands every
+  `{{mixin:path}}` before it checks the prompt contract; lint skipped the directive and checked
+  the raw file. So two prompts linted clean and failed at the prompt step, after every earlier
+  step had run and been paid for: one whose mixin used a variable the header did not declare
+  (`sp run`: *"Variables used in prompt body but not declared in header: language"*), and one
+  naming a mixin file that did not exist (`FileNotFoundError`). Both are now lint errors. A third
+  defect went with them: a variable declared and used only inside a mixin drew the warning that
+  the body never uses it. Guarded by `tests/test_lint_expands_mixins.py`, 3 tests, all red first.
+
+- **Documentation taught forms the engine refuses.** Corrected at their sources:
+  - the positional two-name `output: [subject, passage_info]` form, retired by #263, in
+    `docs/sp-language.md` and the shipped quickref — now `output: [subject=text,
+    passage_info=reference]`, and the reference's `output:` section says what a list means for a
+    step type that declares members;
+  - `returns:` on `type: alignment` and `type: parallel-passages`, also retired by #263;
+  - "`ids` and `discourse` work and the rest raise" in the shipped quickref — all seven
+    families are built;
+  - dotted and indexed `{{scene.WLC}}` / `{{items[0]}}` in prompts, which `sp lint` and `sp run`
+    refuse in a `.gpt` file and an `.md` template leaves unfilled;
+  - `sp lint pipelines/…` without `--pipeline`, which the CLI refuses, in both documents;
+  - the retired spelling `outputs` in the shipped quickref;
+  - the shipped quickref's §6 example, a `system: |` / `user: |` body the engine does not parse
+    and the section grammar warns on;
+  - the debug-dump filenames in the shipped `sp-debugging.md` discipline, replaced in 0.2.1.24 by
+    `<seq>-<step>[-attempt<n>]` under a per-run directory with `manifest.jsonl`;
+  - `[*]` described as not implemented in `docs/ai-context/project/data-shapes.md`;
+  - `docs/architecture.md` §18, which described the pre-split four-file AI context and an
+    `AGENTS.md` that `sp init` never writes.
+
+  The shipped quickref gained a mixins section — no shipped document mentioned them — and a
+  pointer to `docs/cli-api.json` for the complete list of step types and keys.
+  `tests/test_doc_examples_lint.py` now checks `output:` members as well as keys, covers every
+  declared step type (it had omitted the three that declare members), and reads the shipped
+  templates as well as `docs/` — which is how six of these were found.
+
 ### Removed
+
+- **The `<!-- ... -->` prompt header — breaking.** A prompt header is YAML frontmatter fenced by
+  `---`, with the opening fence on the first line, and nothing else. The comment form was read
+  as a fallback, but the section grammar binds only a prompt whose first line is `---`, so a
+  prompt written in the documented comment form was never structure-checked. Both readers were
+  also unanchored: the fallback took any HTML comment anywhere in the file as the header, and a
+  `---` pair lower down — a pair of horizontal rules — was read as frontmatter.
+
+  `sp lint` and `sp run` now refuse a comment header by name, with one message, rather than
+  reading the prompt as having no header, which at run time would have meant substituting the
+  whole context unchecked. **To migrate**, move the same YAML between two `---` lines at the top
+  of the file. Measured across every repository under `nida-institute/` on 2026-10-01: 176
+  prompts, 5 using the comment form, all in `llmflow-historical-pipelines`. Guarded by
+  `tests/test_prompt_header_is_frontmatter.py`, red first; 16 test fixtures across six files
+  moved to frontmatter.
 
 - **`project/plans/design-documentation-in-prompts.md`** — deleted 2026-09-24 under
   `plans-are-temporary`, eight days after its declared date. Recover it with
