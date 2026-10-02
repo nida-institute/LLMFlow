@@ -52,7 +52,7 @@ here requires an import line to begin `from llmflow import`, so it misses `impor
 followed by `llmflow.Pipeline`, and any multi-line import.
 
 **Neither number is the problem, and #250 says so of its own**: *"The 29 above is an upper bound
-on the problem, not the problem"* — rule 1 carves out pure helpers (`resolve_citation`,
+on the problem, not the problem"* — `project/rules.md` rule 1 carves out pure helpers (`resolve_citation`,
 `normalize_greek`, `map_reference`, and `_build_windows_token`, which takes items and a budget
 rather than a step). So a ratchet must pin a **classified** count, not either grep. That is the
 measurement neither this audit nor #250 has taken.
@@ -79,8 +79,8 @@ had been broken.
 
 ## Proposed fix — a ratchet, with precedent already in the tree
 
-Rule 1 is currently attention only, and `audits-pattern.md` rule 6 asks for the opposite:
-*"prefer a red test to a written rule."*
+`project/rules.md` rule 1 is currently attention only, and `audits-pattern.md` asks for the
+opposite in its auditing rule *"prefer a red test to a written rule."*
 
 `tests/test_docstrings_say_what_not_why.py` is the precedent. It carries a **measured backlog of
 49 files that predate its rule, and forces that backlog to shrink rather than persist**. The same
@@ -93,6 +93,7 @@ the conversation belongs.
 - the number to pin — measurement 2 gives 26, but the classification in "not examined" above is
   what a ratchet should really count;
 - whether the ratchet counts files or call sites;
-- whether it belongs beside rule 1's other guards or in the one-surface file.
+- whether it belongs beside the other guards of `project/rules.md` rule 1, or in the one-surface
+  file.
 
 **Not built.** A guard is a new test and needs its own authorization.

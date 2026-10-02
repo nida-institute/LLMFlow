@@ -28,9 +28,13 @@ linter_config:
 
 steps:
   - name: first-step
-    type: llm | function | for-each | window | save | if
+    type: llm          # or any other step type — see below
     # ...
 ```
+
+This file covers the step types most pipelines use. **The complete list** — every step type,
+every key it accepts, and every `sp` command with its options — is `docs/cli-api.json` in this
+project. It is generated from the engine itself, so it is always current.
 
 Key sections:
 
@@ -106,7 +110,7 @@ Runs a prompt through an LLM and stores the response.
 
 - `prompt.file` points to a prompt in `prompts/`.
 - `prompt.inputs` provides values that the prompt template expects.
-- `outputs` names the variable that will hold the LLM response.
+- `output` names the variable that will hold the LLM response.
 - `saveas.path` writes that response to disk.
 
 Optional extras you may see:
@@ -232,9 +236,9 @@ steps on each slice. Useful when a list is too large to process at once.
 
 Each iteration starts from a **fresh copy of the outer context**. Variables set
 inside an iteration are not automatically visible to the next one — unless they
-are propagated out via `outputs` or `append_to`.
+are propagated out via `output` or `append_to`.
 
-**`outputs` (last-iteration-wins):** the final value written by each iteration
+**`output` (last-iteration-wins):** the final value written by each iteration
 replaces the outer variable. Each subsequent iteration sees the updated value.
 
 **`append_to` (accumulating list):** each iteration appends to a list in the
@@ -287,16 +291,22 @@ pipeline runs on any machine.
   output: source_text
 ```
 
-**`output:` here takes one name, or exactly two.** The list form is *positional*,
-and what each position means is decided by **the step type** — it is not a
-general destructuring rule you can carry from one step type to another:
+**`output:` names members.** A `scripture` step has two: `text`, the passage,
+which is primary, and `reference`, what the engine parsed out of `passage`. A
+bare name binds `text`; a list names members, each optionally renamed as
+`variable=member`:
 
 ```yaml
-  output: source_text                 # the passage
-  output: [source_text, passage_info]  # the passage, and its parsed reference
+  output: source_text                                  # the passage
+  output: [source_text=text, passage_info=reference]   # the passage, and its parsed reference
 ```
 
-With two names the second receives what the engine parsed out of `passage`
+Which members exist is declared by **the step type** — `alignment` and
+`parallel-passages` have their own, and a `function` step has none, so do not
+carry these names from one step type to another. `sp lint` refuses a member
+the step type does not declare.
+
+The `reference` member is what the engine parsed out of `passage`
 before fetching it: `book_code`, `book_name`, `chapter`, `start_verse`,
 `end_verse`, `testament`, `original_language`, `canonical_reference`,
 `display_name`, `filename_prefix`, and the four versification fields. It is
@@ -311,7 +321,7 @@ Use it so nothing downstream re-parses a reference the engine has already read:
   type: scripture
   resource: SBLGNT
   passage: "${passage}"
-  output: [subject, passage_info]
+  output: [subject=text, passage_info=reference]
 
 - name: english
   type: scripture
@@ -324,13 +334,14 @@ Use it so nothing downstream re-parses a reference the engine has already read:
 
 **Three rules that bite:**
 
-- **Order decides meaning, not the names.** `[passage_info, subject]` binds them
-  backwards and says nothing; the engine does not know what your names mean.
+- **The member decides meaning, not the order.** `[passage_info=reference,
+  subject=text]` binds exactly the same as the example above; a name without `=`
+  must itself be a member (`text` or `reference`).
 - **Declare it on an earlier step than the one that uses it.** A step's own
   `saveas` cannot name its own output — the linter adds a step's outputs to the
   available set after checking that step.
-- **One name behaves exactly as it always has.** The pair is produced only when a
-  step names two outputs, so nothing existing changes.
+- **A member nobody names is not produced.** Name `reference` only on the step
+  whose parse you want.
 
 **Formats.** `plain` is running text. `milestones` adds `⌊1:1⌋` markers and
 costs 1.072x — it is the default and usually enough. `usj` returns a **dict**,
@@ -346,8 +357,12 @@ registry entry, a Paratext project's settings, or the shipped table — there is
 no global default, and asking to cross schemes without one is an error.
 
 **`include`** delivers analyses under one key, `scripture_pipelines`, which a
-consumer can strip to get standard USJ. Seven families are named; `ids` and
-`discourse` work and the rest raise. `ids` becomes `srcloc` on each word.
+consumer can strip to get standard USJ. Seven families, all built: `ids`,
+`morphology`, `senses`, `glosses`, `referents`, `discourse`, `syntax`. Every
+family except `ids` needs `ids` beside it, because analyses are keyed by word
+id; asking for one alone is an error. `discourse` and `syntax` also need a path
+on the resource's registration — without it the family is `null` with a
+warning. `ids` becomes `srcloc` on each word.
 `discourse` attaches Levinsohn's features at word ids, each carrying an
 `outcome` — his indices are NA28-family and the text is SBLGNT, so a
 disagreement is reported rather than silently resolved.
@@ -448,7 +463,7 @@ sp run --pipeline pipelines/my-pipeline.yaml   --var passage="Psalm 23"   --var 
 To validate a pipeline without running it:
 
 ```bash
-sp lint pipelines/my-pipeline.yaml
+sp lint --pipeline pipelines/my-pipeline.yaml
 ```
 
 The `linter_config` block in the pipeline controls how strict
@@ -456,24 +471,31 @@ validation should be (for example, whether warnings become errors).
 
 ## 6. Prompt file format (`.gpt`)
 
-Every `.gpt` file must begin with a YAML frontmatter block that declares
+Every `.gpt` file must begin with a YAML frontmatter header that declares
 the variables it expects. The linter enforces this contract.
 
 ```
 ---
-requires:
-  - language_count
-format: Markdown
-description: Brief description of what this prompt does.
+prompt:
+  requires:
+    - passage
+  format: Markdown
+  description: Brief description of what this prompt does.
 ---
-system: |
-  You are a helpful assistant.
-user: |
-  Do something with {{language_count}} items.
+# WHAT THIS STEP PRODUCES
+...
 ```
+
+Everything after the header is sent to the model as written, and its `#`
+sections follow one order, which `sp lint` checks and warns on. A complete
+prompt in that order is `prompts/commentary.gpt`, the starter example `sp init`
+writes — copy its shape. `sp lint` prints the full order beside its first
+warning.
 
 Key rules:
 
+- **The header opens on the first line with `---`** and closes with `---`. The
+  old `<!-- ... -->` header form is withdrawn; `sp lint` and `sp run` refuse it.
 - `requires:` — list of variable names the caller *must* provide via `prompt.inputs`.
 - **There is no `optional:` key.** Every prompt parameter is required. `sp lint` and `sp run`
   both refuse a header that declares it. Where a prompt genuinely reads differently with and
@@ -482,3 +504,19 @@ Key rules:
 - Variables in the body use `{{double_braces}}`, and only flat names.
 - If `requires:` is missing, the linter cannot validate the contract and will
   emit warnings about undeclared inputs.
+
+### Mixins — shared text across prompts
+
+```
+{{mixin:mixins/output-language.md}}
+```
+
+The directive is replaced by the whole of the named file before anything else
+happens to the prompt. The path is relative to the prompt file. Shared mixins
+usually live in `prompts/mixins/`, as plain Markdown with no header.
+
+- **Variables inside a mixin go in the prompt's `requires:`.** The directive is
+  not a variable, but the prompt is checked with its mixins expanded, so a
+  `{{language}}` in the mixin needs `language` declared.
+- **A mixin naming a file that does not exist is an error**, in `sp lint` and
+  in `sp run`.
