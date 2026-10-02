@@ -17,7 +17,7 @@
 - **Helm parity is out of this release** — *"Let's take Helm parity out of this release."*
   `tests/test_helm_sync.py` stays red (3) until the coordination design lands. Ship with those
   known failures, or record an exemption: **his call, not yet made.**
-- **The prompt rework is not LLMFlow's.** The Ears to Hear methodology belongs to a client, and
+- **The prompt rework is not the engine's.** The Ears to Hear methodology belongs to a client, and
   the commentary it shapes belongs in `ears-to-hear`, not in the engine's starter example.
   `prompts/commentary.gpt` stays as he approved it 2026-09-28. Whether Ears to Hear is told
   anything is his (`project/rules.md` rule 2).
@@ -147,7 +147,7 @@ the other way.
 - [x] **Is it guardable? Not as posed** — measured 2026-09-29 by `grep -rlE` over `tests/`:
       **26 files** call a step handler directly, **14** use the object model, and **~230 of ~260**
       import `llmflow` at all, which is correct here since the rule binds projects and not the
-      engine's own tests. **A ratchet on rule 1 is buildable instead**, on the
+      engine's own tests. **A ratchet on `project/rules.md` rule 1 is buildable instead**, on the
       `test_docstrings_say_what_not_why` pattern — findings, depth and what must be settled first
       in `project/audits/audit-one-surface.md`. **Not built**: a new guard needs its own
       authorization — evidence: that record

@@ -2,21 +2,10 @@
 
 ## ▶ NEXT ACTION
 
-**Land this session's work. Three steps, in order, the first needing the Captain's word:**
-
-1. **Regenerate the rendered copies — ask first.** The quickref template was fixed; its rendered
-   copy `docs/llmflow-language-quickref.md` was not, and two tests read it. The route is
-   `hatch run sp init --update` then `hatch run python tools/update_ai_context.py` (**both**, in
-   that order — `sp init --update` alone overwrites `docs/ai-context/sp/rules.md` with the
-   consumer variant). `sp init --update` also writes `~/.sp`, which **is the Captain's store**;
-   he declined that once today for another repository. Ask, and say it would also bring
-   `~/.sp/disciplines/sp-debugging.md` up to date.
-2. **`tests/test_parallel_passages_step.py:254` carries a date** (`Ruled 2026-09-29: …`), which
-   `test_docstrings_say_what_not_why` refuses. That file is the **2026-09-30 session's**
-   uncommitted fix, not this one's. Removing the date is a one-line change; it still needs his
-   yes.
-3. **`/stage-commits`.** It must ask whose each change is — the tree holds four parties' work,
-   listed below. Do not sweep.
+**This session's work is committed and not pushed.** `dev` is five commits ahead of `origin/dev`:
+`93eee8b`, `637a8c9`, `ebfad50`, and the two this handoff lands with. Pushing is the Captain's act,
+asked for by name each time (`commit-authority`; `~/.claude/CLAUDE.md` "Pushing is its own act").
+Verify with `git status --short --branch` → `[ahead 5]`.
 
 Then the release walkthrough: **`project/TODO.md` → 🚢 THE NEXT RELEASE**, item 1. He asked for
 it one item at a time, in that order.
@@ -25,42 +14,40 @@ it one item at a time, in that order.
 
 ## Active threads
 
-### 1. This session's pass — built, green where it can be, uncommitted
+### 1. This session's pass — committed
 
 **Goal.** Contradictions found at session start, then widened by the Captain: the positional
 `output:` form and retired `returns:` in the docs; dotted `{{…}}` taught as working; stale
 debug-dump filenames; the `<!-- -->` prompt header retired (**breaking**); lint expanding mixins
-the way a run does; quickref wrong statements and a mixins section. `CHANGELOG.md` Unreleased →
-Fixed and Removed has the whole of it.
+the way a run does; quickref wrong statements and a mixins section. Then, on *"fix the tests"*:
+the rendered quickref regenerated from its template (`fc.shipped_content`, nothing else written),
+the vendored `data/resources.json` re-synced verbatim from `awesome-biblical-data` (`2565f2d`,
+clean, level with `origin/main`), `stage-commits` added to `EXPECTED_SKILLS`, numbered rule
+citations qualified, and the dated docstring line removed. `CHANGELOG.md` Unreleased → Fixed and
+Removed carries the behaviour changes.
 
-**State.** Done, uncommitted. Suite: **11 failed, 5985 passed, 24 skipped**
-(`hatch run pytest tests/ -q -m "not integration" -p no:randomly`, 140 s). Two of the 11 are this
-session's and clear on regeneration (NEXT ACTION step 1):
-`test_doc_examples_lint::…name_declared_output_members` and
-`test_template_layout::…matches_its_own_templates`.
+**State.** Suite: **4 failed** (`hatch run pytest tests/ -q -m "not integration" -p no:randomly`),
+both groups blocked on the Helm coordination design, not on code.
+`docs/ai-context/sp/scripture-representations.md` was regenerated from its template on his
+explicit yes (CLAUDE.md holds `sp/` under a hard prohibition) — one line, the stale
+`llmflow-language.md` pointer:
 
-**Verify.**
-`hatch run pytest tests/test_prompt_header_is_frontmatter.py tests/test_lint_expands_mixins.py tests/test_doc_examples_lint.py -q -p no:randomly`
-→ 15 + 1 pass, 1 fails on the rendered quickref only.
+- `test_helm_sync` ×3 — Helm parity, **out of this release** (TODO)
+- `test_portable_skills::test_every_shipped_skill_is_classified` — `stage-commits` unclassified.
+  Ruled *shared with Helm* (S1), and that cannot be delivered until the coordination design lands
 
-### 2. The nine failures that were already red
-
-Not this session's; none touches a file it changed. Listed so nobody attributes them:
-`test_helm_sync` ×3 (Helm parity — now **out of this release**, see TODO), `test_global_disciplines`
-and `test_portable_skills` (`stage-commits` unclassified, S1), `test_resource_provisioning`
-(vendored catalog behind upstream), `test_rules_are_cited_by_id` ×2 ("rule 1" in
-`project/TODO.md:85` and `project/audits/audit-one-surface.md`), and the docstring date above.
+**Verify.** The command above, and read the four names.
 
 ---
 
 ## In flight / not yet done
 
-Branch `dev`, level with `origin/dev` at **`c5e88fa`**. Nothing committed this session.
+Branch `dev`, five commits ahead of `origin/dev` once this handoff lands — see NEXT ACTION.
+Everything this session and the 2026-09-30 session changed is in those commits. What remains in
+the tree is not ours:
 
 | whose | paths |
 |---|---|
-| **this session** | `src/llmflow/utils/linter.py`, `src/llmflow/steps/llm.py`; `src/llmflow/templates/project/docs/llmflow-language-quickref.md`, `src/llmflow/templates/sp/disciplines/sp-debugging.md`; `docs/sp-language.md`, `docs/getting-started.md`, `docs/architecture.md`, `docs/ai-context/project/data-shapes.md`; `CHANGELOG.md`, `project/TODO.md`, `project/HANDOFF.md`; new `tests/test_prompt_header_is_frontmatter.py`, `tests/test_lint_expands_mixins.py`; `tests/test_doc_examples_lint.py`; fixtures in `tests/conftest.py`, `test_lint_structured_output.py`, `test_linter_append_to.py`, `test_linter_integration.py`, `test_prompt_contract_enforcement.py`, `test_xpath_integration.py` |
-| **2026-09-30 session** | `src/llmflow/utils/parallel_passages.py`, `tests/test_parallel_passages_step.py` — the warning names how to obtain the dataset |
 | **the Captain's — do not stage** | `data/models.json`, `docs/ai-context/project/data-sources.md`, `docs/ai-context/sp/github-workflow.md` and its template twin, `project/open-decisions.md` |
 | **untracked, origin unknown — ask** | `.cursorrules`, `.windsurfrules`, `project/0x28.md`, `tests/test_stage_commits_checks_the_handoff.py`, seven `collab/discourse-flow/` notes, `collab/human-at-the-helm/` |
 | **deliberately unstaged** | `scripts/representation-grid/{cells/,grid.json,grid.tsv}` — Q5 of `design-representation-workbench.md` |
