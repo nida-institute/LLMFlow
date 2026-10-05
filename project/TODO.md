@@ -40,7 +40,7 @@
    >
    > ✅ **The replacement is done — the Captain, 2026-10-05:** *"The sample output looks great,
    > and examples are now done."* Work order and evidence: `project/plans/plan-starter-examples.md`.
-   > **Not yet committed**, and the CHANGELOG entry is still to write.
+   > Committed and pushed at `70e8a7b`, with its CHANGELOG entry.
    - [ ] download the UBS Parallel Passages dataset? `parallels` is `null` on this machine, so a
          run now tests the commentary step without one of its inputs. Writes `~/.sp` — his
    - [ ] which passages §7 evaluates — `MRK 1:1` and `MRK 1:6` as written, or another passage
@@ -50,19 +50,27 @@
 2. **→ #176**, strip frontmatter before the model call — not started
 3. **→ #252**, licence terms at download and register — ruled 2026-09-25, not built:
    `grep -n "accept-terms\|click.confirm" src/llmflow/cli.py src/llmflow/cli_utils.py` → nothing
-4. **Position 12, `# REFERENCE`**, in `data/prompt-structure.yaml` — ruled 2026-09-21; built or
-   not is **unchecked**
+4. ✅ **Position 12, `# REFERENCE`**, in `data/prompt-structure.yaml` — ruled 2026-09-21; built:
+   declared at `data/prompt-structure.yaml:128` (`id: reference`) and rendered as row 12 of the
+   prompt-organization discipline, checked 2026-10-02
 5. **`data/models.json`** — his uncommitted change; whether it ships is his call
-6. **A red suite blocks any cut** — see the 🔴 section below and `project/HANDOFF.md`
-7. **The `sp/index.md` link to `llmflow-language.md` breaks at this release** — the rename reaches
-   `main` with it. The link is `SP_DOC_LINKS` in `src/llmflow/file_catalog.py`
-- [ ] **UBS Parallel Passages as a JSON dataset, generated once and saved in this repository** —
-      the Captain, 2026-10-03: *"I said generate it once and save it as a dataset in this
-      repository."* Design: `project/plans/design-parallel-passages-json.md`, D5 ruling. A
-      generator in `tools/`, the JSON committed in `data/`, the `parallel-passages` step reading
-      it instead of the XML. Open before building: the `counted_in` slot (line 329), and D7's
-      layout (flat siblings or `addressed`/`counted` blocks). **Whether it is in this release is
-      the Captain's call** — evidence:
+6. **A red suite blocks any cut.** At `70e8a7b`: 6,038 passed, 5 failed — `test_helm_sync` ×3 and
+   `test_portable_skills` (Helm design: ship with them or record an exemption, **his call**), and
+   `test_binary_bundles_its_data` (cleared by the wheel entry below)
+7. ✅ **The `sp/index.md` link to `llmflow-language.md`** — `SP_DOC_LINKS` in
+   `src/llmflow/file_catalog.py:258` points at `docs/sp-language.md`, and the rendered
+   `docs/ai-context/sp/index.md` was regenerated 2026-10-03. It resolves once the release reaches
+   `main`, where `sp-language.md` does not yet exist
+- [x] **UBS Parallel Passages as a JSON dataset, generated once and saved in this repository** —
+      `data/parallel-passages.json` by `tools/parallel-passages/generate.py`, read by the step for
+      every resource; committed at `70e8a7b`, guarded by
+      `tests/test_parallel_passages_dataset.py` (regenerates and matches byte for byte). In this
+      release, the Captain 2026-10-03. `counted.text` a closed enum, extended when an edition is
+      added; `addressed`/`counted` blocks — both his, the same day
+- [ ] **The dataset's wheel and binary entries** — `data/parallel-passages.json` in
+      `pyproject.toml`'s force-include and `.github/workflows/build.yml`'s two data lists. The
+      Captain deferred these to the release PR, 2026-10-03: *"it will get into the wheel when we
+      actually issue and merge the next PR. Don't need to do that yet."*
 8. **→ #261, resource preflight with an offer to install and register** — added to this release by
    the Captain 2026-10-02. **Not started**, measured the same day: no `resource_preflight` module,
    no plan in `project/plans/`, no mention in this file or `CHANGELOG.md` before this line. An
