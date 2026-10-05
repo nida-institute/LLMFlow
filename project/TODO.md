@@ -94,6 +94,27 @@ No issue, no test.
 - CLAUDE.md names `apply_template()` in `io.py`; there is no such function
 - the 5 comment-header prompts in `llmflow-historical-pipelines` are now refused
 
+**Found 2026-10-02/05 while building the starter example, untriaged:**
+
+- a `type: save` step with no `path` writes `output.txt` to the working directory, and lint
+  accepts it; `saveas` on a `save` step is silently ignored
+- the run key is every `--var` value verbatim, so long values overflow the 255-byte filename limit
+  and the run dies creating its debug directory
+- `basex` treats a `query_file` that does not exist as an inline XQuery (`plugins/basex.py:27-31`)
+- lint checks a step's own `saveas` before adding its outputs, while the runner binds them first,
+  so a step cannot name its own output in its `saveas` (already noted above; still unfiled)
+- `docs/sp-language.md` says `duckdb` registers `inputs:` as tables; `steps/duckdb.py:61-74` only
+  substitutes `${var}` into the SQL text
+- a structured `{{var}}` reaches a prompt as a Python printout, not JSON (`utils/io.py:100`)
+- an LLM step retries a 400 *context length exceeded* three times; no retry can succeed
+- gpt-5 returned `[only]` for the reader's guide and the step reported success after warning it
+  could not read a stop reason
+- `data/models.json` gives `gpt-4.1` a 128,000-token window; discourse-flow sends it more and
+  succeeds. The file holds the Captain's uncommitted changes
+- `PSA 116:10` in `data/parallel-passages.json` counts as two `lxx` verses (`PSA 115:0`,
+  `PSA 115:1`); the design asked for a distinct "no single answer" state — the Captain's call
+- the Swete text (`nathans/lxx-swete`) carries ~950 OCR tokens detectable by pattern → #268
+
 ### 📅 TOMORROW IS HELM — set by the Captain, Tuesday 2026-09-29
 
 > In his words: **"I am mentoring sp tomorrow, Helm on Thursday, so we will focus on Helm
