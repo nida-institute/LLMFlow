@@ -24,6 +24,27 @@ Attribution: Holmes, Michael W., ed. The Greek New Testament: SBL Edition.
 Atlanta: Society of Biblical Literature, 2010. https://sblgnt.com/
 
 -------------------------------------------------------------------------------
+UBS Parallel Passages Database
+-------------------------------------------------------------------------------
+File: data/parallel-passages.json
+
+Derived from the UBS Parallel Passages Database by the United Bible
+Societies, published at https://github.com/ubsicap/ubs-open-license
+("parallel passages/ParallelPassages.xml").
+
+Licensed under the Creative Commons Attribution-ShareAlike 4.0
+International License (CC BY-SA 4.0):
+  https://creativecommons.org/licenses/by-sa/4.0/
+
+Changes: converted from XML to JSON by tools/parallel-passages/generate.py.
+Each word score is restated as a match strength (no_match, partial, full);
+the source's line-break component is discarded; range and comma references
+are expanded to verses; and each member names the edition its scores are
+counted in, with Hebrew members of mixed groups mapped to the Septuagint
+numbering. The derived file is distributed under the same CC BY-SA 4.0
+licence.
+
+-------------------------------------------------------------------------------
 SIL / Paratext Biblical Terms Lists
 -------------------------------------------------------------------------------
 Files: inputs/SILBiblicalTerms/ParatextAllBiblicalTerms.xml

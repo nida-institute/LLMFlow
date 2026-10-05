@@ -1,7 +1,11 @@
-"""Read the UBS Parallel Passages database and answer which groups a passage is in.
+"""Read the parallel-passages dataset and answer which groups a passage is in.
 
 A group states that several passages are parallel, or that one quotes another. The reader
 returns a group whole; it never intersects a group with the request (#258).
+
+The dataset is `data/parallel-passages.json`, generated once from the UBS Parallel Passages
+Database (CC BY-SA 4.0) by `tools/parallel-passages/generate.py` and shipped with the engine. Its
+shape is `project/plans/design-parallel-passages-json.md`.
 
 Nothing about verses is implemented here. Comparison is `verse_ranges.select`, reference
 handling is `versification`, and book codes are `books`. The one thing this module does to a
@@ -11,10 +15,9 @@ and no other module has reason to know that.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-
-from lxml import etree  # type: ignore[attr-defined]
 
 from llmflow import books
 from llmflow.utils.verse_ranges import Range, select
@@ -23,12 +26,8 @@ from llmflow.utils.verse_ranges import Range, select
 # and has no default, so a reader that did not state this would be guessing.
 DATABASE_SCHEME = "org"
 
-EDITION_ATTRIBUTES = ("HEB", "GRK")
-
-#: The resource registry key naming the database, parallel to `discourse_path` and
-#: `lowfat_path`. Resolved by `load_registry_resources`, so a definition reaching a reader
-#: already carries a path it can open.
-PARALLEL_PASSAGES_KEY = "parallel_passages_path"
+#: The dataset's file name among the engine's shipped data.
+DATASET_FILENAME = "parallel-passages.json"
 
 
 class ParallelPassagesError(ValueError):
@@ -57,41 +56,27 @@ def _whole_references(reference: str) -> List[str]:
     return out
 
 
+def dataset_path() -> Path:
+    """The shipped dataset, from an installed wheel or a dev checkout."""
+    from llmflow.utils.scripture import _data_path
+
+    return _data_path(DATASET_FILENAME)
+
+
 def load_parallel_passages(path: Any) -> Dict[str, Any]:
-    """Read the database into groups, plus one row per verse span for the lookup to filter.
+    """Read the dataset into its groups, plus one row per verse for the lookup to filter.
 
-    `groups` is plain data, so a step may put it in the pipeline context or write it with
-    `saveas` unchanged.
+    `groups` are the dataset's own, member for member, so a step may put one in the pipeline
+    context or write it with `saveas` unchanged.
     """
-    tree = etree.parse(str(Path(path)))
-    groups: List[Dict[str, Any]] = []
-    rows: List[Dict[str, Any]] = []
-
-    for element in tree.iter("Passage"):
-        verses: List[Dict[str, str]] = []
-        references: List[str] = []
-        for verse in element.findall("Verse"):
-            reference = (verse.text or "").strip()
-            indexed_by = next((name for name in EDITION_ATTRIBUTES if verse.get(name) is not None), None)
-            if indexed_by is None:
-                raise ParallelPassagesError(
-                    f"Parallel passages: {reference!r} states no edition; "
-                    f"expected one of {', '.join(EDITION_ATTRIBUTES)}."
-                )
-            verses.append(
-                {
-                    "reference": reference,
-                    "scores": verse.get(indexed_by),
-                    "indexed_by": indexed_by,
-                }
-            )
-            references.extend(_whole_references(reference))
-        if not verses:
-            continue
-        position = len(groups)
-        groups.append({"verses": verses})
-        rows.extend({"reference": piece, "group": position} for piece in references)
-
+    document = json.loads(Path(path).read_text(encoding="utf-8"))
+    groups: List[Dict[str, Any]] = document["groups"]
+    rows: List[Dict[str, Any]] = [
+        {"reference": verse, "group": position}
+        for position, group in enumerate(groups)
+        for member in group["members"]
+        for verse in member["addressed"]["verses"]
+    ]
     return {"groups": groups, "rows": rows, "source": str(path)}
 
 
@@ -156,17 +141,15 @@ def groups_for_passage(index: Dict[str, Any], passage: str, versification: str =
 def _references_only(group: Dict[str, Any]) -> Dict[str, Any]:
     """A group as its member references, in the order the database states them.
 
-    `scores` and `indexed_by` are deliberately absent. The digits index UBSGNT5 rather than
-    the resource being asked about, so until the MARBLE join exists nothing downstream can
-    match one to a word — the same reason `syntax` omits `rule` and `nodeId`, which name how
-    the parser derived a node rather than a fact about it. They belong under `words`, beside
-    the join that makes them readable; carrying them here would also hand every consumer the
-    presentation digits, which the database's own documentation disclaims.
+    `match` and `counted` are deliberately absent. The scores index UBSGNT5, BHS or Rahlfs
+    rather than the resource being asked about, so until the MARBLE join exists nothing
+    downstream can match one to a word — the same reason `syntax` omits `rule` and `nodeId`.
+    They belong under `words`, beside the join that makes them readable.
 
     One key rather than a bare list, so `words` can join it as a sibling without changing the
     shape of a result anybody is already reading.
     """
-    return {"references": [verse["reference"] for verse in group["verses"]]}
+    return {"references": [member["addressed"]["reference"] for member in group["members"]]}
 
 
 def parallel_passages_payload(
@@ -174,38 +157,17 @@ def parallel_passages_payload(
     passage: str,
     resource: str,
     versification: Optional[str] = None,
-) -> Optional[List[Dict[str, Any]]]:
-    """The groups *passage* takes part in, or None where this resource names no database.
-
-    `None` rather than an empty list where the registration declares no
-    `parallel_passages_path`: the question could not be asked, as against asked and answered
-    with nothing. Rule `say-which-kind-of-nothing`.
+) -> List[Dict[str, Any]]:
+    """The groups *passage* takes part in, from the shipped dataset; `[]` where it is in none.
 
     `versification` names the scheme *passage* is written in. Omitted, the resource's own
     governs — a pipeline naming one resource is almost always writing references the way that
     resource numbers them.
     """
-    from llmflow.modules.logger import Logger
-
-    logger = Logger()
-
-    path = definition.get(PARALLEL_PASSAGES_KEY) if isinstance(definition, dict) else None
-    if not path:
-        logger.warning(
-            f"parallel passages were requested but resource {resource!r} names no "
-            f"`{PARALLEL_PASSAGES_KEY}`, so none were looked for. Two steps enable them: "
-            f"`sp dataset search parallel` finds a database and `sp dataset download <id>` "
-            f"fetches it, then `sp resource set {resource} "
-            f"--parallel-passages-path <dataset>/<path>` registers it. Naming the second "
-            f"alone was half an instruction: on a machine that has not downloaded the data "
-            f"there is no path to register."
-        )
-        return None
-
     if versification is None:
         versification = (
             definition.get("versification_scheme") if isinstance(definition, dict) else None
         ) or "eng"
 
-    groups = groups_for_passage(load_parallel_passages(path), passage, versification)
+    groups = groups_for_passage(load_parallel_passages(dataset_path()), passage, versification)
     return [_references_only(group) for group in groups]

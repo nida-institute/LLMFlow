@@ -127,7 +127,7 @@ rules:
 - id: cite-paths
   enforcement: judgment
   scope: none
-  rule: '**Cite concrete paths.** Point at real files — `pipelines/commentary.yaml`, `prompts/commentary.gpt`
+  rule: '**Cite concrete paths.** Point at real files — `pipelines/readers-guide.yaml`, `prompts/readers-guide.gpt`
     — with line numbers where you know them, so a human can verify a claim in one step.'
 - id: policy
   enforcement: judgment

@@ -36,7 +36,7 @@ because a payload nobody asked for is a payload nobody checked.
 
 ## Which families are built
 
-`include` accepts seven names, and asking for one that is not built **raises** rather than
+`include` accepts eight names, and asking for one that is not built **raises** rather than
 returning a document with the payload quietly missing. So this table is the difference between a
 working step and an error — check it before designing a step around a family.
 
@@ -49,6 +49,7 @@ working step and an error — check it before designing a step around a family.
 | `referents` | built | the resource's referent columns |
 | `discourse` | built | Levinsohn's features, each with the `outcome` field described below |
 | `syntax` | built | the constituency tree, standoff — one entry per sentence |
+| `frequency` | built | each word's lemma `count` in its corpus (GNT for `SBLGNT`, HOT for `WLC`) and `in_least_frequent_percent`, from tables the engine ships; Hebrew pronominal suffixes have no entry |
 
 A family emits whichever of its declared columns the resource actually has, and nothing merges
 the two systems: a Greek verb has `tense`, `voice` and `mood`; a Hebrew verb has `stem` and
@@ -70,6 +71,12 @@ by default.
 the document as `srcloc` through `ids`; without them the payload names words the document does not
 identify, which is unusable rather than merely thinner. This is a stronger condition than the
 per-word families have, because a tree is *over* words rather than an analysis *of* one.
+
+**Asking for `syntax` returns whole sentences.** Where a sentence runs past either end of the
+passage, its words come back too — in the text, in every format, and in every family asked for —
+so a participle is never handed over without the verb it depends on. `outside_passage` in the
+container marks each added word `true`, and is `{}` when nothing was added. `MRK 1:3-8` adds the
+20 words of 1:2.
 
 **The payload is a list, one entry per sentence**, in the order the source states them. So "which
 subtree is a sentence" is answered by the structure rather than by a class the engine invents —

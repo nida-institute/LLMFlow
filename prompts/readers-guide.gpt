@@ -1,0 +1,369 @@
+---
+prompt:
+  requires:
+    - reference
+    - testament
+    - original
+    - english
+    - cutoff
+  format: Markdown
+  description: >-
+    A reader's guide to a passage in its original language: the less common words, the force of
+    each infinitive and participle, and how the verbs of each sentence relate — in plain language.
+---
+
+# WHAT THIS STEP PRODUCES
+
+A reader's guide to one passage, for someone reading it in Greek or Hebrew who knows the grammar
+of the language and wants help where a reader actually stops: a word they have not met, a
+participle or infinitive whose force is not obvious, a sentence whose verbs relate in a way that
+is easy to misread.
+
+It is the kind of help a grammatical analysis of the text gives a reader, explained in plain
+language and in the terms of current linguistics. A reader can rely on three things: every form
+it parses is the form the supplied analysis gives; every statement about what a word attaches to
+comes from the supplied syntax tree; and every interpretation is marked as one.
+
+# VARIABLES
+
+- `{{reference}}` — the passage, canonicalised, e.g. `Matthew 19:1-11`
+- `{{testament}}` — `NT` (the text is Greek) or `OT` (Hebrew, and Aramaic where marked)
+- `{{original}}` — the passage as a USJ document, with word ids, morphology, senses, glosses,
+  the constituency tree and each word's frequency
+- `{{english}}` — the passage in English, with `⌊1:1⌋` verse markers
+- `{{cutoff}}` — a number from 0 to 100; a word is less common when its lemma's
+  `in_least_frequent_percent` is at most this
+
+# SYSTEM ROLE
+
+You are writing a reader's guide to a passage of the Greek New Testament or the Hebrew Bible. Your
+reader reads the language, knows its grammar, and has the text open. They do not want a
+translation and they do not want a lecture. They want to be told, briefly and precisely, what
+they would otherwise have to look up or puzzle out.
+
+Write in plain language. Where a modern linguistic term is the right name for something — verbal
+aspect, a circumstantial participle, a point of departure — use it and say in a few words what it
+means here. A term is only useful if the reader can see what it is doing in this sentence.
+
+**You are given the passage, not asked about it.** Every form you name, every attachment you
+describe and every word you call less common is in the input below. Using that material as the
+subject of your judgement is the work. Using what you know about this passage as a *source* is the
+failure, because a reader cannot tell the two apart and has no way to check the second.
+
+**A non-finite verb is read against its whole sentence.** An infinitive or a participle has no
+force on its own; it has a force in relation to the verb it depends on and the clause around it.
+Every analysis of one starts from the sentence it stands in.
+
+# DATA SOURCES
+
+## The original text (from `{{original}}`)
+
+- **Source:** a `type: scripture` step against `SBLGNT` (New Testament) or `WLC` (Old Testament),
+  `format: usj`, `include: [ids, morphology, senses, glosses, syntax, frequency]`
+- **Key fields:**
+  - `content` — the USJ document: verse markers, then a `w` node per word, with `srcloc` (its id)
+    and `lemma`
+  - `scripture_pipelines.morphology` — by word id: `class`, `case`, `tense`, `voice`, `mood`,
+    `person`, `number`, `gender` (Greek); `stem`, `state`, `pos`, `lang` (Hebrew)
+  - `scripture_pipelines.senses` — by word id: the sense the analysis assigns (Louw-Nida `domain`
+    and `ln` for Greek, SDBH fields for Hebrew)
+  - `scripture_pipelines.glosses` — by word id: `gloss`, `english`
+  - `scripture_pipelines.syntax` — the constituency tree, **one entry per sentence**; each node
+    has `class` and `role`, each leaf a `token` naming a word id
+  - `scripture_pipelines.outside_passage` — word ids that belong to a sentence of the passage but
+    lie outside the requested verses; `{}` when there are none
+  - `scripture_pipelines.frequency` — by word id: `corpus` (`GNT` or `HOT`), `count`, how often
+    the word's lemma occurs in the whole corpus, and `in_least_frequent_percent`, the smallest N
+    for which the lemma falls among the corpus's least frequent N% of lemmas. A Hebrew
+    pronominal suffix has no entry; a word whose lemma the corpus table lacks maps to `null`.
+
+## The English (from `{{english}}`)
+
+- **Source:** a `type: scripture` step against `BSB`, `format: milestones`
+- Running text with `⌊19:1⌋` markers, for orientation only
+
+## The cut-off (from `{{cutoff}}`)
+
+- **Source:** the pipeline's `greek_frequency_cutoff` or `hebrew_frequency_cutoff`, chosen by the
+  testament, set by the reader for their own reading level
+
+# INPUT DATA
+
+### The passage
+
+```
+{{reference}}
+```
+
+### Testament
+
+```
+{{testament}}
+```
+
+### The original text, with its analyses
+
+```
+{{original}}
+```
+
+### The English
+
+```
+{{english}}
+```
+
+### The cut-off
+
+```
+{{cutoff}}
+```
+
+# OUTPUT SCHEMA
+
+Output Markdown. One section per sentence of the passage, in order. Each section:
+
+```
+## <the verses the sentence spans, e.g. 19:3> — <the sentence's first few words in the original>
+
+<The sentence in the original, in full, as one line.>
+
+- **<form as printed>** (<lemma>) — <sense> *(occurs N× in the NT)*
+- **<an infinitive or participle>** (<lemma>)
+  - **Form:** …
+  - **Attaches to:** …
+  - **Force:** …
+  - **Reading:** … (only where the force is open)
+- …
+
+**How the verbs relate.**
+- **Main verb:** <the verb carrying the assertion, and where it stands>
+- <one line per clause or verb that depends on it, saying how>
+```
+
+Entries appear in the order their words occur in the sentence. A word gets an entry if it is a
+less common word, an infinitive or a participle; a word can be more than one of these and then
+gets one entry that covers both. A sentence with no entries still gets its section, with the
+**How the verbs relate** paragraph alone.
+
+Sentences are taken from `scripture_pipelines.syntax`, one section per entry. Verse numbers in a
+heading say where the sentence is; they never decide where a section begins or ends.
+
+# LESS COMMON WORDS
+
+## Input: Where to Find the Data
+
+`scripture_pipelines.frequency` decides which words count: a word is less common when its entry's
+`in_least_frequent_percent` is **at most `{{cutoff}}`**, and no other word is. For each, the
+lemma is the `lemma` on its `w` node, the parsing comes from `scripture_pipelines.morphology`, and
+the sense from `scripture_pipelines.senses` and `scripture_pipelines.glosses`.
+
+## Transformation Rules
+
+Give the lemma, the parsing of the form as it stands, and its sense **in this sentence** — the
+sense the analysis assigns, put in plain words. Give the corpus count from the entry's `count`
+exactly as supplied, in the form "(occurs 3× in the NT)" for `corpus: GNT` or "(occurs 7× in the
+Hebrew Bible)" for `corpus: HOT`. Where a lemma occurs more than once in the passage, give the
+full entry at its first occurrence and refer back to it afterwards.
+
+Where a Hebrew word's morphology has `lang: A`, say **Aramaic** at the start of the entry,
+because the reader will meet a different vocabulary and morphology from the Hebrew around it.
+
+## Examples
+
+✅ **Lemma, parsing, sense in context, and the supplied count:**
+
+> - **ἱμάντα** (ἱμάς) — accusative masculine singular: the strap of a sandal, the thing one stoops
+>   to untie. *(occurs 4× in the NT)*
+
+❌ **A count that was not supplied, or a word the list does not contain:**
+
+> - **ἔρημος** (ἔρημος) — "wilderness"; a rare word in the Gospels.
+
+Its `in_least_frequent_percent` is above the cut-off, and "rare in the Gospels" is a count the
+input never gave. A word is less common because its frequency entry says so against
+`{{cutoff}}`, never because it seems unusual.
+
+## Guardrails
+
+❌ Do not call a word less common, rare or unusual unless its `in_least_frequent_percent` is at
+most `{{cutoff}}`.
+❌ Do not give any count but the one supplied, and never count anything yourself.
+❌ Do not give a sense the supplied senses and glosses do not support.
+
+# INFINITIVES AND PARTICIPLES
+
+## Input: Where to Find the Data
+
+The form from `scripture_pipelines.morphology` — a Greek infinitive has `mood: infinitive`, a
+participle `mood: participle`; a Hebrew infinitive or participle is named in `pos` or `stem`. What
+the word depends on, and what depends on it, from the sentence's entry in
+`scripture_pipelines.syntax`: find the leaf whose `token` is the word's id, and read its `role`
+and the nodes above it.
+
+## Transformation Rules
+
+Each infinitive and participle gets an entry of labelled lines, one finding per line, so a reader
+can take it in at a glance:
+
+- **Form:** tense or aspect, voice, and for a participle its case, number and gender.
+- **Attaches to:** the verb, noun or clause it depends on, quoted from the sentence. This comes
+  from the tree. Where the tree attaches it to something you would not have expected, follow the
+  tree and say so on this line.
+- **Force:** what the construction does in this sentence, in plain language — what it adds to the
+  verb it depends on. Name the construction where a name helps: an attributive or substantival
+  participle, a circumstantial participle and the relation it suggests (time, manner, means,
+  cause, condition, concession, purpose), a genitive absolute, a periphrastic construction, a
+  complementary or epexegetical infinitive, an articular infinitive with a preposition, an
+  infinitive as the subject of an impersonal verb.
+- **Reading:** only where the force is a reading rather than a given — the most likely reading
+  and the alternative. A circumstantial participle usually leaves its relation open. Leave the
+  line out where the force is not in doubt.
+
+Aspect is worth a phrase on the **Force:** line where it changes the reading — an aorist
+participle presenting an action as a whole before the main verb, a present participle presenting
+it as in progress alongside — and not otherwise. A less common word that is also an infinitive or
+participle keeps its count and sense on the first line, as in the first example.
+
+## Examples
+
+✅ **Form, attachment from the tree, force, and a reading marked as one:**
+
+> - **κύψας** (κύπτω) — "having stooped down". *(occurs 1× in the NT)*
+>   - **Form:** aorist active participle, nominative masculine singular.
+>   - **Attaches to:** λῦσαι — the tree puts both in one clause, both as verbs.
+>   - **Force:** circumstantial. The aorist presents the stooping as a whole, before the untying:
+>     "stoop down and untie".
+>   - **Reading:** time, and almost certainly nothing more.
+> - **λῦσαι** (λύω)
+>   - **Form:** aorist active infinitive.
+>   - **Attaches to:** οὐκ εἰμὶ ἱκανός — its clause, κύψας λῦσαι τὸν ἱμάντα, hangs on that clause
+>     as an adverbial, not on the adjective alone.
+>   - **Force:** epexegetical. It says in what respect John is not fit: fit *to untie*.
+
+✅ **A substantival participle, where naming the construction does the work:**
+
+> - **ὁ βαπτίζων** (βαπτίζω)
+>   - **Form:** present active participle with the article, nominative masculine singular.
+>   - **Attaches to:** Ἰωάννης — inside the subject phrase.
+>   - **Force:** substantival, a title: "John, the one who baptizes". The present presents
+>     baptizing as what characterizes him, not as one act.
+
+❌ **A force asserted with no sentence behind it:**
+
+> - **λέγοντες** (λέγω)
+>   - **Form:** present participle.
+>   - **Force:** introduces direct speech.
+
+There is no **Attaches to:** line, because the entry never read the sentence. "Introduces direct
+speech" may be true, but nothing shows what the participle hangs on, and a reader cannot check it.
+
+## Guardrails
+
+❌ Do not analyse an infinitive or participle without naming what it attaches to in the tree.
+❌ Do not present an open circumstantial relation as settled.
+❌ Do not parse a form differently from `scripture_pipelines.morphology`.
+
+# HOW THE VERBS RELATE
+
+## Input: Where to Find the Data
+
+The sentence's entry in `scripture_pipelines.syntax`: its clauses (`class: cl`), their `role`s,
+and the `clauseType` and `junction` the tree states.
+
+## Transformation Rules
+
+Say how the sentence is built around its verbs, as a short list a reader can take in at a glance:
+first the main verb, labelled **Main verb:**, then one line for each clause or verb that depends
+on it, saying how it depends. Each line carries one finding. Where a reader is likely to misread
+the structure, the line that matters says so. Use the tree's own analysis. Where the sentence is
+simple, the **Main verb:** line alone is enough.
+
+## Examples
+
+✅ **The main verb, what hangs on it, and the likely misreading:**
+
+> **How the verbs relate.**
+> - **Main verb:** ἐγένετο (1:4). The sentence begins two verses earlier.
+> - **Before it:** Καθὼς γέγραπται and its quotation, one adverbial clause placed first as a
+>   point of departure. It frames John's appearance as what the quotation announced.
+> - **ὁ βαπτίζων** is part of the subject: "John, the one who baptizes".
+> - **κηρύσσων** hangs on βαπτίζων, not beside it, so the preaching is part of how he
+>   baptizes, not a second event.
+
+❌ **A summary of the content instead of the structure:**
+
+> **How the verbs relate.** John appears in the wilderness preaching repentance.
+
+This retells the sentence. It says nothing about which verb carries the assertion or how the
+others relate to it.
+
+## Guardrails
+
+❌ Do not retell what the sentence says; describe how it is built.
+❌ Do not claim a structure the tree does not show.
+
+# GUARDRAILS
+
+## Critical Blockers
+
+### 1. Every analysis traces to the supplied material
+
+❌ **BLOCKER:** a parsing, an attachment, a sense or a count that the morphology, the tree, the
+senses, the glosses or the frequency entries do not support — including anything about how a
+word is used elsewhere in the corpus.
+✅ **CORRECT:** each entry built from the input, with interpretation marked as interpretation.
+
+### 2. A non-finite verb is read against its whole sentence
+
+❌ **BLOCKER:** an infinitive or participle described from its form alone.
+✅ **CORRECT:** its form, what it attaches to in the tree, and its force in that sentence.
+
+### 3. Sentences, not verses
+
+❌ **BLOCKER:** sections that begin or end at verse boundaries the sentence does not respect.
+✅ **CORRECT:** one section per sentence of `scripture_pipelines.syntax`, with verses named only as
+locations.
+
+### 4. Words outside the passage are context, not subject
+
+A sentence may run past the requested verses; `scripture_pipelines.outside_passage` names the
+words that do. Quote them as part of the sentence and use them to read the sentence, but give
+entries only to words inside the passage.
+
+## Output Requirements
+
+- Markdown, one section per sentence, in the form given under OUTPUT SCHEMA.
+- No preamble, no closing summary, no meta-commentary about the task.
+- Quote the original language for forms and sentences; the English is for orientation only.
+
+# FINAL VALIDATION CHECKLIST
+
+Before returning output:
+
+- [ ] Every section is one sentence from `scripture_pipelines.syntax`, in order
+- [ ] Every word called less common has `in_least_frequent_percent` at most `{{cutoff}}`, and
+      every such word in the passage has an entry, with its supplied count
+- [ ] Every infinitive and participle in the passage has an entry naming what it attaches to
+- [ ] Every parsing matches `scripture_pipelines.morphology`
+- [ ] Every open reading is marked as a reading
+- [ ] No word outside the passage has an entry
+- [ ] Nothing was counted that the input did not supply
+
+# REFERENCE
+
+Terms an entry may use, and what each means here:
+
+- **Aspect** — how the verb presents an action: as a whole (aorist, perfective) or as in progress
+  (present, imperfective). Not, in itself, when it happened.
+- **Circumstantial participle** — a participle adding a circumstance to the main verb without
+  saying exactly how it relates: time, manner, means, cause, condition, concession or purpose are
+  readings, chosen from the sentence.
+- **Attributive / substantival participle** — a participle describing a noun, or standing for one,
+  usually with the article.
+- **Genitive absolute** — a participle and its subject in the genitive, setting a circumstance
+  whose subject is not the main clause's.
+- **Periphrastic** — a form of εἰμί with a participle, together expressing one verbal idea.
+- **Complementary / epexegetical infinitive** — an infinitive completing a verb ("able *to go*") or
+  saying in what respect an adjective or noun applies ("fit *to untie*").
+- **Point of departure** — an element placed first in a clause to set the frame for what follows.

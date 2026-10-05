@@ -32,6 +32,15 @@
 
 1. **→ #244, the starter example's gates** — `plan-starter-example-commentary.md` §7. Tests 6, 7
    and 10 are met; 1–5 need one `sp run`. Four questions put to him and **unanswered**:
+
+   > ⛔ **Superseded 2026-10-02.** The Captain scratched the commentary example entirely. Its
+   > replacement — a reader's guide and a parallel-passage significance step — is designed in
+   > `project/plans/design-starter-examples.md`. The gates and questions below are kept as the
+   > record of what was open, and are not to be worked.
+   >
+   > ✅ **The replacement is done — the Captain, 2026-10-05:** *"The sample output looks great,
+   > and examples are now done."* Work order and evidence: `project/plans/plan-starter-examples.md`.
+   > **Not yet committed**, and the CHANGELOG entry is still to write.
    - [ ] download the UBS Parallel Passages dataset? `parallels` is `null` on this machine, so a
          run now tests the commentary step without one of its inputs. Writes `~/.sp` — his
    - [ ] which passages §7 evaluates — `MRK 1:1` and `MRK 1:6` as written, or another passage
@@ -47,6 +56,19 @@
 6. **A red suite blocks any cut** — see the 🔴 section below and `project/HANDOFF.md`
 7. **The `sp/index.md` link to `llmflow-language.md` breaks at this release** — the rename reaches
    `main` with it. The link is `SP_DOC_LINKS` in `src/llmflow/file_catalog.py`
+- [ ] **UBS Parallel Passages as a JSON dataset, generated once and saved in this repository** —
+      the Captain, 2026-10-03: *"I said generate it once and save it as a dataset in this
+      repository."* Design: `project/plans/design-parallel-passages-json.md`, D5 ruling. A
+      generator in `tools/`, the JSON committed in `data/`, the `parallel-passages` step reading
+      it instead of the XML. Open before building: the `counted_in` slot (line 329), and D7's
+      layout (flat siblings or `addressed`/`counted` blocks). **Whether it is in this release is
+      the Captain's call** — evidence:
+8. **→ #261, resource preflight with an offer to install and register** — added to this release by
+   the Captain 2026-10-02. **Not started**, measured the same day: no `resource_preflight` module,
+   no plan in `project/plans/`, no mention in this file or `CHANGELOG.md` before this line. An
+   earlier session reported it as done; nothing in the tree supports that. **Depends on #252**
+   (item 3), whose licence display and consent gate it must reuse rather than duplicate. Seven
+   questions in the issue body are open, and the Captain's
 
 **Not in the release, raised for his decision: `\q` continuation lines lost from BSB.** Measured
 2026-09-29: `~/github/usfm-bible/examples.bsb/42MRKBSB.usfm:12-18` carries the Isaiah quotation on

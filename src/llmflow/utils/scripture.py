@@ -21,8 +21,12 @@ from lxml import etree  # type: ignore[attr-defined]
 
 from llmflow.modules.logger import Logger
 from llmflow.utils import versification as _versification
-from llmflow.utils.parallel_passages import PARALLEL_PASSAGES_KEY
-from llmflow.utils.syntax import LOWFAT_KEY, syntax_payload
+from llmflow.utils.syntax import (
+    LOWFAT_KEY,
+    covering_sentences,
+    payload_for_sentences,
+    sentence_word_ids,
+)
 
 logger = Logger()
 
@@ -87,12 +91,14 @@ def family_usx_attributes(name: str) -> Mapping[str, Sequence[str]]:
 
 
 #: The analysis families `include` can ask for. See §3.0a of plan-scripture-step.md.
-INCLUDE_FAMILIES = ("ids", "morphology", "senses", "glosses", "referents", "discourse", "syntax")
+INCLUDE_FAMILIES = (
+    "ids", "morphology", "senses", "glosses", "referents", "discourse", "syntax", "frequency",
+)
 
 #: Families with a working implementation. The rest are named vocabulary, and asking for one
 #: raises rather than returning a document with the payload quietly missing.
 IMPLEMENTED_FAMILIES = frozenset(
-    {"ids", "discourse", "morphology", "senses", "glosses", "referents", "syntax"}
+    {"ids", "discourse", "morphology", "senses", "glosses", "referents", "syntax", "frequency"}
 )
 
 #: Families whose payload references words by id and so cannot be read without them. Stronger
@@ -100,7 +106,7 @@ IMPLEMENTED_FAMILIES = frozenset(
 #: `per_word: true` would be the wrong way to reach the same requirement (§4.5). Without `ids`
 #: nothing in the document carries the `srcloc` its leaves point at, and the payload is unusable
 #: rather than merely thinner.
-FAMILIES_NEEDING_IDS = frozenset({"syntax"})
+FAMILIES_NEEDING_IDS = frozenset({"syntax", "frequency"})
 
 #: The one key holding everything USJ has no place for. A consumer wanting standard USJ
 #: removes this key and is done; an extension anywhere else is one nobody could find.
@@ -556,6 +562,7 @@ def text_for_spans(
     versification: Optional[str] = None,
     discourse: Optional[list] = None,
     syntax: Optional[list] = None,
+    frequency: Optional[dict] = None,
 ) -> list[dict]:
     """One result per span, in the order asked, each carrying its own text and analyses.
 
@@ -584,6 +591,9 @@ def text_for_spans(
             if discourse is not None
             else None,
             syntax=syntax,
+            frequency={key: value for key, value in frequency.items() if key in ids}
+            if frequency is not None
+            else None,
         )
         result = {"from": first, "to": last}
         if isinstance(produced, str):
@@ -643,6 +653,8 @@ def analysis_container(
     discourse: Optional[list] = None,
     syntax: Optional[list] = None,
     with_words: bool = True,
+    outside_passage: Optional[dict] = None,
+    frequency: Optional[dict] = None,
 ) -> dict:
     """The `scripture_pipelines` container, identical whatever form the text took.
 
@@ -653,6 +665,9 @@ def analysis_container(
     `with_words` is false for a USJ document, where `ids` means the `srcloc` attribute USX
     already defines rather than a map beside the text. Asking for word addressing gets one form
     or the other, never both.
+
+    With `syntax` requested, `outside_passage` maps the id of every row outside the requested
+    verses to `true`: `{}` when there are none, `null` when the rows were not widened.
     """
     container: dict = {"versification": versification or None}
     if not versification:
@@ -670,6 +685,9 @@ def analysis_container(
         container["discourse"] = discourse
     if "syntax" in include:
         container["syntax"] = syntax
+        container["outside_passage"] = outside_passage
+    if "frequency" in include:
+        container["frequency"] = frequency
     container.update(per_word_analysis(rows, [f for f in include if family_is_per_word(f)]))
     return container
 
@@ -720,6 +738,8 @@ def rows_to_output(
     versification: Optional[str] = None,
     discourse: Optional[list] = None,
     syntax: Optional[list] = None,
+    outside_passage: Optional[dict] = None,
+    frequency: Optional[dict] = None,
 ) -> str | dict:
     """The requested representation of *rows*: a string, or a USJ document for ``fmt="usj"``."""
     if fmt not in FORMATS:
@@ -732,6 +752,8 @@ def rows_to_output(
             versification=versification,
             discourse=discourse,
             syntax=syntax,
+            outside_passage=outside_passage,
+            frequency=frequency,
         )
 
     text = rows_to_text(rows, fmt=fmt)
@@ -751,6 +773,8 @@ def rows_to_output(
             versification=versification,
             discourse=discourse,
             syntax=syntax,
+            outside_passage=outside_passage,
+            frequency=frequency,
         ),
     }
 
@@ -762,6 +786,8 @@ def rows_to_usj(
     versification: Optional[str] = None,
     discourse: Optional[list] = None,
     syntax: Optional[list] = None,
+    outside_passage: Optional[dict] = None,
+    frequency: Optional[dict] = None,
 ) -> dict:
     """*rows* as a USJ document: the book, a chapter node per chapter, one `para` inside each.
 
@@ -879,6 +905,8 @@ def rows_to_usj(
             discourse=discourse,
             syntax=syntax,
             with_words=False,
+            outside_passage=outside_passage,
+            frequency=frequency,
         )
     return document
 
@@ -1039,6 +1067,11 @@ def _first_book_code(path: Path) -> Optional[str]:
 
 def read_tei_rows(tei_path: str | Path, ref: PassageRef) -> list[dict]:
     """Rows for *ref* from one TEI book file, in the shape `rows_to_text` consumes."""
+    return filter_rows(tei_book_rows(tei_path), ref)
+
+
+def tei_book_rows(tei_path: str | Path) -> list[dict]:
+    """Every row of one TEI book file, in source order."""
     rows: list[dict] = []
     for element in etree.parse(str(tei_path)).getroot().iter():
         tag = etree.QName(element).localname
@@ -1056,7 +1089,7 @@ def read_tei_rows(tei_path: str | Path, ref: PassageRef) -> list[dict]:
                 # Several `pc` can follow one word: replace the separator, then accumulate.
                 previous = rows[-1]["after"]
                 rows[-1]["after"] = punctuation if previous == WORD_SEPARATOR else previous + punctuation
-    return filter_rows(rows, ref)
+    return rows
 
 
 def _without_apparatus_marks(text: str) -> str:
@@ -1135,7 +1168,7 @@ def load_registry_resources(resources_dir: Any = None) -> dict:
         # The analysis sources resolve the same way, so a registration can name them without
         # an absolute path. They are not `path`: one may live outside the resource's dataset, so
         # a registered dataset id is accepted as well as a dataset-relative value.
-        for key in (DISCOURSE_KEY, LOWFAT_KEY, PARALLEL_PASSAGES_KEY):
+        for key in (DISCOURSE_KEY, LOWFAT_KEY):
             if entry.get(key):
                 entry[key] = str(_resources.resolve_declared_path(entry[key], entry))
 
@@ -1183,7 +1216,8 @@ def _tei_passage_text(
 
     ref = parse_passage_ref(passage)
     book_file = tei_book_files(tei_dir).get(ref.book)
-    rows = read_tei_rows(book_file, ref) if book_file else []
+    book_rows = tei_book_rows(book_file) if book_file else []
+    rows = filter_rows(book_rows, ref)
     if not rows:
         raise ValueError(_no_text_found(passage, resource))
     return _emit(
@@ -1195,7 +1229,39 @@ def _tei_passage_text(
         definition=definition,
         resource=resource,
         spans=spans,
+        book_rows=book_rows,
     )
+
+
+def widen_to_sentences(
+    rows: Sequence[Mapping[str, Any]],
+    book_rows: Sequence[Mapping[str, Any]],
+    sentences: Sequence[Any],
+) -> tuple[list, dict]:
+    """*rows* widened to every word of *sentences*, in source order, and the added rows by id.
+
+    The added rows are drawn from *book_rows*, which must contain *rows*. A row is added when its
+    word is a leaf of one of *sentences*; every morpheme of such a word is added with it.
+    """
+    from llmflow.utils.discourse import _word_identifier, _word_index
+
+    requested = {str(row.get("xml:id") or "") for row in rows}
+    words = sentence_word_ids(sentences)
+
+    widened: list = []
+    outside: dict = {}
+    for row in book_rows:
+        identifier = str(row.get("xml:id") or "")
+        if identifier in requested:
+            widened.append(dict(row))
+            continue
+        if not identifier:
+            continue
+        key = {"ref": row.get("ref") or "", "xml:id": identifier}
+        if _word_identifier(key, _word_index(key) or "") in words:
+            widened.append(dict(row))
+            outside[identifier] = True
+    return widened, outside
 
 
 def _emit(
@@ -1207,10 +1273,23 @@ def _emit(
     definition: Mapping[str, Any],
     resource: str,
     spans: Optional[Sequence[Mapping[str, Any]]] = None,
+    book_rows: Optional[Sequence[Mapping[str, Any]]] = None,
 ) -> str | dict | list:
-    """What a backend returns once it has rows: the whole passage, or one result per span."""
+    """What a backend returns once it has rows: the whole passage, or one result per span.
+
+    With `syntax` requested and no *spans*, *rows* are first widened to every word of every
+    sentence they meet, drawn from *book_rows*, so the text, the per-word families and the tree
+    cover the same words. The added words are marked in the container's `outside_passage`.
+    """
+    syntax = None
+    outside: Optional[dict] = None
+    if "syntax" in include:
+        sentences = covering_sentences(definition, rows, resource)
+        if sentences is not None and book_rows is not None and not spans:
+            rows, outside = widen_to_sentences(rows, book_rows, sentences)
+        syntax = payload_for_sentences(sentences)
     discourse = discourse_payload(definition, rows, resource) if "discourse" in include else None
-    syntax = syntax_payload(definition, rows, resource) if "syntax" in include else None
+    frequency = frequency_payload(rows, resource) if "frequency" in include else None
     if spans:
         return text_for_spans(
             rows,
@@ -1221,6 +1300,7 @@ def _emit(
             versification=versification,
             discourse=discourse,
             syntax=syntax,
+            frequency=frequency,
         )
     return rows_to_output(
         rows,
@@ -1230,6 +1310,8 @@ def _emit(
         versification=versification,
         discourse=discourse,
         syntax=syntax,
+        outside_passage=outside,
+        frequency=frequency,
     )
 
 
@@ -1297,7 +1379,8 @@ def resource_text(
     if not path:
         raise ValueError(f"TSV resource {resource!r} needs a 'path' in its registry entry.")
     ref = parse_passage_ref(passage)
-    rows = filter_rows(read_rows(path), ref)
+    all_rows = read_rows(path)
+    rows = filter_rows(all_rows, ref)
     if not rows:
         raise ValueError(_no_text_found(passage, resource))
     return _emit(
@@ -1309,7 +1392,54 @@ def resource_text(
         definition=definition,
         resource=resource,
         spans=spans,
+        book_rows=all_rows,
     )
+
+
+_FREQUENCY_TABLES: dict = {}
+
+
+def frequency_payload(rows: Sequence[Mapping[str, Any]], resource: str) -> Optional[dict]:
+    """`{word id: {corpus, count, in_least_frequent_percent}}` for *rows*, or None.
+
+    None where `include-families.json` names no corpus table for *resource*. A row matching the
+    corpus's `excluded` fields has no entry; a row whose lemma the table lacks maps to None.
+    """
+    corpus = _family("frequency").get("corpora", {}).get(resource)
+    if not corpus:
+        logger.warning(
+            f"include: [frequency] was requested but no corpus table is declared for resource "
+            f"{resource!r}, so no frequency is attached and the {CONTAINER_KEY} container states "
+            f"`frequency: null`."
+        )
+        return None
+
+    filename = corpus["table"]
+    lemmas = _FREQUENCY_TABLES.get(filename)
+    if lemmas is None:
+        entries = json.loads(_data_path(filename).read_text(encoding="utf-8"))["lemmas"]
+        lemmas = {entry["lemma"]: entry for entry in entries}
+        _FREQUENCY_TABLES[filename] = lemmas
+
+    excluded = corpus.get("excluded", {})
+    payload: dict = {}
+    for row in rows:
+        identifier = row.get("xml:id")
+        if not identifier:
+            continue
+        if any(str(row.get(field) or "") in values for field, values in excluded.items()):
+            continue
+        entry = lemmas.get(str(row.get("lemma") or ""))
+        payload[str(identifier)] = (
+            {
+                "corpus": corpus["corpus"],
+                "count": entry["count"],
+                "in_least_frequent_percent": entry["in_least_frequent_percent"],
+            }
+            if entry
+            else None
+        )
+    return payload
 
 
 def discourse_payload(

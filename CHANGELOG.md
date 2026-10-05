@@ -4,6 +4,51 @@
 
 ### Added
 
+- **A new starter example: a reader's guide, and what a passage's parallels mean → #244.**
+  `sp init` now writes `pipelines/readers-guide.yaml` with two prompts,
+  `prompts/readers-guide.gpt` and `prompts/parallel-significance.gpt`, in place of the passage
+  commentary. For a Greek or Hebrew passage it writes a reader's guide — the less common words,
+  each infinitive and participle read against its whole sentence, and how the verbs of each
+  sentence relate — and then what each parallel passage means in its own chapter and how this
+  passage adapts it, with synoptic parallels read as Mark first, Matthew using Mark, and Luke
+  using both. Two steps call a model; every other step is free. Every step saves its output: the
+  two deliverables to `outputs/`, everything else to `intermediate/<passage>/`, both declared as
+  the pipeline's `output_file_directory` and `intermediate_file_directory`. Each parallel chapter
+  is fetched once however many groups name it — `for-each` with `group_by` — so Matthew 19:1-11
+  fetches 10 chapters for its 11 groups rather than 34. The less common words are chosen by
+  `greek_frequency_cutoff` (default 80) and `hebrew_frequency_cutoff` (default 90), each a
+  percentage of the corpus's lemmas, overridable with `--var`. The model settings are
+  `gpt-4.1`, 32,768 output tokens, temperature 0.35 and a 300-second timeout. Guarded by
+  `tests/test_init.py` (43) and `tests/test_linter.py`, which lints the shipped pipeline in a
+  freshly initialised project and checks both prompts' contracts.
+
+- **`include: [frequency]` on `type: scripture`.** Each word carries its lemma's `count` in its
+  corpus and `in_least_frequent_percent`, the smallest N for which the lemma falls among the
+  corpus's least frequent N% of lemmas. The corpus is declared per resource in
+  `data/include-families.json`: the Greek New Testament for `SBLGNT`, the Hebrew Bible for `WLC`;
+  a resource with no corpus answers `null` with a warning. The counts come from
+  `data/lemma-frequency-greek.json` (5,518 lemmas over 137,741 words) and
+  `data/lemma-frequency-hebrew.json` (8,454 lemmas over 428,469 morphemes), each generated once
+  from Macula Lowfat by an XQuery in `tools/lemma-frequency/` and matched row for row against the
+  registered TSV. The Hebrew table leaves out pronominal suffixes, which carry the independent
+  pronoun's lemma — counting them would report הוּא 46,940 times against 1,405 free-standing — and
+  so a suffix has no entry; Aramaic occurrences are counted with the Hebrew and recorded per
+  lemma. Nothing runs a query at run time. Guarded by `tests/test_frequency_family.py`, 6 tests,
+  all red first.
+
+- **The UBS Parallel Passages Database ships with the engine as `data/parallel-passages.json`.**
+  Generated once from the UBS XML by `tools/parallel-passages/generate.py`, in the shape designed
+  in `project/plans/design-parallel-passages-json.md`: one object per group, and per member an
+  `addressed` block (the reference as the database writes it, in `org`, with ranges and comma
+  lists expanded to verses) and a `counted` block (the edition its word scores index — `BHS`,
+  `Rahlfs` or `UBSGNT5` — and the verses in that edition's numbering). A Hebrew member of a group
+  with Greek members is counted in Rahlfs, so its verses are mapped `org` to `lxx`; 70 of the 266
+  such members are renumbered. Each word score is a match strength, `no_match`, `partial` or
+  `full`; the source's line-break component is discarded. 2,193 groups and 5,266 members, as in
+  the source. The dataset is CC BY-SA 4.0, as its source is, and `NOTICE` carries the attribution
+  and the changes made. Guarded by `tests/test_parallel_passages_dataset.py`, which regenerates the
+  file from the XML and requires a byte-for-byte match.
+
 - **`docs/cli-api.json` — a map of the public surface, generated and shipped → #264.**
   `docs/index.json` maps the engine's implementation, and having said what the surface is *not*,
   nothing declared what it is. This does: every `sp` command with its options, and every step
@@ -70,6 +115,21 @@
   and turn a correct engine red on the next UBS release.
 
 ### Changed
+
+- **With `include: [syntax]`, a `scripture` step returns whole sentences → #267.** The tree of a
+  sentence the passage meets was already carried whole, but its words came only from the
+  requested verses, so a tree could name words the payload did not contain — for `MRK 1:3-8`, the
+  20 words of 1:2. The text, in every format, and every family requested are now widened to every
+  word of every sentence the passage touches, and `outside_passage` in the container maps each
+  added word's id to `true` (`{}` when none were added). This changes the payload of every
+  pipeline that includes `syntax`. Without `syntax`, nothing changes. Guarded by
+  `tests/test_syntax_whole_sentences.py`, 9 tests, 6 red first; on the real corpus `MRK 1:3-8`
+  gains the 20 words of 1:2 and `MAT 19:1-11` gains none.
+
+- **`type: parallel-passages` reads the shipped dataset — breaking for registrations.** The step
+  answers every resource from `data/parallel-passages.json`; nothing is downloaded or registered,
+  and the result is `[]` or a list of groups, never `null`. The returned shape is unchanged:
+  `{"references": [...]}` per group.
 
 - **A step's outputs are named members, not positions → #263.** `output:` entries name what a
   step returns, optionally renamed — `output: [text_bsb=text, reference]`. Naming a member is how
@@ -255,6 +315,12 @@
 
 ### Fixed
 
+- **A `json` step ignored `saveas` and `append_to`.** Both are common keys and lint accepted them,
+  but the handler stored its value and returned, so `saveas` wrote nothing and `append_to`
+  collected nothing — a list declared empty stayed empty with no error. The step now passes its
+  value through `handle_step_outputs` like every other step. Guarded by
+  `tests/test_json_step_outputs.py`, 2 tests, both red first.
+
 - **A dynamic window with no `size` crashed on a bare `TypeError`, and it was the whole build.**
   `run_window_step` validates `size` before building fixed windows, but the `start_when` branch
   returns before reaching that check, so `start_when` together with `!window_advance` and no
@@ -275,6 +341,8 @@
   `sp dataset search parallel`, `sp dataset download <id>`, then `sp resource set`, in that order.
   Ruled 2026-09-29: *"the warning should also tell the user how to install it."* Guarded by
   `tests/test_parallel_passages_step.py::TestTwoKindsOfNothing::test_the_warning_says_how_to_obtain_the_database`.
+  Superseded before release, 2026-10-03: the database now ships with the engine, and the
+  registration and this warning are removed — see Removed.
 
 - **`sp lint` now reads a prompt's mixins the way a run does.** A run expands every
   `{{mixin:path}}` before it checks the prompt contract; lint skipped the directive and checked
@@ -312,6 +380,15 @@
   templates as well as `docs/` — which is how six of these were found.
 
 ### Removed
+
+- **The commentary starter example → #244.** `pipelines/commentary.yaml`,
+  `prompts/commentary.gpt`, their template copies and catalog rows, and the `COMMENTARY_*`
+  constants. Replaced by the reader's guide example — see Added.
+
+- **`parallel_passages_path` and `sp resource set --parallel-passages-path` — breaking.** The
+  database ships with the engine, so a registration has nothing to point at; the option is now
+  refused as unknown, and the warning naming it is gone. A registration still carrying the field
+  is unaffected: nothing reads it.
 
 - **The `<!-- ... -->` prompt header — breaking.** A prompt header is YAML frontmatter fenced by
   `---`, with the opening fence on the first line, and nothing else. The comment form was read

@@ -3413,6 +3413,21 @@
           "name": "syntax_payload",
           "signature": "syntax_payload(definition: Any, rows: Any, resource: str) -> Optional[list]",
           "doc": "The trees covering *rows*, or None where this resource names no Lowfat source."
+        },
+        {
+          "name": "payload_for_sentences",
+          "signature": "payload_for_sentences(sentences: Optional[list]) -> Optional[list]",
+          "doc": "The payload entries for *sentences*, in order; None where *sentences* is None."
+        },
+        {
+          "name": "sentence_word_ids",
+          "signature": "sentence_word_ids(sentences: Any) -> set",
+          "doc": "The word-level id of every leaf in *sentences*."
+        },
+        {
+          "name": "covering_sentences",
+          "signature": "covering_sentences(definition: Any, rows: Any, resource: str) -> Optional[list]",
+          "doc": "Every Lowfat `<sentence>` that meets *rows*, in file order; None where no Lowfat source."
         }
       ]
     },
@@ -3601,9 +3616,9 @@
       "module": "llmflow.utils.parallel_passages",
       "imports": [
         "__future__",
+        "json",
         "llmflow",
         "llmflow.utils.verse_ranges",
-        "lxml",
         "pathlib",
         "typing"
       ],
@@ -3614,9 +3629,14 @@
           "doc": "Split a comma list into complete references, carrying the chapter forward."
         },
         {
+          "name": "dataset_path",
+          "signature": "dataset_path() -> Path",
+          "doc": "The shipped dataset, from an installed wheel or a dev checkout."
+        },
+        {
           "name": "load_parallel_passages",
           "signature": "load_parallel_passages(path: Any) -> Dict[str, Any]",
-          "doc": "Read the database into groups, plus one row per verse span for the lookup to filter."
+          "doc": "Read the dataset into its groups, plus one row per verse for the lookup to filter."
         },
         {
           "name": "_probe",
@@ -3635,8 +3655,8 @@
         },
         {
           "name": "parallel_passages_payload",
-          "signature": "parallel_passages_payload(definition: Any, passage: str, resource: str, versification: Optional[str] = None) -> Optional[List[Dict[str, Any]]]",
-          "doc": "The groups *passage* takes part in, or None where this resource names no database."
+          "signature": "parallel_passages_payload(definition: Any, passage: str, resource: str, versification: Optional[str] = None) -> List[Dict[str, Any]]",
+          "doc": "The groups *passage* takes part in, from the shipped dataset; `[]` where it is in none."
         }
       ]
     },
@@ -4022,7 +4042,6 @@
         "json",
         "llmflow.modules.logger",
         "llmflow.utils",
-        "llmflow.utils.parallel_passages",
         "llmflow.utils.syntax",
         "lxml",
         "pathlib",
@@ -4147,7 +4166,7 @@
         },
         {
           "name": "text_for_spans",
-          "signature": "text_for_spans(rows: Sequence[Mapping[str, Any]], spans: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None) -> list[dict]",
+          "signature": "text_for_spans(rows: Sequence[Mapping[str, Any]], spans: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None, frequency: Optional[dict] = None) -> list[dict]",
           "doc": "One result per span, in the order asked, each carrying its own text and analyses."
         },
         {
@@ -4157,7 +4176,7 @@
         },
         {
           "name": "analysis_container",
-          "signature": "analysis_container(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str], versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None, with_words: bool = True) -> dict",
+          "signature": "analysis_container(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str], versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None, with_words: bool = True, outside_passage: Optional[dict] = None, frequency: Optional[dict] = None) -> dict",
           "doc": "The `scripture_pipelines` container, identical whatever form the text took."
         },
         {
@@ -4167,12 +4186,12 @@
         },
         {
           "name": "rows_to_output",
-          "signature": "rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None) -> str | dict",
+          "signature": "rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None, outside_passage: Optional[dict] = None, frequency: Optional[dict] = None) -> str | dict",
           "doc": "The requested representation of *rows*: a string, or a USJ document for ``fmt=\"usj\"``."
         },
         {
           "name": "rows_to_usj",
-          "signature": "rows_to_usj(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None) -> dict",
+          "signature": "rows_to_usj(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None, outside_passage: Optional[dict] = None, frequency: Optional[dict] = None) -> dict",
           "doc": "*rows* as a USJ document: the book, a chapter node per chapter, one `para` inside each."
         },
         {
@@ -4204,6 +4223,11 @@
           "name": "read_tei_rows",
           "signature": "read_tei_rows(tei_path: str | Path, ref: PassageRef) -> list[dict]",
           "doc": "Rows for *ref* from one TEI book file, in the shape `rows_to_text` consumes."
+        },
+        {
+          "name": "tei_book_rows",
+          "signature": "tei_book_rows(tei_path: str | Path) -> list[dict]",
+          "doc": "Every row of one TEI book file, in source order."
         },
         {
           "name": "_without_apparatus_marks",
@@ -4241,14 +4265,24 @@
           "doc": "Running text for *passage* from a directory of per-book TEI files."
         },
         {
+          "name": "widen_to_sentences",
+          "signature": "widen_to_sentences(rows: Sequence[Mapping[str, Any]], book_rows: Sequence[Mapping[str, Any]], sentences: Sequence[Any]) -> tuple[list, dict]",
+          "doc": "*rows* widened to every word of *sentences*, in source order, and the added rows by id."
+        },
+        {
           "name": "_emit",
-          "signature": "_emit(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str], versification: Optional[str], definition: Mapping[str, Any], resource: str, spans: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
+          "signature": "_emit(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str], versification: Optional[str], definition: Mapping[str, Any], resource: str, spans: Optional[Sequence[Mapping[str, Any]]] = None, book_rows: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
           "doc": "What a backend returns once it has rows: the whole passage, or one result per span."
         },
         {
           "name": "resource_text",
           "signature": "resource_text(resource: str, passage: str, fmt: str = 'milestones', resources: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None, include: Any = (), spans: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
           "doc": "Running text for *passage* in *resource*, dispatched on the resource's `kind`."
+        },
+        {
+          "name": "frequency_payload",
+          "signature": "frequency_payload(rows: Sequence[Mapping[str, Any]], resource: str) -> Optional[dict]",
+          "doc": "`{word id: {corpus, count, in_least_frequent_percent}}` for *rows*, or None."
         },
         {
           "name": "discourse_payload",
@@ -4825,13 +4859,14 @@
       "imports": [
         "llmflow.modules.logger",
         "llmflow.utils.context",
+        "llmflow.utils.step_outputs",
         "typing"
       ],
       "functions": [
         {
           "name": "run_json_step",
           "signature": "run_json_step(step: Dict[str, Any], context: Dict[str, Any]) -> None",
-          "doc": "Resolve value and store in context under outputs."
+          "doc": "Resolve `value` and bind it to `output`, applying `saveas` and `append_to`."
         }
       ]
     },
@@ -5678,6 +5713,6 @@
   ],
   "summary": {
     "total_modules": 94,
-    "total_functions": 899
+    "total_functions": 906
   }
 }

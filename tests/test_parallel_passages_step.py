@@ -1,8 +1,8 @@
 """`type: parallel-passages` — the step that asks which groups a passage takes part in.
 
 The reader is tested in `test_parallel_passages.py`; this file is about the step: that the
-language accepts it, that a group reaches the context whole, and that the two kinds of
-nothing are distinguishable (#258).
+language accepts it, that a group reaches the context whole, and that a passage in no group is
+an empty list (#258).
 
 Every expected value here comes from `SAMPLE` below, which is written for these tests. No
 assertion names a figure read off the real UBS database: a count taken from that file is a
@@ -19,6 +19,7 @@ import pytest
 
 from llmflow import load_pipeline
 from llmflow import paths as _paths
+from tests.parallel_passages_fixture import build_dataset
 
 #: Four groups, written to state the shapes the step has to get right:
 #:
@@ -58,43 +59,25 @@ SAMPLE = """<?xml version="1.0" encoding="utf-8"?>
 
 
 @pytest.fixture
-def database(tmp_path):
-    """The fixture database on disk."""
-    path = tmp_path / "ParallelPassages.xml"
-    path.write_text(SAMPLE, encoding="utf-8")
-    return path
+def registered(tmp_path, monkeypatch):
+    """A resource with no parallel-passages field, and the engine reading the fixture dataset.
 
-
-@pytest.fixture
-def registered(tmp_path, monkeypatch, database):
-    """A resource whose registration names the fixture database.
-
-    `$SP_HOME` is already redirected for every test by `conftest`, so this writes into a
-    throwaway store rather than the machine's own.
+    The dataset ships with the engine, so a registration names nothing about it. The tests
+    point the reader at a dataset converted from `SAMPLE` rather than at the shipped one.
+    `$SP_HOME` is already redirected for every test by `conftest`.
     """
+    from llmflow.utils import parallel_passages
+
+    dataset = build_dataset(tmp_path, SAMPLE)
+    monkeypatch.setattr(parallel_passages, "dataset_path", lambda: dataset)
+
     store = tmp_path / "store"
     (store / "registrations").mkdir(parents=True)
     monkeypatch.setenv(_paths.SP_HOME_ENV, str(store))
     (store / "registrations" / "TESTGRK.yaml").write_text(
-        "id: TESTGRK\n"
-        "kind: tsv\n"
-        "versification_scheme: org\n"
-        f"parallel_passages_path: {database}\n",
-        encoding="utf-8",
+        "id: TESTGRK\nkind: tsv\nversification_scheme: org\n", encoding="utf-8"
     )
     return "TESTGRK"
-
-
-@pytest.fixture
-def unregistered(tmp_path, monkeypatch):
-    """A resource that names no parallel-passages source at all."""
-    store = tmp_path / "store"
-    (store / "registrations").mkdir(parents=True)
-    monkeypatch.setenv(_paths.SP_HOME_ENV, str(store))
-    (store / "registrations" / "BARE.yaml").write_text(
-        "id: BARE\nkind: tsv\nversification_scheme: org\n", encoding="utf-8"
-    )
-    return "BARE"
 
 
 def build(tmp_path, resource, passage, extra="", output="parallels"):
@@ -236,38 +219,20 @@ class TestTwoKindsOfNothing:
         """Consulted, and this passage takes part in nothing."""
         assert run(tmp_path, registered, "JHN 1:1") == []
 
-    def test_a_resource_naming_no_source_is_null(self, tmp_path, unregistered):
-        """Nothing was consulted, because this resource registers no such database.
+    def test_a_resource_needs_no_registration_field(self, tmp_path, registered):
+        """The dataset ships with the engine, so the registration names nothing about it."""
+        assert run(tmp_path, registered, "MRK 1:2") != []
 
-        A commentary step can then take the input on every run and read `[]` as a real
-        answer. Rule `say-which-kind-of-nothing`.
-        """
-        assert run(tmp_path, unregistered, "MRK 1:2") is None
 
-    def test_the_warning_says_how_to_obtain_the_database(
-        self, tmp_path, unregistered, caplog
-    ):
-        """Naming the registration command alone is half an instruction.
+class TestTheRegistrationOptionIsGone:
+    def test_resource_set_refuses_the_retired_option(self, capsys):
+        """`--parallel-passages-path` pointed a registration at the XML; there is nothing left
+        for it to point at, so it is refused rather than accepted and ignored."""
+        from llmflow.cli import main
 
-        `sp resource set --parallel-passages-path` cannot succeed until the data is on
-        disk, and on a fresh machine it is not: the catalog carries
-        `ubs-parallel-passages` as `git`, undownloaded. So the starter example's third
-        step writes `null` on its first run and the advice offered could not be followed.
-        """
-        import logging
-
-        with caplog.at_level(logging.WARNING):
-            run(tmp_path, unregistered, "MRK 1:2")
-
-        warned = "\n".join(
-            r.message for r in caplog.records if r.levelno >= logging.WARNING
-        )
-        assert "sp resource set" in warned, "the registration step must still be named"
-        assert "sp dataset" in warned, (
-            "the warning names how to register a path but not how to obtain the data. "
-            "`sp dataset search parallel` finds it and `sp dataset download` fetches it; "
-            "without that half, a reader is told to register a file they do not have."
-        )
+        with pytest.raises(SystemExit):
+            main(["resource", "set", "SBLGNT", "--parallel-passages-path", "anything"])
+        assert "--parallel-passages-path" in capsys.readouterr().err
 
 
 class TestThroughTheCommandLine:

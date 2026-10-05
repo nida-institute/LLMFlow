@@ -922,16 +922,14 @@ run time. The join runs through MARBLE identifiers, and
 counting positions instead is wrong about one row in eleven and silently wrong; the step says so
 rather than guessing.
 
-**The database is named by the resource's registration**, not by a path in the pipeline:
+**The database ships with the engine**, as `data/parallel-passages.json`: the UBS Parallel
+Passages Database, converted once by `tools/parallel-passages/generate.py`. Nothing is downloaded
+or registered, and every resource is answered from it. The dataset is **CC BY-SA 4.0**, as its
+source is: output built from it carries that licence and an attribution to the United Bible
+Societies, and its `about` block names both.
 
-```bash
-sp resource set SBLGNT --parallel-passages-path <dataset>/<path>
-```
-
-**Two kinds of nothing.** An empty list means the database was consulted and this passage takes
-part in no group. `null` means the resource names no `parallel_passages_path`, so nothing was
-consulted — a step downstream can then take this input on every run and read `[]` as a real
-answer. Rule `say-which-kind-of-nothing`.
+An empty list means the database was consulted and this passage takes part in no group. Rule
+`say-which-kind-of-nothing`.
 
 ---
 
@@ -1162,8 +1160,8 @@ had read the document and stopped. Asserted by
 `tests/test_scripture_include.py::test_include_with_any_format_returns_the_text_beside_the_container`
 and `::test_asking_for_analyses_does_not_change_the_text`.*
 
-Seven families: `ids`, `morphology`, `senses`, `glosses`, `referents`, `discourse`, `syntax`.
-**All seven are built.**
+Eight families: `ids`, `morphology`, `senses`, `glosses`, `referents`, `discourse`, `syntax`,
+`frequency`. **All eight are built.**
 
 *Corrected 2026-09-24. This paragraph said `ids` and `discourse` were implemented and the other
 five raised `NotImplementedError`. They do not, and had not for some time: each was measured
@@ -1191,6 +1189,27 @@ field is added with `sp resource set`.
 | `morphology`, `senses`, `glosses`, `referents` | nothing — they come from the resource's own TSV |
 | `syntax` | `lowfat_path` on the registry entry |
 | `discourse` | `discourse_path` on the registry entry |
+| `frequency` | a corpus table the engine ships for the resource — `SBLGNT` and `WLC` today |
+
+**`frequency` says how common each word's lemma is in its corpus** — the Greek New Testament for
+`SBLGNT`, the Hebrew Bible for `WLC`. Each word id maps to `{corpus, count,
+in_least_frequent_percent}`: `count` is how often the lemma occurs in the whole corpus, and
+`in_least_frequent_percent` is the smallest N for which the lemma falls among the corpus's least
+frequent N% of lemmas, so a word is less common at a cut-off of N when it is at most N. The
+tables are generated once from Macula Lowfat (`tools/lemma-frequency/`) and ship with the engine,
+so nothing is installed or queried at run time. A Hebrew pronominal suffix has no entry, because
+the table is counted without them; a resource with no table answers `frequency: null`.
+
+**With `syntax`, the step returns whole sentences** (#267). A tree is carried whole wherever the
+passage meets its sentence, so the words are too: the text, in every format, and every other
+family requested are widened to every word of every sentence the passage touches. `MRK 1:3-8`
+therefore returns the 20 words of 1:2, where the sentence opening `Καθὼς γέγραπται` begins.
+
+The container says which words were added. `outside_passage` maps the id of each word outside the
+requested verses to `true`; it is `{}` when the passage begins and ends on sentence boundaries, and
+`null` when the rows were not widened — `spans:` cuts its own units and is not widened, and a
+resource naming no `lowfat_path` has no sentences to widen to. The `reference` member still
+describes the passage as requested. Without `syntax`, nothing widens.
 
 ```yaml
 - name: fetch-addressable

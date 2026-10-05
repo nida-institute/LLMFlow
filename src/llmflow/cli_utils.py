@@ -332,8 +332,9 @@ _TEMPLATE_BACKED = {
     "ASSISTANT_RULES_POINTER": "project/assistant-rules-pointer.md",
     "CURSORRULES_LLMFLOW_BLOCK": "project/assistant-rules-pointer.md",
     "WINDSURFRULES_LLMFLOW_BLOCK": "project/assistant-rules-pointer.md",
-    "COMMENTARY_PIPELINE": "project/pipelines/commentary.yaml",
-    "COMMENTARY_PROMPT": "project/prompts/commentary.gpt",
+    "READERS_GUIDE_PIPELINE": "project/pipelines/readers-guide.yaml",
+    "READERS_GUIDE_PROMPT": "project/prompts/readers-guide.gpt",
+    "PARALLEL_SIGNIFICANCE_PROMPT": "project/prompts/parallel-significance.gpt",
     "PROJECT_TODO": "project/project/TODO.md",
     "PROJECT_AUDITS_README": "project/project/audits/README.md",
 }
@@ -598,8 +599,9 @@ def install_global_skills(sp_home: Optional[Path] = None, force: bool = False) -
 #: catalog addresses documents by path and a second list keyed on constant names would be the
 #: hand-kept list this loop exists to delete.
 _EXAMPLE_PATHS = frozenset({
-    "pipelines/commentary.yaml",
-    "prompts/commentary.gpt",
+    "pipelines/readers-guide.yaml",
+    "prompts/readers-guide.gpt",
+    "prompts/parallel-significance.gpt",
     "docs/tutorial.md",
 })
 
@@ -677,7 +679,7 @@ def init_project(base_dir: Path, update: bool = False, no_examples: bool = False
     files untouched.
 
     When no_examples=True, skip the starter example files
-    (commentary.yaml, commentary.gpt, tutorial.md) — directories and
+    (readers-guide.yaml, its two prompts, tutorial.md) — directories and
     structural files are still created.
     """
     prompts_dir = base_dir / "prompts"

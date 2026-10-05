@@ -155,7 +155,7 @@ def build_parser():
         "--no-examples",
         action="store_true",
         dest="no_examples",
-        help="Skip example files (commentary.yaml, commentary.gpt, tutorial.md) — "
+        help="Skip example files (readers-guide.yaml, its two prompts, tutorial.md) — "
         "creates directories and structural files only",
     )
 
@@ -205,8 +205,6 @@ def build_parser():
     res_set.add_argument("--discourse-path", default=None, dest="discourse_path",
                          help="Dataset-relative, or a dataset id with a subpath")
     res_set.add_argument("--lowfat-path", default=None, dest="lowfat_path",
-                         help="Dataset-relative, or a dataset id with a subpath")
-    res_set.add_argument("--parallel-passages-path", default=None, dest="parallel_passages_path",
                          help="Dataset-relative, or a dataset id with a subpath")
 
     ds_p = subparsers.add_parser("dataset", help="Bodies of data the catalog describes")
@@ -631,7 +629,6 @@ def main(argv=None):
             fields = {
                 "discourse_path": args.discourse_path,
                 "lowfat_path": args.lowfat_path,
-                "parallel_passages_path": args.parallel_passages_path,
             }
             if not any(fields.values()):
                 print("❌ Nothing to set. Name at least one field, e.g. --discourse-path.")

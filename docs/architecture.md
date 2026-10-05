@@ -533,7 +533,7 @@ declared in `data/file-catalog.yaml`**, one row per path with a `policy` — `ge
 - **`.claude/skills/`** — copied from the machine store, so a clone of the repo has the slash
   commands.
 - **`docs/cli-api.json`, the language quickref, `docs/vscode.md`** — generated. The starter
-  example (`pipelines/commentary.yaml`, `prompts/commentary.gpt`, `docs/tutorial.md`) is
+  example (`pipelines/readers-guide.yaml`, its two prompts, `docs/tutorial.md`) is
   `policy: example`.
 - **`~/.sp/`** (or `$SP_HOME`) — the machine store: disciplines, `drift-patterns.md`, skills and
   versification schemes, shared across all projects on the machine.

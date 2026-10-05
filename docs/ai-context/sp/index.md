@@ -25,18 +25,19 @@ references there, or in documents it points to.
 | `docs/llmflow-language-quickref.md` | The pipeline YAML reference — step types, variables, window and for-each. |
 | `docs/tutorial.md` | Step-by-step walkthrough of the starter example: naming a resource, stating which versification a reference is written in, and named step outputs. Four steps, three of which call no model. |
 | `docs/vscode.md` | VS Code setup for editing pipelines and prompts. |
-| `pipelines/commentary.yaml` | Passage commentary for group leaders and preachers — four steps, three of which call no model. |
+| `pipelines/readers-guide.yaml` | A reader's guide to a Greek or Hebrew passage, and what its parallel passages mean in their original context and as used here — two model steps, every other step free. |
 | `project/TODO.md` | Active work, what is in flight, and what not to touch. Read before anything else. |
 | `project/audits/README.md` | How audit findings are recorded for this project. |
 | `project/plans/README.md` | Where designs and plans live, the status they must declare, and why they are deleted after about eight days. |
-| `prompts/commentary.gpt` | The commentary prompt. The first in this repository to conform to the ruled section order in data/prompt-structure.yaml. |
+| `prompts/parallel-significance.gpt` | The parallel-significance prompt: each earlier passage in its own chapter, and how this passage adapts it. |
+| `prompts/readers-guide.gpt` | The reader's guide prompt: less common words, the force of each infinitive and participle against its sentence, and how the verbs relate. |
 ## Scripture Pipelines documentation
 
 **This engine is reached one way: the `sp` command line, and the pipeline language it reads.**
 Everything else is the engine's own and carries no compatibility promise, so a project that
 builds on it has taken a dependency nobody offered.
 
-- [The pipeline language](https://github.com/nida-institute/LLMFlow/blob/main/docs/llmflow-language.md)
+- [The pipeline language](https://github.com/nida-institute/LLMFlow/blob/main/docs/sp-language.md)
   — every step type, its keys, and what each one returns
 - [Quick reference](llmflow-language-quickref.md) — the same, short, beside you while you write
 - `sp --help`, and `sp <command> --help` — the commands, from the tool itself

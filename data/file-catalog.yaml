@@ -249,25 +249,35 @@ files:
   # The hello-world pair it replaced touched no scripture, no resource, no versification
   # and no schema, and the second did not consume the first — so neither showed what the
   # engine is for (#244).
-  - path: pipelines/commentary.yaml
+  - path: pipelines/readers-guide.yaml
     scope: project
     policy: example
     source: template
-    template: project/pipelines/commentary.yaml
+    template: project/pipelines/readers-guide.yaml
     committed: true
     purpose: >-
-      Passage commentary for group leaders and preachers — four steps, three of which
-      call no model.
+      A reader's guide to a Greek or Hebrew passage, and what its parallel passages mean in
+      their original context and as used here — two model steps, every other step free.
 
-  - path: prompts/commentary.gpt
+  - path: prompts/readers-guide.gpt
     scope: project
     policy: example
     source: template
-    template: project/prompts/commentary.gpt
+    template: project/prompts/readers-guide.gpt
     committed: true
     purpose: >-
-      The commentary prompt. The first in this repository to conform to the ruled
-      section order in data/prompt-structure.yaml.
+      The reader's guide prompt: less common words, the force of each infinitive and
+      participle against its sentence, and how the verbs relate.
+
+  - path: prompts/parallel-significance.gpt
+    scope: project
+    policy: example
+    source: template
+    template: project/prompts/parallel-significance.gpt
+    committed: true
+    purpose: >-
+      The parallel-significance prompt: each earlier passage in its own chapter, and how this
+      passage adapts it.
 
   # How a project records audit findings. create-once: the project adapts it, and
   # `sp doctor` never overwrites a create-once entry.

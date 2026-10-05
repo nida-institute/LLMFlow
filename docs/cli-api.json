@@ -474,7 +474,7 @@
           "flags": [
             "--no-examples"
           ],
-          "help": "Skip example files (commentary.yaml, commentary.gpt, tutorial.md) — creates directories and structural files only",
+          "help": "Skip example files (readers-guide.yaml, its two prompts, tutorial.md) — creates directories and structural files only",
           "required": false
         },
         {
@@ -804,13 +804,6 @@
         {
           "flags": [
             "--lowfat-path"
-          ],
-          "help": "Dataset-relative, or a dataset id with a subpath",
-          "required": false
-        },
-        {
-          "flags": [
-            "--parallel-passages-path"
           ],
           "help": "Dataset-relative, or a dataset id with a subpath",
           "required": false

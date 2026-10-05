@@ -399,6 +399,13 @@ needs no design document.
 
 => Agreed. the semantics are (b), implemention can change as long as the result is correct.
 
+**Ruled 2026-10-03, superseding the recommendation above.** The Captain: *"I said generate it once
+and save it as a dataset in this repository."* So the JSON is a dataset, generated once by a
+generator committed in `tools/`, saved in this repository, and read by the `parallel-passages`
+step in place of the XML. The paragraphs above recommending conversion in the reader on every run,
+with no artifact, are withdrawn; they had answered the Captain's D5 instruction with the opposite
+of it.
+
 ### D6. Do the 207 unstable rows need saying in the output?
 
 222 `(edition, reference)` pairs appear in more than one group, and **207 of them carry a

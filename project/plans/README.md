@@ -51,6 +51,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-shipping-the-audit-method.md](design-shipping-the-audit-method.md) | Proposed, 2026-08-25. All four questions in §7 are answered — Q1 (templates mirror | #211 #214 |
 | [design-source-licensing.md](design-source-licensing.md) | Proposed, 2026-08-24. Four rulings recorded from the Captain (§3); six questions | #201 |
 | [design-sp-help.md](design-sp-help.md) | proposed (2026-09-28) | #263 #264 |
+| [design-starter-examples.md](design-starter-examples.md) | ruled (2026-10-02) | #244 #252 #258 #261 #263 #267 |
 | [design-structured-output-preflight.md](design-structured-output-preflight.md) | Implemented in 0.2.1.24 — historical record | #191 #197 |
 | [design-usj-operations.md](design-usj-operations.md) | D1-D4 ruled (2026-09-22); one follow-on open, D3c. Not authorization to build. | #241 #246 #247 #248 #249 |
 | [design-verse-range-operations.md](design-verse-range-operations.md) | Approved 2026-08-17 — authoritative for the data model. Not a work order: the | #168 |
@@ -69,10 +70,11 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-scripture-step.md](plan-scripture-step.md) | Proposed, 2026-08-26. Targeted at the next release (ruled 2026-08-26). Nothing | #109 #110 #200 #203 #212 |
 | [plan-skills-convention-json.md](plan-skills-convention-json.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | #163 #164 |
 | [plan-starter-example-commentary.md](plan-starter-example-commentary.md) | ruled (2026-09-26). §2 and all four decisions in §8 are answered. The sample output | #176 #203 #244 #255 #258 |
+| [plan-starter-examples.md](plan-starter-examples.md) | ruled (2026-10-02) | #244 #252 #261 #267 |
 | [plan-terms-on-download-and-register.md](plan-terms-on-download-and-register.md) | ruled (2026-09-25). Three decisions are the Captain's and are recorded in §2. | #204 |
 | [plan-verse-range-set-ops.md](plan-verse-range-set-ops.md) | Approved 2026-08-17 — authoritative for the implementation (names, signatures, | — |
 | [plan-window-semantics.md](plan-window-semantics.md) | complete, 2026-08-21. Items 1 and 3 landed; item 2's two decisions were ruled and | #175 |
 | [plan-window-token-defects.md](plan-window-token-defects.md) | ruled (2026-09-22) → #246. Defect 2 ruled A by the Captain; the other two need no ruling. | #246 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-67 documents.
+69 documents.

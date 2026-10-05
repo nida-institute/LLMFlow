@@ -357,12 +357,14 @@ registry entry, a Paratext project's settings, or the shipped table — there is
 no global default, and asking to cross schemes without one is an error.
 
 **`include`** delivers analyses under one key, `scripture_pipelines`, which a
-consumer can strip to get standard USJ. Seven families, all built: `ids`,
-`morphology`, `senses`, `glosses`, `referents`, `discourse`, `syntax`. Every
-family except `ids` needs `ids` beside it, because analyses are keyed by word
-id; asking for one alone is an error. `discourse` and `syntax` also need a path
-on the resource's registration — without it the family is `null` with a
-warning. `ids` becomes `srcloc` on each word.
+consumer can strip to get standard USJ. Eight families, all built: `ids`,
+`morphology`, `senses`, `glosses`, `referents`, `discourse`, `syntax`,
+`frequency`. Every family except `ids` needs `ids` beside it, because analyses
+are keyed by word id; asking for one alone is an error. `discourse` and `syntax`
+also need a path on the resource's registration — without it the family is
+`null` with a warning. `frequency` gives each word its lemma's `count` in the
+corpus (GNT for `SBLGNT`, HOT for `WLC`) and `in_least_frequent_percent`, from
+tables the engine ships. `ids` becomes `srcloc` on each word.
 `discourse` attaches Levinsohn's features at word ids, each carrying an
 `outcome` — his indices are NA28-family and the text is SBLGNT, so a
 disagreement is reported rather than silently resolved.
@@ -378,7 +380,7 @@ Writes literal content to disk without calling an LLM.
     ✅ Scripture Pipelines is installed and running.
     2 + 2 = ${total}
   saveas:
-    path: "${output_dir}/commentary.md"
+    path: "${output_dir}/confirmation.md"
 ```
 
 Use `save` when you just need to materialize a small message or
@@ -488,7 +490,7 @@ prompt:
 
 Everything after the header is sent to the model as written, and its `#`
 sections follow one order, which `sp lint` checks and warns on. A complete
-prompt in that order is `prompts/commentary.gpt`, the starter example `sp init`
+prompt in that order is `prompts/readers-guide.gpt`, from the starter example `sp init`
 writes — copy its shape. `sp lint` prints the full order beside its first
 warning.
 

@@ -1,4 +1,4 @@
-"""Reading the UBS Parallel Passages database at verse level.
+"""Reading the parallel-passages dataset at verse level.
 
 The reader answers one question: which groups does a passage take part in. A group is
 returned whole, never intersected with the request (#258).
@@ -9,6 +9,7 @@ from __future__ import annotations
 import pytest
 
 from llmflow.utils.parallel_passages import groups_for_passage, load_parallel_passages
+from tests.parallel_passages_fixture import build_dataset
 
 SAMPLE = """<?xml version="1.0" encoding="utf-8"?>
 <Passages>
@@ -35,16 +36,17 @@ SAMPLE = """<?xml version="1.0" encoding="utf-8"?>
 
 @pytest.fixture
 def index(tmp_path):
-    path = tmp_path / "ParallelPassages.xml"
-    path.write_text(SAMPLE, encoding="utf-8")
-    return load_parallel_passages(path)
+    return load_parallel_passages(build_dataset(tmp_path, SAMPLE))
+
+
+def references(group):
+    return [member["addressed"]["reference"] for member in group["members"]]
 
 
 class TestFindingAGroup:
     def test_a_verse_finds_the_group_naming_it(self, index):
         groups = groups_for_passage(index, "MRK 1:4")
-        assert len(groups) == 1
-        assert [v["reference"] for v in groups[0]["verses"]] == ["MAT 3:1-2", "MRK 1:4"]
+        assert [references(group) for group in groups] == [["MAT 3:1-2", "MRK 1:4"]]
 
     def test_a_verse_inside_a_range_row_finds_it(self, index):
         """`MRK 1:2-3` is a row; asking for 1:3 must find it.
@@ -52,17 +54,11 @@ class TestFindingAGroup:
         String equality is what the reader must not do: 647 of 5,266 rows carry a range.
         """
         groups = groups_for_passage(index, "MRK 1:3")
-        assert len(groups) == 1
-        assert [v["reference"] for v in groups[0]["verses"]] == [
-            "MAT 3:3",
-            "MRK 1:2-3",
-            "LUK 3:4",
-        ]
+        assert [references(group) for group in groups] == [["MAT 3:3", "MRK 1:2-3", "LUK 3:4"]]
 
     def test_a_verse_in_a_comma_row_finds_it(self, index):
         groups = groups_for_passage(index, "MRK 1:34")
-        assert len(groups) == 1
-        assert groups[0]["verses"][1]["reference"] == "MRK 1:32,34"
+        assert [references(group) for group in groups] == [["MAT 8:16", "MRK 1:32,34"]]
 
     def test_a_verse_the_comma_row_omits_does_not_match(self, index):
         """`MRK 1:32,34` names two verses and not the one between them."""
@@ -73,24 +69,25 @@ class TestTheGroupIsReturnedWhole:
     def test_a_partial_overlap_returns_every_member(self, index):
         """The whole row, never an intersection (#258)."""
         groups = groups_for_passage(index, "MRK 1:2")
-        refs = {v["reference"] for g in groups for v in g["verses"]}
+        refs = {reference for group in groups for reference in references(group)}
         assert "MAT 3:3" in refs and "LUK 3:4" in refs
 
     def test_a_range_request_collects_every_group_once(self, index):
         """MRK 1:2 is in two groups and 1:3 in one of them; no group is repeated."""
         groups = groups_for_passage(index, "MRK 1:2-4")
-        signatures = [tuple(v["reference"] for v in g["verses"]) for g in groups]
+        signatures = [tuple(references(group)) for group in groups]
         assert len(signatures) == len(set(signatures))
         assert len(groups) == 3
 
 
-class TestWhatAVerseCarries:
-    def test_a_verse_carries_its_scores_and_the_edition_indexing_them(self, index):
+class TestWhatAMemberCarries:
+    def test_a_member_carries_its_scores_and_the_edition_counting_them(self, index):
+        """A Hebrew member of a group with Greek members is counted in Rahlfs, not BHS."""
         groups = groups_for_passage(index, "MAL 3:1")
-        verses = {v["reference"]: v for v in groups[0]["verses"]}
-        assert verses["MAL 3:1"]["indexed_by"] == "HEB"
-        assert verses["MRK 1:2"]["indexed_by"] == "GRK"
-        assert verses["MRK 1:2"]["scores"] == "12000005222222252222"
+        members = {member["addressed"]["reference"]: member for member in groups[0]["members"]}
+        assert members["MAL 3:1"]["counted"]["text"] == "Rahlfs"
+        assert members["MRK 1:2"]["counted"]["text"] == "UBSGNT5"
+        assert members["MRK 1:2"]["match"][:3] == ["partial", "full", "no_match"]
 
 
 class TestTwoKindsOfNothing:

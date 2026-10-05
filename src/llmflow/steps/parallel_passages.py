@@ -62,10 +62,7 @@ def run_parallel_passages_step(
         versification=resolve(step.get("versification"), context) or None,
     )
 
-    logger.info(
-        f"   {'no source registered' if result is None else f'{len(result)} groups'} "
-        f"for {passage} in {resource}"
-    )
+    logger.info(f"   {len(result)} groups for {passage} in {resource}")
     # `references` is primary, so a bare `output:` name binds the group list exactly as before.
     # `words` is declared and refused above, so it never reaches here with a value.
     handle_step_outputs(
