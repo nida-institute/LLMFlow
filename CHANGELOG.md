@@ -4,6 +4,25 @@
 
 ### Added
 
+- **A resource's licence is shown when it lands, and registering agrees to it → #252.**
+  `sp resource add` and `sp dataset download` print the catalog's licence and a link to it —
+  a URL written in the licence, else a standard licence's own page, else the source's page,
+  labelled as such. `add` also fetches the full licence text where it can — the repository's
+  licence file through GitHub's API, or a plain-text file the licence names (a GitHub `blob`
+  link is read as the raw file; a web page stays a link) — and shows its first 20 lines. It
+  asks for agreement to the summary before downloading, and a declined prompt leaves no
+  registration and nothing fetched. With no terminal it refuses unless given `--accept-terms`,
+  including when input is piped in, so `yes | sp resource add X` is not agreement. The
+  agreement is recorded under `terms:` in the registration — the summary, any pointer in it,
+  the link, the date and how it was given — and the text is saved beside it as
+  `<id>.licence.txt`, recorded by its SHA-256 and source; when it cannot be fetched the record
+  says why. The same terms are not asked twice; a changed summary or text is. A licence that is
+  only a pointer (`See site`) and whose text could not be fetched is shown, registered without
+  asking, and recorded as shown, not agreed. `sp resource add --path` says there is no catalog
+  licence. **New command `sp resource terms [ID …]`** lists what each registration was made
+  under and where its agreed text is saved, for when you publish work built on it. Guarded by
+  `tests/test_terms_on_download_and_register.py` (36).
+
 - **A new starter example: a reader's guide, and what a passage's parallels mean → #244.**
   `sp init` now writes `pipelines/readers-guide.yaml` with two prompts,
   `prompts/readers-guide.gpt` and `prompts/parallel-significance.gpt`, in place of the passage

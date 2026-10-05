@@ -1211,6 +1211,26 @@
           "doc": "Let every command print its glyphs without dying on the console's encoding."
         },
         {
+          "name": "_print_licence",
+          "signature": "_print_licence(resources, entry) -> None",
+          "doc": "The licence a catalog entry names, and the link to it."
+        },
+        {
+          "name": "_terms_to_record",
+          "signature": "_terms_to_record(resources, args)",
+          "doc": "Show the terms of the resource being registered, and agree to them or refuse (#252)."
+        },
+        {
+          "name": "_print_licence_text",
+          "signature": "_print_licence_text(resources, fetched) -> None",
+          "doc": "The opening of the fetched licence text, or why there is none."
+        },
+        {
+          "name": "_print_recorded_terms",
+          "signature": "_print_recorded_terms(name, registration) -> None",
+          "doc": "One registration's terms as `sp resource terms` shows them."
+        },
+        {
           "name": "main",
           "signature": "main(argv = None)",
           "doc": ""
@@ -1436,8 +1456,48 @@
           "doc": "Every registration this machine holds. Absence is normal; a fresh machine has none."
         },
         {
+          "name": "licence_link",
+          "signature": "licence_link(entry: Mapping[str, Any]) -> tuple",
+          "doc": "`(link, kind)` to the terms *entry*'s licence names, kind `licence` or `source-page`."
+        },
+        {
+          "name": "pointer_of",
+          "signature": "pointer_of(licence: Any) -> Optional[str]",
+          "doc": "The part of a licence string that sends the reader elsewhere — `see LICENSE.md …` — or"
+        },
+        {
+          "name": "is_pointer",
+          "signature": "is_pointer(licence: Any) -> bool",
+          "doc": "Whether a licence string is *only* a pointer, with no summary of its own."
+        },
+        {
+          "name": "_http_get",
+          "signature": "_http_get(url: str, accept: Optional[str] = None) -> tuple",
+          "doc": "`(status, content type, body)` for *url*. An HTTP error is a status; no route is OSError."
+        },
+        {
+          "name": "_raw_github",
+          "signature": "_raw_github(url: str) -> str",
+          "doc": "A `github.com/<owner>/<repo>/blob/<ref>/<path>` page as the file itself; anything else"
+        },
+        {
+          "name": "fetch_licence_text",
+          "signature": "fetch_licence_text(entry: Mapping[str, Any]) -> dict",
+          "doc": "The full text the licence summary stands for: `{text, sha256, source}`, or `{reason}`."
+        },
+        {
+          "name": "terms_record",
+          "signature": "terms_record(entry: Mapping[str, Any], via: Optional[str] = None, fetched: Optional[Mapping[str, Any]] = None) -> dict",
+          "doc": "What a registration records about the terms it was made under."
+        },
+        {
+          "name": "agreed_terms",
+          "signature": "agreed_terms(identifier: str, licence: Any, sha256: Optional[str] = None) -> Optional[dict]",
+          "doc": "The recorded agreement to *licence* for *identifier*, or None if there is none."
+        },
+        {
           "name": "register",
-          "signature": "register(identifier: str, download: bool = True) -> Path",
+          "signature": "register(identifier: str, download: bool = True, terms: Optional[Mapping] = None, licence_text: Optional[str] = None) -> Path",
           "doc": "Write this machine's registration for one catalog resource, and return its path."
         },
         {
@@ -1453,7 +1513,12 @@
         {
           "name": "_write_registration",
           "signature": "_write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> Path",
-          "doc": "Write one registration, unlocking the store around it."
+          "doc": "Write one registration as YAML under *banner*."
+        },
+        {
+          "name": "_write_into_store",
+          "signature": "_write_into_store(target: Path, text: str) -> Path",
+          "doc": "Write one file into the store, unlocking it around the write."
         },
         {
           "name": "register_dataset",
@@ -5713,6 +5778,6 @@
   ],
   "summary": {
     "total_modules": 94,
-    "total_functions": 906
+    "total_functions": 919
   }
 }

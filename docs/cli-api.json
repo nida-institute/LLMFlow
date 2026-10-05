@@ -734,6 +734,13 @@
       "options": [
         {
           "flags": [
+            "--accept-terms"
+          ],
+          "help": "Agree to the licence without being asked — for scripts and CI",
+          "required": false
+        },
+        {
+          "flags": [
             "--help",
             "-h"
           ],
@@ -806,6 +813,19 @@
             "--lowfat-path"
           ],
           "help": "Dataset-relative, or a dataset id with a subpath",
+          "required": false
+        }
+      ]
+    },
+    "sp resource terms": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
           "required": false
         }
       ]
@@ -1344,7 +1364,7 @@
     "warn"
   ],
   "summary": {
-    "total_commands": 38,
+    "total_commands": 39,
     "total_step_types": 19
   }
 }

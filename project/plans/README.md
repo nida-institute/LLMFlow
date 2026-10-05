@@ -71,7 +71,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-skills-convention-json.md](plan-skills-convention-json.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | #163 #164 |
 | [plan-starter-example-commentary.md](plan-starter-example-commentary.md) | ruled (2026-09-26). §2 and all four decisions in §8 are answered. The sample output | #176 #203 #244 #255 #258 |
 | [plan-starter-examples.md](plan-starter-examples.md) | ruled (2026-10-02) | #244 #252 #261 #267 |
-| [plan-terms-on-download-and-register.md](plan-terms-on-download-and-register.md) | ruled (2026-09-25). Three decisions are the Captain's and are recorded in §2. | #204 |
+| [plan-terms-on-download-and-register.md](plan-terms-on-download-and-register.md) | ruled (2026-09-25, and the rest 2026-10-05 — §2a) and built, uncommitted. | #204 #252 |
 | [plan-verse-range-set-ops.md](plan-verse-range-set-ops.md) | Approved 2026-08-17 — authoritative for the implementation (names, signatures, | — |
 | [plan-window-semantics.md](plan-window-semantics.md) | complete, 2026-08-21. Items 1 and 3 landed; item 2's two decisions were ruled and | #175 |
 | [plan-window-token-defects.md](plan-window-token-defects.md) | ruled (2026-09-22) → #246. Defect 2 ruled A by the Captain; the other two need no ruling. | #246 |

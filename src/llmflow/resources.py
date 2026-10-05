@@ -247,7 +247,7 @@ def readable() -> dict:
             merged["source_id"] = entry.get("id")
             merged.setdefault("license", entry.get("license"))
             # Where to get it, carried so a fetcher needs the item and not the whole catalog.
-            for field in ("github", "download"):
+            for field in ("github", "download", "url"):
                 if entry.get(field):
                     merged.setdefault(field, entry[field])
             out[str(item["id"])] = merged
@@ -423,13 +423,199 @@ def load_registered(directory: Any = None) -> dict:
 REGISTERED_FIELDS = ("name", "language", "canon", "kind", "path", "license")
 
 
-def register(identifier: str, download: bool = True) -> Path:
+#: The page that states each standard licence the catalog names. The catalog carries a licence's
+#: name and no link to it, so the link is filled here until a `license_url` field exists upstream
+#: in `awesome-biblical-data`. Exact names only: a compound such as
+#: `CC BY-SA 4.0 (text); MIT (build code)` is two licences, and picking one would misstate it.
+STANDARD_LICENCE_PAGES = {
+    "CC BY 4.0": "https://creativecommons.org/licenses/by/4.0/",
+    "CC BY-SA 4.0": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "CC BY-NC 4.0": "https://creativecommons.org/licenses/by-nc/4.0/",
+    "CC BY-NC-SA 4.0": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+    "CC BY 3.0": "https://creativecommons.org/licenses/by/3.0/",
+    "CC BY-SA 3.0": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "CC0 — public domain": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "MIT": "https://opensource.org/license/mit",
+    "Apache-2.0": "https://www.apache.org/licenses/LICENSE-2.0",
+}
+
+
+def licence_link(entry: Mapping[str, Any]) -> tuple:
+    """`(link, kind)` to the terms *entry*'s licence names, kind `licence` or `source-page`.
+
+    A URL written into the licence string wins, then a standard licence's own page, then the
+    source's page — marked as such, because it is where the terms may be found and not the terms.
+    `(None, None)` when there is nowhere to point.
+    """
+    licence = str(entry.get("license") or "")
+    found = re.search(r"https?://\S+", licence)
+    if found:
+        return found.group(0).rstrip(".,;)"), "licence"
+    if licence.strip() in STANDARD_LICENCE_PAGES:
+        return STANDARD_LICENCE_PAGES[licence.strip()], "licence"
+    source = entry.get("url") or entry.get("github")
+    return (str(source), "source-page") if source else (None, None)
+
+
+_POINTER = re.compile(r"\bsee\b.*$", re.IGNORECASE | re.DOTALL)
+
+
+def pointer_of(licence: Any) -> Optional[str]:
+    """The part of a licence string that sends the reader elsewhere — `see LICENSE.md …` — or
+    None when it only states terms."""
+    found = _POINTER.search(str(licence or ""))
+    return found.group(0).strip() if found else None
+
+
+def is_pointer(licence: Any) -> bool:
+    """Whether a licence string is *only* a pointer, with no summary of its own.
+
+    `See repo` is; `Apache-2.0 (code) — see LICENSE.md` and `Custom — see <url>` are summaries that
+    also point, and a summary is something to agree to.
+    """
+    text = str(licence or "")
+    if not pointer_of(text):
+        return False
+    return not re.sub(r"[\W_]+", "", _POINTER.sub("", text))
+
+
+#: The licence text shown before the prompt; the whole of it is saved with the registration.
+LICENCE_PREVIEW_LINES = 20
+
+
+def _http_get(url: str, accept: Optional[str] = None) -> tuple:
+    """`(status, content type, body)` for *url*. An HTTP error is a status; no route is OSError."""
+    import urllib.error
+    import urllib.request
+
+    headers = {"User-Agent": "llmflow/sp"}
+    if accept:
+        headers["Accept"] = accept
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30) as r:
+            return r.status, r.headers.get("Content-Type", ""), r.read()
+    except urllib.error.HTTPError as error:
+        return error.code, "", b""
+
+
+def _raw_github(url: str) -> str:
+    """A `github.com/<owner>/<repo>/blob/<ref>/<path>` page as the file itself; anything else
+    unchanged."""
+    found = re.match(r"https?://github\.com/([^/]+)/([^/]+)/blob/(.+)$", url)
+    if not found:
+        return url
+    owner, repo, rest = found.groups()
+    return f"https://raw.githubusercontent.com/{owner}/{repo}/{rest}"
+
+
+def fetch_licence_text(entry: Mapping[str, Any]) -> dict:
+    """The full text the licence summary stands for: `{text, sha256, source}`, or `{reason}`.
+
+    A URL written into the licence names the terms, so it is the only place looked: a different
+    file from the same repository may be different terms. A web page is not taken as text —
+    its markup would become the record — so it stays a link. Without a URL, a GitHub repository's
+    licence file is fetched through the API, which finds it whatever it is called.
+    """
+    import base64
+    import hashlib
+
+    licence = str(entry.get("license") or "")
+    named = re.search(r"https?://\S+", licence)
+    try:
+        if named:
+            url = named.group(0).rstrip(".,;)")
+            status, content_type, body = _http_get(_raw_github(url))
+            if status != 200:
+                return {"reason": f"{url} answered {status}"}
+            if not content_type.startswith("text/plain"):
+                return {"reason": f"the terms are a web page, not a text file — read them at {url}"}
+            text, source = body.decode("utf-8", errors="replace"), url
+        else:
+            repo = re.match(
+                r"https?://github\.com/([^/]+)/([^/#?]+?)(?:\.git)?/?$",
+                str(entry.get("github") or ""),
+            )
+            if not repo:
+                return {"reason": "nowhere to fetch it from — no URL in the licence, no repository"}
+            owner, name = repo.groups()
+            status, _, body = _http_get(
+                f"https://api.github.com/repos/{owner}/{name}/license",
+                accept="application/vnd.github+json",
+            )
+            if status == 404:
+                return {"reason": f"{owner}/{name} has no licence file GitHub recognises"}
+            if status != 200:
+                return {"reason": f"GitHub answered {status} for {owner}/{name}'s licence"}
+            answer = json.loads(body)
+            text = base64.b64decode(answer.get("content") or "").decode("utf-8", errors="replace")
+            source = answer.get("html_url") or f"https://github.com/{owner}/{name}"
+    except OSError as error:
+        return {"reason": f"could not reach it: {error}"}
+    if not text.strip():
+        return {"reason": f"{source} is empty"}
+    return {"text": text, "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(), "source": source}
+
+
+def terms_record(entry: Mapping[str, Any], via: Optional[str] = None,
+                 fetched: Optional[Mapping[str, Any]] = None) -> dict:
+    """What a registration records about the terms it was made under.
+
+    *via* is how agreement was given — `prompt` or `--accept-terms` — and None for terms shown
+    and not agreed. *fetched* is `fetch_licence_text()`'s answer; the text itself is written
+    beside the registration by `register()`, and recorded here by its hash and its source. Kept
+    because a user publishing their own work needs to know what they agreed to and where it is.
+    """
+    import datetime
+
+    licence = entry.get("license")
+    link, link_kind = licence_link(entry)
+    fetched = fetched or {}
+    record: dict = {"license": licence}
+    if via:
+        # A pointer has no summary, so agreeing to it is agreeing to the text it led to.
+        record["agreed_to"] = "text" if is_pointer(licence) else "summary"
+    record.update({"link": link, "link_kind": link_kind})
+    if pointer_of(licence):
+        record["pointer"] = pointer_of(licence)
+    if fetched.get("text"):
+        record["text_sha256"] = fetched["sha256"]
+        record["text_source"] = fetched["source"]
+    elif fetched.get("reason"):
+        record["text_not_fetched"] = fetched["reason"]
+    if via:
+        record["agreed"] = datetime.date.today().isoformat()
+        record["via"] = via
+    record["presented"] = True
+    return record
+
+
+def agreed_terms(identifier: str, licence: Any, sha256: Optional[str] = None) -> Optional[dict]:
+    """The recorded agreement to *licence* for *identifier*, or None if there is none.
+
+    A record for a different licence string is not agreement to this one, and nor is one whose
+    saved text differs from the text fetched now: either way the terms changed, so they are asked
+    again. Text that could not be fetched this time cannot show a change, and does not.
+    """
+    terms = (load_registered().get(identifier) or {}).get("terms")
+    if not (isinstance(terms, Mapping) and terms.get("via") and terms.get("license") == licence):
+        return None
+    if sha256 and terms.get("text_sha256") and terms["text_sha256"] != sha256:
+        return None
+    return dict(terms)
+
+
+def register(identifier: str, download: bool = True, terms: Optional[Mapping] = None,
+             licence_text: Optional[str] = None) -> Path:
     """Write this machine's registration for one catalog resource, and return its path.
 
     Downloading is the default because `sp resource add X` is a request to make X usable, and a
     registration pointing at data that is not there reproduces the failure #217 reports: a
     command reports success and the pipeline fails later. `download=False` is for a metered
     connection or an offline setup, and says plainly that the resource will not resolve yet.
+
+    *terms* is the record from `terms_record()`. Asking for agreement is the caller's, because
+    only the command knows whether there is a person to ask. *licence_text* is saved beside the
+    registration as `<id>.licence.txt`, and the record names it.
     """
     item = readable().get(identifier)
     if item is None:
@@ -451,6 +637,13 @@ def register(identifier: str, download: bool = True) -> Path:
     if item.get("versification"):
         # The registry's own name for it — what `resource_scheme()` reads first.
         entry["versification_scheme"] = item["versification"]
+    if terms:
+        entry["terms"] = dict(terms)
+        if licence_text:
+            saved = _write_into_store(
+                default_resources_dir() / f"{identifier}.licence.txt", licence_text
+            )
+            entry["terms"]["text"] = str(saved)
 
     target = _write_registration(
         default_resources_dir() / f"{identifier}.yaml",
@@ -496,7 +689,14 @@ def record_version(directory: Any, **fields: Any) -> Path:
 
 
 def _write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> Path:
-    """Write one registration, unlocking the store around it.
+    """Write one registration as YAML under *banner*."""
+    from llmflow.utils.file_io import dump_yaml
+
+    return _write_into_store(target, banner + dump_yaml(dict(entry)))
+
+
+def _write_into_store(target: Path, text: str) -> Path:
+    """Write one file into the store, unlocking it around the write.
 
     `~/.sp` is kept read-only, and the registrations directory inherits that mode when
     `sp doctor` moves it across, so a plain write fails with EACCES on a machine that has been
@@ -506,7 +706,6 @@ def _write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> 
     import os
 
     from llmflow.cli_utils import _lock_sp_dir, _unlock_sp_dir
-    from llmflow.utils.file_io import dump_yaml
 
     # Creating the directory is itself a write *into the store*, so the store has to be unlocked
     # for it — not just the directory afterwards. `~/.sp/registrations` does not exist until the
@@ -533,10 +732,7 @@ def _write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> 
     if was_locked:
         _unlock_sp_dir(target.parent)
     try:
-        target.write_text(
-            banner + dump_yaml(dict(entry)),
-            encoding="utf-8",
-        )
+        target.write_text(text, encoding="utf-8")
     finally:
         if was_locked and target.parent.exists():
             _lock_sp_dir(target.parent)

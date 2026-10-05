@@ -1012,6 +1012,23 @@ sp resource add WLC --no-download   # register now, fetch later
 pointing at data that is not there fails later, in the middle of a run, after the pipeline has
 linted clean.
 
+**Registering agrees to the resource's licence.** `add` prints the catalog's licence — a summary
+such as `CC BY 4.0` or `Apache-2.0 (code) — see LICENSE.md` — with a link to the full terms, and
+fetches the full text where it can: the repository's licence file through GitHub, or a plain-text
+file the licence names. It shows the opening of that text and asks, before downloading anything,
+whether you agree. The answer is recorded on the registration, and the text is saved beside it as
+`<id>.licence.txt` with its hash, so the same terms are not asked twice; a changed summary or a
+changed text is. A licence that is only a pointer (`See site`) and whose text could not be
+fetched is shown, registered without asking, and recorded as shown, not agreed. With no
+terminal, `add` refuses unless given `--accept-terms`. `--no-download` fetches nothing, the
+licence included. `sp dataset download` prints the licence and does not ask.
+
+```bash
+sp resource add WLC --accept-terms   # for scripts and CI
+sp resource terms                    # what each registration was made under
+sp resource terms SBLGNT WLC         # only the resources a publication used
+```
+
 **`list` shows only what sp can open as text** — three entries of seventy. The rest are
 analysis corpora, lexicons and treebanks that a pipeline reaches through a resource rather than
 by name, and `search` is how you find them.

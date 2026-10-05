@@ -197,6 +197,13 @@ def build_parser():
     res_add.add_argument("--versification", default=None, help="With --path: its scheme")
     res_add.add_argument("--no-download", action="store_true", dest="no_download",
                          help="Register without fetching the data yet")
+    res_add.add_argument("--accept-terms", action="store_true", dest="accept_terms",
+                         help="Agree to the licence without being asked — for scripts and CI")
+
+    res_terms = res_sub.add_parser(
+        "terms", help="The licence each registration was made under, and whether you agreed"
+    )
+    res_terms.add_argument("ids", nargs="*", help="Only these resources (default: every one)")
 
     res_set = res_sub.add_parser(
         "set", help="Set fields on a registration, leaving the rest alone"
@@ -419,6 +426,120 @@ def _make_output_encodable() -> None:
             pass  # never let output configuration stop the command itself
 
 
+def _print_licence(resources, entry) -> None:
+    """The licence a catalog entry names, and the link to it."""
+    link, link_kind = resources.licence_link(entry)
+    print(f"   Licence  {entry.get('license') or '(the catalog names none)'}")
+    if link_kind == "source-page":
+        print(f"   Terms    {link}  (the source's page — the catalog links no licence document)")
+    elif link:
+        print(f"   Terms    {link}")
+
+
+def _terms_to_record(resources, args):
+    """Show the terms of the resource being registered, and agree to them or refuse (#252).
+
+    **This prompt is deliberate, and differs from `_configure_ai_assistants` on purpose.** That
+    setup is non-interactive by design (#204, D4/D5), because prompts defaulting to No silently
+    broke a fresh setup and protected nothing. This one protects someone else's rights, so it
+    asks — and fails closed rather than assuming yes, because a gate that opens itself is theatre.
+
+    The terminal check is ours, not `click.confirm`'s: with input piped in, `yes | sp resource add
+    X` would answer it, and nobody would have read the terms. Asked before the download, so
+    declining wastes nothing and leaves no registration.
+
+    The licence string is a summary, and what is agreed to; the full text it stands for is
+    fetched, shown in part, and saved with the registration. Only a bare pointer whose text could
+    not be fetched is registered without asking — there is nothing in hand to agree to.
+
+    Returns `(record, licence text)`, or `(None, None)` when the catalog does not know *args.id*
+    — `register()` then refuses it with the list of what it does know.
+    """
+    item = resources.readable().get(args.id)
+    if item is None:
+        return None, None
+    _print_licence(resources, item)
+    licence = item.get("license")
+
+    if args.no_download:
+        fetched = {"reason": "--no-download fetches nothing, the licence included"}
+    else:
+        fetched = resources.fetch_licence_text(item)
+    _print_licence_text(resources, fetched)
+    text = fetched.get("text")
+
+    if resources.is_pointer(licence) and not text:
+        print("   These terms are only a pointer, and their text is not in hand — read them")
+        print("   there. Registered without asking; the record says they were shown to you,")
+        print("   not that you agreed.")
+        return resources.terms_record(item, fetched=fetched), None
+
+    earlier = resources.agreed_terms(args.id, licence, fetched.get("sha256"))
+    if earlier:
+        print(f"   You agreed to these terms on {earlier.get('agreed')}.")
+        return earlier, None
+    if args.accept_terms:
+        return resources.terms_record(item, via="--accept-terms", fetched=fetched), text
+    if not sys.stdin.isatty():
+        print(f"❌ Not registered: '{args.id}' has terms to agree to and there is no terminal")
+        print("   to ask on. Read them above, then re-run with --accept-terms.")
+        sys.exit(1)
+
+    import click
+
+    question = (
+        "   Do you agree to these terms?" if resources.is_pointer(licence)
+        else "   Do you agree to the terms summarised above?"
+    )
+    if not click.confirm(question, default=False):
+        print(f"❌ Not registered: the terms of '{args.id}' were declined.")
+        sys.exit(1)
+    return resources.terms_record(item, via="prompt", fetched=fetched), text
+
+
+def _print_licence_text(resources, fetched) -> None:
+    """The opening of the fetched licence text, or why there is none."""
+    text = fetched.get("text")
+    if not text:
+        print(f"   Full text not fetched: {fetched.get('reason')}")
+        return
+    lines = text.splitlines()
+    shown = resources.LICENCE_PREVIEW_LINES
+    print(f"   Full text, from {fetched['source']}:")
+    print()
+    for line in lines[:shown]:
+        print(f"     {line}")
+    if len(lines) > shown:
+        print(f"     … {len(lines) - shown} more lines, saved with the registration if you agree")
+    print()
+
+
+def _print_recorded_terms(name, registration) -> None:
+    """One registration's terms as `sp resource terms` shows them."""
+    terms = registration.get("terms")
+    print(f"{name}")
+    if isinstance(terms, dict):
+        print(f"   Licence  {terms.get('license')}")
+        if terms.get("link"):
+            suffix = "  (the source's page)" if terms.get("link_kind") == "source-page" else ""
+            print(f"   Terms    {terms['link']}{suffix}")
+        if terms.get("text"):
+            print(f"   Text     {terms['text']}  (from {terms.get('text_source')})")
+        elif terms.get("text_not_fetched"):
+            print(f"   Text     {terms['text_not_fetched']}")
+        if terms.get("via"):
+            print(f"   Agreed   {terms.get('agreed')}, by {terms['via']}, "
+                  f"to the {terms.get('agreed_to', 'summary')}")
+        else:
+            print("   Shown, not agreed — the licence points elsewhere; read it there")
+    elif registration.get("license"):
+        print(f"   Licence  {registration['license']}")
+        print("   No record of agreement — registered before terms were recorded.")
+        print(f"   Run `sp resource add {name}` to see the terms and record them.")
+    else:
+        print("   No catalog licence — registered by path; its terms are yours to know.")
+
+
 def main(argv=None):
     _make_output_encodable()
 
@@ -614,8 +735,13 @@ def main(argv=None):
                     written = resources.register_local(
                         args.id, args.path, kind=args.kind, versification=args.versification
                     )
+                    print("   No catalog licence — this is yours, so there are no terms to agree to.")
                 else:
-                    written = resources.register(args.id, download=not args.no_download)
+                    terms, licence_text = _terms_to_record(resources, args)
+                    written = resources.register(
+                        args.id, download=not args.no_download, terms=terms,
+                        licence_text=licence_text,
+                    )
             except (KeyError, ValueError, OSError, RuntimeError) as error:
                 # `str()` on an OSError gives "[Errno 13] Permission denied: <path>"; its
                 # `args[0]` gives the bare errno, which told a user only "13".
@@ -623,6 +749,19 @@ def main(argv=None):
                 print(f"❌ Could not register '{args.id}': {message}")
                 sys.exit(1)
             print(f"✅ Registered '{args.id}' — {written}")
+            return
+
+        if args.resource_command == "terms":
+            registered = resources.load_registered()
+            unknown = [name for name in args.ids if name not in registered]
+            if unknown:
+                known = ", ".join(sorted(registered)) or "(none registered)"
+                print(f"❌ Not registered: {', '.join(unknown)}. Registered: {known}")
+                sys.exit(1)
+            for name in args.ids or sorted(registered):
+                _print_recorded_terms(name, registered[name])
+            if not registered:
+                print("No resources registered on this machine.")
             return
 
         if args.resource_command == "set":
@@ -717,6 +856,9 @@ def main(argv=None):
                 known = ", ".join(sorted(str(e.get("id")) for e in resources.catalog()))
                 print(f"❌ The catalog has no dataset '{args.id}'.\n   It knows: {known}")
                 sys.exit(1)
+            # Printed before the fetch, so a user who interrupts it has still seen the terms.
+            # Not gated: downloading a file you then delete is agreement to nothing (#252).
+            _print_licence(resources, entry)
             fetch(entry, dest=args.dest)
             return
 

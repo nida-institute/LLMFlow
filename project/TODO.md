@@ -48,8 +48,11 @@
    - [ ] §7 still says "both prompts" and "nine positions"; D2 ruled one prompt, the grammar has
          twelve. Update the plan — his document
 2. **→ #176**, strip frontmatter before the model call — not started
-3. **→ #252**, licence terms at download and register — ruled 2026-09-25, not built:
-   `grep -n "accept-terms\|click.confirm" src/llmflow/cli.py src/llmflow/cli_utils.py` → nothing
+3. **→ #252**, licence terms at download and register — ruled 2026-09-25 and 2026-10-05
+   (`plan-terms-on-download-and-register.md` §2, §2a). **Built 2026-10-05, not yet committed:**
+   `tests/test_terms_on_download_and_register.py` (36) passes; full suite without Helm 5,974
+   passed, 1 failed (the deferred parallel-passages wheel entry). Left: the `license_url` issue for
+   `awesome-biblical-data`, drafted at `tmp/issue-abd-license-url.md`, not filed
 4. ✅ **Position 12, `# REFERENCE`**, in `data/prompt-structure.yaml` — ruled 2026-09-21; built:
    declared at `data/prompt-structure.yaml:128` (`id: reference`) and rendered as row 12 of the
    prompt-organization discipline, checked 2026-10-02

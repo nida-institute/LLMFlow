@@ -1,8 +1,7 @@
 # Plan — a dataset announces its terms when it lands
 
-**Status:** ruled (2026-09-25). Three decisions are the Captain's and are recorded in §2.
-Implementation may start on §4 step 1; step 2 waits on **L1** in `project/open-decisions.md`.
-**Issue:** drafted 2026-09-25, not yet filed — `issues-need-approval`.
+**Status:** ruled (2026-09-25, and the rest 2026-10-05 — §2a) and built, uncommitted.
+**Issue:** #252.
 **Author:** AI, from the Captain's instruction and rulings in conversation on 2026-09-25, and from
 measurements of `src/llmflow/cli.py`, `src/llmflow/resources.py` and `data/resources.json` taken
 the same day. Every figure below can be re-measured with the command beside it.
@@ -35,6 +34,59 @@ questions are unanswered. **This plan needs none of those answers** and does not
    to anything.
 3. **`--accept-terms` for non-interactive use, and fail closed naming it when there is no TTY.**
    Blocking breaks every script and CI run; assuming yes makes the gate theatre.
+
+## 2a. Ruled by the Captain, 2026-10-05
+
+4. **L1 — (c), a pointer is not gated.** A licence that points elsewhere rather than stating terms
+   is printed, the resource is registered without a prompt, and the record says the terms were
+   shown and not agreed. *Narrowed by 8 and 10 the same day:* only a bare pointer whose text
+   could not be fetched.
+5. **L2 — agreement is recorded on the registration.** *"A user needs a record of agreements to
+   use when they publish their own artifacts."* Asked once; a re-registration asks again when
+   the catalog's licence string differs from the one recorded — or, after 9, the fetched text.
+6. **The registration contains a link to the licensing agreement.** The catalog has no such field
+   (its keys, measured 2026-10-05: `id name category description formats license github url
+   acquire notes download provides`), so the engine fills it — the Captain chose option B:
+   a URL inside the licence string; else the official page of a standard licence (`CC BY-SA 4.0`,
+   `MIT`, `Apache-2.0`, …); else the source's `url`, marked `link_kind: source-page` so it is
+   never mistaken for the agreement. A `license_url` field upstream in `awesome-biblical-data` is
+   the lasting fix and goes there as an issue.
+7. **The record reads back as `sp resource terms [ID …]`** — every registration, or the ones a
+   publication used. Under `sp resource`, not `sp tools`: an agreement belongs to a registration.
+
+The record, written under `terms:` in `~/.sp/registrations/<id>.yaml`:
+
+```yaml
+terms:
+  license: "Apache-2.0 (code) — see LICENSE.md for data terms"   # exactly as shown
+  agreed_to: summary            # or: text, for a bare pointer whose text was fetched
+  link: https://github.com/…    # where the full terms are
+  link_kind: source-page        # or: licence
+  pointer: "see LICENSE.md for data terms"        # only when the string points
+  text_sha256: …                # or text_not_fetched: <why>
+  text_source: https://github.com/…/LICENSE.md
+  agreed: 2026-10-05            # absent when shown and not agreed
+  via: prompt                   # or: --accept-terms
+  presented: true
+  text: ~/.sp/registrations/<id>.licence.txt
+```
+
+8. **The licence string is a summary, and agreement is to the summary, with the pointer
+   recorded.** *"I would like it to say they agreed to the summary and also provide the
+   pointer."* `MIT`, `Apache-2.0 (code) — see LICENSE.md`, `Restricted — see <url>` and
+   levinsohn's are all summaries; the *see …* part is recorded as `pointer`. **`Custom — see
+   <url>` is a summary** (Captain: yes). Only a string that is nothing but a pointer — `See repo`,
+   `See site`, `See source`, four entries — has no summary.
+9. **The full text is fetched, saved and hashed** (Captain: yes) — a GitHub repository's licence
+   through the API, or a plain-text file the licence names; a web page stays a link. Saved as
+   `~/.sp/registrations/<id>.licence.txt`, recorded by SHA-256 and source; a changed text asks
+   again. Why it could not be fetched is recorded rather than left blank.
+10. **A bare pointer whose text was fetched is gated** (Captain: yes), and agreement is to the
+    text. L1 (c) now covers only a bare pointer whose text could not be fetched.
+
+Measured against the live catalog after building: `macula-hebrew`, `macula-greek-nt`, `acai` and
+`levinsohn-lgntdf` fetch their licence files; `bsb` has nowhere to fetch from; `sblgnt.com/license/`
+is a web page.
 
 ## 3. What exists today
 
@@ -83,10 +135,17 @@ goal's "copyright and license strings" is one string until L3 is answered.
   gate does not apply and the command says so rather than staying silent — rule
   `say-which-kind-of-nothing`.
 
-**Step 2 — the gate on `resource add`.** Blocked on **L1**.
+**Step 2 — the gate on `resource add`.** L1 ruled (c), 2026-10-05.
 
-- **`click.confirm` is the mechanism.** It raises `Abort` when it cannot prompt, so **fail-closed
-  is its default behaviour** rather than something to write.
+- **The TTY check is explicit — `sys.stdin.isatty()` — not left to `click.confirm`.**
+  ⚠️ **Corrected 2026-10-05.** This said `click.confirm` fails closed because it raises `Abort`
+  when it cannot prompt. That holds only at end of input: with stdin piped, `yes | sp resource add
+  X` answers it and registers. The ruling is fail-closed *when there is no TTY*, so the check is
+  written, and `click.confirm` is only the prompt.
+- **The prompt comes before the download**, not only before the write: declining after fetching
+  hundreds of megabytes wastes them, and a declined prompt still leaves no registration.
+- ~~**`click.confirm` is the mechanism.** It raises `Abort` when it cannot prompt, so **fail-closed
+  is its default behaviour** rather than something to write.~~
   ⚠️ **Corrected 2026-09-28.** This read *"`click` is already the CLI library (`cli_utils.py:10`)"*,
   which is false and would mislead anyone building on it. Measured: `click` is imported by
   `cli_utils.py` and `utils/linter.py` and used **only for terminal output** (`click.echo`);
