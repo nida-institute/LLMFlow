@@ -944,7 +944,7 @@ machine where the sources live somewhere else.
   type: scripture
   resource: SBLGNT             # a registered resource
   passage: "${passage}"       # MRK · MRK 1 · MRK 1:1 · MRK 1:1-8 · MRK 1:40-2:12
-  format: milestones          # plain | milestones | usj   (default: milestones)
+  format: milestones          # plain | milestones | usj | analysis   (default: milestones)
   versification: eng          # optional; the scheme `passage` is written in
   include: [ids]              # optional; valid with every format
   output: source_text
@@ -1412,6 +1412,40 @@ mis-costs every decision downstream.
 | `milestones` | **1.072×** bare text | the default, and enough whenever a verse reference is all the addressing needed |
 | `usj`, no `include` | 2.56× codepoints, **6.74× as escaped JSON** | structure is needed but analyses are not |
 | `usj` + families | to **11.78×** as one consumer ships it | only the families a step actually reads |
+| `analysis` | about **a quarter** of `usj` + families in tokens — MAT 19:1-11 with six families is 37.6k tokens as USJ and 10.3k as `analysis` | a model reads the analyses |
+
+#### `format: analysis` — the analyses, for a model to read
+
+```yaml
+- name: greek_analysis
+  type: scripture
+  resource: SBLGNT
+  passage: "${passage}"
+  format: analysis
+  include: [ids, morphology, senses, glosses, syntax, frequency]
+  frequency_cutoff: 80
+  output: original
+```
+
+Derived from the `usj` form, so it carries nothing that form does not. For each sentence, the
+constituency tree in bracketed notation — `(cl (conj Καὶ/1) (cl (verb:v ἐγένετο/2) …))`, each
+node `class:role` with its attributes, each word `form/n` — then one tab-separated row per word:
+
+```
+n	ref	id	form	lemma	morph	sense	gloss	freq	note
+2	19:1	n40019001002	ἐγένετο	γίνομαι	verb role=v third singular aorist middle indicative	LN 13.107	it came to pass / happened
+10	19:1	n40019001010	μετῆρεν	μεταίρω	verb role=v third singular aorist active indicative	LN 15.35	He withdrew / departed	2× in GNT · 51.79%
+```
+
+Every number says what it is: a sense is `LN 13.107`, a frequency `2× in GNT · 51.79%`. A bare
+number was read by a model as a count — asked for "occurs N×" about a word with no frequency, it
+gave the Louw-Nida number. Glosses are English only. A morphology value of two characters or fewer keeps its name
+(`lang=A`), since a bare code says nothing. A family with no column of its own follows the table
+as compact JSON rather than being dropped. `analysis` needs `ids` in `include`, and a USFM
+resource, which has no word ids, refuses it.
+
+**`frequency_cutoff: N`** keeps a frequency only on the words whose lemma falls within the
+corpus's least frequent N percent of lemmas; the others carry none. It works with any format.
 
 #### Versification
 
@@ -2073,6 +2107,29 @@ sp run --pipeline pipelines/discourse-flow.yaml \
 sp lint --pipeline pipelines/my-pipeline.yaml
 ```
 
+**Lint checks the resources a pipeline names before anything runs** — `resource:` on
+`scripture` and `parallel-passages` steps, and the dataset an `alignment` step's pairs live in.
+A resource this machine has not registered is an error, and so is an `include:` family whose
+path the registration does not name (`syntax` needs `lowfat_path`, `discourse` needs
+`discourse_path`). A resource, or a family, asked for only under a `condition:` is a warning
+instead: lint cannot know whether the condition will hold. When something is missing, lint
+prints what, and offers to install each catalog resource — `[Y]es / [N]o / [A]ll` — through the
+same code as `sp resource add`, so its licence is shown and asked. `[A]ll` answers the install
+question for the rest, never their licences. A missing path is not offered, because nothing
+declares where its data lives; lint prints the `sp resource set` command instead. A resource
+registered before licences were recorded is offered its licence, with nothing downloaded.
+`sp run` lints first, so it does all of this too.
+
+Without a terminal, two flags answer, one per consent:
+
+```bash
+sp run --pipeline pipelines/my-pipeline.yaml --install-missing --accept-terms
+```
+
+`--install-missing` installs what is missing; `--accept-terms` agrees to the licences. With
+neither, lint fails and names `--install-missing`; with only the first, it stops at the first
+licence and names `--accept-terms`.
+
 ### Show version
 ```bash
 sp --version
@@ -2210,6 +2267,12 @@ Your prompt instructions here. Reference variables using
   and `sp run` refuse both.
 - **Variable syntax**: `{{variable_name}}`, flat names only. A dotted or indexed name is never
   filled; do the field access in the step's `prompt.inputs` instead.
+- **A value is filled only under `# INPUT DATA`.** Anywhere else — VARIABLES, DATA SOURCES,
+  rules, checklists — `{{name}}` is a *mention* and renders as the bare name, so each input
+  reaches the model once however often the prompt refers to it. Filling every occurrence sent a
+  large input once per mention: the starter's significance prompt names its chapters eight times.
+  A name mentioned but never placed under `# INPUT DATA` is refused, since the model would read
+  about an input it is never shown. A prompt with no `# INPUT DATA` section is filled throughout.
 - **Validation**: Linter checks that all `requires:` inputs are provided, and that the body's
   sections follow the order in *Prompt section structure* above.
 

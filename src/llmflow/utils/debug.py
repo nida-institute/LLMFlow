@@ -209,7 +209,9 @@ class DebugRecorder:
     def save_response(self, call: DebugCall, content: Any) -> Optional[str]:
         """Save a response, as JSON when it is structured and text otherwise."""
         if isinstance(content, (dict, list)):
-            return self._write(call, "response", json.dumps(content, indent=2), "json")
+            return self._write(
+                call, "response", json.dumps(content, ensure_ascii=False, indent=2), "json"
+            )
         return self._write(call, "response", str(content), "txt")
 
     def save_artifact(self, name: str, content: Any) -> Optional[str]:

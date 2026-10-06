@@ -64,17 +64,19 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-memory-recovery.md](plan-memory-recovery.md) | transfer record. The audit is complete as of 2026-08-24 — all 81 files across 12 | #16 #64 #163 #200 #209 |
 | [plan-migrate-pipeline-directories.md](plan-migrate-pipeline-directories.md) | Rule corrected and executed 2026-08-17 — see the survey section at the foot for what was done, … | — |
 | [plan-release-0-2-1-26.md](plan-release-0-2-1-26.md) | approved in conversation 2026-09-01 — scope ruled, not yet started. #230 #217 #201 | #153 #169 #201 #212 #217 #218 #225 #226 #227 #228 #230 |
+| [plan-resource-preflight.md](plan-resource-preflight.md) | built 2026-10-05. Two things await the Captain: Q6 (§2, last item), and | #244 #252 #261 |
 | [plan-scripture-burrito-alignment.md](plan-scripture-burrito-alignment.md) | ruled (2026-09-11) → #238 | #238 |
 | [plan-scripture-documentation.md](plan-scripture-documentation.md) | proposed (2026-09-10) — drafts for review, nothing installed. Part A is a new | #200 |
 | [plan-scripture-pipelines-articles.md](plan-scripture-pipelines-articles.md) | Proposed — not built. A documentation plan; no articles from it have been written. | — |
 | [plan-scripture-step.md](plan-scripture-step.md) | Proposed, 2026-08-26. Targeted at the next release (ruled 2026-08-26). Nothing | #109 #110 #200 #203 #212 |
 | [plan-skills-convention-json.md](plan-skills-convention-json.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | #163 #164 |
+| [plan-starter-cost.md](plan-starter-cost.md) | approved and built 2026-10-05 — D1–D3, item 3, and the INPUT DATA fix | #244 |
 | [plan-starter-example-commentary.md](plan-starter-example-commentary.md) | ruled (2026-09-26). §2 and all four decisions in §8 are answered. The sample output | #176 #203 #244 #255 #258 |
 | [plan-starter-examples.md](plan-starter-examples.md) | ruled (2026-10-02) | #244 #252 #261 #267 |
-| [plan-terms-on-download-and-register.md](plan-terms-on-download-and-register.md) | ruled (2026-09-25, and the rest 2026-10-05 — §2a) and built, uncommitted. | #204 #252 |
+| [plan-terms-on-download-and-register.md](plan-terms-on-download-and-register.md) | ruled (2026-09-25, and the rest 2026-10-05 — §2a) and built — 3e5b7de. | #204 #252 |
 | [plan-verse-range-set-ops.md](plan-verse-range-set-ops.md) | Approved 2026-08-17 — authoritative for the implementation (names, signatures, | — |
 | [plan-window-semantics.md](plan-window-semantics.md) | complete, 2026-08-21. Items 1 and 3 landed; item 2's two decisions were ruled and | #175 |
 | [plan-window-token-defects.md](plan-window-token-defects.md) | ruled (2026-09-22) → #246. Defect 2 ruled A by the Captain; the other two need no ruling. | #246 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-69 documents.
+71 documents.

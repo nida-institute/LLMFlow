@@ -16,6 +16,52 @@ from llmflow.utils.llm_runner import call_llm, run_llm_with_mcp_tools
 logger = Logger()
 
 
+def _as_prompt_text(value: Any) -> str:
+    """A context value as the model reads it: text as it is, structure as compact JSON.
+
+    Unicode stays Unicode — an escaped Greek letter is six characters and several tokens — and
+    a mapping is JSON rather than a Python repr, so a prompt that calls its input JSON is right.
+    """
+    if isinstance(value, (dict, list, tuple)):
+        import json
+
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":"), default=str)
+    return str(value)
+
+
+_TOP_HEADING = re.compile(r"^#\s+\S")
+_INPUT_DATA = re.compile(r"^#\s+INPUT DATA\s*$")
+
+
+def _input_data_segments(text: str) -> list:
+    """*text* as `(chunk, is_input)` pieces, `is_input` true for the `# INPUT DATA` section.
+
+    The section runs from its heading to the next top-level heading; a `#` line inside a code
+    fence is not a heading. With no such section, the whole text is input.
+    """
+    lines = text.splitlines(keepends=True)
+    segments: list = []
+    current: list = []
+    in_input = False
+    in_fence = False
+    found = False
+    for line in lines:
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+        elif not in_fence and _TOP_HEADING.match(line):
+            entering = bool(_INPUT_DATA.match(line.rstrip("\n")))
+            if entering != in_input:
+                if current:
+                    segments.append(("".join(current), in_input))
+                current = []
+                in_input = entering
+            found = found or entering
+        current.append(line)
+    if current:
+        segments.append(("".join(current), in_input))
+    return segments if found else [(text, True)]
+
+
 def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, Any]) -> str:
     """Render a prompt from a file with variable substitution."""
     resolved_prompt = resolve(prompt_config, context)
@@ -123,17 +169,42 @@ def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, 
                 f"   These must be provided via prompt.inputs or earlier pipeline steps."
             )
 
-    # Substitution is the last step, and it happens once. `{{ name }}` with surrounding
-    # whitespace is the same placeholder as `{{name}}`: the extractor strips it, so a literal
-    # replace would have missed the spaced form and left it to reach the model.
-    substitutable = declared if header is not None else set(context)
-    for key in substitutable:
-        if key in context:
-            rendered_prompt = re.sub(
-                r"\{\{\s*" + re.escape(key) + r"\s*\}\}",
-                lambda _match, value=str(context[key]): value,
-                rendered_prompt,
+    # Substitution is the last step, and it happens once, in a single pass, so a value carrying
+    # `{{other}}` is never filled in its turn. `{{ name }}` with surrounding whitespace is the
+    # same placeholder as `{{name}}`: the extractor strips it.
+    #
+    # Under `# INPUT DATA` a placeholder is filled; anywhere else it is a *mention* and renders as
+    # the bare name. Filling every occurrence sent each input once per mention — the starter's
+    # significance prompt names its chapters eight times, ~340k tokens a run — and the prompt
+    # grammar itself lists every input under VARIABLES. A prompt with no INPUT DATA section is a
+    # simple prompt and is filled throughout.
+    substitutable = {key for key in (declared if header is not None else set(context))
+                     if key in context}
+    segments = _input_data_segments(rendered_prompt)
+    if substitutable:
+        pattern = re.compile(
+            r"\{\{\s*(" + "|".join(re.escape(k) for k in sorted(substitutable, key=len,
+                                                                reverse=True)) + r")\s*\}\}"
+        )
+        mentioned = {m for text, is_input in segments if not is_input
+                     for m in pattern.findall(text)}
+        given = {m for text, is_input in segments if is_input for m in pattern.findall(text)}
+        never_given = sorted(mentioned - given)
+        if never_given:
+            raise ValueError(
+                f"❌ Prompt contract violation in {full_prompt_path.name}:\n"
+                f"   Named in the prompt but never placed under # INPUT DATA:\n"
+                f"   {', '.join(never_given)}\n\n"
+                f"   Only # INPUT DATA is filled with values; anywhere else a placeholder is a "
+                f"mention of an input. Give each one its own block under # INPUT DATA, or the "
+                f"model reads about an input it is never shown."
             )
+        values = {key: _as_prompt_text(context[key]) for key in substitutable}
+        rendered_prompt = "".join(
+            pattern.sub(lambda m: values[m.group(1)], text) if is_input
+            else pattern.sub(lambda m: m.group(1), text)
+            for text, is_input in segments
+        )
 
     if header is not None:
         # The backstop. Only the *template's* placeholders are the engine's business — braces

@@ -75,11 +75,15 @@
       Captain deferred these to the release PR, 2026-10-03: *"it will get into the wheel when we
       actually issue and merge the next PR. Don't need to do that yet."*
 8. **→ #261, resource preflight with an offer to install and register** — added to this release by
-   the Captain 2026-10-02. **Not started**, measured the same day: no `resource_preflight` module,
-   no plan in `project/plans/`, no mention in this file or `CHANGELOG.md` before this line. An
-   earlier session reported it as done; nothing in the tree supports that. **Depends on #252**
-   (item 3), whose licence display and consent gate it must reuse rather than duplicate. Seven
-   questions in the issue body are open, and the Captain's
+   the Captain 2026-10-02; ruled 2026-10-05 (`plan-resource-preflight.md` §2). **Built
+   2026-10-05:** `utils/resource_preflight.py`, guarded by `tests/test_resource_preflight.py`
+   (29). Awaiting him: Q6 (what `[A]ll` covers — built as install-only), §4.4 as read, and the
+   three derivations in §2a
+9. **The starter's cost** — the Captain, 2026-10-05: *"the starter costs $1.00 to run. can we make
+   it cheaper without sacrificing quality of output?"* **Built 2026-10-05/06**
+   (`plan-starter-cost.md`): `format: analysis`, `frequency_cutoff`, JSON and Unicode to models
+   and disk, English context for parallels, and a value filled only under `# INPUT DATA`.
+   MAT 19:1-11 now costs $0.1281, against ~$1.00; gpt-4.1 stays (ruled 2026-10-06, §5b)
 
 **Not in the release, raised for his decision: `\q` continuation lines lost from BSB.** Measured
 2026-09-29: `~/github/usfm-bible/examples.bsb/42MRKBSB.usfm:12-18` carries the Isaiah quotation on

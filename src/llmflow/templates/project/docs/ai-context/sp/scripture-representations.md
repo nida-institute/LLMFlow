@@ -24,10 +24,22 @@ every decision downstream.
 | `milestones` | **1.072×** | **the default.** A verse reference is all the addressing needed, and the cost over bare text is under a tenth |
 | `usj`, no `include` | 2.56× codepoints, **6.74×** as escaped JSON | structure is needed, analyses are not |
 | `usj` + families | to **11.78×** as one consumer ships it | only the families a step actually reads |
+| `analysis` | **about a quarter of the tokens of `usj` + families** — MAT 19:1-11 with six families: 37.6k tokens as USJ, 10.3k as `analysis` (`o200k_base`) | a model reads the analyses. Needs `ids` in `include` |
 
-**Three forms, and that is the whole list.** `format:` accepts `plain`, `milestones` and `usj`;
-anything else raises, naming the three. A form for the editorial shape — paragraphs and
+**Four forms, and that is the whole list.** `format:` accepts `plain`, `milestones`, `usj` and
+`analysis`; anything else raises, naming them. A form for the editorial shape — paragraphs and
 headings for a reader rather than a model — is not built.
+
+**`analysis` is derived from `usj`, for a model to read.** Each sentence's constituency tree in
+bracketed notation, every word written `form/n`, then one tab-separated row per word: `n`, `ref`,
+`id`, `form`, `lemma`, `morph`, `sense`, `gloss` (English only), `freq`, `note` (`outside` for a
+word beyond the requested verses). A family with no column follows as compact JSON, so nothing
+`usj` carries is dropped except glosses in other languages. Save `usj` when you want the complete
+record; hand a prompt `analysis`. A USFM resource has no word ids and refuses it.
+
+**`frequency_cutoff: N`**, beside `include: [frequency]`, keeps a frequency only on words whose
+lemma falls within the corpus's least frequent N percent of lemmas — so a prompt can say "a word
+with a frequency is a word to explain" rather than ask a model to compare numbers.
 
 Two consequences worth holding onto. **`milestones` is almost always right** — it is the default
 because the alternative costs six times as much for structure most prompts never use. And

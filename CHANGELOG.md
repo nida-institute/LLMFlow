@@ -4,6 +4,40 @@
 
 ### Added
 
+- **`format: analysis` on `type: scripture` — the analyses, for a model to read.** Each
+  sentence's constituency tree in bracketed notation, every word `form/n`, then one tab-separated
+  row per word: reference, id, form, lemma, morphology, sense, English gloss, frequency, and
+  whether it lies outside the requested verses. Every number says what it is — `LN 34.22`,
+  `12× in GNT · 83.69%` — because a bare sense number was read by a model as a word count.
+  Derived from the `usj` form, so it carries nothing that form does not; a family with no
+  column follows as compact JSON. On MAT 19:1-11 with six families it is 10.3k tokens where the
+  USJ document was 37.6k. Needs `ids`; a USFM
+  resource refuses it. Guarded by `tests/test_analysis_format.py` (16), which checks on
+  MRK 1:1-8 and MAT 19:1-11 that every word and every tree node of the USJ form is in it.
+
+- **`frequency_cutoff:` on `type: scripture`.** With `include: [frequency]`, only words whose
+  lemma falls within the corpus's least frequent N percent of lemmas carry a frequency, so a
+  prompt can say "a word with a frequency is a word to explain". Guarded by
+  `tests/test_frequency_family.py`.
+
+- **`sp lint` checks the resources a pipeline names, and offers to install the missing ones →
+  #261.** A pipeline naming a resource this machine had not registered linted clean and failed
+  part-way through the run, after earlier steps had been paid for. Lint now finds every
+  `resource:` on `scripture` and `parallel-passages` steps, nested ones included, and the
+  dataset an `alignment` step's pairs live in. An unregistered resource is an error, and so is
+  an `include:` family whose path the registration does not name (`syntax` → `lowfat_path`,
+  `discourse` → `discourse_path`). One asked for only under a `condition:` is a warning, since
+  lint cannot know whether the condition holds — the starter fetches Greek or Hebrew by
+  testament, and a Greek reader need not install the Hebrew. When something is missing, lint
+  prints a table of it, and offers `[Y]es / [N]o / [A]ll` for each catalog resource through the
+  same code as `sp resource add`, licence and all; `[A]ll` answers the install, never the
+  licences. A missing path is reported with its `sp resource set` command rather than offered,
+  because nothing declares where that data lives. A resource registered before licences were
+  recorded is offered its licence, with nothing downloaded. Without a terminal,
+  `--install-missing` answers the install and `--accept-terms` the licence, on `sp lint` and
+  `sp run` alike. `pipeline.lint()` as a library call still never prompts or writes. Guarded by
+  `tests/test_resource_preflight.py` (29).
+
 - **A resource's licence is shown when it lands, and registering agrees to it → #252.**
   `sp resource add` and `sp dataset download` print the catalog's licence and a link to it —
   a URL written in the licence, else a standard licence's own page, else the source's page,
@@ -134,6 +168,24 @@
   and turn a correct engine red on the next UBS release.
 
 ### Changed
+
+- **The starter example costs about an eighth of what it did — $0.13 a run on MAT 19:1-11,
+  against about $1.00.** Most of the saving is the `# INPUT DATA` fix below; the rest is what
+  the starter now sends. The guide is handed `format: analysis` with `frequency_cutoff` set from
+  `greek_frequency_cutoff` or `hebrew_frequency_cutoff`, instead of the USJ document and a cut-off
+  to compare against; the USJ document is still saved as the complete record. The significance
+  step reads each parallel's chapter in English and the members' own verses in Greek or Hebrew,
+  instead of every chapter in both. Measured on MAT 19:1-11: the analysed Greek goes from 37.6k
+  tokens to 8.9k, and the two prompts as rendered from 58,735 and 131,205 tokens to 13,331 and
+  18,699. The `greek_cutoff` and `hebrew_cutoff` steps and the prompt's `cutoff` input are gone,
+  because the engine applies the cut-off. Checked against its input, the new guide covers all 8
+  less common words and all 9 infinitives and participles, and gives exactly 8 counts, every one
+  the table's — the old guide gave true counts to 16 words that were not less common. The model
+  stays gpt-4.1: gpt-4.1-mini cost $0.025 but invented counts for 16 words.
+
+- **A mapping or list substituted into a prompt arrives as compact JSON with Unicode unescaped.**
+  It was `str(value)` — a Python repr, single-quoted, with `None` and `True` — though the prompts
+  call their inputs JSON. Guarded by `tests/test_unicode_to_models_and_disk.py`.
 
 - **With `include: [syntax]`, a `scripture` step returns whole sentences → #267.** The tree of a
   sentence the passage meets was already carried whole, but its words came only from the
@@ -333,6 +385,19 @@
   replay still reads the artifacts a clean would remove.
 
 ### Fixed
+
+- **A prompt input is sent once, not once per mention.** Every `{{name}}` in a prompt was filled
+  with the whole value, including the mentions in VARIABLES, DATA SOURCES, rules and checklists
+  that the prompt grammar teaches. The starter's significance prompt names `{{parallel_texts}}`
+  eight times, so about 42k tokens of chapters reached the model eight times — most of the
+  dollar a run of the starter cost — and nothing failed. A value is now filled only under
+  `# INPUT DATA`; elsewhere a placeholder renders as the bare name. A name mentioned but never
+  placed there is refused. A prompt with no `# INPUT DATA` section is filled throughout, as
+  before. Rendered from the same run's data, the starter's prompts go from 58,735 to 13,331
+  tokens and from 131,205 to 18,699. Guarded by `tests/test_placeholders_fill_only_input_data.py`.
+
+- **A debug response and content-transition metadata are written as Unicode.** Both used
+  `json.dumps` without `ensure_ascii=False`, so a Greek word was stored as `\u` escapes.
 
 - **A `json` step ignored `saveas` and `append_to`.** Both are common keys and lint accepted them,
   but the handler stored its value and returned, so `saveas` wrote nothing and `append_to`

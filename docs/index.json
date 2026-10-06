@@ -1191,6 +1191,11 @@
           "doc": "List all YAML pipeline files in a directory."
         },
         {
+          "name": "_add_resource_consent_flags",
+          "signature": "_add_resource_consent_flags(parser) -> None",
+          "doc": "The two answers lint's resource offer asks for, for use without a terminal (#261)."
+        },
+        {
           "name": "build_parser",
           "signature": "build_parser()",
           "doc": ""
@@ -1202,7 +1207,7 @@
         },
         {
           "name": "command_lint",
-          "signature": "command_lint(pipeline_path: str, fix_paths: bool, json_mode: bool, verbose: bool, cli_vars: dict | None = None, rewind_to: str | None = None)",
+          "signature": "command_lint(pipeline_path: str, fix_paths: bool, json_mode: bool, verbose: bool, cli_vars: dict | None = None, rewind_to: str | None = None, install_missing: bool = False, accept_terms: bool = False)",
           "doc": ""
         },
         {
@@ -1219,6 +1224,16 @@
           "name": "_terms_to_record",
           "signature": "_terms_to_record(resources, args)",
           "doc": "Show the terms of the resource being registered, and agree to them or refuse (#252)."
+        },
+        {
+          "name": "_register_from_catalog",
+          "signature": "_register_from_catalog(resources, identifier, download = True, accept_terms = False)",
+          "doc": "`sp resource add <ID>`: the licence shown and agreed, then the download and registration."
+        },
+        {
+          "name": "_offer_resources",
+          "signature": "_offer_resources(result, install_missing = False, accept_terms = False) -> bool",
+          "doc": "Print what the pipeline needs and lacks, and offer to supply it. True if anything changed."
         },
         {
           "name": "_print_licence_text",
@@ -1499,6 +1514,16 @@
           "name": "register",
           "signature": "register(identifier: str, download: bool = True, terms: Optional[Mapping] = None, licence_text: Optional[str] = None) -> Path",
           "doc": "Write this machine's registration for one catalog resource, and return its path."
+        },
+        {
+          "name": "_with_licence_text",
+          "signature": "_with_licence_text(identifier: str, terms: Mapping, licence_text: Optional[str]) -> dict",
+          "doc": "*terms*, with the licence text saved beside the registration and named in it."
+        },
+        {
+          "name": "record_terms",
+          "signature": "record_terms(identifier: str, terms: Mapping, licence_text: Optional[str] = None) -> Path",
+          "doc": "Add the licence record to a registration that has none, leaving every other key as it was."
         },
         {
           "name": "installed_version",
@@ -2608,6 +2633,45 @@
       ]
     },
     {
+      "module": "llmflow.utils.resource_preflight",
+      "imports": [
+        "dataclasses",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "_walk",
+          "signature": "_walk(steps: Iterable[Any], conditional: bool = False) -> Iterable[tuple]",
+          "doc": "`(step, conditional)` for every step, nested ones included; a step is conditional when it"
+        },
+        {
+          "name": "needs",
+          "signature": "needs(steps: Iterable[Any], context: Mapping[str, Any]) -> Needs",
+          "doc": "Every resource and dataset *steps* name, with `${var}` resolved against *context*."
+        },
+        {
+          "name": "check",
+          "signature": "check(steps: Iterable[Any], context: Mapping[str, Any]) -> List[Finding]",
+          "doc": "What the pipeline needs and this machine cannot yet supply, in the order it is named."
+        },
+        {
+          "name": "_names_a_path",
+          "signature": "_names_a_path(entry: Mapping[str, Any], key: str) -> bool",
+          "doc": ""
+        },
+        {
+          "name": "table",
+          "signature": "table(findings: Iterable[Finding]) -> str",
+          "doc": "The resources a pipeline needs and cannot yet use, one line per finding."
+        },
+        {
+          "name": "is_error",
+          "signature": "is_error(self) -> bool",
+          "doc": ""
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.alignment",
       "imports": [
         "__future__",
@@ -3061,6 +3125,66 @@
           "name": "get_format",
           "signature": "get_format(self, resource_id: str) -> List[str]",
           "doc": "Get available formats for a resource."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.analysis_format",
+      "imports": [
+        "json",
+        "llmflow.utils.scripture",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "_words",
+          "signature": "_words(content: Iterable[Any]) -> List[Dict[str, str]]",
+          "doc": "Every word in source order, with the chapter:verse it falls in."
+        },
+        {
+          "name": "_gloss",
+          "signature": "_gloss(entry: Any) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_morph",
+          "signature": "_morph(entry: Any) -> str",
+          "doc": "The values in order; a value of two characters or fewer keeps its name (`lang=A`), since a"
+        },
+        {
+          "name": "_sense",
+          "signature": "_sense(entry: Any) -> str",
+          "doc": "The sense, labelled. A bare number is read as whatever number the prompt is asking for."
+        },
+        {
+          "name": "_frequency",
+          "signature": "_frequency(entry: Any, present: bool) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_tree",
+          "signature": "_tree(node: Mapping[str, Any], number: Mapping[str, int], form: Mapping[str, str]) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_tokens",
+          "signature": "_tokens(node: Mapping[str, Any]) -> List[str]",
+          "doc": ""
+        },
+        {
+          "name": "usj_to_analysis",
+          "signature": "usj_to_analysis(usj: Mapping[str, Any]) -> str",
+          "doc": "The compact text form of a USJ document carrying a `scripture_pipelines` container."
+        },
+        {
+          "name": "walk",
+          "signature": "walk(nodes: Iterable[Any]) -> None",
+          "doc": ""
+        },
+        {
+          "name": "row",
+          "signature": "row(word: Mapping[str, str]) -> str",
+          "doc": ""
         }
       ]
     },
@@ -4326,7 +4450,7 @@
         },
         {
           "name": "_tei_passage_text",
-          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, resource: str, include: Sequence[str] = (), versification: Optional[str] = None, spans: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
+          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, resource: str, include: Sequence[str] = (), versification: Optional[str] = None, spans: Optional[Sequence[Mapping[str, Any]]] = None, frequency_cutoff: Optional[float] = None) -> str | dict | list",
           "doc": "Running text for *passage* from a directory of per-book TEI files."
         },
         {
@@ -4336,17 +4460,17 @@
         },
         {
           "name": "_emit",
-          "signature": "_emit(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str], versification: Optional[str], definition: Mapping[str, Any], resource: str, spans: Optional[Sequence[Mapping[str, Any]]] = None, book_rows: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
+          "signature": "_emit(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str], versification: Optional[str], definition: Mapping[str, Any], resource: str, spans: Optional[Sequence[Mapping[str, Any]]] = None, book_rows: Optional[Sequence[Mapping[str, Any]]] = None, frequency_cutoff: Optional[float] = None) -> str | dict | list",
           "doc": "What a backend returns once it has rows: the whole passage, or one result per span."
         },
         {
           "name": "resource_text",
-          "signature": "resource_text(resource: str, passage: str, fmt: str = 'milestones', resources: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None, include: Any = (), spans: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
+          "signature": "resource_text(resource: str, passage: str, fmt: str = 'milestones', resources: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None, include: Any = (), spans: Optional[Sequence[Mapping[str, Any]]] = None, frequency_cutoff: Optional[float] = None) -> str | dict | list",
           "doc": "Running text for *passage* in *resource*, dispatched on the resource's `kind`."
         },
         {
           "name": "frequency_payload",
-          "signature": "frequency_payload(rows: Sequence[Mapping[str, Any]], resource: str) -> Optional[dict]",
+          "signature": "frequency_payload(rows: Sequence[Mapping[str, Any]], resource: str, cutoff: Optional[float] = None) -> Optional[dict]",
           "doc": "`{word id: {corpus, count, in_least_frequent_percent}}` for *rows*, or None."
         },
         {
@@ -4956,6 +5080,16 @@
         "typing"
       ],
       "functions": [
+        {
+          "name": "_as_prompt_text",
+          "signature": "_as_prompt_text(value: Any) -> str",
+          "doc": "A context value as the model reads it: text as it is, structure as compact JSON."
+        },
+        {
+          "name": "_input_data_segments",
+          "signature": "_input_data_segments(text: str) -> list",
+          "doc": "*text* as `(chunk, is_input)` pieces, `is_input` true for the `# INPUT DATA` section."
+        },
         {
           "name": "render_prompt",
           "signature": "render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, Any]) -> str",
@@ -5777,7 +5911,7 @@
     }
   ],
   "summary": {
-    "total_modules": 94,
-    "total_functions": 919
+    "total_modules": 96,
+    "total_functions": 942
   }
 }

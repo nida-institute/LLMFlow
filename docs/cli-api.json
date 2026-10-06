@@ -498,6 +498,13 @@
       "options": [
         {
           "flags": [
+            "--accept-terms"
+          ],
+          "help": "Agree to those resources' licences without being asked",
+          "required": false
+        },
+        {
+          "flags": [
             "--fix-paths"
           ],
           "help": "Attempt simple path normalizations",
@@ -509,6 +516,13 @@
             "-h"
           ],
           "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--install-missing"
+          ],
+          "help": "Install and register the catalog resources the pipeline needs and this machine lacks, without asking",
           "required": false
         },
         {
@@ -835,6 +849,13 @@
       "options": [
         {
           "flags": [
+            "--accept-terms"
+          ],
+          "help": "Agree to those resources' licences without being asked",
+          "required": false
+        },
+        {
+          "flags": [
             "--dry-run"
           ],
           "help": "Dry run (no LLM calls)",
@@ -846,6 +867,13 @@
             "-h"
           ],
           "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--install-missing"
+          ],
+          "help": "Install and register the catalog resources the pipeline needs and this machine lacks, without asking",
           "required": false
         },
         {
@@ -1315,6 +1343,7 @@
     },
     "scripture": {
       "keys": [
+        "frequency_cutoff",
         "include",
         "passage",
         "resource",

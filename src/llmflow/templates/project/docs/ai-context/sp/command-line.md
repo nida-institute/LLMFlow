@@ -66,7 +66,7 @@ location any assistant reads; a skill that reaches only there is not invocable.
 | command | what it does |
 |---|---|
 | `sp run` | Run a pipeline. Takes `--pipeline`, `--var key=value`, `--dry-run`, `--rewind-to`. **Calls LLMs and costs money** — never run one without being asked. |
-| `sp lint` | Validate a pipeline without executing it. |
+| `sp lint` | Validate a pipeline without executing it — including that this machine can open every resource it names, offering to install what is missing (`--install-missing`, `--accept-terms` without a terminal). |
 | `sp list` | List available pipelines. |
 | `sp clean` | Delete the contents of the declared `intermediate_file_directory`. It cannot reach the deliverable. |
 | `sp tools replay` | Test a prompt change against captured debug requests, cheaply. |

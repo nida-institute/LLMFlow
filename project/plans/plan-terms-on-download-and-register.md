@@ -1,6 +1,6 @@
 # Plan — a dataset announces its terms when it lands
 
-**Status:** ruled (2026-09-25, and the rest 2026-10-05 — §2a) and built, uncommitted.
+**Status:** ruled (2026-09-25, and the rest 2026-10-05 — §2a) and built — `3e5b7de`.
 **Issue:** #252.
 **Author:** AI, from the Captain's instruction and rulings in conversation on 2026-09-25, and from
 measurements of `src/llmflow/cli.py`, `src/llmflow/resources.py` and `data/resources.json` taken

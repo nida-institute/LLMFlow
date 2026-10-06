@@ -70,6 +70,15 @@ def list_pipelines(directory: str) -> list[str]:
     return sorted(dict.fromkeys(pipelines))
 
 
+def _add_resource_consent_flags(parser) -> None:
+    """The two answers lint's resource offer asks for, for use without a terminal (#261)."""
+    parser.add_argument("--install-missing", action="store_true", dest="install_missing",
+                        help="Install and register the catalog resources the pipeline needs "
+                             "and this machine lacks, without asking")
+    parser.add_argument("--accept-terms", action="store_true", dest="accept_terms",
+                        help="Agree to those resources' licences without being asked")
+
+
 def build_parser():
     parser = argparse.ArgumentParser(prog="sp", description="Scripture Pipelines CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -80,6 +89,7 @@ def build_parser():
     run_p.add_argument("--var", action="append", default=[], help="Pipeline variables key=value")
     run_p.add_argument("--dry-run", action="store_true", help="Dry run (no LLM calls)")
     run_p.add_argument("--skip-lint", action="store_true", help="Skip linting")
+    _add_resource_consent_flags(run_p)
     run_p.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
     run_p.add_argument("--log", default="llmflow.log", help="Path to log file (default: llmflow.log in cwd)")
     run_p.add_argument("--rewind-to", help="Replay checkpoints up to and including this step name")
@@ -108,6 +118,7 @@ def build_parser():
     lint_p.add_argument("--json", action="store_true", help="Emit JSON result")
     lint_p.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
     lint_p.add_argument("--rewind-to", help="Validate rewind readiness up to this step")
+    _add_resource_consent_flags(lint_p)
 
     # clean command
     clean_p = subparsers.add_parser("clean", help="Delete contents of intermediate_file_directory")
@@ -370,13 +381,21 @@ def command_lint(
     verbose: bool,
     cli_vars: dict | None = None,
     rewind_to: str | None = None,
+    install_missing: bool = False,
+    accept_terms: bool = False,
 ):
     from llmflow import load_pipeline
 
     if verbose:
         print(f"🔍 Linting pipeline: {pipeline_path}")
 
-    result = load_pipeline(pipeline_path).lint(vars=cli_vars, rewind_to=rewind_to)
+    pipeline = load_pipeline(pipeline_path)
+    result = pipeline.lint(vars=cli_vars, rewind_to=rewind_to)
+    # JSON output is for a program, which a prompt or a progress line would corrupt.
+    if not json_mode and _offer_resources(
+        result, install_missing=install_missing, accept_terms=accept_terms
+    ):
+        result = pipeline.lint(vars=cli_vars, rewind_to=rewind_to)
 
     if json_mode:
         output = {
@@ -481,9 +500,10 @@ def _terms_to_record(resources, args):
     if args.accept_terms:
         return resources.terms_record(item, via="--accept-terms", fetched=fetched), text
     if not sys.stdin.isatty():
-        print(f"❌ Not registered: '{args.id}' has terms to agree to and there is no terminal")
-        print("   to ask on. Read them above, then re-run with --accept-terms.")
-        sys.exit(1)
+        raise TermsNotAgreed(
+            f"'{args.id}' has terms to agree to and there is no terminal to ask on.\n"
+            f"   Read them above, then re-run with --accept-terms."
+        )
 
     import click
 
@@ -492,9 +512,94 @@ def _terms_to_record(resources, args):
         else "   Do you agree to the terms summarised above?"
     )
     if not click.confirm(question, default=False):
-        print(f"❌ Not registered: the terms of '{args.id}' were declined.")
-        sys.exit(1)
+        raise TermsNotAgreed(f"the terms of '{args.id}' were declined.")
     return resources.terms_record(item, via="prompt", fetched=fetched), text
+
+
+class TermsNotAgreed(Exception):
+    """The licence was declined, or there was nobody to ask and no `--accept-terms`. The message
+    is the reason; the caller says what did not happen because of it."""
+
+
+def _register_from_catalog(resources, identifier, *, download=True, accept_terms=False):
+    """`sp resource add <ID>`: the licence shown and agreed, then the download and registration.
+
+    The one way a catalog resource gets onto a machine — `sp resource add` and the lint preflight
+    both come here, so neither can skip the terms the other shows.
+    """
+    from types import SimpleNamespace
+
+    args = SimpleNamespace(id=identifier, no_download=not download, accept_terms=accept_terms)
+    terms, licence_text = _terms_to_record(resources, args)
+    return resources.register(identifier, download=download, terms=terms, licence_text=licence_text)
+
+
+def _offer_resources(result, *, install_missing=False, accept_terms=False) -> bool:
+    """Print what the pipeline needs and lacks, and offer to supply it. True if anything changed.
+
+    A catalog resource that is not registered is offered `[Y]es / [N]o / [A]ll`; `[A]ll` answers
+    the install question for the rest and **not** their licences, each of which is still shown
+    and asked. A registration with no licence record is offered its licence, with nothing
+    downloaded. A missing analysis path is not offered: nothing declares where it lives, so the
+    command that records it is printed instead of a guess. With no terminal, `--install-missing`
+    answers the install and `--accept-terms` the licence — one flag per consent.
+    """
+    from llmflow import resources
+    from llmflow.utils import resource_preflight
+
+    shown = [f for f in getattr(result, "resources", []) if f.kind != "unresolved"]
+    if not shown:
+        return False
+    print(resource_preflight.table(shown))
+    print()
+
+    interactive = sys.stdin.isatty()
+    changed = False
+    install_rest = install_missing
+    for finding in shown:
+        if finding.kind == "unregistered" and finding.in_catalog:
+            if install_rest:
+                go = True
+            elif interactive:
+                import click
+
+                reply = str(click.prompt(
+                    f"Install and register {finding.resource}? [Y]es / [N]o / [A]ll",
+                    type=click.Choice(["y", "n", "a"], case_sensitive=False),
+                    show_choices=False,
+                )).lower()
+                install_rest = reply == "a"
+                go = reply in ("y", "a")
+            else:
+                print(f"   {finding.resource} is not registered and there is no terminal to ask on.")
+                print("   Re-run with --install-missing, and --accept-terms to agree to its licence.")
+                go = False
+            if go:
+                try:
+                    written = _register_from_catalog(
+                        resources, finding.resource, accept_terms=accept_terms
+                    )
+                    print(f"✅ Registered '{finding.resource}' — {written}")
+                    changed = True
+                except TermsNotAgreed as refusal:
+                    print(f"❌ Not registered: {refusal}")
+                except (KeyError, ValueError, OSError, RuntimeError) as error:
+                    print(f"❌ Could not register '{finding.resource}': {error}")
+        elif finding.kind == "no-terms" and (interactive or accept_terms):
+            from types import SimpleNamespace
+
+            print(f"{finding.resource} — registered before licences were recorded:")
+            args = SimpleNamespace(id=finding.resource, no_download=False, accept_terms=accept_terms)
+            try:
+                terms, licence_text = _terms_to_record(resources, args)
+                if terms is None:  # the catalog no longer knows it; nothing to record
+                    continue
+                written = resources.record_terms(finding.resource, terms, licence_text)
+                print(f"✅ Recorded the licence of '{finding.resource}' — {written}")
+                changed = True
+            except TermsNotAgreed as refusal:
+                print(f"❌ Not recorded: {refusal}")
+    return changed
 
 
 def _print_licence_text(resources, fetched) -> None:
@@ -662,6 +767,8 @@ def main(argv=None):
             args.verbose,
             cli_vars=variables,
             rewind_to=args.rewind_to,
+            install_missing=args.install_missing,
+            accept_terms=args.accept_terms,
         )
         return
 
@@ -737,11 +844,13 @@ def main(argv=None):
                     )
                     print("   No catalog licence — this is yours, so there are no terms to agree to.")
                 else:
-                    terms, licence_text = _terms_to_record(resources, args)
-                    written = resources.register(
-                        args.id, download=not args.no_download, terms=terms,
-                        licence_text=licence_text,
+                    written = _register_from_catalog(
+                        resources, args.id, download=not args.no_download,
+                        accept_terms=args.accept_terms,
                     )
+            except TermsNotAgreed as refusal:
+                print(f"❌ Not registered: {refusal}")
+                sys.exit(1)
             except (KeyError, ValueError, OSError, RuntimeError) as error:
                 # `str()` on an OSError gives "[Errno 13] Permission denied: <path>"; its
                 # `args[0]` gives the bare errno, which told a user only "13".
@@ -1169,6 +1278,10 @@ def main(argv=None):
             if not args.skip_lint:
                 logger.info("🔍 Validating pipeline...")
                 result = pipeline.lint(vars=variables, rewind_to=args.rewind_to)
+                if _offer_resources(
+                    result, install_missing=args.install_missing, accept_terms=args.accept_terms
+                ):
+                    result = pipeline.lint(vars=variables, rewind_to=args.rewind_to)
                 if not result.valid:
                     logger.error("❌ Pipeline validation failed:")
                     for error in result.errors:

@@ -25,8 +25,8 @@ by side. Where the account offers a reading, it says so.
 - `{{reference}}` — the passage, canonicalised, e.g. `Matthew 19:1-11`
 - `{{english}}` — the passage in English, with `⌊19:1⌋` verse markers
 - `{{parallels}}` — the groups this passage takes part in; `[]` when there are none
-- `{{parallel_texts}}` — every chapter a member of a group stands in, once each, in English and
-  in its own language; `[]` when there are no groups
+- `{{parallel_texts}}` — every chapter a member of a group stands in, once each, in English, with
+  each member's own verses in its own language; `[]` when there are no groups
 
 # SYSTEM ROLE
 
@@ -62,10 +62,14 @@ Gospel on that basis.
 
 ## The chapters (from `{{parallel_texts}}`)
 
-- **Source:** `type: scripture` steps fetching the whole chapter of every member, once per chapter
-- Each entry: `chapter` (e.g. `MRK 10`); `members`, the group members in that chapter, each with
-  its `reference` as the database names it and its `testament`; and `english` and `original`,
-  the chapter with verse markers. Find a member's context by its chapter.
+- **Source:** `type: scripture` steps fetching the whole chapter of every member in English, once
+  per chapter, and each member's own verses in Greek or Hebrew
+- Each entry: `chapter` (e.g. `MRK 10`); `english`, the whole chapter in English with verse
+  markers; and `members`, the group members in that chapter, each with its `reference` as the
+  database names it, its `testament`, and `original`, its own verses in Greek or Hebrew with verse
+  markers. Find a member's context by its chapter.
+- The chapter is the context, and is in English; the members' own words, which are what you
+  compare, are in the original.
 
 # INPUT DATA
 
@@ -116,7 +120,7 @@ parallel passages.
 ## Input: Where to Find the Data
 
 The entry in `{{parallel_texts}}` whose `members` include the earlier member of the group: its
-`english` and `original` chapter.
+`english` chapter, and the member's own `original` verses.
 
 ## Transformation Rules
 
@@ -156,8 +160,10 @@ come from outside it, and a reader cannot tell them from what the text says.
 
 ## Input: Where to Find the Data
 
-The passage itself, in `{{english}}` and in its own chapter's entry in `{{parallel_texts}}`, set
-beside the earlier passage's chapter. For a synoptic group, the chapters of every Gospel member.
+The passage itself, in `{{english}}` and as a member in its own chapter's entry in
+`{{parallel_texts}}`, set beside the earlier passage. Compare the members' `original` verses for
+the wording; use the English chapters for where each stands. For a synoptic group, every Gospel
+member.
 
 ## Transformation Rules
 

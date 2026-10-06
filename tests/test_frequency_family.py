@@ -65,12 +65,14 @@ def store(tmp_path, monkeypatch):
     return tmp_path
 
 
-def run(tmp_path, resource, passage, fmt="usj", include=("ids", "frequency")):
+def run(tmp_path, resource, passage, fmt="usj", include=("ids", "frequency"), extra="",
+        variables=""):
     out = tmp_path / "out.json"
     pipeline = tmp_path / "p.yaml"
     pipeline.write_text(
         "name: frequency\n"
-        "steps:\n"
+        + variables
+        + "steps:\n"
         "  - name: text\n"
         "    type: scripture\n"
         f"    resource: {resource}\n"
@@ -78,11 +80,40 @@ def run(tmp_path, resource, passage, fmt="usj", include=("ids", "frequency")):
         f"    format: {fmt}\n"
         f"    include: [{', '.join(include)}]\n"
         "    output: text\n"
-        f"    saveas: {out}\n",
+        + extra
+        + f"    saveas: {out}\n",
         encoding="utf-8",
     )
     load_pipeline(pipeline).run()
     return json.loads(out.read_text(encoding="utf-8"))
+
+
+# --- frequency_cutoff: only the rare words carry a frequency ------------------------
+
+
+def test_a_cutoff_keeps_only_the_words_within_it(store):
+    """Plan `plan-starter-cost.md` D2: the guide explains a word with a frequency, so a common
+    word's frequency is tokens the model reads and is told to ignore."""
+    rare = GREEK["κύπτω"]["in_least_frequent_percent"]
+    assert GREEK["λύω"]["in_least_frequent_percent"] > rare, "the fixture needs one of each"
+    usj = run(store, "SBLGNT", "MRK 1:7", extra=f"    frequency_cutoff: {rare}\n")
+    frequency = usj["scripture_pipelines"]["frequency"]
+    assert "n41001007014" in frequency, "κύπτω is within the cutoff"
+    assert "n41001007015" not in frequency, "λύω is not"
+
+
+def test_a_cutoff_can_be_a_variable(store):
+    rare = GREEK["κύπτω"]["in_least_frequent_percent"]
+    usj = run(
+        store, "SBLGNT", "MRK 1:7",
+        extra="    frequency_cutoff: ${cutoff}\n", variables=f"variables:\n  cutoff: {rare}\n",
+    )
+    assert "n41001007015" not in usj["scripture_pipelines"]["frequency"]
+
+
+def test_without_a_cutoff_every_word_carries_one(store):
+    usj = run(store, "SBLGNT", "MRK 1:7")
+    assert {"n41001007014", "n41001007015", "n41001007017"} <= set(usj["scripture_pipelines"]["frequency"])
 
 
 def test_each_greek_word_carries_its_lemmas_frequency_in_the_gnt(store):

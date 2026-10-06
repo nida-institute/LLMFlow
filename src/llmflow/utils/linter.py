@@ -6,6 +6,7 @@ import re
 import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from difflib import unified_diff
 from pathlib import Path
 from typing import Any, Dict, List, Set
@@ -594,6 +595,9 @@ class LintResult:
     valid: bool
     errors: List[str]
     warnings: List[str]
+    #: `resource_preflight.Finding`s — what the pipeline needs that this machine lacks, kept
+    #: structured so the command line can offer to supply it.
+    resources: List = dataclass_field(default_factory=list)
 
 
 def _collect_declared_outputs(all_steps):
@@ -1508,6 +1512,24 @@ def lint_pipeline_full(
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     logger.info("✅ All output members are declared by their step type")
 
+    # 1.57) Resources this machine must be able to open — before spend, like schemas (#261)
+    logger.info("🔍 Checking the resources the pipeline names...")
+    from llmflow.utils import resource_preflight
+
+    resource_findings = resource_preflight.check(
+        pipeline_config.get("steps", []), build_run_context(pipeline_config, cli_vars)
+    )
+    all_warnings.extend(f.message for f in resource_findings if not f.is_error)
+    resource_errors = [f.message for f in resource_findings if f.is_error]
+    if resource_errors:
+        all_errors.extend(resource_errors)
+        for error in resource_errors:
+            logger.error(error)
+        return LintResult(
+            valid=False, errors=all_errors, warnings=all_warnings, resources=resource_findings
+        )
+    logger.info("✅ Every resource the pipeline names can be opened")
+
     # 1.6) Model-parameter compatibility validation
     logger.info("🔍 Validating model-parameter compatibility...")
     parameter_errors = validate_model_parameters(all_steps, pipeline_config)
@@ -1686,7 +1708,7 @@ def lint_pipeline_full(
         logger.warning(f"⚠️  {warning}")
 
     logger.info("✅ Pipeline validation completed successfully")
-    return LintResult(valid=True, errors=[], warnings=all_warnings)
+    return LintResult(valid=True, errors=[], warnings=all_warnings, resources=resource_findings)
 
 
 def check_step_outputs(step):

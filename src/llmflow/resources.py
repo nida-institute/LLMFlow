@@ -638,12 +638,7 @@ def register(identifier: str, download: bool = True, terms: Optional[Mapping] = 
         # The registry's own name for it — what `resource_scheme()` reads first.
         entry["versification_scheme"] = item["versification"]
     if terms:
-        entry["terms"] = dict(terms)
-        if licence_text:
-            saved = _write_into_store(
-                default_resources_dir() / f"{identifier}.licence.txt", licence_text
-            )
-            entry["terms"]["text"] = str(saved)
+        entry["terms"] = _with_licence_text(identifier, terms, licence_text)
 
     target = _write_registration(
         default_resources_dir() / f"{identifier}.yaml",
@@ -657,6 +652,35 @@ def register(identifier: str, download: bool = True, terms: Optional[Mapping] = 
             f"Fetch it with `sp resource add {identifier}` (without --no-download)."
         )
     return target
+
+
+def _with_licence_text(identifier: str, terms: Mapping, licence_text: Optional[str]) -> dict:
+    """*terms*, with the licence text saved beside the registration and named in it."""
+    record = dict(terms)
+    if licence_text:
+        saved = _write_into_store(
+            default_resources_dir() / f"{identifier}.licence.txt", licence_text
+        )
+        record["text"] = str(saved)
+    return record
+
+
+def record_terms(identifier: str, terms: Mapping, licence_text: Optional[str] = None) -> Path:
+    """Add the licence record to a registration that has none, leaving every other key as it was.
+
+    For a resource registered before licences were recorded: nothing is downloaded and nothing
+    else is rewritten, because the registration may be one someone has curated.
+    """
+    import yaml
+
+    target = default_resources_dir() / f"{identifier}.yaml"
+    if not target.is_file():
+        raise ValueError(f"No registration file for {identifier!r} at {target}.")
+    text = target.read_text(encoding="utf-8")
+    banner = "".join(line for line in text.splitlines(keepends=True) if line.startswith("#"))
+    entry = yaml.safe_load(text) or {}
+    entry["terms"] = _with_licence_text(identifier, terms, licence_text)
+    return _write_registration(target, banner, entry)
 
 
 #: Written beside a fetched resource, recording what was fetched. A directory named

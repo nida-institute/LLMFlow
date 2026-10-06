@@ -41,7 +41,10 @@ _EDITION_TABLE: Optional[Mapping[str, Any]] = None
 #: Marks where a verse begins in `fmt="milestones"` output.
 MILESTONE_TEMPLATE = "⌊{chapter}:{verse}⌋"
 
-FORMATS = ("plain", "milestones", "usj")
+FORMATS = ("plain", "milestones", "usj", "analysis")
+
+#: Built from the `usj` form rather than from rows, so it can carry nothing that form does not.
+DERIVED_FORMATS = ("analysis",)
 
 #: The scheme assumed for a resource that declares none. Much of the translation world uses
 #: English versification without meeting the issue, so a project may have no versification file
@@ -237,8 +240,8 @@ def rows_to_text(rows: Sequence[Mapping[str, Any]], fmt: str = "milestones") -> 
     With ``fmt="milestones"`` a ``⌊chapter:verse⌋`` marker precedes each verse, separated from
     the preceding text when that does not already end in whitespace.
     """
-    if fmt not in FORMATS:
-        raise ValueError(f"unknown format {fmt!r}; expected one of {', '.join(FORMATS)}")
+    if fmt not in FORMATS or fmt in DERIVED_FORMATS:
+        raise ValueError(f"rows_to_text cannot write format {fmt!r}")
     if fmt == "plain":
         return join_rows(rows).strip()
 
@@ -459,6 +462,11 @@ def resolve_passage(
 
 def check_include(include: Any, fmt: str) -> tuple:
     """Validate `include` against `fmt` and return it as a tuple. See §4's lint rules."""
+    if fmt == "analysis" and (isinstance(include, str) or "ids" not in (include or ())):
+        raise ValueError(
+            "format: analysis numbers its words by id and needs `ids` in `include:` — write "
+            "`include: [ids, …]` with the families the analysis should carry."
+        )
     if not include:
         return ()
     if isinstance(include, str):
@@ -974,8 +982,8 @@ def usj_to_text(usj: Mapping[str, Any], fmt: str = "milestones") -> str:
     whitespace collapse to one, so a document broken across lines does not carry its newlines
     into the text.
     """
-    if fmt not in FORMATS:
-        raise ValueError(f"unknown format {fmt!r}; expected one of {', '.join(FORMATS)}")
+    if fmt not in FORMATS or fmt in DERIVED_FORMATS:
+        raise ValueError(f"usj_to_text cannot write format {fmt!r}")
 
     parts: list[str] = []
     chapter = {"n": None}  # boxed so the closure can assign
@@ -1208,6 +1216,7 @@ def _tei_passage_text(
     include: Sequence[str] = (),
     versification: Optional[str] = None,
     spans: Optional[Sequence[Mapping[str, Any]]] = None,
+    frequency_cutoff: Optional[float] = None,
 ) -> str | dict | list:
     """Running text for *passage* from a directory of per-book TEI files."""
     tei_dir = definition.get("path")
@@ -1230,6 +1239,7 @@ def _tei_passage_text(
         resource=resource,
         spans=spans,
         book_rows=book_rows,
+        frequency_cutoff=frequency_cutoff,
     )
 
 
@@ -1274,13 +1284,27 @@ def _emit(
     resource: str,
     spans: Optional[Sequence[Mapping[str, Any]]] = None,
     book_rows: Optional[Sequence[Mapping[str, Any]]] = None,
+    frequency_cutoff: Optional[float] = None,
 ) -> str | dict | list:
     """What a backend returns once it has rows: the whole passage, or one result per span.
 
     With `syntax` requested and no *spans*, *rows* are first widened to every word of every
     sentence they meet, drawn from *book_rows*, so the text, the per-word families and the tree
     cover the same words. The added words are marked in the container's `outside_passage`.
+
+    A derived format is built from the `usj` result, one span at a time where there are spans.
     """
+    if fmt in DERIVED_FORMATS:
+        from llmflow.utils.analysis_format import usj_to_analysis
+
+        usj = _emit(
+            rows, "usj", book, include, versification, definition, resource,
+            spans=spans, book_rows=book_rows, frequency_cutoff=frequency_cutoff,
+        )
+        if isinstance(usj, list):
+            return [usj_to_analysis(document) for document in usj]
+        return usj_to_analysis(usj)  # type: ignore[arg-type]
+
     syntax = None
     outside: Optional[dict] = None
     if "syntax" in include:
@@ -1289,7 +1313,11 @@ def _emit(
             rows, outside = widen_to_sentences(rows, book_rows, sentences)
         syntax = payload_for_sentences(sentences)
     discourse = discourse_payload(definition, rows, resource) if "discourse" in include else None
-    frequency = frequency_payload(rows, resource) if "frequency" in include else None
+    frequency = (
+        frequency_payload(rows, resource, cutoff=frequency_cutoff)
+        if "frequency" in include
+        else None
+    )
     if spans:
         return text_for_spans(
             rows,
@@ -1324,8 +1352,12 @@ def resource_text(
     mappings_dir: Optional[Path] = None,
     include: Any = (),
     spans: Optional[Sequence[Mapping[str, Any]]] = None,
+    frequency_cutoff: Optional[float] = None,
 ) -> str | dict | list:
     """Running text for *passage* in *resource*, dispatched on the resource's `kind`.
+
+    *frequency_cutoff*, with `include: [frequency]`, keeps a frequency only on the words whose
+    lemma falls within that least-frequent percent of the corpus.
 
     *spans* cuts the fetched passage into units named by word id, returning one result per
     span in the order given rather than one result for the passage. The passage is read once
@@ -1359,6 +1391,11 @@ def resource_text(
     # written in, and was wrongly used here as though it described the result.
     result_scheme = _versification.scheme_name(scheme) if scheme else None
     if kind == "usfm":
+        if fmt in DERIVED_FORMATS:
+            raise ValueError(
+                f"resource {resource!r} is USFM, which carries no word ids or analyses, so it has "
+                f"no `format: {fmt}`. Ask for `milestones`, `plain` or `usj`."
+            )
         if spans:
             raise ValueError(
                 f"resource {resource!r} is USFM, which carries no word ids, so a span cannot "
@@ -1368,7 +1405,7 @@ def resource_text(
         return _usfm_passage_text(definition, passage, fmt)
     if kind == "tei":
         return _tei_passage_text(
-            definition, passage, fmt, resource, families, result_scheme, spans
+            definition, passage, fmt, resource, families, result_scheme, spans, frequency_cutoff
         )
     if kind not in ("tsv",):
         raise ValueError(
@@ -1393,17 +1430,22 @@ def resource_text(
         resource=resource,
         spans=spans,
         book_rows=all_rows,
+        frequency_cutoff=frequency_cutoff,
     )
 
 
 _FREQUENCY_TABLES: dict = {}
 
 
-def frequency_payload(rows: Sequence[Mapping[str, Any]], resource: str) -> Optional[dict]:
+def frequency_payload(
+    rows: Sequence[Mapping[str, Any]], resource: str, cutoff: Optional[float] = None
+) -> Optional[dict]:
     """`{word id: {corpus, count, in_least_frequent_percent}}` for *rows*, or None.
 
     None where `include-families.json` names no corpus table for *resource*. A row matching the
-    corpus's `excluded` fields has no entry; a row whose lemma the table lacks maps to None.
+    corpus's `excluded` fields has no entry; a row whose lemma the table lacks maps to None. With
+    *cutoff*, a word whose lemma is not within that least-frequent percent has no entry either —
+    a lemma the table lacks is kept, since nothing says it is common.
     """
     corpus = _family("frequency").get("corpora", {}).get(resource)
     if not corpus:
@@ -1430,6 +1472,8 @@ def frequency_payload(rows: Sequence[Mapping[str, Any]], resource: str) -> Optio
         if any(str(row.get(field) or "") in values for field, values in excluded.items()):
             continue
         entry = lemmas.get(str(row.get("lemma") or ""))
+        if cutoff is not None and entry and entry["in_least_frequent_percent"] > cutoff:
+            continue
         payload[str(identifier)] = (
             {
                 "corpus": corpus["corpus"],

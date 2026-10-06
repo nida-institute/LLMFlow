@@ -142,7 +142,8 @@ class TestStarterPromptContract:
     """The starter prompt declares a variable contract the linter can parse."""
 
     def test_readers_guide_prompt_declares_every_input_it_uses(self, tmp_path):
-        """Its header must list the five inputs the pipeline passes it."""
+        """Its header must list the four inputs the pipeline passes it. The cut-off is applied by
+        the engine now (`frequency_cutoff`), so it is no longer an input."""
         from llmflow.utils.linter import parse_prompt_header
 
         p = tmp_path / "readers-guide.gpt"
@@ -150,7 +151,7 @@ class TestStarterPromptContract:
         header = parse_prompt_header(str(p))
         assert header is not None, "the starter prompt has no parseable header"
         requires = set(header.get("requires", []))
-        assert {"reference", "testament", "original", "english", "cutoff"} <= requires, (
+        assert {"reference", "testament", "original", "english"} <= requires, (
             f"the starter prompt must declare every input its step passes, got: {requires}"
         )
 
@@ -308,12 +309,31 @@ class TestTheStarterPipeline:
         assert "variables" in content, "the starter pipeline must have a variables: block"
 
     def test_the_starter_pipeline_passes_lint(self, tmp_path, monkeypatch):
+        """On a machine with the texts it always reads registered. WLC is needed only for an Old
+        Testament passage — its steps are under a `condition:` — so it is not required."""
+        monkeypatch.setenv("SP_HOME", str(tmp_path / "sp"))
+        monkeypatch.chdir(tmp_path)
+        main(["init"])
+        from llmflow import resources
+        from llmflow.utils.linter import lint_pipeline_full
+
+        for identifier in ("BSB", "SBLGNT"):
+            resources._write_registration(
+                resources.default_resources_dir() / f"{identifier}.yaml", "",
+                {"id": identifier, "kind": "tsv", "path": "/tmp/x.tsv"},
+            )
+        result = lint_pipeline_full(str(tmp_path / "pipelines" / "readers-guide.yaml"))
+        assert result.valid, f"the starter pipeline failed lint: {result.errors}"
+
+    def test_the_starter_pipeline_names_what_a_fresh_machine_lacks(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("SP_HOME", str(tmp_path / "sp"))
         monkeypatch.chdir(tmp_path)
         main(["init"])
         from llmflow.utils.linter import lint_pipeline_full
 
         result = lint_pipeline_full(str(tmp_path / "pipelines" / "readers-guide.yaml"))
-        assert result.valid, f"the starter pipeline failed lint: {result.errors}"
+        assert not result.valid
+        assert any("sp resource add SBLGNT" in e for e in result.errors)
 
 
 class TestAiContextConsistency:

@@ -292,6 +292,9 @@ _STEP_TYPE_PROPERTIES = [
                 "type": "array",
                 "items": {"type": "string", "enum": list(SCRIPTURE_INCLUDE_FAMILIES)},
             },
+            # With `include: [frequency]`: only words whose lemma falls within this least-frequent
+            # percent of the corpus carry a frequency. A number, or `${var}` naming one.
+            "frequency_cutoff": {"oneOf": [{"type": "number"}, {"type": "string"}]},
             # Cuts the fetched passage into units named by word id, one result per span in the
             # order given. A unit of analysis does not always start where a verse does — in
             # Hebrew versification a psalm's superscription is part of verse 1 — so a boundary

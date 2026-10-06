@@ -9,8 +9,8 @@ description: |
 
   Two steps call a model; every other step is free. The engine fetches the passage in its own
   language with its analyses and each word's frequency, the English, the passages this one is
-  parallel to, and the whole chapter around each of them. Only `reader_guide` and
-  `significance` cost anything.
+  parallel to in their own language, and the whole chapter around each of them in English. Only
+  `reader_guide` and `significance` cost anything.
 
   What this example teaches, in order of how often it matters:
 
@@ -28,8 +28,8 @@ description: |
 output_file_directory: "${output_dir}"
 intermediate_file_directory: "${intermediate_dir}"
 
-# Both model steps read a large payload and write a long answer — the analysed Greek for eleven
-# verses is about 118,000 tokens, and the parallel chapters more. These are the settings
+# Both model steps read a sizeable payload and write a long answer — for Matthew 19:1-11, 13,331
+# input tokens for the guide and 18,699 for the significance. These are the settings
 # discourse-flow uses for its heavy steps.
 llm_config:
   model: gpt-4.1
@@ -82,9 +82,8 @@ steps:
       participle near either end of the passage arrives with the verb it depends on. Words outside
       the requested verses are marked in `outside_passage`.
 
-      `frequency` gives each word its lemma's count in the corpus and
-      `in_least_frequent_percent`, the smallest N for which the lemma falls among the corpus's
-      least frequent N% of lemmas. The guide compares that against the cut-off.
+      This is the complete record, saved for reading and for other tools: `format: usj` drops
+      nothing. The guide is handed the next step's compact form instead.
     condition: "${passage_info.testament == 'NT'}"
     type: scripture
     resource: SBLGNT
@@ -92,22 +91,34 @@ steps:
     versification: "${versification}"
     format: usj
     include: [ids, morphology, senses, glosses, syntax, frequency]
-    output: original
+    output: original_usj
     saveas: "${intermediate_dir}/${passage_info.filename_prefix}/greek.json"
 
-  - name: greek_cutoff
-    description: The cut-off the guide applies to a Greek passage's word frequencies.
+  - name: greek_analysis
+    description: |
+      The same passage and analyses in `format: analysis` — each sentence's tree in bracketed
+      notation, then one row per word — which is a quarter of the tokens of the USJ form and what
+      the guide reads.
+
+      `frequency_cutoff` keeps a frequency only on the words whose lemma falls within the
+      corpus's least frequent `greek_frequency_cutoff` percent of lemmas, so a word with a
+      frequency is exactly a less common word.
     condition: "${passage_info.testament == 'NT'}"
-    type: json
-    value: "${greek_frequency_cutoff}"
-    output: cutoff
-    saveas: "${intermediate_dir}/${passage_info.filename_prefix}/cutoff.json"
+    type: scripture
+    resource: SBLGNT
+    passage: "${passage}"
+    versification: "${versification}"
+    format: analysis
+    include: [ids, morphology, senses, glosses, syntax, frequency]
+    frequency_cutoff: "${greek_frequency_cutoff}"
+    output: original
+    saveas: "${intermediate_dir}/${passage_info.filename_prefix}/greek-analysis.txt"
 
   - name: hebrew
     description: |
       The Old Testament passage in Hebrew or Aramaic, with the same analyses as the Greek step and
-      each word's frequency in the Hebrew Bible. Exactly one of the two runs, chosen by the
-      testament the reference names.
+      each word's frequency in the Hebrew Bible. Exactly one of the two languages is fetched,
+      chosen by the testament the reference names.
     condition: "${passage_info.testament == 'OT'}"
     type: scripture
     resource: WLC
@@ -115,16 +126,22 @@ steps:
     versification: "${versification}"
     format: usj
     include: [ids, morphology, senses, glosses, syntax, frequency]
-    output: original
+    output: original_usj
     saveas: "${intermediate_dir}/${passage_info.filename_prefix}/hebrew.json"
 
-  - name: hebrew_cutoff
-    description: The cut-off the guide applies to a Hebrew passage's word frequencies.
+  - name: hebrew_analysis
+    description: |
+      The Hebrew passage in `format: analysis`, as the Greek one above.
     condition: "${passage_info.testament == 'OT'}"
-    type: json
-    value: "${hebrew_frequency_cutoff}"
-    output: cutoff
-    saveas: "${intermediate_dir}/${passage_info.filename_prefix}/cutoff.json"
+    type: scripture
+    resource: WLC
+    passage: "${passage}"
+    versification: "${versification}"
+    format: analysis
+    include: [ids, morphology, senses, glosses, syntax, frequency]
+    frequency_cutoff: "${hebrew_frequency_cutoff}"
+    output: original
+    saveas: "${intermediate_dir}/${passage_info.filename_prefix}/hebrew-analysis.txt"
 
   - name: reader_guide
     description: |
@@ -141,7 +158,6 @@ steps:
         testament: "${passage_info.testament}"
         original: "${original}"
         english: "${english}"
-        cutoff: "${cutoff}"
     output: reader_guide
     saveas: "${output_dir}/${passage_info.filename_prefix}-readers-guide.md"
 
@@ -161,8 +177,8 @@ steps:
 
   - name: parallel_members
     description: |
-      Every member of every group, located: its verse in English, and which chapter and testament
-      it belongs to. Nothing larger than a verse is fetched here.
+      Every member of every group, located: its verse in English and in its own language, and
+      which chapter and testament it belongs to. Nothing larger than a verse is fetched here.
 
       A member can appear in several groups, and several members share a chapter, so the chapters
       are fetched by the next step, once each.
@@ -190,19 +206,41 @@ steps:
             content: "${member_verse}"
             path: "${intermediate_dir}/${passage_info.filename_prefix}/parallels/${member_info.filename_prefix}-english.txt"
 
+          - name: member_greek
+            condition: "${member_info.testament == 'NT'}"
+            type: scripture
+            resource: SBLGNT
+            passage: "${member}"
+            versification: org
+            format: milestones
+            output: member_original
+            saveas: "${intermediate_dir}/${passage_info.filename_prefix}/parallels/${member_info.filename_prefix}-greek.txt"
+
+          - name: member_hebrew
+            condition: "${member_info.testament == 'OT'}"
+            type: scripture
+            resource: WLC
+            passage: "${member}"
+            versification: org
+            format: milestones
+            output: member_original
+            saveas: "${intermediate_dir}/${passage_info.filename_prefix}/parallels/${member_info.filename_prefix}-hebrew.txt"
+
           - name: collect_member
             type: json
             value:
               reference: "${member}"
               chapter: "${member_info.book_code} ${member_info.chapter}"
               testament: "${member_info.testament}"
+              original: "${member_original}"
             output: located_member
             append_to: parallel_members
             saveas: "${intermediate_dir}/${passage_info.filename_prefix}/parallels/${member_info.filename_prefix}.json"
 
   - name: parallel_chapters
     description: |
-      The whole chapter around the members, once per chapter, in English and in its own language.
+      The whole chapter around the members, once per chapter, in English. The members' own verses
+      came in their own language from the step above.
 
       `group_by` gathers the located members by chapter, so each iteration receives one chapter
       as `{key, items}` — the chapter, and the members that fall in it.
@@ -210,7 +248,9 @@ steps:
       A chapter is fetched rather than the member verse alone because the significance step reads
       each passage in its original context, and a single verse is not one. Until a pericope
       boundary is registered for these texts, the significance step is asked to isolate the
-      relevant pericope from the chapter itself.
+      relevant pericope from the chapter itself. The context is in English and the verses that
+      are compared are in the original: the original language of a whole chapter is two-thirds
+      of the step's input, and the comparison is made on the members' own words.
     type: for-each
     for: chapter
     in: "${parallel_members}"
@@ -225,33 +265,12 @@ steps:
         output: chapter_english
         saveas: "${intermediate_dir}/${passage_info.filename_prefix}/parallels/${chapter.key}-english.txt"
 
-      - name: chapter_greek
-        condition: "${chapter['items'][0]['testament'] == 'NT'}"
-        type: scripture
-        resource: SBLGNT
-        passage: "${chapter.key}"
-        versification: org
-        format: milestones
-        output: chapter_original
-        saveas: "${intermediate_dir}/${passage_info.filename_prefix}/parallels/${chapter.key}-greek.txt"
-
-      - name: chapter_hebrew
-        condition: "${chapter['items'][0]['testament'] == 'OT'}"
-        type: scripture
-        resource: WLC
-        passage: "${chapter.key}"
-        versification: org
-        format: milestones
-        output: chapter_original
-        saveas: "${intermediate_dir}/${passage_info.filename_prefix}/parallels/${chapter.key}-hebrew.txt"
-
       - name: collect_chapter
         type: json
         value:
           chapter: "${chapter.key}"
           members: "${chapter.items}"
           english: "${chapter_english}"
-          original: "${chapter_original}"
         output: chapter_text
         append_to: parallel_texts
         saveas: "${intermediate_dir}/${passage_info.filename_prefix}/parallels/${chapter.key}.json"
