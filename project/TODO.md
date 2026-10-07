@@ -156,7 +156,9 @@ No issue, no test.
   so a step cannot name its own output in its `saveas` (already noted above; still unfiled)
 - `docs/sp-language.md` says `duckdb` registers `inputs:` as tables; `steps/duckdb.py:61-74` only
   substitutes `${var}` into the SQL text
-- a structured `{{var}}` reaches a prompt as a Python printout, not JSON (`utils/io.py:100`)
+- a structured `{{var}}` reaches a prompt as a Python printout, not JSON — **fixed for `.gpt`
+  prompts in `5b1ea3e`** (`steps/llm.py` `_as_prompt_text`); still true for `.md` output templates,
+  `utils/io.py:100` `eval_template_expr`
 - an LLM step retries a 400 *context length exceeded* three times; no retry can succeed
 - gpt-5 returned `[only]` for the reader's guide and the step reported success after warning it
   could not read a stop reason
@@ -165,6 +167,10 @@ No issue, no test.
 - `PSA 116:10` in `data/parallel-passages.json` counts as two `lxx` verses (`PSA 115:0`,
   `PSA 115:1`); the design asked for a distinct "no single answer" state — the Captain's call
 - the Swete text (`nathans/lxx-swete`) carries ~950 OCR tokens detectable by pattern → #268
+- **Found 2026-10-07:** `prompts/analyze-pericope.gpt` and `prompts/summarize-segmentation.gpt`
+  write their bodies as YAML (`user: |` then indented text). Nothing parses it, so the model has
+  always received the literal `user: |` line and the indentation. Not caused by #176: stripping
+  the header leaves this line in place, as sending the header did
 
 ### 📅 TOMORROW IS HELM — set by the Captain, Tuesday 2026-09-29
 
