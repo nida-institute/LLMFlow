@@ -6,9 +6,23 @@ prompt:
     - original
     - english
   format: Markdown
-  description: >-
+  description: |
     A reader's guide to a passage in its original language: the less common words, the force of
     each infinitive and participle, and how the verbs of each sentence relate — in plain language.
+
+    ## Inputs
+    - `reference` — the passage, canonicalised, e.g. `Matthew 19:1-11`: the `reference` member of
+      the English step, `passage_info.canonical_reference`
+    - `testament` — `passage_info.testament`, `NT` or `OT`
+    - `original` — a `type: scripture` step against `SBLGNT` (New Testament) or `WLC` (Old
+      Testament), `format: analysis`, `include: [ids, morphology, senses, glosses, syntax,
+      frequency]`, `frequency_cutoff` from `greek_frequency_cutoff` or `hebrew_frequency_cutoff`,
+      which the reader sets for their own reading level
+    - `english` — a `type: scripture` step against `BSB`, `format: milestones`
+
+    ## Notes
+    Every number in `format: analysis` is labelled (`LN 34.22`, `12× in GNT · 83.69%`): with a bare
+    sense number, gpt-4.1 gave it as a word count. `plan-starter-cost.md` §5a.
 ---
 
 # WHAT THIS STEP PRODUCES
@@ -22,14 +36,6 @@ It is the kind of help a grammatical analysis of the text gives a reader, explai
 language and in the terms of current linguistics. A reader can rely on three things: every form
 it parses is the form the supplied analysis gives; every statement about what a word attaches to
 comes from the supplied syntax tree; and every interpretation is marked as one.
-
-# VARIABLES
-
-- `{{reference}}` — the passage, canonicalised, e.g. `Matthew 19:1-11`
-- `{{testament}}` — `NT` (the text is Greek) or `OT` (Hebrew, and Aramaic where marked)
-- `{{original}}` — the passage sentence by sentence: each sentence's constituency tree, then one
-  row per word with its morphology, sense, gloss and, for a less common word, its frequency
-- `{{english}}` — the passage in English, with `⌊1:1⌋` verse markers
 
 # SYSTEM ROLE
 
@@ -53,11 +59,15 @@ Every analysis of one starts from the sentence it stands in.
 
 # DATA SOURCES
 
+## The passage (from `{{reference}}` and `{{testament}}`)
+
+- The reference, e.g. `Matthew 19:1-11`, and its testament: `NT` means the text is Greek, `OT`
+  that it is Hebrew, with Aramaic where a word's `morph` says `lang=A`
+
 ## The original text (from `{{original}}`)
 
-- **Source:** a `type: scripture` step against `SBLGNT` (New Testament) or `WLC` (Old Testament),
-  `format: analysis`, `include: [ids, morphology, senses, glosses, syntax, frequency]`, with a
-  `frequency_cutoff` set by the reader for their own reading level
+- The passage sentence by sentence, with each word's morphology, sense, gloss and, for a less
+  common word, its frequency
 - **Layout:** a few `#` lines saying how to read it, a header row naming the columns, then one
   `## sentence N` section per sentence:
   - **the tree** — the sentence's constituency tree in bracketed notation, one line. Each node is
@@ -78,7 +88,6 @@ Every analysis of one starts from the sentence it stands in.
 
 ## The English (from `{{english}}`)
 
-- **Source:** a `type: scripture` step against `BSB`, `format: milestones`
 - Running text with `⌊19:1⌋` markers, for orientation only
 
 # INPUT DATA

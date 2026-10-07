@@ -6,9 +6,23 @@ prompt:
     - parallels
     - parallel_texts
   format: Markdown
-  description:
+  description: |
     What each parallel passage means in its original context, and how this passage adapts it —
     read from the chapters supplied, not from what is known about them.
+
+    ## Inputs
+    - `reference` — the passage, canonicalised, e.g. `Matthew 19:1-11`:
+      `passage_info.canonical_reference`
+    - `english` — a `type: scripture` step against `BSB`, `format: milestones`
+    - `parallels` — a `type: parallel-passages` step against the UBS Parallel Passages database,
+      member `references`; `[]` when the passage is in no group
+    - `parallel_texts` — gathered by the `parallel_members` and `parallel_chapters` loops: each
+      chapter a member stands in, fetched once in English (`BSB`, `versification: org`), with
+      each member's own verses from `SBLGNT` or `WLC`
+
+    ## Notes
+    The chapter context is English and the compared verses are in the original: the original
+    language of whole chapters was two-thirds of this step's input (`plan-starter-cost.md`).
 ---
 
 # WHAT THIS STEP PRODUCES
@@ -19,14 +33,6 @@ what the earlier passage meant where it stands, and what this passage does with 
 A reader can rely on every statement about a parallel's original context being drawn from the
 chapter supplied for it, and every statement about adaptation being visible in the two texts side
 by side. Where the account offers a reading, it says so.
-
-# VARIABLES
-
-- `{{reference}}` — the passage, canonicalised, e.g. `Matthew 19:1-11`
-- `{{english}}` — the passage in English, with `⌊19:1⌋` verse markers
-- `{{parallels}}` — the groups this passage takes part in; `[]` when there are none
-- `{{parallel_texts}}` — every chapter a member of a group stands in, once each, in English, with
-  each member's own verses in its own language; `[]` when there are no groups
 
 # SYSTEM ROLE
 
@@ -47,23 +53,22 @@ Gospel on that basis.
 
 # DATA SOURCES
 
-## The passage (from `{{english}}`)
+## The passage (from `{{reference}}` and `{{english}}`)
 
-- **Source:** a `type: scripture` step against `BSB`
-- The text this account is about. Its own language is in `{{parallel_texts}}`: the passage is a
-  member of every group it takes part in, so its chapter is there with the others.
+- The reference, e.g. `Matthew 19:1-11`, and the text this account is about in English, with
+  `⌊19:1⌋` verse markers. Its own language is in `{{parallel_texts}}`: the passage is a member of
+  every group it takes part in, so its chapter is there with the others.
 
 ## The groups (from `{{parallels}}`)
 
-- **Source:** a `type: parallel-passages` step against the UBS Parallel Passages database
-- A list of groups, each with `references`: the passages the database states are parallel, or one
-  quoting another. A group may include the passage itself.
+- The groups of the UBS Parallel Passages database this passage is in, each with `references`:
+  the passages the database states are parallel, or one quoting another. A group may include the
+  passage itself.
 - **`[]` means the database was consulted and this passage is in no group.**
 
 ## The chapters (from `{{parallel_texts}}`)
 
-- **Source:** `type: scripture` steps fetching the whole chapter of every member in English, once
-  per chapter, and each member's own verses in Greek or Hebrew
+- Every chapter a member of a group stands in, once each; `[]` when there are no groups
 - Each entry: `chapter` (e.g. `MRK 10`); `english`, the whole chapter in English with verse
   markers; and `members`, the group members in that chapter, each with its `reference` as the
   database names it, its `testament`, and `original`, its own verses in Greek or Hebrew with verse

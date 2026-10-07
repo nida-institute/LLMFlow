@@ -15,8 +15,9 @@
 **Ruled 2026-10-01:**
 
 - **Helm parity is out of this release** — *"Let's take Helm parity out of this release."*
-  `tests/test_helm_sync.py` stays red (3) until the coordination design lands. Ship with those
-  known failures, or record an exemption: **his call, not yet made.**
+  **Ruled 2026-10-06: an exemption** — *"Helm is an exemption for now, the release after this one
+  will focus on Helm and Ears to Hear support."* The Helm tests (`test_helm_sync`,
+  `test_portable_skills`) are exempted in this release, not fixed; how is item 10.
 - **The prompt rework is not the engine's.** The Ears to Hear methodology belongs to a client, and
   the commentary it shapes belongs in `ears-to-hear`, not in the engine's starter example.
   `prompts/commentary.gpt` stays as he approved it 2026-09-28. Whether Ears to Hear is told
@@ -47,12 +48,20 @@
    - [ ] test 9, *"the reference object is saved"* — nothing saves `passage_info`. Keep or drop
    - [ ] §7 still says "both prompts" and "nine positions"; D2 ruled one prompt, the grammar has
          twelve. Update the plan — his document
-2. **→ #176**, strip frontmatter before the model call — not started
+2. **→ #176**, strip frontmatter before the model call — widened by the Captain 2026-10-06 to
+   *"allow description to contain markdown and move everything there, where it logically
+   belongs"*, in this release (`design-prompt-description.md`). **Built 2026-10-06, not yet
+   committed:** the header is stripped before the call, `description` is the prompt's Markdown
+   documentation, `# VARIABLES` leaves the grammar, lint warns on an input `description` does
+   not name; `tests/test_prompt_description.py` (12). The installed audit skill is regenerated and
+   the three example prompts' `description` written (his go, 2026-10-06). Advance notes drafted,
+   uncommitted, in `discourse-flow/collab/sp/` and `ears-to-hear/scriptorium/collab/sp/`
+   (`2026-10-06-description-is-for-people-…`); discourse-flow's own test requires `# VARIABLES`
+   and will disagree with lint after it upgrades — the note says so
 3. **→ #252**, licence terms at download and register — ruled 2026-09-25 and 2026-10-05
-   (`plan-terms-on-download-and-register.md` §2, §2a). **Built 2026-10-05, not yet committed:**
-   `tests/test_terms_on_download_and_register.py` (36) passes; full suite without Helm 5,974
-   passed, 1 failed (the deferred parallel-passages wheel entry). Left: the `license_url` issue for
-   `awesome-biblical-data`, drafted at `tmp/issue-abd-license-url.md`, not filed
+   (`plan-terms-on-download-and-register.md` §2, §2a). **Built, committed at `3e5b7de`**,
+   guarded by `tests/test_terms_on_download_and_register.py` (36). Left: the `license_url` issue
+   for `awesome-biblical-data`, drafted at `tmp/issue-abd-license-url.md`, not filed — his call
 4. ✅ **Position 12, `# REFERENCE`**, in `data/prompt-structure.yaml` — ruled 2026-09-21; built:
    declared at `data/prompt-structure.yaml:128` (`id: reference`) and rendered as row 12 of the
    prompt-organization discipline, checked 2026-10-02
@@ -70,10 +79,10 @@
       `tests/test_parallel_passages_dataset.py` (regenerates and matches byte for byte). In this
       release, the Captain 2026-10-03. `counted.text` a closed enum, extended when an edition is
       added; `addressed`/`counted` blocks — both his, the same day
-- [ ] **The dataset's wheel and binary entries** — `data/parallel-passages.json` in
-      `pyproject.toml`'s force-include and `.github/workflows/build.yml`'s two data lists. The
-      Captain deferred these to the release PR, 2026-10-03: *"it will get into the wheel when we
-      actually issue and merge the next PR. Don't need to do that yet."*
+- [x] **The dataset's wheel and binary entries** — `data/parallel-passages.json` in
+      `pyproject.toml`'s force-include and both data lists in `.github/workflows/build.yml`.
+      Deferred to the release PR 2026-10-03; brought forward 2026-10-06 under item 10, so that
+      `dev` can be green. `tests/test_binary_bundles_its_data.py` passes (21)
 8. **→ #261, resource preflight with an offer to install and register** — added to this release by
    the Captain 2026-10-02; ruled 2026-10-05 (`plan-resource-preflight.md` §2). **Built
    2026-10-05:** `utils/resource_preflight.py`, guarded by `tests/test_resource_preflight.py`
@@ -84,6 +93,33 @@
    (`plan-starter-cost.md`): `format: analysis`, `frequency_cutoff`, JSON and Unicode to models
    and disk, English context for parallels, and a value filled only under `# INPUT DATA`.
    MAT 19:1-11 now costs $0.1281, against ~$1.00; gpt-4.1 stays (ruled 2026-10-06, §5b)
+10. **→ The GitHub build passes on the first try** — added by the Captain 2026-10-06: *"we have
+    added a lot of tests, so far this has always broken the build on github."* **Built
+    2026-10-06, not yet committed; green on GitHub not yet seen.** The Helm checks are
+    `xfail(strict=True)` in `tests/test_helm_sync.py` and `tests/test_portable_skills.py`
+    (`HELM_EXEMPT`), the wheel entry is in, and `project/RELEASE_CHECKLIST.md` §3 requires a green
+    `test.yml` on `dev` before the PR. The suite as CI runs it (`-m "not integration"`, nothing
+    deselected): 6,163 passed, 24 skipped, 4 xfailed, 0 failed. Measured before the change:
+    - **Tests (`test.yml`, every push to `dev`) has failed on every run back to at least
+      2026-09-29**, so a new failure looks like the old ones and is not seen until the PR. The
+      latest, at `5b1ea3e`: 5,969 passed, 211 skipped, **3 failed** — the parallel-passages
+      wheel entry (deferred to the PR), `test_helm_sync` and `test_portable_skills` (Helm). The
+      tests added this release are not among them.
+    - **Build (`build.yml`, pull requests only) failed 4 times for 0.2.1.28 before passing**, every
+      time on the ordinary suite, not on the binary: plans naming no issue and a stale plans index
+      (`35677743535`, `35677848206`), pyright (`35922509510`), a product-name prose check
+      (`36029818119`).
+    - Locally the full suite runs with the Helm tests deselected, so a check CI runs can be red
+      without anyone running it. CI also skips 211 real-data tests that run here.
+    - **Approved 2026-10-06 and built:** exempt the Helm tests in the test files themselves, so CI
+      and a local run agree; add the wheel entry; and make "Tests is green on `dev`" the
+      precondition for opening the release PR.
+
+**The release after this one** — ruled 2026-10-06: Helm, and Ears to Hear support. Ears to Hear's
+request is `collab/ears-to-hear/2026-10-06-acai-sdbg-and-the-tyndale-bible-dictionary.md`: ACAI
+served for a passage, SDBG's definition and gloss for a Louw-Nida sense, the Tyndale Open Bible
+Dictionary for a passage or an entry, and a confirmation — **measured 2026-10-06: `senses` on
+`SBLGNT` carries the letter-level code**, `"ln": "93.169a"` for Ἰησοῦς in MAT 19:1.
 
 **Not in the release, raised for his decision: `\q` continuation lines lost from BSB.** Measured
 2026-09-29: `~/github/usfm-bible/examples.bsb/42MRKBSB.usfm:12-18` carries the Isaiah quotation on

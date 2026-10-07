@@ -11,7 +11,7 @@ import pytest
 
 from llmflow import load_pipeline
 
-HEADER = "---\nprompt:\n  requires:\n{requires}---\n"
+HEADER = "---\nprompt:\n  requires:\n{requires}  description: |\n    Inputs: {names}.\n---\n"
 
 
 @pytest.fixture
@@ -25,7 +25,9 @@ def pipeline(tmp_path, monkeypatch):
         for name, text in mixins.items():
             (prompts / "mixins" / name).write_text(text, encoding="utf-8")
         listed = "".join(f"    - {name}\n" for name in requires)
-        (prompts / "p.gpt").write_text(HEADER.format(requires=listed) + body, encoding="utf-8")
+        (prompts / "p.gpt").write_text(
+            HEADER.format(requires=listed, names=", ".join(requires)) + body, encoding="utf-8"
+        )
         cfg = {
             "name": "p",
             "variables": {name: "x" for name in inputs},

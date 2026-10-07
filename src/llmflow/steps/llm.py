@@ -180,6 +180,9 @@ def render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, 
     # simple prompt and is filled throughout.
     substitutable = {key for key in (declared if header is not None else set(context))
                      if key in context}
+    # The header is the engine's and the maintainer's: `requires` and `format` are read above,
+    # and `description` is the prompt's documentation. None of it reaches the model (#176).
+    rendered_prompt = prompt_body(rendered_prompt).lstrip("\n")
     segments = _input_data_segments(rendered_prompt)
     if substitutable:
         pattern = re.compile(

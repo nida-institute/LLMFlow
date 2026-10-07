@@ -46,6 +46,14 @@ from pathlib import Path
 
 import pytest
 
+#: A Helm parity check that is red by decision rather than by accident: Helm parity is the next
+#: release's work, and this one ships without it (`project/TODO.md`, the release section). Strict,
+#: so a check that starts passing is reported, and the marker comes off rather than lingering.
+HELM_EXEMPT = pytest.mark.xfail(
+    strict=True,
+    reason="Helm parity is exempt in this release and is the next one's work — project/TODO.md",
+)
+
 # Source of truth for this list: design-helm-parity.md §4. An earlier note here expected step
 # 6 to replace it with Helm's shipped manifest; ruling D7-C is why it stays. `helm-sync.yaml`
 # is checked *against* this classification, so sourcing the classification *from* the record
@@ -184,6 +192,7 @@ def test_engine_only_skills_are_still_shipped_here(skill: str):
     assert (_skills_dir() / skill / "SKILL.md").is_file(), f"{skill} is no longer shipped"
 
 
+@HELM_EXEMPT
 def test_every_shipped_skill_is_classified():
     """No skill may be added without deciding whether Helm gets it.
 

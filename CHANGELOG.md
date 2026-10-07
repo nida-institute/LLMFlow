@@ -100,7 +100,9 @@
   `full`; the source's line-break component is discarded. 2,193 groups and 5,266 members, as in
   the source. The dataset is CC BY-SA 4.0, as its source is, and `NOTICE` carries the attribution
   and the changes made. Guarded by `tests/test_parallel_passages_dataset.py`, which regenerates the
-  file from the XML and requires a byte-for-byte match.
+  file from the XML and requires a byte-for-byte match. The wheel and all three binaries bundle
+  it (`pyproject.toml`'s force-include and both Nuitka commands), guarded by
+  `tests/test_binary_bundles_its_data.py`.
 
 - **`docs/cli-api.json` — a map of the public surface, generated and shipped → #264.**
   `docs/index.json` maps the engine's implementation, and having said what the surface is *not*,
@@ -168,6 +170,28 @@
   and turn a correct engine red on the next UBS release.
 
 ### Changed
+
+- **`/stage-commits` brings the handoff and the changelog up to date before it groups anything.**
+  It used to check them and only report: a stale handoff was offered `/handoff` and could be
+  waved past, and a missing changelog entry was noticed after staging, pointed at `/commit-ready`,
+  and left. A commit could therefore land with both records false. Its new Step 2 runs `/handoff`
+  when the handoff is stale and writes the missing changelog entry to `/commit-ready`'s rules
+  before grouping, so both are among the files the human sees grouped; Step 6 confirms they are
+  staged and sends the session back to Step 2 when they are not. It still writes neither file
+  itself. It also says plainly that **staging means the agent runs `git add` itself**: the human
+  is handed only the commit command, and for several commits the agent stages each group in turn
+  — its old multi-commit example handed the human the `git add` lines.
+
+- **The model reads the prompt; the people who maintain it read `description` → #176.** The
+  engine now strips a prompt's YAML header before the call — every model input shifts slightly,
+  so a run's output may too. `description` becomes the prompt's documentation, in Markdown:
+  what it is for, what each input is and where it comes from, and design notes. `# VARIABLES`
+  leaves the prompt grammar — `sp lint` refuses it, saying where its content goes — and the
+  positions after it are renumbered (`# REFERENCE` is now 11). `# DATA SOURCES` keeps its
+  heading and its job narrows to how to read each input; where an input came from moves to
+  `description`. `sp lint` warns when `description` does not name every input in `requires:`.
+  The shipped discipline and the `audit-prompts` skill teach the split; both starter prompts
+  follow it. Guarded by `tests/test_prompt_description.py` (12).
 
 - **The starter example costs about an eighth of what it did — $0.13 a run on MAT 19:1-11,
   against about $1.00.** Most of the saving is the `# INPUT DATA` fix below; the rest is what

@@ -3959,6 +3959,11 @@
           "doc": "Which prompts do not fit the grammar, the first finding in each, and the order once."
         },
         {
+          "name": "prompt_description_warnings",
+          "signature": "prompt_description_warnings(prompt_paths: List[str]) -> List[str]",
+          "doc": "Which prompts' `description` does not name every input in `requires:`."
+        },
+        {
           "name": "validate_all_step_contracts",
           "signature": "validate_all_step_contracts(all_steps, log_func, pipeline_root = None)",
           "doc": "Validate all LLM steps against their prompt contracts"
@@ -5912,6 +5917,6 @@
   ],
   "summary": {
     "total_modules": 96,
-    "total_functions": 942
+    "total_functions": 943
   }
 }

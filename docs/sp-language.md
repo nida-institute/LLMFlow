@@ -2261,6 +2261,13 @@ Your prompt instructions here. Reference variables using
 ```
 
 **Key features:**
+- **The header never reaches the model.** The engine strips it before the call. `requires:` and
+  `format:` are the engine's; `description:` is the prompt's documentation for the people who
+  maintain it — Markdown, in a `|` block — saying what the prompt is for, what each input is and
+  where it comes from (which step, resource and options), and any design notes. The body is for
+  the model: how to read each input stays there, under `# DATA SOURCES`. There is no
+  `# VARIABLES` section; `sp lint` refuses it and warns when `description` does not name every
+  input in `requires:`.
 - **The header is YAML frontmatter, fenced by `---`, with the opening `---` on the first line.**
   It declares `requires:`, `format:` and `description:`. There is no `optional:` key — every
   prompt parameter is required — and the old `<!-- ... -->` header form is withdrawn. `sp lint`

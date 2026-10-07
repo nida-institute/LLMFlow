@@ -172,6 +172,11 @@ For each task section in the band:
 Across the prompt:
 7. ✅ Heading hierarchy consistent? (`#` for positions and task headings, `##` for subsections)
 8. ✅ Data sources, rules and examples co-located within each task section, not scattered?
+9. ✅ Nothing in the body is for the maintainer? The frontmatter is stripped before the call and
+   `description` is the prompt's documentation: **where an input comes from** — its step,
+   resource and options — belongs there, and a `**Source:**` line or a step's `type:` in the
+   body is a finding. **How to read an input** stays in `# DATA SOURCES`, because the model
+   needs it. `sp lint` warns when `description` does not name every input in `requires:`.
 
 ### Step 4: Identify Sprawl Indicators
 

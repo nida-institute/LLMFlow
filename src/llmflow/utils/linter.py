@@ -388,6 +388,37 @@ def prompt_conformance_warnings(prompt_paths: List[str]) -> List[str]:
     return warnings
 
 
+def prompt_description_warnings(prompt_paths: List[str]) -> List[str]:
+    """Which prompts' `description` does not name every input in `requires:`.
+
+    `description` is the prompt's documentation for the people who maintain it — what each input
+    is and where it comes from — and it is never sent to a model. A required input it does not
+    name is an input documented nowhere. A **warning**, like the grammar's other findings: the
+    prompt runs either way.
+    """
+    warnings: List[str] = []
+    for path in prompt_paths:
+        try:
+            header = parse_prompt_header(path)
+        except OSError:
+            continue
+        if not isinstance(header, dict):
+            continue
+        requires = header.get("requires") or []
+        description = str(header.get("description") or "")
+        missing = [
+            str(name) for name in requires
+            if not re.search(r"(?<![\w])" + re.escape(str(name)) + r"(?![\w])", description)
+        ]
+        if missing:
+            warnings.append(
+                f"{path}: `description` does not name the required input"
+                f"{'s' if len(missing) > 1 else ''} {', '.join(missing)} — say there what each "
+                f"is and where it comes from; the model never reads it."
+            )
+    return warnings
+
+
 def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
     """Validate all LLM steps against their prompt contracts"""
     errors = []
@@ -1586,6 +1617,7 @@ def lint_pipeline_full(
         except FileNotFoundError:
             pass  # Already reported by contract validation above
     all_warnings.extend(prompt_conformance_warnings(linted_prompts))
+    all_warnings.extend(prompt_description_warnings(linted_prompts))
     if gpt_decl_errors:
         all_errors.extend(gpt_decl_errors)
         for err in gpt_decl_errors:

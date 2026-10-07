@@ -1,7 +1,8 @@
 ---
 name: stage-commits
 description: |
-  Stage the outstanding changes and print the exact strings needed to commit them.
+  Stage the outstanding changes — the agent runs `git add` itself — and print the exact
+  commit command for the human to run.
   USE FOR: the end of a session, when work is finished and uncommitted; any time a human
   asks what the commit command is.
   DO NOT USE FOR: deciding whether the work is ready — that is commit-ready. This skill
@@ -15,8 +16,10 @@ description: |
 Rule `commit-authority`: **the commit, the push and the merge are the human's.** An agent runs
 the gates, writes the commit message to a file, and hands over the exact command.
 
-This skill is that handover. It stages the paths and prints the command. It never runs
-`git commit`. It never pushes. It never merges. Those are not limitations to work around — they
+This skill is that handover. **The agent stages: it runs `git add` itself**, then prints the
+commit command. "Staging" never means handing the human a `git add` to run — that leaves the
+reviewed set and the committed set to two people, and is the one part of this the agent owns. It
+never runs `git commit`. It never pushes. It never merges. Those are not limitations to work around — they
 are the whole point, because a commit carries an author and a push carries an identity, and
 neither is the agent's to spend.
 
@@ -46,26 +49,32 @@ git status --short --branch -- . ':(exclude)path/to/noisy/dir'
 
 ---
 
-## Step 2 — group the changes, and ask
+## Step 2 — bring the handoff and the changelog up to date, before anything is grouped
 
-**Group by concern, not by directory.** One commit per concern is what the commit-message
-convention assumes: a subject naming what is now true, and a body whose bolded lead phrases each
-cover one piece of work.
+**Both are updated first, as files of the commit — never reported after it.** A commit that
+leaves the handoff describing an older tree, or lands a behaviour change with no changelog entry,
+has made both records false the moment it exists, and nothing afterwards corrects them. Checking
+them after staging is too late to matter: the fresh file would have to be fitted into a set
+already reviewed.
 
-**Then ask the human to confirm the grouping, and to confirm whose each change is.**
+**This skill still writes neither.** `/handoff` owns the handoff and `/commit-ready` owns the
+changelog's rules. This step runs them before grouping, so what they write is one of the files the
+human sees grouped — rule `one-design`: one owner each, called at the one point their output can
+still reach the commit.
 
-This is the step that cannot be skipped, and it is not deference for its own sake. A working tree
-holds changes the agent did not make — another session's, another tool's, the human's own work in
-progress, a file deliberately held back from a release. **Nothing in `git status` says whose a
-change is.** Guessing produces a commit that sweeps somebody else's unreviewed work in under the
-agent's message, which is unrecoverable once pushed.
+### The changelog
 
-Present the groups, name any path whose origin is unclear, and wait.
+If the outstanding changes alter behaviour — source, schema, the CLI, a shipped template, prompt
+or document — and the project's changelog does not yet carry an entry for them, write the entry
+now, to `/commit-ready`'s rules. A change that is not behaviour — a record, a test that only
+pins existing behaviour — needs none; say which it is rather than skipping the check silently.
 
-### Before staging: is the handoff stale?
+### The handoff
 
-Where the project keeps a handoff, check it **here** — before staging, not after. `/handoff`
-writes that file, so a check that fires later leaves the fresh handoff outside the commit.
+Where the project keeps a handoff, check whether it is stale, and if any signal fires, run
+`/handoff` before grouping.
+
+#### How to tell it is stale
 
 **The primary signal is the commit, not the date.** A handoff names the commit it was written
 against — "level with `origin/dev` at `3dbb55b`", or similar. If `HEAD` is not that commit, the
@@ -105,13 +114,31 @@ those files are still modified produces a derived set that silently becomes empt
 document's shape changes, and then the check passes by vacuum. Rule
 `check-the-source-not-the-rendering`.
 
-**Ask; never block.** Say which signal fired and offer `/handoff`. If the human says go, go — a
-one-line fix does not need a fresh handoff, and a gate that refuses gets routed around, which is
-worse than no gate. This skill does not write the handoff; it says when it is worth writing.
+**When a signal fires, the handoff is rewritten before grouping.** Say which signal fired and run
+`/handoff`; the rewritten file is then grouped with the rest. Skipping it is the human's call,
+made explicitly — never the default.
 
 ---
 
-## Step 3 — write each commit message to a file
+## Step 3 — group the changes, and ask
+
+**Group by concern, not by directory.** One commit per concern is what the commit-message
+convention assumes: a subject naming what is now true, and a body whose bolded lead phrases each
+cover one piece of work.
+
+**Then ask the human to confirm the grouping, and to confirm whose each change is.**
+
+This is the step that cannot be skipped, and it is not deference for its own sake. A working tree
+holds changes the agent did not make — another session's, another tool's, the human's own work in
+progress, a file deliberately held back from a release. **Nothing in `git status` says whose a
+change is.** Guessing produces a commit that sweeps somebody else's unreviewed work in under the
+agent's message, which is unrecoverable once pushed.
+
+Present the groups, name any path whose origin is unclear, and wait.
+
+---
+
+## Step 4 — write each commit message to a file
 
 Write the message with the file tools, one file per commit: `tmp/commit-1.txt`,
 `tmp/commit-2.txt`.
@@ -140,7 +167,11 @@ Add whatever attribution trailer the project or the session requires.
 
 ---
 
-## Step 4 — stage, naming every path
+## Step 5 — stage, naming every path
+
+**The agent runs this itself.** Staging is the agent's act, done with its own shell, before the
+human sees anything — not a command printed for the human to paste. The human's part starts at
+Step 7, with the commit.
 
 ```sh
 git add "project/TODO.md" "project/HANDOFF.md" "docs/example.md"
@@ -164,7 +195,7 @@ still succeeds, carrying a message describing work it does not contain.
 
 ---
 
-## Step 5 — check what is actually staged
+## Step 6 — check what is actually staged
 
 ```sh
 git diff --cached
@@ -179,43 +210,39 @@ every one of those — and hides them behind a number that reads like verificati
 Compare the file list against the one you meant to stage, and account for any difference before
 going further. Staging is not evidence that the index holds what you think it holds.
 
-### Two files to look for in that list, and what to do about them
+### Two files to confirm in that list
 
-This skill is the only one holding the actual staged set, so these checks are free. **It reports
-them. It does not write either file.**
+Both were brought up to date in Step 2; here, confirm they are in the staged set. A fresh handoff
+or a new changelog entry left out of the commit is the same defect as a stale one left in.
 
-**The changelog.** If the staged set changes behaviour — source, schema, CLI — and the project's
-changelog is not in it, say so. A ruling or a behaviour change that lands without a changelog
-entry has no durable home, and the working document that carried it is deleted on its own
-schedule. Writing the entry is the gate's job: point at `/commit-ready`, do not draft it here.
+**The changelog.** If the staged set changes behaviour — source, schema, CLI, a shipped template
+or prompt — the changelog must be among the staged files. If it is not, Step 2 was skipped: stop
+and go back to it rather than staging around the gap. A ruling or a behaviour change that lands
+without a changelog entry has no durable home, and the working document that carried it is
+deleted on its own schedule.
 
-**The handoff.** Whether it needs rewriting was decided in Step 2, because that is the only point
-at which the answer can still reach the commit. Here, confirm only that it is in the staged set if
-it was rewritten — a fresh handoff left out of the commit is the same defect as a stale one left
-in.
+**The handoff.** If Step 2 rewrote it, it must be staged with the commit it describes.
 
-**Why point instead of write.** Both files already have an owner — the gate owns the changelog,
-the handoff skill owns the handoff. A third mechanism that also writes them is two encodings of
-one fact, and they agree right up until they silently do not. Rule `one-design`.
+**Why this skill does not write them itself.** Both files already have an owner — `/commit-ready`
+owns the changelog's rules, `/handoff` owns the handoff. Step 2 runs them; it does not repeat
+them. A third mechanism that also writes them is two encodings of one fact, and they agree right
+up until they silently do not. Rule `one-design`.
 
 ---
 
-## Step 6 — hand over the command
+## Step 7 — hand over the command
 
-Print it for the human to run. One commit:
+Print it for the human to run. The index is already staged — Step 5 did that — so the command is
+the commit alone:
 
 ```sh
 git commit -F tmp/commit-1.txt
 ```
 
-Several commits, staged and committed in turn:
-
-```sh
-git add "path/one" "path/two"
-git commit -F tmp/commit-1.txt
-git add "path/three"
-git commit -F tmp/commit-2.txt
-```
+**Several commits are staged and committed in turn, and the agent does the staging each time.**
+Stage the first group, hand over its commit command, and wait. Once the human has committed and
+Step 8 has shown what landed, stage the next group, show its diff, and hand over its command. The
+human is never handed a `git add`.
 
 **Say plainly that the commit is theirs to run, and stop.** Do not run it. Do not offer to run
 it. If they ask for the push command, give it — and say that a push is authenticated by their
@@ -223,7 +250,7 @@ credential, so the record will name them as the pusher whoever wrote the change.
 
 ---
 
-## Step 7 — once the commit exists, show what landed
+## Step 8 — once the commit exists, show what landed
 
 As soon as a commit has been made, run this and read it:
 
@@ -255,9 +282,9 @@ previous commit as though it were the new one.
 
 ---
 
-## Step 8 — delete the files this skill made
+## Step 9 — delete the files this skill made
 
-Once the commit exists and Step 7 confirms it, the message files have done their job:
+Once the commit exists and Step 8 confirms it, the message files have done their job:
 
 ```sh
 rm -f tmp/commit-1.txt tmp/commit-2.txt
@@ -302,6 +329,8 @@ the shipped template and refuses each construct above.
 - **Commit, push or merge.** `commit-authority`. Passing the gates is not authorization.
 - **Sweep.** Every path is named.
 - **Guess whose a change is.** It groups and asks.
+- **Stage before the handoff and the changelog are current.** Step 2 comes first.
+- **Hand the human a `git add`.** Staging is the agent's; the human's command is the commit.
 - **Re-run `commit-ready`'s checklist.** One design, not two.
 - **Edit the files it is staging.** If something needs fixing, say so and stop; a fix folded into
   a staging step is a change nobody reviewed.
