@@ -135,21 +135,22 @@ Prompt/template variable syntax: `{{var}}`
 
 ## 6. Prompt Contract (.gpt)
 
-Header:
+Header — YAML frontmatter, opening with `---` on the first line:
 
 ```gpt
-<!--
+---
 prompt:
   requires:
     - passage
     - source
   format: Markdown
   description: Intro section for passage
--->
+---
 Generate an introduction for {{passage}} using {{source}}.
 ```
 
-Linter enforces required inputs via `prompt.inputs` in the pipeline step.
+Linter enforces required inputs via `prompt.inputs` in the pipeline step. The older
+`<!-- ... -->` header form is withdrawn, and `sp lint` and `sp run` refuse it.
 
 ---
 

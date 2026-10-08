@@ -2,7 +2,382 @@
 
 ## Unreleased
 
+## 0.2.1.29 — 2026-10-07
+
+### Added
+
+- **`format: analysis` on `type: scripture` — the analyses, for a model to read.** Each
+  sentence's constituency tree in bracketed notation, every word `form/n`, then one tab-separated
+  row per word: reference, id, form, lemma, morphology, sense, English gloss, frequency, and
+  whether it lies outside the requested verses. Every number says what it is — `LN 34.22`,
+  `12× in GNT · 83.69%` — because a bare sense number was read by a model as a word count.
+  Derived from the `usj` form, so it carries nothing that form does not; a family with no
+  column follows as compact JSON. On MAT 19:1-11 with six families it is 10.3k tokens where the
+  USJ document was 37.6k. Needs `ids`; a USFM
+  resource refuses it. Guarded by `tests/test_analysis_format.py` (16), which checks on
+  MRK 1:1-8 and MAT 19:1-11 that every word and every tree node of the USJ form is in it.
+
+- **`frequency_cutoff:` on `type: scripture`.** With `include: [frequency]`, only words whose
+  lemma falls within the corpus's least frequent N percent of lemmas carry a frequency, so a
+  prompt can say "a word with a frequency is a word to explain". Guarded by
+  `tests/test_frequency_family.py`.
+
+- **`sp lint` checks the resources a pipeline names, and offers to install the missing ones →
+  #261.** A pipeline naming a resource this machine had not registered linted clean and failed
+  part-way through the run, after earlier steps had been paid for. Lint now finds every
+  `resource:` on `scripture` and `parallel-passages` steps, nested ones included, and the
+  dataset an `alignment` step's pairs live in. An unregistered resource is an error, and so is
+  an `include:` family whose path the registration does not name (`syntax` → `lowfat_path`,
+  `discourse` → `discourse_path`). One asked for only under a `condition:` is a warning, since
+  lint cannot know whether the condition holds — the starter fetches Greek or Hebrew by
+  testament, and a Greek reader need not install the Hebrew. When something is missing, lint
+  prints a table of it, and offers `[Y]es / [N]o / [A]ll` for each catalog resource through the
+  same code as `sp resource add`, licence and all; `[A]ll` answers the install, never the
+  licences. A missing path is reported with its `sp resource set` command rather than offered,
+  because nothing declares where that data lives. A resource registered before licences were
+  recorded is offered its licence, with nothing downloaded. Without a terminal,
+  `--install-missing` answers the install and `--accept-terms` the licence, on `sp lint` and
+  `sp run` alike. `pipeline.lint()` as a library call still never prompts or writes. Guarded by
+  `tests/test_resource_preflight.py` (29).
+
+- **A resource's licence is shown when it lands, and registering agrees to it → #252.**
+  `sp resource add` and `sp dataset download` print the catalog's licence and a link to it —
+  a URL written in the licence, else a standard licence's own page, else the source's page,
+  labelled as such. `add` also fetches the full licence text where it can — the repository's
+  licence file through GitHub's API, or a plain-text file the licence names (a GitHub `blob`
+  link is read as the raw file; a web page stays a link) — and shows its first 20 lines. It
+  asks for agreement to the summary before downloading, and a declined prompt leaves no
+  registration and nothing fetched. With no terminal it refuses unless given `--accept-terms`,
+  including when input is piped in, so `yes | sp resource add X` is not agreement. The
+  agreement is recorded under `terms:` in the registration — the summary, any pointer in it,
+  the link, the date and how it was given — and the text is saved beside it as
+  `<id>.licence.txt`, recorded by its SHA-256 and source; when it cannot be fetched the record
+  says why. The same terms are not asked twice; a changed summary or text is. A licence that is
+  only a pointer (`See site`) and whose text could not be fetched is shown, registered without
+  asking, and recorded as shown, not agreed. `sp resource add --path` says there is no catalog
+  licence. **New command `sp resource terms [ID …]`** lists what each registration was made
+  under and where its agreed text is saved, for when you publish work built on it. Guarded by
+  `tests/test_terms_on_download_and_register.py` (36).
+
+- **A new starter example: a reader's guide, and what a passage's parallels mean → #244.**
+  `sp init` now writes `pipelines/readers-guide.yaml` with two prompts,
+  `prompts/readers-guide.gpt` and `prompts/parallel-significance.gpt`, in place of the passage
+  commentary. For a Greek or Hebrew passage it writes a reader's guide — the less common words,
+  each infinitive and participle read against its whole sentence, and how the verbs of each
+  sentence relate — and then what each parallel passage means in its own chapter and how this
+  passage adapts it, with synoptic parallels read as Mark first, Matthew using Mark, and Luke
+  using both. Two steps call a model; every other step is free. Every step saves its output: the
+  two deliverables to `outputs/`, everything else to `intermediate/<passage>/`, both declared as
+  the pipeline's `output_file_directory` and `intermediate_file_directory`. Each parallel chapter
+  is fetched once however many groups name it — `for-each` with `group_by` — so Matthew 19:1-11
+  fetches 10 chapters for its 11 groups rather than 34. The less common words are chosen by
+  `greek_frequency_cutoff` (default 80) and `hebrew_frequency_cutoff` (default 90), each a
+  percentage of the corpus's lemmas, overridable with `--var`. The model settings are
+  `gpt-4.1`, 32,768 output tokens, temperature 0.35 and a 300-second timeout. Guarded by
+  `tests/test_init.py` (43) and `tests/test_linter.py`, which lints the shipped pipeline in a
+  freshly initialised project and checks both prompts' contracts.
+
+- **`include: [frequency]` on `type: scripture`.** Each word carries its lemma's `count` in its
+  corpus and `in_least_frequent_percent`, the smallest N for which the lemma falls among the
+  corpus's least frequent N% of lemmas. The corpus is declared per resource in
+  `data/include-families.json`: the Greek New Testament for `SBLGNT`, the Hebrew Bible for `WLC`;
+  a resource with no corpus answers `null` with a warning. The counts come from
+  `data/lemma-frequency-greek.json` (5,518 lemmas over 137,741 words) and
+  `data/lemma-frequency-hebrew.json` (8,454 lemmas over 428,469 morphemes), each generated once
+  from Macula Lowfat by an XQuery in `tools/lemma-frequency/` and matched row for row against the
+  registered TSV. The Hebrew table leaves out pronominal suffixes, which carry the independent
+  pronoun's lemma — counting them would report הוּא 46,940 times against 1,405 free-standing — and
+  so a suffix has no entry; Aramaic occurrences are counted with the Hebrew and recorded per
+  lemma. Nothing runs a query at run time. Guarded by `tests/test_frequency_family.py`, 6 tests,
+  all red first.
+
+- **The UBS Parallel Passages Database ships with the engine as `data/parallel-passages.json`.**
+  Generated once from the UBS XML by `tools/parallel-passages/generate.py`, in the shape designed
+  in `project/plans/design-parallel-passages-json.md`: one object per group, and per member an
+  `addressed` block (the reference as the database writes it, in `org`, with ranges and comma
+  lists expanded to verses) and a `counted` block (the edition its word scores index — `BHS`,
+  `Rahlfs` or `UBSGNT5` — and the verses in that edition's numbering). A Hebrew member of a group
+  with Greek members is counted in Rahlfs, so its verses are mapped `org` to `lxx`; 70 of the 266
+  such members are renumbered. Each word score is a match strength, `no_match`, `partial` or
+  `full`; the source's line-break component is discarded. 2,193 groups and 5,266 members, as in
+  the source. The dataset is CC BY-SA 4.0, as its source is, and `NOTICE` carries the attribution
+  and the changes made. Guarded by `tests/test_parallel_passages_dataset.py`, which regenerates the
+  file from the XML and requires a byte-for-byte match. The wheel and all three binaries bundle
+  it (`pyproject.toml`'s force-include and both Nuitka commands), guarded by
+  `tests/test_binary_bundles_its_data.py`.
+
+- **`docs/cli-api.json` — a map of the public surface, generated and shipped → #264.**
+  `docs/index.json` maps the engine's implementation, and having said what the surface is *not*,
+  nothing declared what it is. This does: every `sp` command with its options, and every step
+  type with its own keys, its members and which is primary — 38 commands and 19 step types,
+  derived from `build_parser()` and `PIPELINE_SCHEMA` so it cannot drift from what the program
+  does.
+
+  It ships into every project by `sp init`, because a project has to be able to answer "what does
+  this engine offer?" and the alternative is importing the package to read the schema — the one
+  thing a project is told not to do. A JSON file is the only form that answer can take without
+  contradicting itself. The rendering lives in `llmflow.cli_api` rather than in `tools/`, which is
+  not in the wheel.
+
+- **`info`, a third defect severity → #232.** For a condition that is rare and unlikely but **not
+  wrong** — nothing went amiss, and the record exists so someone examining the run can see it
+  happened. Asked for by a consumer with two such cases: a window returning a single pericope,
+  and derived children that carry no analysis by design, 56 of 119 leaf pericopes in one book.
+  Reporting those at `warning` spends a reader's attention on deciding they are not problems,
+  which is the cost the severity distinction exists to avoid.
+
+  `SEVERITIES` is now `("info", "warning", "error")`, ordered least-to-most-serious so the order
+  is itself part of the vocabulary. This was deliberately two values, on the reasoning that a
+  third invites a debate about which one applies; that reasoning is recorded and overruled rather
+  than deleted, because the debate is cheaper than the attention the missing value was costing.
+
+- **A Parallel Passages reader, and the `type: parallel-passages` step that serves it → #258.**
+  Nothing in the engine linked a passage to another passage, so a commentary saying Mark's
+  opening quotation is composite — Malachi joined to Isaiah, attributed to Isaiah alone — was
+  stating it from a model's training while every other claim in the same output was checkable.
+  A reader cannot tell the two apart. That is the failure `source-text-required` names.
+
+  The step answers which groups a passage takes part in, reading the UBS Parallel Passages
+  database named by the resource's own `parallel_passages_path` registration key, which
+  resolves the same three ways as `discourse_path` and is set with
+  `sp resource set <id> --parallel-passages-path`. The reader landed separately; this adds the
+  step, its schema branch, the dispatch line, and the CLI surface for the key.
+
+  **Ruled: a group is returned whole, never intersected, and groups are not collapsed.** A
+  passage can take part in two groups with identical New Testament members, one also naming the
+  Old Testament verse it quotes and one not — `MRK 1:2` does. Both are returned. Merging them
+  would assert a judgment the database never makes, and no later reader could recover the
+  difference between "Mark quotes Malachi" and "Mark runs parallel to Matthew and Luke".
+
+  **Ruled: `references` is the reference list, not the raw input.** The per-word digit strings
+  and the edition attribute naming them do not travel, because the digits index UBSGNT5 rather
+  than the resource asked about and nothing can match them to a word until the identifier join
+  exists — the same reason `syntax` omits `rule` and `nodeId`. `returns: [words]` is declared in
+  the schema so a misspelling is a lint error, and refused at run time: counting positions
+  instead of joining through MARBLE is wrong about one row in eleven, and silently.
+
+  **Two kinds of nothing**, per `say-which-kind-of-nothing`: `[]` where the database was
+  consulted and the passage is in no group, `null` where the resource names no source at all.
+  A commentary step can then take the input on every run.
+
+  **The service is called Parallel Passages, not cross references.** The database carries
+  parallels and quotations and holds no allusions: `2KI 1:8` occurs nowhere in it, so a reader
+  told "cross references" would look up `MRK 1:6` expecting the Elijah echo behind the camel-hair
+  clothing and not find it.
+
+  Tested through `load_pipeline(...).run()` for the behaviours and through
+  `main(["run", …, "--var", …])` end to end, because `sp run` is the surface a pipeline author
+  actually has. Every expected value comes from a fixture written for the tests; none is a count
+  read off the real database, which would freeze a defect in the reader as the expected answer
+  and turn a correct engine red on the next UBS release.
+
 ### Changed
+
+- **The shipped files give one answer to who files issues, commits, pushes and opens pull
+  requests.** The workshop collab found them disagreeing — the rules said the human commits,
+  while the `github-authority` discipline and its README entry let the agent push and open pull
+  requests unasked, and `/commit-ready` had it committing, pushing, merging and deleting
+  branches. Ruled 2026-10-07: **the agent may create an issue** in the project it works in, under
+  its own account where one is configured — rule `issues-need-approval` becomes
+  `agent-may-file-issues`; an issue on another organisation's repository stays the human's
+  decision. **The commit, the push, the pull request and the merge are the human's** —
+  `commit-authority` now covers the pull request, which is what runs CI. The discipline, its
+  README entry, `/commit-ready`, `/authorize` and `github-workflow.md` say the same. Guarded by
+  `tests/test_shipped_files_agree_on_who_acts.py` and `tests/test_commit_ready_gate.py`.
+
+- **No heredocs, period.** Rule `inline-code-uses-a-heredoc` prescribed them; it becomes
+  `inline-code-goes-in-a-file` — write the script under `tmp/` with the file tools, run it,
+  delete it. The `workflow` discipline, the CLAUDE.md block every project carries and
+  `github-workflow.md` (whose own example was a heredoc) follow.
+
+- **`/commit-ready` fits any project.** It is taught in the workshop's first lesson, and its
+  gates ran `hatch run pytest`, bumped `pyproject.toml` and covered `gui/frontend/`. It now takes
+  every command from the project's `CLAUDE.md` and CI workflow — run what CI runs, and a suite
+  the change does not touch is not required — which keeps #206's guarantee for this repository
+  and gives it to every other. It names no single project's toolchain.
+
+- **`/load-context` reads `project/HANDOFF.md`**, the file `/handoff` writes for it, and checks
+  the commit the handoff names against `HEAD` before treating its next action as one.
+
+- **`/release` is no longer installed into projects.** It releases this engine, so it now lives
+  in this repository's `.claude/skills/release/` (tracked by a `.gitignore` exception). `sp init`
+  removes it from `~/.sp/skills/` and never copies it into a project. A project that already
+  has `.claude/skills/release/` from an earlier install keeps it until removed by hand. The skill
+  now checks it is on `main` before tagging, and hands every tag, push and publish to the human.
+  Guarded by `tests/test_release_skill_stays_with_the_engine.py` (11).
+
+  Helm parity for the changed shared files — `github-authority.md`, `workflow.md`,
+  `commit-ready`, `load-context`, `authorize` — is the next release's work; their hash checks
+  are exempt until then.
+
+- **`/stage-commits` brings the handoff and the changelog up to date before it groups anything.**
+  It used to check them and only report: a stale handoff was offered `/handoff` and could be
+  waved past, and a missing changelog entry was noticed after staging, pointed at `/commit-ready`,
+  and left. A commit could therefore land with both records false. Its new Step 2 runs `/handoff`
+  when the handoff is stale and writes the missing changelog entry to `/commit-ready`'s rules
+  before grouping, so both are among the files the human sees grouped; Step 6 confirms they are
+  staged and sends the session back to Step 2 when they are not. It still writes neither file
+  itself. It also says plainly that **staging means the agent runs `git add` itself**: the human
+  is handed only the commit command, and for several commits the agent stages each group in turn
+  — its old multi-commit example handed the human the `git add` lines.
+
+- **The model reads the prompt; the people who maintain it read `description` → #176.** The
+  engine now strips a prompt's YAML header before the call — every model input shifts slightly,
+  so a run's output may too. `description` becomes the prompt's documentation, in Markdown:
+  what it is for, what each input is and where it comes from, and design notes. `# VARIABLES`
+  leaves the prompt grammar — `sp lint` refuses it, saying where its content goes — and the
+  positions after it are renumbered (`# REFERENCE` is now 11). `# DATA SOURCES` keeps its
+  heading and its job narrows to how to read each input; where an input came from moves to
+  `description`. `sp lint` warns when `description` does not name every input in `requires:`.
+  The shipped discipline and the `audit-prompts` skill teach the split; both starter prompts
+  follow it. Guarded by `tests/test_prompt_description.py` (12).
+
+- **The starter example costs about an eighth of what it did — $0.13 a run on MAT 19:1-11,
+  against about $1.00.** Most of the saving is the `# INPUT DATA` fix below; the rest is what
+  the starter now sends. The guide is handed `format: analysis` with `frequency_cutoff` set from
+  `greek_frequency_cutoff` or `hebrew_frequency_cutoff`, instead of the USJ document and a cut-off
+  to compare against; the USJ document is still saved as the complete record. The significance
+  step reads each parallel's chapter in English and the members' own verses in Greek or Hebrew,
+  instead of every chapter in both. Measured on MAT 19:1-11: the analysed Greek goes from 37.6k
+  tokens to 8.9k, and the two prompts as rendered from 58,735 and 131,205 tokens to 13,331 and
+  18,699. The `greek_cutoff` and `hebrew_cutoff` steps and the prompt's `cutoff` input are gone,
+  because the engine applies the cut-off. Checked against its input, the new guide covers all 8
+  less common words and all 9 infinitives and participles, and gives exactly 8 counts, every one
+  the table's — the old guide gave true counts to 16 words that were not less common. The model
+  stays gpt-4.1: gpt-4.1-mini cost $0.025 but invented counts for 16 words.
+
+- **A mapping or list substituted into a prompt arrives as compact JSON with Unicode unescaped.**
+  It was `str(value)` — a Python repr, single-quoted, with `None` and `True` — though the prompts
+  call their inputs JSON. Guarded by `tests/test_unicode_to_models_and_disk.py`.
+
+- **With `include: [syntax]`, a `scripture` step returns whole sentences → #267.** The tree of a
+  sentence the passage meets was already carried whole, but its words came only from the
+  requested verses, so a tree could name words the payload did not contain — for `MRK 1:3-8`, the
+  20 words of 1:2. The text, in every format, and every family requested are now widened to every
+  word of every sentence the passage touches, and `outside_passage` in the container maps each
+  added word's id to `true` (`{}` when none were added). This changes the payload of every
+  pipeline that includes `syntax`. Without `syntax`, nothing changes. Guarded by
+  `tests/test_syntax_whole_sentences.py`, 9 tests, 6 red first; on the real corpus `MRK 1:3-8`
+  gains the 20 words of 1:2 and `MAT 19:1-11` gains none.
+
+- **`type: parallel-passages` reads the shipped dataset — breaking for registrations.** The step
+  answers every resource from `data/parallel-passages.json`; nothing is downloaded or registered,
+  and the result is `[]` or a list of groups, never `null`. The returned shape is unchanged:
+  `{"references": [...]}` per group.
+
+- **A step's outputs are named members, not positions → #263.** `output:` entries name what a
+  step returns, optionally renamed — `output: [text_bsb=text, reference]`. Naming a member is how
+  it is requested, so there is no second key to ask with and a member nobody names is not
+  produced. **`returns:` is retired**, and `alignment` and `parallel-passages` migrated in the
+  same change rather than a half-migrated language surviving it.
+
+  **A bare name binds the primary member**, which is today's behaviour for every step type that
+  has one — so no existing pipeline changed. Binding an object of all members instead would have
+  turned every `${source_text}` in every project from a string into a dict.
+
+  Affordable now because nothing depended on the positional multi-name form: measured at zero
+  occurrences in shipped pipelines and templates, and seven of eleven in tests were synthetic
+  fixtures exercising the mechanism itself. The members are declared in `STEP_MEMBERS`, so
+  `sp lint` refuses one that does not exist — a check that is fully static, and that closes a
+  hole where three names on a step offering two bound the same value three times.
+
+  `type: scripture` gains a `reference` member: what the step already parsed in order to fetch
+  the passage. Nothing downstream re-parses a reference the engine has read.
+
+- **The starter example writes passage commentary → #244.** The hello-world pair asked for
+  greetings in five languages and then replied to them: it touched no scripture, no resource, no
+  versification and no schema, and its second step did not consume the first, so neither file
+  showed what this engine is for. `pipelines/commentary.yaml` and `prompts/commentary.gpt`
+  replace it — four steps, three of which call no model.
+
+  It teaches, in the order that matters: a resource is *named*, never pathed; `versification: org`
+  states which numbering a reference is written in, demonstrated on a passage where getting it
+  wrong is invisible; outputs are named members; and every step takes its passage from one
+  variable with no default. It is the first prompt in this repository to conform to the ruled
+  section order — `sp lint` warns on the old `hello.gpt` and produces zero warnings on this one.
+
+- **A project is no longer told to import the package → #264.** The shipped
+  `docs/ai-context/sp/index.md` said *"`import llmflow` … **Prefer this** over re-parsing pipeline
+  YAML"*. The one-surface rule had been applied to `sp/overview.md` and not to the constant that
+  renders this, so every project initialised since was told to build against a contract nobody
+  offered. The guard beside it could not see the offer, because it reads shipped *files* and this
+  was shipped *text* rendered from a Python constant; it now checks what a project receives.
+
+  `docs/index.json` now carries an `about` block saying it is **not an API** and **not a surface
+  for tests**, and `docs/python-api.md` states it is the engine's own, for work in this
+  repository.
+
+- **`sp lint` accepts any condition the evaluator accepts → #232.** `len` is one of the condition
+  evaluator's safe builtins, so `condition: "${len(pericopes) > 1}"` ran correctly and failed lint
+  with *"Variable '${len}' not available"*. The linter was the stricter of the two halves, which
+  is the wrong way round — it is the half that cannot execute the expression. One declaration now
+  governs both: the evaluator builds its environment from `condition_safe_builtins()` and the
+  validator skips those names. An undefined name inside a builtin call is still refused.
+
+- **The defect logging handler maps onto the severities rather than collapsing into them → #232.**
+  It read `"error" if levelno >= ERROR else "warning"`, so a deliberate INFO became a warning with
+  nothing saying so — and until `info` existed there was nowhere to put it.
+
+- **A project is told about one surface: the `sp` command line and the pipeline language it
+  reads.** The shipped context described two, the second being the `llmflow` Python API with
+  `load_pipeline`, `PIPELINE_SCHEMA` and `api_catalog`. A project told about a second surface
+  builds against a contract nobody offered it, and the package carries no compatibility promise.
+
+  `templates/project/docs/ai-context/sp/overview.md` now describes the command line alone. The
+  shipped `audit-code` skill no longer tells a project to `import llmflow` and grep the engine's
+  source for public functions: its question is now whether a local plugin does something a step
+  type already does, which is the version of that audit a project can act on. Two shipped
+  examples stopped pointing at engine internals — the `description:` convention now shows
+  `type: scripture` loading a book in USJ, which is the high-level construct for that and
+  replaces an example that pre-built an annotated book to disk and reloaded it.
+
+  `tests/test_shipped_context_names_one_surface.py` holds it, across the project context, the
+  disciplines and the skills — a prose rule would not survive the next `sp init --update`, which
+  rewrites every generated file in every project at once with nothing reporting it. The dotted
+  path in a `function:` step is deliberately not checked: that is pipeline YAML rather than a
+  Python import, and the question of whether a shipped example may name one is open.
+
+- **`/stage-commits` stages the outstanding changes and hands over the exact commit command →
+  #253.** Rule `commit-authority` requires an agent to run the gates, write the commit message to
+  a file, and hand over the command rather than committing itself. Nothing implemented that
+  handover, so sessions ended with an assistant listing changed paths in prose and a human
+  retyping them — and the retyping is where the mistakes live, because the paths are long, some
+  are new, and some belong to somebody else.
+
+  The skill stages explicitly named paths, writes each message to a file under `tmp/`, prints
+  `git commit -F <file>`, shows what landed with `git show --stat HEAD`, and deletes the message
+  files by name once the commit exists. It does not commit, push or merge.
+
+  **What it prints is POSIX shell.** A message carrying a quote, a backtick or a `$` behaves
+  differently in `sh`, `bash` and `zsh` when passed inline, so the message goes through a file and
+  quoting stops being part of the problem. `tests/test_stage_commits_is_portable.py` reads the
+  shipped template and refuses `[[ ]]`, `(( ))`, arrays, `+=`, process substitution, `echo -e`,
+  `$'…'` and `&>`, along with `git add -A`, `git commit -m`, and `git push` or `git merge` as
+  instructions — so portability holds by test rather than by attention.
+
+  It groups changes by concern and asks before staging. Nothing in `git status` says whose a
+  change is, and a working tree routinely holds work belonging to someone else; a sweep that takes
+  it commits unreviewed work under the wrong name.
+
+  **It also asks whether the handoff is stale, before staging rather than after.** Three declared
+  signals: the handoff is absent from the set about to be staged while other files are present;
+  the date it declares is older than today; or that date is older than the last commit's. It
+  offers `/handoff` and proceeds either way — a gate that refuses gets routed around, and a
+  one-line fix needs no fresh handoff. The check sits before staging because `/handoff` writes
+  that file, so firing later would leave the rewritten handoff outside the commit. It deliberately
+  does not test the handoff by parsing its in-flight prose: a derived set like that becomes empty
+  when the document changes shape, and the check then passes by vacuum.
+
+### Changed
+
+- **Skill descriptions no longer open with a type prefix.** Eleven shipped skills opened with
+  `**WORKFLOW SKILL** —`, `**COMMAND SKILL** —`, `**CONTEXT SKILL** —` or `**SESSION SKILL** —`.
+  A description is what an assistant reads to decide whether a skill applies, and the prefix
+  spent words without helping that decision. All eleven now open with what the skill does.
+
+  Installed copies under `~/.sp/skills/` and a project's `.claude/skills/` are refreshed from
+  the templates by `sp init --update`; a project that has not run it still shows the old
+  descriptions.
 
 - **`/load-context` reads the whole AI context and reports a précis of it.** The skill now opens
   every document the indexes name — the shipped half and the project's own — and reports one line
@@ -74,6 +449,46 @@
 
 ### Fixed
 
+- **An OpenAI model name the `llm` package does not list is still called.** A dated snapshot
+  such as `gpt-4o-2024-08-06` worked in a step with `response_format`, which goes to OpenAI's
+  client, and failed in the next step without it, which went through `llm.get_model`:
+  `UnknownModelError`. Measured in sil-translator-notes, with the first step's call already paid
+  for. An OpenAI name `llm` does not know now goes to OpenAI's client too; any other unknown
+  name still fails. **An unknown model is no longer retried** — it joins truncation and
+  moderation as a certainty, so it fails on the first attempt instead of the third. Guarded by
+  `tests/test_model_names_the_llm_package_does_not_know.py` (4).
+
+- **`sp models --update` asks which entry prices a new model, with the entries grouped by
+  family.** Its menu listed the 23 price entries in `models.json` — `gpt-4.1`, `gpt-4.1-mini`,
+  `gpt-4.1-nano` and the rest — under "Assign to existing family", and never read the `family`
+  each entry carries; a model chosen from it silently took that entry's prices and limits. The
+  menu now shows each family with its entries beneath it and asks "Price <model> like which
+  entry?", saying that the model takes that entry's prices and limits; a new entry offers the
+  existing families or a new one. Guarded by `tests/test_models_update_menu.py` (6).
+
+- **gpt-4.1's limits in `data/models.json`: a 1,047,576-token window and 32,768 output tokens**,
+  for `gpt-4.1`, `-mini` and `-nano`. They said 128,000 and 16,384; a run sending gpt-4.1 about
+  340k tokens of input succeeded, and the starter asks for 32,768 output tokens.
+
+- **A prompt input is sent once, not once per mention.** Every `{{name}}` in a prompt was filled
+  with the whole value, including the mentions in VARIABLES, DATA SOURCES, rules and checklists
+  that the prompt grammar teaches. The starter's significance prompt names `{{parallel_texts}}`
+  eight times, so about 42k tokens of chapters reached the model eight times — most of the
+  dollar a run of the starter cost — and nothing failed. A value is now filled only under
+  `# INPUT DATA`; elsewhere a placeholder renders as the bare name. A name mentioned but never
+  placed there is refused. A prompt with no `# INPUT DATA` section is filled throughout, as
+  before. Rendered from the same run's data, the starter's prompts go from 58,735 to 13,331
+  tokens and from 131,205 to 18,699. Guarded by `tests/test_placeholders_fill_only_input_data.py`.
+
+- **A debug response and content-transition metadata are written as Unicode.** Both used
+  `json.dumps` without `ensure_ascii=False`, so a Greek word was stored as `\u` escapes.
+
+- **A `json` step ignored `saveas` and `append_to`.** Both are common keys and lint accepted them,
+  but the handler stored its value and returned, so `saveas` wrote nothing and `append_to`
+  collected nothing — a list declared empty stayed empty with no error. The step now passes its
+  value through `handle_step_outputs` like every other step. Guarded by
+  `tests/test_json_step_outputs.py`, 2 tests, both red first.
+
 - **A dynamic window with no `size` crashed on a bare `TypeError`, and it was the whole build.**
   `run_window_step` validates `size` before building fixed windows, but the `start_when` branch
   returns before reaching that check, so `start_when` together with `!window_advance` and no
@@ -87,7 +502,76 @@
   Guarded by
   `tests/test_window_advance.py::TestWindowAdvanceErrors::test_dynamic_window_with_start_when_and_no_size_raises`.
 
+- **The missing-database warning for `type: parallel-passages` says how to obtain the data.** It
+  named only `sp resource set <id> --parallel-passages-path`, which cannot succeed on a machine
+  that has never downloaded the database — so the starter example's third step wrote `null` on
+  its first run and the advice offered could not be followed. It now names
+  `sp dataset search parallel`, `sp dataset download <id>`, then `sp resource set`, in that order.
+  Ruled 2026-09-29: *"the warning should also tell the user how to install it."* Guarded by
+  `tests/test_parallel_passages_step.py::TestTwoKindsOfNothing::test_the_warning_says_how_to_obtain_the_database`.
+  Superseded before release, 2026-10-03: the database now ships with the engine, and the
+  registration and this warning are removed — see Removed.
+
+- **`sp lint` now reads a prompt's mixins the way a run does.** A run expands every
+  `{{mixin:path}}` before it checks the prompt contract; lint skipped the directive and checked
+  the raw file. So two prompts linted clean and failed at the prompt step, after every earlier
+  step had run and been paid for: one whose mixin used a variable the header did not declare
+  (`sp run`: *"Variables used in prompt body but not declared in header: language"*), and one
+  naming a mixin file that did not exist (`FileNotFoundError`). Both are now lint errors. A third
+  defect went with them: a variable declared and used only inside a mixin drew the warning that
+  the body never uses it. Guarded by `tests/test_lint_expands_mixins.py`, 3 tests, all red first.
+
+- **Documentation taught forms the engine refuses.** Corrected at their sources:
+  - the positional two-name `output: [subject, passage_info]` form, retired by #263, in
+    `docs/sp-language.md` and the shipped quickref — now `output: [subject=text,
+    passage_info=reference]`, and the reference's `output:` section says what a list means for a
+    step type that declares members;
+  - `returns:` on `type: alignment` and `type: parallel-passages`, also retired by #263;
+  - "`ids` and `discourse` work and the rest raise" in the shipped quickref — all seven
+    families are built;
+  - dotted and indexed `{{scene.WLC}}` / `{{items[0]}}` in prompts, which `sp lint` and `sp run`
+    refuse in a `.gpt` file and an `.md` template leaves unfilled;
+  - `sp lint pipelines/…` without `--pipeline`, which the CLI refuses, in both documents;
+  - the retired spelling `outputs` in the shipped quickref;
+  - the shipped quickref's §6 example, a `system: |` / `user: |` body the engine does not parse
+    and the section grammar warns on;
+  - the debug-dump filenames in the shipped `sp-debugging.md` discipline, replaced in 0.2.1.24 by
+    `<seq>-<step>[-attempt<n>]` under a per-run directory with `manifest.jsonl`;
+  - `[*]` described as not implemented in `docs/ai-context/project/data-shapes.md`;
+  - `docs/architecture.md` §18, which described the pre-split four-file AI context and an
+    `AGENTS.md` that `sp init` never writes.
+
+  The shipped quickref gained a mixins section — no shipped document mentioned them — and a
+  pointer to `docs/cli-api.json` for the complete list of step types and keys.
+  `tests/test_doc_examples_lint.py` now checks `output:` members as well as keys, covers every
+  declared step type (it had omitted the three that declare members), and reads the shipped
+  templates as well as `docs/` — which is how six of these were found.
+
 ### Removed
+
+- **The commentary starter example → #244.** `pipelines/commentary.yaml`,
+  `prompts/commentary.gpt`, their template copies and catalog rows, and the `COMMENTARY_*`
+  constants. Replaced by the reader's guide example — see Added.
+
+- **`parallel_passages_path` and `sp resource set --parallel-passages-path` — breaking.** The
+  database ships with the engine, so a registration has nothing to point at; the option is now
+  refused as unknown, and the warning naming it is gone. A registration still carrying the field
+  is unaffected: nothing reads it.
+
+- **The `<!-- ... -->` prompt header — breaking.** A prompt header is YAML frontmatter fenced by
+  `---`, with the opening fence on the first line, and nothing else. The comment form was read
+  as a fallback, but the section grammar binds only a prompt whose first line is `---`, so a
+  prompt written in the documented comment form was never structure-checked. Both readers were
+  also unanchored: the fallback took any HTML comment anywhere in the file as the header, and a
+  `---` pair lower down — a pair of horizontal rules — was read as frontmatter.
+
+  `sp lint` and `sp run` now refuse a comment header by name, with one message, rather than
+  reading the prompt as having no header, which at run time would have meant substituting the
+  whole context unchecked. **To migrate**, move the same YAML between two `---` lines at the top
+  of the file. Measured across every repository under `nida-institute/` on 2026-10-01: 176
+  prompts, 5 using the comment form, all in `llmflow-historical-pipelines`. Guarded by
+  `tests/test_prompt_header_is_frontmatter.py`, red first; 16 test fixtures across six files
+  moved to frontmatter.
 
 - **`project/plans/design-documentation-in-prompts.md`** — deleted 2026-09-24 under
   `plans-are-temporary`, eight days after its declared date. Recover it with

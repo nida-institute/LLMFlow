@@ -11,7 +11,7 @@ from typing import Any, Dict
 from llmflow.modules.logger import Logger
 from llmflow.utils.alignment import aligned_text_for_spans, load_pair
 from llmflow.utils.context import resolve
-from llmflow.utils.step_outputs import handle_step_outputs
+from llmflow.utils.step_outputs import handle_step_outputs, parse_output_entry
 
 logger = Logger()
 
@@ -97,6 +97,15 @@ def run_alignment_step(
     if not spans:
         raise ValueError(f"alignment step '{name}' requires 'spans'")
 
+    # Members are named in `output:`; `returns:` is retired (#263). An unknown
+    # member is a lint error before the run, so nothing is validated here. The reader's own
+    # parameter is still called `returns` — an internal signature, not the language.
+    requested = (
+        tuple(parse_output_entry(str(entry))[1] for entry in step["output"])
+        if isinstance(step.get("output"), list)
+        else ("text",)
+    )
+
     pair = load_pair(resolve_pair(source_docid, target_docid))
     results = aligned_text_for_spans(
         spans,
@@ -104,8 +113,12 @@ def run_alignment_step(
         pair["source"],
         pair["target"],
         order=tuple(step.get("order") or ("target",)),
-        returns=tuple(step.get("returns") or ("text",)),
+        returns=requested,
     )
 
     logger.info(f"   {len(results)} spans, {source_docid} -> {target_docid}")
-    handle_step_outputs(step, results, context)
+    # `text` is primary. Both members ride on the same per-span result rather than being separable
+    # lists, so each name binds the same object — which is what the reader already produced.
+    handle_step_outputs(
+        step, results, context, members={"text": results, "alignments": results}, primary="text"
+    )

@@ -136,6 +136,26 @@ def main(root: str):
             modules.append(idx)
 
     output = {
+        # First, so a reader meets it before the catalogue. A list of several hundred functions
+        # reads as an API unless it says otherwise, and that inference is the expensive one to
+        # undo — it has already produced tests coupled to internals.
+        "about": {
+            "what": "A map of this engine's implementation: every module in src/ with its "
+                    "imports, and every function with its signature and docstring.",
+            "why": "So that work on the engine can find what already exists before writing it "
+                   "again. Duplicate code is buggy code, and it diverges from the original the "
+                   "moment either changes.",
+            "not_an_api": "This is NOT an API. Nothing listed here carries a compatibility "
+                          "promise, and a project must not build against it. A project reaches "
+                          "this engine one way: the sp command line and the pipeline language "
+                          "it reads.",
+            "not_for_tests": "This is not a surface for tests either. A test that calls a "
+                             "function found here couples the suite to an internal. Exercise a "
+                             "step through the object model or the CLI — the surface a consumer "
+                             "uses. See docs/ai-context/project/rules.md rule 1.",
+            "generated_by": "tools/index_signatures.py, re-run by the pre-commit hook whenever "
+                            "src/ changes. Editing this file by hand does not survive.",
+        },
         "modules": modules,
         "summary": {
             "total_modules": len(modules),

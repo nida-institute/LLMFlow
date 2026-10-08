@@ -19,6 +19,9 @@
 #   committed  true  -> belongs in git, must never appear in the generated .gitignore
 #              false -> goes in the generated .gitignore
 #   constant   name of the string constant in cli_utils, when source is `constant`
+#   renderer   name of the function in file_catalog.py that renders it, when source is
+#              `derived`. Named on the row rather than chosen in code, so a second derived
+#              file needs no `if` — which is what `derived` used to require.
 #   template   path under src/llmflow/templates/, when source is `template`
 #   block      delimiter name when sp owns only a block of the file, not all of it
 #   purpose    what the file is for; this text is the entry's row in the rendered index
@@ -93,11 +96,26 @@ files:
     purpose: >-
       What Scripture Pipelines is, and where the rest of its documentation lives.
 
+  # The public surface, as data. `docs/index.json` in this repository is the opposite thing
+  # and does not ship: it maps the implementation and says so in its own `about`. This one is
+  # what a project may build against, and it ships because answering "what does this engine
+  # offer?" should not require importing the package — the one thing a project is told not to do.
+  - path: docs/cli-api.json
+    scope: project
+    policy: generated
+    source: derived
+    renderer: render_cli_api
+    committed: true
+    purpose: >-
+      The public surface as data: every sp command with its options, and every step type with
+      its own keys, its members and which is primary. Generated, so it cannot drift.
+
   # Rendered from this file, so it cannot name a document the catalog does not declare.
   - path: docs/ai-context/sp/index.md
     scope: project
     policy: generated
     source: derived
+    renderer: render_sp_index
     committed: true
     purpose: >-
       The documents Scripture Pipelines ships, and what each is for. Rendered from
@@ -201,7 +219,9 @@ files:
     template: project/docs/tutorial.md
     committed: true
     purpose: >-
-      Step-by-step walkthrough: variables, saveas, and a two-step pipeline.
+      Step-by-step walkthrough of the starter example: naming a resource, stating which
+      versification a reference is written in, and named step outputs. Four steps, three
+      of which call no model.
 
   - path: docs/llmflow-language-quickref.md
     scope: project
@@ -221,41 +241,43 @@ files:
     purpose: >-
       VS Code setup for editing pipelines and prompts.
 
-  # The hello-world example. `example` is what makes `sp init` and `sp doctor` differ at
+  # The starter example. `example` is what makes `sp init` and `sp doctor` differ at
   # all: `sp init` creates these, `sp init --update` refreshes one that is present, and
   # `sp doctor` leaves them alone entirely. Stated on the row rather than as a rule in
-  # code, so the four files it covers are the four files that carry it.
-  - path: prompts/hello.gpt
+  # code, so the files it covers are the files that carry it.
+  #
+  # The hello-world pair it replaced touched no scripture, no resource, no versification
+  # and no schema, and the second did not consume the first — so neither showed what the
+  # engine is for (#244).
+  - path: pipelines/readers-guide.yaml
     scope: project
     policy: example
     source: template
-    template: project/prompts/hello.gpt
+    template: project/pipelines/readers-guide.yaml
     committed: true
     purpose: >-
-      Starter prompt for the hello-world example.
+      A reader's guide to a Greek or Hebrew passage, and what its parallel passages mean in
+      their original context and as used here — two model steps, every other step free.
 
-  - path: prompts/reply.gpt
+  - path: prompts/readers-guide.gpt
     scope: project
     policy: example
     source: template
-    template: project/prompts/reply.gpt
-    committed: true
-
-  - path: pipelines/hello-llmflow.yaml
-    scope: project
-    policy: example
-    source: template
-    template: project/pipelines/hello-llmflow.yaml
-    committed: true
-
-  - path: pipelines/hello.yaml
-    scope: project
-    policy: example
-    source: template
-    template: project/pipelines/hello.yaml
+    template: project/prompts/readers-guide.gpt
     committed: true
     purpose: >-
-      Smallest runnable pipeline — one llm step.
+      The reader's guide prompt: less common words, the force of each infinitive and
+      participle against its sentence, and how the verbs relate.
+
+  - path: prompts/parallel-significance.gpt
+    scope: project
+    policy: example
+    source: template
+    template: project/prompts/parallel-significance.gpt
+    committed: true
+    purpose: >-
+      The parallel-significance prompt: each earlier passage in its own chapter, and how this
+      passage adapts it.
 
   # How a project records audit findings. create-once: the project adapts it, and
   # `sp doctor` never overwrites a create-once entry.

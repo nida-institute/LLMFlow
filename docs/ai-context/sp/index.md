@@ -21,18 +21,26 @@ references there, or in documents it points to.
 | `docs/ai-context/sp/passage-references.md` | Writing a passage reference: the forms that parse, book names and USFM codes, ranges that may cross a chapter but not a book, and the request-side and source-side versifications. |
 | `docs/ai-context/sp/rules.md` | The rules every AI session in this project is held to. Authoritative. |
 | `docs/ai-context/sp/scripture-representations.md` | Choosing between `plain`, `milestones` and `usj`, what each costs with the unit stated, and how to read a discourse item's `outcome`. |
+| `docs/cli-api.json` | The public surface as data: every sp command with its options, and every step type with its own keys, its members and which is primary. Generated, so it cannot drift. |
 | `docs/llmflow-language-quickref.md` | The pipeline YAML reference — step types, variables, window and for-each. |
-| `docs/tutorial.md` | Step-by-step walkthrough: variables, saveas, and a two-step pipeline. |
+| `docs/tutorial.md` | Step-by-step walkthrough of the starter example: naming a resource, stating which versification a reference is written in, and named step outputs. Four steps, three of which call no model. |
 | `docs/vscode.md` | VS Code setup for editing pipelines and prompts. |
-| `pipelines/hello.yaml` | Smallest runnable pipeline — one llm step. |
+| `pipelines/readers-guide.yaml` | A reader's guide to a Greek or Hebrew passage, and what its parallel passages mean in their original context and as used here — two model steps, every other step free. |
 | `project/TODO.md` | Active work, what is in flight, and what not to touch. Read before anything else. |
 | `project/audits/README.md` | How audit findings are recorded for this project. |
 | `project/plans/README.md` | Where designs and plans live, the status they must declare, and why they are deleted after about eight days. |
-| `prompts/hello.gpt` | Starter prompt for the hello-world example. |
+| `prompts/parallel-significance.gpt` | The parallel-significance prompt: each earlier passage in its own chapter, and how this passage adapts it. |
+| `prompts/readers-guide.gpt` | The reader's guide prompt: less common words, the force of each infinitive and participle against its sentence, and how the verbs relate. |
 ## Scripture Pipelines documentation
 
-- [Pipeline language spec](https://github.com/nida-institute/LLMFlow/blob/main/docs/llmflow-language.md)
-- [Python API](https://github.com/nida-institute/LLMFlow/blob/main/docs/python-api.md) —
-  `import llmflow`: `load_pipeline(...)` then `.resolve()` / `.lint()` / `.run()` /
-  `.schemas()`; `PIPELINE_SCHEMA` + `api_catalog()` are the machine-readable syntax-to-API
-  map. Prefer this over re-parsing pipeline YAML.
+**This engine is reached one way: the `sp` command line, and the pipeline language it reads.**
+Everything else is the engine's own and carries no compatibility promise, so a project that
+builds on it has taken a dependency nobody offered.
+
+- [The pipeline language](https://github.com/nida-institute/LLMFlow/blob/main/docs/sp-language.md)
+  — every step type, its keys, and what each one returns
+- [Quick reference](llmflow-language-quickref.md) — the same, short, beside you while you write
+- `sp --help`, and `sp <command> --help` — the commands, from the tool itself
+
+**Where the language cannot express something, that is a gap to report, not a reason to reach
+past it.** Say so and ask for the construct; do not import the package to work around it.

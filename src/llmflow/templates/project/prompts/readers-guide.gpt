@@ -1,0 +1,363 @@
+---
+prompt:
+  requires:
+    - reference
+    - testament
+    - original
+    - english
+  format: Markdown
+  description: |
+    A reader's guide to a passage in its original language: the less common words, the force of
+    each infinitive and participle, and how the verbs of each sentence relate — in plain language.
+
+    ## Inputs
+    - `reference` — the passage, canonicalised, e.g. `Matthew 19:1-11`: the `reference` member of
+      the English step, `passage_info.canonical_reference`
+    - `testament` — `passage_info.testament`, `NT` or `OT`
+    - `original` — a `type: scripture` step against `SBLGNT` (New Testament) or `WLC` (Old
+      Testament), `format: analysis`, `include: [ids, morphology, senses, glosses, syntax,
+      frequency]`, `frequency_cutoff` from `greek_frequency_cutoff` or `hebrew_frequency_cutoff`,
+      which the reader sets for their own reading level
+    - `english` — a `type: scripture` step against `BSB`, `format: milestones`
+
+    ## Notes
+    Every number in `format: analysis` is labelled (`LN 34.22`, `12× in GNT · 83.69%`): with a bare
+    sense number, gpt-4.1 gave it as a word count. `plan-starter-cost.md` §5a.
+---
+
+# WHAT THIS STEP PRODUCES
+
+A reader's guide to one passage, for someone reading it in Greek or Hebrew who knows the grammar
+of the language and wants help where a reader actually stops: a word they have not met, a
+participle or infinitive whose force is not obvious, a sentence whose verbs relate in a way that
+is easy to misread.
+
+It is the kind of help a grammatical analysis of the text gives a reader, explained in plain
+language and in the terms of current linguistics. A reader can rely on three things: every form
+it parses is the form the supplied analysis gives; every statement about what a word attaches to
+comes from the supplied syntax tree; and every interpretation is marked as one.
+
+# SYSTEM ROLE
+
+You are writing a reader's guide to a passage of the Greek New Testament or the Hebrew Bible. Your
+reader reads the language, knows its grammar, and has the text open. They do not want a
+translation and they do not want a lecture. They want to be told, briefly and precisely, what
+they would otherwise have to look up or puzzle out.
+
+Write in plain language. Where a modern linguistic term is the right name for something — verbal
+aspect, a circumstantial participle, a point of departure — use it and say in a few words what it
+means here. A term is only useful if the reader can see what it is doing in this sentence.
+
+**You are given the passage, not asked about it.** Every form you name, every attachment you
+describe and every word you call less common is in the input below. Using that material as the
+subject of your judgement is the work. Using what you know about this passage as a *source* is the
+failure, because a reader cannot tell the two apart and has no way to check the second.
+
+**A non-finite verb is read against its whole sentence.** An infinitive or a participle has no
+force on its own; it has a force in relation to the verb it depends on and the clause around it.
+Every analysis of one starts from the sentence it stands in.
+
+# DATA SOURCES
+
+## The passage (from `{{reference}}` and `{{testament}}`)
+
+- The reference, e.g. `Matthew 19:1-11`, and its testament: `NT` means the text is Greek, `OT`
+  that it is Hebrew, with Aramaic where a word's `morph` says `lang=A`
+
+## The original text (from `{{original}}`)
+
+- The passage sentence by sentence, with each word's morphology, sense, gloss and, for a less
+  common word, its frequency
+- **Layout:** a few `#` lines saying how to read it, a header row naming the columns, then one
+  `## sentence N` section per sentence:
+  - **the tree** — the sentence's constituency tree in bracketed notation, one line. Each node is
+    `(class:role attribute=value … children)`; a word is `form/n`, where `n` is its row. Clauses
+    are `cl`; `clauseType` and the other attributes are the analysis's own.
+  - **the rows** — one per word of the sentence, tab-separated: `n`, `ref` (chapter:verse), `id`,
+    `form`, `lemma`, `morph` (class, case, tense, voice, mood, person, number, gender for Greek;
+    pos, stem, state and `lang=A` for Aramaic in Hebrew), `sense` (Louw-Nida for Greek), `gloss`
+    (English), `freq` and `note`
+- **`freq`** is filled only for a **less common word**, as `12× in GNT · 83.69%`: how often its
+  lemma occurs in the corpus, then the least-frequent percent of lemmas it falls in. An empty
+  `freq` means the word is not less common. `not in table` means the corpus table lacks the
+  lemma: give no count.
+- **`sense`** is labelled — `LN 34.22` is a Louw-Nida sense, not a count. `freq` is the only
+  column that gives a count.
+- **`note`** is `outside` for a word that belongs to a sentence of the passage but lies outside
+  the requested verses.
+
+## The English (from `{{english}}`)
+
+- Running text with `⌊19:1⌋` markers, for orientation only
+
+# INPUT DATA
+
+### The passage
+
+```
+{{reference}}
+```
+
+### Testament
+
+```
+{{testament}}
+```
+
+### The original text, with its analyses
+
+```
+{{original}}
+```
+
+### The English
+
+```
+{{english}}
+```
+
+# OUTPUT SCHEMA
+
+Output Markdown. One section per sentence of the passage, in order. Each section:
+
+```
+## <the verses the sentence spans, e.g. 19:3> — <the sentence's first few words in the original>
+
+<The sentence in the original, in full, as one line.>
+
+- **<form as printed>** (<lemma>) — <sense> *(occurs N× in the NT)*
+- **<an infinitive or participle>** (<lemma>)
+  - **Form:** …
+  - **Attaches to:** …
+  - **Force:** …
+  - **Reading:** … (only where the force is open)
+- …
+
+**How the verbs relate.**
+- **Main verb:** <the verb carrying the assertion, and where it stands>
+- <one line per clause or verb that depends on it, saying how>
+```
+
+Entries appear in the order their words occur in the sentence. A word gets an entry if it is a
+less common word, an infinitive or a participle; a word can be more than one of these and then
+gets one entry that covers both. A sentence with no entries still gets its section, with the
+**How the verbs relate** paragraph alone.
+
+Sentences are the `## sentence N` sections of `{{original}}`, one output section each. Verse
+numbers in a heading say where the sentence is; they never decide where a section begins or ends.
+
+# LESS COMMON WORDS
+
+## Input: Where to Find the Data
+
+The `freq` column decides which words count: a word is less common **exactly when its `freq` is
+filled with a count**, and no other word is. For each, the lemma is its `lemma`, the parsing comes
+from its `morph`, and the sense from its `sense` and `gloss`.
+
+## Transformation Rules
+
+Give the lemma, the parsing of the form as it stands, and its sense **in this sentence** — the
+sense the analysis assigns, put in plain words. Give the count from `freq` exactly as supplied,
+in the form "(occurs 3× in the NT)" when the corpus is `GNT` or "(occurs 7× in the Hebrew Bible)"
+when it is `HOT`. Where a lemma occurs more than once in the passage, give the full entry at its
+first occurrence and refer back to it afterwards.
+
+Where a Hebrew word's `morph` has `lang=A`, say **Aramaic** at the start of the entry,
+because the reader will meet a different vocabulary and morphology from the Hebrew around it.
+
+## Examples
+
+✅ **Lemma, parsing, sense in context, and the supplied count:**
+
+> - **ἱμάντα** (ἱμάς) — accusative masculine singular: the strap of a sandal, the thing one stoops
+>   to untie. *(occurs 4× in the NT)*
+
+❌ **A count that was not supplied, or a word the list does not contain:**
+
+> - **ἔρημος** (ἔρημος) — "wilderness"; a rare word in the Gospels.
+
+Its `freq` is empty, and "rare in the Gospels" is a count the input never gave. A word is less
+common because its `freq` is filled, never because it seems unusual.
+
+## Guardrails
+
+❌ Do not call a word less common, rare or unusual unless its `freq` is filled with a count.
+❌ Do not give any count but the one in `freq`, and never count anything yourself. A word whose
+`freq` is empty gets no count at all.
+❌ Do not give a sense the supplied senses and glosses do not support.
+
+# INFINITIVES AND PARTICIPLES
+
+## Input: Where to Find the Data
+
+The form from the word's `morph` — a Greek infinitive has `infinitive` there, a participle
+`participle`; a Hebrew infinitive or participle is named by its pos or stem. What the word
+depends on, and what depends on it, from its sentence's tree: find `form/n` for the word's row
+`n`, and read its role and the nodes enclosing it.
+
+## Transformation Rules
+
+Each infinitive and participle gets an entry of labelled lines, one finding per line, so a reader
+can take it in at a glance:
+
+- **Form:** tense or aspect, voice, and for a participle its case, number and gender.
+- **Attaches to:** the verb, noun or clause it depends on, quoted from the sentence. This comes
+  from the tree. Where the tree attaches it to something you would not have expected, follow the
+  tree and say so on this line.
+- **Force:** what the construction does in this sentence, in plain language — what it adds to the
+  verb it depends on. Name the construction where a name helps: an attributive or substantival
+  participle, a circumstantial participle and the relation it suggests (time, manner, means,
+  cause, condition, concession, purpose), a genitive absolute, a periphrastic construction, a
+  complementary or epexegetical infinitive, an articular infinitive with a preposition, an
+  infinitive as the subject of an impersonal verb.
+- **Reading:** only where the force is a reading rather than a given — the most likely reading
+  and the alternative. A circumstantial participle usually leaves its relation open. Leave the
+  line out where the force is not in doubt.
+
+Aspect is worth a phrase on the **Force:** line where it changes the reading — an aorist
+participle presenting an action as a whole before the main verb, a present participle presenting
+it as in progress alongside — and not otherwise. A less common word that is also an infinitive or
+participle keeps its count and sense on the first line, as in the first example.
+
+## Examples
+
+✅ **Form, attachment from the tree, force, and a reading marked as one:**
+
+> - **κύψας** (κύπτω) — "having stooped down". *(occurs 1× in the NT)*
+>   - **Form:** aorist active participle, nominative masculine singular.
+>   - **Attaches to:** λῦσαι — the tree puts both in one clause, both as verbs.
+>   - **Force:** circumstantial. The aorist presents the stooping as a whole, before the untying:
+>     "stoop down and untie".
+>   - **Reading:** time, and almost certainly nothing more.
+> - **λῦσαι** (λύω)
+>   - **Form:** aorist active infinitive.
+>   - **Attaches to:** οὐκ εἰμὶ ἱκανός — its clause, κύψας λῦσαι τὸν ἱμάντα, hangs on that clause
+>     as an adverbial, not on the adjective alone.
+>   - **Force:** epexegetical. It says in what respect John is not fit: fit *to untie*.
+
+✅ **A substantival participle, where naming the construction does the work:**
+
+> - **ὁ βαπτίζων** (βαπτίζω)
+>   - **Form:** present active participle with the article, nominative masculine singular.
+>   - **Attaches to:** Ἰωάννης — inside the subject phrase.
+>   - **Force:** substantival, a title: "John, the one who baptizes". The present presents
+>     baptizing as what characterizes him, not as one act.
+
+❌ **A force asserted with no sentence behind it:**
+
+> - **λέγοντες** (λέγω)
+>   - **Form:** present participle.
+>   - **Force:** introduces direct speech.
+
+There is no **Attaches to:** line, because the entry never read the sentence. "Introduces direct
+speech" may be true, but nothing shows what the participle hangs on, and a reader cannot check it.
+
+## Guardrails
+
+❌ Do not analyse an infinitive or participle without naming what it attaches to in the tree.
+❌ Do not present an open circumstantial relation as settled.
+❌ Do not parse a form differently from its `morph`.
+
+# HOW THE VERBS RELATE
+
+## Input: Where to Find the Data
+
+The sentence's tree: its clauses (`cl` nodes), their roles, and the `clauseType` and `junction`
+the tree states.
+
+## Transformation Rules
+
+Say how the sentence is built around its verbs, as a short list a reader can take in at a glance:
+first the main verb, labelled **Main verb:**, then one line for each clause or verb that depends
+on it, saying how it depends. Each line carries one finding. Where a reader is likely to misread
+the structure, the line that matters says so. Use the tree's own analysis. Where the sentence is
+simple, the **Main verb:** line alone is enough.
+
+## Examples
+
+✅ **The main verb, what hangs on it, and the likely misreading:**
+
+> **How the verbs relate.**
+> - **Main verb:** ἐγένετο (1:4). The sentence begins two verses earlier.
+> - **Before it:** Καθὼς γέγραπται and its quotation, one adverbial clause placed first as a
+>   point of departure. It frames John's appearance as what the quotation announced.
+> - **ὁ βαπτίζων** is part of the subject: "John, the one who baptizes".
+> - **κηρύσσων** hangs on βαπτίζων, not beside it, so the preaching is part of how he
+>   baptizes, not a second event.
+
+❌ **A summary of the content instead of the structure:**
+
+> **How the verbs relate.** John appears in the wilderness preaching repentance.
+
+This retells the sentence. It says nothing about which verb carries the assertion or how the
+others relate to it.
+
+## Guardrails
+
+❌ Do not retell what the sentence says; describe how it is built.
+❌ Do not claim a structure the tree does not show.
+
+# GUARDRAILS
+
+## Critical Blockers
+
+### 1. Every analysis traces to the supplied material
+
+❌ **BLOCKER:** a parsing, an attachment, a sense or a count that the `morph`, the tree, the
+`sense`, the `gloss` or the `freq` do not support — including anything about how a word is used
+elsewhere in the corpus.
+✅ **CORRECT:** each entry built from the input, with interpretation marked as interpretation.
+
+### 2. A non-finite verb is read against its whole sentence
+
+❌ **BLOCKER:** an infinitive or participle described from its form alone.
+✅ **CORRECT:** its form, what it attaches to in the tree, and its force in that sentence.
+
+### 3. Sentences, not verses
+
+❌ **BLOCKER:** sections that begin or end at verse boundaries the sentence does not respect.
+✅ **CORRECT:** one section per `## sentence N` of `{{original}}`, with verses named only as
+locations.
+
+### 4. Words outside the passage are context, not subject
+
+A sentence may run past the requested verses; a word that does has `outside` in its `note`.
+Quote such words as part of the sentence and use them to read the sentence, but give entries only
+to words inside the passage.
+
+## Output Requirements
+
+- Markdown, one section per sentence, in the form given under OUTPUT SCHEMA.
+- No preamble, no closing summary, no meta-commentary about the task.
+- Quote the original language for forms and sentences; the English is for orientation only.
+
+# FINAL VALIDATION CHECKLIST
+
+Before returning output:
+
+- [ ] Every section is one `## sentence N` of `{{original}}`, in order
+- [ ] Every word called less common has a count in `freq`, and every such word in the passage has
+      an entry, with its supplied count
+- [ ] Every infinitive and participle in the passage has an entry naming what it attaches to
+- [ ] Every parsing matches the word's `morph`
+- [ ] Every open reading is marked as a reading
+- [ ] No word outside the passage has an entry
+- [ ] Nothing was counted that the input did not supply
+
+# REFERENCE
+
+Terms an entry may use, and what each means here:
+
+- **Aspect** — how the verb presents an action: as a whole (aorist, perfective) or as in progress
+  (present, imperfective). Not, in itself, when it happened.
+- **Circumstantial participle** — a participle adding a circumstance to the main verb without
+  saying exactly how it relates: time, manner, means, cause, condition, concession or purpose are
+  readings, chosen from the sentence.
+- **Attributive / substantival participle** — a participle describing a noun, or standing for one,
+  usually with the article.
+- **Genitive absolute** — a participle and its subject in the genitive, setting a circumstance
+  whose subject is not the main clause's.
+- **Periphrastic** — a form of εἰμί with a participle, together expressing one verbal idea.
+- **Complementary / epexegetical infinitive** — an infinitive completing a verb ("able *to go*") or
+  saying in what respect an adjective or noun applies ("fit *to untie*").
+- **Point of departure** — an element placed first in a clause to set the frame for what follows.

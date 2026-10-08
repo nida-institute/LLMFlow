@@ -1,12 +1,14 @@
 # Project Tracking Convention
 
-Three places under `project/`, one job each. Getting a file into the wrong one is how a project
+Four places under `project/`, one job each. Getting a file into the wrong one is how a project
 ends up with three half-answers to the same question and no way to tell which is current.
 
 ```
 project/
   plans/                    design-<topic>.md, plan-<topic>.md   accumulates, then is deleted
   audits/                   audit-<subject>.md                    rolling, rewritten in place
+  upstream/<owner>-<repo>/  issue and PR bodies for repositories  accumulates, dies when filed
+                            you do not own
   TODO.md                                                         rolling, the active queue
 ```
 
@@ -113,6 +115,31 @@ corrected. That is exactly what should not be carried forward.
 
 ---
 
+## `upstream/` — drafts for repositories you do not own
+
+One directory per target, named `<owner>-<repo>`, holding issue bodies and pull request bodies
+written against a repository outside your control. A draft dies when it is filed; the durable
+record is then the issue or PR itself.
+
+**Why this is not `collab/`.** A note to a sister project is written once **into the recipient's
+tree**, so no second copy drifts. You cannot write into a repository you have no access to, so
+the draft has to live at home until someone files it — which is the one case the collab
+convention cannot cover.
+
+**Why it is not `tmp/`, which is where it always ends up first.** A scratch directory is
+disposable by contract, and these drafts are frequently the **only copy** of work about somebody
+else's data: a defect nobody else has noticed, a fix sitting on a local branch with no upstream.
+A file kept in a disposable place needs a note explaining why the next sweep must spare it, and
+that note is the signal it is in the wrong place. Anything that needs justifying does not belong
+in `tmp/`.
+
+**Filing is a decision, not a tidy-up.** Opening an issue or a pull request on another
+organisation's repository happens under a person's account and is read as their team's view of
+someone else's work. A draft may sit here for a long time, and that is the convention working
+rather than failing.
+
+---
+
 ## `audits/` — one rolling record per subject
 
 Named `audit-<subject>.md`. **A project names its own unit** — a service, a package, a build target,
@@ -159,7 +186,8 @@ A note is subject to the same eight days as a plan, measured the same way.
 
 The distinction that decides which rule applies:
 
-- **Accumulating** — one more file per piece of work. `plans/`, and notes sent to another project.
+- **Accumulating** — one more file per piece of work. `plans/`, `upstream/`, and notes sent to
+  another project.
   A growing set is one nobody re-reads — each reader reads a different subset and they disagree
   without discovering that they disagree — which is why the eight-day rule exists for these and
   nowhere else.

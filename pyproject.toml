@@ -1,6 +1,6 @@
 [project]
 name = "scripture-pipelines"
-version = "0.2.1.28"
+version = "0.2.1.29"
 description = "A declarative pipeline engine for AI-assisted biblical and linguistic scholarship"
 authors = [{name = "Jonathan Robie", email = "jonathan.robie@gmail.com"}]
 license = {text = "Apache-2.0"}
@@ -83,6 +83,9 @@ packages = ["src/llmflow"]
 "data/ai-rules.yaml" = "llmflow/data/ai-rules.yaml"
 "data/versification-editions.json" = "llmflow/data/versification-editions.json"
 "data/include-families.json" = "llmflow/data/include-families.json"
+"data/lemma-frequency-greek.json" = "llmflow/data/lemma-frequency-greek.json"
+"data/lemma-frequency-hebrew.json" = "llmflow/data/lemma-frequency-hebrew.json"
+"data/parallel-passages.json" = "llmflow/data/parallel-passages.json"
 "data/resources.json" = "llmflow/data/resources.json"
 "data/book-names.json" = "llmflow/data/book-names.json"
 "data/alignment-pairs.json" = "llmflow/data/alignment-pairs.json"

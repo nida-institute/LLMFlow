@@ -3,6 +3,13 @@ prompt:
   requires:
     - task_name
     - instructions
+  description: |
+    Checks that a model obeys OpenAI's JSON-mode contract. Used by
+    `pipelines/json-response-openai.yaml`, once per model.
+
+    ## Inputs
+    - `task_name` — a literal naming the model under test, e.g. `"gpt-4o json mode"`
+    - `instructions` — the pipeline's `default_instructions` variable
 ---
 You are validating that the model can obey OpenAI's JSON-mode contract.
 

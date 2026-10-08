@@ -113,7 +113,7 @@ def sample_pipeline(tmp_path, monkeypatch):
     """
     (tmp_path / "prompts").mkdir()
     (tmp_path / "prompts" / "greeting.gpt").write_text(
-        "<!--\nprompt:\n  requires:\n    - passage\n-->\nSummarise {{passage}}.\n"
+        "---\nprompt:\n  requires:\n    - passage\n---\nSummarise {{passage}}.\n"
     )
     pipeline = tmp_path / "pipelines" / "sample.yaml"
     pipeline.parent.mkdir()

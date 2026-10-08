@@ -1,0 +1,295 @@
+name: readers-guide
+description: |
+  A reader's guide to a passage in Greek or Hebrew, and what its parallel passages mean in their
+  original context and as they are used here.
+
+  Requires --var passage=<reference>, and supplies no default:
+
+    sp run --pipeline pipelines/readers-guide.yaml --var passage="MAT 19:1-11"
+
+  Two steps call a model; every other step is free. The engine fetches the passage in its own
+  language with its analyses and each word's frequency, the English, the passages this one is
+  parallel to in their own language, and the whole chapter around each of them in English. Only
+  `reader_guide` and `significance` cost anything.
+
+  What this example teaches, in order of how often it matters:
+
+    - a resource is *named*, never pathed, so the pipeline runs on any machine
+    - `include:` asks the scripture step for analyses beside the text, and only those asked for
+    - a step's outputs are *named members*, and may be renamed
+    - `condition:` chooses between steps — here, the Greek or the Hebrew
+    - `for-each` nests, and `append_to` gathers what the iterations produce
+
+  Every step saves what it produced, so each stage can be read. The guide and the significance
+  are the deliverables and go to `output_dir`; everything else is an intermediate and goes to
+  `intermediate_dir`, one folder per passage. Keeping them apart is what lets a project commit
+  the deliverables and ignore the rest, and lets a re-run clear only its own intermediates.
+
+output_file_directory: "${output_dir}"
+intermediate_file_directory: "${intermediate_dir}"
+
+# Both model steps read a sizeable payload and write a long answer — for Matthew 19:1-11, 13,331
+# input tokens for the guide and 18,699 for the significance. These are the settings
+# discourse-flow uses for its heavy steps.
+llm_config:
+  model: gpt-4.1
+  max_tokens: 32768
+  temperature: 0.35
+  timeout_seconds: 300
+
+variables:
+  output_dir: "outputs"
+  intermediate_dir: "intermediate"
+  versification: eng
+  greek_frequency_cutoff: 80
+  hebrew_frequency_cutoff: 90
+  parallel_members: []
+  parallel_texts: []
+
+steps:
+  - name: english
+    description: |
+      The passage in English, and the reference the engine parsed on the way to fetching it.
+
+      `passage_info` — the `reference` member — carries the book code, the testament and the
+      chapter and verse range, which the steps below use to choose the original language and to
+      name what they save. A step's own `saveas` cannot name its own output, so the next step
+      saves the English under a name built from `passage_info`.
+
+      `versification:` says which numbering `${passage}` is written in. English numbering is the
+      default a reader expects; every step below states the same scheme, so all of them fetch the
+      same verses however the original-language text numbers them.
+    type: scripture
+    resource: BSB
+    passage: "${passage}"
+    versification: "${versification}"
+    format: milestones
+    output: [english=text, passage_info=reference]
+
+  - name: save_english
+    type: save
+    content: "${english}"
+    path: "${intermediate_dir}/${passage_info.filename_prefix}/english.txt"
+
+  - name: greek
+    description: |
+      The New Testament passage in Greek, with what the guide reads: morphology for the form of
+      every infinitive and participle, senses and glosses for the meaning of a word, the
+      constituency tree for what each non-finite verb attaches to, and each word's frequency in
+      the Greek New Testament.
+
+      With `syntax`, the step returns every word of every sentence the passage touches, so a
+      participle near either end of the passage arrives with the verb it depends on. Words outside
+      the requested verses are marked in `outside_passage`.
+
+      This is the complete record, saved for reading and for other tools: `format: usj` drops
+      nothing. The guide is handed the next step's compact form instead.
+    condition: "${passage_info.testament == 'NT'}"
+    type: scripture
+    resource: SBLGNT
+    passage: "${passage}"
+    versification: "${versification}"
+    format: usj
+    include: [ids, morphology, senses, glosses, syntax, frequency]
+    output: original_usj
+    saveas: "${intermediate_dir}/${passage_info.filename_prefix}/greek.json"
+
+  - name: greek_analysis
+    description: |
+      The same passage and analyses in `format: analysis` — each sentence's tree in bracketed
+      notation, then one row per word — which is a quarter of the tokens of the USJ form and what
+      the guide reads.
+
+      `frequency_cutoff` keeps a frequency only on the words whose lemma falls within the
+      corpus's least frequent `greek_frequency_cutoff` percent of lemmas, so a word with a
+      frequency is exactly a less common word.
+    condition: "${passage_info.testament == 'NT'}"
+    type: scripture
+    resource: SBLGNT
+    passage: "${passage}"
+    versification: "${versification}"
+    format: analysis
+    include: [ids, morphology, senses, glosses, syntax, frequency]
+    frequency_cutoff: "${greek_frequency_cutoff}"
+    output: original
+    saveas: "${intermediate_dir}/${passage_info.filename_prefix}/greek-analysis.txt"
+
+  - name: hebrew
+    description: |
+      The Old Testament passage in Hebrew or Aramaic, with the same analyses as the Greek step and
+      each word's frequency in the Hebrew Bible. Exactly one of the two languages is fetched,
+      chosen by the testament the reference names.
+    condition: "${passage_info.testament == 'OT'}"
+    type: scripture
+    resource: WLC
+    passage: "${passage}"
+    versification: "${versification}"
+    format: usj
+    include: [ids, morphology, senses, glosses, syntax, frequency]
+    output: original_usj
+    saveas: "${intermediate_dir}/${passage_info.filename_prefix}/hebrew.json"
+
+  - name: hebrew_analysis
+    description: |
+      The Hebrew passage in `format: analysis`, as the Greek one above.
+    condition: "${passage_info.testament == 'OT'}"
+    type: scripture
+    resource: WLC
+    passage: "${passage}"
+    versification: "${versification}"
+    format: analysis
+    include: [ids, morphology, senses, glosses, syntax, frequency]
+    frequency_cutoff: "${hebrew_frequency_cutoff}"
+    output: original
+    saveas: "${intermediate_dir}/${passage_info.filename_prefix}/hebrew-analysis.txt"
+
+  - name: reader_guide
+    description: |
+      The first of the two steps that call a model.
+
+      It is handed the passage, its analyses, the English and the cut-off, and asked what they
+      show — not asked what it knows about the passage. Every non-finite verb is read against its
+      whole sentence, which is why the original-language step asks for `syntax`.
+    type: llm
+    prompt:
+      file: prompts/readers-guide.gpt
+      inputs:
+        reference: "${passage_info.canonical_reference}"
+        testament: "${passage_info.testament}"
+        original: "${original}"
+        english: "${english}"
+    output: reader_guide
+    saveas: "${output_dir}/${passage_info.filename_prefix}-readers-guide.md"
+
+  - name: parallels
+    description: |
+      Which groups in the UBS Parallel Passages database this passage takes part in — synoptic
+      parallels, and Old Testament passages quoted in the New.
+
+      An empty list means the database was consulted and this passage is in no group. That is a
+      real answer, and the significance step is told to treat it as one.
+    type: parallel-passages
+    resource: SBLGNT
+    passage: "${passage}"
+    versification: "${versification}"
+    output: parallels
+    saveas: "${intermediate_dir}/${passage_info.filename_prefix}/parallels.json"
+
+  - name: parallel_members
+    description: |
+      Every member of every group, located: its verse in English and in its own language, and
+      which chapter and testament it belongs to. Nothing larger than a verse is fetched here.
+
+      A member can appear in several groups, and several members share a chapter, so the chapters
+      are fetched by the next step, once each.
+
+      The database numbers its references in `org`, so each fetch here says so.
+    type: for-each
+    for: group
+    in: "${parallels}"
+    steps:
+      - name: each_member
+        type: for-each
+        for: member
+        in: "${group.references}"
+        steps:
+          - name: locate_member
+            type: scripture
+            resource: BSB
+            passage: "${member}"
+            versification: org
+            format: milestones
+            output: [member_verse=text, member_info=reference]
+
+          - name: save_member_verse
+            type: save
+            content: "${member_verse}"
+            path: "${intermediate_dir}/${passage_info.filename_prefix}/parallels/${member_info.filename_prefix}-english.txt"
+
+          - name: member_greek
+            condition: "${member_info.testament == 'NT'}"
+            type: scripture
+            resource: SBLGNT
+            passage: "${member}"
+            versification: org
+            format: milestones
+            output: member_original
+            saveas: "${intermediate_dir}/${passage_info.filename_prefix}/parallels/${member_info.filename_prefix}-greek.txt"
+
+          - name: member_hebrew
+            condition: "${member_info.testament == 'OT'}"
+            type: scripture
+            resource: WLC
+            passage: "${member}"
+            versification: org
+            format: milestones
+            output: member_original
+            saveas: "${intermediate_dir}/${passage_info.filename_prefix}/parallels/${member_info.filename_prefix}-hebrew.txt"
+
+          - name: collect_member
+            type: json
+            value:
+              reference: "${member}"
+              chapter: "${member_info.book_code} ${member_info.chapter}"
+              testament: "${member_info.testament}"
+              original: "${member_original}"
+            output: located_member
+            append_to: parallel_members
+            saveas: "${intermediate_dir}/${passage_info.filename_prefix}/parallels/${member_info.filename_prefix}.json"
+
+  - name: parallel_chapters
+    description: |
+      The whole chapter around the members, once per chapter, in English. The members' own verses
+      came in their own language from the step above.
+
+      `group_by` gathers the located members by chapter, so each iteration receives one chapter
+      as `{key, items}` — the chapter, and the members that fall in it.
+
+      A chapter is fetched rather than the member verse alone because the significance step reads
+      each passage in its original context, and a single verse is not one. Until a pericope
+      boundary is registered for these texts, the significance step is asked to isolate the
+      relevant pericope from the chapter itself. The context is in English and the verses that
+      are compared are in the original: the original language of a whole chapter is two-thirds
+      of the step's input, and the comparison is made on the members' own words.
+    type: for-each
+    for: chapter
+    in: "${parallel_members}"
+    group_by: "${item.chapter}"
+    steps:
+      - name: chapter_english
+        type: scripture
+        resource: BSB
+        passage: "${chapter.key}"
+        versification: org
+        format: milestones
+        output: chapter_english
+        saveas: "${intermediate_dir}/${passage_info.filename_prefix}/parallels/${chapter.key}-english.txt"
+
+      - name: collect_chapter
+        type: json
+        value:
+          chapter: "${chapter.key}"
+          members: "${chapter.items}"
+          english: "${chapter_english}"
+        output: chapter_text
+        append_to: parallel_texts
+        saveas: "${intermediate_dir}/${passage_info.filename_prefix}/parallels/${chapter.key}.json"
+
+  - name: significance
+    description: |
+      The second step that calls a model: what each parallel means in its original context, and
+      how it is adapted in this passage.
+
+      It reads each parallel in the chapter it was fetched with, never from what it knows about
+      the passage. Synoptic parallels are read as one tradition adapted in each Gospel, assuming
+      Markan priority.
+    type: llm
+    prompt:
+      file: prompts/parallel-significance.gpt
+      inputs:
+        reference: "${passage_info.canonical_reference}"
+        english: "${english}"
+        parallels: "${parallels}"
+        parallel_texts: "${parallel_texts}"
+    output: significance
+    saveas: "${output_dir}/${passage_info.filename_prefix}-parallel-significance.md"

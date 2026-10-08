@@ -102,11 +102,11 @@ Analyze {{passage}} from {{source}}.
         prompt_file = tmp_path / "prompts" / "test.gpt"
         prompt_file.parent.mkdir()
 
-        prompt_file.write_text("""<!--
+        prompt_file.write_text("""---
 prompt:
   requires:
     - passage
--->
+---
 
 Analyze {{passage}} for {{name}}.
 """)

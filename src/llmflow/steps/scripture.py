@@ -9,6 +9,7 @@ from typing import Any, Dict
 
 from llmflow.modules.logger import Logger
 from llmflow.utils.context import resolve
+from llmflow.utils.data import parse_bible_reference
 from llmflow.utils.scripture import load_registry_resources, resource_text
 from llmflow.utils.step_outputs import handle_step_outputs
 
@@ -47,6 +48,9 @@ def run_scripture_step(
     # A list of `{from, to}` word ids, or a `${var}` naming one the pipeline computed.
     spans = resolve(step.get("spans"), context) if step.get("spans") else None
 
+    cutoff = step.get("frequency_cutoff")
+    cutoff = float(resolve(cutoff, context)) if cutoff is not None else None
+
     # The registrations directory is overridable so tests need not write to a real ~/.sp.
     registrations_dir = (pipeline_config or {}).get("_resources_dir")
     resources = load_registry_resources(registrations_dir)
@@ -59,6 +63,7 @@ def run_scripture_step(
         versification=scheme,
         include=include,
         spans=spans,
+        frequency_cutoff=cutoff,
     )
     if isinstance(result, list):
         size = f"{len(result)} spans"
@@ -68,5 +73,13 @@ def run_scripture_step(
         size = f"{len(result)} chars"
     logger.debug(f"   {resource} {passage}: {size} ({fmt})")
 
-    handle_step_outputs(step, result, context)
+    # This step's members (#263). `text` is primary, so a bare `output:` name binds the passage
+    # exactly as it always has. `reference` is what the step already parsed in order to fetch —
+    # surfacing it means nothing downstream re-parses a reference the engine has read, and the
+    # starter example can name its files without reaching into our Python.
+    members = {
+        "text": result,
+        "reference": parse_bible_reference(passage, versification=scheme or "eng"),
+    }
+    handle_step_outputs(step, result, context, members=members, primary="text")
     logger.info(f"✅ Completed scripture step: {name}")

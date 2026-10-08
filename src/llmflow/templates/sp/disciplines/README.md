@@ -8,6 +8,17 @@ holds in any repository in any language; they are the ones shared with Human at 
 pipeline YAML — and stay here. A discipline that mixes the two gets split rather than filed
 under whichever half is larger; that is what `sp-workflow.md` and `workflow.md` are.
 
+**The general ones are shared files, and editing one is a two-repository change.** Scripture
+Pipelines is upstream and Human at the Helm carries the same copies, byte for byte unless a
+recorded ruling permits a difference. Which files, and the fingerprint of each, are declared in
+`data/helm-sync.yaml` in the Scripture Pipelines repository. Change a shared file on one side only
+and the parity suite goes red on both.
+
+The sequence is: edit here, make the same edit in Helm, run `tools/sync_helm.py` until it reports
+the file as `same`, and only then run it with `--apply` to refresh the record. Refreshing before
+the two copies match records them as identical when they are not, which is a defect rather than a
+shortcut.
+
 ---
 
 ## General Disciplines
@@ -45,7 +56,7 @@ Ask what the work is for and who it serves, before choosing an approach; and spe
 ### github-authority.md
 What an AI may and may not do to a GitHub account, in every project.
 
-**Key standard:** Reading, creating issues, commenting, branching, pushing and opening PRs need no per-action approval. Merging or approving a PR, assigning work to a person, changing collaborators or org settings, closing an issue not created in the same turn, and pushing to a protected branch are hard stops requiring explicit instruction each time. "It seemed like the next logical step" is not authorisation.
+**Key standard:** Reading, creating issues in the project being worked on, commenting, staging, and drafting commit messages and pull requests need no per-action approval. Committing, pushing, opening a pull request and merging are the human's alone — the agent drafts and hands over the command. Approving a PR, assigning work to a person, changing collaborators or org settings, and closing an issue are hard stops requiring explicit instruction each time. "It seemed like the next logical step" is not authorisation.
 
 **Identity is yours, not the tooling's:** record your machine user account somewhere that belongs to you alone, which no install step overwrites and nothing ships. Where that is in this project is stated in `sp-workflow.md`.
 

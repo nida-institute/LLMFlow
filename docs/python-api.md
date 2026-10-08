@@ -1,7 +1,20 @@
 # Python API
 
+> **Who this is for.** This API is **the engine's own**, and this document exists for work *in
+> this repository*. It is not the surface a project using Scripture Pipelines builds against.
+>
+> **A project reaches this engine one way: the `sp` command line, and the pipeline language it
+> reads.** That is the whole of what is offered, and it is what `sp init` tells a project about.
+> A project that imports the package has taken on a second contract nobody offered it — and
+> where the pipeline language cannot express something, that is a missing construct to report,
+> not a reason to reach past the language. Rule `the-language-is-the-whole-surface`.
+>
+> Related and often confused: `docs/index.json` maps the engine's *implementation* — every
+> module and function in `src/`. It is not an API at all, not for projects and not for tests,
+> and it says so in its own `about` field.
+
 Scripture Pipelines's supported Python API is the top-level `llmflow` namespace. Everything listed in
-`llmflow.__all__` is a stable, documented surface for programs that embed the engine.
+`llmflow.__all__` is stable and documented **for work on the engine**.
 Anything reached through `llmflow.*` submodules is internal and may change without notice.
 
 ## The mapping principle

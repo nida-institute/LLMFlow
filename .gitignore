@@ -22,6 +22,11 @@ llmflow.log
 # that nobody can diff is how `git push:*`, `gh pr *` and `gh issue:*` came to be granted
 # here while CLAUDE.md called all three hard stops. settings.local.json stays ignored.
 !.claude/settings.json
+# ...and the release skill, which releases this engine and so lives here rather than in the
+# package (2026-10-07). The other skills under .claude/skills/ are copies `sp init` installs.
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/release/
 
 # VSCode (allow settings.json for Copilot integration)
 .vscode/*

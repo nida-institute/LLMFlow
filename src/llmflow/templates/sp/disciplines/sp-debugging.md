@@ -24,16 +24,23 @@ Then run normally:
 sp run --pipeline pipelines/<name>.yaml
 ```
 
-- **Location:** `<intermediate_file_directory>/debug/<pipeline_name>/` when the
-  pipeline declares `intermediate_file_directory` (resolved through `${...}`),
-  otherwise `outputs/debug/<pipeline_name>/`. `<pipeline_name>` is the pipeline
-  YAML file stem (e.g. `build-book.yaml` → `build-book`).
-- **Filenames:** `<passage>_<prompt_stem>_request.txt` and
-  `<passage>_<prompt_stem>_response.txt`. `<passage>` comes from the step's
-  `passage` / `Citation` context (sanitized); when absent a timestamp is used.
-  Inside `for-each` loops, iteration tokens are appended. Plain text, not JSON.
-- **Cleared per run:** the pipeline's debug subdirectory is wiped at the start of
-  every run (skipped on `--dry-run`), so dumps reflect the latest run only.
+- **Location:** `<intermediate_file_directory>/debug/<pipeline_name>/<run_key>/`
+  when the pipeline declares `intermediate_file_directory` (resolved through
+  `${...}`), otherwise `outputs/debug/<pipeline_name>/<run_key>/`.
+  `<pipeline_name>` is the pipeline YAML file stem (e.g. `build-book.yaml` →
+  `build-book`). `<run_key>` names the run from its `--var` values, sorted —
+  `book-Ruth` — or is `default` when there are none.
+- **Filenames:** `<seq>-<step>[-attempt<n>]-request.txt` and
+  `<seq>-<step>[-attempt<n>]-response.(txt|json)` — e.g.
+  `0001-segment_book-request.txt`, `0002-analyze-attempt2-request.txt`. The
+  sequence number orders the calls in a run; the attempt suffix appears from a
+  step's second call onward, so a retry never overwrites what it retried. A
+  response is `.json` when structured, `.txt` otherwise.
+- **`manifest.jsonl`:** one line per model call — step, attempt, the model
+  actually called, passage, timings, token counts, cost, and the request and
+  response file names. Read the pairing from here rather than from filenames.
+- **Cleared per run:** this run's directory is emptied at the start of the run
+  (skipped on `--dry-run`). Runs with other `--var` values keep theirs.
 - **Cleanup:** `sp clean --debug-only` deletes just the debug directory;
   `sp clean --intermediate-only` preserves it.
 
@@ -64,7 +71,7 @@ start here whenever output ignores instructions.
   step.
 - **`llmflow.log`** — every run writes a log file. When `intermediate_file_directory`
   is declared it is redirected to
-  `<intermediate_file_directory>/debug/<pipeline_name>/llmflow.log`; otherwise it
+  `<intermediate_file_directory>/debug/<pipeline_name>/<run_key>/llmflow.log`; otherwise it
   is `llmflow.log` in the working directory. It records timestamps, step names,
   models, and validation warnings. Ask for its tail when a run fails on another
   machine.
@@ -80,5 +87,5 @@ start here whenever output ignores instructions.
    step's `.gpt` template matches the pipeline-supplied vars.
 2. **Dry run** — `sp run --pipeline pipelines/<name>.yaml --dry-run` ensures all
    I/O paths resolve before spending tokens.
-3. **Debug dump review** — set `log_level: debug` and inspect the request/response
-   `.txt` files for the failing step.
+3. **Debug dump review** — set `log_level: debug` and inspect the request and
+   response files for the failing step; `manifest.jsonl` says which they are.

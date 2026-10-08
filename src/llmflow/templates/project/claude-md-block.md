@@ -48,8 +48,8 @@ the AI implements (executes and provides analysis).
 The rules live in `docs/ai-context/sp/rules.md`, which `sp` keeps current — read them
 there rather than from a copy that can drift. In brief: read and edit with the file
 tools rather than the shell; issue one command at a time, passing paths as arguments
-instead of using `cd`; write inline code as a heredoc, never `-c`; never pipe git
-output. **When the sanctioned tool genuinely cannot do the job, ask before doing
+instead of using `cd`; write inline code to a file under `tmp/` and run it — never a
+heredoc, never `-c`; never pipe git output. **When the sanctioned tool genuinely cannot do the job, ask before doing
 something else** — a permission prompt names a command, not a reason.
 
 ### Pipeline CLI

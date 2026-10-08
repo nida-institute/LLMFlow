@@ -1,7 +1,7 @@
 ---
 name: audit-code
 description: |
-  **WORKFLOW SKILL** — Audit Python plugins and infrastructure code for structural
+  Audit Python plugins and infrastructure code for structural
   correctness, determinism, and architectural soundness.
   Core focus: verifying plugins are deterministic, that identifier normalization goes
   through canonical helpers (not inline reimplementations), that data contracts are
@@ -74,63 +74,72 @@ Local plugins that reimplement Scripture Pipelines core utilities are harder to 
 well-tested than the core. They also silently diverge over time as core is updated — the
 local version keeps the old behavior while core fixes bugs or adds edge case handling.
 
-**Step 1: Find the Scripture Pipelines core API surface**
+**Step 1: Find what the engine already does**
+
+The surface is the `sp` command line and the pipeline language it reads — not the Python
+package, which is the engine's own and carries no compatibility promise. Two documents state
+the whole of it:
 
 ```bash
-# Installed package (what the project actually runs against)
-python -c "import llmflow; print(llmflow.__file__)"
+# Every command
+cat docs/ai-context/sp/command-line.md
 
-# Engine source repo (if available locally)
-ls ~/github/nida-institute/LLMFlow/src/llmflow/
-
-# List all public functions in core utilities
-grep -n "^def \|^class " ~/github/nida-institute/LLMFlow/src/llmflow/*.py | grep -v "test_\|_private"
+# Every step type, and the YAML each one takes
+cat docs/llmflow-language-quickref.md
 ```
 
-**Step 2: Check for reimplemented core utilities in local plugins**
+A plugin doing something a step type already does is the finding. A plugin importing from the
+package is a finding of its own, whatever it does.
 
-Known core utilities that get reimplemented locally — check for each:
+**Step 2: Check for work the language already does**
 
-| Core utility | What it does | Local reimplementation signs |
+Each of these has a step type. A plugin doing it in Python is carrying code the engine
+already maintains, and it drifts as the engine changes:
+
+| What the plugin is doing | The language's answer | Signs of the hand-rolled version |
 |---|---|---|
-| `parse_bible_reference()` | Normalizes reference strings to stable keys | Inline regex on book names, chapter/verse splitting |
-| `normalize_book_code()` | Maps book names/abbreviations to canonical codes | Local dict of book names, `if book == "Mark":` chains |
-| `format_passage_prefix()` | Builds the `BBBCCCVVV-BBBCCCVVV` filename prefix | String zero-padding inline (`f"{chapter:03d}"`) |
-| BaseX query helpers | Runs XQuery, parses results | `subprocess.run(["basex", ...])` directly |
-| JSON load/save with error handling | Safe read/write with schema validation | `json.loads(open(...).read())` without validation |
+| Fetching a passage, or mapping a reference between numbering schemes | `type: scripture`, with `passage:` and `versification:` | Inline regex on book names, chapter/verse splitting, a local dict of book codes, `if book == "Mark":` chains |
+| Building a filename from a reference | `${passage_info.filename_prefix}` | String zero-padding inline (`f"{chapter:03d}"`) |
+| Running an XQuery | `type: basex` | `subprocess.run(["basex", ...])` directly |
+| Reading a JSON, YAML, XML, CSV or TSV file | `type: load_json` and its siblings | `json.loads(open(...).read())` |
+| Looping, chunking, branching, assembling a structure, writing a file | `for-each`, `window`, `if`, `json`, `save` | A Python loop over units of work, an inline template renderer |
 
 ```bash
-# Passage reference construction (should use parse_bible_reference)
+# Reference handling done by hand
 grep -n "replace.*Mark\|replace.*John\|book.*chapter\|f\".*{chapter:0\|f\".*{verse:0" plugins/*.py
-
-# Book name mapping (should use normalize_book_code or equivalent)
 grep -n "\"Genesis\"\|\"Exodus\"\|\"Matthew\"\|book_map\|book_codes" plugins/*.py
 
-# Direct BaseX subprocess calls (should use core helper)
+# A backend driven directly
 grep -n "subprocess.*basex\|Popen.*basex" plugins/*.py
 
-# Raw JSON without validation (should use core safe-load)
+# File reading a load step already does
 grep -n "json\.loads\|json\.load\b" plugins/*.py
+
+# Reaching into the engine's package — a finding whatever it is doing
+grep -nE "^[[:space:]]*(import|from)[[:space:]]+llmflow" plugins/*.py
 ```
 
-**Step 3: Compare behavior against core**
+**Step 3: Compare behavior against the step type**
 
-For any reimplementation found, open both versions and check:
-- Does the local version handle the same edge cases as core? (empty input, malformed
-  references, missing fields)
-- Does the local version produce identical output format for all inputs?
-- Has core been updated since the local version was written? (check git log on the engine)
+For any reimplementation found, run the step type on the same input and compare:
+- Does the local version handle the same edge cases? (empty input, malformed references,
+  missing fields, a reference in another versification)
+- Does it produce the same output for every input you can try?
+- Has the engine changed since the local version was written? (check the CHANGELOG)
 
 **Report format:**
 
 ```
 REIMPLEMENTATION: passage prefix construction
-  Core utility: llmflow.utils.format_passage_prefix()
+  The language's answer: ${passage_info.filename_prefix}, from a `parse_bible_reference` step
   Local version: plugins/my_plugin.py:34 → f"{book}_{chapter:03d}_{verse:03d}"
-  Risk: Core handles book code normalization and edge cases. Local version may
-        produce different keys for the same reference under some inputs.
-  Recommendation: Replace with core utility call.
+  Risk: the engine normalizes book codes and resolves the extent against a versification.
+        The local version can produce a different key for the same reference.
+  Recommendation: take the value from the step's output instead.
 ```
+
+Where the language genuinely has no answer, that is a gap worth reporting to the engine — not
+a reason to import from the package.
 
 **What to look for beyond the known list:**
 

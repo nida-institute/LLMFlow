@@ -55,12 +55,13 @@ class TestGptBodyDeclaresAllVars:
     # every prompt parameter is required — and its refusal is covered by
     # tests/test_prompt_headers_have_no_optional.py rather than duplicated here.
 
-    def test_hello_gpt_in_repo_passes(self):
-        """The canonical prompts/hello.gpt in the repo must declare all its {{vars}}."""
+    def test_the_starter_prompt_in_the_repo_passes(self):
+        """The shipped prompts/readers-guide.gpt must declare all its {{vars}}."""
         from llmflow.utils.linter import validate_gpt_body_declares_all_vars
 
-        errors = validate_gpt_body_declares_all_vars("prompts/hello.gpt")
-        assert not errors, f"prompts/hello.gpt has undeclared template vars: {errors}"
+        for prompt in ("prompts/readers-guide.gpt", "prompts/parallel-significance.gpt"):
+            errors = validate_gpt_body_declares_all_vars(prompt)
+            assert not errors, f"{prompt} has undeclared template vars: {errors}"
 
     def test_lint_pipeline_full_catches_undeclared_var(self, tmp_path, monkeypatch):
         """lint_pipeline_full must fail when a .gpt body uses an undeclared {{var}}."""

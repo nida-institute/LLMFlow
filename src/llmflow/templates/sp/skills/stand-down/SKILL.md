@@ -1,7 +1,7 @@
 ---
 name: stand-down
 description: |
-  **COMMAND SKILL** — Reassert human authority mid-session when the AI has been
+  Reassert human authority mid-session when the AI has been
   drifting toward taking over: making decisions without authorization, narrowing
   options without being asked, steering the work rather than executing it.
   USE FOR: any moment when you notice the AI has been in charge; when suggestions

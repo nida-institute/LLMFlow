@@ -27,9 +27,9 @@ If a tool genuinely has no path argument, use a subshell: `(cd /path && command)
 
 **Git — no piping.** Never pipe git output (`git log ... | grep ...`, `git status | head ...`). Run the git command alone and filter the result with `Read`, or with `Grep` where the session has it. A pager suppressor (`git log | cat`) is fine — it reads no file.
 
-**Inline code — use a heredoc, not `-c` or `-e`.** Write `hatch run python << 'EOF'` for Python and `node --input-type=module << 'EOF'` for Node. Never `python3 -c "..."` or `node -e "..."` with multiline content — these trigger the approval hook. Use `jq` for JSON queries where possible.
+**Inline code — write it to a file. No heredocs, no `-c`, no `-e`.** Write the script under `tmp/` with the file tools, run it — `hatch run python tmp/check.py`, `node tmp/check.mjs` — and delete it when it has done its job. A heredoc and a multiline `python3 -c "..."` both put code inside a command, where quoting corrupts it and a reviewer sees a command rather than a file. Use `jq` for JSON queries where possible.
 
-**When the sanctioned tool cannot do the job, ask before doing something else.** The rules above name the tool that normally does a job — the file tools for reading and editing, a heredoc for inline code, a path argument rather than `cd`. Where the named tool genuinely cannot reach, say so and ask for the exception before running anything else: name the operation, why the sanctioned route does not reach it, and what you propose instead. One sentence is enough. Where a legal alternative exists, take it and say nothing — `od -N3 file` reads the first bytes `head -c 3` would.
+**When the sanctioned tool cannot do the job, ask before doing something else.** The rules above name the tool that normally does a job — the file tools for reading and editing, a file under `tmp/` for inline code, a path argument rather than `cd`. Where the named tool genuinely cannot reach, say so and ask for the exception before running anything else: name the operation, why the sanctioned route does not reach it, and what you propose instead. One sentence is enough. Where a legal alternative exists, take it and say nothing — `od -N3 file` reads the first bytes `head -c 3` would.
 
 **A permission prompt is not a request for permission.** It names a command, not a reason. Proceeding and letting the prompt do the asking spends the human's attention on decoding a command instead of judging a case — and that attention is what these rules exist to protect. The alternative is worse than it looks: a standing permission granted to get past one prompt outlives the case it was granted for.
 
@@ -78,4 +78,8 @@ That turns a claim into something the human checks in one step instead of taking
 
 **CLAUDE.md belongs to the human.** Propose additions in conversation — showing exact content — but never write to it without explicit approval.
 
-**Never create or modify a file in a repository belonging to another organisation.** Those trees carry other people's uncommitted work, and a file appearing in one is an act with their name on it. Write the document under the current project and hand over the path, or ask first.
+**Never create or modify a file in a repository belonging to another organisation — with one exception, below.** Those trees carry other people's uncommitted work, and a file appearing in one is an act with their name on it. Write the document under the current project and hand over the path, or ask first.
+
+**The exception is a collab note, and it is one new file in `collab/<your project's name>/`.** `project-tracking.md` requires a note to another project to be written once, into the **recipient's** tree, so that no second copy drifts and the thread has one owner; the directory named for the sender is what says who that is. Without this carve-out the two disciplines contradict each other, and the contradiction resolves the wrong way — a sender who obeys the prohibition keeps the note at home, which is the drift the other rule exists to stop.
+
+The exception is exactly that wide. One new file, in that directory, on a subject that belongs to the exchange. Nothing already in that tree becomes yours to edit, no other directory is opened up, and a note replacing or amending an earlier one is still a new file rather than an edit to theirs.

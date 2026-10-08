@@ -16,6 +16,25 @@ YAML is the design, not a wrapper around code hidden elsewhere — which is why 
 
 `sp run` is never run on an AI's initiative. A human decides when a pipeline runs.
 
+## The surface, and what is not one
+
+A project reaches Scripture Pipelines one way: **the `sp` command line**, and the pipeline
+language it reads. `sp lint`, `sp run`, `sp resource`, and the rest — `sp/command-line.md` has
+every command, and `docs/llmflow-language-quickref.md` has the YAML they take.
+
+**Everything inside the Python package is the engine's own.** Importing it is not a supported
+way to use Scripture Pipelines: it carries no compatibility promise, it changes without notice,
+and a project that builds on it has taken on a maintenance cost the engine will not notice it
+is imposing.
+
+**This applies to a project's tests as much as to its pipelines.** A test that drives `sp` tests
+what a user actually does. A test that imports from the package pins an implementation detail,
+and it breaks on a change that broke nothing real.
+
+So where you would reach for Python, look for the command or the step type that already does
+it. If the command line genuinely cannot reach what you need, say so — that is a gap worth
+reporting, not a reason to reach past it.
+
 ## Where the rest of it is
 
 Three documents make up the standard set, on each side. Read them in this order at the start of
