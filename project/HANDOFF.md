@@ -2,18 +2,18 @@
 
 ## ▶ NEXT ACTION
 
-**Confirm the commit that carries this file landed, then that GitHub's Tests run on it is green.**
-Written while that commit was being staged on `dev` against `76844d2`, for the Captain to run. If
-`git log -1` still shows `76844d2`, the commit is his to make — do not make it. Once it exists:
-`git show HEAD`, check its files against `tmp/commit-1.txt`, delete that file by name, then
-after his push:
+**Confirm the fix commit landed, then that GitHub's Tests run on it is green.** Written while it
+was being staged on `dev` against `065bf74`, for the Captain to run; if `git log -1` still shows
+`065bf74`, the commit is his to make — do not make it. Once it exists: `git show HEAD`, delete
+`tmp/commit-2.txt` by name, then after his push:
 
     gh run list --workflow test.yml --branch dev --limit 1
 
-`76844d2` and `ddc064a` were green on CI (runs 37635757702, 37635447226). If this one is red,
-the likeliest cause is the `release` skill's move: `tests/test_release_skill_stays_with_the_engine.py`
-needs `.claude/skills/release/SKILL.md` tracked, which the `.gitignore` exception in this commit
-provides.
+`065bf74` was red on CI (run 37710452936) for one reason: `sp init --update` had overwritten
+`docs/ai-context/sp/rules.md` with the consumer version before it was staged. The fix
+regenerates it with `tools/update_ai_context.py`; the defect itself is in `project/TODO.md` →
+🚢 THE NEXT RELEASE, untriaged. **Do not run `sp init --update` in this repo until it is fixed**
+without regenerating `rules.md` afterwards.
 
 After that, the release mechanics in **`project/TODO.md` → 🚢 THE NEXT RELEASE** and
 `project/RELEASE_CHECKLIST.md`.
@@ -22,10 +22,11 @@ After that, the release mechanics in **`project/TODO.md` → 🚢 THE NEXT RELEA
 
 ## Active threads
 
-### 1. The commit being staged — everything since `76844d2`
+### 1. Committed in `065bf74` — the workshop rulings and the models work
 
 - **The workshop collab's rulings**, `collab/scripture-pipelines-workshop/2026-10-07-shipped-files-disagree-on-issues-commits-and-heredocs.md`.
-  That note dies when this lands — delete it in the next commit after this one.
+  Untracked; it says it dies when its change lands — the Captain has not yet said whether to
+  delete it or keep it.
   - **The agent may create issues** — rule `agent-may-file-issues` (replaces
     `issues-need-approval`). The note's ruling A said the opposite; the Captain reversed it.
   - **Commit, push, pull request and merge are the human's** — `commit-authority` (rulings B, F).
