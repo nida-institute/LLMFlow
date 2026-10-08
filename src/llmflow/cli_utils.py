@@ -2,6 +2,7 @@
 import logging
 import os
 import re
+import shutil
 import stat
 from contextlib import contextmanager
 from pathlib import Path
@@ -124,6 +125,12 @@ SP_BLOCK_WARNING = """\
 
 
 
+# Skills an earlier package shipped and this one does not, which an install therefore removes
+# from `~/.sp/skills/` and never copies into a project. `release` releases this engine, so it
+# lives in this repository's own `.claude/skills/` (workshop collab, Captain's ruling 2026-10-07).
+RETIRED_SKILLS = frozenset({"release"})
+
+
 def _install_claude_skills(base_dir: Path, sp_home: Optional[Path] = None) -> list[str]:
     """Copy skills from ~/.sp/skills/ into <repo>/.claude/skills/ (#204, plan D1-A′).
 
@@ -155,6 +162,8 @@ def _install_claude_skills(base_dir: Path, sp_home: Optional[Path] = None) -> li
 
     for skill_dir in sorted(sp_skills_dir.iterdir()):
         if not skill_dir.is_dir() or not (skill_dir / "SKILL.md").exists():
+            continue
+        if skill_dir.name in RETIRED_SKILLS:
             continue
 
         target_dir = project_skills_dir / skill_dir.name
@@ -561,6 +570,13 @@ def install_global_skills(sp_home: Optional[Path] = None, force: bool = False) -
     skills_dir = sp_home / "skills"
 
     with _sp_dir_writable(skills_dir):
+        for name in sorted(RETIRED_SKILLS):
+            retired = skills_dir / name
+            if retired.is_dir():
+                _unlock_sp_dir(retired)
+                shutil.rmtree(retired)
+                logger.info(f"Removed retired {name} skill from ~/.sp/skills/")
+
         for skill_dir in sorted(templates_dir.iterdir()):
             if not skill_dir.is_dir():
                 continue

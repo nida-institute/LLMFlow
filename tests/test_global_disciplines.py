@@ -56,7 +56,6 @@ EXPECTED_SKILLS = {
     "commit-ready",
     "handoff",
     "load-context",
-    "release",
     "stage-commits",
     "stand-down",
 }

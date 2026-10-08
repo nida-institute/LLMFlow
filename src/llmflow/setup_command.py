@@ -235,7 +235,14 @@ def run_models_update() -> bool:
     new_ids = discover_new_models()
 
     data = get_models_data()
+    # A key of `models` is a price entry — one model's prices and limits — and its `family` field
+    # groups entries. The menu shows entries under their family, and asks which entry prices a new
+    # model: prices differ inside a family (gpt-4.1 against gpt-4.1-mini), so a family alone
+    # cannot price anything.
     families = list(data.get("models", {}).keys())
+
+    def family_of(entry_key: str) -> str:
+        return str(data["models"][entry_key].get("family") or entry_key)
 
     if not new_ids:
         print("✅ All available models are already covered in models.json.")
@@ -247,10 +254,15 @@ def run_models_update() -> bool:
         added = 0
         for model_id in new_ids:
             print(f"\n--- {model_id} ---")
-            print("Assign to existing family:")
-            for i, fam in enumerate(families, 1):
-                print(f"  {i:2}. {fam}")
-            print("   n. New family")
+            print(f"Price {model_id} like which entry? It takes that entry's prices and limits.")
+            grouped: dict = {}
+            for i, entry_key in enumerate(families, 1):
+                grouped.setdefault(family_of(entry_key), []).append((i, entry_key))
+            for family, entries in grouped.items():
+                print(f"  {family}:")
+                for i, entry_key in entries:
+                    print(f"    {i:2}. {entry_key}")
+            print("   n. New entry, with its own prices and limits")
             print("   s. Skip")
 
             try:
@@ -263,11 +275,17 @@ def run_models_update() -> bool:
 
             if choice == "n":
                 try:
-                    family_key = input("  Family key (e.g. gpt-5.4): ").strip()
-                    if not family_key:
-                        continue
+                    family_key = input(f"  Entry key [{model_id}]: ").strip() or model_id
                     provider = input("  Provider (openai/anthropic/google): ").strip()
-                    family_label = input(f"  Family label [{family_key}]: ").strip() or family_key
+                    known = list(dict.fromkeys(family_of(k) for k in families))
+                    print("  Family:")
+                    for i, family in enumerate(known, 1):
+                        print(f"    {i:2}. {family}")
+                    picked = input("  Family — a number above, or type a new family: ").strip()
+                    if picked.isdigit() and 1 <= int(picked) <= len(known):
+                        family_label = known[int(picked) - 1]
+                    else:
+                        family_label = picked or family_key
                     inp = float(input("  Input price per 1M tokens: ").strip() or "0")
                     out = float(input("  Output price per 1M tokens: ").strip() or "0")
                     ctx = int(input("  Max context tokens: ").strip() or "0")
@@ -289,7 +307,7 @@ def run_models_update() -> bool:
                 }
                 data["model_patterns"][family_key] = [model_id]
                 families.append(family_key)
-                print(f"  ✅ Added new family '{family_key}' with pattern '{model_id}'")
+                print(f"  ✅ Added entry '{family_key}' in family '{family_label}', pattern '{model_id}'")
                 added += 1
 
             else:
@@ -306,7 +324,10 @@ def run_models_update() -> bool:
                 patterns = data["model_patterns"].setdefault(family_key, [])
                 if model_id not in patterns:
                     patterns.append(model_id)
-                print(f"  ✅ Added '{model_id}' to patterns for '{family_key}'")
+                print(
+                    f"  ✅ '{model_id}' is priced like '{family_key}' "
+                    f"(family '{family_of(family_key)}')"
+                )
                 added += 1
 
         print(f"\n{added} new pattern(s) added.")

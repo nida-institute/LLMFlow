@@ -142,7 +142,7 @@ This affects macOS and Linux users not at all — only PowerShell defines that a
 sp.exe --version
 ```
 
-You should see the version printed, e.g. `sp 0.2.1.28`. You're ready — continue with the
+You should see the version printed, e.g. `sp 0.2.1.29`. You're ready — continue with the
 [Quickstart Tutorial](docs/tutorial.md).
 
 ### Linux
@@ -254,7 +254,7 @@ sp --version
 You should see the command's own name and the version you installed, for example:
 
 ```
-sp 0.2.1.28
+sp 0.2.1.29
 ```
 
 If the command is not found, double-check that the binary is executable and that the containing directory is on your PATH.

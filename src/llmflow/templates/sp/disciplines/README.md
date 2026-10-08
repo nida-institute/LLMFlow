@@ -56,7 +56,7 @@ Ask what the work is for and who it serves, before choosing an approach; and spe
 ### github-authority.md
 What an AI may and may not do to a GitHub account, in every project.
 
-**Key standard:** Reading, creating issues, commenting, branching, pushing and opening PRs need no per-action approval. Merging or approving a PR, assigning work to a person, changing collaborators or org settings, closing an issue not created in the same turn, and pushing to a protected branch are hard stops requiring explicit instruction each time. "It seemed like the next logical step" is not authorisation.
+**Key standard:** Reading, creating issues in the project being worked on, commenting, staging, and drafting commit messages and pull requests need no per-action approval. Committing, pushing, opening a pull request and merging are the human's alone — the agent drafts and hands over the command. Approving a PR, assigning work to a person, changing collaborators or org settings, and closing an issue are hard stops requiring explicit instruction each time. "It seemed like the next logical step" is not authorisation.
 
 **Identity is yours, not the tooling's:** record your machine user account somewhere that belongs to you alone, which no install step overwrites and nothing ships. Where that is in this project is stated in `sp-workflow.md`.
 

@@ -2,7 +2,7 @@
 name: load-context
 description: |
   Orient the AI assistant for the current project.
-  Reads CLAUDE.md, the docs/ai-context indexes, rules.md and overview.md to establish
+  Reads the handoff, CLAUDE.md, the docs/ai-context indexes, rules.md and overview.md to establish
   collaboration model, topic-to-file map, key rules, and common pitfalls.
   USE FOR: starting a new session; switching to an unfamiliar project or subsystem;
   before making architectural decisions; when unsure where to look for something.
@@ -59,6 +59,16 @@ Prefer commands that always produce output. A step whose success and failure loo
 is a step you cannot verify.
 
 If there are uncommitted changes, note them — they represent work already in progress.
+
+**Then read the handoff, if there is one:** `project/HANDOFF.md`, with the file tools. It is
+what the previous session left for this one — the next action, what is uncommitted and why,
+and what not to touch — and `/handoff` writes it for exactly this read. A project without one
+skips this in silence.
+
+**Check that it is current before acting on it.** A handoff names the commit it was written
+against; compare that with `git rev-parse HEAD`. If they differ, the handoff describes a tree
+that no longer exists — say so in the orientation summary, and treat its next action as a
+lead to verify, not an instruction.
 
 ### Step 2: Read CLAUDE.md
 
@@ -214,6 +224,7 @@ Tell the user:
 - Key commands available (from CLAUDE.md)
 - Current git status in one line
 - Any in-progress work you noticed
+- The handoff's next action, and whether the handoff matches `HEAD` — or that there is none
 - **The précis from Step 5**, both halves, and the two lines that close it
 - Confirmation you are ready
 
@@ -245,7 +256,8 @@ those files.
 
 - `/authorize` — Run the authorization workflow before starting any non-trivial task
 - `/commit-ready` — Gate every commit against the full definition of done
-- `/handoff` — Capture session state when work is still in flight
+- `/handoff` — Capture session state when work is still in flight; writes the
+  `project/HANDOFF.md` that Step 1 reads
 - `/stand-down` — Reset the working relationship when the AI has been steering
 
 Projects add their own. Where a project has audit or release skills, they belong in

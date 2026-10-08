@@ -2,17 +2,18 @@
 
 ## ▶ NEXT ACTION
 
-**Confirm the commit that carries this file landed, and that GitHub's Tests run on it is green.**
-Written while that commit was being staged on `dev` against `5b1ea3e`, for the Captain to run. If
-`git log -1` still shows `5b1ea3e`, the commit is his to make — do not make it. Once it exists:
-`git show HEAD`, check its files against the commit message, delete `tmp/commit-1.txt` by name,
-then after his push:
+**Confirm the commit that carries this file landed, then that GitHub's Tests run on it is green.**
+Written while that commit was being staged on `dev` against `76844d2`, for the Captain to run. If
+`git log -1` still shows `76844d2`, the commit is his to make — do not make it. Once it exists:
+`git show HEAD`, check its files against `tmp/commit-1.txt`, delete that file by name, then
+after his push:
 
     gh run list --workflow test.yml --branch dev --limit 1
 
-**Green is the expected result and has not yet been seen** — the first run with the Helm
-exemptions and the wheel entry in place. If it is red, the failure is new and worth reading:
-`gh run view <id> --log-failed`.
+`76844d2` and `ddc064a` were green on CI (runs 37635757702, 37635447226). If this one is red,
+the likeliest cause is the `release` skill's move: `tests/test_release_skill_stays_with_the_engine.py`
+needs `.claude/skills/release/SKILL.md` tracked, which the `.gitignore` exception in this commit
+provides.
 
 After that, the release mechanics in **`project/TODO.md` → 🚢 THE NEXT RELEASE** and
 `project/RELEASE_CHECKLIST.md`.
@@ -21,27 +22,31 @@ After that, the release mechanics in **`project/TODO.md` → 🚢 THE NEXT RELEA
 
 ## Active threads
 
-### 1. The commit being staged — everything since `5b1ea3e`
+### 1. The commit being staged — everything since `76844d2`
 
-- **Item 10, a green build:** Helm checks `xfail(strict=True)` (`HELM_EXEMPT` in
-  `tests/test_portable_skills.py`); `data/parallel-passages.json` in the wheel and both Nuitka
-  commands; `RELEASE_CHECKLIST.md` §3 requires a green `test.yml` on `dev` before the PR.
-- **#176 / option A:** the header is stripped before the model call; `description` is the
-  prompt's Markdown documentation; `# VARIABLES` refused; lint warns on an input `description`
-  does not name. Design: `project/plans/design-prompt-description.md`.
-- **`/stage-commits`** now brings the handoff and changelog up to date before grouping (its new
-  Step 2) — the Captain's direction 2026-10-07: *"handoff and change log need to be updated
-  first."*
-- **Verify:** `hatch run pytest tests/ -q -m "not integration" -p no:randomly`, nothing deselected
-  → 6,181 passed, 24 skipped, 4 xfailed, 0 failed at the last full run (before the CHANGELOG and
-  skill edits, which tests also cover and pass).
+- **The workshop collab's rulings**, `collab/scripture-pipelines-workshop/2026-10-07-shipped-files-disagree-on-issues-commits-and-heredocs.md`.
+  That note dies when this lands — delete it in the next commit after this one.
+  - **The agent may create issues** — rule `agent-may-file-issues` (replaces
+    `issues-need-approval`). The note's ruling A said the opposite; the Captain reversed it.
+  - **Commit, push, pull request and merge are the human's** — `commit-authority` (rulings B, F).
+  - **No heredocs** — `inline-code-goes-in-a-file` (D).
+  - **`/commit-ready` fits any project** — reads commands from `CLAUDE.md` and CI (C).
+  - **`/load-context` reads `project/HANDOFF.md`** and checks its sha against `HEAD` (E).
+  - **`release` ships nowhere** — now `.claude/skills/release/`, tracked by a `.gitignore`
+    exception; `RETIRED_SKILLS` in `src/llmflow/cli_utils.py` removes it from `~/.sp/skills/` and
+    never copies it into a project. An existing project copy stays until removed by hand.
+- **Earlier this session, same commit:** `sp models --update` menu grouped by family;
+  `data/models.json` gpt-4.1 limits and `gpt-6-astra` in the gpt-5 patterns (the Captain's);
+  unknown OpenAI model names fall back to the direct call (`llm_runner.py`); version 0.2.1.29.
+- **Verify:** `hatch run pytest -qq --tb=short -rf` → 6,247 passed, 26 skipped, 12 xfailed,
+  1 failed — `tests/integration/test_mcp_batch_calls.py::test_single_batch_call`, a read timeout
+  against the remote MCP server, not this change.
 
-### 2. Notes written into the consumer repos, uncommitted there
+### 2. Helm parity for the changed shared files — next release
 
-`discourse-flow/collab/sp/` and `ears-to-hear/scriptorium/collab/sp/`,
-`2026-10-06-description-is-for-people-and-the-model-reads-only-the-prompt.md`. Theirs to commit.
-Discourse-flow's `tests/test_prompt_structure.py` requires `# VARIABLES` and will disagree with
-lint after it upgrades; the note says so.
+`github-authority.md`, `workflow.md`, `authorize`, `commit-ready`, `load-context` are in
+`EXEMPT_KEYS` (`tests/test_helm_sync.py`). Recorded in `project/TODO.md` under "The release after
+this one".
 
 ---
 
@@ -49,39 +54,35 @@ lint after it upgrades; the note says so.
 
 | whose | paths |
 |---|---|
-| **the Captain's — do not stage** | `data/models.json`, `docs/ai-context/project/data-sources.md`, `docs/ai-context/sp/github-workflow.md` and its template twin, `project/open-decisions.md` |
-| **untracked, origin unknown — ask** | `.cursorrules`, `.windsurfrules`, `project/0x28.md`, `tests/test_stage_commits_checks_the_handoff.py`, `collab/`, `scripts/representation-grid/` |
-| **stray** | `src/llmflow/templates/project/prompts/parallel-significance.gpt~` |
+| **untracked, origin unknown — ask** | `.cursorrules`, `.windsurfrules`, `project/0x28.md`, `tests/test_stage_commits_checks_the_handoff.py`, `collab/` (except as above), `scripts/representation-grid/` |
+| **the Captain's, by hand** | delete `scripture-pipelines-workshop/.claude/skills/release/` — he said he would |
 
 `gui/frontend/node_modules` is tracked and shows ~8,000 deletions. **Never `git add -A`.**
-`~/.sp`'s copies of the changed skills and discipline refresh with `sp init --update`; this
-repo's `.claude/skills/` copies are git-ignored and were synced by hand.
+`CLAUDE.md` is git-ignored here (`.gitignore:82`); its two inline-code lines were refreshed by
+`sp init --update` and by hand, and appear in no diff.
 
 ---
 
 ## Decisions
 
-**Awaiting the Captain** — `project/TODO.md` → 🚢 THE NEXT RELEASE lists them: `data/models.json`
-(still gives gpt-4.1 a 128k window; it is 1M), whether `sp-language.md` ships, #261 Q6 / §4.4 /
-§2a, the `license_url` issue draft, the quality of the cheaper starter.
+**Awaiting the Captain** — `project/TODO.md` → 🚢 THE NEXT RELEASE.
 
 **Settled — do not reopen:**
-- **Helm is an exemption in this release**; the next release is Helm and Ears to Hear support.
-- **Nothing for maintainers reaches the model** — header stripped, `description` is
-  documentation, `# DATA SOURCES` says how to read an input and not where it came from.
-- **A value is filled only under `# INPUT DATA`**; every number in `analysis` is labelled;
-  gpt-4.1 stays. Reasons: `plan-starter-cost.md` §5a–§5b.
+- **The agent may create issues in the project it works in**; an issue on another
+  organisation's repository is his decision. Reversal of the collab's ruling A, 2026-10-07.
+- **Ruling F is his** — the human opens pull requests.
+- **Urgency Injection stays** in `drift-patterns.md` as written.
+- **Helm is an exemption in this release.**
 
 ## Do NOT
 
-- **Do not commit, push or merge.** `/stage-commits` — now with its Step 2 first.
+- **Do not commit, push, open a PR or merge.** `/stage-commits`.
 - **Do not `sp run` unasked.**
 - **Do not regenerate files under `docs/ai-context/sp/` without asking.**
-- **Do not open the release PR before `test.yml` is green on `dev`** — `RELEASE_CHECKLIST.md` §3.
+- **Do not edit another repository** — the workshop's stale `release` copy is the Captain's to delete.
 
 ## Key files & links
 
 - `project/TODO.md` → 🚢 THE NEXT RELEASE, and "The release after this one"
-- `project/plans/design-prompt-description.md`, `plan-resource-preflight.md`, `plan-starter-cost.md`
-- `collab/ears-to-hear/2026-10-06-acai-sdbg-and-the-tyndale-bible-dictionary.md` — next release's
-  request
+- `data/ai-rules.yaml` → `agent-may-file-issues`, `commit-authority`, `inline-code-goes-in-a-file`
+- `.claude/skills/release/SKILL.md`

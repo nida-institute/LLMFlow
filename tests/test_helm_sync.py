@@ -129,12 +129,26 @@ NEEDS_CLONE = pytest.mark.skipif(
 
 
 #: Shared files whose drift from Helm is the next release's work. Only these are exempt; any other
-#: file drifting still fails.
-EXEMPT_KEYS = frozenset({"disciplines/project-tracking.md"})
+#: file drifting still fails. All but the first carry the workshop collab's rulings — the human
+#: files issues, commits, pushes and opens pull requests; no heredocs; `/commit-ready` fits any
+#: project; `/load-context` reads the handoff — which reach Helm with the next release's sync.
+EXEMPT_KEYS = frozenset({
+    "disciplines/project-tracking.md",
+    "disciplines/github-authority.md",
+    "disciplines/workflow.md",
+    "skills/authorize",
+    "skills/commit-ready",
+    "skills/load-context",
+})
 
 
-def _keys() -> list:
-    return [pytest.param(k, marks=HELM_EXEMPT) if k in EXEMPT_KEYS else k for k in sorted(RECORD)]
+def _keys(*, live: bool = False) -> list:
+    """`live`: the comparison returns early for a `differs` entry, so marking one would XPASS."""
+
+    def exempt(key: str) -> bool:
+        return key in EXEMPT_KEYS and (not live or RECORD[key]["status"] == "identical")
+
+    return [pytest.param(k, marks=HELM_EXEMPT) if exempt(k) else k for k in sorted(RECORD)]
 
 
 def test_the_record_covers_exactly_the_shared_set():
@@ -244,7 +258,7 @@ def test_the_shared_file_is_present_in_helm(key: str):
 
 
 @NEEDS_CLONE
-@pytest.mark.parametrize("key", _keys())
+@pytest.mark.parametrize("key", _keys(live=True))
 def test_the_two_sides_agree_where_the_record_says_they_do(key: str):
     """`identical` must mean identical in fact, not in intention."""
     entry = RECORD[key]

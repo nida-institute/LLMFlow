@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.1.29 — 2026-10-07
+
 ### Added
 
 - **`format: analysis` on `type: scripture` — the analyses, for a model to read.** Each
@@ -170,6 +172,43 @@
   and turn a correct engine red on the next UBS release.
 
 ### Changed
+
+- **The shipped files give one answer to who files issues, commits, pushes and opens pull
+  requests.** The workshop collab found them disagreeing — the rules said the human commits,
+  while the `github-authority` discipline and its README entry let the agent push and open pull
+  requests unasked, and `/commit-ready` had it committing, pushing, merging and deleting
+  branches. Ruled 2026-10-07: **the agent may create an issue** in the project it works in, under
+  its own account where one is configured — rule `issues-need-approval` becomes
+  `agent-may-file-issues`; an issue on another organisation's repository stays the human's
+  decision. **The commit, the push, the pull request and the merge are the human's** —
+  `commit-authority` now covers the pull request, which is what runs CI. The discipline, its
+  README entry, `/commit-ready`, `/authorize` and `github-workflow.md` say the same. Guarded by
+  `tests/test_shipped_files_agree_on_who_acts.py` and `tests/test_commit_ready_gate.py`.
+
+- **No heredocs, period.** Rule `inline-code-uses-a-heredoc` prescribed them; it becomes
+  `inline-code-goes-in-a-file` — write the script under `tmp/` with the file tools, run it,
+  delete it. The `workflow` discipline, the CLAUDE.md block every project carries and
+  `github-workflow.md` (whose own example was a heredoc) follow.
+
+- **`/commit-ready` fits any project.** It is taught in the workshop's first lesson, and its
+  gates ran `hatch run pytest`, bumped `pyproject.toml` and covered `gui/frontend/`. It now takes
+  every command from the project's `CLAUDE.md` and CI workflow — run what CI runs, and a suite
+  the change does not touch is not required — which keeps #206's guarantee for this repository
+  and gives it to every other. It names no single project's toolchain.
+
+- **`/load-context` reads `project/HANDOFF.md`**, the file `/handoff` writes for it, and checks
+  the commit the handoff names against `HEAD` before treating its next action as one.
+
+- **`/release` is no longer installed into projects.** It releases this engine, so it now lives
+  in this repository's `.claude/skills/release/` (tracked by a `.gitignore` exception). `sp init`
+  removes it from `~/.sp/skills/` and never copies it into a project. A project that already
+  has `.claude/skills/release/` from an earlier install keeps it until removed by hand. The skill
+  now checks it is on `main` before tagging, and hands every tag, push and publish to the human.
+  Guarded by `tests/test_release_skill_stays_with_the_engine.py` (11).
+
+  Helm parity for the changed shared files — `github-authority.md`, `workflow.md`,
+  `commit-ready`, `load-context`, `authorize` — is the next release's work; their hash checks
+  are exempt until then.
 
 - **`/stage-commits` brings the handoff and the changelog up to date before it groups anything.**
   It used to check them and only report: a stale handoff was offered `/handoff` and could be
@@ -409,6 +448,27 @@
   replay still reads the artifacts a clean would remove.
 
 ### Fixed
+
+- **An OpenAI model name the `llm` package does not list is still called.** A dated snapshot
+  such as `gpt-4o-2024-08-06` worked in a step with `response_format`, which goes to OpenAI's
+  client, and failed in the next step without it, which went through `llm.get_model`:
+  `UnknownModelError`. Measured in sil-translator-notes, with the first step's call already paid
+  for. An OpenAI name `llm` does not know now goes to OpenAI's client too; any other unknown
+  name still fails. **An unknown model is no longer retried** — it joins truncation and
+  moderation as a certainty, so it fails on the first attempt instead of the third. Guarded by
+  `tests/test_model_names_the_llm_package_does_not_know.py` (4).
+
+- **`sp models --update` asks which entry prices a new model, with the entries grouped by
+  family.** Its menu listed the 23 price entries in `models.json` — `gpt-4.1`, `gpt-4.1-mini`,
+  `gpt-4.1-nano` and the rest — under "Assign to existing family", and never read the `family`
+  each entry carries; a model chosen from it silently took that entry's prices and limits. The
+  menu now shows each family with its entries beneath it and asks "Price <model> like which
+  entry?", saying that the model takes that entry's prices and limits; a new entry offers the
+  existing families or a new one. Guarded by `tests/test_models_update_menu.py` (6).
+
+- **gpt-4.1's limits in `data/models.json`: a 1,047,576-token window and 32,768 output tokens**,
+  for `gpt-4.1`, `-mini` and `-nano`. They said 128,000 and 16,384; a run sending gpt-4.1 about
+  340k tokens of input succeeded, and the starter asks for 32,768 output tokens.
 
 - **A prompt input is sent once, not once per mention.** Every `{{name}}` in a prompt was filled
   with the whole value, including the mentions in VARIABLES, DATA SOURCES, rules and checklists

@@ -1,8 +1,9 @@
 # Proposed issues — drafts, none filed
 
-One directory per target repository. Every file here is a draft awaiting the Captain's
-approval; `issues-need-approval` means nothing is created with `gh issue create` until he
-has read the body and said so.
+One directory per target repository. Every file here is a draft for the Captain. These targets
+belong to other organisations, so filing any of them is his decision (`project-tracking.md`,
+and rule `agent-may-file-issues`); nothing is created with `gh issue create` until he has read
+the body and said so.
 
 Delete a draft once its issue is filed — `tmp/` holds throwaway files only, and a draft that
 outlives the issue it became is a second copy that drifts.

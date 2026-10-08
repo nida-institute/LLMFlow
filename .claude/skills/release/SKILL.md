@@ -21,6 +21,14 @@ Execute Scripture Pipelines releases with **mandatory verification** that Nuitka
 
 **CRITICAL LESSON LEARNED:** Multiple releases failed for a week because builds were never verified. AI claimed success without checking. This skill prevents that.
 
+**Who does what.** Rule `commit-authority`: a tag push is a push. The agent verifies, prepares
+the notes, and hands over each command; **the human runs every `git tag`, `git push`,
+`gh release edit` and `gh release delete`**, and every `hatch publish`. Each block below that
+holds one says so.
+
+**This skill is not shipped.** It releases Scripture Pipelines itself, so it lives in this
+repository's `.claude/skills/release/` and `sp init` installs it nowhere (2026-10-07).
+
 ---
 
 ## Pre-Release Validation
@@ -79,40 +87,48 @@ gh run view <RUN_ID> --log-failed
 
 ### 5. Tag Creation and Push
 
+**Release from `main`, and only once the `dev` → `main` pull request has merged** (rule
+`branching-workflow`). A tag on `dev` publishes work that has not been through that merge.
+The agent checks:
+
 ```bash
-# Get current version from pyproject.toml
-VERSION=$(grep 'version = ' pyproject.toml | cut -d'"' -f2)
-echo "Releasing v$VERSION"
+git rev-parse --abbrev-ref HEAD
+git fetch origin
+git status --short --branch
+grep 'version = ' pyproject.toml
+git tag --list "v0.2.1.YY"
+git ls-remote --tags origin "v0.2.1.YY"
+```
 
-# Check if tag already exists (CRITICAL - prevents orphaned tags)
-git tag --list "v$VERSION"
-git ls-remote --tags origin "v$VERSION"
+- [ ] The branch is `main`, level with `origin/main` (no ahead/behind in the `##` line)
+- [ ] The version in `pyproject.toml` is the one being released
+- [ ] No tag of that name exists, locally or on the remote
 
-# If tag exists from failed build, DELETE IT FIRST:
-git tag -d "v$VERSION"
-git push origin --delete "v$VERSION"
+If a tag of that name exists from a failed build, say so. The human runs the removal:
 
-# Create new annotated tag on current commit
-git tag -a "v$VERSION" -m "Release $VERSION"
+```bash
+git tag -d "v0.2.1.YY"
+git push origin --delete "v0.2.1.YY"
+```
 
-# Push tag to trigger build
-git push origin "v$VERSION"
+The human runs the tag and the push, which triggers the build:
+
+```bash
+git tag -a "v0.2.1.YY" -m "Release 0.2.1.YY"
+git push origin "v0.2.1.YY"
 ```
 
 ### 6. **CRITICAL: Wait and Verify Build**
 
-**🚨 IMMEDIATELY after tag push: Show the user the build URL 🚨**
+**🚨 IMMEDIATELY after the human's tag push: Show the user the build URL 🚨**
 
 ```bash
-# Wait 30 seconds for workflow to start
-sleep 30
-
-# Get the run ID and URL
-RUN_ID=$(gh run list --workflow=build-release.yml --limit 1 --json databaseId --jq '.[0].databaseId')
-
-# DISPLAY THIS URL TO USER IMMEDIATELY (do not wait for build completion)
-echo "Build URL: https://github.com/nida-institute/LLMFlow/actions/runs/$RUN_ID"
+gh run list --workflow=build-release.yml --limit 1
 ```
+
+The run ID is in that output; the URL is
+`https://github.com/nida-institute/LLMFlow/actions/runs/<RUN_ID>`. If the run has not appeared
+yet, it starts within a minute of the push — check again rather than waiting on a timer.
 
 **At this point, tell the user:**
 ```
@@ -140,37 +156,34 @@ Build on macOS: success
 Build on Windows: success
 ```
 
-**IF ANY SHOW "failure":**
+**IF ANY SHOW "failure":** read the error logs —
+
 ```bash
-# Get the error logs
 gh run view $RUN_ID --log-failed
+```
 
-# Delete the failed release artifacts
-gh release delete "v$VERSION" --yes
+— and report them. The human runs the cleanup, then the fix starts over from Step 1:
 
-# Delete the tag
-git tag -d "v$VERSION"
-git push origin --delete "v$VERSION"
-
-# Fix the issue, then start over
+```bash
+gh release delete "v0.2.1.YY" --yes
+git tag -d "v0.2.1.YY"
+git push origin --delete "v0.2.1.YY"
 ```
 
 ### 7. Release Notes
 
-Once builds verified successful:
-
-```bash
-# Open the draft release
-gh release view "v$VERSION" --web
-
-# Or edit from CLI
-gh release edit "v$VERSION" --draft=false --notes "$(cat tmp/release-notes-$VERSION.md)"
-```
+Once builds verified successful, the agent drafts the notes in `tmp/release-notes-0.2.1.YY.md`
+with the file tools:
 
 - [ ] Review auto-generated notes
 - [ ] Add highlights for major features
 - [ ] Note breaking changes prominently
-- [ ] Publish release (remove draft status)
+
+The human publishes — removing draft status is what makes the release public:
+
+```bash
+gh release edit "v0.2.1.YY" --draft=false --notes-file tmp/release-notes-0.2.1.YY.md
+```
 
 ### 8. PyPI Publication (Optional)
 
@@ -214,7 +227,7 @@ unzip -l dist/llmflow-$VERSION-py3-none-any.whl
 # - gui/static/ frontend assets
 ```
 
-**Publish (ONLY if verified registered or have first-time credentials):**
+**Publish (ONLY if verified registered or have first-time credentials).** The human runs it:
 ```bash
 hatch publish
 ```
@@ -249,18 +262,15 @@ chmod +x sp-linux sp-macos
 
 ## Rollback Procedure
 
-If critical issue discovered post-release:
+If critical issue discovered post-release, report it. The human runs the rollback:
 
 ```bash
-# Delete the release
-gh release delete "v$VERSION" --yes
-
-# Delete the tag
-git tag -d "v$VERSION"
-git push origin --delete "v$VERSION"
-
-# Fix issue, increment version again, restart process
+gh release delete "v0.2.1.YY" --yes
+git tag -d "v0.2.1.YY"
+git push origin --delete "v0.2.1.YY"
 ```
+
+Then fix the issue, increment the version again, and restart the process.
 
 ---
 
@@ -360,14 +370,15 @@ gh run list --workflow=build-release.yml --limit 5
 # Verify specific run succeeded
 gh run view <RUN_ID> --json conclusion --jq '.conclusion'
 
-# Delete failed tag
-git tag -d v0.2.1.15 && git push origin --delete v0.2.1.15
+# Confirm the release branch
+git rev-parse --abbrev-ref HEAD
+```
 
-# Create and verify new tag
-git tag -a v0.2.1.15 -m "Release 0.2.1.15" && \
-git push origin v0.2.1.15 && \
-sleep 30 && \
-gh run list --workflow=build-release.yml --limit 1
+The human runs the tag and the push:
+
+```bash
+git tag -a v0.2.1.15 -m "Release 0.2.1.15"
+git push origin v0.2.1.15
 ```
 
 ---
@@ -402,7 +413,7 @@ The user must see the link and be able to verify the build themselves. Never cla
 
 **Example correct response:**
 ```
-Tag v0.2.1.15 pushed. Build triggered:
+Your tag v0.2.1.15 is pushed. Build triggered:
 https://github.com/nida-institute/LLMFlow/actions/runs/23989036595
 
 Monitoring build progress...

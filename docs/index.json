@@ -168,6 +168,7 @@
         "os",
         "pathlib",
         "re",
+        "shutil",
         "stat",
         "typing"
       ],
@@ -1686,6 +1687,11 @@
           "name": "run_models_update",
           "signature": "run_models_update() -> bool",
           "doc": "Interactively update models.json from installed llm plugins."
+        },
+        {
+          "name": "family_of",
+          "signature": "family_of(entry_key: str) -> str",
+          "doc": ""
         }
       ]
     },
@@ -4594,6 +4600,11 @@
           "doc": "Validate LLM configuration parameters."
         },
         {
+          "name": "_is_openai_model",
+          "signature": "_is_openai_model(model_name: str) -> bool",
+          "doc": "Whether *model_name* is one OpenAI's client can be asked for — the families that use it."
+        },
+        {
           "name": "call_llm",
           "signature": "call_llm(prompt: str, config: Dict[str, Any], output_type: str = 'text')",
           "doc": "Main LLM calling function with validation and caching."
@@ -5072,6 +5083,7 @@
     {
       "module": "llmflow.steps.llm",
       "imports": [
+        "llm",
         "llmflow.exceptions",
         "llmflow.modules.logger",
         "llmflow.modules.mcp",
@@ -5917,6 +5929,6 @@
   ],
   "summary": {
     "total_modules": 96,
-    "total_functions": 943
+    "total_functions": 945
   }
 }

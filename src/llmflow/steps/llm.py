@@ -6,6 +6,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
+from llm import UnknownModelError
+
 from llmflow.exceptions import ModerationError, TruncationError
 from llmflow.modules.logger import Logger
 from llmflow.modules.mcp import init_mcp_client
@@ -391,12 +393,12 @@ def run_llm_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config:
                 logger.info("⚠️  User interrupted - exiting")
                 raise
 
-            except (TruncationError, ModerationError) as e:
-                # Both are certainties rather than transient failures, so the loop must not
+            except (TruncationError, ModerationError, UnknownModelError) as e:
+                # All three are certainties rather than transient failures, so the loop must not
                 # spend two more calls on a known outcome (#247). An identical re-request
-                # truncates identically; and `docs/moderation-handling.md` states that retries
+                # truncates identically; `docs/moderation-handling.md` states that retries
                 # "will not succeed until the prompt changes", the remedy being its mitigation
-                # checklist, which a human applies.
+                # checklist, which a human applies; and no retry makes a model name known.
                 if isinstance(e, TruncationError):
                     # Added here because this is the layer that knows the step and the ceiling.
                     e.step_name = name

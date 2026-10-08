@@ -65,7 +65,10 @@
 4. ✅ **Position 12, `# REFERENCE`**, in `data/prompt-structure.yaml` — ruled 2026-09-21; built:
    declared at `data/prompt-structure.yaml:128` (`id: reference`) and rendered as row 12 of the
    prompt-organization discipline, checked 2026-10-02
-5. **`data/models.json`** — his uncommitted change; whether it ships is his call
+5. **`data/models.json`** — his uncommitted change. 2026-10-07: gpt-4.1's three rows corrected at
+   his direction (window 1,047,576, output 32,768). His own change adds `gpt-6-astra` to the
+   `gpt-5` entry's patterns, so it is priced and limited exactly as gpt-5 — unconfirmed against
+   OpenAI's published figures. Whether the file ships is his call
 6. **A red suite blocks any cut.** At `70e8a7b`: 6,038 passed, 5 failed — `test_helm_sync` ×3 and
    `test_portable_skills` (Helm design: ship with them or record an exemption, **his call**), and
    `test_binary_bundles_its_data` (cleared by the wheel entry below)
@@ -94,8 +97,9 @@
    and disk, English context for parallels, and a value filled only under `# INPUT DATA`.
    MAT 19:1-11 now costs $0.1281, against ~$1.00; gpt-4.1 stays (ruled 2026-10-06, §5b)
 10. **→ The GitHub build passes on the first try** — added by the Captain 2026-10-06: *"we have
-    added a lot of tests, so far this has always broken the build on github."* **Built
-    2026-10-06, not yet committed; green on GitHub not yet seen.** The Helm checks are
+    added a lot of tests, so far this has always broken the build on github."* **Done: committed
+    at `ddc064a`, and its GitHub Tests run (`37635447226`) is green** — 5,989 passed, 211
+    skipped, 2 xfailed, pyright and frontend passing. The Helm checks are
     `xfail(strict=True)` in `tests/test_helm_sync.py` and `tests/test_portable_skills.py`
     (`HELM_EXEMPT`), the wheel entry is in, and `project/RELEASE_CHECKLIST.md` §3 requires a green
     `test.yml` on `dev` before the PR. The suite as CI runs it (`-m "not integration"`, nothing
@@ -120,6 +124,12 @@ request is `collab/ears-to-hear/2026-10-06-acai-sdbg-and-the-tyndale-bible-dicti
 served for a passage, SDBG's definition and gloss for a Louw-Nida sense, the Tyndale Open Bible
 Dictionary for a passage or an entry, and a confirmation — **measured 2026-10-06: `senses` on
 `SBLGNT` carries the letter-level code**, `"ln": "93.169a"` for Ἰησοῦς in MAT 19:1.
+
+Part of that Helm work: **five shared files carry the workshop collab's rulings (A–F) and have
+not reached Helm** — `disciplines/github-authority.md`, `disciplines/workflow.md`,
+`skills/authorize`, `skills/commit-ready`, `skills/load-context`. They sit in `EXEMPT_KEYS` in
+`tests/test_helm_sync.py`; `tools/sync_helm.py --apply` and a Helm commit bring them over, and
+the keys come out of the exemption with it.
 
 **Not in the release, raised for his decision: `\q` continuation lines lost from BSB.** Measured
 2026-09-29: `~/github/usfm-bible/examples.bsb/42MRKBSB.usfm:12-18` carries the Isaiah quotation on
