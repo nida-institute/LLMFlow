@@ -36,10 +36,20 @@ RESERVED_KEY = "defects"
 #: being threaded through each handler's signature.
 DEFECT_LOG_KEY = "_defects"
 
-#: `warning` is the normal case — the run produced something and this is evidence worth having.
-#: `error` is for a condition that leaves nothing downstream to inspect. Two values, because a
-#: third invites a debate about which one applies rather than about what happened.
-SEVERITIES = ("warning", "error")
+#: Least serious first, so the order is itself part of the vocabulary.
+#:
+#: `info` is a condition that is rare and unlikely but **not wrong** — nothing went amiss, and
+#: the record exists so that someone examining the run can see it happened. `warning` is the
+#: normal case: the run produced something and this is evidence worth having. `error` is a
+#: condition that leaves nothing downstream to inspect.
+#:
+#: This was two values, on the reasoning that a third invites a debate about which one applies.
+#: It was asked for by a consumer with two cases that are neither wrong nor worth a reader's
+#: attention as problems — a window returning a single pericope, and derived children that carry
+#: no analysis by design, 56 of 119 in one book. Reporting those at `warning` spends attention on
+#: deciding they are not problems, which is the cost the distinction exists to avoid. The debate
+#: the third value invites is cheaper than the attention the missing one was costing.
+SEVERITIES = ("info", "warning", "error")
 
 
 class DefectLog:
@@ -158,7 +168,16 @@ class _DefectHandler(logging.Handler):
         self._log = log
 
     def emit(self, record: logging.LogRecord) -> None:
-        severity = "error" if record.levelno >= logging.ERROR else "warning"
+        # The logger's levels map onto the defect vocabulary rather than collapsing into it.
+        # This read `"error" if levelno >= ERROR else "warning"`, so a deliberate INFO became a
+        # warning and nothing said so — and until `info` existed there was no level to promote
+        # it to. Reported by a consumer who had hit it.
+        if record.levelno >= logging.ERROR:
+            severity = "error"
+        elif record.levelno >= logging.WARNING:
+            severity = "warning"
+        else:
+            severity = "info"
         # Anything the caller passed as `extra` that is not a standard LogRecord attribute.
         standard = set(logging.LogRecord("", 0, "", 0, "", (), None).__dict__) | {
             "message", "asctime", "taskName"

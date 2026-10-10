@@ -88,6 +88,48 @@ second is "closed":
 "committed to `dev`, closes at the release" — because a reader who is told "closed" goes looking
 for a closed issue and finds an open one. Guarded by `tests/test_record_closure_claims.py`.
 
+## Writing the Commit Message
+
+A commit message is read by someone who was not there, usually months later, and usually
+because something broke. Write for them.
+
+**Subject: `type(scope): what changed`, in plain words.** Name what is now true that was not
+before, rather than the mechanism that made it so.
+
+**Body: one bolded lead phrase per piece of work**, then prose saying what was wrong and what is
+now true. A reader scanning only the bold phrases should get the whole change; a reader who
+stops at one should get that part in full.
+
+**Give the number, not the adjective.** *"0 of 99,258 identifiers joined; now 99,258"* beats
+*"identifiers were not joining"*. *"30 uses renamed"* beats *"renamed throughout"*. A figure can
+be checked and an adjective cannot, and the reader who needs this message is checking.
+
+**State what was verified, with the command and its result** — the counts, and the names of any
+failures. A bare "tests pass" is a claim the reader cannot check, and one you may not have made
+honestly: a suite piped into `head` or `tail` discards the exit code, so a run that died before
+executing anything still prints a plausible last line.
+
+**Name what was deliberately left out, and why.** The reader's next question after *what
+changed* is *what didn't*.
+
+## Staging: Name Every Path
+
+**`git add <path> <path> …`, one per line. Never `-A` or `-a`.** A repository accumulates
+things a sweep would take with it — a tracked dependency directory deleted to free disk, a
+vendored file that regenerates, a change someone is holding back from a release on purpose. An
+explicit list cannot pick those up; a sweep silently will.
+
+**A renamed file needs both halves named**, or git records a delete plus an add and the history
+does not follow.
+
+**Never name a path that no longer exists.** `git add` aborts the *entire* command on an
+unmatched pathspec and stages nothing — and if an earlier `git mv` already staged something, the
+commit still succeeds, carrying a message describing work it does not contain.
+
+**Then run `git show --stat HEAD` and read it.** "Committed" is not evidence that the commit
+holds what you think it holds. Check the file count against the list you meant to stage, and
+account for any difference before reporting the commit as done.
+
 ## Version Numbering
 
 **CRITICAL:** Always increment the 4th component:
@@ -123,13 +165,14 @@ Issues are referenced with `(Issue #XX)` notation for traceability.
 
 **Do NOT assume:**
 - GitKraken is configured (MCP tools may not be available)
-- Heredoc syntax works (it always corrupts in run_in_terminal)
 - Permission to write to `/tmp`, `~/tmp`, or arbitrary directories
+
+**Never use a heredoc** — rule `inline-code-goes-in-a-file`. Write the text or code to a file
+under `./tmp/` with the file tools, and pass the file.
 
 **DO use:**
 - GitHub CLI (`gh`) for all GitHub operations
-- `./tmp/` directory (workspace-relative) for temporary files
-- Standard file writes instead of heredocs
+- `./tmp/` directory (workspace-relative) for temporary files, written with the file tools
 
 **Example - closing an issue:**
 ```bash
@@ -141,25 +184,33 @@ gh issue close 96 --comment "Fixed in v0.2.1.14 - runtime prompt contract enforc
 gh issue view 96
 ```
 
-**Example - temporary file pattern:**
-```bash
-# Write to workspace-relative tmp/
-cat > ./tmp/comment.txt << 'EOF'
+**Example - temporary file pattern:** write `./tmp/comment.txt` with the file tools —
+
+```
 Fixed in v0.2.1.14. Runtime prompt contract enforcement now validates that
 all variables used in {{brackets}} are declared in the prompt header.
-EOF
+```
 
+— then pass the file:
+
+```bash
 gh issue comment 96 --body-file ./tmp/comment.txt
 ```
 
 ## Workflow Summary
 
-1. **Create issue** for feature/bug (or it already exists)
+Who does each step matters as much as the order: rules `agent-may-file-issues` and
+`commit-authority`.
+
+1. **Create the issue** for a feature or bug, or find the one that exists — the agent may
+   create it, with the body in `./tmp/` passed by `--body-file`
 2. **Design discussion** in issue thread (for complex work)
 3. **Implement** with test-first approach
-4. **Commit** with issue reference and `Closes #XX`
-5. **Update CHANGELOG** with issue reference `(Issue #XX)`
-6. **Push** to trigger auto-close
+4. **Update CHANGELOG** with issue reference `(Issue #XX)`
+5. **The agent stages; the human commits** — the agent runs `git add` on named paths and writes
+   the message, with the issue reference and `Closes #XX`, to a file (`/stage-commits`); the
+   human runs `git commit`
+6. **The human pushes**, which triggers the auto-close once the commit reaches the default branch
 7. **Verify** issue closed automatically
 
 If auto-close doesn't work, use `gh issue close XX` manually.

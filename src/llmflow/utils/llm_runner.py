@@ -393,6 +393,11 @@ def validate_llm_config(config: Dict[str, Any]) -> tuple[bool, list[str], list[s
     return len(errors) == 0, errors, warnings
 
 
+def _is_openai_model(model_name: str) -> bool:
+    """Whether *model_name* is one OpenAI's client can be asked for — the families that use it."""
+    return any(pattern in model_name for pattern in MODEL_FAMILIES["gpt-4"] + MODEL_FAMILIES["gpt-5"])
+
+
 def call_llm(prompt: str, config: Dict[str, Any], output_type: str = "text"):
     """Main LLM calling function with validation and caching."""
     logger.debug(f"🤖 Calling LLM with config: {config}, output_type: {output_type}")
@@ -407,7 +412,7 @@ def call_llm(prompt: str, config: Dict[str, Any], output_type: str = "text"):
     if "response_format" in config:
         model_name = config.get("model", "gpt-4o")
         # Only use direct client for OpenAI models
-        if any(pattern in model_name for pattern in MODEL_FAMILIES["gpt-4"] + MODEL_FAMILIES["gpt-5"]):
+        if _is_openai_model(model_name):
             logger.debug("Using direct OpenAI client for response_format support")
             return _call_openai_with_response_format(prompt, config, output_type)
         else:
@@ -415,7 +420,19 @@ def call_llm(prompt: str, config: Dict[str, Any], output_type: str = "text"):
 
     # Get model
     model_name = config.get("model", "gpt-4o")
-    model = get_model(model_name)
+    try:
+        model = get_model(model_name)
+    except llm.UnknownModelError:
+        # The `llm` package lists the names its plugins register, not every name a provider
+        # serves: a dated OpenAI snapshot of gpt-4o is absent, though the
+        # structured-output path above calls it without trouble. An OpenAI name goes the same
+        # way; any other unknown name is still an error.
+        if not _is_openai_model(model_name):
+            raise
+        logger.info(
+            f"    {model_name} is not in the llm package's model list; calling OpenAI directly"
+        )
+        return _call_openai_with_response_format(prompt, config, output_type)
 
     # Call model
     response = _call_model(model, prompt, config)

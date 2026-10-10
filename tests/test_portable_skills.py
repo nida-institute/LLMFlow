@@ -34,9 +34,10 @@ Two exclusions, both deliberate:
   summary but the actual subject matter — plugin determinism, local plugins reimplementing
   LLMFlow core utilities. There is no authoritative file elsewhere to move it to, so Helm
   gets a different skill rather than a generalization of this one.
-- **`audit-pipeline`, `audit-output`, `audit-prompts` and `release` stay here** (§4). Each
-  is about the engine. `release` in particular was guessed to be general methodology in
-  human-at-the-helm#1; its own text is about Nuitka builds and this repo's GitHub Actions.
+- **`audit-pipeline`, `audit-output` and `audit-prompts` stay here** (§4). Each is about the
+  engine. `release` was a fourth, guessed to be general methodology in human-at-the-helm#1; its
+  own text is about Nuitka builds and this repo's GitHub Actions. Since 2026-10-07 it is not
+  shipped at all — `tests/test_release_skill_stays_with_the_engine.py`.
 """
 
 from __future__ import annotations
@@ -45,6 +46,14 @@ import re
 from pathlib import Path
 
 import pytest
+
+#: A Helm parity check that is red by decision rather than by accident: Helm parity is the next
+#: release's work, and this one ships without it (`project/TODO.md`, the release section). Strict,
+#: so a check that starts passing is reported, and the marker comes off rather than lingering.
+HELM_EXEMPT = pytest.mark.xfail(
+    strict=True,
+    reason="Helm parity is exempt in this release and is the next one's work — project/TODO.md",
+)
 
 # Source of truth for this list: design-helm-parity.md §4. An earlier note here expected step
 # 6 to replace it with Helm's shipped manifest; ruling D7-C is why it stays. `helm-sync.yaml`
@@ -55,7 +64,7 @@ SHARED_WITH_HELM = (
 )
 
 FORKED = ("audit-code",)
-ENGINE_ONLY = ("audit-pipeline", "audit-output", "audit-prompts", "release")
+ENGINE_ONLY = ("audit-pipeline", "audit-output", "audit-prompts")
 
 # Vocabulary that ties a file to this engine. A shared skill carrying any of it would
 # instruct a mentee about a tool they do not have.
@@ -176,7 +185,7 @@ def test_shared_skill_never_names_only_the_machine_wide_disciplines(skill: str):
 
 @pytest.mark.parametrize("skill", ENGINE_ONLY)
 def test_engine_only_skills_are_still_shipped_here(skill: str):
-    """The four that stay must not be generalized by accident.
+    """The three that stay must not be generalized by accident.
 
     They are about the engine, and losing their specificity would make them useless here
     without making them useful anywhere else.
@@ -184,6 +193,7 @@ def test_engine_only_skills_are_still_shipped_here(skill: str):
     assert (_skills_dir() / skill / "SKILL.md").is_file(), f"{skill} is no longer shipped"
 
 
+@HELM_EXEMPT
 def test_every_shipped_skill_is_classified():
     """No skill may be added without deciding whether Helm gets it.
 

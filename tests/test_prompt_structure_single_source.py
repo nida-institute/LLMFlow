@@ -73,7 +73,7 @@ def test_the_declaration_exists_and_states_the_order():
     assert [p.n for p in positions] == list(range(1, len(positions) + 1)), (
         "positions must be numbered 1..n without a gap, because the document cites them by number"
     )
-    assert prompt_structure.conditions(), "C1-C5 are what the grammar cannot express; none declared"
+    assert prompt_structure.conditions(), "the conditions are what the grammar cannot express; none declared"
 
 
 @pytest.mark.parametrize("heading", sorted(REFUSED))

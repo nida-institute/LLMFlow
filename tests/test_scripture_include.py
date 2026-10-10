@@ -71,7 +71,7 @@ def flatten(usj: dict) -> str:
 # --- the vocabulary -------------------------------------------------------------------
 
 
-def test_the_seven_families_are_declared():
+def test_the_eight_families_are_declared():
     assert INCLUDE_FAMILIES == (
         "ids",
         "morphology",
@@ -80,6 +80,7 @@ def test_the_seven_families_are_declared():
         "referents",
         "discourse",
         "syntax",
+        "frequency",
     )
 
 

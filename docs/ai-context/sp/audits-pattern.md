@@ -283,8 +283,19 @@ variant instead of a full run.
 
 - `--request` takes files or globs. Captures are named `*-request.txt` from 0.2.1.24 on, and
   `*_request.txt` before that.
-- `--prompt` **must be the version that produced the capture.** If the line counts differ, replay
-  refuses rather than guessing.
+- `--prompt` **must be the version that produced the capture.** Replay aligns the two on their
+  variable sites and refuses rather than guessing when they do not align.
+
+  **A value spanning many lines is fine** — a variable holding multi-line JSON is no different
+  from one holding a word. This used to compare line counts first, so a prompt embedding a JSON
+  payload could not be replayed at all (#255); if you read that limitation here before, it is
+  gone.
+
+  Two things it still refuses, both deliberately. A prompt that did not produce the capture,
+  because a variable map recovered from the wrong prompt is substituted into your edited prompt
+  and sent to a model, where the failure arrives as a plausible answer rather than an error. And
+  two adjacent `{{a}}{{b}}` with nothing between them, because no split of the text between them
+  is better than any other — separate them in the prompt, or supply one with `--set`.
 - `--set VAR=VALUE` or `VAR=@file` supplies or overrides a variable; repeatable.
 - `--n` sets draws per segment, so a change can be judged against variation rather than one lucky
   sample. `--show` picks the fields to compare; `--full` prints whole responses.

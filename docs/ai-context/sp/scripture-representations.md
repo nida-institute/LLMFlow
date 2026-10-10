@@ -24,10 +24,22 @@ every decision downstream.
 | `milestones` | **1.072×** | **the default.** A verse reference is all the addressing needed, and the cost over bare text is under a tenth |
 | `usj`, no `include` | 2.56× codepoints, **6.74×** as escaped JSON | structure is needed, analyses are not |
 | `usj` + families | to **11.78×** as one consumer ships it | only the families a step actually reads |
+| `analysis` | **about a quarter of the tokens of `usj` + families** — MAT 19:1-11 with six families: 37.6k tokens as USJ, 10.3k as `analysis` (`o200k_base`) | a model reads the analyses. Needs `ids` in `include` |
 
-**Three forms, and that is the whole list.** `format:` accepts `plain`, `milestones` and `usj`;
-anything else raises, naming the three. A form for the editorial shape — paragraphs and
+**Four forms, and that is the whole list.** `format:` accepts `plain`, `milestones`, `usj` and
+`analysis`; anything else raises, naming them. A form for the editorial shape — paragraphs and
 headings for a reader rather than a model — is not built.
+
+**`analysis` is derived from `usj`, for a model to read.** Each sentence's constituency tree in
+bracketed notation, every word written `form/n`, then one tab-separated row per word: `n`, `ref`,
+`id`, `form`, `lemma`, `morph`, `sense`, `gloss` (English only), `freq`, `note` (`outside` for a
+word beyond the requested verses). A family with no column follows as compact JSON, so nothing
+`usj` carries is dropped except glosses in other languages. Save `usj` when you want the complete
+record; hand a prompt `analysis`. A USFM resource has no word ids and refuses it.
+
+**`frequency_cutoff: N`**, beside `include: [frequency]`, keeps a frequency only on words whose
+lemma falls within the corpus's least frequent N percent of lemmas — so a prompt can say "a word
+with a frequency is a word to explain" rather than ask a model to compare numbers.
 
 Two consequences worth holding onto. **`milestones` is almost always right** — it is the default
 because the alternative costs six times as much for structure most prompts never use. And
@@ -36,7 +48,7 @@ because a payload nobody asked for is a payload nobody checked.
 
 ## Which families are built
 
-`include` accepts seven names, and asking for one that is not built **raises** rather than
+`include` accepts eight names, and asking for one that is not built **raises** rather than
 returning a document with the payload quietly missing. So this table is the difference between a
 working step and an error — check it before designing a step around a family.
 
@@ -49,6 +61,7 @@ working step and an error — check it before designing a step around a family.
 | `referents` | built | the resource's referent columns |
 | `discourse` | built | Levinsohn's features, each with the `outcome` field described below |
 | `syntax` | built | the constituency tree, standoff — one entry per sentence |
+| `frequency` | built | each word's lemma `count` in its corpus (GNT for `SBLGNT`, HOT for `WLC`) and `in_least_frequent_percent`, from tables the engine ships; Hebrew pronominal suffixes have no entry |
 
 A family emits whichever of its declared columns the resource actually has, and nothing merges
 the two systems: a Greek verb has `tense`, `voice` and `mood`; a Hebrew verb has `stem` and
@@ -70,6 +83,12 @@ by default.
 the document as `srcloc` through `ids`; without them the payload names words the document does not
 identify, which is unusable rather than merely thinner. This is a stronger condition than the
 per-word families have, because a tree is *over* words rather than an analysis *of* one.
+
+**Asking for `syntax` returns whole sentences.** Where a sentence runs past either end of the
+passage, its words come back too — in the text, in every format, and in every family asked for —
+so a participle is never handed over without the verb it depends on. `outside_passage` in the
+container marks each added word `true`, and is `{}` when nothing was added. `MRK 1:3-8` adds the
+20 words of 1:2.
 
 **The payload is a list, one entry per sentence**, in the order the source states them. So "which
 subtree is a sentence" is answered by the structure rather than by a class the engine invents —
@@ -168,5 +187,5 @@ and the base's name is reported as before.
 
 ## Where the detail is
 
-`docs/llmflow-language.md` under `type: scripture` for the grammar and every key;
+`docs/sp-language.md` under `type: scripture` for the grammar and every key;
 `docs/architecture.md` §3.3a for how a passage is resolved in four steps.

@@ -180,17 +180,24 @@ Two distinct syntaxes, resolved in different contexts:
 
 ## 5. Prompt Contract Model
 
-Prompt files declare their input requirements in a metadata header:
+Prompt files declare their input requirements in YAML frontmatter, opening with `---` on the
+first line:
 
 ```
-<!--
+---
 prompt:
   requires:
     - passage
     - scene
   format: Markdown
--->
+---
 ```
+
+`linter.FRONTMATTER_RE` is the one definition of that header, read by `parse_prompt_header`, by
+`prompt_body`, and by the runtime contract check in `steps/llm.py`. The withdrawn `<!-- ... -->`
+form is refused by name in both places (`uses_comment_header`), not read as a prompt with no
+header. Mixins are expanded before the contract is checked, in lint as at run time, so a
+variable used inside a mixin must be declared.
 
 The linter validates that all `requires` entries are present in `prompt.inputs`
 before execution. This is the boundary where the pipeline's runtime contract
@@ -315,7 +322,7 @@ not a module that re-exports it:
 @patch("llmflow.runner.call_llm")
 ```
 
-**Step type YAML contracts** are documented in `docs/llmflow-language.md`.
+**Step type YAML contracts** are documented in `docs/sp-language.md`.
 The implementation of each contract is in the corresponding `steps/` file.
 
 ## 12. Testing Philosophy
@@ -507,20 +514,26 @@ This complements the other two channels by which a pipeline's meaning reaches a 
 ## 18. AI Context Distribution (Consumer Repos)
 
 `sp init` populates AI context in repos that *use* the engine, and keeps sp's evolving standard
-separate from a repo's own material so neither pollutes the other:
+separate from a repo's own material so neither pollutes the other. **Which file is whose is
+declared in `data/file-catalog.yaml`**, one row per path with a `policy` — `generated`,
+`create-once`, `example` or `user-owned` — and every command reads it from there.
+`docs/ai-context/sp/command-line.md` states what each command does with each policy.
 
-- **`CLAUDE.md`** — sp owns a delimited `<!-- BEGIN/END llmflow-init -->` block (upserted on
-  `sp init`); everything outside it is the repo's.
-- **`AGENTS.md`-first** — the vendor-neutral cross-tool context file (read by Codex, Gemini CLI,
-  Cursor, Copilot, and others); `CLAUDE.md` imports it. See `docs/ai-assistants.md`.
-- **`docs/ai-context/`** — two lanes:
-  - *sp-managed* (`index.md`, `overview.md`, `rules.md`, `github-workflow.md`) — generated and
-    refreshed by `sp init --update`; not hand-edited.
-  - *project-owned* (`project.md`) — created once, **never** overwritten, wired into `index.md`;
-    a repo's own project-specific context lives here.
-- **`~/.sp/`** — machine-global conventions, skills, and user-context shared across all projects
-  on the machine.
-
-The managed/owned split — a delimited block for `CLAUDE.md`, a create-once `project.md` for
-`docs/ai-context/` — is the pattern that lets sp update its context without touching yours. See
-`docs/consumer-repo-layout.md`.
+- **Assistant instruction files** — `CLAUDE.md`, `.github/copilot-instructions.md`,
+  `.cursorrules`, `.windsurfrules`. sp owns one delimited block in each, between
+  `<!-- BEGIN llmflow-init: {name} -->` and its `END` marker (`cli_utils.LLMFLOW_BLOCK_BEGIN`);
+  everything outside the block is the repo's.
+- **`docs/ai-context/`** — two halves:
+  - `sp/` is **generated**: `overview.md`, `index.md` (rendered from the catalog's `purpose`
+    field), `rules.md`, and the topic documents `audits-pattern.md`, `command-line.md`,
+    `github-workflow.md`, `passage-references.md` and `scripture-representations.md`. Restored
+    when missing or drifted; an edit there is lost.
+  - `project/` is **create-once**: `index.md`, `overview.md` and `rules.md` are written if
+    absent and never touched again. A repo's own context lives here.
+- **`.claude/skills/`** — copied from the machine store, so a clone of the repo has the slash
+  commands.
+- **`docs/cli-api.json`, the language quickref, `docs/vscode.md`** — generated. The starter
+  example (`pipelines/readers-guide.yaml`, its two prompts, `docs/tutorial.md`) is
+  `policy: example`.
+- **`~/.sp/`** (or `$SP_HOME`) — the machine store: disciplines, `drift-patterns.md`, skills and
+  versification schemes, shared across all projects on the machine.

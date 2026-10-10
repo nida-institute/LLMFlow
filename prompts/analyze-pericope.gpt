@@ -5,7 +5,14 @@ requires:
   - passage
   - theme
 format: JSON
-description: Analyse one pericope's literary features, returned as a strict JSON schema.
+description: |
+  Analyse one pericope's literary features, returned as a strict JSON schema. Used by
+  `pipelines/json-schema-example.yaml`.
+
+  ## Inputs
+  - `book` — the pipeline's `book` variable
+  - `title`, `passage`, `theme` — the first pericope of the segmentation step's output:
+    `segmentation.pericopes[0].title`, `.passage` and `.theme`
 ---
 user: |
   Analyze this pericope from {{book}}:

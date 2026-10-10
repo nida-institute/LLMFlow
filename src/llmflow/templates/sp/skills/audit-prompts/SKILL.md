@@ -1,7 +1,7 @@
 ---
 name: audit-prompts
 description: |
-  **WORKFLOW SKILL** — Audit Scripture Pipelines prompt files (.gpt) AND pipeline files (.yaml) for organization, sprawl, convention compliance, and CRITICAL: input data grounding, example diversity, AI-generated examples, JSON output format, and structured outputs usage.
+  Audit Scripture Pipelines prompt files (.gpt) AND pipeline files (.yaml) for organization, sprawl, convention compliance, and CRITICAL: input data grounding, example diversity, AI-generated examples, JSON output format, and structured outputs usage.
   USE FOR: checking prompt structure; identifying sprawl (line count, header count); validating section hierarchy;
   comparing against prompt-organization-convention.md; finding scattered examples; detecting inconsistent heading levels;
   auditing pipelines for missing response_format on JSON steps.
@@ -172,6 +172,11 @@ For each task section in the band:
 Across the prompt:
 7. ✅ Heading hierarchy consistent? (`#` for positions and task headings, `##` for subsections)
 8. ✅ Data sources, rules and examples co-located within each task section, not scattered?
+9. ✅ Nothing in the body is for the maintainer? The frontmatter is stripped before the call and
+   `description` is the prompt's documentation: **where an input comes from** — its step,
+   resource and options — belongs there, and a `**Source:**` line or a step's `type:` in the
+   body is a finding. **How to read an input** stays in `# DATA SOURCES`, because the model
+   needs it. `sp lint` warns when `description` does not name every input in `requires:`.
 
 ### Step 4: Identify Sprawl Indicators
 
@@ -685,7 +690,7 @@ Report project-wide JSON reliability status:
 - Estimated retry waste: ~$150-200 per failed run (from issue #95)
 - Recommendation: Implement structured outputs on all JSON steps
 
-**Documentation:** See docs/llmflow-language.md "Structured JSON Output" section
+**Documentation:** See docs/sp-language.md "Structured JSON Output" section
 ```
 
 ### Step 10: Generate Report

@@ -46,7 +46,7 @@ def pipeline(tmp_path, monkeypatch):
     def _build(response_format, *, linter_config=None, extra_step=None):
         (tmp_path / "prompts").mkdir(exist_ok=True)
         (tmp_path / "prompts" / "p.gpt").write_text(
-            "<!--\nprompt:\n  requires:\n    - book\n-->\nSummarise {{book}}.\n",
+            "---\nprompt:\n  requires:\n    - book\n---\nSummarise {{book}}.\n",
             encoding="utf-8",
         )
         step = {

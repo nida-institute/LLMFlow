@@ -352,14 +352,14 @@ class TestWriting:
         payload = json.loads(written.read_text(encoding="utf-8"))
         assert payload["pipeline"] == "book"
         assert len(payload["defects"]) == 2
-        assert payload["counts"] == {"error": 1, "warning": 1}
+        assert payload["counts"] == {"info": 0, "warning": 1, "error": 1}
 
     def test_an_empty_log_still_writes_an_empty_list(self, tmp_path):
         """`[]` means the run looked and found nothing. Absence would mean nobody looked."""
         written = DefectLog(pipeline="book").write(tmp_path / "defects.json")
         payload = json.loads(written.read_text(encoding="utf-8"))
         assert payload["defects"] == []
-        assert payload["counts"] == {"error": 0, "warning": 0}
+        assert payload["counts"] == {"info": 0, "warning": 0, "error": 0}
 
     def test_the_directory_is_created(self, tmp_path):
         written = DefectLog().write(tmp_path / "nested" / "deeper" / "defects.json")

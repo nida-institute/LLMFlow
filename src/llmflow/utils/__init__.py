@@ -1,3 +1,27 @@
+def condition_safe_builtins() -> dict:
+    """The names a `condition:` expression may use besides the pipeline's own variables.
+
+    One declaration, read twice: the evaluator builds its environment from it, and the linter's
+    variable validator skips these names rather than reporting them undefined. They were a
+    literal inside the evaluator, so `sp lint` refused `${len(...)}` while the evaluator ran it
+    — the linter being the stricter of the two, which is the wrong way round, since it is the
+    half that cannot execute the expression. Reported by a consumer who had to compute counts in
+    a `function` step to work around it, at the cost of a step per branch.
+    """
+    return {
+        "len": len,
+        "str": str,
+        "int": int,
+        "float": float,
+        "bool": bool,
+        "list": list,
+        "dict": dict,
+        "True": True,
+        "False": False,
+        "None": None,
+    }
+
+
 def eval_condition(condition: str, context: dict) -> bool:
     """Evaluate a condition string against the context.
 
@@ -12,21 +36,7 @@ def eval_condition(condition: str, context: dict) -> bool:
     logger = logging.getLogger(__name__)
 
     try:
-        # Provide safe built-ins like len, str, int, etc.
-        safe_builtins = {
-            "len": len,
-            "str": str,
-            "int": int,
-            "float": float,
-            "bool": bool,
-            "list": list,
-            "dict": dict,
-            "True": True,
-            "False": False,
-            "None": None,
-        }
-        # Create a safe evaluation environment with context variables
-        return bool(eval(condition, {"__builtins__": safe_builtins}, context))
+        return bool(eval(condition, {"__builtins__": condition_safe_builtins()}, context))
     except Exception as e:
         logger.warning(f"Condition evaluation failed: {condition} - {e}")
         return False

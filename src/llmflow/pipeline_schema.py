@@ -98,11 +98,39 @@ StepConfig.model_rebuild()
 # and the schema-vs-runner guard test. There is no second list of step keys.
 # ======================================================================================
 
+# A step's members: what it returns, named. Declared per step type below, so `sp lint` can refuse
+# a member that does not exist and `sp help step-types` can report them from one place. The first
+# entry is the **primary** member — what a bare `output: name` binds (#263),
+# which is why this is an ordered tuple rather than a set.
+STEP_MEMBERS: dict[str, tuple[str, ...]] = {
+    "scripture": ("text", "reference"),
+    "alignment": ("text", "alignments"),
+    "parallel-passages": ("references", "words"),
+}
+
+
+def step_members(step_type: str) -> tuple[str, ...]:
+    """The members `step_type` declares, primary first; empty when it declares none.
+
+    A step type with no declared members binds its whole result, which is every type in the
+    language except those in `STEP_MEMBERS` — `function` chief among them, since it returns
+    arbitrary Python and cannot declare what it will produce.
+    """
+    return STEP_MEMBERS.get(step_type, ())
+
+
 _OUTPUT_TARGET = {
     "oneOf": [
         {"type": "string"},
         {"type": "array", "items": {"type": "string"}},
-    ]
+    ],
+    "description": (
+        "Where a step's results land. A bare name binds the step's primary member — its whole "
+        "result, for a step type declaring no members. A list names members, each optionally "
+        "renamed as `variable=member`; naming a member is how it is requested, so a member "
+        "nobody names is not produced. Which members a step type has is declared in "
+        "STEP_MEMBERS, and `sp lint` refuses one that does not exist."
+    ),
 }
 
 _GUARD_RULES = {
@@ -264,6 +292,9 @@ _STEP_TYPE_PROPERTIES = [
                 "type": "array",
                 "items": {"type": "string", "enum": list(SCRIPTURE_INCLUDE_FAMILIES)},
             },
+            # With `include: [frequency]`: only words whose lemma falls within this least-frequent
+            # percent of the corpus carry a frequency. A number, or `${var}` naming one.
+            "frequency_cutoff": {"oneOf": [{"type": "number"}, {"type": "string"}]},
             # Cuts the fetched passage into units named by word id, one result per span in the
             # order given. A unit of analysis does not always start where a verse does — in
             # Hebrew versification a psalm's superscription is part of verse 1 — so a boundary
@@ -315,17 +346,35 @@ _STEP_TYPE_PROPERTIES = [
                 ]
             },
             # R16 — a set, not a choice: the aligned text, the Scripture Burrito records, or
-            # both. Defaults to the text alone.
-            "returns": {
-                "type": "array",
-                "items": {"type": "string", "enum": ["text", "alignments"]},
-            },
+            # both. Retired (#263): members are named in `output:`, and naming one is
+            # how it is requested, so `returns:` was a second key asking the same question.
+            # The members themselves are declared in STEP_MEMBERS.
             # R5 — target order is what nearly every reader wants and is the default; source
             # order is for reading the two texts side by side. Either, or both.
             "order": {
                 "type": "array",
                 "items": {"type": "string", "enum": ["target", "source"]},
             },
+        },
+    ),
+    (
+        ("parallel-passages",),
+        {
+            # The text the answer is expressed against, resolved through the registry like any
+            # other resource. Its registration names the database, so no path appears here.
+            "resource": {"type": "string"},
+            # What parallels are sought for, in the forms `parse_bible_reference` reads. Given
+            # a range, every group any verse in the range takes part in is returned, so a
+            # passage and one verse inside it give different answers and both are correct.
+            "passage": {"type": "string"},
+            # A set, not a choice, as on `type: alignment`. `words` is declared so the language
+            # names its whole surface and a misspelling is caught here; the identifier join it
+            # needs is not built, and the step says so rather than counting positions (#258).
+            # `returns:` retired (#263) — members are named in `output:` and declared
+            # in STEP_MEMBERS. `words` remains declared and refused at run time.
+            # The scheme `passage` is written in. Not an enum, for the reason it is not one on
+            # `type: scripture`: a Paratext project brings its own.
+            "versification": {"type": "string"},
         },
     ),
     (

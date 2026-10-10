@@ -1,0 +1,1399 @@
+{
+  "about": {
+    "what": "The public surface of Scripture Pipelines: every `sp` command, and every step type the pipeline language offers with its keys and what it returns.",
+    "this_is_the_api": "This IS the public API, and it is the whole of it. A project reaches this engine through the sp command line and the pipeline language it reads, and needs no Python at all.",
+    "not_the_implementation": "docs/index.json is the other file and the opposite thing: it maps the engine's modules and functions, carries no compatibility promise, and is not a surface for projects or for tests.",
+    "if_something_is_missing": "Where the language cannot express what you need, that is a missing construct worth reporting — not a reason to import the package and reach past it.",
+    "generated_by": "llmflow.cli_api, from build_parser() and PIPELINE_SCHEMA. Editing this file by hand does not survive regeneration."
+  },
+  "commands": {
+    "sp clean": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--debug-only"
+          ],
+          "help": "Delete only debug files (intermediate_file_directory/debug/ or outputs/debug/)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--dry-run"
+          ],
+          "help": "Show what would be deleted without deleting",
+          "required": false
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--intermediate-only"
+          ],
+          "help": "Delete only intermediate files, preserving debug/",
+          "required": false
+        },
+        {
+          "flags": [
+            "--pipeline"
+          ],
+          "help": "Path to pipeline YAML",
+          "required": true
+        },
+        {
+          "flags": [
+            "--var"
+          ],
+          "help": "Pipeline variable key=value; repeatable (honored when resolving directories)",
+          "required": false
+        }
+      ]
+    },
+    "sp content": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp content diff": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--config"
+          ],
+          "help": "Path to content-stages.yaml (default: ./config/content-stages.yaml)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--content-root"
+          ],
+          "help": "Content root directory (default: ./content)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--from-stage"
+          ],
+          "help": "Source stage name",
+          "required": true
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--to-stage"
+          ],
+          "help": "Destination stage name",
+          "required": true
+        }
+      ]
+    },
+    "sp content gui": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--config"
+          ],
+          "help": "Path to content-stages.yaml (default: ./config/content-stages.yaml)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--content-root"
+          ],
+          "help": "Content root directory (default: ./content)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--host"
+          ],
+          "help": "Host address (default: 127.0.0.1)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--no-browser"
+          ],
+          "help": "Don't auto-open browser",
+          "required": false
+        },
+        {
+          "flags": [
+            "--port"
+          ],
+          "help": "Port number (default: 5051)",
+          "required": false
+        }
+      ]
+    },
+    "sp content list": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--config"
+          ],
+          "help": "Path to content-stages.yaml (default: ./config/content-stages.yaml)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--content-root"
+          ],
+          "help": "Content root directory (default: ./content)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "help": "Output result as JSON",
+          "required": false
+        },
+        {
+          "flags": [
+            "--with-metadata"
+          ],
+          "help": "Include metadata for each file",
+          "required": false
+        }
+      ]
+    },
+    "sp content status": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--config"
+          ],
+          "help": "Path to content-stages.yaml (default: ./config/content-stages.yaml)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--content-root"
+          ],
+          "help": "Content root directory (default: ./content)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "help": "Output result as JSON",
+          "required": false
+        }
+      ]
+    },
+    "sp context": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp context add": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--description"
+          ],
+          "help": "Brief description of content",
+          "required": true
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--path"
+          ],
+          "help": "Full path to file (default: docs/ai-context/<file>)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--project"
+          ],
+          "help": "Project name (default: current directory name)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--topics"
+          ],
+          "help": "Comma-separated topics (e.g., basex,xquery,greek)",
+          "required": true
+        }
+      ]
+    },
+    "sp context list": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp context search": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--project"
+          ],
+          "help": "Filter by project name",
+          "required": false
+        }
+      ]
+    },
+    "sp dataset": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp dataset add": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--format"
+          ],
+          "help": "xml, tsv, json, …",
+          "required": false
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--name"
+          ],
+          "help": "Human-readable name (default: the id)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--path"
+          ],
+          "help": "Where it lives on this machine",
+          "required": true
+        }
+      ]
+    },
+    "sp dataset download": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--dest"
+          ],
+          "help": "Download destination (default: ~/.sp/data/)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp dataset list": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp dataset search": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp doctor": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp gui": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--host"
+          ],
+          "help": "Host address (default: 127.0.0.1)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--no-browser"
+          ],
+          "help": "Don't auto-open browser",
+          "required": false
+        },
+        {
+          "flags": [
+            "--port"
+          ],
+          "help": "Port number (default: 5050)",
+          "required": false
+        }
+      ]
+    },
+    "sp init": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--no-examples"
+          ],
+          "help": "Skip example files (readers-guide.yaml, its two prompts, tutorial.md) — creates directories and structural files only",
+          "required": false
+        },
+        {
+          "flags": [
+            "--sync"
+          ],
+          "help": "Copy ai-context files from the installed LLMFlow package to the current project",
+          "required": false
+        },
+        {
+          "flags": [
+            "--update"
+          ],
+          "help": "Regenerate files that carry the '<!-- Generated by sp init -->' marker, leaving hand-edited files untouched",
+          "required": false
+        }
+      ]
+    },
+    "sp lint": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--accept-terms"
+          ],
+          "help": "Agree to those resources' licences without being asked",
+          "required": false
+        },
+        {
+          "flags": [
+            "--fix-paths"
+          ],
+          "help": "Attempt simple path normalizations",
+          "required": false
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--install-missing"
+          ],
+          "help": "Install and register the catalog resources the pipeline needs and this machine lacks, without asking",
+          "required": false
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "help": "Emit JSON result",
+          "required": false
+        },
+        {
+          "flags": [
+            "--pipeline"
+          ],
+          "help": "Path to pipeline YAML",
+          "required": true
+        },
+        {
+          "flags": [
+            "--rewind-to"
+          ],
+          "help": "Validate rewind readiness up to this step",
+          "required": false
+        },
+        {
+          "flags": [
+            "--var"
+          ],
+          "help": "Pipeline variables key=value",
+          "required": false
+        },
+        {
+          "flags": [
+            "--verbose",
+            "-v"
+          ],
+          "help": "Verbose logging",
+          "required": false
+        }
+      ]
+    },
+    "sp list": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--dir"
+          ],
+          "help": "Directory to scan",
+          "required": false
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "help": "Emit JSON output",
+          "required": false
+        }
+      ]
+    },
+    "sp load-db": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--force"
+          ],
+          "help": "Drop and recreate database if it already exists",
+          "required": false
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--list-drivers"
+          ],
+          "help": "List available database drivers",
+          "required": false
+        },
+        {
+          "flags": [
+            "--name"
+          ],
+          "help": "Override database name (default: dataset key)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--register"
+          ],
+          "help": "Register database in global registry (~/.sp/)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--source"
+          ],
+          "help": "Load from this path instead of ~/.sp/data/<dataset>/",
+          "required": false
+        }
+      ]
+    },
+    "sp models": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--update"
+          ],
+          "help": "Update model pricing from installed llm plugins",
+          "required": false
+        }
+      ]
+    },
+    "sp registry": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp registry context": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp registry info": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp registry list": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "help": "Output as JSON",
+          "required": false
+        }
+      ]
+    },
+    "sp registry status": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp resource": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp resource add": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--accept-terms"
+          ],
+          "help": "Agree to the licence without being asked — for scripts and CI",
+          "required": false
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--kind"
+          ],
+          "help": "With --path: how to read it. A Paratext project says so itself",
+          "required": false
+        },
+        {
+          "flags": [
+            "--no-download"
+          ],
+          "help": "Register without fetching the data yet",
+          "required": false
+        },
+        {
+          "flags": [
+            "--path"
+          ],
+          "help": "Register something of your own by path",
+          "required": false
+        },
+        {
+          "flags": [
+            "--versification"
+          ],
+          "help": "With --path: its scheme",
+          "required": false
+        }
+      ]
+    },
+    "sp resource list": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp resource set": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--discourse-path"
+          ],
+          "help": "Dataset-relative, or a dataset id with a subpath",
+          "required": false
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--lowfat-path"
+          ],
+          "help": "Dataset-relative, or a dataset id with a subpath",
+          "required": false
+        }
+      ]
+    },
+    "sp resource terms": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp run": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--accept-terms"
+          ],
+          "help": "Agree to those resources' licences without being asked",
+          "required": false
+        },
+        {
+          "flags": [
+            "--dry-run"
+          ],
+          "help": "Dry run (no LLM calls)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--install-missing"
+          ],
+          "help": "Install and register the catalog resources the pipeline needs and this machine lacks, without asking",
+          "required": false
+        },
+        {
+          "flags": [
+            "--log"
+          ],
+          "help": "Path to log file (default: llmflow.log in cwd)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--no-clean"
+          ],
+          "help": "Keep the previous run's intermediates instead of removing them",
+          "required": false
+        },
+        {
+          "flags": [
+            "--pipeline"
+          ],
+          "help": "Path to pipeline YAML",
+          "required": true
+        },
+        {
+          "flags": [
+            "--resume"
+          ],
+          "help": "Skip steps whose saveas files already exist (resume interrupted run)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--rewind-to"
+          ],
+          "help": "Replay checkpoints up to and including this step name",
+          "required": false
+        },
+        {
+          "flags": [
+            "--skip-lint"
+          ],
+          "help": "Skip linting",
+          "required": false
+        },
+        {
+          "flags": [
+            "--stop-after"
+          ],
+          "help": "Stop pipeline after this step name runs",
+          "required": false
+        },
+        {
+          "flags": [
+            "--var"
+          ],
+          "help": "Pipeline variables key=value",
+          "required": false
+        },
+        {
+          "flags": [
+            "--verbose",
+            "-v"
+          ],
+          "help": "Verbose logging",
+          "required": false
+        }
+      ]
+    },
+    "sp setup": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--update"
+          ],
+          "help": "Re-run setup to update keys or add new providers",
+          "required": false
+        }
+      ]
+    },
+    "sp tools": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp tools replay": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--full"
+          ],
+          "help": "print full responses, not just the table",
+          "required": false
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--model"
+          ],
+          "help": "",
+          "required": false
+        },
+        {
+          "flags": [
+            "--n"
+          ],
+          "help": "draws per segment",
+          "required": false
+        },
+        {
+          "flags": [
+            "--prompt"
+          ],
+          "help": "original .gpt that generated the request",
+          "required": true
+        },
+        {
+          "flags": [
+            "--prompt-new"
+          ],
+          "help": "edited .gpt under test",
+          "required": true
+        },
+        {
+          "flags": [
+            "--request"
+          ],
+          "help": "captured request file(s) or glob(s) — '*-request.txt' from 0.2.1.24 on, '*_request.txt' for older captures",
+          "required": true
+        },
+        {
+          "flags": [
+            "--set"
+          ],
+          "help": "supply/override a variable (VAR=VALUE or VAR=@file); repeatable",
+          "required": false
+        },
+        {
+          "flags": [
+            "--show"
+          ],
+          "help": "comma-separated fields to compare (special: sensory, characters)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--temperature"
+          ],
+          "help": "",
+          "required": false
+        }
+      ]
+    },
+    "sp transition": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--config"
+          ],
+          "help": "Path to content-stages.yaml (default: ./config/content-stages.yaml)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--content-root"
+          ],
+          "help": "Content root directory (default: ./content)",
+          "required": false
+        },
+        {
+          "flags": [
+            "--dry-run"
+          ],
+          "help": "Validate without making changes",
+          "required": false
+        },
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "help": "Output result as JSON",
+          "required": false
+        }
+      ]
+    },
+    "sp update-ai-context": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    },
+    "sp version": {
+      "help": "",
+      "options": [
+        {
+          "flags": [
+            "--help",
+            "-h"
+          ],
+          "help": "show this help message and exit",
+          "required": false
+        }
+      ]
+    }
+  },
+  "step_types": {
+    "alignment": {
+      "keys": [
+        "order",
+        "source",
+        "spans",
+        "target"
+      ],
+      "members": [
+        "text",
+        "alignments"
+      ],
+      "primary_member": "text"
+    },
+    "basex": {
+      "keys": [
+        "database",
+        "query",
+        "query_file",
+        "timeout_seconds"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "duckdb": {
+      "keys": [
+        "query_file"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "for-each": {
+      "keys": [
+        "debug_label",
+        "for",
+        "group_by",
+        "in",
+        "order_by",
+        "parallel",
+        "steps"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "function": {
+      "keys": [
+        "function"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "if": {
+      "keys": [
+        "steps"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "json": {
+      "keys": [
+        "value"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "llm": {
+      "keys": [
+        "llm_options",
+        "max_completion_tokens",
+        "max_tokens",
+        "mcp",
+        "model",
+        "output_type",
+        "prompt",
+        "reasoning_effort",
+        "response_format",
+        "temperature",
+        "template",
+        "timeout_seconds"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "load_csv": {
+      "keys": [
+        "columns",
+        "delimiter",
+        "key",
+        "limit",
+        "namespaces",
+        "offset",
+        "output_format",
+        "path",
+        "pattern",
+        "where",
+        "xpath"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "load_directory": {
+      "keys": [
+        "columns",
+        "delimiter",
+        "key",
+        "limit",
+        "namespaces",
+        "offset",
+        "output_format",
+        "path",
+        "pattern",
+        "where",
+        "xpath"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "load_json": {
+      "keys": [
+        "columns",
+        "delimiter",
+        "key",
+        "limit",
+        "namespaces",
+        "offset",
+        "output_format",
+        "path",
+        "pattern",
+        "where",
+        "xpath"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "load_text": {
+      "keys": [
+        "columns",
+        "delimiter",
+        "key",
+        "limit",
+        "namespaces",
+        "offset",
+        "output_format",
+        "path",
+        "pattern",
+        "where",
+        "xpath"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "load_tsv": {
+      "keys": [
+        "columns",
+        "delimiter",
+        "key",
+        "limit",
+        "namespaces",
+        "offset",
+        "output_format",
+        "path",
+        "pattern",
+        "where",
+        "xpath"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "load_xml": {
+      "keys": [
+        "columns",
+        "delimiter",
+        "key",
+        "limit",
+        "namespaces",
+        "offset",
+        "output_format",
+        "path",
+        "pattern",
+        "where",
+        "xpath"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "load_yaml": {
+      "keys": [
+        "columns",
+        "delimiter",
+        "key",
+        "limit",
+        "namespaces",
+        "offset",
+        "output_format",
+        "path",
+        "pattern",
+        "where",
+        "xpath"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "parallel-passages": {
+      "keys": [
+        "passage",
+        "resource",
+        "versification"
+      ],
+      "members": [
+        "references",
+        "words"
+      ],
+      "primary_member": "references"
+    },
+    "save": {
+      "keys": [
+        "content",
+        "path"
+      ],
+      "members": [],
+      "primary_member": null
+    },
+    "scripture": {
+      "keys": [
+        "frequency_cutoff",
+        "include",
+        "passage",
+        "resource",
+        "spans",
+        "versification"
+      ],
+      "members": [
+        "text",
+        "reference"
+      ],
+      "primary_member": "text"
+    },
+    "window": {
+      "keys": [
+        "end_when",
+        "for",
+        "in",
+        "include_partial",
+        "merge",
+        "model",
+        "size",
+        "size_by_tokens",
+        "start_when",
+        "steps",
+        "stride",
+        "stride_by_tokens"
+      ],
+      "members": [],
+      "primary_member": null
+    }
+  },
+  "common_step_keys": [
+    "after",
+    "append_to",
+    "condition",
+    "description",
+    "format",
+    "inputs",
+    "log",
+    "name",
+    "output",
+    "plugin",
+    "require",
+    "retry",
+    "saveas",
+    "type",
+    "warn"
+  ],
+  "summary": {
+    "total_commands": 39,
+    "total_step_types": 19
+  }
+}

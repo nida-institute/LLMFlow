@@ -203,6 +203,12 @@ def test_the_engine_does_not_claim_domain_rules():
         # the engine can keep it. Which kind of nothing a `null` stands for stays with the
         # domain, and the rule's own text says so.
         "say-which-kind-of-nothing",
+        # What a project may reach the engine through, and what we may put in front of one.
+        # The engine can keep this without knowing what any pipeline is about: it is a
+        # statement about its own surface — the command line and the language — and about the
+        # material it ships. It binds the engine before it binds a user, which is the point:
+        # where a project would need Python, the missing construct is the defect.
+        "the-language-is-the-whole-surface",
     }
     assert language_scoped == expected, (
         "the set of rules the engine enforces for every user has changed.\n"

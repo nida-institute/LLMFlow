@@ -15,7 +15,7 @@ git config user.email "you+agent@example.com"
 
 Set it per repository where the AI works, or pass `-c user.name=… -c user.email=…` on the commit. This works on any machine, on any plan, with no permissions and nothing to provision.
 
-**Optional, and free: a second account on the hosting service**, so AI-initiated issues and pull requests appear under the agent rather than under you. Where your tooling supports it, point its credential configuration at that account — in Claude Code, `env.GH_CONFIG_DIR`.
+**Optional, and free: a second account on the hosting service**, so AI-initiated issues and comments appear under the agent rather than under you. Where your tooling supports it, point its credential configuration at that account — in Claude Code, `env.GH_CONFIG_DIR`.
 
 **Never required: a paid seat, an organisation role, or an additional account for your AI tool.** Many people cannot create these — managed plans, personal plans, employer policy. If that is you, the git author above, plus the co-author trailer on commits, is a sufficient trail. Say so plainly rather than treating this policy as unmet.
 
@@ -24,10 +24,17 @@ Set it per repository where the AI works, or pass `-c user.name=… -c user.emai
 ## What AI may do without asking
 
 - Read issues, PRs, code, and project boards
-- Create GitHub issues
+- **Create a GitHub issue** in the project being worked on — body written to a file under `./tmp/` and passed with `--body-file`, filed under the agent's own account where one is configured, URL reported — rule `agent-may-file-issues`. An issue on another organisation's repository is the human's decision.
 - Comment on issues or PRs
-- Create branches and push commits
-- **Create pull requests** for human review (completed, tested work only)
+- **Stage named paths and write the commit message to a file** (`/stage-commits`) and hand over the `git commit` command. The human commits and pushes.
+- **Draft a pull request** — its title and body in a file under `./tmp/` — and hand over the `gh pr create --body-file` command. The human opens it.
+
+## The human's alone — the agent never does these, even when asked to "go ahead"
+
+- **Commit, push or merge** — `git commit`, `git push` (a branch or a tag, including deleting a tag from the remote), `git merge` — rule `commit-authority`
+- **Open a pull request** — rule `commit-authority`. The pull request is what runs the project's CI, so opening one is the act that submits the work
+
+The agent's part in each is the draft and the exact command; the human runs it. A commit, a push and a pull request each speak for their author to everyone who reads the record, and a push is authenticated by the human's credential whoever wrote the change.
 
 ## Hard stop — never without explicit per-action instruction
 
@@ -36,8 +43,7 @@ Set it per repository where the AI works, or pass `-c user.name=… -c user.emai
 - **Assign an issue or task to any person**
 - **Add or remove collaborators or team members**
 - **Change org-level settings or permissions**
-- **Close an issue** not created in the current conversation turn
-- **Push to a protected or shared branch** (main, dev) without being asked
+- **Close an issue**
 
 "It seemed like the next logical step" is not authorisation. Workflow patterns and prior context are not authorisation. Ask.
 
@@ -61,6 +67,6 @@ An AI acting on a user's GitHub account can affect colleagues' work and professi
 |---|---|
 | `repo` (read) | Read code, issues, PRs |
 | `issues: write` | Create and comment on issues |
-| `pull_requests: write` | Create PRs (not merge) |
+| `pull_requests: write` | Comment on PRs — the human opens and merges them |
 | No `org` permissions | Cannot assign people or change team membership |
 | No `merge` / admin | Cannot merge PRs or change branch protection |

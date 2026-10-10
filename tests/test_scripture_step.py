@@ -208,13 +208,14 @@ def test_versification_maps_before_fetching(tmp_path, store):
 
 
 def test_a_missing_edition_names_what_is_registered(tmp_path, store):
+    """The run's own refusal, for a run that skipped lint — lint refuses it first otherwise."""
     path = pipeline_file(
         tmp_path,
         "  - name: fetch\n    type: scripture\n    resource: NOPE\n"
         '    passage: "GEN 1:1"\n    output: t\n',
     )
     with pytest.raises(Exception) as caught:
-        load_pipeline(path).run(log_file=str(tmp_path / "llmflow.log"))
+        load_pipeline(path).run(log_file=str(tmp_path / "llmflow.log"), skip_lint=True)
     assert "WLC" in str(caught.value), "the error should list the registered resources"
 
 

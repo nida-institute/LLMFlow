@@ -17,7 +17,7 @@ You are in the right repository if `src/llmflow/cli.py` and `src/llmflow/runner.
 | `src/llmflow/` | the engine. `runner.py` orchestrates, `cli.py` parses, `steps/` holds one handler per step type, `plugins/` the registered extensions, `utils/` the shared readers |
 | `src/llmflow/templates/` | what `sp init` writes. `templates/sp/` lands in `~/.sp`, `templates/project/` in a project — the paths mirror their destinations |
 | `data/` | declarative sources of truth: `file-catalog.yaml` (every file sp manages), `ai-rules.yaml` (the rules), `models.json`, `versification-editions.json` |
-| `docs/` | human- and AI-facing documentation. `llmflow-language.md` is the language reference |
+| `docs/` | human- and AI-facing documentation. `sp-language.md` is the language reference |
 | `project/` | plans, audits and tracking — `plans/`, `audits/`, `TODO.md`, `HANDOFF.md` |
 | `tests/` | the suite, including a number of guardrails that assert structure rather than behaviour |
 | `gui/` | the frontend, whose backend files are copied into the package at build time |

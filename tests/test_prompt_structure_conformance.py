@@ -122,7 +122,8 @@ def test_a_reference_section_before_the_checklist_is_out_of_order():
     text = text.replace("# COVERAGE & QUALITY CHECKLIST", "# REFERENCE\n\nbody\n\n# COVERAGE & QUALITY CHECKLIST")
     finding = prompt_structure.check(text)
     assert finding is not None, "the extension point is the end, so it cannot precede the checklist"
-    assert "position 11" in finding.message and "position 12" in finding.message, (
+    checklist, reference = _number("checklist"), _number("reference")
+    assert f"position {checklist}" in finding.message and f"position {reference}" in finding.message, (
         f"the inversion is reported on the heading that arrives out of order: {finding}"
     )
 
@@ -170,9 +171,15 @@ def test_sections_out_of_order_are_reported_with_both_positions():
     finding = prompt_structure.check(text)
     assert finding is not None, "a section out of order was not reported"
     assert "INPUT DATA" in finding.message
-    assert "position 7" in finding.message and "position 8" in finding.message, (
+    inputs, schema = _number("input-data"), _number("output-schema")
+    assert f"position {inputs}" in finding.message and f"position {schema}" in finding.message, (
         f"the finding must name both positions so the author can see the inversion: {finding}"
     )
+
+
+def _number(position_id: str) -> int:
+    """A position's number, read from the declaration rather than restated here."""
+    return next(p.n for p in prompt_structure.positions() if p.id == position_id)
 
 
 def test_a_missing_required_section_is_reported():

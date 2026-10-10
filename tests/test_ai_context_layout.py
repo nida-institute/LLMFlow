@@ -14,7 +14,7 @@ Three rulings from the Captain hold these tests up:
 - **R2**, as revised by **R10** — the split of the seven: `gui-architecture.md`,
   `data-sources.md`, `paratext-schemas.md` and `data-shapes.md` are the project's. Of the rest
   only `audits-pattern.md` survives on the sp side: `json-reliability.md` is deleted (R10, its
-  content already in `docs/llmflow-language.md`) and `README.md` is folded into `sp/overview.md`
+  content already in `docs/sp-language.md`) and `README.md` is folded into `sp/overview.md`
   (Q2, *"Fold it in"*).
 - **R3** — *"we cannot know what files a project might want in advance."* The project half is
   authored, so no file under `project/` may be `policy: generated`.

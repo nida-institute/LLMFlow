@@ -1,7 +1,7 @@
 ---
 name: health-check
 description: |
-  **SESSION SKILL** — Assess whether this session is still working well, and whether it is
+  Assess whether this session is still working well, and whether it is
   time to hand off and exit. About the *session* — not the machine, and not whether the
   tooling is installed correctly.
   USE FOR: when the human asks how the session is holding up; when you notice yourself

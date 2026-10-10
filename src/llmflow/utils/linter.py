@@ -6,16 +6,17 @@ import re
 import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from difflib import unified_diff
 from pathlib import Path
-from typing import Any, List, Set
+from typing import Any, Dict, List, Set
 
 import click
 import yaml
 from pydantic import ValidationError
 
 from llmflow.exceptions import StepRewindError
-from llmflow.pipeline_schema import PipelineConfig, allowed_step_keys, step_keys
+from llmflow.pipeline_schema import PipelineConfig, allowed_step_keys, step_keys, step_members
 
 # `size`/`stride` accept an expression resolved once before the loop starts. The test for
 # what counts as an expression comes from the module that resolves them, so lint and run
@@ -23,8 +24,14 @@ from llmflow.pipeline_schema import PipelineConfig, allowed_step_keys, step_keys
 from llmflow.steps.window import is_expression
 from llmflow.utils.context import build_run_context
 from llmflow.utils.get_prefix_directory import get_prefix_directory
+from llmflow.utils import condition_safe_builtins
 from llmflow.utils.llm_runner import validate_model_parameter
+from llmflow.utils.step_outputs import parse_output_entry
 from llmflow.yaml_loader import load_pipeline_config
+
+#: Names the condition evaluator supplies, so the validator must not report them undefined.
+#: Derived from the evaluator's own mapping — one declaration, read by both halves.
+_CONDITION_BUILTINS = frozenset(condition_safe_builtins())
 
 
 def _identifiers_in_expr(expr: str) -> Set[str]:
@@ -103,37 +110,74 @@ def log_and_screen(msg, color="white", level="info"):
         click.secho(msg, fg=color, err=True)
 
 
+#: A prompt header: YAML frontmatter fenced by `---`, the opening fence on the first line.
+FRONTMATTER_RE = re.compile(r"\A\ufeff?---[ \t]*\n(.*?)\n---[ \t]*(?:\n|\Z)", re.DOTALL)
+
+
+def prompt_body(text: str) -> str:
+    """*text* without its frontmatter; the whole of *text* when it has none."""
+    match = FRONTMATTER_RE.match(text)
+    return text[match.end() :] if match else text
+
+
+def uses_comment_header(text: str) -> bool:
+    """Whether *text* opens with the withdrawn `<!-- ... -->` header form.
+
+    True only when the opening comment holds a YAML mapping, so a prompt that merely begins
+    with an ordinary HTML comment is not mistaken for one.
+    """
+    stripped = text.lstrip("\ufeff").lstrip()
+    if not stripped.startswith("<!--"):
+        return False
+    end = stripped.find("-->")
+    if end == -1:
+        return False
+    try:
+        return isinstance(yaml.safe_load(stripped[4:end]), dict)
+    except yaml.YAMLError:
+        return False
+
+
+def withdrawn_comment_header_error(prompt_path) -> str:
+    """The message for a prompt still using the `<!-- ... -->` header form.
+
+    One wording, used by the linter and by the runtime contract check.
+    """
+    return (
+        f"❌ {prompt_path}: uses a `<!-- ... -->` header, which is no longer a prompt header "
+        f"form. A header is YAML frontmatter fenced by `---`, with the opening `---` on the "
+        f"first line. Move the same YAML between two `---` lines at the top of the file."
+    )
+
+
 def parse_prompt_header(prompt_path):
-    """Parse header from a .gpt prompt file (supports both YAML frontmatter and HTML comments)"""
+    """The YAML frontmatter of a prompt file, with a `prompt:` wrapper unwrapped.
+
+    None when the file has no frontmatter on its first line, or the YAML does not parse.
+    """
     text = Path(prompt_path).read_text(encoding="utf-8")
+    match = FRONTMATTER_RE.match(text)
+    if not match:
+        return None
+    try:
+        data = yaml.safe_load(match.group(1))
+    except yaml.YAMLError as e:
+        logger.error(f"Failed to parse YAML frontmatter in {prompt_path}: {e}")
+        return None
+    if not isinstance(data, dict):
+        return None
+    return data.get("prompt", data)
 
-    # Try YAML frontmatter first (--- ... ---)
-    yaml_match = re.search(r"^---\s*\n(.*?)\n---\s*$", text, re.DOTALL | re.MULTILINE)
-    if yaml_match:
-        block = yaml_match.group(1).strip()
-        try:
-            data = yaml.safe_load(block)
-            # Unwrap 'prompt' key if present (same as HTML comment format)
-            return data.get("prompt", data)
-        except Exception as e:
-            logger.error(f"Failed to parse YAML frontmatter in {prompt_path}: {e}")
-            return None
 
-    # Fallback: Try HTML comment style (<!-- ... -->)
-    html_match = re.search(r"<!--(.*?)-->", text, re.DOTALL)
-    if html_match:
-        block = html_match.group(1).strip()
-        try:
-            data = yaml.safe_load(block)
-            # Old format may wrap in 'prompt' key
-            return data.get("prompt", data)
-        except Exception as e:
-            logger.error(f"Failed to parse HTML comment header in {prompt_path}: {e}")
-            return None
+def prompt_body_with_mixins(prompt_path) -> str:
+    """The body of a prompt file as a run sees it: frontmatter removed, mixins expanded.
 
-    # No header found
-    logger.error(f"No valid header found in {prompt_path} (tried both --- and <!-- formats)")
-    return None
+    Raises FileNotFoundError when a mixin names a file that does not exist.
+    """
+    from llmflow.utils.io import expand_mixins
+
+    text = Path(prompt_path).read_text(encoding="utf-8")
+    return expand_mixins(prompt_body(text), Path(prompt_path))
 
 
 def extract_template_variables(template_content):
@@ -182,10 +226,14 @@ def dotted_template_names(names) -> List[str]:
 def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
     """Check that every {{var}} used in a .gpt body is flat and declared in requires:.
 
-    A dotted name is rejected outright, `optional:` is refused as a withdrawn key, and the
-    rest must appear in requires:. Returns a list of error strings (empty list means the file
-    is clean).
+    The body is read with its mixins expanded, as a run reads it. A dotted name is rejected
+    outright, `optional:` and the `<!-- -->` header are refused as withdrawn forms, a mixin
+    naming no file is an error, and the rest must appear in requires:. Returns a list of error
+    strings (empty list means the file is clean).
     """
+    if uses_comment_header(Path(prompt_path).read_text(encoding="utf-8")):
+        return [withdrawn_comment_header_error(prompt_path)]
+
     header = parse_prompt_header(prompt_path)
     if header is None:
         return [f"❌ {prompt_path}: No parseable frontmatter — cannot validate template variables"]
@@ -198,10 +246,10 @@ def validate_gpt_body_declares_all_vars(prompt_path: str) -> List[str]:
     if isinstance(requires, list):
         declared.update(requires)
 
-    # Extract body (everything after the closing --- of the frontmatter)
-    text = Path(prompt_path).read_text(encoding="utf-8")
-    frontmatter_match = re.search(r"^---[ \t]*\n.*?\n---[ \t]*\n?", text, re.DOTALL | re.MULTILINE)
-    body = text[frontmatter_match.end() :] if frontmatter_match else text
+    try:
+        body = prompt_body_with_mixins(prompt_path)
+    except FileNotFoundError as e:
+        return [f"❌ {prompt_path}: {e}"]
 
     body_vars = extract_template_variables(body)
 
@@ -232,8 +280,9 @@ def unused_requires_warnings(prompt_path: str) -> List[str]:
     nothing reads, and a reader believing the prompt uses it.
 
     Silent where another check owns the problem: an unparseable header, a withdrawn `optional:`
-    key and a dotted name are each reported by the check that owns them, and saying so twice
-    trains a reader to skim.
+    key, a dotted name and a missing mixin are each reported by the check that owns them, and
+    saying so twice trains a reader to skim. Mixins are expanded first, so a name used only
+    inside one counts as used.
     """
     header = parse_prompt_header(prompt_path)
     if header is None or "optional" in header:
@@ -246,9 +295,10 @@ def unused_requires_warnings(prompt_path: str) -> List[str]:
     if not declared:
         return []
 
-    text = Path(prompt_path).read_text(encoding="utf-8")
-    frontmatter = re.search(r"^---[ \t]*\n.*?\n---[ \t]*\n?", text, re.DOTALL | re.MULTILINE)
-    body = text[frontmatter.end() :] if frontmatter else text
+    try:
+        body = prompt_body_with_mixins(prompt_path)
+    except FileNotFoundError:
+        return []
 
     unused = sorted(declared - extract_template_variables(body))
     if not unused:
@@ -338,6 +388,37 @@ def prompt_conformance_warnings(prompt_paths: List[str]) -> List[str]:
     return warnings
 
 
+def prompt_description_warnings(prompt_paths: List[str]) -> List[str]:
+    """Which prompts' `description` does not name every input in `requires:`.
+
+    `description` is the prompt's documentation for the people who maintain it — what each input
+    is and where it comes from — and it is never sent to a model. A required input it does not
+    name is an input documented nowhere. A **warning**, like the grammar's other findings: the
+    prompt runs either way.
+    """
+    warnings: List[str] = []
+    for path in prompt_paths:
+        try:
+            header = parse_prompt_header(path)
+        except OSError:
+            continue
+        if not isinstance(header, dict):
+            continue
+        requires = header.get("requires") or []
+        description = str(header.get("description") or "")
+        missing = [
+            str(name) for name in requires
+            if not re.search(r"(?<![\w])" + re.escape(str(name)) + r"(?![\w])", description)
+        ]
+        if missing:
+            warnings.append(
+                f"{path}: `description` does not name the required input"
+                f"{'s' if len(missing) > 1 else ''} {', '.join(missing)} — say there what each "
+                f"is and where it comes from; the model never reads it."
+            )
+    return warnings
+
+
 def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
     """Validate all LLM steps against their prompt contracts"""
     errors = []
@@ -401,6 +482,12 @@ def validate_all_step_contracts(all_steps, log_func, pipeline_root=None):
                 continue
 
             try:
+                if uses_comment_header(Path(prompt_path).read_text(encoding="utf-8")):
+                    errors.append(
+                        f"❌ Step '{step_name}': {withdrawn_comment_header_error(prompt_path)}"
+                    )
+                    continue
+
                 prompt_data = parse_prompt_header(prompt_path)
 
                 if not prompt_data:
@@ -539,6 +626,9 @@ class LintResult:
     valid: bool
     errors: List[str]
     warnings: List[str]
+    #: `resource_preflight.Finding`s — what the pipeline needs that this machine lacks, kept
+    #: structured so the command line can offer to supply it.
+    resources: List = dataclass_field(default_factory=list)
 
 
 def _collect_declared_outputs(all_steps):
@@ -548,10 +638,50 @@ def _collect_declared_outputs(all_steps):
         if isinstance(outs, dict):
             declared.update(outs.keys())
         elif isinstance(outs, list):
-            declared.update(outs)
+            # An entry may be `variable=member` (#263); the variable is what a later step can
+            # name, so the member half must not be registered as one.
+            declared.update(parse_output_entry(str(entry))[0] for entry in outs)
         elif isinstance(outs, str):
             declared.add(outs)
     return declared
+
+
+def validate_output_members(all_steps) -> List[str]:
+    """Refuse an `output:` entry naming a member its step type does not declare (#263).
+
+    This is the check that makes declaring members worth anything: a misspelling is caught before
+    the run rather than binding `None` and failing somewhere downstream. It is fully static —
+    the members are an enum in the schema and `output:` is a literal list in the YAML.
+
+    A step type declaring no members is skipped, not faulted: `function` and the rest bind their
+    whole result, and their `output:` list is positional.
+    """
+    errors: List[str] = []
+    for step in all_steps:
+        declared = step_members(str(step.get("type", "")))
+        if not declared:
+            continue
+        outs = step.get("output")
+        if not isinstance(outs, list):
+            continue
+
+        name = step.get("name", "unnamed")
+        seen: Dict[str, str] = {}
+        for entry in outs:
+            variable, member = parse_output_entry(str(entry))
+            if member not in declared:
+                errors.append(
+                    f"❌ Step '{name}' output '{entry}': '{member}' is not a member of "
+                    f"type '{step.get('type')}'. Members: {', '.join(declared)}"
+                )
+            elif member in seen:
+                errors.append(
+                    f"❌ Step '{name}' output '{entry}': member '{member}' is already bound to "
+                    f"'{seen[member]}'. Name a member once."
+                )
+            else:
+                seen[member] = variable
+    return errors
 
 
 def _validate_template_var_provenance(all_steps, errors):
@@ -683,6 +813,13 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
                 for var in referenced_vars:
                     root_var = var  # already a root identifier from _identifiers_in_expr
 
+                    # A name the condition evaluator supplies is not a variable the pipeline has
+                    # to declare. Read from the evaluator's own mapping rather than listed again
+                    # here, so the two halves cannot disagree about what a valid condition is —
+                    # which is exactly how `${len(...)}` came to run correctly and fail lint.
+                    if root_var in _CONDITION_BUILTINS:
+                        continue
+
                     if root_var not in available:
                         # Show helpful error message with available variables
                         available_list = sorted(available)
@@ -703,7 +840,8 @@ def _validate_variable_references_recursive(steps, pipeline_vars, parent_outputs
         if isinstance(outs, dict):
             declared_outputs.update(outs.keys())
         elif isinstance(outs, list):
-            declared_outputs.update(outs)
+            # `variable=member` (#263): only the variable is nameable by a later step.
+            declared_outputs.update(parse_output_entry(str(entry))[0] for entry in outs)
         elif isinstance(outs, str):
             declared_outputs.add(outs)
 
@@ -1395,6 +1533,34 @@ def lint_pipeline_full(
         return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
     logger.info("✅ All step keywords are valid")
 
+    # 1.55) Members named in `output:` exist on the step type that produces them (#263)
+    logger.info("🔍 Validating step output members...")
+    member_errors = validate_output_members(all_steps)
+    if member_errors:
+        all_errors.extend(member_errors)
+        for error in member_errors:
+            logger.error(error)
+        return LintResult(valid=False, errors=all_errors, warnings=all_warnings)
+    logger.info("✅ All output members are declared by their step type")
+
+    # 1.57) Resources this machine must be able to open — before spend, like schemas (#261)
+    logger.info("🔍 Checking the resources the pipeline names...")
+    from llmflow.utils import resource_preflight
+
+    resource_findings = resource_preflight.check(
+        pipeline_config.get("steps", []), build_run_context(pipeline_config, cli_vars)
+    )
+    all_warnings.extend(f.message for f in resource_findings if not f.is_error)
+    resource_errors = [f.message for f in resource_findings if f.is_error]
+    if resource_errors:
+        all_errors.extend(resource_errors)
+        for error in resource_errors:
+            logger.error(error)
+        return LintResult(
+            valid=False, errors=all_errors, warnings=all_warnings, resources=resource_findings
+        )
+    logger.info("✅ Every resource the pipeline names can be opened")
+
     # 1.6) Model-parameter compatibility validation
     logger.info("🔍 Validating model-parameter compatibility...")
     parameter_errors = validate_model_parameters(all_steps, pipeline_config)
@@ -1451,6 +1617,7 @@ def lint_pipeline_full(
         except FileNotFoundError:
             pass  # Already reported by contract validation above
     all_warnings.extend(prompt_conformance_warnings(linted_prompts))
+    all_warnings.extend(prompt_description_warnings(linted_prompts))
     if gpt_decl_errors:
         all_errors.extend(gpt_decl_errors)
         for err in gpt_decl_errors:
@@ -1573,7 +1740,7 @@ def lint_pipeline_full(
         logger.warning(f"⚠️  {warning}")
 
     logger.info("✅ Pipeline validation completed successfully")
-    return LintResult(valid=True, errors=[], warnings=all_warnings)
+    return LintResult(valid=True, errors=[], warnings=all_warnings, resources=resource_findings)
 
 
 def check_step_outputs(step):
@@ -1605,6 +1772,10 @@ def validate_step_prompt_contract(step, prompt_file, step_name):
             break
     if not prompt_path:
         errors.append(f"❌ Step '{step_name}': Prompt file not found: {prompt_file}")
+        return errors
+
+    if uses_comment_header(Path(prompt_path).read_text(encoding="utf-8")):
+        errors.append(f"❌ Step '{step_name}': {withdrawn_comment_header_error(prompt_path)}")
         return errors
 
     header = parse_prompt_header(prompt_path)

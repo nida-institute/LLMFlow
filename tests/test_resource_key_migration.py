@@ -88,6 +88,14 @@ class TestTheRetiredKeyIsRefused:
         assert RETIRED in joined
         assert CURRENT in joined
 
-    def test_the_current_key_lints_clean(self, tmp_path):
+    def test_the_current_key_lints_clean(self, tmp_path, monkeypatch):
+        from llmflow import resources
+
+        monkeypatch.setenv("SP_HOME", str(tmp_path / "sp"))
+        # Registered, because lint refuses a resource this machine cannot open (#261).
+        resources._write_registration(
+            resources.default_resources_dir() / "SBLGNT.yaml", "",
+            {"id": "SBLGNT", "kind": "tsv", "path": "/tmp/x.tsv"},
+        )
         result = load_pipeline(str(_pipeline(tmp_path, CURRENT))).lint()
         assert result.valid, result.errors

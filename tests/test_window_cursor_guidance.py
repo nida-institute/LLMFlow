@@ -38,7 +38,7 @@ from pathlib import Path
 from llmflow.cli_utils import LANGUAGE_QUICKREF_DOC
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-LANGUAGE_SPEC = REPO_ROOT / "docs" / "llmflow-language.md"
+LANGUAGE_SPEC = REPO_ROOT / "docs" / "sp-language.md"
 
 
 def _window_section(text: str) -> str:
@@ -90,7 +90,7 @@ def test_the_language_spec_explains_physical_versus_logical():
 
     for term in ("physical", "logical", "cursor"):
         assert term in section.lower(), (
-            f"docs/llmflow-language.md never mentions '{term}'. The distinction between a "
+            f"docs/sp-language.md never mentions '{term}'. The distinction between a "
             "physical window and the logical units found inside it is the reason the cursor "
             "exists, and a field table cannot carry it."
         )

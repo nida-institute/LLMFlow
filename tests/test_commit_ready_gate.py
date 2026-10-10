@@ -1,37 +1,34 @@
-"""The local commit gate must cover every suite CI runs (#206).
+"""The local commit gate must cover every suite CI runs (#206), in any project.
 
-`gui/frontend/` is a TypeScript project with seven Vitest test files, and CI runs them —
-`.github/workflows/test.yml` does `npm test -- --run` and `npx tsc --noEmit`. The
-`commit-ready` skill, which calls itself *"the full LLMFlow definition of done"*, named
-only `hatch run pytest`.
+`gui/frontend/` is a TypeScript project with its own Vitest tests, and CI runs them. The
+`commit-ready` skill named only `hatch run pytest`, so a contributor who edited
+`gui/frontend/src/App.tsx`, followed the skill to the letter, and saw the Python tests pass had
+run none of the TypeScript tests. The first fix named this repository's frontend commands in the
+skill, and these tests derived them from `.github/workflows/test.yml`.
 
-So a contributor who edited `gui/frontend/src/App.tsx`, followed the skill to the letter,
-and saw 2677 Python tests pass had run none of the TypeScript tests. CI caught it
-afterwards — but the skill exists to be the check *before* the push.
+**Then the skill became the workshop's first lesson** (Captain's ruling, 2026-10-07): *"it must
+fit any project."* A gate naming `hatch`, `gui/frontend` and `pyproject.toml` instructs a mentee
+about tools their project does not have — the same defect #206 was, inverted: a check that reads
+as complete while checking nothing. So the general form of the #206 fix ships instead: **read
+every suite from the CI workflow and run what CI runs.** That covers this repository's frontend
+and any other project's second suite alike, and no list of commands in the skill can drift from
+the workflow because there is no list.
 
-Same shape as several defects found the same day: **a check applied to one of two paths,
-reading as complete because the path it covers is green.** Compare LLMFlow#198, where the
-unresolved-`${var}` guard existed on the lint and rewind paths but not on the one that
-writes.
+The Captain ruled the extra suite **conditional** (2026-08-19): *"only when the change touches
+gui/frontend"*. Generalised, the condition survives: a change that touches no part of a suite
+does not need its toolchain installed.
 
-**These tests derive the requirement from `test.yml` rather than restating it.** A second
-hand-written list of commands is what let the gate and CI drift apart in the first place;
-if CI gains a step, this fails until the skill gains it too.
-
-The Captain ruled the frontend gate **conditional** (2026-08-19): *"only when the change
-touches gui/frontend"*. A Python-only commit must not require a Node install.
+The same ruling also moved the commit, the push and the pull request to the human (rule
+`commit-authority`), which the old gates contradicted — they had the agent committing, pushing,
+merging and deleting branches.
 """
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
-import yaml
-
-REPO_ROOT = Path(__file__).resolve().parent.parent
-WORKFLOW = REPO_ROOT / ".github" / "workflows" / "test.yml"
-FRONTEND = "gui/frontend"
 
 
 def _skill_text() -> str:
@@ -47,59 +44,67 @@ def _skill_text() -> str:
     return path.read_text(encoding="utf-8")
 
 
-def _ci_frontend_commands() -> list[str]:
-    """The commands CI runs against the frontend, read from the workflow itself."""
-    workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
-
-    commands: list[str] = []
-    for job in workflow.get("jobs", {}).values():
-        for step in job.get("steps", []):
-            run = step.get("run")
-            if not run or FRONTEND not in run:
-                continue
-            for line in run.splitlines():
-                line = line.strip()
-                if line and not line.startswith(("cd ", "#")):
-                    commands.append(line)
-    return commands
-
-
-def test_ci_actually_runs_frontend_commands():
-    """Guard on the guard — if CI stops running these, the tests below prove nothing."""
-    commands = _ci_frontend_commands()
-    assert commands, f"no frontend commands found in {WORKFLOW.name}; this test is stale"
-
-
-@pytest.mark.parametrize("command", _ci_frontend_commands())
-def test_commit_ready_names_every_frontend_command_ci_runs(command: str):
-    """Whatever CI runs against the frontend, the local gate must tell you to run too."""
-    assert command in _skill_text(), (
-        f"CI runs {command!r} against {FRONTEND} but commit-ready never mentions it. "
-        "The local gate and CI must not be two descriptions of the definition of done."
-    )
-
-
-def test_commit_ready_names_the_frontend_directory():
-    """The reader has to know which changes trigger the extra step."""
-    assert FRONTEND in _skill_text(), (
-        f"commit-ready does not mention {FRONTEND}, so a contributor changing it has no "
-        "reason to think anything beyond pytest applies"
-    )
-
-
-def test_the_frontend_gate_is_conditional_not_unconditional():
-    """Captain's ruling: only when the change touches gui/frontend.
-
-    Pinned so a later edit cannot quietly make every Python-only commit require Node,
-    nor drop the condition and leave the step looking optional.
-    """
+def test_the_gate_reads_its_suites_from_the_ci_workflow():
+    """#206, generalised: the reader learns what to run from CI, not from this page."""
     text = _skill_text()
-    assert "If the change touches" in text, (
-        "the frontend gate must be stated as a condition on touching gui/frontend, "
-        "not as an unconditional step"
+    assert ".github/workflows/" in text
+    assert "Run what CI runs" in text
+
+
+def test_a_suite_the_change_does_not_touch_is_not_required():
+    """Captain's ruling, 2026-08-19: conditional, so one part's change needs no other toolchain."""
+    text = _skill_text()
+    assert "If the change touches" in text
+    assert "If the change touches none of it" in text
+
+
+# Tokens that tie the gate to one project's toolchain. Each was in the skill before the ruling.
+PROJECT_SPECIFIC = {
+    "hatch": re.compile(r"\bhatch\b"),
+    "pytest invocation": re.compile(r"\bpytest\b"),
+    "pytest.ini": re.compile(r"pytest\.ini"),
+    "pyproject.toml": re.compile(r"pyproject\.toml"),
+    "gui/frontend": re.compile(r"gui/frontend"),
+    "npm": re.compile(r"\bnpm\b"),
+    "npx": re.compile(r"\bnpx\b"),
+    "logging.basicConfig": re.compile(r"basicConfig"),
+    "Python-only glob": re.compile(r"\*\*/\*\.py"),
+}
+
+
+@pytest.mark.parametrize("label", sorted(PROJECT_SPECIFIC))
+def test_the_gate_names_no_single_projects_toolchain(label: str):
+    """Captain's ruling, 2026-10-07: commit-ready is taught first, so it must fit any project."""
+    match = PROJECT_SPECIFIC[label].search(_skill_text())
+    assert match is None, (
+        f"commit-ready names {label} ({match.group(0)!r}); a project without it would be "
+        "told to run a command it does not have. Point at the project's CLAUDE.md or CI instead."
     )
 
 
-def test_the_python_suite_is_still_the_baseline():
-    """Adding the frontend gate must not displace the suite that covers the engine."""
-    assert "hatch run pytest" in _skill_text()
+@pytest.mark.parametrize(
+    "command",
+    ["git commit", "git push", "git merge", "gh pr create", "gh pr merge", "git branch -d", "-X DELETE"],
+)
+def test_the_gate_never_has_the_agent_commit_push_merge_or_delete(command: str):
+    """Rule `commit-authority`: the agent hands over; the human runs these.
+
+    A command in a fenced block is one the reader is told to run, so none of these may be in one.
+    """
+    blocks = re.findall(r"```[a-z]*\n(.*?)```", _skill_text(), flags=re.DOTALL)
+    offending = [b for b in blocks if command in b]
+    assert not offending, f"commit-ready gives the agent {command!r} to run: {offending[0]!r}"
+
+
+def test_the_gate_says_the_human_commits_and_pushes():
+    text = _skill_text()
+    assert "The human commits, pushes, opens the pull request and merges" in text.replace("\n", " ")
+    assert "The human opens it" in text
+    assert "commit-authority" in text
+
+
+def test_the_gate_files_a_missing_issue_from_a_body_file():
+    """Rule `agent-may-file-issues`: the agent files it, with the body in a file."""
+    text = _skill_text()
+    assert "--body-file tmp/issue.md" in text
+    assert "agent-may-file-issues" in text

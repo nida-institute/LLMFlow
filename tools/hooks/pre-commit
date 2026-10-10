@@ -30,6 +30,28 @@ git add docs/index.json
 
 echo "✓ docs/index.json refreshed"
 
+# The other map, and the opposite thing: docs/index.json is the implementation and says in its
+# own `about` that it is not an API; docs/cli-api.json is the public surface — every `sp`
+# command and every step type with its keys and members. Both are regenerated here for the same
+# reason: a generated file nobody regenerates is how the first one sat stale for seven months
+# while appearing maintained.
+#
+# This one needs the package importable, because it derives from build_parser() and
+# PIPELINE_SCHEMA rather than from source text. Where it cannot import, say so and carry on:
+# a hook that blocks every commit on an environment problem gets disabled, and a disabled hook
+# regenerates nothing at all.
+echo "Updating docs/cli-api.json..."
+if python3 tools/index_cli_api.py > docs/cli-api.json.tmp 2>/dev/null; then
+  mv docs/cli-api.json.tmp docs/cli-api.json
+  git add docs/cli-api.json
+  echo "✓ docs/cli-api.json refreshed"
+else
+  rm -f docs/cli-api.json.tmp
+  echo "⚠ docs/cli-api.json NOT refreshed — llmflow is not importable from plain python3."
+  echo "  Run: hatch run python tools/index_cli_api.py > docs/cli-api.json"
+  echo "  tests/test_cli_api_map.py fails until it is current, so this is reported, not silent."
+fi
+
 # NOTE: this hook deliberately does NOT run tools/update_ai_context.py. That generator is
 # being retired (LLMFlow#156 — "sp init wins"): it hand-maintains engine-only index/rules
 # content and force-added docs/ai-context/{index,overview,rules}.md to every commit, which

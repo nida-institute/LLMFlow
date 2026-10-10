@@ -8,13 +8,14 @@ a YAML block scalar (`|`) for multi-line content.
 
 ```yaml
 # Simple step — one line is enough
-- name: load_annotated_book
-  description: Load pre-built annotated USJ for the requested book.
-  type: function
-  function: llmflow.utils.io.read_json
-  inputs:
-    path: "${output_dir}/${book_code}_annotated.json"
-  outputs: annotated_book
+- name: load_book
+  description: The book in USJ, with a source id and morphology on every word.
+  type: scripture
+  resource: SBLGNT
+  passage: "${book_code}"
+  format: usj
+  include: [ids, morphology]
+  output: annotated_book
 
 # Complex step — multi-line description using block scalar
 - name: prepare_for_synthesis

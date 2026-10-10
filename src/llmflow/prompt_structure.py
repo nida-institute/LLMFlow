@@ -269,7 +269,8 @@ def render_markdown() -> str:
         "**Conditional is not discretionary.** A position is omitted only when its side",
         "condition forbids writing it, never because writing it was work.",
         "",
-        "Every task section at position 9 carries all four of these, in this order:",
+        f"Every task section at position {next(p.n for p in positions() if p.id == 'band')} "
+        "carries all four of these, in this order:",
         "",
     ]
     lines += [f"- `{subsection}`" for subsection in task_subsections()]

@@ -3,7 +3,14 @@ requires:
   - book
   - segmentation_json
 format: JSON
-description: Summarise a book segmentation, returned as a strict JSON schema.
+description: |
+  Summarise a book segmentation, returned as a strict JSON schema. Used by
+  `pipelines/json-schema-example.yaml`.
+
+  ## Inputs
+  - `book` — the pipeline's `book` variable
+  - `segmentation_json` — the whole output of the segmentation step, `${segmentation}`,
+    serialised as JSON
 ---
 user: |
   Based on the segmentation of {{book}}, generate a summary report.

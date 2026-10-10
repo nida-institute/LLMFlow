@@ -14,26 +14,22 @@ from pathlib import Path
 
 import pytest
 
-from llmflow.pipeline_schema import allowed_step_keys
-from llmflow.utils.linter import COMMON_TYPOS
+from llmflow.pipeline_schema import allowed_step_keys, declared_step_types
+from llmflow.utils.linter import COMMON_TYPOS, validate_output_members
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # Dicts whose `type` is one of these are treated as pipeline steps and key-checked.
-KNOWN_STEP_TYPES = {
-    "llm", "function", "for-each", "window", "if", "json", "save",
-    "basex", "duckdb", "plugin", "xpath", "xslt", "tsv",
-    "load_json", "load_yaml", "load_xml", "load_csv", "load_tsv",
-    "load_text", "load_directory",
-}
+KNOWN_STEP_TYPES = declared_step_types()
 
-# Files whose ```yaml fenced blocks we validate: all docs, plus the embedded
-# help/tutorial YAML in cli_utils.py (where doc examples also live).
+# Files whose ```yaml fenced blocks we validate: all docs, the shipped project
+# documentation templates, and the embedded help/tutorial YAML in cli_utils.py.
 _FENCE_RE = re.compile(r"```ya?ml\n(.*?)```", re.DOTALL)
 
 
 def _iter_yaml_blocks():
     sources = list((REPO_ROOT / "docs").rglob("*.md"))
+    sources += list((REPO_ROOT / "src" / "llmflow" / "templates" / "project" / "docs").rglob("*.md"))
     sources.append(REPO_ROOT / "src" / "llmflow" / "cli_utils.py")
     for path in sources:
         text = path.read_text(encoding="utf-8")
@@ -92,5 +88,24 @@ def test_doc_yaml_examples_use_known_step_keys():
         "Documentation YAML examples use step keys the runtime does not "
         "recognise (they would be silently ignored). Fix the example, or add a "
         "'# lint-doc: skip' comment if the block is intentionally invalid:\n\n"
+        + "\n".join(f"  - {v}" for v in violations)
+    )
+
+
+def test_doc_yaml_examples_name_declared_output_members():
+    import yaml
+
+    violations = []
+    for path, block in _iter_yaml_blocks():
+        try:
+            parsed = yaml.safe_load(block)
+        except yaml.YAMLError:
+            continue
+        rel = path.relative_to(REPO_ROOT)
+        violations += [f"{rel}: {e}" for e in validate_output_members(list(_walk_steps(parsed)))]
+
+    assert not violations, (
+        "Documentation YAML examples name output members their step type does not "
+        "declare, so `sp lint` would refuse them. Fix the example:\n\n"
         + "\n".join(f"  - {v}" for v in violations)
     )

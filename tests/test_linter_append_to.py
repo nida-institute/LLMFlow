@@ -40,12 +40,12 @@ def test_linter_passes_with_outputs_and_append_to():
         prompts_dir.mkdir(exist_ok=True)
         prompt_file = prompts_dir / "test.md"
         prompt_file.write_text(
-            """<!--
+            """---
 prompt:
   requires:
     - text
   format: markdown
--->
+---
 Test prompt {{text}}"""
         )
 
@@ -86,12 +86,12 @@ def test_linter_catches_append_to_without_outputs():
         prompts_dir.mkdir(exist_ok=True)
         prompt_file = prompts_dir / "test.md"
         prompt_file.write_text(
-            """<!--
+            """---
 prompt:
   requires:
     - text
   format: markdown
--->
+---
 Test prompt {{text}}"""
         )
 
@@ -140,12 +140,12 @@ def test_linter_catches_append_to_in_nested_for_each():
         prompts_dir.mkdir(exist_ok=True)
         prompt_file = prompts_dir / "test.md"
         prompt_file.write_text(
-            """<!--
+            """---
 prompt:
   requires:
     - text
   format: markdown
--->
+---
 Test prompt {{text}}"""
         )
 
@@ -186,12 +186,12 @@ def test_linter_handles_empty_outputs_list():
         prompts_dir.mkdir(exist_ok=True)
         prompt_file = prompts_dir / "test.md"
         prompt_file.write_text(
-            """<!--
+            """---
 prompt:
   requires:
     - text
   format: markdown
--->
+---
 Test prompt {{text}}"""
         )
 
@@ -307,12 +307,12 @@ def test_linter_catches_multiple_append_to_violations():
         prompts_dir.mkdir(exist_ok=True)
         prompt_file = prompts_dir / "test.md"
         prompt_file.write_text(
-            """<!--
+            """---
 prompt:
   requires:
     - text
   format: markdown
--->
+---
 Test prompt {{text}}"""
         )
 
@@ -352,12 +352,12 @@ def test_linter_ignores_append_to_when_linter_disabled():
         prompts_dir.mkdir(exist_ok=True)
         prompt_file = prompts_dir / "test.md"
         prompt_file.write_text(
-            """<!--
+            """---
 prompt:
   requires:
     - text
   format: markdown
--->
+---
 Test prompt {{text}}"""
         )
 
@@ -401,12 +401,12 @@ def test_linter_allows_append_to_with_single_output():
         prompts_dir.mkdir(exist_ok=True)
         prompt_file = prompts_dir / "test.md"
         prompt_file.write_text(
-            """<!--
+            """---
 prompt:
   requires:
     - text
   format: markdown
--->
+---
 Test prompt {{text}}"""
         )
 
@@ -450,12 +450,12 @@ def test_linter_allows_append_to_with_multiple_outputs():
         prompts_dir.mkdir(exist_ok=True)
         prompt_file = prompts_dir / "test.md"
         prompt_file.write_text(
-            """<!--
+            """---
 prompt:
   requires:
     - text
   format: markdown
--->
+---
 Test prompt {{text}}"""
         )
 
@@ -514,12 +514,12 @@ def test_linter_catches_append_to_in_deeply_nested_structure():
         prompts_dir.mkdir(exist_ok=True)
         prompt_file = prompts_dir / "test.md"
         prompt_file.write_text(
-            """<!--
+            """---
 prompt:
   requires:
     - text
   format: markdown
--->
+---
 Test prompt {{text}}"""
         )
 

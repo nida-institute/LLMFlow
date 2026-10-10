@@ -1,7 +1,7 @@
 ---
 name: handoff
 description: |
-  **COMMAND SKILL** — Write project/HANDOFF.md capturing session state so a fresh
+  Write project/HANDOFF.md capturing session state so a fresh
   instance (or /load-context) can resume cleanly and know what to do next.
   USE FOR: the end of a work session that has unfinished or multi-threaded work;
   before /exit when there is significant in-flight context.

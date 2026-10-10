@@ -12,18 +12,58 @@ from llmflow.utils.get_prefix_directory import get_prefix_directory
 logger = Logger()
 
 
+def parse_output_entry(entry: str) -> tuple[str, str]:
+    """Split one `output:` list entry into `(variable, member)`.
+
+    `"reference"` binds the member under its own name; `"passage_info=reference"` renames it.
+    The left side is the pipeline's variable and the right is the step's member, which reads as
+    the assignment it is (#263).
+    """
+    variable, sep, member = entry.partition("=")
+    if not sep:
+        return entry.strip(), entry.strip()
+    return variable.strip(), member.strip()
+
+
+def _bound_variables(step: Dict[str, Any], members: Dict[str, Any], primary: str) -> Dict[str, Any]:
+    """Map each variable this step binds to its value, for a step type declaring members.
+
+    A bare `output:` name binds the **primary** member — today's behaviour for every step type
+    that has one, which is what keeps existing pipelines working. A list names members, each
+    optionally renamed. Naming a member is how it is requested, so one nobody names is absent
+    rather than empty: `say-which-kind-of-nothing`, whose stated exemption is a request list.
+    """
+    outputs = step.get("output")
+    if isinstance(outputs, str):
+        return {outputs: members.get(primary)}
+    if isinstance(outputs, (list, tuple)):
+        bound = {}
+        for entry in outputs:
+            variable, member = parse_output_entry(str(entry))
+            bound[variable] = members.get(member)
+        return bound
+    return {}
+
+
 def handle_step_outputs(
     step: Dict[str, Any],
     result: Any,
     context: Dict[str, Any],
     base_dir: str = ".",
     defects: Any = None,
+    members: Dict[str, Any] | None = None,
+    primary: str = "",
 ) -> None:
     """Store step result in context and handle saveas.
 
     Every step handler passes through here, which is why the defect log is drained here: a step
     of any type — function, basex, duckdb, llm under a schema — reports a defect by returning it
     under `defects`, and needs to know nothing about the log to do so.
+
+    `members` is passed by a step type that declares them (#263). Its `output:` then names members
+    rather than binding positionally, and `saveas` writes the first one named. Every other step
+    type passes `result` alone and behaves exactly as it always has — `function` chief among them,
+    since it returns arbitrary Python and cannot declare what it will produce.
     """
     context.pop("_last_saved_files", None)
     saved_paths: List[str] = []
@@ -36,8 +76,18 @@ def handle_step_outputs(
     if log is not None and isinstance(result, dict) and RESERVED_KEY in result:
         log.extend(str(step.get("name", "unnamed")), result[RESERVED_KEY])
 
+    # A member-producing step binds by name, and `saveas` is handed a step whose `output:` is the
+    # plain variable names — so `handle_step_saveas` never has to know about `variable=member`.
+    if members is not None:
+        bound = _bound_variables(step, members, primary)
+        context.update(bound)
+        for variable, value in bound.items():
+            logger.debug(f"📦 Stored in context['{variable}']: {type(value).__name__}")
+        step = {**step, "output": list(bound)} if bound else step
+        result = next(iter(bound.values()), members.get(primary))
+
     outputs = step.get("output")
-    if outputs is not None:
+    if members is None and outputs is not None:
         if isinstance(outputs, str):
             context[outputs] = result
             logger.debug(

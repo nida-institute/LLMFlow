@@ -19,8 +19,8 @@ They differ in exactly one thing, named below.
 | `sp init --update` | no | yes | refreshes one that is present |
 | `sp doctor` | no | yes | never |
 
-The starter examples — `pipelines/hello.yaml`, `pipelines/hello-llmflow.yaml`,
-`prompts/hello.gpt`, `prompts/reply.gpt` — are the whole difference. A project that
+The starter example — `pipelines/readers-guide.yaml`, `prompts/readers-guide.gpt`,
+`prompts/parallel-significance.gpt` and `docs/tutorial.md` — is the whole difference. A project that
 deleted them has decided something, and re-creating them would overrule it. Everything
 else sp owns comes back whether it was deleted, corrupted or never installed.
 
@@ -66,7 +66,7 @@ location any assistant reads; a skill that reaches only there is not invocable.
 | command | what it does |
 |---|---|
 | `sp run` | Run a pipeline. Takes `--pipeline`, `--var key=value`, `--dry-run`, `--rewind-to`. **Calls LLMs and costs money** — never run one without being asked. |
-| `sp lint` | Validate a pipeline without executing it. |
+| `sp lint` | Validate a pipeline without executing it — including that this machine can open every resource it names, offering to install what is missing (`--install-missing`, `--accept-terms` without a terminal). |
 | `sp list` | List available pipelines. |
 | `sp clean` | Delete the contents of the declared `intermediate_file_directory`. It cannot reach the deliverable. |
 | `sp tools replay` | Test a prompt change against captured debug requests, cheaply. |
@@ -86,12 +86,13 @@ location any assistant reads; a skill that reaches only there is not invocable.
 | command | what it does |
 |---|---|
 | `sp resource list` | The texts this machine can open, and their status. |
-| `sp resource add` | Register a resource so pipelines can name it. |
+| `sp resource add` | Register a resource so pipelines can name it. Shows its licence and asks you to agree; `--accept-terms` agrees without asking. |
 | `sp resource set` | Set fields on a registration, leaving the rest alone. |
+| `sp resource terms` | The licence each registration was made under, its link, and whether you agreed. Name ids to list only those. |
 | `sp dataset list` | Datasets registered on this machine. |
 | `sp dataset add` | Record where a dataset lives on this machine. |
 | `sp dataset search` | Search the whole catalog, not only what is readable. |
-| `sp dataset download` | Fetch a dataset without registering a resource. |
+| `sp dataset download` | Fetch a dataset without registering a resource. Shows its licence; does not ask. |
 | `sp load-db` | Load a downloaded dataset into a database (basex, …). |
 
 **`sp resource list` shows only what is readable here.** To find something the catalog

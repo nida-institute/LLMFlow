@@ -157,11 +157,11 @@ gamma\tThird
 
         # Create a simple prompt file WITH PROPER YAML HEADER
         prompt_file = tmp_path / "test.gpt"
-        prompt_file.write_text("""<!--
+        prompt_file.write_text("""---
 prompt:
   requires:
     - entry
--->
+---
 Process this entry: {entry}""")
 
         pipeline_config = {

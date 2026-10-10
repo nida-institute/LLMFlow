@@ -48,6 +48,10 @@ positions:
     headings: []
     required: true
 
+  # The frontmatter is for the engine and the maintainer, and never reaches the model: `requires`
+  # and `format` are the engine's, and `description` is the prompt's documentation — Markdown,
+  # saying what the prompt is for and what each input is and where it comes from. VARIABLES was a
+  # body section for that once; it moved here because a model can do nothing with it.
   - n: 2
     id: produces
     headings:
@@ -56,43 +60,40 @@ positions:
     required: true
 
   - n: 3
-    id: variables
-    headings: ["# VARIABLES"]
-    required: false
-    condition: C1
-
-  - n: 4
     id: system-role
     headings: ["# SYSTEM ROLE"]
     required: true
 
-  - n: 5
+  - n: 4
     id: examples
     headings: ["# EXAMPLES"]
     required: false
     condition: C2
 
-  - n: 6
+  # How to read each input — its structure and what its fields mean — because the model needs
+  # that. Where an input came from (which step, resource, options) is not here: it is the
+  # maintainer's, and goes in `description`.
+  - n: 5
     id: data-sources
     headings: ["# DATA SOURCES"]
     required: true
 
-  - n: 7
+  - n: 6
     id: input-data
     headings: ["# INPUT DATA"]
     required: true
 
-  - n: 8
+  - n: 7
     id: output-schema
     headings: ["# OUTPUT SCHEMA"]
     required: true
 
-  - n: 9
+  - n: 8
     id: band
     headings: []
     required: true
 
-  - n: 10
+  - n: 9
     id: quality-controls
     headings:
       - "# GUARDRAILS"
@@ -102,7 +103,7 @@ positions:
       - "# COMPLIANCE REQUIREMENTS"
     required: true
 
-  - n: 11
+  - n: 10
     id: checklist
     headings:
       - "# COVERAGE & QUALITY CHECKLIST"
@@ -116,21 +117,21 @@ positions:
   # and guides nobody. Someone about to paste the wrong thing under `# REFERENCE` notices the
   # mismatch; `# EXTENSIONS` would have accepted it silently.
   #
-  # **Design notes do not go here.** Everything in a `.gpt` file reaches the model — the whole
-  # file is sent, frontmatter included (#176) — so notes for maintainers would be tokens the
-  # model reads and may act on. They belong in `project/plans/` or the header's `description:`.
+  # **Design notes do not go here.** Everything in the body reaches the model, so notes for
+  # maintainers would be tokens the model reads and may act on. They belong in `project/plans/`
+  # or the header's `description:`, which is stripped before the call (#176).
   #
   # One door, free-form behind it: a single `# REFERENCE`, its subsections unconstrained, and
   # any further heading after it left unchecked. That is what makes it an extension point rather
   # than another production. A refused heading is still refused there — unchecked for shape is
   # not a hole where anything becomes legal.
-  - n: 12
+  - n: 11
     id: reference
     headings: ["# REFERENCE"]
     required: false
     condition: C6
 
-# Position 9 is one or more task sections. All four subsections are required in each.
+# Position 8 is one or more task sections. All four subsections are required in each.
 # Grouping what to do, its examples and its boundary in one place is the governing
 # principle — pooling them elsewhere measured worse.
 task_subsections:
@@ -140,7 +141,6 @@ task_subsections:
   - "## Guardrails"
 
 conditions:
-  C1: "`variables` present iff the prompt declares template variables"
   C2: "`examples` present iff examples are cross-cutting rather than per-task"
   C3: "every task `## Examples` contains at least one ❌ counterexample"
   C4: "a guardrail naming one task appears in that task's `## Guardrails`, never in `quality-controls`"
@@ -150,6 +150,7 @@ conditions:
 # Headings a reader may expect and the grammar does not admit. Recorded so a rejection can
 # say what to write instead, rather than only that the heading is unknown.
 refused:
+  "# VARIABLES": "inputs are described in the header's `description`, which the model never reads; the body names an input where it uses it"
   "# OUTPUT FORMAT": "the production is `# OUTPUT SCHEMA`"
   "# CRITICAL REMINDERS": "not a `quality-controls` alternative; use one of its headings"
   "## Rules Specific to This Output Type": "the task subsection is `## Guardrails`"

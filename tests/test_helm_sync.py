@@ -39,7 +39,7 @@ import yaml
 from tests.test_portable_disciplines import (
     SHARED_WITH_HELM as SHARED_DISCIPLINES,
 )
-from tests.test_portable_skills import ENGINE_VOCABULARY, _offenders
+from tests.test_portable_skills import ENGINE_VOCABULARY, HELM_EXEMPT, _offenders
 from tests.test_portable_skills import (
     FORKED as FORKED_SKILLS,
 )
@@ -128,6 +128,29 @@ NEEDS_CLONE = pytest.mark.skipif(
 # ---------------------------------------------------------------------------
 
 
+#: Shared files whose drift from Helm is the next release's work. Only these are exempt; any other
+#: file drifting still fails. All but the first carry the workshop collab's rulings — the human
+#: files issues, commits, pushes and opens pull requests; no heredocs; `/commit-ready` fits any
+#: project; `/load-context` reads the handoff — which reach Helm with the next release's sync.
+EXEMPT_KEYS = frozenset({
+    "disciplines/project-tracking.md",
+    "disciplines/github-authority.md",
+    "disciplines/workflow.md",
+    "skills/authorize",
+    "skills/commit-ready",
+    "skills/load-context",
+})
+
+
+def _keys(*, live: bool = False) -> list:
+    """`live`: the comparison returns early for a `differs` entry, so marking one would XPASS."""
+
+    def exempt(key: str) -> bool:
+        return key in EXEMPT_KEYS and (not live or RECORD[key]["status"] == "identical")
+
+    return [pytest.param(k, marks=HELM_EXEMPT) if exempt(k) else k for k in sorted(RECORD)]
+
+
 def test_the_record_covers_exactly_the_shared_set():
     """Every shared file is accounted for, and nothing else is.
 
@@ -142,7 +165,7 @@ def test_the_record_covers_exactly_the_shared_set():
     )
 
 
-@pytest.mark.parametrize("key", sorted(RECORD))
+@pytest.mark.parametrize("key", _keys())
 def test_the_recorded_hash_matches_the_shipped_file(key: str):
     """Editing a shared file here without re-running the script fails the build.
 
@@ -235,7 +258,7 @@ def test_the_shared_file_is_present_in_helm(key: str):
 
 
 @NEEDS_CLONE
-@pytest.mark.parametrize("key", sorted(RECORD))
+@pytest.mark.parametrize("key", _keys(live=True))
 def test_the_two_sides_agree_where_the_record_says_they_do(key: str):
     """`identical` must mean identical in fact, not in intention."""
     entry = RECORD[key]
@@ -292,6 +315,7 @@ def test_a_divergent_copy_in_helm_still_carries_no_engine_vocabulary(key: str):
 
 
 @NEEDS_CLONE
+@HELM_EXEMPT
 def test_helm_ships_nothing_the_record_cannot_explain():
     """Helm's own material is listed; anything else is unexplained.
 

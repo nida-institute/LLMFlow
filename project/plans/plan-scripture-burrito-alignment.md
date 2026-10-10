@@ -38,13 +38,13 @@ at the generator rather than in the data. Three things follow from that, and a f
 | R10 | **Mine the TOML when converting.** It carries copyright and licence, which a valid Scripture Burrito requires and which exist nowhere else. |
 | R11 | **Hold the Working Group issues.** Discuss and resolve them in the group before baking anything into the specification's examples. |
 | R12 | **Harvest real data** from the public repository to replace the toy examples in the spec — after R11. |
-| R13 | Accumulate candidate issues in `tmp/issues`, organised by target repository. |
+| R13 | Accumulate candidate issues in `project/upstream`, organised by target repository. |
 | R14 | **Copyright-restricted data** (`alignments-eng` and the other per-language repositories) never enters a public issue, PR, test fixture or example. |
 | R15 | Commits, pushes and merges are the Captain's. Nothing is written into another organisation's repository without asking. |
 | R16 | **`confidential` states whether the existence of a particular translation in a language is sensitive.** Most are not. **None of the public alignments are**, so `confidential: false` throughout. It is a security question, not a licensing one — a copyright-restricted translation is publicly known and merely licensed, which is a different fact from a project whose existence must not be revealed. |
 | R20 | **R19 is about what gets written to disk, not about a library's internals.** *"I don't care about internal tokens, I only care about what gets written to disk. Leaving their internals alone as much as possible is good."* So a token model may normalize identifiers for its own lookups; what it must not do is emit a reshaped identifier into a file. The fix is at the serialization boundary, not through the object model. |
 | R19 | **Keep the identifiers of the original source. This is data integration, and it is one of its first principles.** *"Identifiers are opaque, we have no right to change them, they belong to the data creator. If we change them, they no longer work in the original environment they came from, and those environments cannot use our alignments."* Reshaping a selector — stripping a prefix, truncating a part digit, inferring a prefix that was not there — makes the alignment unusable by the environment that produced the text. This governs every read and write path, not just conversion. It does **not** cover a library's own identifiers, such as an alignment record's `meta.id`, which R9 allows a library to define and document. |
-| R18 | **Where the standard cannot represent something the data has, raise an issue against the standard in `tmp/issues` — and the reader and writer support it regardless.** The library does not wait for the specification to catch up, and the gap is not silently dropped. |
+| R18 | **Where the standard cannot represent something the data has, raise an issue against the standard in `project/upstream` — and the reader and writer support it regardless.** The library does not wait for the specification to catch up, and the gap is not silently dropped. |
 | R17 | **Identifiers are taken from the source translation, whatever it uses** — *"we normally take some id from the source translation, whatever it uses. Often some form of B+C+V+P?"* So for alignments being created, the format is not declared separately: it is inherited from the token files the ids come from, and the regex describing it is derived from those (R7). "Often" is precisely why it is derived rather than assumed. |
 
 ## State
@@ -62,7 +62,7 @@ raises `ValueError` naming the file when it cannot parse. The Python floor rises
 `tomllib`. 373 tests pass; verified against the corpus at 17 read and 4 refused.
 
 **Raised — the container cannot scope rights to an artifact** (R18):
-`tmp/issues/bible-technology-scripture-burrito/01-rights-cannot-be-scoped-to-an-artifact.md`.
+`project/upstream/bible-technology-scripture-burrito/01-rights-cannot-be-scoped-to-an-artifact.md`.
 Drafted, not filed.
 
 **Not started — the scheme work.** Under R6 and R8 this is *not* deriving a semantic label: it is
@@ -99,7 +99,7 @@ Two known obstacles, recorded as facts rather than decisions:
 
 Genuinely undecided, as distinct from things already ruled above:
 
-- Whether the scheme-registry question (`tmp/issues/bible-technology-alignment-spec/03-*.md`) is
+- Whether the scheme-registry question (`project/upstream/bible-technology-alignment-spec/03-*.md`) is
   settled in the Working Group before or after the library work that depends on it. R11 holds the
   issues; the library can carry and derive formats (R7, R17) without a registry, but cannot put a
   standard *name* on one until the group has a vocabulary.

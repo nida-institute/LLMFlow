@@ -41,21 +41,20 @@ Use this structure for prompts that transform structured JSON input into structu
 | --- | --- | --- | --- |
 | 1 | `frontmatter` | _YAML frontmatter_ | required |
 | 2 | `produces` | `# WHAT THIS STEP PRODUCES` or `# WHAT THIS PROMPT PRODUCES` | required |
-| 3 | `variables` | `# VARIABLES` | conditional — C1 |
-| 4 | `system-role` | `# SYSTEM ROLE` | required |
-| 5 | `examples` | `# EXAMPLES` | conditional — C2 |
-| 6 | `data-sources` | `# DATA SOURCES` | required |
-| 7 | `input-data` | `# INPUT DATA` | required |
-| 8 | `output-schema` | `# OUTPUT SCHEMA` | required |
-| 9 | `band` | _one or more task sections — C5_ | required |
-| 10 | `quality-controls` | `# GUARDRAILS` or `# EVIDENCE DOCUMENTATION REQUIREMENTS` or `# VALIDATION RULES` or `# OUTPUT CONSTRAINTS` or `# COMPLIANCE REQUIREMENTS` | required |
-| 11 | `checklist` | `# COVERAGE & QUALITY CHECKLIST` or `# FINAL VALIDATION CHECKLIST` | required |
-| 12 | `reference` | `# REFERENCE` | conditional — C6 |
+| 3 | `system-role` | `# SYSTEM ROLE` | required |
+| 4 | `examples` | `# EXAMPLES` | conditional — C2 |
+| 5 | `data-sources` | `# DATA SOURCES` | required |
+| 6 | `input-data` | `# INPUT DATA` | required |
+| 7 | `output-schema` | `# OUTPUT SCHEMA` | required |
+| 8 | `band` | _one or more task sections — C5_ | required |
+| 9 | `quality-controls` | `# GUARDRAILS` or `# EVIDENCE DOCUMENTATION REQUIREMENTS` or `# VALIDATION RULES` or `# OUTPUT CONSTRAINTS` or `# COMPLIANCE REQUIREMENTS` | required |
+| 10 | `checklist` | `# COVERAGE & QUALITY CHECKLIST` or `# FINAL VALIDATION CHECKLIST` | required |
+| 11 | `reference` | `# REFERENCE` | conditional — C6 |
 
 **Conditional is not discretionary.** A position is omitted only when its side
 condition forbids writing it, never because writing it was work.
 
-Every task section at position 9 carries all four of these, in this order:
+Every task section at position 8 carries all four of these, in this order:
 
 - `## Input: Where to Find the Data`
 - `## Transformation Rules`
@@ -64,7 +63,6 @@ Every task section at position 9 carries all four of these, in this order:
 
 | | side condition |
 | --- | --- |
-| C1 | `variables` present iff the prompt declares template variables |
 | C2 | `examples` present iff examples are cross-cutting rather than per-task |
 | C3 | every task `## Examples` contains at least one ❌ counterexample |
 | C4 | a guardrail naming one task appears in that task's `## Guardrails`, never in `quality-controls` |
@@ -78,6 +76,7 @@ These headings are refused, with what to write instead:
 | `# CORE PRINCIPLES` | removed from the standard — 0 of 5 prompts ever carried one; cross-cutting principles belong in `# SYSTEM ROLE`, per-task ones in that task's `## Transformation Rules` |
 | `# CRITICAL REMINDERS` | not a `quality-controls` alternative; use one of its headings |
 | `# OUTPUT FORMAT` | the production is `# OUTPUT SCHEMA` |
+| `# VARIABLES` | inputs are described in the header's `description`, which the model never reads; the body names an input where it uses it |
 | `## Rules Specific to This Output Type` | the task subsection is `## Guardrails` |
 
 ## What goes in each section
@@ -92,10 +91,28 @@ with a count of eight, and to carry a `CORE PRINCIPLES` no prompt had ever writt
 prompt:
   requires: [passage_ref, scenes, verses]
   format: JSON
-  description: >-
-    One-line description of what this prompt does
+  description: |
+    What this prompt is for, in a sentence or two.
+
+    ## Inputs
+    - `passage_ref` — the reference, from the step's `prompt.inputs`
+    - `scenes` — `type: function`, `load_scenes`, one entry per scene
+    - `verses` — `type: scripture`, `BSB`, `format: milestones`
+
+    ## Notes
+    Anything a maintainer of this prompt should know.
 ---
 ```
+
+**The frontmatter never reaches the model.** The engine strips it before the call: `requires`
+and `format` are the engine's, and `description` is the prompt's documentation for the people
+who maintain it. Write `description` in Markdown and put there what a model can do nothing with —
+what each input is and **where it comes from** (which step, which resource, which options), and
+any design notes. `sp lint` warns when `description` does not name every input in `requires:`.
+
+**The test for which side a line belongs on is its reader.** Where an input came from is the
+maintainer's, and goes in `description`. How to read it — what its fields mean, what an empty
+value says — is the model's, and goes in the body under `# DATA SOURCES`.
 
 **There is no `optional:` key.** Every prompt parameter is required. An optional parameter needs
 a branch somewhere, and the branch nobody tests is where defects live — so a name either belongs
@@ -118,13 +135,8 @@ step.
 `# WHAT THIS PROMPT PRODUCES` is the alternative heading. Required: all five prompts measured
 on 2026-09-16 already carried one, so nothing had to be written to promote it.
 
-### VARIABLES — conditional (C1)
-```markdown
-# VARIABLES
-
-- `{{var1}}` — description
-- `{{var2}}` — description
-```
+There is no `# VARIABLES` section. Inputs are described in `description`, and the body names an
+input where it uses it.
 
 ### SYSTEM ROLE
 ```markdown
@@ -162,16 +174,21 @@ TODO sections for examples that need manual writing
 ```markdown
 # DATA SOURCES
 
-## Input Source 1 (from file.json)
-- **Source:** path
-- **Pipeline variable:** `${var}`
+## The scenes (from `{{scenes}}`)
+- **Shape:** one entry per scene
 - **Key fields:**
-  - field1: description
-  - field2: description
+  - field1: what it means, and what an empty value says
+  - field2: what it means
 
-## Input Source 2
+## The verses (from `{{verses}}`)
 [Same pattern]
 ```
+
+How to read each input, for the model. Not where it came from — that is `description`'s.
+
+**`{{name}}` outside `# INPUT DATA` is a mention, not the value.** The engine fills a placeholder
+only under `# INPUT DATA`; anywhere else it renders as the bare name. So `(from {{scenes}})` here
+costs nothing, and the value is sent once.
 
 ### INPUT DATA
 ```markdown
@@ -339,7 +356,7 @@ Before returning output:
 ## Section Hierarchy Convention
 
 Use consistent heading levels:
-- `#` = Major sections (VARIABLES, SYSTEM ROLE, DATA SOURCES, OUTPUT SCHEMA, QUALITY CONTROLS)
+- `#` = Major sections (SYSTEM ROLE, DATA SOURCES, INPUT DATA, OUTPUT SCHEMA, QUALITY CONTROLS)
 - `##` = Subsections within major sections
 - `###` = Fine-grained details within subsections
 - Use `**bold**` for inline emphasis, not additional heading levels
@@ -438,7 +455,8 @@ Consider splitting when:
 2. **How do we handle legacy prompts?** Reorg only when we need to edit them?
 3. **What about genre-specific variations?** (exegetical-*, narrative-*, rd-*)
 4. **Examples in TODOs:** Keep TODO placeholders long-term or fill them immediately?
-5. **Variable declarations:** Always in separate VARIABLES section vs. inline?
+5. ~~**Variable declarations:** Always in separate VARIABLES section vs. inline?~~ Answered: in
+   the header's `description`, which the model never reads (see Frontmatter).
 
 ---
 
@@ -514,7 +532,7 @@ System: [role]
 
 **Key differences:**
 - Hearts uses `#` for major sections, Bodies uses `##`
-- Hearts has VARIABLES section, Bodies doesn't (but could use it)
+- Hearts has VARIABLES section, Bodies doesn't (the section has since moved to `description`)
 - Hearts consolidates EXAMPLES separately, Bodies intersperses them
 - Hearts has explicit CORE PRINCIPLE section
 - Bodies has "System:" prefix that Hearts removed

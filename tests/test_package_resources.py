@@ -33,7 +33,6 @@ IMPORTLIB_RESOURCE_PATHS = [
 PACKAGE_INTERNAL_TEMPLATES = [
     "templates/sp/disciplines",
     "templates/sp/skills/audit-prompts",
-    "templates/sp/skills/release",
 ]
 
 

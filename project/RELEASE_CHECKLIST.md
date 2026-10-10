@@ -41,7 +41,7 @@ finish, then come back and tick them before merging.
 - [ ] The version-bump commit is part of the PR (so the tag lands on code with the right version)
 
 ### 2. Documentation sync
-- [ ] Main docs reflect new features (`docs/*.md`, e.g. `docs/llmflow-language.md`)
+- [ ] Main docs reflect new features (`docs/*.md`, e.g. `docs/sp-language.md`)
 - [ ] `INSTALL.md` / `README.md` examples still accurate
 - [ ] Tutorial matches current CLI behavior
 - [ ] **A breaking change is a doc sweep, not a doc note.** Grep the retired spelling across
@@ -58,6 +58,14 @@ finish, then come back and tick them before merging.
     hatch run sp lint --pipeline "$f" >/dev/null 2>&1 && echo OK || echo FAIL; done
   ```
 - [ ] No consumer-specific coupling introduced into the core engine
+- [ ] **The Tests workflow is green on `dev` at the commit the PR will carry — before opening it.**
+      `build.yml` runs the same suite on the PR, so a red `test.yml` run is a failed build waiting
+      to happen; 0.2.1.28's build failed four times that way, every time on the ordinary suite.
+      A check exempt by decision is marked `xfail(strict=True)` in its test file, never deselected
+      on the command line, so the local run and CI agree. Confirm with:
+  ```bash
+  gh run list --workflow test.yml --branch dev --limit 1
+  ```
 
 ### 4. The PR build is green — **after §6 opens the PR**
 - [ ] The release PR (dev → main) has a passing **`build.yml`** run on its head commit

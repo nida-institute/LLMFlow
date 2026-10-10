@@ -1,7 +1,7 @@
 ---
 name: authorize
 description: |
-  **WORKFLOW SKILL** — Authorization workflow. Declare scope before touching any file.
+  Authorization workflow. Declare scope before touching any file.
   Verify authorization, state exactly what will change and what will not, and
   get Captain sign-off before implementation begins.
   USE FOR: before starting any non-trivial task; before touching a file that wasn't
@@ -53,7 +53,8 @@ A comment without an issue reference is not a design authority. If the AI reads 
 a future session, it will not know whether it reflects an intentional decision or a
 stale assumption. Issue references make design decisions traceable and durable.
 
-If no issue exists for the design decision: file one before writing the comment.
+If no issue exists for the design decision: file one before writing the comment — rule
+`agent-may-file-issues`.
 
 ---
 

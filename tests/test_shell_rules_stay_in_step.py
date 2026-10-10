@@ -32,14 +32,14 @@ DISCIPLINE = REPO_ROOT / "src" / "llmflow" / "templates" / "sp" / "disciplines" 
 SHELL_RULE_IDS = (
     "file-tools-for-reading",
     "one-command-at-a-time",
-    "inline-code-uses-a-heredoc",
+    "inline-code-goes-in-a-file",
     "git-output-is-not-piped",
     "ask-for-the-exception",
 )
 
 #: Update both when either side is deliberately reworded — after re-reading the other.
-EXPECTED_RULES_DIGEST = "91baa58d0fae0742"
-EXPECTED_DISCIPLINE_DIGEST = "be9fe1b2771ac5e0"
+EXPECTED_RULES_DIGEST = "b1c19552ade71817"
+EXPECTED_DISCIPLINE_DIGEST = "60aee9521b07d2ca"
 
 
 def _digest(text: str) -> str:

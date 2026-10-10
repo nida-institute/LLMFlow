@@ -15,10 +15,10 @@ produced by the two functions `steps/scripture.py` itself calls, so a cell is wh
 `type: scripture` step returns — not a model of one.
 
 ```bash
-hatch run python tmp/representation-grid/generate.py
+hatch run python scripts/representation-grid/generate.py
 ```
 
-Writes `tmp/representation-grid/grid.tsv`, `grid.json`, and one file per returned cell under
+Writes `scripts/representation-grid/grid.tsv`, `grid.json`, and one file per returned cell under
 `cells/`. No pipeline, no model, no spend. Every number below is re-derivable with that command,
 per `declared-not-inferred`; nothing here is estimated.
 

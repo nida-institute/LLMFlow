@@ -36,52 +36,61 @@ _REQRESP_SUFFIX = re.compile(r"_(request|response)\.txt$")
 # ===========================================================================
 
 def recover_var_map(prompt: str, request: str) -> dict[str, str]:
-    """Recover {var: value} by aligning the original `.gpt` against the rendered
-    request. The request is the prompt with each `{{var}}` substituted, so the two
-    are line-for-line identical except at variable sites.
+    """Recover {var: value} by aligning the original `.gpt` against the rendered request.
 
-    Raises ValueError if the two don't align (usually: `prompt` is not the version
-    that generated `request`).
+    The request is the prompt with each `{{var}}` substituted, so the two are identical
+    except at the variable sites. Alignment is on **those sites**, not on lines: one pattern
+    over the whole prompt, literals escaped and each variable a capture group, matched with
+    `DOTALL`. A value spanning many lines is then no different from one that does not.
+
+    This aligned line-for-line and began by requiring equal line counts, so a variable holding
+    multi-line JSON made the request longer than the template and the recovery was refused
+    before anything was examined. Reported by a consumer for whom *every* prompt embeds a JSON
+    payload, so none of them could be replayed at all (#255) — which left a check their own
+    rulings called for unavailable, and a book run per edit as the alternative.
+
+    Raises ValueError if the two do not align, which usually means `prompt` is not the version
+    that generated `request`. That refusal is the point and is not relaxed here: a var map
+    recovered from the wrong prompt is substituted into an edited prompt and sent to a model,
+    where the failure arrives as a plausible answer rather than an error.
     """
-    p_lines = prompt.split("\n")
-    r_lines = request.split("\n")
-    if len(p_lines) != len(r_lines):
-        raise ValueError(
-            f"prompt and request have different line counts "
-            f"({len(p_lines)} vs {len(r_lines)}); is --prompt the version that "
-            f"generated --request?"
-        )
+    pattern = ""
+    seen: set[str] = set()
+    last = 0
+    previous_end: int | None = None
 
-    result: dict[str, str] = {}
-    for p, r in zip(p_lines, r_lines):
-        if p == r:
-            continue
-        names = _VAR.findall(p)
-        if not names:
+    for m in _VAR.finditer(prompt):
+        literal = prompt[last:m.start()]
+        # Two variables with nothing between them: any split of the text is arbitrary, so
+        # there is no answer to give rather than a wrong one to guess at.
+        if previous_end is not None and not literal:
             raise ValueError(
-                f"lines differ but the template line has no {{{{var}}}}:\n"
-                f"  template: {p!r}\n  request:  {r!r}"
+                f"variables {{{{{m.group(1)}}}}} and the one before it are adjacent, with no "
+                f"text separating them. Nothing can say where one value ends and the next "
+                f"begins; separate them in the prompt, or supply one with --set."
             )
-        # Build a regex from the template line: literals escaped, each {{var}} a
-        # named capture group. Matching it against the request line extracts values.
-        pattern = ""
-        last = 0
-        for m in _VAR.finditer(p):
-            pattern += re.escape(p[last:m.start()])
-            pattern += f"(?P<{m.group(1)}>.*)"
-            last = m.end()
-        pattern += re.escape(p[last:])
-        match = re.fullmatch(pattern, r, re.DOTALL)
-        if not match:
-            raise ValueError(f"could not extract value(s) from line:\n  {p!r}\n  {r!r}")
-        for name, val in match.groupdict().items():
-            if name in result and result[name] != val:
-                raise ValueError(
-                    f"variable {name!r} recovered two different values: "
-                    f"{result[name]!r} vs {val!r}"
-                )
-            result[name] = val
-    return result
+        pattern += re.escape(literal)
+        name = m.group(1)
+        if name in seen:
+            # The same variable twice holds one value. A backreference says so, and makes a
+            # capture that disagrees with the first simply fail to match.
+            pattern += f"(?P={name})"
+        else:
+            seen.add(name)
+            # Non-greedy, anchored by the literal that follows and by `fullmatch` at the end.
+            pattern += f"(?P<{name}>.*?)"
+        last = m.end()
+        previous_end = m.end()
+
+    pattern += re.escape(prompt[last:])
+    match = re.fullmatch(pattern, request, re.DOTALL)
+    if not match:
+        raise ValueError(
+            "the prompt does not align with the request; is --prompt the version that "
+            f"generated --request? ({len(prompt.splitlines())} template lines, "
+            f"{len(request.splitlines())} rendered, {len(seen)} variable(s))"
+        )
+    return {name: value for name, value in match.groupdict().items() if value is not None}
 
 
 def render(prompt_new: str, var_map: dict[str, str],
@@ -291,7 +300,20 @@ def run(args) -> int:
     prompt_new = _read(args.prompt_new)
     sref = schema_ref(prompt_new) or schema_ref(prompt_old)
     if not sref:
-        raise SystemExit("no schema declared in the prompt frontmatter")
+        # Say what was looked at and what was not. Replay is given a prompt and a capture and
+        # never sees the pipeline, so a step's `response_format` is not consulted — and a
+        # reader meeting a bare "no schema declared" concludes that is the whole problem, when
+        # it may be hiding the real one behind it (#255).
+        raise SystemExit(
+            "no `schema:` in the frontmatter of either --prompt or --prompt-new.\n"
+            "  replay reads the prompt's frontmatter only. A `response_format` on the "
+            "pipeline step is NOT consulted:\n"
+            "  replay is given a prompt and a capture, and never sees the pipeline.\n"
+            "  Add `schema: path/to.schema.json` to the prompt header — harmless, since the "
+            "step's response_format still governs a real run.\n"
+            "  Reading the step's schema instead would mean replay knowing the pipeline, not "
+            "just the prompt: deferred to #243 Part 3."
+        )
     schema = load_schema(sref, repo_root)
     schema_name = Path(sref).stem.replace(".schema", "").replace("-", "_")
 

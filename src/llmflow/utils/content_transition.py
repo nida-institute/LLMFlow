@@ -482,7 +482,7 @@ def _update_metadata(
     if transition_config.copy_metadata:
         source_metadata_file = from_dir / ".metadata.json"
         if source_metadata_file.exists():
-            source_metadata = json.loads(source_metadata_file.read_text())
+            source_metadata = json.loads(source_metadata_file.read_text(encoding="utf-8"))
             if path in source_metadata:
                 metadata[path] = source_metadata[path].copy()
 
@@ -504,4 +504,4 @@ def _update_metadata(
             metadata[path][key] = value
 
     # Write metadata back
-    metadata_file.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    metadata_file.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -21,6 +21,41 @@ job.
 | Active work, what is in flight, what not to touch | [project/TODO.md](../../../project/TODO.md) | Every session (rule `todo-is-the-session-cache`) |
 | The rules every session here is held to | [../sp/rules.md](../sp/rules.md) | **Before any change** — authoritative |
 | Constraints that hold in **this** repository and nowhere else | [rules.md](rules.md) | Alongside `sp/rules.md`; short, and it is where local prohibitions live |
+| **A map of this engine's implementation — not an API** | [docs/index.json](../../index.json) | **Before writing any function, and before adding a module.** Search it first — **duplicate code is buggy code**, and it diverges from the original the moment either changes. It is **not a surface**: not for projects, and **not for tests**, which exercise a step through the object model or the CLI — see [rules.md](rules.md). It says so in its own `about` field |
+| **A map of the public surface — the one that *is* an API** | [docs/cli-api.json](../../cli-api.json) | Every `sp` command with its options, and every step type with its own keys, its members and which is primary. Generated from `build_parser()` and `PIPELINE_SCHEMA`, so it cannot drift from what the program does. **This is what a project may build against; `index.json` is not.** Answering "what does this engine offer?" from here needs no import |
+
+### Search `docs/index.json` before you write
+
+It carries one entry per module — `module`, `imports`, and every function with its signature and
+docstring — so the question *"does this already exist?"* is answerable in one command rather than
+by recalling the tree:
+
+```bash
+jq -r '.modules[] | select(.module | test("verse|version")) | .module as $m
+       | .functions[] | "\($m).\(.name)\(.signature | sub("^[^(]*";""))"' docs/index.json
+```
+
+This is the file whose absence from this index let a session write its own verse-overlap check
+while `llmflow.utils.verse_ranges.overlaps` and `verse_ranges.select` already existed — `select`
+having been written precisely because four plugins had each hand-rolled that loop. `one-design`
+and `read-the-docs` both bear on it; this row is how you comply with them cheaply.
+
+**This guidance is engine-only and is deliberately not shipped.** A project using Scripture
+Pipelines reaches it through **one** surface — the `sp` command line and the pipeline language
+it reads — and never by importing the package, which carries no compatibility promise.
+`index.json` maps the internals, so it answers a question only work *on the engine* is entitled
+to ask. The consumer-facing half of this — the one surface, and that a project's tests belong on
+it rather than on internals — lives in `templates/project/docs/ai-context/sp/overview.md`, which
+ships, and is held there by `tests/test_shipped_context_names_one_surface.py`.
+
+The `llmflow` Python API is real and supported, and it is **the engine's own**: `docs/python-api.md`
+documents it for work in this repository. Narrowed from "two surfaces" on the Captain's ruling —
+*"this absolutely needs to show only the cli command line and the CLI API"* — because a project
+told about a second surface builds against a contract nobody offered it.
+
+**It binds this repository's own tests too.** A test here exercises a step through the object
+model or the CLI, not by handing a handler a dict (`rules.md` §1, and #250, which counts 29 files
+against 12). Reading `index.json` is how you find the public call before writing a private one.
 
 ## This engine's own documentation
 
@@ -29,9 +64,9 @@ job.
 | Installing the CLI | [INSTALL.md](../../../INSTALL.md) | Standalone binaries; Gatekeeper and SmartScreen steps |
 | Quickstart | [docs/tutorial.md](../../tutorial.md) | `sp init`, a greeting pipeline, a two-step example |
 | Setup and CLI basics | [docs/getting-started.md](../../getting-started.md) | Environment variables, linting, the resource-repo pattern |
-| YAML grammar and step types | [docs/llmflow-language.md](../../llmflow-language.md) | `llm` / `function` / `for-each` / `window`, variables, `append_to`, structured output |
+| YAML grammar and step types | [docs/sp-language.md](../../sp-language.md) | `llm` / `function` / `for-each` / `window`, variables, `append_to`, structured output |
 | Architecture and modules | [docs/architecture.md](../../architecture.md) | CLI, runner, linter, telemetry, plugin hooks; §15 is the debug request/response dump |
-| Python API | [docs/python-api.md](../../python-api.md) | `load_pipeline(...)` then `.resolve()` / `.lint()` / `.run()` / `.schemas()`; `PIPELINE_SCHEMA` and `api_catalog()` are the machine-readable syntax-to-API map. Prefer this over re-parsing pipeline YAML |
+| Python API — **the engine's own, not a project's** | [docs/python-api.md](../../python-api.md) | `load_pipeline(...)` then `.resolve()` / `.lint()` / `.run()` / `.schemas()`. **For work in this repository only**: it carries no compatibility promise, and a project reaches the engine through the `sp` command line and the pipeline language — rule `the-language-is-the-whole-surface`. `docs/cli-api.json` above is what a project may build against |
 | Why this rather than something else | [docs/why-scripture-pipelines.md](../../why-scripture-pipelines.md) | Comparison with general-purpose orchestration frameworks |
 | Moderation failures | [docs/moderation-handling.md](../../moderation-handling.md) | Provider blocks on biblical text, and the mitigation checklist |
 | Design and plan documents | [project/plans/README.md](../../../project/plans/README.md) | Generated index of every design and plan with its status. **Consult before proposing a design.** A document marked *Implemented — historical record* explains why code looks as it does; one marked *Proposed* is not authorization to build |

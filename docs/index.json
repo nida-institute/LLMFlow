@@ -1,4 +1,11 @@
 {
+  "about": {
+    "what": "A map of this engine's implementation: every module in src/ with its imports, and every function with its signature and docstring.",
+    "why": "So that work on the engine can find what already exists before writing it again. Duplicate code is buggy code, and it diverges from the original the moment either changes.",
+    "not_an_api": "This is NOT an API. Nothing listed here carries a compatibility promise, and a project must not build against it. A project reaches this engine one way: the sp command line and the pipeline language it reads.",
+    "not_for_tests": "This is not a surface for tests either. A test that calls a function found here couples the suite to an internal. Exercise a step through the object model or the CLI — the surface a consumer uses. See docs/ai-context/project/rules.md rule 1.",
+    "generated_by": "tools/index_signatures.py, re-run by the pre-commit hook whenever src/ changes. Editing this file by hand does not survive."
+  },
   "modules": [
     {
       "module": "llmflow.catalog",
@@ -76,6 +83,11 @@
           "name": "documents",
           "signature": "documents() -> tuple[Entry, ...]",
           "doc": "Catalogued paths that carry a `purpose:` — the reading list `sp-index.md` renders."
+        },
+        {
+          "name": "render_cli_api",
+          "signature": "render_cli_api() -> str",
+          "doc": "The public surface as JSON, for a project's own copy."
         },
         {
           "name": "render_sp_index",
@@ -156,6 +168,7 @@
         "os",
         "pathlib",
         "re",
+        "shutil",
         "stat",
         "typing"
       ],
@@ -310,6 +323,7 @@
         "llmflow.steps.json_step",
         "llmflow.steps.llm",
         "llmflow.steps.load",
+        "llmflow.steps.parallel_passages",
         "llmflow.steps.plugin",
         "llmflow.steps.save",
         "llmflow.steps.scripture",
@@ -856,6 +870,11 @@
       ],
       "functions": [
         {
+          "name": "step_members",
+          "signature": "step_members(step_type: str) -> tuple[str, ...]",
+          "doc": "The members `step_type` declares, primary first; empty when it declares none."
+        },
+        {
           "name": "_type_branch",
           "signature": "_type_branch(types, properties)",
           "doc": "Build one ``if type == …  then <keys>`` branch of the step schema."
@@ -1173,6 +1192,11 @@
           "doc": "List all YAML pipeline files in a directory."
         },
         {
+          "name": "_add_resource_consent_flags",
+          "signature": "_add_resource_consent_flags(parser) -> None",
+          "doc": "The two answers lint's resource offer asks for, for use without a terminal (#261)."
+        },
+        {
           "name": "build_parser",
           "signature": "build_parser()",
           "doc": ""
@@ -1184,13 +1208,43 @@
         },
         {
           "name": "command_lint",
-          "signature": "command_lint(pipeline_path: str, fix_paths: bool, json_mode: bool, verbose: bool, cli_vars: dict | None = None, rewind_to: str | None = None)",
+          "signature": "command_lint(pipeline_path: str, fix_paths: bool, json_mode: bool, verbose: bool, cli_vars: dict | None = None, rewind_to: str | None = None, install_missing: bool = False, accept_terms: bool = False)",
           "doc": ""
         },
         {
           "name": "_make_output_encodable",
           "signature": "_make_output_encodable() -> None",
           "doc": "Let every command print its glyphs without dying on the console's encoding."
+        },
+        {
+          "name": "_print_licence",
+          "signature": "_print_licence(resources, entry) -> None",
+          "doc": "The licence a catalog entry names, and the link to it."
+        },
+        {
+          "name": "_terms_to_record",
+          "signature": "_terms_to_record(resources, args)",
+          "doc": "Show the terms of the resource being registered, and agree to them or refuse (#252)."
+        },
+        {
+          "name": "_register_from_catalog",
+          "signature": "_register_from_catalog(resources, identifier, download = True, accept_terms = False)",
+          "doc": "`sp resource add <ID>`: the licence shown and agreed, then the download and registration."
+        },
+        {
+          "name": "_offer_resources",
+          "signature": "_offer_resources(result, install_missing = False, accept_terms = False) -> bool",
+          "doc": "Print what the pipeline needs and lacks, and offer to supply it. True if anything changed."
+        },
+        {
+          "name": "_print_licence_text",
+          "signature": "_print_licence_text(resources, fetched) -> None",
+          "doc": "The opening of the fetched licence text, or why there is none."
+        },
+        {
+          "name": "_print_recorded_terms",
+          "signature": "_print_recorded_terms(name, registration) -> None",
+          "doc": "One registration's terms as `sp resource terms` shows them."
         },
         {
           "name": "main",
@@ -1418,9 +1472,59 @@
           "doc": "Every registration this machine holds. Absence is normal; a fresh machine has none."
         },
         {
+          "name": "licence_link",
+          "signature": "licence_link(entry: Mapping[str, Any]) -> tuple",
+          "doc": "`(link, kind)` to the terms *entry*'s licence names, kind `licence` or `source-page`."
+        },
+        {
+          "name": "pointer_of",
+          "signature": "pointer_of(licence: Any) -> Optional[str]",
+          "doc": "The part of a licence string that sends the reader elsewhere — `see LICENSE.md …` — or"
+        },
+        {
+          "name": "is_pointer",
+          "signature": "is_pointer(licence: Any) -> bool",
+          "doc": "Whether a licence string is *only* a pointer, with no summary of its own."
+        },
+        {
+          "name": "_http_get",
+          "signature": "_http_get(url: str, accept: Optional[str] = None) -> tuple",
+          "doc": "`(status, content type, body)` for *url*. An HTTP error is a status; no route is OSError."
+        },
+        {
+          "name": "_raw_github",
+          "signature": "_raw_github(url: str) -> str",
+          "doc": "A `github.com/<owner>/<repo>/blob/<ref>/<path>` page as the file itself; anything else"
+        },
+        {
+          "name": "fetch_licence_text",
+          "signature": "fetch_licence_text(entry: Mapping[str, Any]) -> dict",
+          "doc": "The full text the licence summary stands for: `{text, sha256, source}`, or `{reason}`."
+        },
+        {
+          "name": "terms_record",
+          "signature": "terms_record(entry: Mapping[str, Any], via: Optional[str] = None, fetched: Optional[Mapping[str, Any]] = None) -> dict",
+          "doc": "What a registration records about the terms it was made under."
+        },
+        {
+          "name": "agreed_terms",
+          "signature": "agreed_terms(identifier: str, licence: Any, sha256: Optional[str] = None) -> Optional[dict]",
+          "doc": "The recorded agreement to *licence* for *identifier*, or None if there is none."
+        },
+        {
           "name": "register",
-          "signature": "register(identifier: str, download: bool = True) -> Path",
+          "signature": "register(identifier: str, download: bool = True, terms: Optional[Mapping] = None, licence_text: Optional[str] = None) -> Path",
           "doc": "Write this machine's registration for one catalog resource, and return its path."
+        },
+        {
+          "name": "_with_licence_text",
+          "signature": "_with_licence_text(identifier: str, terms: Mapping, licence_text: Optional[str]) -> dict",
+          "doc": "*terms*, with the licence text saved beside the registration and named in it."
+        },
+        {
+          "name": "record_terms",
+          "signature": "record_terms(identifier: str, terms: Mapping, licence_text: Optional[str] = None) -> Path",
+          "doc": "Add the licence record to a registration that has none, leaving every other key as it was."
         },
         {
           "name": "installed_version",
@@ -1435,7 +1539,12 @@
         {
           "name": "_write_registration",
           "signature": "_write_registration(target: Path, banner: str, entry: Mapping[str, Any]) -> Path",
-          "doc": "Write one registration, unlocking the store around it."
+          "doc": "Write one registration as YAML under *banner*."
+        },
+        {
+          "name": "_write_into_store",
+          "signature": "_write_into_store(target: Path, text: str) -> Path",
+          "doc": "Write one file into the store, unlocking it around the write."
         },
         {
           "name": "register_dataset",
@@ -1578,6 +1687,63 @@
           "name": "run_models_update",
           "signature": "run_models_update() -> bool",
           "doc": "Interactively update models.json from installed llm plugins."
+        },
+        {
+          "name": "family_of",
+          "signature": "family_of(entry_key: str) -> str",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "module": "llmflow.cli_api",
+      "imports": [
+        "__future__",
+        "argparse",
+        "json",
+        "llmflow.pipeline_schema",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "commands",
+          "signature": "commands() -> Dict[str, dict]",
+          "doc": "Every `sp` command and subcommand, with its help text and options."
+        },
+        {
+          "name": "declared_step_types",
+          "signature": "declared_step_types() -> set",
+          "doc": "The step types the schema declares, read from the schema itself."
+        },
+        {
+          "name": "step_types",
+          "signature": "step_types() -> Dict[str, dict]",
+          "doc": "Every step type, its own keys, and what it returns."
+        },
+        {
+          "name": "cli_api_map",
+          "signature": "cli_api_map() -> dict",
+          "doc": "The whole map, as a dict."
+        },
+        {
+          "name": "render_cli_api",
+          "signature": "render_cli_api() -> str",
+          "doc": "The map as the JSON text that is written to disk."
+        },
+        {
+          "name": "options",
+          "signature": "options(parser: argparse.ArgumentParser) -> List[dict]",
+          "doc": ""
+        },
+        {
+          "name": "walk",
+          "signature": "walk(parser: argparse.ArgumentParser, prefix: str) -> None",
+          "doc": ""
+        },
+        {
+          "name": "walk",
+          "signature": "walk(node: Any) -> None",
+          "doc": ""
         }
       ]
     },
@@ -1746,7 +1912,7 @@
         {
           "name": "recover_var_map",
           "signature": "recover_var_map(prompt: str, request: str) -> dict[str, str]",
-          "doc": "Recover {var: value} by aligning the original `.gpt` against the rendered"
+          "doc": "Recover {var: value} by aligning the original `.gpt` against the rendered request."
         },
         {
           "name": "render",
@@ -2473,6 +2639,45 @@
       ]
     },
     {
+      "module": "llmflow.utils.resource_preflight",
+      "imports": [
+        "dataclasses",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "_walk",
+          "signature": "_walk(steps: Iterable[Any], conditional: bool = False) -> Iterable[tuple]",
+          "doc": "`(step, conditional)` for every step, nested ones included; a step is conditional when it"
+        },
+        {
+          "name": "needs",
+          "signature": "needs(steps: Iterable[Any], context: Mapping[str, Any]) -> Needs",
+          "doc": "Every resource and dataset *steps* name, with `${var}` resolved against *context*."
+        },
+        {
+          "name": "check",
+          "signature": "check(steps: Iterable[Any], context: Mapping[str, Any]) -> List[Finding]",
+          "doc": "What the pipeline needs and this machine cannot yet supply, in the order it is named."
+        },
+        {
+          "name": "_names_a_path",
+          "signature": "_names_a_path(entry: Mapping[str, Any], key: str) -> bool",
+          "doc": ""
+        },
+        {
+          "name": "table",
+          "signature": "table(findings: Iterable[Finding]) -> str",
+          "doc": "The resources a pipeline needs and cannot yet use, one line per finding."
+        },
+        {
+          "name": "is_error",
+          "signature": "is_error(self) -> bool",
+          "doc": ""
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.alignment",
       "imports": [
         "__future__",
@@ -2707,6 +2912,11 @@
       "imports": [],
       "functions": [
         {
+          "name": "condition_safe_builtins",
+          "signature": "condition_safe_builtins() -> dict",
+          "doc": "The names a `condition:` expression may use besides the pipeline's own variables."
+        },
+        {
           "name": "eval_condition",
           "signature": "eval_condition(condition: str, context: dict) -> bool",
           "doc": "Evaluate a condition string against the context."
@@ -2921,6 +3131,66 @@
           "name": "get_format",
           "signature": "get_format(self, resource_id: str) -> List[str]",
           "doc": "Get available formats for a resource."
+        }
+      ]
+    },
+    {
+      "module": "llmflow.utils.analysis_format",
+      "imports": [
+        "json",
+        "llmflow.utils.scripture",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "_words",
+          "signature": "_words(content: Iterable[Any]) -> List[Dict[str, str]]",
+          "doc": "Every word in source order, with the chapter:verse it falls in."
+        },
+        {
+          "name": "_gloss",
+          "signature": "_gloss(entry: Any) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_morph",
+          "signature": "_morph(entry: Any) -> str",
+          "doc": "The values in order; a value of two characters or fewer keeps its name (`lang=A`), since a"
+        },
+        {
+          "name": "_sense",
+          "signature": "_sense(entry: Any) -> str",
+          "doc": "The sense, labelled. A bare number is read as whatever number the prompt is asking for."
+        },
+        {
+          "name": "_frequency",
+          "signature": "_frequency(entry: Any, present: bool) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_tree",
+          "signature": "_tree(node: Mapping[str, Any], number: Mapping[str, int], form: Mapping[str, str]) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_tokens",
+          "signature": "_tokens(node: Mapping[str, Any]) -> List[str]",
+          "doc": ""
+        },
+        {
+          "name": "usj_to_analysis",
+          "signature": "usj_to_analysis(usj: Mapping[str, Any]) -> str",
+          "doc": "The compact text form of a USJ document carrying a `scripture_pipelines` container."
+        },
+        {
+          "name": "walk",
+          "signature": "walk(nodes: Iterable[Any]) -> None",
+          "doc": ""
+        },
+        {
+          "name": "row",
+          "signature": "row(word: Mapping[str, str]) -> str",
+          "doc": ""
         }
       ]
     },
@@ -3338,6 +3608,21 @@
           "name": "syntax_payload",
           "signature": "syntax_payload(definition: Any, rows: Any, resource: str) -> Optional[list]",
           "doc": "The trees covering *rows*, or None where this resource names no Lowfat source."
+        },
+        {
+          "name": "payload_for_sentences",
+          "signature": "payload_for_sentences(sentences: Optional[list]) -> Optional[list]",
+          "doc": "The payload entries for *sentences*, in order; None where *sentences* is None."
+        },
+        {
+          "name": "sentence_word_ids",
+          "signature": "sentence_word_ids(sentences: Any) -> set",
+          "doc": "The word-level id of every leaf in *sentences*."
+        },
+        {
+          "name": "covering_sentences",
+          "signature": "covering_sentences(definition: Any, rows: Any, resource: str) -> Optional[list]",
+          "doc": "Every Lowfat `<sentence>` that meets *rows*, in file order; None where no Lowfat source."
         }
       ]
     },
@@ -3435,8 +3720,18 @@
       ],
       "functions": [
         {
+          "name": "parse_output_entry",
+          "signature": "parse_output_entry(entry: str) -> tuple[str, str]",
+          "doc": "Split one `output:` list entry into `(variable, member)`."
+        },
+        {
+          "name": "_bound_variables",
+          "signature": "_bound_variables(step: Dict[str, Any], members: Dict[str, Any], primary: str) -> Dict[str, Any]",
+          "doc": "Map each variable this step binds to its value, for a step type declaring members."
+        },
+        {
           "name": "handle_step_outputs",
-          "signature": "handle_step_outputs(step: Dict[str, Any], result: Any, context: Dict[str, Any], base_dir: str = '.', defects: Any = None) -> None",
+          "signature": "handle_step_outputs(step: Dict[str, Any], result: Any, context: Dict[str, Any], base_dir: str = '.', defects: Any = None, members: Dict[str, Any] | None = None, primary: str = '') -> None",
           "doc": "Store step result in context and handle saveas."
         },
         {
@@ -3513,6 +3808,54 @@
       ]
     },
     {
+      "module": "llmflow.utils.parallel_passages",
+      "imports": [
+        "__future__",
+        "json",
+        "llmflow",
+        "llmflow.utils.verse_ranges",
+        "pathlib",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "_whole_references",
+          "signature": "_whole_references(reference: str) -> List[str]",
+          "doc": "Split a comma list into complete references, carrying the chapter forward."
+        },
+        {
+          "name": "dataset_path",
+          "signature": "dataset_path() -> Path",
+          "doc": "The shipped dataset, from an installed wheel or a dev checkout."
+        },
+        {
+          "name": "load_parallel_passages",
+          "signature": "load_parallel_passages(path: Any) -> Dict[str, Any]",
+          "doc": "Read the dataset into its groups, plus one row per verse for the lookup to filter."
+        },
+        {
+          "name": "_probe",
+          "signature": "_probe(passage: str, versification: str) -> Range",
+          "doc": "The request as a range in the database's own scheme."
+        },
+        {
+          "name": "groups_for_passage",
+          "signature": "groups_for_passage(index: Dict[str, Any], passage: str, versification: str = 'eng') -> List[Dict[str, Any]]",
+          "doc": "Every group the passage takes part in, whole, in the order the database states them."
+        },
+        {
+          "name": "_references_only",
+          "signature": "_references_only(group: Dict[str, Any]) -> Dict[str, Any]",
+          "doc": "A group as its member references, in the order the database states them."
+        },
+        {
+          "name": "parallel_passages_payload",
+          "signature": "parallel_passages_payload(definition: Any, passage: str, resource: str, versification: Optional[str] = None) -> List[Dict[str, Any]]",
+          "doc": "The groups *passage* takes part in, from the shipped dataset; `[]` where it is in none."
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.linter",
       "imports": [
         "ast",
@@ -3526,9 +3869,11 @@
         "llmflow.modules.logger",
         "llmflow.pipeline_schema",
         "llmflow.steps.window",
+        "llmflow.utils",
         "llmflow.utils.context",
         "llmflow.utils.get_prefix_directory",
         "llmflow.utils.llm_runner",
+        "llmflow.utils.step_outputs",
         "llmflow.yaml_loader",
         "os",
         "pathlib",
@@ -3555,9 +3900,29 @@
           "doc": "Log to file and display once on screen with color"
         },
         {
+          "name": "prompt_body",
+          "signature": "prompt_body(text: str) -> str",
+          "doc": "*text* without its frontmatter; the whole of *text* when it has none."
+        },
+        {
+          "name": "uses_comment_header",
+          "signature": "uses_comment_header(text: str) -> bool",
+          "doc": "Whether *text* opens with the withdrawn `<!-- ... -->` header form."
+        },
+        {
+          "name": "withdrawn_comment_header_error",
+          "signature": "withdrawn_comment_header_error(prompt_path) -> str",
+          "doc": "The message for a prompt still using the `<!-- ... -->` header form."
+        },
+        {
           "name": "parse_prompt_header",
           "signature": "parse_prompt_header(prompt_path)",
-          "doc": "Parse header from a .gpt prompt file (supports both YAML frontmatter and HTML comments)"
+          "doc": "The YAML frontmatter of a prompt file, with a `prompt:` wrapper unwrapped."
+        },
+        {
+          "name": "prompt_body_with_mixins",
+          "signature": "prompt_body_with_mixins(prompt_path) -> str",
+          "doc": "The body of a prompt file as a run sees it: frontmatter removed, mixins expanded."
         },
         {
           "name": "extract_template_variables",
@@ -3600,6 +3965,11 @@
           "doc": "Which prompts do not fit the grammar, the first finding in each, and the order once."
         },
         {
+          "name": "prompt_description_warnings",
+          "signature": "prompt_description_warnings(prompt_paths: List[str]) -> List[str]",
+          "doc": "Which prompts' `description` does not name every input in `requires:`."
+        },
+        {
           "name": "validate_all_step_contracts",
           "signature": "validate_all_step_contracts(all_steps, log_func, pipeline_root = None)",
           "doc": "Validate all LLM steps against their prompt contracts"
@@ -3628,6 +3998,11 @@
           "name": "_collect_declared_outputs",
           "signature": "_collect_declared_outputs(all_steps)",
           "doc": ""
+        },
+        {
+          "name": "validate_output_members",
+          "signature": "validate_output_members(all_steps) -> List[str]",
+          "doc": "Refuse an `output:` entry naming a member its step type does not declare (#263)."
         },
         {
           "name": "_validate_template_var_provenance",
@@ -3991,7 +4366,7 @@
         },
         {
           "name": "text_for_spans",
-          "signature": "text_for_spans(rows: Sequence[Mapping[str, Any]], spans: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None) -> list[dict]",
+          "signature": "text_for_spans(rows: Sequence[Mapping[str, Any]], spans: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None, frequency: Optional[dict] = None) -> list[dict]",
           "doc": "One result per span, in the order asked, each carrying its own text and analyses."
         },
         {
@@ -4001,7 +4376,7 @@
         },
         {
           "name": "analysis_container",
-          "signature": "analysis_container(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str], versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None, with_words: bool = True) -> dict",
+          "signature": "analysis_container(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str], versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None, with_words: bool = True, outside_passage: Optional[dict] = None, frequency: Optional[dict] = None) -> dict",
           "doc": "The `scripture_pipelines` container, identical whatever form the text took."
         },
         {
@@ -4011,12 +4386,12 @@
         },
         {
           "name": "rows_to_output",
-          "signature": "rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None) -> str | dict",
+          "signature": "rows_to_output(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None, outside_passage: Optional[dict] = None, frequency: Optional[dict] = None) -> str | dict",
           "doc": "The requested representation of *rows*: a string, or a USJ document for ``fmt=\"usj\"``."
         },
         {
           "name": "rows_to_usj",
-          "signature": "rows_to_usj(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None) -> dict",
+          "signature": "rows_to_usj(rows: Sequence[Mapping[str, Any]], book: str, include: Sequence[str] = (), versification: Optional[str] = None, discourse: Optional[list] = None, syntax: Optional[list] = None, outside_passage: Optional[dict] = None, frequency: Optional[dict] = None) -> dict",
           "doc": "*rows* as a USJ document: the book, a chapter node per chapter, one `para` inside each."
         },
         {
@@ -4050,6 +4425,11 @@
           "doc": "Rows for *ref* from one TEI book file, in the shape `rows_to_text` consumes."
         },
         {
+          "name": "tei_book_rows",
+          "signature": "tei_book_rows(tei_path: str | Path) -> list[dict]",
+          "doc": "Every row of one TEI book file, in source order."
+        },
+        {
           "name": "_without_apparatus_marks",
           "signature": "_without_apparatus_marks(text: str) -> str",
           "doc": ""
@@ -4081,18 +4461,28 @@
         },
         {
           "name": "_tei_passage_text",
-          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, resource: str, include: Sequence[str] = (), versification: Optional[str] = None, spans: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
+          "signature": "_tei_passage_text(definition: Mapping[str, Any], passage: str, fmt: str, resource: str, include: Sequence[str] = (), versification: Optional[str] = None, spans: Optional[Sequence[Mapping[str, Any]]] = None, frequency_cutoff: Optional[float] = None) -> str | dict | list",
           "doc": "Running text for *passage* from a directory of per-book TEI files."
         },
         {
+          "name": "widen_to_sentences",
+          "signature": "widen_to_sentences(rows: Sequence[Mapping[str, Any]], book_rows: Sequence[Mapping[str, Any]], sentences: Sequence[Any]) -> tuple[list, dict]",
+          "doc": "*rows* widened to every word of *sentences*, in source order, and the added rows by id."
+        },
+        {
           "name": "_emit",
-          "signature": "_emit(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str], versification: Optional[str], definition: Mapping[str, Any], resource: str, spans: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
+          "signature": "_emit(rows: Sequence[Mapping[str, Any]], fmt: str, book: str, include: Sequence[str], versification: Optional[str], definition: Mapping[str, Any], resource: str, spans: Optional[Sequence[Mapping[str, Any]]] = None, book_rows: Optional[Sequence[Mapping[str, Any]]] = None, frequency_cutoff: Optional[float] = None) -> str | dict | list",
           "doc": "What a backend returns once it has rows: the whole passage, or one result per span."
         },
         {
           "name": "resource_text",
-          "signature": "resource_text(resource: str, passage: str, fmt: str = 'milestones', resources: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None, include: Any = (), spans: Optional[Sequence[Mapping[str, Any]]] = None) -> str | dict | list",
+          "signature": "resource_text(resource: str, passage: str, fmt: str = 'milestones', resources: Optional[Mapping[str, Any]] = None, versification: Optional[str] = None, mappings_dir: Optional[Path] = None, include: Any = (), spans: Optional[Sequence[Mapping[str, Any]]] = None, frequency_cutoff: Optional[float] = None) -> str | dict | list",
           "doc": "Running text for *passage* in *resource*, dispatched on the resource's `kind`."
+        },
+        {
+          "name": "frequency_payload",
+          "signature": "frequency_payload(rows: Sequence[Mapping[str, Any]], resource: str, cutoff: Optional[float] = None) -> Optional[dict]",
+          "doc": "`{word id: {corpus, count, in_least_frequent_percent}}` for *rows*, or None."
         },
         {
           "name": "discourse_payload",
@@ -4208,6 +4598,11 @@
           "name": "validate_llm_config",
           "signature": "validate_llm_config(config: Dict[str, Any]) -> tuple[bool, list[str], list[str]]",
           "doc": "Validate LLM configuration parameters."
+        },
+        {
+          "name": "_is_openai_model",
+          "signature": "_is_openai_model(model_name: str) -> bool",
+          "doc": "Whether *model_name* is one OpenAI's client can be asked for — the families that use it."
         },
         {
           "name": "call_llm",
@@ -4669,13 +5064,14 @@
       "imports": [
         "llmflow.modules.logger",
         "llmflow.utils.context",
+        "llmflow.utils.step_outputs",
         "typing"
       ],
       "functions": [
         {
           "name": "run_json_step",
           "signature": "run_json_step(step: Dict[str, Any], context: Dict[str, Any]) -> None",
-          "doc": "Resolve value and store in context under outputs."
+          "doc": "Resolve `value` and bind it to `output`, applying `saveas` and `append_to`."
         }
       ]
     },
@@ -4687,6 +5083,7 @@
     {
       "module": "llmflow.steps.llm",
       "imports": [
+        "llm",
         "llmflow.exceptions",
         "llmflow.modules.logger",
         "llmflow.modules.mcp",
@@ -4700,6 +5097,16 @@
         "typing"
       ],
       "functions": [
+        {
+          "name": "_as_prompt_text",
+          "signature": "_as_prompt_text(value: Any) -> str",
+          "doc": "A context value as the model reads it: text as it is, structure as compact JSON."
+        },
+        {
+          "name": "_input_data_segments",
+          "signature": "_input_data_segments(text: str) -> list",
+          "doc": "*text* as `(chunk, is_input)` pieces, `is_input` true for the `# INPUT DATA` section."
+        },
         {
           "name": "render_prompt",
           "signature": "render_prompt(prompt_config: Union[str, Dict[str, Any]], context: Dict[str, Any]) -> str",
@@ -4896,10 +5303,29 @@
       ]
     },
     {
+      "module": "llmflow.steps.parallel_passages",
+      "imports": [
+        "llmflow.modules.logger",
+        "llmflow.utils.context",
+        "llmflow.utils.parallel_passages",
+        "llmflow.utils.scripture",
+        "llmflow.utils.step_outputs",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "run_parallel_passages_step",
+          "signature": "run_parallel_passages_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> None",
+          "doc": ""
+        }
+      ]
+    },
+    {
       "module": "llmflow.steps.scripture",
       "imports": [
         "llmflow.modules.logger",
         "llmflow.utils.context",
+        "llmflow.utils.data",
         "llmflow.utils.scripture",
         "llmflow.utils.step_outputs",
         "typing"
@@ -5502,7 +5928,7 @@
     }
   ],
   "summary": {
-    "total_modules": 91,
-    "total_functions": 874
+    "total_modules": 96,
+    "total_functions": 945
   }
 }

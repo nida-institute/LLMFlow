@@ -140,7 +140,12 @@ def pipeline_file(tmp_path: Path, steps: str, name: str = "alignment-test") -> P
     return path
 
 
-def step_yaml(spans, extra: str = "") -> str:
+def step_yaml(spans, extra: str = "", output: str = "[english=text]") -> str:
+    """One alignment step. `output` names the members wanted (#263), renaming `text` to `english`.
+
+    `returns:` was retired (#263): naming a member in `output:` is how it is requested, so
+    these tests ask for members where they used to ask twice.
+    """
     rendered = ", ".join(f"{{from: {a}, to: {b}}}" for a, b in spans)
     return (
         "  - name: english\n"
@@ -149,7 +154,7 @@ def step_yaml(spans, extra: str = "") -> str:
         f"    target: {TARGET_DOCID}\n"
         f"    spans: [{rendered}]\n"
         f"{extra}"
-        "    output: english\n"
+        f"    output: {output}\n"
     )
 
 
@@ -161,8 +166,8 @@ def run(path: Path) -> dict:
     return pipeline.run(log_file=str(path.parent / "llmflow.log"))
 
 
-def one(tmp_path, spans, extra: str = ""):
-    return run(pipeline_file(tmp_path, step_yaml(spans, extra)))["english"][0]
+def one(tmp_path, spans, extra: str = "", output: str = "[english=text]"):
+    return run(pipeline_file(tmp_path, step_yaml(spans, extra, output)))["english"][0]
 
 
 # --- the object model exposes what the schema declares ------------------------------------
@@ -171,12 +176,14 @@ def test_the_api_exposes_every_alignment_key(tmp_path, store):
     """If a key is missing here it is missing from the schema, since Step is generated."""
     path = pipeline_file(
         tmp_path,
-        step_yaml([(_s(1, 1), _s(1, 2))], "    returns: [text]\n    order: [target]\n"),
+        step_yaml([(_s(1, 1), _s(1, 2))], "    order: [target]\n"),
     )
     step = load_pipeline(path).steps[0]
     assert step.source == SOURCE_DOCID
     assert step.target == TARGET_DOCID
-    assert step.returns == ["text"]
+    # `returns:` was retired (#263) — members are named in `output:`, and naming one
+    # is how it is requested, so there is no second key to carry the request.
+    assert step.output == ["english=text"]
     assert step.order == ["target"]
     assert step.spans == [{"from": _s(1, 1), "to": _s(1, 2)}]
 
@@ -223,13 +230,13 @@ def test_a_span_whose_tokens_are_not_contiguous_says_so(tmp_path, store):
 # --- R14, R15: a discontinuous unit survives, with its gap marked on both sides -------------
 
 def test_a_discontinuous_record_keeps_its_gap_on_the_source_side(tmp_path, store):
-    got = one(tmp_path, [(_s(3, 1), _s(3, 3))], "    returns: [text, alignments]\n")
+    got = one(tmp_path, [(_s(3, 1), _s(3, 3))], "", output="[english=text, alignments]")
     assert "zeta … theta" in [u["source_text"] for u in got["units"]]
 
 
 def test_a_discontinuous_record_keeps_its_gap_on_the_target_side(tmp_path, store):
     """Closing it up would produce 'ZTH', which the translation does not contain."""
-    got = one(tmp_path, [(_s(3, 1), _s(3, 3))], "    returns: [text, alignments]\n")
+    got = one(tmp_path, [(_s(3, 1), _s(3, 3))], "", output="[english=text, alignments]")
     assert "Z … TH" in [u["target_text"] for u in got["units"]]
 
 
@@ -260,7 +267,7 @@ def test_both_orders_cover_the_same_tokens(tmp_path, store):
 # --- R11: two kinds of nothing, told apart --------------------------------------------------
 
 def test_a_source_word_present_but_aligning_to_nothing_gives_an_empty_collection(tmp_path, store):
-    got = one(tmp_path, [(_s(4, 2), _s(4, 2))], "    returns: [text, alignments]\n")
+    got = one(tmp_path, [(_s(4, 2), _s(4, 2))], "", output="[english=text, alignments]")
     assert got["units"] == []
 
 
@@ -276,7 +283,7 @@ def test_the_raw_records_are_absent_unless_asked_for(tmp_path, store):
 
 
 def test_the_raw_records_are_returned_when_asked_for(tmp_path, store):
-    got = one(tmp_path, [(_s(1, 1), _s(1, 2))], "    returns: [alignments]\n")
+    got = one(tmp_path, [(_s(1, 1), _s(1, 2))], "", output="[english=alignments]")
     assert [r["meta"]["id"] for r in got["records"]] == ["r1", "r2"]
 
 

@@ -229,8 +229,8 @@ def sentence_covers(sentence: Any, word_ids: Any) -> bool:
 
     A sentence is carried whole where it meets the passage at all, even where it runs past both
     ends. Pruning its leaves to the passage would hand back a tree that is not the tree — the
-    constituency of a half sentence is not a fact about the text — so the payload states the
-    sentence the passage falls in, and some tokens may name words outside the rows returned.
+    constituency of a half sentence is not a fact about the text. The `scripture` step widens its
+    rows to the same sentences, so every token names a word the payload contains (#267).
     """
     for element in sentence.iter():
         if _localname(element) in LEAF_TAGS:
@@ -275,6 +275,34 @@ def syntax_payload(definition: Any, rows: Any, resource: str) -> Optional[list]:
     `None` rather than an empty list where the resource declares no `lowfat_path`: the question
     could not be asked, as against asked and answered with nothing.
     """
+    return payload_for_sentences(covering_sentences(definition, rows, resource))
+
+
+def payload_for_sentences(sentences: Optional[list]) -> Optional[list]:
+    """The payload entries for *sentences*, in order; None where *sentences* is None."""
+    if sentences is None:
+        return None
+    payload: list = []
+    for sentence in sentences:
+        payload.extend(sentences_from_lowfat(sentence))
+    return payload
+
+
+def sentence_word_ids(sentences: Any) -> set:
+    """The word-level id of every leaf in *sentences*."""
+    found: set = set()
+    for sentence in sentences:
+        for element in sentence.iter():
+            if _localname(element) in LEAF_TAGS:
+                identifier = element.get(XML_ID)
+                if identifier:
+                    row = {"ref": element.get("ref") or "", "xml:id": identifier}
+                    found.add(_word_identifier(row, _word_index(row) or ""))
+    return found
+
+
+def covering_sentences(definition: Any, rows: Any, resource: str) -> Optional[list]:
+    """Every Lowfat `<sentence>` that meets *rows*, in file order; None where no Lowfat source."""
     from llmflow.modules.logger import Logger
 
     logger = Logger()
@@ -307,7 +335,7 @@ def syntax_payload(definition: Any, rows: Any, resource: str) -> Optional[list]:
 
     from lxml import etree  # type: ignore[attr-defined]
 
-    payload: list = []
+    found: list = []
     for book in sorted(books):
         for file in lowfat_files_for(path, book):
             try:
@@ -317,5 +345,5 @@ def syntax_payload(definition: Any, rows: Any, resource: str) -> Optional[list]:
                 continue
             for sentence in root.iter("{*}sentence") if root.nsmap else root.iter("sentence"):
                 if sentence_covers(sentence, wanted):
-                    payload.extend(sentences_from_lowfat(sentence))
-    return payload
+                    found.append(sentence)
+    return found
