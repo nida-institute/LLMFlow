@@ -83,3 +83,16 @@ quietly dropped when it becomes inconvenient.
    The Captain, 2026-10-12: *"I will only ever bump the version number this way, can I get the
    LLM to stop making this my responsibility to decide every time?"* Committing the bump stays
    his, like every commit.
+
+5. **Human at the Helm is written in Helm.** A session working here may write into Helm's
+   `collab/scripture-pipelines/` and nowhere else in that tree, and never commits there. A
+   change to a shared file is committed here, recorded as `pending` in `data/helm-sync.yaml`,
+   and adopted by Helm in its own commit — `tools/sync_helm.py --note` leaves the note that
+   carries it. The same holds the other way: a Helm session writes only into this
+   repository's `collab/human-at-the-helm/`.
+
+   The Captain, 2026-10-14, answering D3 of Helm's
+   `project/plans/design-coordinating-changes-with-sp.md`: a standing rule, not a per-session
+   grant. Every earlier incident had one shape — a session treated the second half of a
+   two-repository edit as a mechanical consequence of the first, and left one suite red with
+   work that was not its own. Design: `project/plans/design-helm-coordination.md`, #271.

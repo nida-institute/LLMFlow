@@ -28,12 +28,15 @@ prohibition.
 **This test is the mechanical half of the governing principle.** Without it, "this skill is
 general" is an assertion in a design document; with it, it is a passing or failing build.
 
-Two exclusions, both deliberate:
+The exclusions, each deliberate:
 
 - **`audit-code` is forked, not shared** (H4-A). Its `sp` content is not a duplicated
   summary but the actual subject matter — plugin determinism, local plugins reimplementing
   LLMFlow core utilities. There is no authoritative file elsewhere to move it to, so Helm
   gets a different skill rather than a generalization of this one.
+- **`stage-commits` is forked too** — the Captain, 2026-10-14. Helm adopted it adapted rather
+  than copied: this repository's rule ids, its `origin/dev` example and its portability test
+  have no counterpart there.
 - **`audit-pipeline`, `audit-output` and `audit-prompts` stay here** (§4). Each is about the
   engine. `release` was a fourth, guessed to be general methodology in human-at-the-helm#1; its
   own text is about Nuitka builds and this repo's GitHub Actions. Since 2026-10-07 it is not
@@ -47,14 +50,6 @@ from pathlib import Path
 
 import pytest
 
-#: A Helm parity check that is red by decision rather than by accident: Helm parity is the next
-#: release's work, and this one ships without it (`project/TODO.md`, the release section). Strict,
-#: so a check that starts passing is reported, and the marker comes off rather than lingering.
-HELM_EXEMPT = pytest.mark.xfail(
-    strict=True,
-    reason="Helm parity is exempt in this release and is the next one's work — project/TODO.md",
-)
-
 # Source of truth for this list: design-helm-parity.md §4. An earlier note here expected step
 # 6 to replace it with Helm's shipped manifest; ruling D7-C is why it stays. `helm-sync.yaml`
 # is checked *against* this classification, so sourcing the classification *from* the record
@@ -63,7 +58,7 @@ SHARED_WITH_HELM = (
     "authorize", "stand-down", "handoff", "load-context", "commit-ready", "health-check",
 )
 
-FORKED = ("audit-code",)
+FORKED = ("audit-code", "stage-commits")
 ENGINE_ONLY = ("audit-pipeline", "audit-output", "audit-prompts")
 
 # Vocabulary that ties a file to this engine. A shared skill carrying any of it would
@@ -193,7 +188,6 @@ def test_engine_only_skills_are_still_shipped_here(skill: str):
     assert (_skills_dir() / skill / "SKILL.md").is_file(), f"{skill} is no longer shipped"
 
 
-@HELM_EXEMPT
 def test_every_shipped_skill_is_classified():
     """No skill may be added without deciding whether Helm gets it.
 

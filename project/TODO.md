@@ -7,7 +7,48 @@
 
 ## 🔥 Active
 
-### 🚢 THE NEXT RELEASE — walked through with the Captain, 2026-10-01
+### 🚢 THE NEXT RELEASE — 0.2.1.30: Helm, and Ears to Hear support
+
+> **Scope ruled by the Captain 2026-10-06:** *"the release after this one will focus on Helm and
+> Ears to Hear support."* No GitHub milestone exists; this section is the release's only declared
+> scope. `dev` declares 0.2.1.30 and `CHANGELOG.md` opens `## 0.2.1.30 (Not yet released)`
+> (`82fc834`). Neither half has a plan yet — the first act on each is a design document in
+> `project/plans/` for him to review.
+
+1. **Helm → #271** — B and A, the Captain 2026-10-14 (`project/plans/design-helm-coordination.md`,
+   §6 answered A throughout). **Built 2026-10-14, uncommitted:** a `pending` status in
+   `data/helm-sync.yaml`; this suite checks only this repository against its record; the report
+   reads committed state; `--apply` replaced by `--note`; `EXEMPT_KEYS` and `HELM_EXEMPT` gone;
+   `stage-commits` forked. Four files are `pending` on Helm. **Left, all Helm's:** commit its own
+   uncommitted work, adopt the four from `--note`'s notes, its checksums and CI job (D1, D2), and
+   D3 in its rules — in Helm, by Helm, never from here.
+2. **Ears to Hear support** — their request is
+   `collab/ears-to-hear/2026-10-06-acai-sdbg-and-the-tyndale-bible-dictionary.md`: ACAI served
+   for a passage, SDBG's definition and gloss for a Louw-Nida sense, the Tyndale Open Bible
+   Dictionary for a passage or an entry, and a confirmation. Measured 2026-10-06: `senses` on
+   `SBLGNT` carries the letter-level code, `"ln": "93.169a"` for Ἰησοῦς in MAT 19:1.
+
+**Raised for his decision, not in scope until he says so:**
+
+- **→ #270, `install.sh` and `install.ps1` get 403 from the GitHub API** — failed 0.2.1.29's
+  macOS install check on both attempts. Three possible fixes in the issue, none chosen.
+- **What rolls forward from 0.2.1.29** — every item in the section below that is not ticked or
+  marked done: the `sp init --update` / `rules.md` defect, the unfiled `license_url` issue
+  (`tmp/issue-abd-license-url.md`), #261's Q6 and §2a, BSB `\q` lines, and the two lists of
+  untriaged findings. Each wants a ruling — in, out, or an issue — not a quiet fix.
+- **`.claude/skills/release/SKILL.md` is stale** — it describes the retired `build-release.yml`
+  and `hatch publish` of `llmflow`; `project/RELEASE_CHECKLIST.md` is the procedure in force.
+
+### 🚢 0.2.1.29 — SHIPPED 2026-10-10. Its open items roll forward to the section above
+
+> **Tagged and published.** `v0.2.1.29` is on merge commit `ea8d86c` (second parent `663a7fd`,
+> the PR head the build tested); release run 38073882426 published the GitHub release with three
+> binaries, and PyPI carries `scripture-pipelines` 0.2.1.29 (uploaded 2026-10-12, after the
+> Captain approved the `pypi` environment). The macOS install check failed — #270. Verified
+> 2026-10-12 with `gh release view v0.2.1.29` and PyPI's JSON API.
+>
+> **Below is the walk-through as it stood**, kept as the record of what was ruled and what was
+> left open. The CHANGELOG heading it calls `Unreleased` is `## 0.2.1.29 — 2026-10-07`.
 
 > No GitHub milestone exists; this section is the release's only declared scope. Walk it **in
 > this order**, one item at a time, with the Captain — he asked for exactly that.

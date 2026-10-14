@@ -74,7 +74,7 @@ def test_the_shell_rules_have_not_changed_unnoticed():
         "still say the same thing, then update EXPECTED_RULES_DIGEST to "
         f"{_digest(_rules_text())!r}.\n"
         "  The discipline is shared with Human at the Helm — a change there needs "
-        "`tools/sync_helm.py --apply` and a commit in that repository."
+        "`tools/sync_helm.py --refresh-record` and a `note` saying why Helm should adopt it."
     )
 
 

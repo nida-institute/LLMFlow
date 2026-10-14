@@ -23,6 +23,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-expand-once-and-only-once.md](design-expand-once-and-only-once.md) | approved in conversation 2026-09-02 — *"double expansion is always a defect"*, and | #230 |
 | [design-foreach-syntax-migration.md](design-foreach-syntax-migration.md) | Proposed — awaiting Captain review | #153 |
 | [design-format-keyword-split.md](design-format-keyword-split.md) | Design note — not approved, nothing built. Requested 2026-08-12 as item 4 of the | — |
+| [design-helm-coordination.md](design-helm-coordination.md) | decided (2026-10-14) — §6 answered A throughout. Not yet authorization to build: | #271 |
 | [design-helm-parity.md](design-helm-parity.md) | awaiting the Captain's review. Not authorization to implement (rules.md #15). | #15 #195 #204 |
 | [design-jmespath-step.md](design-jmespath-step.md) | Proposed — not built. Nothing in src/ implements this. Requires the Captain's approval before … | #167 #168 |
 | [design-loader-steps.md](design-loader-steps.md) | Implemented — historical record. Describes why the code looks as it does; do not rebuild from … | — |
@@ -80,4 +81,4 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [plan-window-token-defects.md](plan-window-token-defects.md) | ruled (2026-09-22) → #246. Defect 2 ruled A by the Captain; the other two need no ruling. | #246 |
 | [usfm-support.md](usfm-support.md) | Implemented in part — historical record. USFM/USJ handling exists in utils/data.py, | — |
 
-72 documents.
+73 documents.

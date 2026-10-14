@@ -2,6 +2,15 @@
 
 ## 0.2.1.30 (Not yet released)
 
+### Changed
+
+- **A change to a discipline shared with Human at the Helm travels in two acts, one per
+  repository** (#271). The shipped `disciplines/README.md` now describes it: the change is
+  committed here with its record marked `pending`, and Human at the Helm adopts it in its own
+  commit. `tools/sync_helm.py` reads both sides at their last commit, `--note` leaves Human at
+  the Helm a note of what it owes, and `--apply`, which wrote into the other repository, is
+  removed. This repository's tests no longer fail because Human at the Helm is behind.
+
 ## 0.2.1.29 — 2026-10-07
 
 ### Added

@@ -12,15 +12,24 @@ something a machine can show to be wrong, instead of a claim in a document.
 
 Lives in this repository rather than in Helm because Helm ships only markdown and has no way
 to run tests — the same reason R2 declined to port `tools/update_plans_index.py` to it. It
-reads Helm's actual manifest, so it skips where no clone is present, exactly as the live half
-of `test_helm_sync.py` does.
+reads Helm's actual manifest, so it skips where no clone is present.
+
+**It checks Helm's state, so it belongs in Helm's CI** once that exists — D2 of
+`project/plans/design-helm-coordination.md` (#271). It is the one test here still reading the
+clone, kept until then because nothing else would watch the manifest.
 """
 
 from __future__ import annotations
 
+import pytest
 import yaml
 
-from tests.test_helm_sync import NEEDS_CLONE, _helm_root
+from tests.test_helm_sync import HELM_ENV_VAR, _helm_root
+
+NEEDS_CLONE = pytest.mark.skipif(
+    _helm_root() is None,
+    reason=f"no Human at the Helm clone found — set ${HELM_ENV_VAR} to run it",
+)
 
 AI_CONTEXT = "docs/ai-context/"
 HELM_HALF = "docs/ai-context/helm/"
