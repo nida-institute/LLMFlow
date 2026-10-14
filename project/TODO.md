@@ -2184,6 +2184,16 @@ build against.
 
 ## 📋 Backlog
 
+### 🔄 auto-update
+
+> **Added by the Captain 2026-10-09**, in his words: *"auto-update"*. Not scheduled. What it
+> covers is not yet stated — the item is recorded as given, not interpreted.
+
+### 🪄 "create a pipeline for me" from a prompt
+
+> **Added by the Captain 2026-10-09**, in his words: *"create a pipeline for me" from a prompt*.
+> Not scheduled. Recorded as given, not interpreted.
+
 ### 🪪 Retiring the name `llmflow` → #265, #209
 
 > **Set aside by the Captain 2026-09-29: low priority for today.** Filed so it is not

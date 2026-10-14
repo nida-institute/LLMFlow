@@ -16,7 +16,8 @@ import pytest
 
 CHANGELOG = Path(__file__).resolve().parent.parent / "CHANGELOG.md"
 
-UNRELEASED = "Unreleased"
+#: The marker on the section for the next release, `## 0.2.1.30 (Not yet released)`.
+UNRELEASED = "(Not yet released)"
 
 #: Keep-a-Changelog, plus the headings this project's guidance and history use.
 SECTIONS = frozenset({
@@ -57,7 +58,7 @@ def unreleased_lines() -> list[tuple[int, str]]:
     collected, inside = [], False
     for number, text in enumerate(CHANGELOG.read_text(encoding="utf-8").splitlines(), start=1):
         if match := VERSION_HEADING.match(text):
-            inside = match.group("name").strip().lower() == UNRELEASED.lower()
+            inside = match.group("name").strip().endswith(UNRELEASED)
         elif inside:
             collected.append((number, text))
     return collected
@@ -66,10 +67,10 @@ def unreleased_lines() -> list[tuple[int, str]]:
 def test_the_changelog_has_an_unreleased_section():
     """Absent, every check below would pass by having nothing to read."""
     assert any(
-        VERSION_HEADING.match(line) and VERSION_HEADING.match(line).group("name").strip().lower()
-        == UNRELEASED.lower()
+        VERSION_HEADING.match(line)
+        and VERSION_HEADING.match(line).group("name").strip().endswith(UNRELEASED)
         for line in CHANGELOG.read_text(encoding="utf-8").splitlines()
-    ), f"No `## {UNRELEASED}` heading — nothing to check, which is not the same as passing."
+    ), f"No `## <version> {UNRELEASED}` heading — nothing to check, which is not the same as passing."
 
 
 @pytest.mark.parametrize("kind", sorted(FORBIDDEN))
@@ -117,5 +118,5 @@ def test_no_prose_before_the_first_section():
         if text.strip() and not text.startswith("#"):
             prose.append(f"CHANGELOG.md:{number}: {text.strip()[:90]}")
     assert not prose, (
-        f"Prose under `## {UNRELEASED}`, before any section:\n  " + "\n  ".join(prose)
+        f"Prose under `## <version> {UNRELEASED}`, before any section:\n  " + "\n  ".join(prose)
     )

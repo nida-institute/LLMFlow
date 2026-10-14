@@ -34,11 +34,11 @@ read-through they will look unsatisfiable, and they are, until then. Open the PR
 finish, then come back and tick them before merging.
 
 ### 1. Version & Changelog
-- [ ] `CHANGELOG.md` has a section for this version (date, categorized changes, issue refs,
-      breaking changes marked)
-- [ ] Version bumped in `pyproject.toml` — **bump the 4th component** (e.g. 0.2.1.19 → 0.2.1.20)
-      unless explicitly doing a minor/major
-- [ ] The version-bump commit is part of the PR (so the tag lands on code with the right version)
+- [ ] `CHANGELOG.md`'s top section is dated: `## 0.2.1.30 (Not yet released)` becomes
+      `## 0.2.1.30 — <date>` (categorized changes, issue refs, breaking changes marked). The PR
+      build fails while it still says `(Not yet released)` — `test_a_release_pr_dates_its_section`
+- [ ] `pyproject.toml` already declares this version — §12 bumped it when the last release
+      shipped
 
 ### 2. Documentation sync
 - [ ] Main docs reflect new features (`docs/*.md`, e.g. `docs/sp-language.md`)
@@ -201,8 +201,8 @@ git tag -d "v$VERSION"; git push origin ":refs/tags/v$VERSION"
 
 ### 12. Prepare `dev` for the next cycle
 - [ ] `git checkout dev && git pull`
-- [ ] Bump `pyproject.toml` to the next 4th-component version
-- [ ] Start a fresh `CHANGELOG.md` section for the next release
+- [ ] Bump `pyproject.toml` to the next 4th-component version (e.g. 0.2.1.30 → 0.2.1.31)
+- [ ] Open its `CHANGELOG.md` section at the top, named for it: `## 0.2.1.31 (Not yet released)`
 - [ ] Commit and push to `dev`
 
 ---
