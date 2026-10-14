@@ -74,3 +74,12 @@ quietly dropped when it becomes inconvenient.
    `drift-patterns.md`. Of any coined noun, ask: **what phrase would this replace, and is
    the noun earning its keep?** An AI is especially prone to this because naming a concept
    feels like understanding it.
+
+4. **The version number is not a question.** After a release ships, bump the 4th component
+   (`0.2.1.30` → `0.2.1.31`) in `pyproject.toml` and open `## 0.2.1.31 (Not yet released)` at
+   the top of `CHANGELOG.md` — without asking. Never offer a minor or major bump, and never ask
+   which number the next release gets; the Captain will say so if it is ever different.
+
+   The Captain, 2026-10-12: *"I will only ever bump the version number this way, can I get the
+   LLM to stop making this my responsibility to decide every time?"* Committing the bump stays
+   his, like every commit.

@@ -1,22 +1,16 @@
 # HANDOFF — 2026-10-14
 
-Written against `663a7fd`, staged into the commit that follows it (`tmp/commit-1.txt`,
-"chore: dev becomes 0.2.1.30…").
+Written against `82fc834` ("chore: dev becomes 0.2.1.30…"), for the commit that follows it.
 
 ## ▶ NEXT ACTION
 
-**Confirm that commit landed, then get the Captain's go on rule 4.** If `git log -1` still shows
-`663a7fd`, the commit is his to run (`git commit -F tmp/commit-1.txt`) — do not run it. Once it
-exists: `git show HEAD`, then delete `tmp/commit-1.txt` by name.
+**Confirm the follow-up commit landed** — the version-number rule in
+`docs/ai-context/project/rules.md` ("The version number is not a question", the Captain's go
+2026-10-14) and this file. `82fc834` alone is red on
+`tests/test_rules_are_cited_by_id.py::test_rules_are_cited_by_id[HANDOFF.md]`: its handoff cited
+a project rule by number. This file no longer does.
 
-Then the step he is walking through next: **rule 4, "the version number is not a question"**, for
-`docs/ai-context/project/rules.md`. Drafted and shown to him 2026-10-12; not written, because
-`CLAUDE.md`'s project block says `project/` is writable and its lower section forbids anything
-under `docs/ai-context/`. His go is the tiebreak. His words, to quote in the rule: *"I will only
-ever bump the version number this way, can I get the LLM to stop making this my responsibility to
-decide every time?"*
-
-After that, step 3 of his walk-through: **the macOS install check** — file an issue (rule
+Then the last step of his walk-through: **the macOS install check** — file an issue (rule
 `agent-may-file-issues`). Then the queue in `project/TODO.md`.
 
 ---
@@ -36,7 +30,7 @@ After that, step 3 of his walk-through: **the macOS install check** — file an 
   refused on the macOS runner — **not confirmed**. A re-run was in progress 2026-10-12; check
   `gh run view 38073882426`. No issue filed yet.
 
-### 2. dev is 0.2.1.30 — in this commit
+### 2. dev is 0.2.1.30 — committed at `82fc834`
 
 - `CHANGELOG.md`'s top section is `## 0.2.1.30 (Not yet released)`, the Captain's wording.
 - `tests/test_changelog_covers_the_version.py`: an undated top section passes on `dev`;
@@ -60,13 +54,14 @@ After that, step 3 of his walk-through: **the macOS install check** — file an 
 
 ## Decisions
 
-**Awaiting the Captain:** rule 4's go (above). Whether `.claude/skills/release/SKILL.md`, which
+**Awaiting the Captain:** whether `.claude/skills/release/SKILL.md`, which
 still describes the retired `build-release.yml` and `hatch publish` of `llmflow`, goes into
 `project/TODO.md` — asked, unanswered.
 
 **Settled — do not reopen:**
 - **The version is always the 4th component, and is not his to be asked about** — the Captain,
-  2026-10-12, quoted above.
+  2026-10-12; recorded in `docs/ai-context/project/rules.md`, "The version number is not a
+  question".
 - **The next release's heading is `## <version> (Not yet released)`**, opened right after a
   release, with `pyproject.toml` bumped to match — the Captain, 2026-10-12.
 
