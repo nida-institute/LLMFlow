@@ -111,6 +111,30 @@ def test_greek_senses_are_louw_nida():
     assert doc[CONTAINER_KEY]["senses"]["n57001001001"] == {"domain": "093001", "ln": "93.1"}
 
 
+def _greek_word(**columns) -> list[dict]:
+    return [{**GREEK_ROWS[0], **columns}]
+
+
+def test_a_louw_nida_code_keeps_its_letter():
+    """`93.169a`, not `93.169`: the letter names one sense of a subdomain entry.
+
+    Consumers join this code to the Semantic Dictionary of Biblical Greek's `EntryCode`, which
+    carries the same letter, so a code trimmed to its number would join to the wrong sense.
+    """
+    doc = rows_to_usj(_greek_word(domain="093001", ln="93.169a"), "PHM", include=["ids", "senses"])
+    assert doc[CONTAINER_KEY]["senses"]["n57001001001"]["ln"] == "93.169a"
+
+
+def test_a_word_with_two_codes_keeps_both():
+    """Macula gives some words two senses, space-separated, with a domain for each."""
+    doc = rows_to_usj(
+        _greek_word(domain="010002 033003", ln="10.24 33.19"), "PHM", include=["ids", "senses"]
+    )
+    assert doc[CONTAINER_KEY]["senses"]["n57001001001"] == {
+        "domain": "010002 033003", "ln": "10.24 33.19",
+    }
+
+
 def test_a_hebrew_word_with_no_sense_data_yields_no_entry():
     doc = rows_to_usj(HEBREW_ROWS, "RUT", include=["ids", "senses"])
     assert doc[CONTAINER_KEY]["senses"] == {}

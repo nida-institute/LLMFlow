@@ -7,7 +7,7 @@ import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
 from dataclasses import field as dataclass_field
-from difflib import unified_diff
+from difflib import get_close_matches, unified_diff
 from pathlib import Path
 from typing import Any, Dict, List, Set
 
@@ -16,7 +16,14 @@ import yaml
 from pydantic import ValidationError
 
 from llmflow.exceptions import StepRewindError
-from llmflow.pipeline_schema import PipelineConfig, allowed_step_keys, step_keys, step_members
+from llmflow.pipeline_schema import (
+    PipelineConfig,
+    allowed_step_keys,
+    declared_step_types,
+    step_keys,
+    step_members,
+)
+from llmflow.plugins.loader import BUILTIN_STEP_TYPES
 
 # `size`/`stride` accept an expression resolved once before the loop starts. The test for
 # what counts as an expression comes from the module that resolves them, so lint and run
@@ -2097,6 +2104,26 @@ def _lint_step_enums(step, errors):
             )
 
 
+def _lint_step_type(step, step_name, errors) -> bool:
+    """Refuse a type that neither the schema nor a built-in plugin declares.
+
+    A project's own plugin is named by `plugin:`, so a step carrying it is not checked. Returns
+    True when the type was refused, so the caller does not go on to check its keys.
+    """
+    step_type = step.get("type")
+    if step_type is None or step.get("plugin"):
+        return False
+    known = declared_step_types() | BUILTIN_STEP_TYPES
+    if step_type in known:
+        return False
+    message = f"Step '{step_name}' has step type '{step_type}', which sp does not declare"
+    nearest = get_close_matches(str(step_type), sorted(known), n=1)
+    if nearest:
+        message += f" (Did you mean '{nearest[0]}'?)"
+    errors.append(message)
+    return True
+
+
 def _lint_step_keys(step, errors):
     """Validate a step's keys against the schema's per-type vocabulary.
 
@@ -2107,6 +2134,9 @@ def _lint_step_keys(step, errors):
     step_type = step.get("type")
     allowed = allowed_step_keys(step_type)
     step_name = step.get("name", "<unnamed>")
+
+    if allowed is None and _lint_step_type(step, step_name, errors):
+        return
 
     if allowed is None:
         # Plugin / registered type (or no type declared): the whole step dict is passed

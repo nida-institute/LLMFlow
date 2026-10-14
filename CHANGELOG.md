@@ -10,6 +10,17 @@
   commit. `tools/sync_helm.py` reads both sides at their last commit, `--note` leaves Human at
   the Helm a note of what it owes, and `--apply`, which wrote into the other repository, is
   removed. This repository's tests no longer fail because Human at the Helm is behind.
+- **`sp lint` refuses a step type nothing declares** (#272). A type must be one the pipeline
+  schema declares or one a built-in plugin provides (`tsv`, `csv`, `xpath`, `xslt`,
+  `json_schema_validator`, `insert_references`, `coverage_validator`); a project's own plugin is
+  named with `plugin:` and is not checked. A misspelt type now stops at lint, naming the nearest
+  declared type, instead of failing at run time after the steps before it have run.
+
+### Fixed
+
+- **A Louw-Nida code in `include: [senses]` is pinned as the source writes it** (#272) —
+  letter-level (`93.169a`) and, where Macula gives a word two senses, both codes
+  (`10.24 33.19`). Behaviour is unchanged; tests now hold it.
 
 ## 0.2.1.29 — 2026-10-07
 

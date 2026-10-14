@@ -1,42 +1,42 @@
 # HANDOFF — 2026-10-14
 
-Written against `e3abece` ("docs(project): the version number is not a question"), for the
-commit that follows it — the Helm half of 0.2.1.30, #271.
+Written against `300728d` (the Helm half of 0.2.1.30, #271), for the commit that follows it — the
+Ears to Hear design and its build step 1, #272.
 
 ## ▶ NEXT ACTION
 
-**Confirm the Helm commit landed**, then show it with `git show HEAD`. If `git log -1` still
-shows `e3abece`, the commit is the Captain's to run (`git commit -F tmp/commit-1.txt`) — do not
-run it; once it exists, delete `tmp/commit-1.txt` by name.
+**Confirm that commit landed**, then `git show HEAD`. If `git log -1` still shows `300728d`, the
+commit is the Captain's to run (`git commit -F tmp/commit-1.txt`) — do not run it; once it exists,
+delete `tmp/commit-1.txt` by name.
 
-Then the queue: `project/TODO.md` → 🚢 THE NEXT RELEASE. The Helm half's remaining work is all
-Helm's, done in Helm; the Ears to Hear half has no design yet.
+Then **build step 2 of `project/plans/design-ears-to-hear-resources.md` §6** — SDBG on senses:
+a `provides` block for `ubs-sdgnt`, and the join onto `include: [senses]` as an `entries` list
+(D-B A, D-D A). Test first. Steps 2–4 need data registered on this machine, which is the
+Captain's to run (§2: `~/.sp/datasets/ACAI.yaml` points at `Clear/ACAI`; SDGNT and Tyndale are not
+registered).
 
 ---
 
 ## Active threads
 
-### 1. Helm coordination, #271 — built, staged for one commit
+### 1. Ears to Hear resources, #272 — design decided, step 1 built
 
-- **Design:** `project/plans/design-helm-coordination.md`, decided — §6 answered A throughout,
-  `stage-commits` forked, both the Captain's, 2026-10-14.
-- **Built:** `pending` status in `data/helm-sync.yaml`; `tests/test_helm_sync.py` checks only this
-  repository against its record; `tools/sync_helm.py` reads both sides at `HEAD`, `--note`
-  replaces `--apply`; `tests/test_sync_helm_tool.py` (20); `EXEMPT_KEYS`/`HELM_EXEMPT` deleted;
-  project rule "Human at the Helm is written in Helm".
-- **Four files `pending` on Helm:** `disciplines/github-authority.md`, `project-tracking.md`,
-  `workflow.md`, `skills/authorize`, each with its date and note.
-- **Verify:** `hatch run pytest tests -q -m "not integration"` → 6,225 passed, 0 failed, **0
-  xfailed** once the design document is tracked. `hatch run python tools/sync_helm.py` reports
-  without writing.
+- **Design:** `project/plans/design-ears-to-hear-resources.md`, decided — §7 answered A, A, C, A,
+  A, A, the Captain, 2026-10-14. D-C's option C (entities once, plus a verse index) was added in
+  the discussion.
+- **Step 1, in this commit:** `sp lint` refuses an undeclared step type (`_lint_step_type`,
+  `src/llmflow/utils/linter.py`; `BUILTIN_STEP_TYPES` in `src/llmflow/plugins/loader.py`);
+  `tests/test_lint_refuses_undeclared_types.py`; letter-level and two-code Louw-Nida pinned in
+  `tests/test_scripture_families.py`.
+- **Consequence:** Ears to Hear's `build-book.yaml` uses `type: acai`, which now fails `sp lint`
+  until step 3.
+- **Verify:** `hatch run pytest tests -q -m "not integration"` → 6,262 passed, 0 failed.
+- **Steps left:** 2 SDBG on senses; 3 `type: acai`; 4 `type: dictionary` (Tyndale by entry).
 
-### 2. An incident during the build — resolved
+### 2. Helm, #271 — committed at `300728d`
 
-The first, deliberately failing run of `test_apply_is_gone` called `main(["--apply"])` on the
-**old** script, against the real Helm clone. It overwrote four Helm files and refreshed this
-record. Restored at the Captain's go: three disciplines from Helm's `HEAD`, one hunk removed
-from `skills/authorize/SKILL.md` (now blob `4248b5c`, its prior state). Helm's status matched
-its earlier listing line for line. The test now points at a throwaway clone.
+Everything left is Helm's, in Helm: commit its own work, adopt the four `pending` files, its
+checksums and CI job, D3 in its rules, its `=>` slots D1–D4.
 
 ---
 
@@ -44,35 +44,32 @@ its earlier listing line for line. The test now points at a throwaway clone.
 
 | whose | paths |
 |---|---|
-| **Helm's, in Helm** | 7 commits unpushed; 7 `skills/*/SKILL.md` modified; untracked `skills/stage-commits/`, plans, `collab/`. Its handoff is dated 2026-10-01 |
+| **unpushed** | `82fc834`, `e3abece`, `300728d` on `dev` — the push is the Captain's |
+| **incoming, unread** | `collab/discourse-flow/2026-10-12-the-project-copy-of-the-rules-lags-the-machine-copy.md` |
+| **modified, not this session's** | `docs/ai-context/project/data-sources.md`, `project/open-decisions.md` |
 | **untracked here, origin unknown — ask** | `.cursorrules`, `.windsurfrules`, `project/0x28.md`, `tests/test_stage_commits_checks_the_handoff.py`, `collab/`, `scripts/representation-grid/` |
-| **modified, not this session's** | `docs/ai-context/project/data-sources.md` |
 | **`~/.claude`** | 2 uncommitted files — reported, diff offered, not reviewed |
 
 `gui/frontend/node_modules` is tracked and shows ~8,000 deletions. **Never `git add -A`.**
 
 ## Decisions
 
-**Awaiting the Captain:** Helm's `=>` slots D1–D4 in its
-`project/plans/design-coordinating-changes-with-sp.md` are empty; his answers are in this
-repository's design §1, and filling Helm's is his or a Helm session's. Whether #270 is in
-0.2.1.30. Whether the stale `.claude/skills/release/SKILL.md` goes into `project/TODO.md`.
+**Awaiting the Captain:** whether #270 is in 0.2.1.30; whether the stale
+`.claude/skills/release/SKILL.md` goes into `project/TODO.md`; any reply to Ears to Hear (his, by
+project rule).
 
-**Settled — do not reopen:** B and A for Helm; D1–D4 and D-A–D-D as recorded in the design;
-`stage-commits` forked; version bumps per the project rule "The version number is not a
-question".
+**Settled — do not reopen:** #272's §7 answers; Helm's design §6; `stage-commits` forked.
 
 ## Do NOT
 
-- **Write anything in Helm's tree** outside `collab/scripture-pipelines/` — project rule
-  "Human at the Helm is written in Helm". `--note` is the one sanctioned write, and only when
-  asked.
+- **Write anything in Helm's tree** outside `collab/scripture-pipelines/`.
+- **Write to `~/.sp`** — the registrations steps 2–4 need are the Captain's to run.
 - **Commit, push, open a PR or merge.** `/stage-commits`.
-- **Do not run `sp init --update` here** without regenerating `docs/ai-context/sp/rules.md` after.
+- **Reply to Ears to Hear unasked.**
 - **Do not `sp run` unasked.**
 
 ## Key files & links
 
-- `project/plans/design-helm-coordination.md`, #271
-- `tools/sync_helm.py`, `data/helm-sync.yaml`
+- `project/plans/design-ears-to-hear-resources.md`, #272
+- `collab/ears-to-hear/2026-10-06-acai-sdbg-and-the-tyndale-bible-dictionary.md`
 - `project/TODO.md` → 🚢 THE NEXT RELEASE

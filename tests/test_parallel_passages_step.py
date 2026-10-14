@@ -119,11 +119,9 @@ class TestTheStepIsInTheLanguage:
     def test_the_schema_declares_the_type_and_its_keys(self):
         """The type is declared, not permissive.
 
-        Asserted against the schema rather than against a clean lint, because lint alone
-        cannot tell the difference: an unrecognised type is treated as a plugin, whose keys
-        cannot be enumerated, so a pipeline using this step lints clean today — before
-        anything implements it. A test resting on that would pass whether or not the branch
-        was ever written.
+        Asserted against the schema rather than against a clean lint, because the schema is
+        where a type is declared: lint refuses an undeclared type by reading that same
+        declaration, so a test resting on lint would check the schema only at one remove.
         """
         from llmflow.pipeline_schema import allowed_step_keys, common_step_keys
 

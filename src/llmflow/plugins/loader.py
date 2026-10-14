@@ -13,6 +13,31 @@ plugin_registry = {
     "csv": tsv_execute,  # CSV uses same reader
 }
 
+#: The step types the registry holds before discovery runs.
+SEEDED_STEP_TYPES = frozenset(plugin_registry)
+
+#: Plugin modules discovery imports — listed, not scanned, for PyInstaller compatibility.
+KNOWN_PLUGIN_MODULES = (
+    "coverage_validator",
+    "echo",
+    "insert_references",
+    "json_schema_validator",
+    "xml_entry_to_base_json",
+    "xpath",
+    "xslt_transform",
+)
+
+#: Every step type a built-in plugin provides, so `sp lint` can accept them without loading
+#: a plugin. `tests/test_lint_refuses_undeclared_types.py` holds it equal to what the modules
+#: above actually register.
+BUILTIN_STEP_TYPES = SEEDED_STEP_TYPES | frozenset({
+    "coverage_validator",
+    "insert_references",
+    "json_schema_validator",
+    "xpath",
+    "xslt",
+})
+
 
 def discover_plugins():
     """
@@ -23,20 +48,9 @@ def discover_plugins():
     """
     logger.info("🔌 Loading plugins...")
 
-    # List of known plugin modules (hardcoded for PyInstaller compatibility)
-    known_plugins = [
-        "coverage_validator",
-        "echo",
-        "insert_references",
-        "json_schema_validator",
-        "xml_entry_to_base_json",
-        "xpath",
-        "xslt_transform",
-    ]
-
     plugin_count = 0
 
-    for name in known_plugins:
+    for name in KNOWN_PLUGIN_MODULES:
         try:
             # Import the plugin module
             module = importlib.import_module(f"llmflow.plugins.{name}")

@@ -3868,6 +3868,7 @@
         "llmflow.exceptions",
         "llmflow.modules.logger",
         "llmflow.pipeline_schema",
+        "llmflow.plugins.loader",
         "llmflow.steps.window",
         "llmflow.utils",
         "llmflow.utils.context",
@@ -4193,6 +4194,11 @@
           "name": "_lint_step_enums",
           "signature": "_lint_step_enums(step, errors)",
           "doc": "Check values the schema constrains to an enum."
+        },
+        {
+          "name": "_lint_step_type",
+          "signature": "_lint_step_type(step, step_name, errors) -> bool",
+          "doc": "Refuse a type that neither the schema nor a built-in plugin declares."
         },
         {
           "name": "_lint_step_keys",
@@ -5929,6 +5935,6 @@
   ],
   "summary": {
     "total_modules": 96,
-    "total_functions": 945
+    "total_functions": 946
   }
 }
