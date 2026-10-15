@@ -54,6 +54,16 @@
 
 ### Fixed
 
+- **The one-line installers no longer call GitHub's API** (#270). `install.sh` and `install.ps1`
+  asked `api.github.com` for the latest release, unauthenticated, which allows 60 requests an
+  hour per address: on a shared address — a CI runner, an office, a VPN — it answered 403, and
+  0.2.1.29's macOS install check failed five times on both attempts. They now read the latest
+  tag from where `github.com/…/releases/latest` redirects and download that tag's binary from
+  `releases/download/<tag>/`, so the version printed is the version installed. A refused request
+  now prints its status and GitHub's response, where `curl -f` discarded both. Guarded by
+  `tests/test_install_scripts.py` (8), which runs `install.sh` against a stand-in `curl`;
+  `install.ps1` is checked by reading, and `release.yml`'s `verify-install` remains the proof on
+  all three systems.
 - **A Louw-Nida code in `include: [senses]` is pinned as the source writes it** (#272) —
   letter-level (`93.169a`) and, where Macula gives a word two senses, both codes
   (`10.24 33.19`). Behaviour is unchanged; tests now hold it.

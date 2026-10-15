@@ -1,50 +1,53 @@
 # HANDOFF — 2026-10-15
 
-Written against `fd01eee` (level with `origin/dev`), for the commit that follows it — the release
-skill reduced to a pointer at `project/RELEASE_CHECKLIST.md`, and `project/TODO.md` brought up to
-the Captain's 2026-10-15 rulings. All four build steps of #272 are in, through `fd01eee`.
+Written against `aa08edc` (one ahead of `origin/dev`, the push the Captain's), for the first of
+three commits that follow it: #270, then the public API's missing step types, then the GSP rule.
 
 ## ▶ NEXT ACTION
 
-**Confirm that commit landed**, then `git show HEAD`. If `git log -1` still shows `fd01eee`, the
-commit is the Captain's to run (`git commit -F tmp/commit-1.txt`) — do not run it; once it exists,
-delete `tmp/commit-1.txt` by name.
+**See which of the three commits exist** — `git log -4 --format="%h %s"` — and `git show` each new
+one. They are the Captain's to run, from `tmp/commit-1.txt`, `tmp/commit-2.txt`,
+`tmp/commit-3.txt`; delete each by name once its commit exists. Commit 3 waits on **D7**, below.
 
-Then **#270**, item 3 of `project/TODO.md` → 🚢 THE NEXT RELEASE — the Captain's chosen fixes are
-recorded there. Test first, one step at a time.
+Then **convert this session's tests to the `sp` CLI**, one file per step, in this order:
+`tests/test_lint_refuses_undeclared_types.py`, `tests/test_sdbg_senses.py`,
+`tests/test_acai_step.py`, `tests/test_dictionary_step.py`.
 
 ---
 
 ## Active threads
 
-### 1. Ears to Hear resources, #272 — all four steps built
+### 1. Tests drive the `sp` CLI — the Captain, 2026-10-15
 
-- **Design:** `project/plans/design-ears-to-hear-resources.md` — §7, plus D-G to D-U
-  (2026-10-15) with their measurements.
-- **Steps 1–4:** `cb15dbc`, `51b6fff`, `f2e3104`, `fd01eee`, all pushed. The Captain registered
-  `ACAI`, `ubs-sdgnt` and `tyndale-open-bible-dictionary` on this machine.
-- **Ears to Hear's `build-book.yaml` lints clean of everything these touch** (2026-10-15, run by
-  the Captain from `ears-to-hear/scriptorium`); its two remaining errors are its own uncommitted
-  edit, which dropped `pericope_index` from `narrative_profile`.
-- **The Captain's, outstanding:** any reply to Ears to Hear, and any report to BibleAquifer about
-  2CO 13:14 (D-P).
+He asked "all tests should use the cli API. Do they?" — they do not. Rulings, all A:
 
-### 2. The rest of 0.2.1.30 — `project/TODO.md` → 🚢 THE NEXT RELEASE, items 3–5
+- **D1** — drive `sp` in-process with `llmflow.cli.main([...])`; read `sp lint --json`, the
+  `saveas` file, `caplog`. Pattern: `tests/test_resource_preflight.py:246`.
+- **D2** — a test with no CLI form is dropped (the handler-reached-directly refusals; the
+  plugin-constant-versus-`register()` test). The guards stay in the code.
+- **D3** — parametrized lists come from `docs/cli-api.json` `step_types`.
+- **D4** — the rule is written by extending `the-language-is-the-whole-surface` in
+  `data/ai-rules.yaml`; not yet drafted.
+- **D5** — the API first listed only 21 types; commit 2 adds the seven built-in plugin types.
+- **Scope:** this session's four test files only. The older suite is the same pattern and is
+  not in scope.
 
-- **Item 4, the release skill, in this commit:** `.claude/skills/release/SKILL.md` is a pointer
-  at `project/RELEASE_CHECKLIST.md` plus the authority table; three new tests in
-  `tests/test_release_skill_stays_with_the_engine.py` refuse the retired names. **Verify:**
-  `hatch run pytest tests/test_release_skill_stays_with_the_engine.py` → 15 passed.
-- **Raised, not changed:** `RELEASE_CHECKLIST.md` §6–7 show `gh pr merge` and the tag push
-  without saying the human runs them. The Captain's call.
-- **Items 3 (#270) and 5 (version skew)** are not started.
-- **Not done, deliberately:** lint does not refuse a `dictionary` step with neither or both of
-  `entries`/`acai` — the step refuses at run time. The schema's per-type branches carry keys
-  only, so lint would need new machinery; a separate change if wanted.
+### 2. The three commits
 
-### 3. Helm, #271 — committed at `300728d`
+1. **#270** — `install.sh`, `install.ps1`, `tests/test_install_scripts.py` (8), its
+   `CHANGELOG.md` entry, `project/TODO.md`, this file. Verify: `hatch run pytest
+   tests/test_install_scripts.py` → 8 passed.
+2. **`docs/cli-api.json` lists every step type** — `src/llmflow/cli_api.py`,
+   `src/llmflow/file_catalog.py`, `docs/cli-api.json`, `tests/test_cli_api_map.py`, its
+   `CHANGELOG.md` entry. Verify: `hatch run pytest tests/test_cli_api_map.py` → 8 passed.
+3. **GSP** — `data/ai-rules.yaml` rule `commit-status-is-gsp`, plus `docs/ai-context/sp/rules.md`
+   regenerated. Until then `tests/test_ai_rules_single_source.py` has 2 RED.
 
-Everything left is Helm's, in Helm.
+Full suite on the tree holding all three: 6,391 passed, 27 skipped, the 2 RED above only.
+
+### 3. 0.2.1.30 — `project/TODO.md` → 🚢 THE NEXT RELEASE
+
+Item 5 (version skew, design first) is not started.
 
 ---
 
@@ -59,31 +62,32 @@ Everything left is Helm's, in Helm.
 | **`~/.claude`** | 2 uncommitted files — reported, diff offered, not reviewed |
 
 `gui/frontend/node_modules` is tracked and shows ~8,000 deletions. **Never `git add -A`.**
+`CHANGELOG.md` holds the entries for commits 1 and 2: each is staged alone with
+`git apply --cached` from a one-hunk patch under `tmp/`.
 
 ## Decisions
 
-**Awaiting the Captain:** whether `sp lint`'s raw traceback on a missing pipeline file is in
-0.2.1.30 (raised in `project/TODO.md`); the `RELEASE_CHECKLIST.md` authority lines above.
+**Awaiting the Captain:**
+- **D7** — may the AI run `hatch run python tools/update_ai_context.py`? It rewrites
+  `docs/ai-context/sp/rules.md`, which needs his explicit yes.
+- Whether `sp lint`'s raw traceback on a missing pipeline file is in 0.2.1.30.
+- Whether `RELEASE_CHECKLIST.md` §6–7 should say the human runs the merge and the tag push.
 
-**Settled — do not reopen:** 0.2.1.30 also takes #270 (fixes 2 and 3), the release skill, and
-discourse-flow's version-skew report — the Captain, 2026-10-15, recorded in `project/TODO.md`.
-#272's §7 and D-G to D-U — notably SDGNT joins on lemma and code;
-ACAI and Tyndale are declared in `data/*.json`, not the vendored catalog; the dictionary text is
-**Tyndale's own release** (D-Q, B — the Captain chose it over the Aquifer adaptation the ids belong
-to), reached by title with `*` disregarded; bodies and definitions are verbatim. Helm's design §6;
-`stage-commits` forked.
+**Settled — do not reopen:** D1–D6 above, all A. #270 reads the tag from the
+`releases/latest` redirect and prints a refused response (fixes 2 and 3). #272's §7 and D-G to
+D-U in `project/plans/design-ears-to-hear-resources.md`.
 
 ## Do NOT
 
 - **Write anything in Helm's tree** outside `collab/scripture-pipelines/`.
-- **Write to `~/.sp`** — registrations are the Captain's to run. Real-data checks read only.
-- **Edit `docs/ai-context/sp/`**, or regenerate it unasked.
+- **Write to `~/.sp`** — registrations are the Captain's to run.
+- **Edit `docs/ai-context/sp/`**, or regenerate it, without his yes (D7).
 - **Commit, push, open a PR or merge.** `/stage-commits`.
-- **Reply to Ears to Hear, or report to BibleAquifer, unasked.**
+- **Reply to Ears to Hear, discourse-flow or BibleAquifer unasked.**
 - **Do not `sp run` unasked.**
 
 ## Key files & links
 
-- `project/plans/design-ears-to-hear-resources.md`, #272
-- `collab/ears-to-hear/2026-10-06-acai-sdbg-and-the-tyndale-bible-dictionary.md`
 - `project/TODO.md` → 🚢 THE NEXT RELEASE
+- `project/plans/design-ears-to-hear-resources.md`, #272, #270
+- `docs/cli-api.json` — the public API the converted tests read

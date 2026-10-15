@@ -21,7 +21,9 @@ set -euo pipefail
 REPO="nida-institute/LLMFlow"
 INSTALL_DIR="$HOME/bin"
 BINARY_NAME="sp"
-API_URL="https://api.github.com/repos/${REPO}/releases/latest"
+# The web routes, not GitHub's API: the API allows 60 unauthenticated requests an hour per
+# address, and a shared address — a CI runner, an office, a VPN — can be over it already (#270).
+RELEASES_URL="https://github.com/${REPO}/releases"
 
 # ── Detect OS and architecture ────────────────────────────────────────────────
 
@@ -50,49 +52,74 @@ case "$OS" in
     ;;
 esac
 
-# ── Resolve download URL from latest release ──────────────────────────────────
+# ── Requests ──────────────────────────────────────────────────────────────────
 
-echo "ℹ️  Fetching latest Scripture Pipelines release..."
-
-if command -v curl &>/dev/null; then
-  RELEASE_JSON="$(curl -fsSL "$API_URL")"
-elif command -v wget &>/dev/null; then
-  RELEASE_JSON="$(wget -qO- "$API_URL")"
-else
+if ! command -v curl &>/dev/null && ! command -v wget &>/dev/null; then
   echo "❌ Neither curl nor wget is available. Please install one and retry." >&2
   exit 1
 fi
 
-# Extract download URL for our asset using grep/sed (no jq required)
-DOWNLOAD_URL="$(echo "$RELEASE_JSON" \
-  | grep -o '"browser_download_url": *"[^"]*'"$ASSET"'[^"]*"' \
-  | head -1 \
-  | sed 's/.*"browser_download_url": *"\([^"]*\)".*/\1/' \
-  || true)"
+RESPONSE="$(mktemp)"
+trap 'rm -f "$RESPONSE"' EXIT
 
-if [[ -z "$DOWNLOAD_URL" ]]; then
-  echo "❌ Could not find asset '${ASSET}' in the latest release." >&2
-  echo "   Check https://github.com/${REPO}/releases/latest for available assets." >&2
+# request URL OUTFILE FOLLOW — prints "STATUS LOCATION". FOLLOW is "yes" to follow redirects.
+# The response body is written to OUTFILE whatever the status, so a failure can be shown.
+request() {
+  local url="$1" out="$2" follow="$3"
+  if command -v curl &>/dev/null; then
+    if [[ "$follow" == "yes" ]]; then
+      curl -sS -L -o "$out" -w '%{http_code} %{redirect_url}' "$url" || true
+    else
+      curl -sS -o "$out" -w '%{http_code} %{redirect_url}' "$url" || true
+    fi
+  else
+    local headers status location
+    if [[ "$follow" == "yes" ]]; then
+      headers="$(wget -S -O "$out" "$url" 2>&1 || true)"
+    else
+      headers="$(wget -S --max-redirect=0 -O "$out" "$url" 2>&1 || true)"
+    fi
+    status="$(printf '%s\n' "$headers" | grep -o 'HTTP/[0-9.]* [0-9]*' | tail -1 | awk '{print $2}')"
+    location="$(printf '%s\n' "$headers" | grep -i '^ *Location:' | tail -1 | awk '{print $2}' | tr -d '\r')"
+    printf '%s %s' "${status:-000}" "$location"
+  fi
+}
+
+# refused WHAT STATUS FILE — says what was refused, with GitHub's own answer, and stops.
+refused() {
+  echo "❌ $1 failed: HTTP $2." >&2
+  if [[ -s "$3" ]]; then
+    echo "   GitHub answered:" >&2
+    head -c 2000 "$3" >&2
+    echo "" >&2
+  fi
+  echo "   Check https://github.com/${REPO}/releases/latest, or retry in a few minutes." >&2
   exit 1
-fi
+}
 
-VERSION="$(echo "$RELEASE_JSON" \
-  | grep -o '"tag_name": *"[^"]*"' \
-  | head -1 \
-  | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/' \
-  || true)"
+# ── The latest release's tag, from where /releases/latest redirects ───────────
+
+echo "ℹ️  Fetching latest Scripture Pipelines release..."
+
+read -r STATUS LOCATION <<< "$(request "${RELEASES_URL}/latest" "$RESPONSE" no)"
+if [[ "$STATUS" != 3* || "$LOCATION" != */releases/tag/* ]]; then
+  refused "Finding the latest release" "${STATUS:-000}" "$RESPONSE"
+fi
+VERSION="${LOCATION##*/releases/tag/}"
+
+# ── Download that tag's binary ────────────────────────────────────────────────
 
 echo "⬇️  Downloading Scripture Pipelines ${VERSION} (${ASSET})..."
 
-# ── Download ──────────────────────────────────────────────────────────────────
-
 mkdir -p "$INSTALL_DIR"
 DEST="${INSTALL_DIR}/${BINARY_NAME}"
+DOWNLOAD_URL="${RELEASES_URL}/download/${VERSION}/${ASSET}"
 
-if command -v curl &>/dev/null; then
-  curl -fsSL --progress-bar -o "$DEST" "$DOWNLOAD_URL"
-else
-  wget -q --show-progress -O "$DEST" "$DOWNLOAD_URL"
+read -r STATUS _ <<< "$(request "$DOWNLOAD_URL" "$DEST" yes)"
+if [[ "$STATUS" != 2* ]]; then
+  cp "$DEST" "$RESPONSE" 2>/dev/null || true
+  rm -f "$DEST"
+  refused "Downloading ${DOWNLOAD_URL}" "${STATUS:-000}" "$RESPONSE"
 fi
 
 chmod +x "$DEST"

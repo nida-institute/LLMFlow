@@ -32,7 +32,11 @@
 3. **#270, `install.sh` and `install.ps1` get 403 from the GitHub API** — in scope, the Captain
    2026-10-15, with the issue's fixes 2 and 3: download from
    `releases/latest/download/<asset>` rather than calling the API, reading the version from the
-   redirect; and print the response when a request fails. Both scripts. Not yet built.
+   redirect; and print the response when a request fails. Both scripts. **Built 2026-10-15,
+   in the commit after `aa08edc`:** `tests/test_install_scripts.py` (8); `install.sh` run live
+   against v0.2.1.29.
+   **Proven only by 0.2.1.30's own `verify-install`** — `install.ps1` has not run anywhere, and
+   `install.sh`'s `wget` branch is untested.
 4. **`.claude/skills/release/SKILL.md` is stale** — in scope, the Captain 2026-10-15, to be fixed
    before 0.2.1.30 is cut: reduce it to a pointer at `project/RELEASE_CHECKLIST.md`, the procedure
    in force, plus the authority lines (the Captain tags and approves `pypi`; the agent never

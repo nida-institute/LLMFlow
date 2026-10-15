@@ -4,7 +4,7 @@
     "this_is_the_api": "This IS the public API, and it is the whole of it. A project reaches this engine through the sp command line and the pipeline language it reads, and needs no Python at all.",
     "not_the_implementation": "docs/index.json is the other file and the opposite thing: it maps the engine's modules and functions, carries no compatibility promise, and is not a surface for projects or for tests.",
     "if_something_is_missing": "Where the language cannot express what you need, that is a missing construct worth reporting — not a reason to import the package and reach past it.",
-    "generated_by": "llmflow.cli_api, from build_parser() and PIPELINE_SCHEMA. Editing this file by hand does not survive regeneration."
+    "generated_by": "llmflow.cli_api, from build_parser(), PIPELINE_SCHEMA and the built-in plugins' step types. Editing this file by hand does not survive regeneration."
   },
   "commands": {
     "sp clean": {
@@ -1152,6 +1152,16 @@
       "members": [],
       "primary_member": null
     },
+    "coverage_validator": {
+      "keys": null,
+      "members": null,
+      "primary_member": null
+    },
+    "csv": {
+      "keys": null,
+      "members": null,
+      "primary_member": null
+    },
     "dictionary": {
       "keys": [
         "acai",
@@ -1194,11 +1204,21 @@
       "members": [],
       "primary_member": null
     },
+    "insert_references": {
+      "keys": null,
+      "members": null,
+      "primary_member": null
+    },
     "json": {
       "keys": [
         "value"
       ],
       "members": [],
+      "primary_member": null
+    },
+    "json_schema_validator": {
+      "keys": null,
+      "members": null,
       "primary_member": null
     },
     "llm": {
@@ -1373,6 +1393,11 @@
       ],
       "primary_member": "text"
     },
+    "tsv": {
+      "keys": null,
+      "members": null,
+      "primary_member": null
+    },
     "window": {
       "keys": [
         "end_when",
@@ -1389,6 +1414,16 @@
         "stride_by_tokens"
       ],
       "members": [],
+      "primary_member": null
+    },
+    "xpath": {
+      "keys": null,
+      "members": null,
+      "primary_member": null
+    },
+    "xslt": {
+      "keys": null,
+      "members": null,
       "primary_member": null
     }
   },
@@ -1411,6 +1446,6 @@
   ],
   "summary": {
     "total_commands": 39,
-    "total_step_types": 21
+    "total_step_types": 28
   }
 }

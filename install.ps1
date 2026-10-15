@@ -20,28 +20,55 @@ $Repo        = "nida-institute/LLMFlow"
 $AssetName   = "sp-windows.exe"
 $InstallDir  = Join-Path $env:USERPROFILE "bin"
 $BinaryName  = "sp.exe"
-$ApiUrl      = "https://api.github.com/repos/$Repo/releases/latest"
+# The web routes, not GitHub's API: the API allows 60 unauthenticated requests an hour per
+# address, and a shared address — a CI runner, an office, a VPN — can be over it already (#270).
+$Releases    = "https://github.com/$Repo/releases"
 
-# ── Fetch latest release info ─────────────────────────────────────────────────
+# Says what was refused, with GitHub's own answer, and stops. $Response may be $null when the
+# request never reached GitHub.
+function Stop-Refused($What, $Response, $Detail) {
+    $Status = "no response"
+    $Body = ""
+    if ($Response) {
+        $Status = "HTTP $([int]$Response.StatusCode) (StatusCode $($Response.StatusCode))"
+        try {
+            $Reader = New-Object System.IO.StreamReader($Response.GetResponseStream())
+            $Body = $Reader.ReadToEnd()
+            $Reader.Close()
+        } catch { }
+    }
+    Write-Host "❌ $What failed: $Status. $Detail"
+    if ($Body) {
+        Write-Host "   Response body:"
+        Write-Host ($Body.Substring(0, [Math]::Min(2000, $Body.Length)))
+    }
+    Write-Host "   Check https://github.com/$Repo/releases/latest, or retry in a few minutes."
+    exit 1
+}
+
+# ── The latest release's tag, from where /releases/latest redirects ───────────
 
 Write-Host "ℹ️  Fetching latest Scripture Pipelines release..."
 
+$Request = [System.Net.HttpWebRequest]::Create("$Releases/latest")
+$Request.AllowAutoRedirect = $false
+$Request.UserAgent = "scripture-pipelines-installer"
 try {
-    $Release = Invoke-RestMethod -Uri $ApiUrl -UseBasicParsing
-} catch {
-    Write-Error "❌ Failed to fetch release info from GitHub: $_"
+    $Response = $Request.GetResponse()
+} catch [System.Net.WebException] {
+    Stop-Refused "Finding the latest release" $_.Exception.Response $_.Exception.Message
+}
+
+$Location = $Response.Headers["Location"]
+$Code = [int]$Response.StatusCode
+$Response.Close()
+if ($Code -lt 300 -or $Code -ge 400 -or $Location -notmatch "/releases/tag/(.+)$") {
+    Write-Host "❌ Finding the latest release failed: HTTP $Code, redirected to '$Location'."
     exit 1
 }
 
-$Asset = $Release.assets | Where-Object { $_.name -eq $AssetName } | Select-Object -First 1
-
-if (-not $Asset) {
-    Write-Error "❌ Asset '$AssetName' not found in the latest release. Check https://github.com/$Repo/releases/latest"
-    exit 1
-}
-
-$Version     = $Release.tag_name
-$DownloadUrl = $Asset.browser_download_url
+$Version     = $Matches[1]
+$DownloadUrl = "$Releases/download/$Version/$AssetName"
 
 Write-Host "⬇️  Downloading Scripture Pipelines $Version ($AssetName)..."
 
@@ -65,8 +92,13 @@ try {
     $FileSize = (Get-Item $Dest).Length
     Write-Host "✅ Downloaded $([math]::Round($FileSize/1MB, 2)) MB to $Dest"
 
+} catch [System.Net.WebException] {
+    Stop-Refused "Downloading $DownloadUrl" $_.Exception.Response $_.Exception.Message
 } catch {
-    Write-Error "❌ Download failed: $_"
+    if ($_.Exception.Response) {
+        Stop-Refused "Downloading $DownloadUrl" $_.Exception.Response $_.Exception.Message
+    }
+    Write-Host "❌ Download failed: $_"
     exit 1
 }
 
