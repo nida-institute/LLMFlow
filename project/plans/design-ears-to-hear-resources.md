@@ -1,7 +1,7 @@
 # Design — ACAI, SDBG senses and the Tyndale Open Bible Dictionary, for Ears to Hear
 
-**Status:** decided (2026-10-14) — §7 answered: A, A, C, A, A, A. Not yet authorization to
-build: that waits on the Captain's go.
+**Status:** decided (2026-10-14) — §7 answered: A, A, C, A, A, A; step 2's D-G–D-L answered
+2026-10-15. Step 1 built at `cb15dbc`; step 2 built.
 **Issues:** #272.
 **Author:** AI, from Ears to Hear's request
 (`collab/ears-to-hear/2026-10-06-acai-sdbg-and-the-tyndale-bible-dictionary.md`) and measurements
@@ -143,15 +143,26 @@ dispatches by that key instead (`runner.py:376-378`).
 ```json
 "senses": {"domain": "093001", "ln": "93.169a",
            "entries": [{"code": "93.169a", "domain": "Names of Persons and Places",
-                        "subdomain": "Persons", "definition": "…", "gloss": "Jesus",
-                        "biblical_term": "Y"}]}
+                        "subdomain": "Persons", "definition": "…", "glosses": ["Jesus"],
+                        "lemma": "Ἰησοῦς", "biblical_term": "Y"}]}
 ```
 
 - **One entry per code**, so the 2,396 words with two codes get both. A code SDBG lacks is omitted
   from `entries` and named in a warning.
-- **From the open-licence SDGNT** (D-B, A), with its `{N:001}`-style suffixes stripped from
-  `EntryCode` before the join — `12.5`–`12.9` are written that way there. Measured: one Macula
-  code, `33.403`, then remains unresolved (2 occurrences).
+- **Joined on the word's lemma and the code** (D-H), because a code is not unique to one headword:
+  1,393 of SDGNT's 7,103 codes are shared by several lemmas — `1.13` by ὑψηλός, ὕψιστος, ὕψος and
+  ὕψωμα, each with its own definition. Where the lemma does not match, a code SDGNT files under
+  exactly one headword still joins; a code shared by several is omitted and named in a warning
+  (D-I). Each entry carries SDGNT's own `lemma`, so a fallback is visible.
+- **From the open-licence SDGNT** (D-B, A), with the `{N:001}`-style suffix stripped from **both**
+  sides before the join: Macula's `ln` writes `12.5`–`12.9` that way (616 occurrences of
+  `12.9{N:001}` alone), and so do 5 of SDGNT's `EntryCode`s.
+- **Declared in `data/include-families.json`** on the `senses` family, per resource, reached through
+  a dataset registered as `ubs-sdgnt` (D-G) — the way `frequency` names its tables. Not a catalog
+  `provides` block: the catalog is vendored and must equal its source, and a `provides` item is a
+  text with kind `tsv`, `tei` or `usfm`.
+- **SDGNT not registered:** `senses` as today, without `entries`, and one warning naming what to
+  register (D-J).
 - **English only**, in this release.
 - **Greek only.** The Hebrew senses are SDBH domains; this does not touch them.
 - **Served only on resources whose senses come from Macula's `ln`** — today `SBLGNT`.
@@ -263,6 +274,64 @@ pericope, and the rows grouping by verse produces:
   clean.
 
 => A — the Captain, 2026-10-14
+
+### Step 2's decisions, 2026-10-15
+
+Raised while preparing build step 2, from what the code and data showed.
+
+**D-G. Where SDGNT is declared.** A — in `data/include-families.json` on `senses`, through a
+dataset registered as `ubs-sdgnt` (recommended); B — a new catalog `provides` kind, `lexicon`,
+made upstream first.
+
+=> A — the Captain, 2026-10-15
+
+**D-H. The join key.** Code alone gives a word another lemma's definition wherever a code is
+shared; lemma and code (recommended), with the match rate measured first.
+
+=> lemma and code — the Captain, 2026-10-15
+
+**D-I. A word whose lemma does not match.** A — fall back to the code where SDGNT has one lemma
+for it, omit and warn where it has several, and carry SDGNT's `lemma` on each entry (recommended);
+B — strict, omit and warn on every mismatch; C — as A, but an ambiguous code gets every candidate.
+
+=> A — the Captain, 2026-10-15
+
+**D-J. SDGNT not registered.** A — `senses` without `entries`, and one warning (recommended); B —
+lint or the run fails.
+
+=> A — the Captain, 2026-10-15
+
+**D-K. Glosses on an entry.** 6,504 of SDGNT's 9,178 meanings carry more than one gloss, up to
+seven (`1.16`: "Abraham's bosom", "heaven"). A — `glosses`, a list in SDGNT's order
+(recommended); B — `gloss`, the first only, as §4's example had it.
+
+=> A — the Captain, 2026-10-15
+
+**D-L. The markup inside a definition.** SDGNT's definitions carry `{N:001}` note markers,
+`{L:εὐαγγελίζω<SDBG:εὐαγγελίζω:000000>}` lemma links and `{D:33.215}` cross-references — found
+running the built join on MRK 1:1-8. A — verbatim, as the family table already rules for
+participant ids (recommended); B — rendered to plain text; C — both, as `definition` and
+`definition_source`.
+
+=> A — the Captain, 2026-10-15
+
+**Measured for D-H and D-I, 2026-10-15.** Every Louw-Nida code on a Macula SBLGNT word (`ln`, split
+on spaces, `{N:…}` stripped), against SDGNT v1.1's `(Lemma, EntryCode)`, both NFC:
+
+| result | occurrences | share |
+|---|---|---|
+| lemma and code match | 128,223 | 97.86% |
+| code matches, SDGNT files it under one other lemma | 2,055 | 1.57% |
+| code matches, SDGNT files it under several other lemmas | 747 | 0.57% |
+| code absent from SDGNT — `33.403` (2), `3.21` (1) | 3 | 0.00% |
+
+The commonest mismatches: spelling (τις / τὶς, 379; οὕτω(ς) / οὕτω, 149), a meaning filed under
+another headword (ἑαυτοῦ `92.11` under αὐτός, 440; Ἰερουσαλήμ `93.480a` under Ἱεροσόλυμα, 71;
+φοβέομαι under φοβέω, 77), and genuine ambiguity (ἰδού `91.13` under ἄγω and ὁράω, 195). With D-I
+A, 99.43% of codes get an entry.
+
+**Corrects D-B's table:** the suffix is on both sides, not on SDGNT's alone; and `3.21` is absent
+as well as `33.403`, which the earlier count missed.
 
 ## 8. Not in this design
 

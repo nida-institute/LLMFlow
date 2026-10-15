@@ -2,6 +2,20 @@
 
 ## 0.2.1.30 (Not yet released)
 
+### Added
+
+- **`include: [senses]` on SBLGNT carries each Louw-Nida code's dictionary entry** (#272). Each
+  sense gains `entries`, one per code in `ln`, from the Semantic Dictionary of the Greek New
+  Testament in `ubsicap/ubs-open-license` (CC BY-SA 4.0): `code`, `lemma`, `domain`,
+  `subdomain`, `definition` (verbatim, with the dictionary's own `{D:…}` markup), `glosses` and
+  `biblical_term`. Joined on the word's lemma and the code, because 1,393 codes are filed under
+  more than one headword; a code filed under exactly one other headword still joins and names
+  it as `lemma`, and one filed under several, or absent, is named in a warning. On SBLGNT,
+  99.43% of codes get an entry. Register the clone with
+  `sp dataset add ubs-sdgnt --path <clone>`; without it `senses` is unchanged and one warning
+  says so. Declared per resource in `include-families.json`. Guarded by
+  `tests/test_sdbg_senses.py` (19).
+
 ### Changed
 
 - **A change to a discipline shared with Human at the Helm travels in two acts, one per

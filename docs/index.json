@@ -3035,6 +3035,49 @@
       ]
     },
     {
+      "module": "llmflow.utils.sdgnt",
+      "imports": [
+        "__future__",
+        "functools",
+        "lxml",
+        "re",
+        "typing",
+        "unicodedata"
+      ],
+      "functions": [
+        {
+          "name": "codes",
+          "signature": "codes(value: Any) -> list",
+          "doc": "The Louw-Nida codes *value* names, space-separated, each without its suffix."
+        },
+        {
+          "name": "_nfc",
+          "signature": "_nfc(text: Any) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_text",
+          "signature": "_text(node: Optional[Any]) -> str",
+          "doc": ""
+        },
+        {
+          "name": "_record",
+          "signature": "_record(lemma: str, code: str, meaning: Any) -> dict",
+          "doc": "One meaning as an entry, leaving out any field the dictionary leaves empty."
+        },
+        {
+          "name": "load",
+          "signature": "load(path: str) -> tuple",
+          "doc": "`(by lemma and code, by code then lemma)` for the dictionary at *path*."
+        },
+        {
+          "name": "entries",
+          "signature": "entries(lemma: Any, ln: Any, dictionary: tuple) -> tuple",
+          "doc": "`(entries, unresolved)` for a word's *lemma* and its `ln` column."
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.bible_data",
       "imports": [
         "json",
@@ -4491,6 +4534,16 @@
           "doc": "`{word id: {corpus, count, in_least_frequent_percent}}` for *rows*, or None."
         },
         {
+          "name": "dictionary_entries",
+          "signature": "dictionary_entries(rows: Sequence[Mapping[str, Any]], resource: str) -> Optional[dict]",
+          "doc": "`{word id: [entry, ...]}` from the dictionary declared for *resource*'s senses, or None."
+        },
+        {
+          "name": "_attach_entries",
+          "signature": "_attach_entries(output: Any, found: Mapping[str, list]) -> Any",
+          "doc": "*output* with each sense carrying its dictionary entries, whatever shape *output* took."
+        },
+        {
           "name": "discourse_payload",
           "signature": "discourse_payload(definition: Any, rows: Sequence[Mapping[str, Any]], resource: str) -> Optional[list]",
           "doc": "Discourse items for *rows*, or None when this resource has no discourse source."
@@ -5934,7 +5987,7 @@
     }
   ],
   "summary": {
-    "total_modules": 96,
-    "total_functions": 946
+    "total_modules": 97,
+    "total_functions": 954
   }
 }

@@ -1318,8 +1318,9 @@ def _emit(
         if "frequency" in include
         else None
     )
+    entries = dictionary_entries(rows, resource) if "senses" in include else None
     if spans:
-        return text_for_spans(
+        output: Any = text_for_spans(
             rows,
             spans=spans,
             fmt=fmt,
@@ -1330,17 +1331,19 @@ def _emit(
             syntax=syntax,
             frequency=frequency,
         )
-    return rows_to_output(
-        rows,
-        fmt=fmt,
-        book=book,
-        include=include,
-        versification=versification,
-        discourse=discourse,
-        syntax=syntax,
-        outside_passage=outside,
-        frequency=frequency,
-    )
+    else:
+        output = rows_to_output(
+            rows,
+            fmt=fmt,
+            book=book,
+            include=include,
+            versification=versification,
+            discourse=discourse,
+            syntax=syntax,
+            outside_passage=outside,
+            frequency=frequency,
+        )
+    return _attach_entries(output, entries) if entries is not None else output
 
 
 def resource_text(
@@ -1484,6 +1487,80 @@ def frequency_payload(
             else None
         )
     return payload
+
+
+def dictionary_entries(rows: Sequence[Mapping[str, Any]], resource: str) -> Optional[dict]:
+    """`{word id: [entry, ...]}` from the dictionary declared for *resource*'s senses, or None.
+
+    None where `include-families.json` declares no dictionary for *resource*, which is most
+    texts and is said nowhere, and where the dataset it names is not registered, which warns. A
+    word whose `ln` names codes maps to a list, empty when none of them resolved.
+    """
+    declared = _family("senses").get("dictionaries", {}).get(resource)
+    if not declared:
+        return None
+
+    from llmflow import resources as _resources
+    from llmflow.utils import sdgnt as _sdgnt
+
+    dataset = str(declared).partition("/")[0]
+    path = (
+        _resources.resolve_declared_path(declared, {"id": resource})
+        if _resources.dataset_registration(dataset)
+        else None
+    )
+    if path is None or not path.is_file():
+        why = (
+            "no dataset is registered under that id" if path is None else f"{path} does not exist"
+        )
+        logger.warning(
+            f"include: [senses] on {resource} carries no dictionary entries: it reads them from "
+            f"the dataset {dataset!r}, and {why}. Register a clone of "
+            f"ubsicap/ubs-open-license with `sp dataset add {dataset} --path <clone>`."
+        )
+        return None
+
+    dictionary = _sdgnt.load(str(path))
+    payload: dict = {}
+    unresolved: dict = {}
+    for row in rows:
+        identifier = row.get("xml:id")
+        if not identifier or not str(row.get("ln") or "").strip():
+            continue
+        found, missing = _sdgnt.entries(row.get("lemma"), row.get("ln"), dictionary)
+        payload[str(identifier)] = found
+        for code, headwords in missing:
+            unresolved.setdefault((str(row.get("lemma") or ""), code), headwords)
+
+    if unresolved:
+        described = "; ".join(
+            f"{lemma} {code} ("
+            + (f"filed under {', '.join(headwords)}" if headwords else "not in the dictionary")
+            + ")"
+            for (lemma, code), headwords in sorted(unresolved.items())
+        )
+        logger.warning(
+            f"include: [senses] on {resource}: {len(unresolved)} code(s) have no dictionary "
+            f"entry, because the word's lemma matches no headword the code is filed under, or "
+            f"the dictionary lacks the code: {described}."
+        )
+    return payload
+
+
+def _attach_entries(output: Any, found: Mapping[str, list]) -> Any:
+    """*output* with each sense carrying its dictionary entries, whatever shape *output* took."""
+    if isinstance(output, list):
+        for item in output:
+            _attach_entries(item, found)
+        return output
+    if not isinstance(output, dict):
+        return output
+    senses = (output.get(CONTAINER_KEY) or {}).get("senses")
+    if isinstance(senses, dict):
+        for identifier, sense in senses.items():
+            if identifier in found:
+                sense["entries"] = found[identifier]
+    return output
 
 
 def discourse_payload(

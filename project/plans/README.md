@@ -19,7 +19,7 @@ Regenerate with `hatch run python tools/update_plans_index.py`. Each document de
 | [design-combining-levinsohn-and-ubs.md](design-combining-levinsohn-and-ubs.md) | proposed — not authorization to build. The design is stated in §6 as seven positions, | #169 #226 |
 | [design-decisions-awaiting-ruling.md](design-decisions-awaiting-ruling.md) | four decisions need answering. Nine are deferred — they block nothing in the ruled | #153 #169 #200 #201 #203 #204 #210 #211 #212 #215 #217 #218 #222 #225 #226 #227 #228 #230 |
 | [design-declaring-field-roles.md](design-declaring-field-roles.md) | ruled 2026-09-03, and scoped to release 0.2.1.27. All six open decisions in §8 are | #162 #230 |
-| [design-ears-to-hear-resources.md](design-ears-to-hear-resources.md) | decided (2026-10-14) — §7 answered: A, A, C, A, A, A. Not yet authorization to | #272 |
+| [design-ears-to-hear-resources.md](design-ears-to-hear-resources.md) | decided (2026-10-14) — §7 answered: A, A, C, A, A, A; step 2's D-G–D-L answered | #272 |
 | [design-edition-provisioning.md](design-edition-provisioning.md) | proposal, 2026-08-29. Not authorization to build. Four decisions are marked => and | #201 #203 #217 |
 | [design-expand-once-and-only-once.md](design-expand-once-and-only-once.md) | approved in conversation 2026-09-02 — *"double expansion is always a defect"*, and | #230 |
 | [design-foreach-syntax-migration.md](design-foreach-syntax-migration.md) | Proposed — awaiting Captain review | #153 |

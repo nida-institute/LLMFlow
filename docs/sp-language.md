@@ -1204,6 +1204,7 @@ field is added with `sp resource set`.
 | family | what it needs beyond `ids` |
 |---|---|
 | `morphology`, `senses`, `glosses`, `referents` | nothing — they come from the resource's own TSV |
+| `senses`' `entries`, on `SBLGNT` | the dataset `ubs-sdgnt` registered — `sp dataset add ubs-sdgnt --path <clone of ubsicap/ubs-open-license>` |
 | `syntax` | `lowfat_path` on the registry entry |
 | `discourse` | `discourse_path` on the registry entry |
 | `frequency` | a corpus table the engine ships for the resource — `SBLGNT` and `WLC` today |
@@ -1216,6 +1217,17 @@ frequent N% of lemmas, so a word is less common at a cut-off of N when it is at 
 tables are generated once from Macula Lowfat (`tools/lemma-frequency/`) and ship with the engine,
 so nothing is installed or queried at run time. A Hebrew pronominal suffix has no entry, because
 the table is counted without them; a resource with no table answers `frequency: null`.
+
+**`senses` on `SBLGNT` carries each Louw-Nida code's dictionary entry** (#272), from the Semantic
+Dictionary of the Greek New Testament. Each sense gains `entries`, one per code in `ln`, in order:
+`{code, lemma, domain, subdomain, definition, glosses, biblical_term}`, a field the dictionary
+leaves empty being absent. The join is on the word's lemma and the code, because a code can be
+filed under several headwords; where the lemma differs and the code is filed under exactly one
+headword, that entry is used and its `lemma` names the headword. A code filed under several
+headwords, or absent from the dictionary, has no entry and is named in a warning. `definition` is
+verbatim, with the dictionary's own `{N:…}`, `{L:…}` and `{D:…}` markup. Without `ubs-sdgnt`
+registered, `senses` is the TSV's columns alone and one warning says what to register; a resource
+with no dictionary declared gets no `entries` and no warning.
 
 **With `syntax`, the step returns whole sentences** (#267). A tree is carried whole wherever the
 passage meets its sentence, so the words are too: the text, in every format, and every other
