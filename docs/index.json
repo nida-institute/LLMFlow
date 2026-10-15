@@ -314,6 +314,7 @@
         "llmflow.modules.telemetry",
         "llmflow.plugins",
         "llmflow.plugins.loader",
+        "llmflow.steps.acai",
         "llmflow.steps.alignment",
         "llmflow.steps.basex",
         "llmflow.steps.duckdb",
@@ -3805,6 +3806,61 @@
       ]
     },
     {
+      "module": "llmflow.utils.acai",
+      "imports": [
+        "__future__",
+        "functools",
+        "json",
+        "llmflow",
+        "llmflow.modules.logger",
+        "llmflow.utils.verse_ranges",
+        "pathlib",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "declaration",
+          "signature": "declaration() -> Dict[str, Any]",
+          "doc": "`data/acai.json`: the dataset id, the resources served, the scheme, the categories."
+        },
+        {
+          "name": "_verse",
+          "signature": "_verse(bcv: str) -> Optional[str]",
+          "doc": "A BCV8 reference, `41001004`, as a USFM verse, `MRK 1:4`; None for a book not known."
+        },
+        {
+          "name": "_book_codes",
+          "signature": "_book_codes() -> Dict[str, str]",
+          "doc": ""
+        },
+        {
+          "name": "_dictionary",
+          "signature": "_dictionary(entity: Mapping[str, Any]) -> List[Dict[str, str]]",
+          "doc": "Every Tyndale article the entity names, as `{id, title}`, in ACAI's order."
+        },
+        {
+          "name": "_describe",
+          "signature": "_describe(entity: Mapping[str, Any]) -> Dict[str, Any]",
+          "doc": "An entity as the payload states it, leaving out any field ACAI leaves empty."
+        },
+        {
+          "name": "load",
+          "signature": "load(root: str) -> Dict[str, Any]",
+          "doc": "The primary entities under *root*, described, plus one row per verse that names one."
+        },
+        {
+          "name": "entities_for_passage",
+          "signature": "entities_for_passage(index: Mapping[str, Any], passage: str, versification: str) -> Dict[str, Any]",
+          "doc": "`{entities, verses}` for *passage*, written in *versification*; both empty where it names"
+        },
+        {
+          "name": "acai_payload",
+          "signature": "acai_payload(passage: str, root: Any, versification: str) -> Dict[str, Any]",
+          "doc": "The entities *passage* names, from the ACAI release at *root*."
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.schema_preflight",
       "imports": [
         "__future__",
@@ -5362,6 +5418,22 @@
       ]
     },
     {
+      "module": "llmflow.steps.acai",
+      "imports": [
+        "llmflow.modules.logger",
+        "llmflow.utils.context",
+        "llmflow.utils.step_outputs",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "run_acai_step",
+          "signature": "run_acai_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> None",
+          "doc": ""
+        }
+      ]
+    },
+    {
       "module": "llmflow.steps.parallel_passages",
       "imports": [
         "llmflow.modules.logger",
@@ -5987,7 +6059,7 @@
     }
   ],
   "summary": {
-    "total_modules": 97,
-    "total_functions": 954
+    "total_modules": 99,
+    "total_functions": 963
   }
 }

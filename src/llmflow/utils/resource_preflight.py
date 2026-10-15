@@ -19,7 +19,7 @@ FAMILY_PATHS = {
 }
 
 #: Step types whose `resource:` names a registered resource.
-RESOURCE_STEPS = ("scripture", "parallel-passages")
+RESOURCE_STEPS = ("scripture", "parallel-passages", "acai")
 
 
 @dataclass
@@ -99,6 +99,12 @@ def needs(steps: Iterable[Any], context: Mapping[str, Any]) -> Needs:
                 families.update(str(member) for member in include)
                 if not conditional:
                     found.unconditional.update((name, str(member)) for member in include)
+            if kind == "acai":
+                from llmflow.utils.acai import declaration
+
+                dataset = declaration()["dataset"]
+                if dataset not in found.datasets:
+                    found.datasets.append(str(dataset))
         elif kind == "alignment":
             from llmflow.steps.alignment import declared_pairs
 
@@ -162,7 +168,7 @@ def check(steps: Iterable[Any], context: Mapping[str, Any]) -> List[Finding]:
             fix = f"sp dataset add {dataset} --path <where it is>"
             findings.append(Finding(
                 "dataset", dataset,
-                f"The alignment corpus {dataset!r} is not registered as a dataset. Register it: `{fix}`",
+                f"The dataset {dataset!r} is not registered. Register it: `{fix}`",
                 fix=fix,
             ))
 

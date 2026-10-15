@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "why": [
+    "ACAI — the people, places, groups, deities and things the Bible names — read by `type: acai`.",
+    "",
+    "`dataset` is the id the data is registered under on a machine, with `sp dataset add`. The",
+    "catalog does not describe it: the catalog is vendored, and an item it provides is a text.",
+    "",
+    "`resources` are the texts ACAI was made about. Its README aligns it to the word segmentation of",
+    "Macula Hebrew and the text of the SBL Greek New Testament, so it is an analysis of SBLGNT and",
+    "WLC and of no other text. Asked against another resource, the step answers `null`.",
+    "",
+    "`versification` is the scheme ACAI's own references are in."
+  ],
+  "dataset": "ACAI",
+  "resources": ["SBLGNT", "WLC"],
+  "versification": "org",
+  "categories": ["people", "places", "groups", "deities", "keyterms", "fauna", "flora", "realia"]
+}

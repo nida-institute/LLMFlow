@@ -4,6 +4,17 @@
 
 ### Added
 
+- **`type: acai` — the people, places, groups, deities and things ACAI names in a passage**
+  (#272). Each entity once — `type`, `label`, `description`, `lemmas`, and `dictionary`, every
+  Tyndale Bible Dictionary article ACAI names for it as `{id, title}` — plus a verse index
+  saying which entities each verse names and whether it is one of the entity's key references.
+  Served against SBLGNT and WLC, the texts ACAI was made about; another resource answers `null`
+  with a warning. The request is mapped into ACAI's `org` first, so `PSA 51:1` in `eng` finds
+  what ACAI files at 51:3. Register `BibleAquifer/ACAI` with
+  `sp dataset add ACAI --path <clone>`; without it `sp lint` reports the dataset missing. ACAI's
+  7 references to 2CO 13:14, a verse `org` lacks, are left out and named in one warning.
+  Declared in `data/acai.json`. Guarded by `tests/test_acai_step.py` (18).
+
 - **`include: [senses]` on SBLGNT carries each Louw-Nida code's dictionary entry** (#272). Each
   sense gains `entries`, one per code in `ln`, from the Semantic Dictionary of the Greek New
   Testament in `ubsicap/ubs-open-license` (CC BY-SA 4.0): `code`, `lemma`, `domain`,

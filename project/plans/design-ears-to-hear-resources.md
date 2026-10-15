@@ -1,7 +1,7 @@
 # Design — ACAI, SDBG senses and the Tyndale Open Bible Dictionary, for Ears to Hear
 
-**Status:** decided (2026-10-14) — §7 answered: A, A, C, A, A, A; step 2's D-G–D-L answered
-2026-10-15. Step 1 built at `cb15dbc`; step 2 built.
+**Status:** decided (2026-10-14) — §7 answered: A, A, C, A, A, A; step 2's D-G–D-L and
+step 3's D-M–D-P answered 2026-10-15. Step 1 built at `cb15dbc`, step 2 at `51b6fff`.
 **Issues:** #272.
 **Author:** AI, from Ears to Hear's request
 (`collab/ears-to-hear/2026-10-06-acai-sdbg-and-the-tyndale-bible-dictionary.md`) and measurements
@@ -129,11 +129,16 @@ dispatches by that key instead (`runner.py:376-378`).
 - **The payload — each entity once, plus a verse index** (D-C, C):
   `{"entities": {"<id>": {"type", "label", "description", "lemmas", "dictionary"}},
   "verses": {"<USFM verse>": [{"id", "key"}]}}`, verses in order. `key` is true where the verse is
-  one of the entity's `key_references`. `dictionary` carries the Tyndale article id from
-  `alternate_sources.aquifer`, or is absent (§5).
+  one of the entity's `key_references`. `dictionary` lists every Tyndale article in
+  `alternate_sources.aquifer` as `{id, title}`, or is absent (§5, D-N).
 - **No capping.** Ears to Hear caps; the engine serves what ACAI says.
-- **The data:** a `provides` block on the catalog's `acai` entry, and the dataset registered from
-  the release repository. This machine's `~/.sp/datasets/ACAI.yaml` is the Captain's to correct.
+- **Named mentions only.** `references` lists the verses an entity is named in; a pronoun
+  referring to it is word-level data (§8). Philemon is in PHM 1:1 and 1:25, not 1:2–7.
+- **The data:** declared in a shipped `data/acai.json` — the dataset id `ACAI` and the resources
+  ACAI may serve (D-M) — and registered from `BibleAquifer/ACAI`. This machine's
+  `~/.sp/datasets/ACAI.yaml` is the Captain's to correct.
+- **Not registered:** lint reports it through the preflight `dataset` finding, and the run refuses
+  with the command that registers it (D-O).
 
 ## 4. SDBG — proposed
 
@@ -332,6 +337,38 @@ A, 99.43% of codes get an entry.
 
 **Corrects D-B's table:** the suffix is on both sides, not on SDGNT's alone; and `3.21` is absent
 as well as `33.403`, which the earlier count missed.
+
+### Step 3's decisions, 2026-10-15
+
+Raised while preparing build step 3. Measured on `BibleAquifer/ACAI` at `59f575a` (2026-08-03,
+past the 2025-07-23 release): 6,644 entities, 944 non-primary; reading all of them takes 0.25 s;
+all 66 BCV8 book numbers are in the engine's book table.
+
+**D-M. Where ACAI is declared.** The catalog `provides` block §3 named meets D-G's obstacle. A — a
+shipped `data/acai.json` naming the dataset id and the resources served (recommended); B — a
+catalog change upstream first.
+
+=> A — the Captain, 2026-10-15
+
+**D-N. Tyndale ids on an entity.** 261 entities name two or more (`person:Philemon`: 7708
+"Philemon (Person)", 7707 "Philemon, Letter to"). A — `dictionary` as a list of `{id, title}`
+(recommended); B — ids only; C — the first only.
+
+=> A — the Captain, 2026-10-15
+
+**D-O. ACAI not registered.** A — a lint error through the preflight `dataset` finding, and the run
+refuses with the command (recommended); B — a warning and `null`, as D-J.
+
+=> A — the Captain, 2026-10-15
+
+**D-P. A reference that is not a verse in ACAI's own scheme.** Found running the built step: 7 of
+ACAI's 80,216 verse references name 2CO 13:14, which `org` lacks — 2CO 13 has 13 verses there —
+and `eng` has. The entities: `group:Corinth`, `person:Jesus.2`, `person:Luke`, `person:Titus`,
+`place:Corinth`, `place:Macedonia`, `place:Philippi`. A — drop them when ACAI is read, named in one
+warning (recommended); B — read 2CO 13:14 as `org` 13:13, which assumes an English numbering
+nothing in the data states; C — leave them, warned on every lookup.
+
+=> A — the Captain, 2026-10-15. A report to BibleAquifer is the Captain's.
 
 ## 8. Not in this design
 

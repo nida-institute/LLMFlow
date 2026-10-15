@@ -28,8 +28,8 @@ def _type_errors(step: dict) -> list[str]:
 
 
 def test_an_undeclared_type_is_refused():
-    [error] = _type_errors({"type": "acai", "resource": "SBLGNT"})
-    assert "'acai'" in error
+    [error] = _type_errors({"type": "no_such_step_type", "resource": "SBLGNT"})
+    assert "'no_such_step_type'" in error
 
 
 def test_a_misspelt_type_names_the_nearest_declared_one():

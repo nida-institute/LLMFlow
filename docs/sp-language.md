@@ -933,6 +933,56 @@ An empty list means the database was consulted and this passage takes part in no
 
 ---
 
+### type: `acai`
+
+The people, places, groups, deities and things ACAI names in a passage (#272).
+
+```yaml
+- name: entities
+  type: acai
+  resource: SBLGNT             # SBLGNT or WLC — the texts ACAI was made about
+  passage: "${passage}"       # the passage entities are sought for
+  versification: eng          # optional — the scheme `passage` is written in
+  output: entities
+```
+
+**Required:** `resource`, `passage`, `output`. **Optional:** `versification`, plus `saveas` and
+`append_to` as for any step. Omitted, `versification` is the resource's own scheme.
+
+**Each entity once, plus a verse index:**
+
+```json
+{"entities": {"person:Philemon": {"type": "person", "label": "Philemon",
+                                  "description": "Philemon, first mentioned in Philemon 1:1, …",
+                                  "dictionary": [{"id": "7708", "title": "Philemon (Person)"},
+                                                 {"id": "7707", "title": "Philemon, Letter to"}]}},
+ "verses": {"PHM 1:1": [{"id": "person:Philemon", "key": true}]}}
+```
+
+- `label` and `description` are ACAI's English ones; `lemmas` is ACAI's, keyed by language
+  (`{"el": ["Ἀβαδδών"]}`). A field ACAI leaves empty is absent.
+- `dictionary` lists every Tyndale Bible Dictionary article ACAI names for the entity, as
+  `{id, title}` — an entity can name several, and the title tells the person from the letter.
+- `verses` are in canonical order, labelled as ACAI numbers them, in `org`. `key` is true where
+  the verse is one of the entity's key references.
+- **Named mentions only.** An entity is in a verse that names it; a pronoun referring to it is not
+  served. Philemon is in PHM 1:1 and 1:25, not 1:2–7.
+- **Non-primary records are skipped**, so an entity ACAI records twice appears once.
+- **No capping.** A pipeline that wants fewer entities chooses them.
+
+**Served against SBLGNT and WLC only**, the texts ACAI was made about, as `data/acai.json`
+declares. Any other resource answers `null` with a warning. Rule `analysis-belongs-to-its-text`.
+
+**The data is registered, not shipped:** `sp dataset add ACAI --path <clone of BibleAquifer/ACAI>`
+(CC BY-SA 4.0). Without it, `sp lint` reports the dataset as missing and the run does not start. A
+reference ACAI makes to a verse its own scheme lacks — 2CO 13:14, which `org` does not have — is
+left out, and named in one warning when ACAI is read.
+
+A passage that names nothing is `{"entities": {}, "verses": {}}`: ACAI was consulted and names
+nothing there. Rule `say-which-kind-of-nothing`.
+
+---
+
 ### type: `scripture`
 
 Fetches one passage from one **named** resource. The resource is a name resolved through the
@@ -2120,7 +2170,8 @@ sp lint --pipeline pipelines/my-pipeline.yaml
 ```
 
 **Lint checks the resources a pipeline names before anything runs** — `resource:` on
-`scripture` and `parallel-passages` steps, and the dataset an `alignment` step's pairs live in.
+`scripture`, `parallel-passages` and `acai` steps, the dataset an `alignment` step's pairs live
+in, and the `ACAI` dataset an `acai` step reads.
 A resource this machine has not registered is an error, and so is an `include:` family whose
 path the registration does not name (`syntax` needs `lowfat_path`, `discourse` needs
 `discourse_path`). A resource, or a family, asked for only under a `condition:` is a warning

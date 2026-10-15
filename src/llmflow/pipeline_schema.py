@@ -378,6 +378,19 @@ _STEP_TYPE_PROPERTIES = [
         },
     ),
     (
+        ("acai",),
+        {
+            # The text ACAI is read against — SBLGNT or WLC, the texts it was made about. Any
+            # other answers null with a warning; `data/acai.json` declares which (#272).
+            "resource": {"type": "string"},
+            # What entities are sought for, in the forms `parse_bible_reference` reads.
+            "passage": {"type": "string"},
+            # The scheme `passage` is written in, mapped into ACAI's `org` before lookup. Not an
+            # enum, as on `type: scripture`.
+            "versification": {"type": "string"},
+        },
+    ),
+    (
         ("basex",),
         {
             "database": {"type": "string"},

@@ -1120,6 +1120,15 @@
     }
   },
   "step_types": {
+    "acai": {
+      "keys": [
+        "passage",
+        "resource",
+        "versification"
+      ],
+      "members": [],
+      "primary_member": null
+    },
     "alignment": {
       "keys": [
         "order",
@@ -1394,6 +1403,6 @@
   ],
   "summary": {
     "total_commands": 39,
-    "total_step_types": 19
+    "total_step_types": 20
   }
 }
