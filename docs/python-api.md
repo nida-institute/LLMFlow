@@ -9,6 +9,10 @@
 > where the pipeline language cannot express something, that is a missing construct to report,
 > not a reason to reach past the language. Rule `the-language-is-the-whole-surface`.
 >
+> **Tests are not that work.** A test drives `sp` — the command line and the pipeline language
+> — as a project does, so what it checks is the surface someone actually uses.
+> `docs/ai-context/project/rules.md` rule 1, set by the Captain 2026-10-15.
+>
 > Related and often confused: `docs/index.json` maps the engine's *implementation* — every
 > module and function in `src/`. It is not an API at all, not for projects and not for tests,
 > and it says so in its own `about` field.

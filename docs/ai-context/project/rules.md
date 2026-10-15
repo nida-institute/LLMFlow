@@ -25,23 +25,22 @@ quietly dropped when it becomes inconvenient.
 
 ## The rules
 
-1. **A test for step behaviour goes through the object model, not a raw dict.** Build a `Step`
-   or `Pipeline` from `llmflow.model` and exercise the handler through it.
+1. **A test drives the engine through `sp` — the command line and the pipeline language.**
+   Write the pipeline the test needs as YAML, run it with `sp run` or `sp lint` in-process
+   through `llmflow.cli.main([...])`, and read the answer where a user would: the `saveas` file,
+   `sp lint --json`, the log. A list a test parametrizes over comes from `docs/cli-api.json`.
 
-   The API is generated from `pipeline_schema`: `step_keys()` unions the common keys with every
-   per-type branch, so a new step key becomes an attribute with no code written. That is why a
-   key which reaches the runner but is absent from the API — or sits in the API and is never
-   read by the runner — is a real defect rather than a cosmetic one.
+   Set by the Captain 2026-10-15: *"all tests should use the cli API."* It replaces the rule that
+   a test goes through the object model. `Step`, `Pipeline` and `load_pipeline` are Python, and a
+   project has no Python surface (`the-language-is-the-whole-surface`), so a test written
+   against them checks a surface no one outside this repository uses.
 
-   A test that hands `run_*_step` a hand-written `{"type": ..., ...}` dict cannot see either
-   case, because the dict satisfies both sides by construction. Two guards already close the
-   loop between the *declarations* — `test_pipeline_model.py` for schema ↔ object model and
-   `test_schema_covers_runner_keys.py` for schema ↔ runner. This rule is about the third edge:
-   the tests that *exercise* a step should use the surface a consumer uses.
+   **What the CLI cannot reach is not tested on its own.** A handler's refusal for a caller that
+   skipped lint is unreachable, because `sp run` lints first. Where a test needs something `sp`
+   does not offer, that is a missing construct to report, not a reason to reach past it.
 
-   **Direct calls remain right for pure helpers.** `resolve_citation`, `normalize_greek` and
-   `map_reference` take values rather than steps; routing them through a `Pipeline` would test
-   the pipeline instead of the helper.
+   The suite before 2026-10-15 largely calls internals; converting it is tracked in
+   `project/TODO.md`.
 
 2. **What we say to another project is the Captain's.** An AI drafts a collab note, a
    reply or an issue body when asked, and shows it in full before it is sent. It does

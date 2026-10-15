@@ -1,13 +1,12 @@
 # HANDOFF — 2026-10-15
 
-Written against `d667420` (#270, level with `origin/dev`), for the three commits that follow it:
-the public API's missing step types, the GSP rule, and the tests rule.
+Written against `dc934b7` (level with `origin/dev`), for the commit that follows it: rule 1,
+tests drive `sp`. Before it: `d667420` #270, `2b418f6` the public API's step types, `dc934b7` GSP.
 
 ## ▶ NEXT ACTION
 
-**See which of the three commits exist** — `git log -4 --format="%h %s"` — and `git show` each new
-one. They are the Captain's to run, from `tmp/commit-2.txt`, `tmp/commit-3.txt`,
-`tmp/commit-4.txt`, staged one at a time; delete each by name once its commit exists.
+**Confirm the rule-1 commit landed** — `git log -1` should not be `dc934b7` — and `git show HEAD`.
+It is the Captain's to run from `tmp/commit-4.txt`; delete that file by name once it exists.
 
 Then **convert #272's test files to the `sp` CLI**, one file per step, in this order:
 `tests/test_lint_refuses_undeclared_types.py`, `tests/test_sdbg_senses.py`,
@@ -17,20 +16,13 @@ Then **convert #272's test files to the `sp` CLI**, one file per step, in this o
 
 ## Active threads
 
-### 1. The three commits after `d667420`
+### 1. The rule-1 commit
 
-2. **`docs/cli-api.json` lists every step type** — `src/llmflow/cli_api.py`,
-   `src/llmflow/file_catalog.py`, `tests/test_cli_api_map.py`, its `CHANGELOG.md` entry, this
-   file. **`dev` is RED at `d667420` until this lands** — see the landmine below. Verify: `hatch
-   run pytest tests/test_cli_api_map.py` → 8 passed.
-3. **GSP** — `data/ai-rules.yaml` rule `commit-status-is-gsp`, `docs/ai-context/sp/rules.md`
-   regenerated with the Captain's yes. Verify: `hatch run pytest tests/test_ai_rules_single_source.py`.
-4. **Tests drive `sp`** — `docs/ai-context/project/rules.md` rule 1 (written by the AI at the
-   Captain's word), `tools/index_signatures.py`, `tests/test_internals_map_declares_itself.py`,
-   `docs/python-api.md`, `project/TODO.md` GOAL 2. Verify: `hatch run pytest
-   tests/test_internals_map_declares_itself.py`.
-
-Full suite on the tree holding all three: 6393 passed, 27 skipped.
+`docs/ai-context/project/rules.md` rule 1 (written by the AI at the Captain's word),
+`tools/index_signatures.py`, `tests/test_internals_map_declares_itself.py`, `docs/python-api.md`,
+`project/TODO.md` GOAL 2, this file. Its `docs/index.json` line landed early, in `d667420`.
+Verify: `hatch run pytest tests/test_internals_map_declares_itself.py` → 3 passed. Full suite on
+this tree: 6393 passed, 27 skipped.
 
 ### 2. Tests drive the `sp` CLI — the Captain, 2026-10-15
 

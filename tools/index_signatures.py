@@ -150,9 +150,9 @@ def main(root: str):
                           "this engine one way: the sp command line and the pipeline language "
                           "it reads.",
             "not_for_tests": "This is not a surface for tests either. A test that calls a "
-                             "function found here couples the suite to an internal. Exercise a "
-                             "step through the object model or the CLI — the surface a consumer "
-                             "uses. See docs/ai-context/project/rules.md rule 1.",
+                             "function found here couples the suite to an internal. A test "
+                             "drives the sp command line and the pipeline language, as a "
+                             "project does. See docs/ai-context/project/rules.md rule 1.",
             "generated_by": "tools/index_signatures.py, re-run by the pre-commit hook whenever "
                             "src/ changes. Editing this file by hand does not survive.",
         },

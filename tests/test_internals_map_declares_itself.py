@@ -59,8 +59,12 @@ def test_the_map_says_it_is_not_an_api():
     assert "test" in about, (
         "`about` must speak to tests. A test written against a function found here couples the "
         "suite to an internal that carries no compatibility promise; "
-        "docs/ai-context/project/rules.md rule 1 says a step is exercised through the object "
-        "model or the CLI."
+        "docs/ai-context/project/rules.md rule 1 says a test drives sp."
+    )
+    assert "object model" not in about, (
+        "`about` must not offer the object model to tests: since 2026-10-15 a test drives the sp "
+        "command line and the pipeline language, as a project does — "
+        "docs/ai-context/project/rules.md rule 1."
     )
     assert "sp" in about, (
         "`about` must name the surface that *is* supported, or it only says what not to do."

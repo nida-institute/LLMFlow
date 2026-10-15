@@ -335,6 +335,14 @@ the other way.
       `test_docstrings_say_what_not_why` pattern — findings, depth and what must be settled first
       in `project/audits/audit-one-surface.md`. **Not built**: a new guard needs its own
       authorization — evidence: that record
+- [ ] **Tests drive `sp`, and the object model no longer counts** — the Captain 2026-10-15: *"all
+      tests should use the cli API."* `project/rules.md` rule 1 is rewritten to say so, and
+      `docs/index.json`'s `not_for_tests` and `docs/python-api.md` follow it. #272's four test
+      files (`test_lint_refuses_undeclared_types`, `test_sdbg_senses`, `test_acai_step`,
+      `test_dictionary_step`) are converted first, one per step. **The rest of the suite is the
+      backlog**: #250 counted it against the old rule, so its title and its 29-against-12 now
+      undercount — every `load_pipeline` test is on the wrong side too. Recounting it, and
+      whether #250 is retitled, are the Captain's call
 
 **Widened by the Captain, 2026-09-28:** *"that needs to be clear in our ai context, and in anything
 exposed to users about our APIs."*
