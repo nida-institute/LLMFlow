@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "why": [
+    "The Tyndale Open Bible Dictionary, read by `type: dictionary`.",
+    "",
+    "`dataset` is the id the release is registered under on a machine, with `sp dataset add`; it is",
+    "the catalog's own id for the resource. The text served is Tyndale's own release, not the",
+    "Aquifer adaptation: ACAI's ids are the adaptation's, so an article is found by its title.",
+    "",
+    "`articles` is where the articles lie inside the release. `language` is the one it is in.",
+    "`attribution` is the credit its CC BY-SA 4.0 licence asks for, carried with every answer."
+  ],
+  "dataset": "tyndale-open-bible-dictionary",
+  "articles": "Articles/*.xml",
+  "language": "eng",
+  "attribution": "Tyndale Open Bible Dictionary. Copyright (C) 2023 by Tyndale House Publishers. Licensed under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Available free at http://www.tyndaleopenresources.com."
+}

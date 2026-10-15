@@ -391,6 +391,16 @@ _STEP_TYPE_PROPERTIES = [
         },
     ),
     (
+        ("dictionary",),
+        {
+            # Articles by title: each a title, or an ACAI `{id, title}` pair. Or a `${…}` naming
+            # such a list. One of `entries` and `acai`, never both; the step refuses otherwise.
+            "entries": {"type": ["array", "string"]},
+            # A `type: acai` result, or a `${…}` naming one: every article its entities name.
+            "acai": {"type": ["object", "string"]},
+        },
+    ),
+    (
         ("basex",),
         {
             "database": {"type": "string"},

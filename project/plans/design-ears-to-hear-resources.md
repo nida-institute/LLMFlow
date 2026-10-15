@@ -1,7 +1,7 @@
 # Design — ACAI, SDBG senses and the Tyndale Open Bible Dictionary, for Ears to Hear
 
 **Status:** decided (2026-10-14) — §7 answered: A, A, C, A, A, A; step 2's D-G–D-L and
-step 3's D-M–D-P answered 2026-10-15. Step 1 built at `cb15dbc`, step 2 at `51b6fff`.
+step 3's D-M–D-P and step 4's D-Q–D-U answered 2026-10-15. Step 1 built at `cb15dbc`, step 2 at `51b6fff`, step 3 at `f2e3104`; step 4 built.
 **Issues:** #272.
 **Author:** AI, from Ears to Hear's request
 (`collab/ears-to-hear/2026-10-06-acai-sdbg-and-the-tyndale-bible-dictionary.md`) and measurements
@@ -176,8 +176,11 @@ dispatches by that key instead (`runner.py:376-378`).
 
 **By entry, through ACAI; by passage, not in this release.**
 
-- **By entry:** a step `type: dictionary`, `resource: tyndale-open-bible-dictionary`,
-  `entry: <id>` or `entries: [...]` — returns each article's title and body.
+- **By entry:** a step `type: dictionary`, `entries: [...]` of titles or ACAI `{id, title}`
+  pairs, or `acai: <an acai result>` for every article its entities name (D-T). Returns
+  `{"articles": [{"title", "name", "body"}], "attribution"}` (D-U). The text is Tyndale's own
+  release, reached through ACAI's titles (D-Q, B), its body verbatim HTML (D-R), the `*` in
+  Tyndale's titles disregarded when matching and kept when returned (D-S).
 - **By passage, through ACAI:** each ACAI entity carries its `dictionary` article id (§3), so "the
   articles for the people and places in this passage" is an `acai` step followed by a
   `dictionary` step, with no passage index of the dictionary at all.
@@ -369,6 +372,45 @@ warning (recommended); B — read 2CO 13:14 as `org` 13:13, which assumes an Eng
 nothing in the data states; C — leave them, warned on every lookup.
 
 => A — the Captain, 2026-10-15. A report to BibleAquifer is the Captain's.
+
+### Step 4's decisions, 2026-10-15
+
+Raised while preparing build step 4. Measured on `TyndaleOpen/tyndale-open-bible-dictionary`
+(6,010 articles, keyed by name — `PhilemonPerson` — with no numeric id) and
+`BibleAquifer/AquiferOpenBibleDictionary` (6,104, keyed by `content_id`). ACAI names 2,996 distinct
+Tyndale articles, by Aquifer's `content_id` and a title.
+
+**D-Q. Which copy `type: dictionary` serves.** ACAI's ids are Aquifer's: 2,991 of 2,996 resolve
+there. But Aquifer's text is Mission Mutual's plain-English adaptation — Tyndale: *"Christian known
+only from the letter addressed to him by the apostle Paul."*; Aquifer: *"Philemon was a Christian
+known only from the letter the apostle Paul wrote to him."* ACAI's titles reach Tyndale's own text
+exactly for 2,610. A — Aquifer's (recommended); B — Tyndale's, through ACAI's titles; C — both.
+
+=> B — the Captain, 2026-10-15.
+
+**D-R. The article body.** A — verbatim HTML (recommended); B — plain text; C — Markdown.
+
+=> A — the Captain, 2026-10-15.
+
+**D-S. The `*` in Tyndale's titles.** 1,831 of 6,010 Tyndale titles carry one (`Daric*`,
+`Philo*, Judaeus`); its README does not say what it marks. All 386 of ACAI's titles that miss
+exactly differ by it alone; disregarding it, all 2,996 resolve, each to one article, and no two
+Tyndale titles collide. A — disregard it when matching, keep it in the returned title
+(recommended); B — exact titles only.
+
+=> A — the Captain, 2026-10-15.
+
+**D-T. How a pipeline names the articles.** A — `entries:` (titles, or ACAI `{id, title}` pairs)
+or `acai:` (a whole `type: acai` result, every article its entities name, once) (recommended);
+B — `entries:` only.
+
+=> A — the Captain, 2026-10-15.
+
+**D-U. What the step returns.** A — `{"articles": [{"title", "name", "body"}], "attribution"}`, in
+the order asked, no repeats, a title Tyndale lacks named in a warning (recommended); B — a bare
+list.
+
+=> A — the Captain, 2026-10-15.
 
 ## 8. Not in this design
 

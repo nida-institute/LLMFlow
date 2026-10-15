@@ -84,6 +84,7 @@ packages = ["src/llmflow"]
 "data/versification-editions.json" = "llmflow/data/versification-editions.json"
 "data/include-families.json" = "llmflow/data/include-families.json"
 "data/acai.json" = "llmflow/data/acai.json"
+"data/tyndale.json" = "llmflow/data/tyndale.json"
 "data/lemma-frequency-greek.json" = "llmflow/data/lemma-frequency-greek.json"
 "data/lemma-frequency-hebrew.json" = "llmflow/data/lemma-frequency-hebrew.json"
 "data/parallel-passages.json" = "llmflow/data/parallel-passages.json"

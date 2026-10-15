@@ -4,6 +4,17 @@
 
 ### Added
 
+- **`type: dictionary` — Tyndale Open Bible Dictionary articles, by title** (#272). `entries:`
+  names them — titles, or ACAI's `{id, title}` pairs — or `acai:` takes a `type: acai` result and
+  fetches every article its entities name, so an `acai` step followed by a `dictionary` step
+  gives the articles for a passage. Returns `{"articles": [{title, name, body}], "attribution"}`:
+  `body` is the article's markup verbatim, `name` is Tyndale's own key, and `attribution` is the
+  credit its CC BY-SA 4.0 licence asks for. The text is Tyndale's own release, not the Aquifer
+  adaptation; ACAI's titles reach it, with Tyndale's `*` disregarded when matching — all 2,996
+  articles ACAI names resolve. Register the release with
+  `sp dataset add tyndale-open-bible-dictionary --path <clone>`. Declared in `data/tyndale.json`.
+  Guarded by `tests/test_dictionary_step.py` (15).
+
 - **`type: acai` — the people, places, groups, deities and things ACAI names in a passage**
   (#272). Each entity once — `type`, `label`, `description`, `lemmas`, and `dictionary`, every
   Tyndale Bible Dictionary article ACAI names for it as `{id, title}` — plus a verse index

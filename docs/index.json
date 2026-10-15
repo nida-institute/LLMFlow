@@ -317,6 +317,7 @@
         "llmflow.steps.acai",
         "llmflow.steps.alignment",
         "llmflow.steps.basex",
+        "llmflow.steps.dictionary",
         "llmflow.steps.duckdb",
         "llmflow.steps.for_each",
         "llmflow.steps.function",
@@ -3806,6 +3807,54 @@
       ]
     },
     {
+      "module": "llmflow.utils.dictionary",
+      "imports": [
+        "__future__",
+        "functools",
+        "json",
+        "lxml",
+        "pathlib",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "declaration",
+          "signature": "declaration() -> Dict[str, Any]",
+          "doc": "`data/tyndale.json`: the dataset id, where the articles lie, the language, the credit."
+        },
+        {
+          "name": "matching_key",
+          "signature": "matching_key(title: Any) -> str",
+          "doc": "A title as a request and an article are matched: without Tyndale's `*`."
+        },
+        {
+          "name": "_body",
+          "signature": "_body(item: Any) -> str",
+          "doc": "The markup inside an item's `<body>`, as the release writes it."
+        },
+        {
+          "name": "load",
+          "signature": "load(root: str) -> Dict[str, Dict[str, str]]",
+          "doc": "`{matching key: {title, name, body}}` for every article under *root*."
+        },
+        {
+          "name": "titles_in",
+          "signature": "titles_in(entries: Iterable[Any]) -> List[str]",
+          "doc": "The titles *entries* names: each a title, or an ACAI `{id, title}` pair."
+        },
+        {
+          "name": "titles_from_acai",
+          "signature": "titles_from_acai(result: Any) -> List[str]",
+          "doc": "Every article title the entities of a `type: acai` result name, in entity order."
+        },
+        {
+          "name": "articles_for",
+          "signature": "articles_for(titles: Iterable[str], root: Any) -> Tuple[List[Dict[str, str]], List[str]]",
+          "doc": "`(articles, missing titles)`: one article per distinct title, in the order first asked."
+        }
+      ]
+    },
+    {
       "module": "llmflow.utils.acai",
       "imports": [
         "__future__",
@@ -5400,6 +5449,22 @@
       ]
     },
     {
+      "module": "llmflow.steps.dictionary",
+      "imports": [
+        "llmflow.modules.logger",
+        "llmflow.utils.context",
+        "llmflow.utils.step_outputs",
+        "typing"
+      ],
+      "functions": [
+        {
+          "name": "run_dictionary_step",
+          "signature": "run_dictionary_step(step: Dict[str, Any], context: Dict[str, Any], pipeline_config: Dict[str, Any] | None = None) -> None",
+          "doc": ""
+        }
+      ]
+    },
+    {
       "module": "llmflow.steps.duckdb",
       "imports": [
         "llmflow.modules.logger",
@@ -6059,7 +6124,7 @@
     }
   ],
   "summary": {
-    "total_modules": 99,
-    "total_functions": 963
+    "total_modules": 101,
+    "total_functions": 971
   }
 }

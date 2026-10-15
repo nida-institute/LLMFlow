@@ -1152,6 +1152,14 @@
       "members": [],
       "primary_member": null
     },
+    "dictionary": {
+      "keys": [
+        "acai",
+        "entries"
+      ],
+      "members": [],
+      "primary_member": null
+    },
     "duckdb": {
       "keys": [
         "query_file"
@@ -1403,6 +1411,6 @@
   ],
   "summary": {
     "total_commands": 39,
-    "total_step_types": 20
+    "total_step_types": 21
   }
 }

@@ -983,6 +983,53 @@ nothing there. Rule `say-which-kind-of-nothing`.
 
 ---
 
+### type: `dictionary`
+
+Articles from the Tyndale Open Bible Dictionary, by title (#272).
+
+```yaml
+- name: articles
+  type: dictionary
+  entries: ["Philemon (Person)", "Daric"]   # titles, or ACAI {id, title} pairs
+  output: articles
+
+- name: articles_for_the_passage
+  type: dictionary
+  acai: ${entities}           # a type: acai result — every article its entities name
+  output: articles
+```
+
+**Required:** `output`, and exactly one of `entries` and `acai` — the step refuses neither or
+both. **Optional:** `saveas` and `append_to` as for any step.
+
+**An `acai` step followed by a `dictionary` step is how articles are reached by passage.** The
+dictionary's own passage links are not used: an article that cites a verse in passing is not
+thereby about it.
+
+```json
+{"articles": [{"title": "Philemon (Person)", "name": "PhilemonPerson",
+               "body": "<p class=\"h1\">PHILEMON (P<span class=\"lc\">erson</span>)</p>…"}],
+ "attribution": "Tyndale Open Bible Dictionary. Copyright (C) 2023 by Tyndale House Publishers. …"}
+```
+
+- **The text is Tyndale's own release**, not the Aquifer adaptation. ACAI names articles by the
+  adaptation's ids, which Tyndale's release does not carry, so an article is found by its title.
+- **Tyndale marks some titles with `*`** (`Daric*`). A request matches without it, and the
+  article comes back with its title as Tyndale wrote it.
+- `body` is the markup inside the article's `<body>`, verbatim — Tyndale's `?bref=` links to
+  verses and `?item=` links to other articles included. `name` is what an `?item=` link names.
+- Articles come in the order asked, each once. A title Tyndale lacks has no article and is named
+  in a warning.
+- `attribution` is the credit Tyndale's CC BY-SA 4.0 licence asks for. Output built from the
+  articles carries that licence.
+
+**The release is registered, not shipped:**
+`sp dataset add tyndale-open-bible-dictionary --path <clone of TyndaleOpen/tyndale-open-bible-dictionary>`.
+Without it, `sp lint` reports the dataset as missing and the run does not start. Declared in
+`data/tyndale.json`.
+
+---
+
 ### type: `scripture`
 
 Fetches one passage from one **named** resource. The resource is a name resolved through the
@@ -2171,7 +2218,7 @@ sp lint --pipeline pipelines/my-pipeline.yaml
 
 **Lint checks the resources a pipeline names before anything runs** — `resource:` on
 `scripture`, `parallel-passages` and `acai` steps, the dataset an `alignment` step's pairs live
-in, and the `ACAI` dataset an `acai` step reads.
+in, the `ACAI` dataset an `acai` step reads, and the dictionary a `dictionary` step reads.
 A resource this machine has not registered is an error, and so is an `include:` family whose
 path the registration does not name (`syntax` needs `lowfat_path`, `discourse` needs
 `discourse_path`). A resource, or a family, asked for only under a `condition:` is a warning

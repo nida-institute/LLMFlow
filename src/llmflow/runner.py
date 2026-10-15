@@ -29,6 +29,7 @@ from llmflow.steps.plugin import run_plugin_step
 from llmflow.steps.save import run_save_step
 from llmflow.steps.alignment import run_alignment_step
 from llmflow.steps.acai import run_acai_step
+from llmflow.steps.dictionary import run_dictionary_step
 from llmflow.steps.parallel_passages import run_parallel_passages_step
 from llmflow.steps.scripture import run_scripture_step
 from llmflow.steps.window import run_window_advance_step, run_window_step
@@ -367,6 +368,9 @@ def run_step(
 
             elif step_type == "acai":
                 run_acai_step(step, context, pipeline_config)
+
+            elif step_type == "dictionary":
+                run_dictionary_step(step, context, pipeline_config)
 
             elif step_type == "basex":
                 run_basex_step(step, context, pipeline_config)

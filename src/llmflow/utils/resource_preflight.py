@@ -105,6 +105,12 @@ def needs(steps: Iterable[Any], context: Mapping[str, Any]) -> Needs:
                 dataset = declaration()["dataset"]
                 if dataset not in found.datasets:
                     found.datasets.append(str(dataset))
+        elif kind == "dictionary":
+            from llmflow.utils.dictionary import declaration as dictionary_declaration
+
+            dataset = dictionary_declaration()["dataset"]
+            if dataset not in found.datasets:
+                found.datasets.append(str(dataset))
         elif kind == "alignment":
             from llmflow.steps.alignment import declared_pairs
 
