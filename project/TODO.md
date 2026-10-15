@@ -12,32 +12,53 @@
 > **Scope ruled by the Captain 2026-10-06:** *"the release after this one will focus on Helm and
 > Ears to Hear support."* No GitHub milestone exists; this section is the release's only declared
 > scope. `dev` declares 0.2.1.30 and `CHANGELOG.md` opens `## 0.2.1.30 (Not yet released)`
-> (`82fc834`). Neither half has a plan yet — the first act on each is a design document in
-> `project/plans/` for him to review.
+> (`82fc834`).
 
 1. **Helm → #271** — B and A, the Captain 2026-10-14 (`project/plans/design-helm-coordination.md`,
-   §6 answered A throughout). **Built 2026-10-14, uncommitted:** a `pending` status in
+   §6 answered A throughout). **Built, committed at `300728d`:** a `pending` status in
    `data/helm-sync.yaml`; this suite checks only this repository against its record; the report
    reads committed state; `--apply` replaced by `--note`; `EXEMPT_KEYS` and `HELM_EXEMPT` gone;
    `stage-commits` forked. Four files are `pending` on Helm. **Left, all Helm's:** commit its own
    uncommitted work, adopt the four from `--note`'s notes, its checksums and CI job (D1, D2), and
    D3 in its rules — in Helm, by Helm, never from here.
-2. **Ears to Hear support** — their request is
-   `collab/ears-to-hear/2026-10-06-acai-sdbg-and-the-tyndale-bible-dictionary.md`: ACAI served
-   for a passage, SDBG's definition and gloss for a Louw-Nida sense, the Tyndale Open Bible
-   Dictionary for a passage or an entry, and a confirmation. Measured 2026-10-06: `senses` on
-   `SBLGNT` carries the letter-level code, `"ln": "93.169a"` for Ἰησοῦς in MAT 19:1.
+2. **Ears to Hear support → #272** — `project/plans/design-ears-to-hear-resources.md`, decided.
+   **All four build steps committed and pushed:** lint refuses an undeclared step type
+   (`cb15dbc`), SDBG entries on `senses` (`51b6fff`), `type: acai` (`f2e3104`),
+   `type: dictionary` (`fd01eee`). Ears to Hear's `build-book.yaml` lints clean of everything
+   these touch (2026-10-15); its two remaining errors come from its own uncommitted edit, which
+   dropped `pericope_index` from `narrative_profile`. **Left, the Captain's:** any reply to Ears
+   to Hear — whose `get_scene_entities` may expect the older verse-grouped ACAI shape — and any
+   report to BibleAquifer that ACAI names 2CO 13:14, a verse `org` lacks.
+3. **#270, `install.sh` and `install.ps1` get 403 from the GitHub API** — in scope, the Captain
+   2026-10-15, with the issue's fixes 2 and 3: download from
+   `releases/latest/download/<asset>` rather than calling the API, reading the version from the
+   redirect; and print the response when a request fails. Both scripts. Not yet built.
+4. **`.claude/skills/release/SKILL.md` is stale** — in scope, the Captain 2026-10-15, to be fixed
+   before 0.2.1.30 is cut: reduce it to a pointer at `project/RELEASE_CHECKLIST.md`, the procedure
+   in force, plus the authority lines (the Captain tags and approves `pypi`; the agent never
+   publishes). Today it names the retired `build-release.yml`, checks PyPI for `llmflow`, and runs
+   `hatch publish`. `tests/test_release_skill_stays_with_the_engine.py` holds that it stays here.
+   **Done 2026-10-15**, in the commit after `fd01eee`: the skill is the pointer, and three tests
+   refuse the retired names.
+5. **A project's generated `sp/` files can lag the installed engine, and nothing says so** — in
+   scope, the Captain 2026-10-15. Reported by discourse-flow:
+   `collab/discourse-flow/2026-10-12-the-project-copy-of-the-rules-lags-the-machine-copy.md`.
+   Its `docs/ai-context/sp/rules.md` was regenerated before `065bf74` changed two rules, so a
+   session read two contradicting rules with equal authority. They ask whether the engine could
+   warn when a generated file differs from what this installation would write — naming the file
+   and the command, changing nothing — and leave where (`sp lint`, a session-start check) to us.
+   First act: a design document in `project/plans/` for the Captain. Any reply to discourse-flow
+   is his.
 
 **Raised for his decision, not in scope until he says so:**
 
-- **→ #270, `install.sh` and `install.ps1` get 403 from the GitHub API** — failed 0.2.1.29's
-  macOS install check on both attempts. Three possible fixes in the issue, none chosen.
+- **`sp lint` on a missing pipeline file crashes with a raw traceback** (`FileNotFoundError` from
+  `yaml_loader.py:45`), where it should say which path it could not find. Seen three times
+  2026-10-15. No issue yet.
 - **What rolls forward from 0.2.1.29** — every item in the section below that is not ticked or
   marked done: the `sp init --update` / `rules.md` defect, the unfiled `license_url` issue
   (`tmp/issue-abd-license-url.md`), #261's Q6 and §2a, BSB `\q` lines, and the two lists of
   untriaged findings. Each wants a ruling — in, out, or an issue — not a quiet fix.
-- **`.claude/skills/release/SKILL.md` is stale** — it describes the retired `build-release.yml`
-  and `hatch publish` of `llmflow`; `project/RELEASE_CHECKLIST.md` is the procedure in force.
 
 ### 🚢 0.2.1.29 — SHIPPED 2026-10-10. Its open items roll forward to the section above
 

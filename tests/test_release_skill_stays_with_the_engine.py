@@ -109,6 +109,18 @@ def test_release_hands_pushes_to_the_human(command: str):
         )
 
 
+@pytest.mark.parametrize("retired", ["build-release.yml", "hatch publish", "pypi.org/pypi/llmflow"])
+def test_release_names_no_retired_procedure(retired: str):
+    """The skill a session loads to release must not send it to a workflow, a publish command or
+    a PyPI project that is no longer the one in force."""
+    assert retired not in REPO_SKILL.read_text(encoding="utf-8")
+
+
+def test_release_defers_to_the_checklist():
+    """One procedure, kept in one place: the skill points at it rather than restating it."""
+    assert "project/RELEASE_CHECKLIST.md" in REPO_SKILL.read_text(encoding="utf-8")
+
+
 def test_release_checks_it_is_on_main():
     """A tag on `dev` publishes work that has not been through the `dev` -> `main` merge."""
     text = REPO_SKILL.read_text(encoding="utf-8")
