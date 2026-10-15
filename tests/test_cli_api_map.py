@@ -103,7 +103,7 @@ def test_every_step_type_the_schema_declares_is_in_the_map():
 
     walk(PIPELINE_SCHEMA)
     assert declared, "no step types discovered — the walk found nothing to check"
-    assert set(committed()["step_types"]) == declared
+    assert declared <= set(committed()["step_types"])
 
 
 def test_a_step_type_with_members_reports_them_and_which_is_primary():
@@ -118,3 +118,42 @@ def test_a_step_type_without_members_says_so_rather_than_omitting_the_key():
     llm = committed()["step_types"]["llm"]
     assert llm["members"] == []
     assert llm["primary_member"] is None
+
+
+#: The step types a built-in plugin provides. The runner dispatches them and `sp lint` accepts
+#: them, so a project can write them — and could not learn they exist while the map left them out.
+BUILT_IN_PLUGIN_TYPES = {
+    "coverage_validator",
+    "csv",
+    "insert_references",
+    "json_schema_validator",
+    "tsv",
+    "xpath",
+    "xslt",
+}
+
+
+def project_map(tmp_path, monkeypatch) -> dict:
+    """The map `sp init` writes into a new project."""
+    from llmflow.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    main(["init"])
+    return json.loads((tmp_path / "docs" / "cli-api.json").read_text(encoding="utf-8"))
+
+
+class TestBuiltInPluginTypes:
+    def test_are_in_the_map_a_project_is_given(self, tmp_path, monkeypatch):
+        listed = set(project_map(tmp_path, monkeypatch)["step_types"])
+        assert BUILT_IN_PLUGIN_TYPES <= listed, sorted(BUILT_IN_PLUGIN_TYPES - listed)
+
+    def test_say_their_keys_are_undeclared_rather_than_that_they_have_none(
+        self, tmp_path, monkeypatch
+    ):
+        """No schema branch declares a plugin's keys, so the map cannot know them.
+
+        `null` is "not declared"; `[]` would claim the type takes no keys of its own, which is
+        false for every one of them. `say-which-kind-of-nothing`.
+        """
+        xpath = project_map(tmp_path, monkeypatch)["step_types"]["xpath"]
+        assert xpath == {"keys": None, "members": None, "primary_member": None}

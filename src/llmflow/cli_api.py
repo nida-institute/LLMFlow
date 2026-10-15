@@ -14,8 +14,8 @@ renderer there could not be reached by `sp init` in an installed project. One im
 here, two callers: `sp init` writes it into a project, and `tools/index_cli_api.py` writes this
 repository's own copy from the pre-commit hook.
 
-Everything derives from `build_parser()` and `PIPELINE_SCHEMA`, so nothing here is a second
-encoding that can drift from what the program does.
+Everything derives from `build_parser()`, `PIPELINE_SCHEMA` and the built-in plugins' step types,
+so nothing here is a second encoding that can drift from what the program does.
 """
 
 from __future__ import annotations
@@ -44,8 +44,9 @@ ABOUT = {
     "if_something_is_missing": "Where the language cannot express what you need, that is a "
                                "missing construct worth reporting — not a reason to import the "
                                "package and reach past it.",
-    "generated_by": "llmflow.cli_api, from build_parser() and PIPELINE_SCHEMA. Editing this "
-                    "file by hand does not survive regeneration.",
+    "generated_by": "llmflow.cli_api, from build_parser(), PIPELINE_SCHEMA and the built-in "
+                    "plugins' step types. Editing this file by hand does not survive "
+                    "regeneration.",
 }
 
 
@@ -117,7 +118,14 @@ def step_types() -> Dict[str, dict]:
             "members": members,
             "primary_member": members[0] if members else None,
         }
-    return out
+    # A built-in plugin's type is one a pipeline can use — the runner dispatches it and lint
+    # accepts it — but no schema branch declares its keys. `null` says "not declared"; `[]`
+    # would claim it has none.
+    from llmflow.plugins.loader import BUILTIN_STEP_TYPES
+
+    for name in sorted(set(BUILTIN_STEP_TYPES) - set(out)):
+        out[name] = {"keys": None, "members": None, "primary_member": None}
+    return dict(sorted(out.items()))
 
 
 def cli_api_map() -> dict:

@@ -64,6 +64,12 @@
   `tests/test_install_scripts.py` (8), which runs `install.sh` against a stand-in `curl`;
   `install.ps1` is checked by reading, and `release.yml`'s `verify-install` remains the proof on
   all three systems.
+- **`docs/cli-api.json` lists every step type a pipeline can use.** It omitted the seven that
+  built-in plugins provide — `coverage_validator`, `csv`, `insert_references`,
+  `json_schema_validator`, `tsv`, `xpath`, `xslt` — though the runner dispatches them and `sp lint`
+  accepts them, so a project reading the public API could not learn they exist. Their keys are
+  not declared by the schema, so each reads `"keys": null` — "not declared", where `[]` would
+  claim they take none. Projects get the corrected map from `sp init --update`.
 - **A Louw-Nida code in `include: [senses]` is pinned as the source writes it** (#272) —
   letter-level (`93.169a`) and, where Macula gives a word two senses, both codes
   (`10.24 33.19`). Behaviour is unchanged; tests now hold it.

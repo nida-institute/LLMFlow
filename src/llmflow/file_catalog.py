@@ -82,9 +82,9 @@ class Source(enum.Enum):
       here with a `purpose:`. Holding that list in a constant instead would be the failure this
       module's docstring blames for three conventions going unshipped for months (#204, #181).
     - `docs/cli-api.json` is the **public surface** — every command and step type, from
-      `build_parser()` and `PIPELINE_SCHEMA`. It ships because a project needs to answer "what
-      does this engine offer?" without importing the package, which is the one thing a project
-      is told not to do.
+      `build_parser()`, `PIPELINE_SCHEMA` and the built-in plugins' step types. It ships
+      because a project needs to answer "what does this engine offer?" without importing the
+      package, which is the one thing a project is told not to do.
     """
 
     NONE = "none"
