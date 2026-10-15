@@ -1,14 +1,14 @@
 # HANDOFF — 2026-10-15
 
-Written against `2faed54` (level with `origin/dev`). This session's commits: `d667420` #270,
-`2b418f6` the public API's step types, `dc934b7` GSP, `2faed54`
-`docs/ai-context/project/rules.md` rule 1 — tests drive `sp`.
+Written against `dd58f4f`. This session's commits: `d667420` #270, `2b418f6` the public API's
+step types, `dc934b7` GSP, `2faed54` `docs/ai-context/project/rules.md` rule 1 — tests drive
+`sp`, `dd58f4f` this file's citations.
 
 ## ▶ NEXT ACTION
 
 **Convert #272's test files to the `sp` CLI**, one file per step:
-1. `tests/test_lint_refuses_undeclared_types.py` — **converted, uncommitted**: 31 pass through
-   `sp lint --json`; each claim shown to fail when broken.
+1. `tests/test_lint_refuses_undeclared_types.py` — **converted**, in the commit after `dd58f4f`:
+   31 pass through `sp lint --json`; each claim shown to fail when broken.
 2. `tests/test_sdbg_senses.py`, 3. `tests/test_acai_step.py`, 4. `tests/test_dictionary_step.py`
    — not started.
 
