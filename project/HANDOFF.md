@@ -1,28 +1,27 @@
 # HANDOFF — 2026-10-15
 
-Written against `dc934b7` (level with `origin/dev`), for the commit that follows it: rule 1,
-tests drive `sp`. Before it: `d667420` #270, `2b418f6` the public API's step types, `dc934b7` GSP.
+Written against `2faed54` (level with `origin/dev`). This session's commits: `d667420` #270,
+`2b418f6` the public API's step types, `dc934b7` GSP, `2faed54`
+`docs/ai-context/project/rules.md` rule 1 — tests drive `sp`.
 
 ## ▶ NEXT ACTION
 
-**Confirm the rule-1 commit landed** — `git log -1` should not be `dc934b7` — and `git show HEAD`.
-It is the Captain's to run from `tmp/commit-4.txt`; delete that file by name once it exists.
-
-Then **convert #272's test files to the `sp` CLI**, one file per step, in this order:
-`tests/test_lint_refuses_undeclared_types.py`, `tests/test_sdbg_senses.py`,
-`tests/test_acai_step.py`, `tests/test_dictionary_step.py`.
+**Convert #272's test files to the `sp` CLI**, one file per step:
+1. `tests/test_lint_refuses_undeclared_types.py` — **converted, uncommitted**: 31 pass through
+   `sp lint --json`; each claim shown to fail when broken.
+2. `tests/test_sdbg_senses.py`, 3. `tests/test_acai_step.py`, 4. `tests/test_dictionary_step.py`
+   — not started.
 
 ---
 
 ## Active threads
 
-### 1. The rule-1 commit
+### 1. `2faed54` was RED
 
-`docs/ai-context/project/rules.md` rule 1 (written by the AI at the Captain's word),
-`tools/index_signatures.py`, `tests/test_internals_map_declares_itself.py`, `docs/python-api.md`,
-`project/TODO.md` GOAL 2, this file. Its `docs/index.json` line landed early, in `d667420`.
-Verify: `hatch run pytest tests/test_internals_map_declares_itself.py` → 3 passed. Full suite on
-this tree: 6393 passed, 27 skipped.
+Its handoff cited a project rule by number without naming its file, which
+`tests/test_rules_are_cited_by_id.py` refuses — the full suite had run before the handoff was
+rewritten, not after. This file's citations are fixed in
+the commit after it. Verify: `hatch run pytest tests/test_rules_are_cited_by_id.py`.
 
 ### 2. Tests drive the `sp` CLI — the Captain, 2026-10-15
 
@@ -53,7 +52,8 @@ Item 5 (version skew, design first) is not started.
 
 ## Decisions
 
-**Awaiting the Captain:** whether #250 is retitled or recounted under the new rule 1; whether
+**Awaiting the Captain:** whether #250 is retitled or recounted under the new
+`project/rules.md` rule 1; whether
 `sp lint`'s raw traceback on a missing pipeline file is in 0.2.1.30; whether
 `RELEASE_CHECKLIST.md` §6–7 should say the human runs the merge and the tag push.
 
