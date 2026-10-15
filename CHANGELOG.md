@@ -38,6 +38,11 @@
   says so. Declared per resource in `include-families.json`. Guarded by
   `tests/test_sdbg_senses.py` (19).
 
+- **Rule `commit-status-is-gsp` — one word for the state of a commit the human made.** `GSP` is
+  committed, `git show` run, pushed; a dash marks a step skipped (`G-P`, `GS-`). The agent still
+  runs `git show HEAD` itself on reading it, and a missing `P` leaves the push the human's. In the
+  shipped rules, so projects get it from `sp init --update` or `sp doctor`.
+
 ### Changed
 
 - **A change to a discipline shared with Human at the Helm travels in two acts, one per

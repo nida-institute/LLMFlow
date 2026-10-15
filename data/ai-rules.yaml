@@ -341,6 +341,16 @@ rules:
     a session in a client project heard on the subject. The pull request was added 2026-10-07 at
     the workshop collab''s ruling F — the pull request is what runs CI, so opening one is the act
     that submits the work — and `commit-ready` was rewritten the same day to hand all four over.'
+- id: commit-status-is-gsp
+  enforcement: judgment
+  scope: none
+  rule: '**`GSP` reports a commit the human made: G committed, S ran `git show`, P pushed.** A dash
+    replaces a step skipped — `G-P` is committed and pushed, not shown; `GS-` is committed and
+    shown, not pushed. On reading it, the agent still runs `git show HEAD` itself and checks that
+    the commit holds what was staged, and treats a missing `P` as a push that is still the
+    human''s.'
+  note: 'Added 2026-10-15 at the Captain''s direction, who reports each commit he runs and wanted
+    one word for it; shipped so the same shorthand means the same thing in every project.'
 - id: branching-workflow
   enforcement: guardable
   scope: project
