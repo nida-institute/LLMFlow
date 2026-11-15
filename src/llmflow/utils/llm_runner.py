@@ -4,7 +4,7 @@ import llm
 
 from llmflow.exceptions import ModerationError, TruncationError
 from llmflow.modules.json_parser import parse_llm_json_response
-from llmflow.modules.llm_response_clean import clean_llm_response_text
+from llmflow.modules.llm_response_clean import strip_outer_fence
 from llmflow.modules.logger import Logger
 
 logger = Logger()
@@ -474,7 +474,10 @@ def _call_model(model, prompt: str, config: Dict[str, Any]) -> dict:
 
     response = model.prompt(prompt, **options)
     raw_response = response.text()
-    cleaned_response = clean_llm_response_text(raw_response)
+    # Only a fence around the whole answer is removed. Searching the answer for the first fenced
+    # block, or the first [...] or {...}, belongs to JSON parsing: done to a markdown answer it
+    # kept `[x]` from a review's checklist and threw the review away.
+    cleaned_response = strip_outer_fence(raw_response)
 
     # Capture token usage from the llm package Response object. `details` is whatever else the
     # provider reported about the call — cached tokens, reasoning tokens — which is optimization

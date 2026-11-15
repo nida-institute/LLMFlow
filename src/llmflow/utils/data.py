@@ -1,6 +1,7 @@
 """Data manipulation and transformation utilities"""
 
 import json
+import re
 from pathlib import Path
 
 import yaml
@@ -928,15 +929,18 @@ def _verse_number(item) -> int | None:
     return None
 
 
-def _filter_para_content(content: list, start_verse: int, end_verse: int) -> list:
+def _filter_para_content(
+    content: list, start_verse: int, end_verse: int, current_verse: int | None = None
+) -> list:
     """
     Filter a para's content list to items belonging to verses [start_verse, end_verse].
 
     Verse markers reset the current verse number; text/inline nodes following a
-    verse marker belong to that verse.  Items before any verse marker (e.g. a
-    leading section-head) are excluded.
+    verse marker belong to that verse.  *current_verse* is the verse the paragraph opens
+    in — the last verse of the paragraph before it, since a verse of poetry runs on
+    across `\\q2` paragraphs that carry no marker. With None, items before any verse
+    marker are excluded.
     """
-    current_verse = None
     result = []
     for item in content:
         v = _verse_number(item)
@@ -947,6 +951,21 @@ def _filter_para_content(content: list, start_verse: int, end_verse: int) -> lis
         elif current_verse is not None and current_verse > end_verse:
             break
     return result
+
+
+def _last_verse(content: list, current_verse: int | None) -> int | None:
+    """The verse a para's content ends in, given the verse it opens in."""
+    for item in content:
+        v = _verse_number(item)
+        if v is not None:
+            current_verse = v
+    return current_verse
+
+
+#: Paragraph markers that are not verse text: headings, parallel-passage references,
+#: speaker labels and remarks. A verse running on across paragraphs does not run into these.
+#: (`d`, a Psalm's superscription, is verse text in Hebrew numbering and is not listed.)
+_NON_VERSE_PARAS = re.compile(r"^(s\d*|ms\d*|mr|sr|r|sp|sd\d*|cl|cd|rem|restore|h\d*|toc\d*|mt\d*|is\d*|ip.*|iot|io\d*)$")
 
 
 def _extract_verse_range_usj(chapter_usj: dict, start_verse: int, end_verse: int) -> dict:
@@ -960,6 +979,9 @@ def _extract_verse_range_usj(chapter_usj: dict, start_verse: int, end_verse: int
     content = chapter_usj.get("content", [])
     result_content = []
     found_any_verse = False
+    # The verse the previous paragraph ended in: a paragraph without a verse marker of its
+    # own (a `\q2` line of poetry) continues it.
+    running_verse: int | None = None
 
     for item in content:
         if not isinstance(item, dict):
@@ -976,7 +998,10 @@ def _extract_verse_range_usj(chapter_usj: dict, start_verse: int, end_verse: int
 
         # Para-level node: filter its content array
         if "content" in item:
-            filtered = _filter_para_content(item["content"], start_verse, end_verse)
+            para_marker = str(item.get("marker") or "")
+            carried = None if _NON_VERSE_PARAS.match(para_marker) else running_verse
+            filtered = _filter_para_content(item["content"], start_verse, end_verse, carried)
+            running_verse = _last_verse(item["content"], carried)
             if filtered:
                 found_any_verse = True
                 result_content.append({**item, "content": filtered})
