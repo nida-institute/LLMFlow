@@ -54,3 +54,28 @@ def clean_llm_response_text(text: str) -> str:
 
     # No JSON found, return as-is
     return text.strip()
+
+
+_OUTER_FENCE = re.compile(r"\A```([\w-]*)[ \t]*\r?\n(.*)\r?\n```[ \t]*\Z", re.DOTALL)
+_FENCE_LINE = re.compile(r"^[ \t]*```", re.MULTILINE)
+
+
+def strip_outer_fence(text: str) -> str:
+    """*text* without a code fence that wraps the whole of it, and nothing else removed.
+
+    A text answer is the answer: a review whose checklist reads `[x]`, an analysis with a
+    diagram in a fenced block, must reach the pipeline whole. Only when the model has wrapped
+    its entire answer in one fence is the fence taken off: a fence with nothing fenced inside
+    it, or a ```` ```markdown ```` (or ```` ```md ````) fence whose inner fences pair up — a
+    document with a diagram in it, wrapped as a whole. Two separate blocks that happen to open
+    and close the answer are left alone. JSON is dug out of surrounding prose later, by the JSON
+    parser, for JSON steps only.
+    """
+    stripped = text.strip()
+    match = _OUTER_FENCE.match(stripped)
+    if match:
+        info, inner = match.group(1).lower(), match.group(2)
+        fences = len(_FENCE_LINE.findall(inner))
+        if fences == 0 or (info in ("markdown", "md") and fences % 2 == 0):
+            return inner.strip()
+    return stripped

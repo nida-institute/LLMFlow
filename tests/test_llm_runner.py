@@ -376,7 +376,7 @@ class TestCallLLM:
 class TestCallModelInternal:
     """Test internal model calling helper."""
 
-    @patch("llmflow.utils.llm_runner.clean_llm_response_text")
+    @patch("llmflow.utils.llm_runner.strip_outer_fence")
     def test_call_model_filters_parameters(self, mock_clean):
         """Should only pass valid LLM parameters to model."""
         mock_model = Mock()
@@ -402,7 +402,7 @@ class TestCallModelInternal:
         assert "model" not in call_kwargs
         assert "custom_field" not in call_kwargs
 
-    @patch("llmflow.utils.llm_runner.clean_llm_response_text")
+    @patch("llmflow.utils.llm_runner.strip_outer_fence")
     def test_call_model_cleans_response(self, mock_clean):
         """Should clean response text."""
         mock_model = Mock()
@@ -416,7 +416,7 @@ class TestCallModelInternal:
         assert result["content"] == "{}"
         mock_clean.assert_called_once_with("```json\n{}\n```")
 
-    @patch("llmflow.utils.llm_runner.clean_llm_response_text")
+    @patch("llmflow.utils.llm_runner.strip_outer_fence")
     def test_call_model_all_valid_params(self, mock_clean):
         """Should pass all valid LLM parameters."""
         mock_model = Mock()
@@ -448,7 +448,7 @@ class TestCallModelInternal:
         assert call_kwargs["presence_penalty"] == 0.5
         assert call_kwargs["seed"] == 42
 
-    @patch("llmflow.utils.llm_runner.clean_llm_response_text")
+    @patch("llmflow.utils.llm_runner.strip_outer_fence")
     def test_call_model_empty_config(self, mock_clean):
         """Empty config should work."""
         mock_model = Mock()
@@ -464,7 +464,7 @@ class TestCallModelInternal:
         call_kwargs = mock_model.prompt.call_args[1]
         assert call_kwargs == {}
 
-    @patch("llmflow.utils.llm_runner.clean_llm_response_text")
+    @patch("llmflow.utils.llm_runner.strip_outer_fence")
     def test_call_model_returns_usage_dict(self, mock_clean):
         """_call_model should return a dict with content and usage keys."""
         mock_model = Mock()
@@ -487,7 +487,7 @@ class TestCallModelInternal:
         assert result["usage"]["completion_tokens"] == 50
         assert result["usage"]["total_tokens"] == 150
 
-    @patch("llmflow.utils.llm_runner.clean_llm_response_text")
+    @patch("llmflow.utils.llm_runner.strip_outer_fence")
     def test_call_model_usage_falls_back_to_zero_on_error(self, mock_clean):
         """If the llm package does not expose usage, tokens default to 0."""
         mock_model = Mock()

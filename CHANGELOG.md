@@ -59,6 +59,16 @@
 
 ### Fixed
 
+- **A markdown answer was cut down to its first code block or bracket.** Every model answer
+  went through the cleaner written for JSON, which returns the first fenced block, or failing
+  that the first balanced `[...]` or `{...}`. For a text step that discarded the answer,
+  silently: in a run of hebrew-poetry-features on Psalm 23, six of seven reviews were saved as
+  `[x]` (the first ticked checkbox), a revision as `[X.X]` (a score placeholder), and two
+  drafts as the contents of their first fenced block, and the steps after them worked from
+  those fragments. A text answer now loses only a fence that wraps the whole of it; JSON is
+  still dug out of surrounding prose by the JSON parser, for JSON steps. Guarded by
+  `tests/test_markdown_answer_kept_whole.py` (6).
+
 - **A USFM verse of poetry kept only its first line.** In USFM a verse that runs over several
   `\q1`/`\q2` paragraphs carries its verse marker on the first of them only, and the verse-range
   filter tracked the current verse per paragraph, so every continuation line was dropped. The
