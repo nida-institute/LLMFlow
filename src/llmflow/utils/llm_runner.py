@@ -867,9 +867,11 @@ async def _run_with_responses_api(
 
                     logger.debug(f"✅ LLM completed without requesting tools. Output length: {len(output_text)}")
 
-                    # Parse JSON if requested
+                    # Parse JSON if requested; a text answer loses only a fence around all of it
                     if output_type.lower() == "json":
                         output_text = parse_llm_json_response(output_text)
+                    else:
+                        output_text = strip_outer_fence(output_text)
 
                     # Return content with token usage
                     return {
@@ -1125,9 +1127,11 @@ async def _run_with_chat_completions(
                 logger.debug("✅ LLM completed without requesting tools")
                 final_content = message.content or ""
 
-                # Parse JSON if requested
+                # Parse JSON if requested; a text answer loses only a fence around all of it
                 if output_type.lower() == "json":
                     final_content = parse_llm_json_response(final_content)
+                else:
+                    final_content = strip_outer_fence(final_content)
 
                 # Return content with token usage
                 return {
@@ -1226,11 +1230,14 @@ async def _run_with_chat_completions(
 
         # If we hit max iterations without finishing
         logger.debug(f"⚠️  Max MCP iterations ({max_iterations}) reached")
-        final_content = (
-            message.content
-            if message is not None
-            else "" or "Error: Maximum tool calling iterations exceeded"
-        )
+        final_content = message.content if message is not None else None
+        if not final_content:
+            # The model is still asking for tools: there is no answer to return, and an empty
+            # one would only fail later, in the JSON parser, as "expected string ... NoneType".
+            raise RuntimeError(
+                f"Step '{step_name}': the model was still calling tools after {max_iterations} "
+                f"round(s) and gave no answer. Raise mcp.max_iterations for this step."
+            )
 
         # Parse JSON if requested
         if output_type.lower() == "json":

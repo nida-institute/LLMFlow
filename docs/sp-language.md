@@ -442,6 +442,8 @@ working directory on `sys.path`, which is where a project's own `plugins/` packa
 - `llmflow.utils.io.save_json` — save JSON to file
 - `llmflow.utils.data.flatten_json_to_markdown` — convert JSON to markdown
 - `llmflow.utils.data.identity` — pass through data unchanged
+- `llmflow.utils.markdown_sections.merge_sections(markdown, additions)` — place a model's additions under a Markdown document's headings, so the model returns only what it adds and the document is never rewritten. `additions` is `{intro, sections: [{heading, before, after}], end}` (or its JSON string): `intro` ends the text under the title, each section's `before` follows the heading whose first word is `heading` (`I`, `I.1`; a trailing period is ignored) and its `after` ends that heading's text, `end` ends the document. An addition for a heading the document lacks is added at the end under "Not placed". Headings inside fenced code are text.
+- `llmflow.utils.reference_coverage.reference_coverage(references, text, title="Reference coverage")` — a Markdown report of which Bible references appear in `text`: counts, PASS or FAIL, and the missing ones by name. `references` is a list of strings, a list of `{reference}` objects, or `{references: [...]}`, or a JSON string of one; a reference is present when its book, chapter and verse appear together (`Mark 3:21` is not found in `Mark 3:2`).
 
 #### `parse_bible_reference` and versification
 
