@@ -38,6 +38,17 @@
   says so. Declared per resource in `include-families.json`. Guarded by
   `tests/test_sdbg_senses.py` (19).
 
+- **`merge_sections` and `reference_coverage` — additions and an audit no model rewrites.** A
+  model asked to add to a document and return it whole also returns it changed: in
+  semdom-greek-lexicon, a step asked to add definitions to an entry of 37 references, "keeping
+  every reference", kept 14, and the model asked to audit the result reported 35.
+  `llmflow.utils.markdown_sections.merge_sections` places a model's additions (`intro`, per-heading
+  `before` and `after`, `end`) under the document's headings, so the document reaches the result
+  whole; an addition for a heading it lacks is kept under "Not placed".
+  `llmflow.utils.reference_coverage.reference_coverage` reports which of a list of Bible
+  references a text holds, naming the missing ones. Both are `type: function` steps. Guarded by
+  `tests/test_markdown_sections.py` (6).
+
 - **Rule `commit-status-is-gsp` — one word for the state of a commit the human made.** `GSP` is
   committed, `git show` run, pushed; a dash marks a step skipped (`G-P`, `GS-`). The agent still
   runs `git show HEAD` itself on reading it, and a missing `P` leaves the push the human's. In the
@@ -75,6 +86,13 @@
 - **An `xslt` step failed on Windows with "Invalid URI file:///C:/...".** Saxon could not turn a
   relative stylesheet path, written with backslashes, into a URI. It is given an absolute path.
   Both guarded by `tests/test_windows_safe_paths.py` (3).
+- **A step with MCP tools kept a fence around its whole answer, and running out of rounds
+  failed obscurely.** The whole-answer fence came off only on the path without tools, so a
+  quote-checking step with Bible lookups left its entry wrapped in ```` ```markdown ````. Both
+  tool paths now treat a text answer as the path without tools does. A step still calling tools
+  when `mcp.max_iterations` ran out returned no answer and failed in the JSON parser ("expected
+  string or bytes-like object, got 'NoneType'"); it now stops saying the model was still calling
+  tools and to raise `mcp.max_iterations`. Guarded by `tests/test_mcp_text_answer.py` (3).
 
 - **A USFM verse of poetry kept only its first line.** In USFM a verse that runs over several
   `\q1`/`\q2` paragraphs carries its verse marker on the first of them only, and the verse-range
