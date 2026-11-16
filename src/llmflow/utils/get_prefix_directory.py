@@ -24,6 +24,7 @@ def get_prefix_directory(
 
     Examples:
         get_prefix_directory("σύ.md") -> "συ"
+        get_prefix_directory("ὁ.audit.md") -> "ο"
         get_prefix_directory("Ἀβαδδών.md", prefix_length=3) -> "αβα"
         get_prefix_directory("G1234_ἀγάπη.md", prefix_delimiter="_") -> "g1234"
         get_prefix_directory("H5921_עַל.md", prefix_delimiter="_") -> "h5921"
@@ -37,4 +38,7 @@ def get_prefix_directory(
         length = prefix_length if prefix_length is not None else 2
         prefix = normalized[:length]
 
-    return prefix.lower()
+    # A one-letter name with a further extension ("ὁ.audit.md", stem "ὁ.audit") would give "ο.".
+    # Windows refuses a folder name ending in a period or space, and a repository holding one
+    # cannot be checked out there, so they are trimmed: the prefix ends where the name does.
+    return prefix.rstrip(". ").lower()

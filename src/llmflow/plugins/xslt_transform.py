@@ -41,9 +41,10 @@ def execute(config: dict) -> str:
     with PySaxonProcessor(license=False) as proc:
         xslt_processor = proc.new_xslt30_processor()
 
-        # Compile stylesheet
+        # Compile stylesheet. Saxon is given an absolute path: on Windows it cannot turn a
+        # relative path, written with backslashes, into a URI ("Invalid URI file:///C:/...").
         try:
-            executable = xslt_processor.compile_stylesheet(stylesheet_file=str(xslt_path))
+            executable = xslt_processor.compile_stylesheet(stylesheet_file=str(xslt_path.resolve()))
         except Exception as e:
             logger.error(f"❌ Failed to compile XSLT stylesheet: {e}")
             raise
@@ -56,7 +57,7 @@ def execute(config: dict) -> str:
                 result = executable.transform_to_string(xdm_node=proc.parse_xml(xml_text=xml_string))
             else:
                 logger.debug(f"🔧 Loading XML from: {xml_path}")
-                result = executable.transform_to_string(source_file=str(xml_path))
+                result = executable.transform_to_string(source_file=str(Path(xml_path).resolve()))
 
         except Exception as e:
             logger.error(f"❌ XSLT transformation failed: {e}")

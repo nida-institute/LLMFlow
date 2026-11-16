@@ -68,6 +68,13 @@
   those fragments. A text answer now loses only a fence that wraps the whole of it; JSON is
   still dug out of surrounding prose by the JSON parser, for JSON steps. Guarded by
   `tests/test_markdown_answer_kept_whole.py` (6).
+- **`group_by_prefix` could make a folder Windows cannot hold.** A one-letter name with a further
+  extension, `ὁ.audit.md`, was filed under `ο.`; Windows refuses a name ending in a period, and
+  semdom-greek-lexicon, which held two such folders, could not be cloned there. The prefix now
+  ends where the name does: a trailing period or space is trimmed, and `ὁ.audit.md` goes to `ο`.
+- **An `xslt` step failed on Windows with "Invalid URI file:///C:/...".** Saxon could not turn a
+  relative stylesheet path, written with backslashes, into a URI. It is given an absolute path.
+  Both guarded by `tests/test_windows_safe_paths.py` (3).
 
 - **A USFM verse of poetry kept only its first line.** In USFM a verse that runs over several
   `\q1`/`\q2` paragraphs carries its verse marker on the first of them only, and the verse-range
